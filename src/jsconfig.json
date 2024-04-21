@@ -1,0 +1,26 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es6",
+		"baseUrl": "./",
+		"moduleResolution": "node",
+		"resolveJsonModule": true,
+		"paths": {
+			"@configs/*": ["./configs/*"],
+			"@constants/*": ["./constants/*"],
+			"@controllers/*": ["./controllers/*"],
+			"@db/*": ["./db/*"],
+			"@database/*": ["./database/*"],
+			"@generics/*": ["./generics/*"],
+			"@health-checks/*": ["./health-checks/*"],
+			"@helpers/*": ["./helpers/*"],
+			"@middlewares/*": ["./middlewares/*"],
+			"@public/*": ["./public/*"],
+			"@requests/*": ["./requests/*"],
+			"@routes/*": ["./routes/*"],
+			"@services/*": ["./services/*"],
+			"@validators/*": ["./validators/*"]
+		}
+	},
+	"exclude": ["node_modules", "@shelf/jest-mongodb"]
+}
