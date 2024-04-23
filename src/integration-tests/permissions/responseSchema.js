@@ -68,7 +68,7 @@ const updateSchema = {
 					type: 'string',
 				},
 				request_type: {
-					type: array,
+					type: 'array',
 					items: [
 						{
 							type: 'string',
@@ -123,7 +123,6 @@ const deleteSchema = {
 }
 
 const listSchema = {
-	$schema: 'http://json-schema.org/draft-04/schema#',
 	type: 'object',
 	properties: {
 		responseCode: {
@@ -170,93 +169,6 @@ const listSchema = {
 									},
 									required: ['id', 'code', 'module', 'request_type', 'api_path', 'status'],
 								},
-								{
-									type: 'object',
-									properties: {
-										id: {
-											type: 'integer',
-										},
-										code: {
-											type: 'string',
-										},
-										module: {
-											type: 'string',
-										},
-										request_type: {
-											type: 'array',
-											items: [
-												{
-													type: 'string',
-												},
-											],
-										},
-										api_path: {
-											type: 'string',
-										},
-										status: {
-											type: 'string',
-										},
-									},
-									required: ['id', 'code', 'module', 'request_type', 'api_path', 'status'],
-								},
-								{
-									type: 'object',
-									properties: {
-										id: {
-											type: 'integer',
-										},
-										code: {
-											type: 'string',
-										},
-										module: {
-											type: 'string',
-										},
-										request_type: {
-											type: 'array',
-											items: [
-												{
-													type: 'string',
-												},
-											],
-										},
-										api_path: {
-											type: 'string',
-										},
-										status: {
-											type: 'string',
-										},
-									},
-									required: ['id', 'code', 'module', 'request_type', 'api_path', 'status'],
-								},
-								{
-									type: 'object',
-									properties: {
-										id: {
-											type: 'integer',
-										},
-										code: {
-											type: 'string',
-										},
-										module: {
-											type: 'string',
-										},
-										request_type: {
-											type: 'array',
-											items: [
-												{
-													type: 'string',
-												},
-											],
-										},
-										api_path: {
-											type: 'string',
-										},
-										status: {
-											type: 'string',
-										},
-									},
-									required: ['id', 'code', 'module', 'request_type', 'api_path', 'status'],
-								},
 							],
 						},
 						count: {
@@ -271,6 +183,10 @@ const listSchema = {
 		meta: {
 			type: 'object',
 			properties: {
+				formsVersion: {
+					type: 'array',
+					items: {},
+				},
 				correlation: {
 					type: 'string',
 				},
@@ -278,7 +194,7 @@ const listSchema = {
 					type: 'string',
 				},
 			},
-			required: ['correlation', 'meetingPlatform'],
+			required: ['formsVersion', 'correlation', 'meetingPlatform'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],

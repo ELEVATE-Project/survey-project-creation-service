@@ -3,9 +3,10 @@ var defaults = require('superagent-defaults')
 const { faker } = require('@faker-js/faker')
 const crypto = require('crypto')
 const common = require('@constants/common')
-let baseURL = 'http://localhost:3000'
+let baseURL = 'http://localhost:3006'
 //supertest hits the HTTP server (your app)
 let defaultHeaders
+
 const logIn = async () => {
 	try {
 		let request = defaults(supertest('http://localhost:3001'))
@@ -17,14 +18,15 @@ const logIn = async () => {
 			timeout: 60000,
 		}
 		await waitOn(opts)
-		let email = 'adithya' + crypto.randomBytes(5).toString('hex') + '@tunerlabs.com'
-		let password = faker.internet.password()
+		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
+		let password = 'WWWWWelcome@@@123'
 		let res = await request.post('/user/v1/account/create').send({
 			name: 'adithya',
 			email: email,
 			password: password,
 			role: common.MENTEE_ROLE,
 		})
+
 		res = await request.post('/user/v1/account/login').send({
 			email: email,
 			password: password,
@@ -50,7 +52,7 @@ const logIn = async () => {
 				userId: res.body.result.user.id,
 				email: email,
 				password: password,
-				firstname: firstname,
+				name: res.body.result.user.name,
 			}
 		} else {
 			console.error('Error while getting access token')
@@ -120,6 +122,7 @@ function logError(res) {
 		console.log('Response Body', res.body)
 	}
 }
+
 module.exports = {
 	logIn, //-- export if token is generated
 	logError,
