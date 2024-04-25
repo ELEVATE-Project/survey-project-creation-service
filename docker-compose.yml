@@ -133,7 +133,7 @@ services:
     command: ['nodemon', 'app.js']
 
     environment:
-      - POSTGRES_URL=postgres://postgres:postgres@citus_master:5432/self_creation_portal
+      - POSTGRES_URL=postgres://postgres:postgres@citus_master:5432/elevate-scp
       - KAFKA_URL=kafka:9092
       - REDIS_HOST=redis://redis:6379
     depends_on:
