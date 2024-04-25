@@ -9,7 +9,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 require('dotenv').config({
-	path: '/Users/adithyadinesh/Documents/shikshalokam/backend/self-creation-portal/self-creation-portal/src/.env',
+	path: '.env',
 })
 const path = require('path')
 const i18next = require('i18next')
