@@ -20,4 +20,5 @@ module.exports = {
 		USER_SERVICE: 'user_service_authenticated',
 	},
 	internalAccessUrls: [],
+	SCP_SERVICE: 'scp',
 }

@@ -114,7 +114,7 @@ services:
       - kafka
       - redis
     environment:
-      - DEV_DATABASE_URL=postgres://postgres:postgres@citus_master:5432/user
+      - DEV_DATABASE_URL=postgres://postgres:postgres@citus_master:5432/elevate_project_user
       - KAFKA_URL=kafka:9092
       - REDIS_HOST=redis://redis:6379
     networks:
@@ -145,7 +145,7 @@ services:
       # done;
       # echo 'Service is up'"
     environment:
-      - POSTGRES_URL=postgres://postgres:postgres@citus_master:5432/self_creation_portal
+      - POSTGRES_URL=postgres://postgres:postgres@citus_master:5432/dev_elevate_scp
       - KAFKA_URL=kafka:9092
       - REDIS_HOST=redis://redis:6379
     depends_on:
