@@ -5,24 +5,24 @@ info:
   description: >-
     - The Survey Project Creation Portal Service is a centralized service that supports designing of resources.
 
-    - The URL to access the Creation Portal API(s) is `{context}/selfcreationportal/v1` -
+    - The URL to access the Creation Portal API(s) is `{context}/scp/v1` -
     <b>Note:</b> These resources can be used in other services.
   contact:
     email: tech-infra@shikshalokam.org
 servers:
   - url: http://localhost:3006
     description: local server
-  - url: https://dev.elevate-apis.shikshalokam.org
+  - url: https://dev.elevate-apis.shikshalokam.org/
     description: dev server
 paths:
-  /selfcreationportal/v1/permissions/list:
+  /scp/v1/permissions/list:
     get:
       summary: Get list of permissions
       tags: []
       description: >-
         You can use this API to get the list of permissions 
 
-         - The API Endpoint for getting a list of permissions is `/selfcreationportal/v1/permissions/list` 
+         - The API Endpoint for getting a list of permissions is `/scp/v1/permissions/list` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
       parameters:
@@ -97,7 +97,7 @@ paths:
                           request_type: POST
 
                           status: ACTIVE
-                          api_path: '/selfcreationportal/v1/admin/*'
+                          api_path: '/scp/v1/admin/*'
         '400':
           description: Bad Request. Session Not Found
           content:

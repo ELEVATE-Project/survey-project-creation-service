@@ -22,8 +22,8 @@
 							}
 						],
 						"url": {
-							"raw": "{{selfCreationPortalBaseUrl}}selfcreationportal/v1/permissions/list",
-							"host": ["{{selfCreationPortalBaseUrl}}selfcreationportal"],
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/permissions/list",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
 							"path": ["v1", "permissions", "list"]
 						}
 					},
