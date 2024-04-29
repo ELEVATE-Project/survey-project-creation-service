@@ -1,0 +1,35 @@
+{
+	"info": {
+		"_postman_id": "fb8c080a-443a-4b80-bfa0-efefa69ebe4d",
+		"name": "MentorED - Self Creation Portal",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "12011146",
+		"_collection_link": "https://crimson-star-573488.postman.co/workspace/backend~c1daa04f-8872-40f8-9e04-dcefba7434d5/collection/12011146-fb8c080a-443a-4b80-bfa0-efefa69ebe4d?action=share&source=collection_link&creator=12011146"
+	},
+	"item": [
+		{
+			"name": "permissions",
+			"item": [
+				{
+					"name": "list",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}selfcreationportal/v1/permissions/list",
+							"host": ["{{selfCreationPortalBaseUrl}}selfcreationportal"],
+							"path": ["v1", "permissions", "list"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
