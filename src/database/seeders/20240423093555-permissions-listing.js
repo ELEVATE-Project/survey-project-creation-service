@@ -12,7 +12,7 @@ module.exports = {
 				code: 'permissions',
 				module: 'permissions',
 				request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-				api_path: '/mentoring/v1/permissions/*',
+				api_path: '/scp/v1/permissions/*',
 				status: 'ACTIVE',
 				created_at: new Date(),
 				updated_at: new Date(),

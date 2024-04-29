@@ -95,7 +95,7 @@ services:
       - citus
       - redis
     environment:
-      - DEV_DATABASE_URL=postgres://postgres:postgres@citus_master:5432/elevate-project-user
+      - DEV_DATABASE_URL=postgres://postgres:postgres@citus_master:5432/elevate_project_user
       - KAFKA_URL=kafka:9092
       - REDIS_HOST=redis://redis:6379
     networks:
@@ -133,7 +133,7 @@ services:
     command: ['nodemon', 'app.js']
 
     environment:
-      - POSTGRES_URL=postgres://postgres:postgres@citus_master:5432/elevate-scp
+      - POSTGRES_URL=postgres://postgres:postgres@citus_master:5432/dev_elevate_scp
       - KAFKA_URL=kafka:9092
       - REDIS_HOST=redis://redis:6379
     depends_on:

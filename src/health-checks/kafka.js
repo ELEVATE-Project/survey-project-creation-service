@@ -11,7 +11,7 @@ const { Kafka } = require('kafkajs')
 async function health_check() {
 	const kafkaIps = process.env.KAFKA_URL.split(',')
 	const KafkaClient = new Kafka({
-		clientId: 'mentoring',
+		clientId: 'scp',
 		brokers: kafkaIps,
 	})
 
