@@ -36,7 +36,7 @@
         state=directory
     - name: Clone the repository
       git:
-        repo:https://github.com/ELEVATE-Project/survey-project-creation-service.git
+        repo: https://github.com/ELEVATE-Project/survey-project-creation-service.git
         dest: "{{ release_path }}"
         clone: yes
         update: yes
