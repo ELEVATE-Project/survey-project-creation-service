@@ -32,7 +32,7 @@ module.exports = class UserHelper {
 			const allPermissions = Object.values(PermissionByModules).map(({ module, request_type }) => ({
 				module,
 				request_type,
-				service: common.MENTORING_SERVICE,
+				service: common.SCP_SERVICE,
 			}))
 
 			return allPermissions

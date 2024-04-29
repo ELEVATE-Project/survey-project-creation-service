@@ -13,7 +13,7 @@ const { Kafka } = require('kafkajs')
 module.exports = async () => {
 	const kafkaIps = process.env.KAFKA_URL.split(',')
 	const KafkaClient = new Kafka({
-		clientId: 'mentoring',
+		clientId: 'scp',
 		brokers: kafkaIps,
 	})
 
