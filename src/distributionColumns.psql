@@ -1,0 +1,3 @@
+
+SELECT create_distributed_table('forms', 'organization_id');
+SELECT create_distributed_table('permissions', 'module');

@@ -1,0 +1,100 @@
+openapi: 3.0.0
+info:
+  title: Elevate Survey Project Creation Portal Service
+  version: 1.0.0
+  description: >-
+    - The Survey Project Creation Portal Service is a centralized service that supports designing of resources.
+
+    - The URL to access the Creation Portal API(s) is `{context}/scp/v1` -
+    <b>Note:</b> These resources can be used in other services.
+  contact:
+    email: tech-infra@shikshalokam.org
+servers:
+  - url: http://localhost:3006
+    description: local server
+  - url: https://dev.elevate-apis.shikshalokam.org/
+    description: dev server
+paths:
+  /scp/v1/permissions/list:
+    get:
+      summary: Get list of permissions
+      tags: []
+      description: >-
+        You can use this API to get the list of permissions 
+
+         - The API Endpoint for getting a list of permissions is `/scp/v1/permissions/list` 
+         - It is mandatory to provide values for parameters marked with `required` 
+         - Mandatory parameter cannot be empty or null
+      parameters:
+        - name: X-auth-token
+          required: true
+          in: header
+          description: >-
+            You require an X-auth-token to use this API. This token is available
+            in the login API Response.
+          schema:
+            type: string
+        - in: path
+          name: page
+          description: Please add page number
+          schema:
+            type: number
+          example: 1
+        - in: path
+          name: limit
+          description: Number of records to limit
+          schema:
+            type: number
+          example: 2
+      responses:
+        '200':
+          description: ok
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      count:
+                        type: number
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            code:
+                              type: string
+                            module:
+                              type: string
+                            request_type:
+                              type: array
+                            items:
+                              type: string
+                            api_path:
+                              type: string
+                            status:
+                              type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Permissions fetched successfully.
+                    result:
+                      count: 1
+                      data:
+                        - id: 1
+                          code: admin_permissions
+                          module: admin
+                          request_type: POST
+
+                          status: ACTIVE
+                          api_path: '/scp/v1/admin/*'
