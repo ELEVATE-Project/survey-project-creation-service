@@ -93,9 +93,12 @@ services:
     #  - citus-data:/var/lib/postgresql/data
   
   user:
-    image: shikshalokamqa/elevate-user:2.5.5
+    build: '../../user/'
+    # image: shikshalokamqa/elevate-user:2.5.5
     ports:
-      - '3001:3001'
+      - '5001:5001'
+    volumes:
+      - ../../user/src/:/var/src
     command: >
       bash -c "echo 'Waiting for PostgreSQL on citus_master:5432 to accept connections...' &&
       while ! timeout 1 bash -c 'cat < /dev/null > /dev/tcp/citus_master/5432' 2> /dev/null; do
@@ -105,7 +108,7 @@ services:
       echo 'Database is ready.';
       npm run db:init && npm run db:seed:all &&
       (echo 'Running nodeee' && nodemon app.js &) &&
-      (while ! curl -sSf http://user:3001 > /dev/null; do
+      (while ! curl -sSf http://user:5001 > /dev/null; do
         sleep 1;
       done && echo 'Service is up' &&
       /bin/bash -c 'cd scripts && echo Running user service scripts && node insertDefaultOrg.js && node viewsScript.js && node -r module-alias/register uploadSampleCSV.js');
