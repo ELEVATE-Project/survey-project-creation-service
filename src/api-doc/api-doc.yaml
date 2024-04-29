@@ -98,9 +98,3 @@ paths:
 
                           status: ACTIVE
                           api_path: '/scp/v1/admin/*'
-        '400':
-          description: Bad Request. Session Not Found
-          content:
-            application.json:
-              schema:
-                $ref: '#/components/schemas/sessions/getSessionList400Response'
