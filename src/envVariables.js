@@ -108,18 +108,6 @@ let enviromentVariables = {
 		message: 'Redis Host Url',
 		optional: false,
 	},
-	ENABLE_EMAIL_FOR_REPORT_ISSUE: {
-		message: 'Required true or false',
-		optional: false,
-	},
-	SUPPORT_EMAIL_ID: {
-		message: 'Required email id of support',
-		optional: process.env.ENABLE_EMAIL_FOR_REPORT_ISSUE === 'true' ? false : true,
-	},
-	REPORT_ISSUE_EMAIL_TEMPLATE_CODE: {
-		message: 'Required reported issue email template code',
-		optional: process.env.ENABLE_EMAIL_FOR_REPORT_ISSUE === 'true' ? false : true,
-	},
 	OCI_ACCESS_KEY_ID: {
 		message: 'Required oci access key id',
 		optional: process.env.CLOUD_STORAGE === 'OCI' ? false : true,
@@ -148,10 +136,6 @@ let enviromentVariables = {
 		message: 'Required disable log level',
 		optional: false,
 	},
-	DEFAULT_MEETING_SERVICE: {
-		message: 'Required default meeting service',
-		optional: false,
-	},
 	DEFAULT_ORGANISATION_CODE: {
 		message: 'Required default organisation code',
 		optional: false,
@@ -165,16 +149,6 @@ let enviromentVariables = {
 		message: 'Required CORS allowed host',
 		optional: true,
 		default: '*',
-	},
-	DOWNLOAD_URL_EXPIRATION_DURATION: {
-		message: 'Required downloadable url expiration time',
-		optional: true,
-		default: 3600000,
-	},
-	SIGNED_URL_EXPIRY_IN_MILLISECONDS: {
-		message: 'Required signed url expiration time in milliseconds',
-		optional: true,
-		default: 3600000,
 	},
 	AUTH_METHOD: {
 		message: 'Required authentication method',

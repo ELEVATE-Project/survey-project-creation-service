@@ -1,7 +1,7 @@
 /**
  * name : healthCheckService.js.
- * author : Aman Karki.
- * created-date : 17-Dec-2021.
+ * author : Adithya Dinesh
+ * Date : 29 - April - 2024
  * Description : Health check service helper functionality.
  */
 
@@ -22,7 +22,7 @@ const obj = {
 		FAILED_CODE: 'KAFKA_HEALTH_FAILED',
 		FAILED_MESSAGE: 'Kafka is not connected',
 	},
-	NAME: 'MentoringServiceHealthCheck',
+	NAME: 'SCPServiceHealthCheck',
 	API_VERSION: '1.0',
 }
 
@@ -63,7 +63,7 @@ let healthCheckStatus = function (req, res) {
 
 let response = function (req, result = {}) {
 	return {
-		id: 'mentoringService.Health.API',
+		id: 'scpService.Health.API',
 		ver: '1.0',
 		ts: new Date(),
 		params: {

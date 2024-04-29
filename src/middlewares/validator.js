@@ -1,7 +1,7 @@
 /**
  * name : middlewares/validator
- * author : Aman Kumar Gupta
- * Date : 04-Nov-2021
+ * author : Adithya Dinesh
+ * Date : 29 - April - 2024
  * Description : Contains logic to call required validator from validators directory to validate request data
  */
 

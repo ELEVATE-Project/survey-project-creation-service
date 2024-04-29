@@ -1,7 +1,7 @@
 /**
  * name : pagination.js
- * author : Aman Karki
- * Date : 13-July-2020
+ * author : Adithya Dinesh
+ * Date : 29 - April - 2024
  * Description : Pagination
  */
 const httpStatus = require('@generics/http-status')

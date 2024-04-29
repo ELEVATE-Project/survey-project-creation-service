@@ -1,7 +1,7 @@
 /**
  * name : constants/http-status-codes.js
- * author : Aman Kumar Gupta
- * Date : 04-Nov-2021
+ * author : Adithya Dinesh
+ * Date : 29 - April - 2024
  * Description : All http status code's and there message.
  */
 

@@ -1,7 +1,7 @@
 /**
  * name : routes
- * author : Aman Kumar Gupta
- * Date : 30-Sep-2021
+ * author : Adithya Dinesh
+ * Date : 29 - April - 2024
  * Description : Routes for available service
  */
 

@@ -1,7 +1,7 @@
 /**
  * name : user.js
- * author : Vishnu
- * created-date : 27-Sept-2023
+ * author : Adithya Dinesh
+ * Date : 29 - April - 2024
  * Description : Internal calls to elevate-user service.
  */
 
@@ -77,72 +77,6 @@ const details = function (token = '', userId = '') {
  * @param {Array} userIds
  * @returns
  */
-
-const getListOfUserDetails = function (userIds) {
-	return new Promise(async (resolve, reject) => {
-		const options = {
-			headers: {
-				'Content-Type': 'application/json',
-				internal_access_token: process.env.INTERNAL_ACCESS_TOKEN,
-			},
-			form: {
-				userIds,
-			},
-		}
-
-		const apiUrl = userBaseUrl + endpoints.LIST_ACCOUNTS
-		try {
-			request.get(apiUrl, options, callback)
-			function callback(err, data) {
-				if (err) {
-					reject({
-						message: 'USER_SERVICE_DOWN',
-					})
-				} else {
-					data.body = JSON.parse(data.body)
-					return resolve(data.body)
-				}
-			}
-		} catch (error) {
-			return reject(error)
-		}
-	})
-}
-
-/**
- * Share a mentor Profile.
- * @method
- * @name share
- * @param {String} profileId - Profile id.
- * @returns {JSON} - Shareable profile link.
- */
-
-const share = function (profileId) {
-	return new Promise(async (resolve, reject) => {
-		const apiUrl = userBaseUrl + endpoints.SHARE_MENTOR_PROFILE + '/' + profileId
-		try {
-			let shareLink = await requests.get(apiUrl, false, true)
-			if (shareLink.data.responseCode === 'CLIENT_ERROR') {
-				return resolve(
-					responses.failureResponse({
-						message: shareLink.data.message,
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
-				)
-			}
-			return resolve(
-				responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: shareLink.data.message,
-					result: shareLink.data.result,
-				})
-			)
-		} catch (error) {
-			reject(error)
-		}
-	})
-}
 
 /**
  * User list.
@@ -279,19 +213,6 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
 	})
 }
 
-// const listOrganization = function (organizationIds = []) {
-// 	return new Promise(async (resolve, reject) => {
-// 		try {
-// 			const apiUrl = userBaseUrl + endpoints.ORGANIZATION_LIST
-// 			const organizations = await requests.post(apiUrl, { organizationIds }, '', true)
-
-// 			return resolve(organizations)
-// 		} catch (error) {
-// 			return reject(error)
-// 		}
-// 	})
-// }
-
 /**
  * Get Organization list.
  * @method
@@ -336,9 +257,7 @@ const listOrganization = function (organizationIds = []) {
 module.exports = {
 	fetchDefaultOrgDetails,
 	details,
-	getListOfUserDetails,
 	list,
-	share,
 	listWithoutLimit,
 	search,
 	getListOfUserRoles,

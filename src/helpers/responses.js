@@ -1,7 +1,7 @@
 /**
  * name         : helpers/responses.js
- * author       : Vishnu
- * Date         : 30-Jan-2024
+ * author : Adithya Dinesh
+ * Date : 29 - April - 2024
  * Description : All commonly used api responses through out the service
  */
 
