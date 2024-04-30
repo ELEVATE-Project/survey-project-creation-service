@@ -49,8 +49,6 @@
 		"p-each-series": "^2.1.0",
 		"pg": "^8.11.0",
 		"pg-hstore": "^2.3.4",
-		"redoc-cli": "^0.13.15",
-		"redoc-express": "^1.0.0",
 		"request": "^2.88.2",
 		"require-all": "^3.0.0",
 		"sequelize": "^6.32.0",
@@ -62,8 +60,6 @@
 	},
 	"devDependencies": {
 		"@faker-js/faker": "^7.6.0",
-		"eslint": "^8.16.0",
-		"husky": "^8.0.1",
 		"jest": "^28.1.1",
 		"jest-json-schema": "^6.1.0",
 		"jest-junit": "^14.0.1",
@@ -72,7 +68,9 @@
 		"prettier": "^2.6.2",
 		"superagent-defaults": "^0.1.14",
 		"supertest": "^6.3.0",
-		"wait-on": "^6.0.1"
+		"grunt-apidoc": "^0.11.0",
+		"gulp": "^4.0.2",
+		"gulp-apidoc": "^0.2.8",
 	},
 	"lint-staged": {
 		"../*": "prettier --ignore-unknown --write",
