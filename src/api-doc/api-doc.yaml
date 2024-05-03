@@ -4918,6 +4918,293 @@ paths:
                           type: projectCreation
                           version: 3
 
+  /user/v1/userRole/create:
+    post:
+      summary: Create User Roles
+      tags:
+        - User Service APIS
+      description: |
+        Use this API to create an user Role.
+
+        - Endpoint: `/user/v1/userRole/create`
+        - Provide values for parameters marked as `required`.
+        - The X-auth-token is mandatory and cannot be empty or null.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                title:
+                  type: string
+                user_type:
+                  type: number
+                status:
+                  type: string
+                visibility:
+                  type: string
+              required:
+                - title
+                - user_type
+                - status
+                - visibility
+            examples:
+              example1:
+                value:
+                  title: CONTENT_CREATOR
+                  user_type: 1
+                  status: ACTIVE
+                  visibility: PUBLIC
+      responses:
+        '201':
+          description: OK. Roles created successfully
+          content:
+            application/json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                      user_type:
+                        type: number
+                      status:
+                        type: string
+                      visibility:
+                        type: string
+                      organization_id:
+                        type: number
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: string
+                      correlation:
+                        type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Roles created successfully
+                    result:
+                      title: CONTENT_CREATOR
+                      user_type: 1
+                      status: ACTIVE
+                      visibility: PUBLIC
+                      organization_id: 3
+                    meta:
+                      formsVersion: []
+        '400':
+          description: Bad Request.
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/user/createRole400Response'
+  /user/v1/userRole/update/{id}:
+    post:
+      summary: Update User Roles
+      tags:
+        - User Service APIS
+      description: |
+        Use this API to update an user Role.
+
+        - Endpoint: `/user/v1/userRole/update/{id}`
+        - Provide values for parameters marked as `required`.
+        - The X-auth-token is mandatory and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          description: Please append a valid role id to the Request URL.
+          schema:
+            type: string
+          required: true
+          example: 3
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                title:
+                  type: string
+                user_type:
+                  type: number
+                status:
+                  type: string
+                visibility:
+                  type: string
+              required:
+                - title
+                - user_type
+                - status
+                - visibility
+            examples:
+              example1:
+                value:
+                  title: CONTENT_CREATOR
+                  user_type: 1
+                  status: ACTIVE
+                  visibility: PUBLIC
+      responses:
+        '201':
+          description: OK. Roles updated successfully
+          content:
+            application/json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                      user_type:
+                        type: number
+                      status:
+                        type: string
+                      visibility:
+                        type: string
+                      organization_id:
+                        type: number
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: string
+                      correlation:
+                        type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Roles updated successfully
+                    result:
+                      title: CONTENT_CREATOR
+                      user_type: 1
+                      status: ACTIVE
+                      visibility: PUBLIC
+                      organization_id: 3
+                    meta:
+                      formsVersion: []
+        '400':
+          description: Bad Request.
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/user/updateRole400Response'
+  /user/v1/org-admin/updateUser/{id}:
+    post:
+      summary: Update User Roles
+      tags:
+        - User Service APIS
+      description: |
+        Use this API to update an user.
+
+        - Endpoint: `/user/v1/org-admin/updateUser/{id}`
+        - Provide values for parameters marked as `required`.
+        - The X-auth-token is mandatory and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          description: Please append a valid role id to the Request URL.
+          schema:
+            type: string
+          required: true
+          example: 3
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                name:
+                  type: string
+                roles:
+                  type: number
+                org_id:
+                  type: string
+              required:
+                - title
+                - user_type
+                - status
+                - visibility
+            examples:
+              example1:
+                value:
+                  name: Priyanka
+                  roles: [CONTENT_CREATOR]
+                  org_id: 1
+      responses:
+        '201':
+          description: OK. User updated successfully
+          content:
+            application/json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: string
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: User updated successfully
+                    meta:
+                      formsVersion: []
+        '400':
+          description: Bad Request.
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/user/updateUser400Response'
+
 components:
   schemas:
     module:
@@ -5127,6 +5414,7 @@ components:
             items:
               type: string
             example: []
+
     organization:
       createConfig400Response:
         type: object
@@ -5157,6 +5445,7 @@ components:
             items:
               type: string
             example: []
+
     comment:
       updateComment400Response:
         type: object
@@ -5197,6 +5486,53 @@ components:
           message:
             type: string
             example: Template not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+
+    user:
+      createRole400Response:
+        description: Bad Request. Role Already Exist
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: User Role already exists
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+      updateRole400Response:
+        description: Bad Request. Role Not Found
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: User Role not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+      updateUser400Response:
+        description: Bad Request. User Not Found
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: User not found
           error:
             type: array
             items:
