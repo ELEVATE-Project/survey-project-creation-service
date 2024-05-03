@@ -303,3 +303,278 @@ paths:
                     meta:
                       formsVersion: []
                       correlation: a761e205-7d3a-4f6c-a31a-4641a14f1e91
+        '400':
+          description: Bad Request. Resource not found
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/comment/updateComment400Response'
+
+components:
+  schemas:
+    module:
+      updateModule400Response:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: module not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+      getModuleList400Response:
+        type: object
+        description: Module not found.
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Module not found.
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+
+    permissions:
+      updatePermission400Response:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: permission not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+
+    role-permission:
+      createMapping400Response:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Permission for this role is empty
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+
+    entity-type:
+      createUserEntity400Response:
+        type: object
+        description: entity type already exist
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Entity type already exists
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+      updateUserEntity400Response:
+        type: object
+        description: Entity type not found
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Entity type not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+
+    entity:
+      createEntity400Response:
+        type: object
+        description: entity already exist
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Entity already exists
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+      updateUserEntity400Response:
+        type: object
+        description: Entity not found
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Entity not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+
+    cloud-services:
+      cloudServicesDownloadResponse200:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: OK
+          message:
+            type: string
+            example: Download URL Generated Successfully.
+          result:
+            type: string
+            example: >-
+              https://aws-bucket-storage-name.s3.ap-south-1.amazonaws.com/users/62832531a05cbd57b273aebb-1654149589875-image.jpg
+
+    form:
+      createForm400Response:
+        description: Bad Request. Form Already Exist
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Form already exists
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+      updateForm400Response:
+        description: Bad Request. Form not found
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Form not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+
+    project:
+      createProject400Response:
+        type: object
+        description: project creation error.
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          error:
+            type: array
+            items:
+              type: string
+            example:
+              - location: body
+                param: title
+                msg: title is invalid
+              - location: body
+                param: categiries
+                msg: categiries required
+      deleteProject400Response:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: project not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+
+    comment:
+      updateComment400Response:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Resource not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+
+    config:
+      $schema: http://json-schema.org/draft-04/schema#
+      type: object
+      properties:
+        responseCode:
+          type: string
+        message:
+          type: string
+        result:
+          type: object
+          properties:
+            meeting_platform:
+              type: string
+            reportIssue:
+              type: object
+              properties:
+                to:
+                  type: string
+                subject:
+                  type: string
+        meta:
+          type: object
+          properties:
+            formsVersion:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  type:
+                    type: string
+            correlation:
+              type: string
+    schema-1:
+      type: object
+      properties: {}
+  securitySchemes:
+    bearer:
+      type: apiKey
+      name: X-auth-token
+      in: header
