@@ -4116,6 +4116,13 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
+        '400':
+          description: Bad Request. Resource not found
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/comment/updateComment400Response'
+
   /scp/v1/comment/list?resource_id={resource_id}:
     get:
       summary: Comment List
@@ -4196,6 +4203,715 @@ paths:
                           status: UNRESOLVED
                           parent_id: 2
                       count: 1
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+
+  /scp/v1/organization-extension/createConfig:
+    post:
+      summary: Create the organization configurations
+      tags:
+        - Organization
+      description: |-
+        You can use this API to create organization configurations, for example change the minimum number of approvals for the resource.
+         - The API Endpoint for add organization configurations is `/scp/v1/organization-extension/createConfig` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                show_reviewer_list:
+                  type: boolean
+                min_approval:
+                  type: string
+                resource_type:
+                  type: string
+
+            examples:
+              example1:
+                value:
+                  show_reviewer_list: true
+                  min_approval: 2
+                  resource_type: project
+
+      responses:
+        '201':
+          description: Config added successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      org_id:
+                        type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Config added successfully
+                    result:
+                      org_id: 3
+                      show_reviewer_list: true
+                      min_approval: 2
+                      resource_type: project
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+        '400':
+          description: Bad Request.
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/organization/createConfig400Response'
+  /scp/v1/organization-extension/updateConfig?resource_type={resource_type}:
+    post:
+      summary: Update the organization configurations
+      tags:
+        - Organization
+      description: |-
+        You can use this API to update organization configurations, for example change the minimum number of approvals for the resource.
+         - The API Endpoint for update organization configurations is `/scp/v1/organization-extension/updateConfig` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: resource_type
+          description: Please append a valid resource type to the Request URL.
+          schema:
+            type: string
+          required: true
+          example: project
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                show_reviewer_list:
+                  type: boolean
+                min_approval:
+                  type: string
+                resource_type:
+                  type: string
+
+            examples:
+              example1:
+                value:
+                  show_reviewer_list: true
+                  min_approval: 2
+                  resource_type: project
+
+      responses:
+        '201':
+          description: Config updated successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      org_id:
+                        type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Config updated successfully
+                    result:
+                      org_id: 3
+                      show_reviewer_list: true
+                      min_approval: 2
+                      resource_type: project
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+        '400':
+          description: Bad Request.
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/organization/updateConfig400Response'
+  /scp/v1/organization-extension/listConfig:
+    get:
+      summary: List the organization configurations
+      tags:
+        - Organization
+      description: |-
+        You can use this API to list organization configurations
+         - The API Endpoint for list all organization configurations is `/scp/v1/organization-extension/listConfig` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+
+      responses:
+        '201':
+          description: Config fetched successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            org_id:
+                              type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Config fetched successfully
+                    result:
+                      data:
+                        - org_id: 3
+                          show_reviewer_list: true
+                          min_approval: 2
+                          resource_type: project
+                      count: 1
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+        '400':
+          description: Bad Request.
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/organization/updateConfig400Response'
+
+  /scp/v1/certificate/update:
+    post:
+      summary: Create certificate base template
+      tags:
+        - Certificate
+      description: |-
+        You can use this API to create certificate base template 
+         - The API Endpoint for create certificate base template  is `/scp/v1/certificate/update` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                code:
+                  type: boolean
+                name:
+                  type: string
+                url:
+                  type: string
+                meta:
+                  type: object
+                resource_type:
+                  type: string
+
+            examples:
+              example1:
+                value:
+                  code: one-logo-one-sign
+                  name: One Logo One Signature
+                  resource_type: project
+                  url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                  meta:
+                    no_of_logs: 1
+                    no_of_signature: 1
+
+      responses:
+        '201':
+          description: Template created successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Template created successfully
+                    result:
+                      id: 2
+                      code: one-logo-one-sign
+                      name: One Logo One Signature
+                      resource_type: project
+                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                      meta:
+                        no_of_logs: 1
+                        no_of_signature: 1
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+        '400':
+          description: Bad Request.
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/certificate/createCertificate400Response'
+  /scp/v1/certificate/update/{id}:
+    post:
+      summary: Update certificate base template
+      tags:
+        - Certificate
+      description: |-
+        You can use this API to update certificate base template 
+         - The API Endpoint for update certificate base template  is `/scp/v1/certificate/update` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          description: Please append a valid certificate id to the Request URL.
+          schema:
+            type: string
+          required: true
+          example: 3
+
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                name:
+                  type: string
+
+            examples:
+              example1:
+                value:
+                  name: One Logo One Signature
+
+      responses:
+        '201':
+          description: Template updated successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Template updated successfully
+                    result:
+                      id: 2
+                      code: one-logo-one-sign
+                      name: One Logo One Signature
+                      resource_type: project
+                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                      meta:
+                        no_of_logs: 1
+                        no_of_signature: 1
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+        '400':
+          description: Bad Request.
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/certificate/updateCertificate400Response'
+  /scp/v1/certificate/createSVG:
+    post:
+      summary: Edit Certificate SVG
+      tags:
+        - Certificate
+      description: |-
+        You can use this API to edit certificate svg 
+         - The API Endpoint for edit certificate svg is `/scp/v1/certificate/createSVG` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                state_logo1:
+                  type: boolean
+                state_title:
+                  type: string
+                signature_img1:
+                  type: string
+                signature_title_name1:
+                  type: string
+                signature_title_designation1:
+                  type: string
+
+            examples:
+              example1:
+                value:
+                  state_logo1: /user/state.png
+                  state_title: Karnataka
+                  signature_img1: /user/sign.png
+                  signature_title_name1: Director
+                  signature_title_designation1: SPD
+
+      responses:
+        '201':
+          description: Template edited successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Template edited successfully
+                    result:
+                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+  /scp/v1/certificate/list?resource_type={resource_type}&page={page}&limit={limit}&search={search}:
+    get:
+      summary: List Certificate Templates
+      tags:
+        - Certificate
+      description: |-
+        You can use this API to list certificate templates
+         - The API Endpoint for list certificate templates is `/scp/v1/certificate/list` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: resource_type
+          description: Please add the resource type
+          schema:
+            type: string
+          example: project
+        - in: path
+          name: page
+          description: Please add page number
+          schema:
+            type: number
+          example: 1
+        - in: path
+          name: limit
+          description: Number of records to limit
+          schema:
+            type: number
+          example: 2
+        - in: path
+          name: search
+          description: Please search for information such as names
+          schema:
+            type: string
+          example: one logo
+
+      responses:
+        '201':
+          description: Certificate template listed successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Certificate template listed successfully
+                    result:
+                      data:
+                        - id: 2
+                          code: one-logo-one-sign
+                          name: One Logo One Signature
+                          resource_type: project
+                          url: https://storage.googleapis.com/scp-dev-storage-private/certificateTemplates/6343bd978f9d8980b7841e85/ba9aa220-ff1b-4717-b6ea-ace55f04fc16_2022-9-10-1665383945769.svg
+                          meta:
+                            no_of_logs: 1
+                            no_of_signature: 1
+                      count: 1
+
                     meta:
                       formsVersion:
                         - id: 3
@@ -4406,6 +5122,81 @@ components:
           message:
             type: string
             example: project not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+    organization:
+      createConfig400Response:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Configuration already exist
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+
+      updateConfig400Response:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Configuration not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+    comment:
+      updateComment400Response:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Comment not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+
+    certificate:
+      createCertificate400Response:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: template already exist
+          error:
+            type: array
+            items:
+              type: string
+            example: []
+      updateCertificate400Response:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Template not found
           error:
             type: array
             items:
