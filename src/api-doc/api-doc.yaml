@@ -18,7 +18,8 @@ paths:
   /scp/v1/permissions/list:
     get:
       summary: Get list of permissions
-      tags: []
+      tags:
+        - Permissions APIs
       description: >-
         You can use this API to get the list of permissions 
 
@@ -98,3 +99,236 @@ paths:
 
                           status: ACTIVE
                           api_path: '/scp/v1/admin/*'
+  /scp/v1/comment/list:
+    get:
+      summary: List all comments based on resource id.
+      tags:
+        - Comments APIs
+      description: >-
+        You can use this API to get the list of all comments based on resource id.
+        - The API Endpoint for getting a list of permissions is `/scp/v1/comment/list` 
+        - It is mandatory to provide values for parameters marked with `required` 
+        - Mandatory parameter cannot be empty or null
+      parameters:
+        - name: X-auth-token
+          required: true
+          in: header
+          description: >-
+            You require an X-auth-token to use this API. This token is available
+            in the login API Response.
+          schema:
+            type: string
+        - in: path
+          name: page
+          description: Please add page number
+          schema:
+            type: number
+          example: 1
+        - in: path
+          name: limit
+          description: Number of records to limit
+          schema:
+            type: number
+          example: 2
+        - in: path
+          name: resource_id
+          description: Pass the resource_id to get all the comments for the particular resource.
+          schema:
+            type: number
+          required: true
+          example: 2603
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                resource_id:
+                  type: number
+                comments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      comment:
+                        type: string
+                      context:
+                        type: string
+                      page:
+                        type: number
+                      status:
+                        type: string
+                      author:
+                        type: object
+                        properties:
+                          id:
+                            type: number
+                          name:
+                            type: string
+
+      responses:
+        '200':
+          description: ok
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                responseCode:
+                  type: string
+                message:
+                  type: string
+                result:
+                  type: object
+                  properties:
+                    resource_id:
+                      type: number
+                    comments:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: number
+                          comment:
+                            type: string
+                          context:
+                            type: string
+                          page:
+                            type: number
+                          status:
+                            type: string
+                          author:
+                            type: object
+                            properties:
+                              id:
+                                type: number
+                              name:
+                                type: string
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Comments fetched successfully.
+                    result:
+                      resource_id: 2603
+                      comments:
+                        - id: 1234
+                          comment: 'This is a comment'
+                          context: 'page'
+                          page: 1
+                          status: 'UNRESOLVED'
+                          author:
+                            id: 123
+                            name: 'Priyanka'
+                        - id: 5678
+                          comment: 'This is a reply comment'
+                          context: 'page'
+                          parent_id: 1234
+                          page: 1
+                          status: 'UNRESOLVED'
+                          author:
+                            id: 412
+                            name: 'Adithya Dinesh'
+                    meta:
+                      formsVersion: []
+                      correlation: a761e205-7d3a-4f6c-a31a-4641a14f1e91
+
+  /scp/v1/comment/update:
+    post:
+      summary: Add or Update comments to resources.
+      tags:
+        - Comments APIs
+      description: |-
+        This Api is associated with adding new comments or updating the existing comments.
+        - The Endpoint for creating and updating remains the same.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To make use of the API, you require X-auth-token. This is Available
+            in login API Response.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                resource_id:
+                  type: number
+                comments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      comment:
+                        type: string
+                      context:
+                        type: string
+                      page:
+                        type: number
+                      status:
+                        type: string
+                      parent_id:
+                        type: number
+      responses:
+        '200':
+          description: ok
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      resource_id:
+                        type: number
+
+                      comments:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            comment:
+                              type: string
+                            context:
+                              type: string
+                            page:
+                              type: number
+                            status:
+                              type: string
+                            parent_id:
+                              type: number
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: string
+                      correlation:
+                        type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Comment updated successfully.
+                    result: []
+                    meta:
+                      formsVersion: []
+                      correlation: a761e205-7d3a-4f6c-a31a-4641a14f1e91
