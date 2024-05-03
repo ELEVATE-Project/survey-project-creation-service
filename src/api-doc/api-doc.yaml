@@ -137,35 +137,6 @@ paths:
             type: number
           required: true
           example: 2603
-      requestBody:
-        content:
-          application.json:
-            schema:
-              $schema: http://json-schema.org/draft-04/schema#
-              type: object
-              properties:
-                resource_id:
-                  type: number
-                comments:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      comment:
-                        type: string
-                      context:
-                        type: string
-                      page:
-                        type: number
-                      status:
-                        type: string
-                      author:
-                        type: object
-                        properties:
-                          id:
-                            type: number
-                          name:
-                            type: string
 
       responses:
         '200':
