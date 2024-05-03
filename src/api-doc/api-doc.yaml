@@ -66,7 +66,7 @@ paths:
                       code: project
                       status: ACTIVE
         '400':
-          description: Bad request
+          description: Bad request. module already exists
           content:
             application.json:
               schema:
@@ -188,7 +188,7 @@ paths:
                       correlation: dea5b252-75d2-40ed-a5a7-f8dec087467e
                       meetingPlatform: BBB
         '400':
-          description: Bad Request. User Entity already exists.
+          description: Bad Request. Module not Found.
           content:
             application.json:
               schema:
@@ -353,7 +353,7 @@ paths:
                       correlation: 471d834a-4954-4564-ae91-6a1f24bec1e5
                       meetingPlatform: BBB
         '400':
-          description: Bad Request. User Entity already exists.
+          description: Bad Request. Module not found.
           content:
             application.json:
               schema:
@@ -419,7 +419,7 @@ paths:
                       api_path: /scp/v1/project/create
                       status: ACTIVE
         '400':
-          description: Bad request
+          description: Bad request. Permission already exists
           content:
             application.json:
               schema:
@@ -578,7 +578,7 @@ paths:
                       api_path: /scp/v1/project/create
 
         '400':
-          description: Bad Request.
+          description: Bad Request. Permission not found
           content:
             application.json:
               schema:
@@ -800,7 +800,7 @@ paths:
                         - POST
 
         '400':
-          description: Bad request
+          description: Bad request. Permission for this role already exists
           content:
             application.json:
               schema:
@@ -887,7 +887,7 @@ paths:
                     result: {}
 
         '400':
-          description: Bad Request. User Entity already exists.
+          description: Bad Request. Permission for this role is empty.
           content:
             application.json:
               schema:
@@ -961,20 +961,20 @@ paths:
                             - PATCH
                         count: 1
         '400':
-          description: Bad Request. Session Not Found
+          description: Bad Request. Permission for this role is empty
           content:
             application.json:
               schema:
                 $ref: '#/components/schemas/role-permission/createMapping400Response'
 
-  /scp/v1/entity-type/create:
+  /scp/v1/entity-types/create:
     post:
       summary: Create entity type
       tags:
-        - Entity Type
+        - Entity Types
       description: |-
         You can use this API to create a user entity type  
-         - The API Endpoint for creating a user entity is `/scp/v1/entity-type/create` 
+         - The API Endpoint for creating a user entity is `/scp/v1/entity-types/create` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -1077,7 +1077,7 @@ paths:
                       created_at: '2023-09-22T12:40:19.817Z'
 
         '400':
-          description: Bad Request. User Entity already exists.
+          description: Bad Request. Entity-Type already exists.
           content:
             application.json:
               schema:
@@ -1088,14 +1088,14 @@ paths:
         description: ''
         schema:
           type: string
-  /scp/v1/entity-type/update/{id}:
+  /scp/v1/entity-types/update/{id}:
     post:
       summary: Update entity type
       tags:
-        - Entity Type
+        - Entity Types
       description: |-
         You can use this API to update a user entity type
-         - The API Endpoint for creating a user entity is `/scp/v1/entity-type/update` 
+         - The API Endpoint for creating a user entity is `/scp/v1/entity-types/update` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -1204,14 +1204,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/entity-type/updateUserEntity400Response'
-  /scp/v1/entity-type/delete/{id}:
+  /scp/v1/entity-types/delete/{id}:
     delete:
       summary: Delete entity type
       tags:
-        - Entity Type
+        - Entity Types
       description: |-
         You can use this API to delete a user entity  
-         - The API Endpoint for creating a user entity is `/scp/v1/entity-type/delete` 
+         - The API Endpoint for creating a user entity is `/scp/v1/entity-types/delete` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -1248,19 +1248,19 @@ paths:
                     result: []
 
         '400':
-          description: Bad Request. User Entity not found
+          description: Bad Request. Entity-Type not found
           content:
             application.json:
               schema:
                 $ref: '#/components/schemas/entity-type/updateUserEntity400Response'
-  /scp/v1/entity-type/read:
-    get:
+  /scp/v1/entity-types/read:
+    post:
       summary: Read entity type
       tags:
-        - Entity Type
+        - Entity Types
       description: |-
         You can use this API to read a entity type  
-         - The API Endpoint for creating a user entity is `/scp/v1/entity-type/read` 
+         - The API Endpoint for creating a user entity is `/scp/v1/entity-types/read` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -1383,7 +1383,7 @@ paths:
                             created_at: '2023-09-21T10:16:33.583Z'
                             updated_at: '2023-09-21T10:16:33.583Z'
         '400':
-          description: Bad Request. User Entity not found
+          description: Bad Request. Entity-Type not found
           content:
             application.json:
               schema:
@@ -2128,7 +2128,7 @@ paths:
                           type: session
 
         '400':
-          description: Bad Request
+          description: Bad Request. Form already exists
           content:
             application.json:
               schema:
@@ -2287,7 +2287,7 @@ paths:
                           type: project
 
         '400':
-          description: Bad Request
+          description: Bad Request. Form not found
           content:
             application.json:
               schema:
@@ -2468,7 +2468,7 @@ paths:
                           type: project
 
         '400':
-          description: Bad Request
+          description: Bad Request.Form not found
           content:
             application.json:
               schema:
@@ -2812,7 +2812,7 @@ paths:
                           version: 3
 
         '400':
-          description: Bad Request. User Entity already exists.
+          description: Bad Request. Project creation failed.
           content:
             application.json:
               schema:
@@ -3161,7 +3161,7 @@ paths:
                           version: 3
 
         '400':
-          description: Bad Request.
+          description: Bad Request. Project Update Failed.
           content:
             application.json:
               schema:
@@ -3234,7 +3234,7 @@ paths:
                           version: 3
 
         '400':
-          description: Bad Request.
+          description: Bad Request. Project not found
           content:
             application.json:
               schema:
@@ -5232,6 +5232,14 @@ components:
           message:
             type: string
             example: Module not found.
+          result:
+            type: object
+            properties:
+              data:
+                type: array
+              count:
+                type: integer
+                example: 0
           error:
             type: array
             items:
