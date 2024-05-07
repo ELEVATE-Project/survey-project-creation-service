@@ -11,7 +11,7 @@ info:
     email: tech-infra@shikshalokam.org
 servers:
   - url: http://localhost:3006
-    description: local server
+    description: local server. NB :- port may vary according to the local setup.
   - url: https://dev.elevate-apis.shikshalokam.org/
     description: dev server
 paths:
@@ -24,7 +24,8 @@ paths:
         This API is associated with modules
          - Endpoint for creating modules  `/scp/v1/modules/create` 
          - It is mandatory to provide values for parameters marked with `required` 
-         - Mandatory parameter cannot be empty or null
+         - Mandatory parameter cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -104,6 +105,7 @@ paths:
               properties:
                 code:
                   type: string
+                  description: Unique code for modules.
               required:
                 - code
             examples:
@@ -121,9 +123,18 @@ paths:
          - The API Endpoint for updating modules `/scp/v1/modules/update` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
           description: >-
             To use this API, you require an X-auth-token. This is available in
             the login API Response.
@@ -203,6 +214,7 @@ paths:
          - The API Endpoint for getting a list of modules is `/scp/v1/modules/list` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           required: true
@@ -226,10 +238,10 @@ paths:
           example: 2
         - in: path
           name: search
-          description: Please search for information such as 'code' names
+          description: Please search for information such as 'code'.
           schema:
             type: string
-          example: John
+          example: project
       responses:
         '200':
           description: ok
@@ -309,6 +321,7 @@ paths:
          - The API Endpoint for deleting modules is `/scp/v1/modules/delete` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -369,6 +382,7 @@ paths:
          - Endpoint for creating permissions  `/scp/v1/permissions/create` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -463,15 +477,15 @@ paths:
                   description: 'module name'
                 request_type:
                   type: array
+                  description: Array of HTTP request methods of the API like `PUT` , `POST` , `PATCH` , `GET` , `DELETE`.
                   items:
                     type: string
-                  description: request types of the api
                 api_path:
                   type: string
                   description: Url of the api
                 status:
                   type: string
-                  description: Status of that permission
+                  description: Status of the permission.
               required:
                 - code
                 - module
@@ -497,6 +511,7 @@ paths:
          - The API Endpoint for updating permissions is `/scp/v1/permissions/update` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -504,8 +519,13 @@ paths:
             To use this API, you require an X-auth-token. This is available in
             the login API Response.
           required: true
+        - name: id
+          in: path
+          description: Id of the permission to update.
+          required: true
           schema:
-            type: string
+            type: number
+            example: 2
       requestBody:
         content:
           application/json:
@@ -594,12 +614,14 @@ paths:
          - The API Endpoint for getting a list of permissions is `/scp/v1/permissions/list` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
           description: >-
             You require an X-auth-token to use this API. This token is available
             in the login API Response.
+          required: true
           schema:
             type: string
         - in: path
@@ -678,6 +700,7 @@ paths:
          - The API Endpoint for deleting permissions is `/scp/v1/permissions/delete` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -687,6 +710,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: id
+          in: path
+          description: Id of the permission to delete.
+          required: true
+          schema:
+            type: number
+            example: 2
       responses:
         '202':
           description: Deleted
@@ -736,6 +766,7 @@ paths:
          - Endpoint for creating Role Permission mapping  `/scp/v1/role-permission-mapping/create` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -745,6 +776,14 @@ paths:
           required: true
           schema:
             type: string
+        - name: role_id
+          in: path
+          description: >-
+            Pass the `role_id` of the user role to add permissions.
+          required: true
+          schema:
+            type: number
+          example: 2
       requestBody:
         description: ''
         content:
@@ -838,6 +877,7 @@ paths:
          - The API Endpoint for deleting Role Permissions is `/scp/v1/role-permission-mapping/delete` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -902,6 +942,7 @@ paths:
          - The API Endpoint for getting a list of permissions is `/scp/v1/role-permission-mapping/list` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           required: true
@@ -977,6 +1018,7 @@ paths:
          - The API Endpoint for creating a user entity is `/scp/v1/entity-types/create` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -1082,12 +1124,6 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/entity-type/createUserEntity400Response'
-    parameters:
-      - in: path
-        name: ''
-        description: ''
-        schema:
-          type: string
   /scp/v1/entity-types/update/{id}:
     post:
       summary: Update entity type
@@ -1098,6 +1134,7 @@ paths:
          - The API Endpoint for creating a user entity is `/scp/v1/entity-types/update` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -1214,6 +1251,7 @@ paths:
          - The API Endpoint for creating a user entity is `/scp/v1/entity-types/delete` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -1263,6 +1301,7 @@ paths:
          - The API Endpoint for creating a user entity is `/scp/v1/entity-types/read` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -1399,6 +1438,7 @@ paths:
          - The API Endpoint for creating a user entity is `/scp/v1/entity/create` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -1519,6 +1559,7 @@ paths:
          - The API Endpoint to update a user entity is `/scp/v1/entity/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -1638,6 +1679,7 @@ paths:
          - The API Endpoint for reading the details of the user entity is `/scp/v1/entity/read` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -1735,6 +1777,7 @@ paths:
          - The API Endpoint for deleting a user entity is `/scp/v1/entity/delete` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null
+         - This is an Admin API which will be used by admins to create new modules.
       parameters:
         - name: X-auth-token
           in: header
@@ -3834,7 +3877,7 @@ paths:
                           version: 3
   /scp/v1/projects/publish/{projectId}:
     get:
-      summary: Reviewer List
+      summary: Project Publish
       tags:
         - Projects
       description: |-
@@ -3940,28 +3983,12 @@ paths:
               properties:
                 status:
                   type: string
-                type:
-                  type: object
-                comments:
-                  type: object
-                  properties:
-                    comment:
-                      type: string
-                    context:
-                      type: string
-                    page:
-                      type: string
 
             examples:
               sort with asc or desc:
                 value:
                   status: REQUEST_FOR_CHANGES
                   type: project
-                  comments:
-                    comment: 'Check spelling'
-                    context: page
-                    page: 1
-
       responses:
         '201':
           description: project review updated
@@ -4938,17 +4965,20 @@ paths:
               properties:
                 title:
                   type: string
+                  description: Title of the user role.
                 user_type:
                   type: number
+                  description: The type of user. Expected values - 0 for SYSTEM roles, 1 for other roles (default).
                 status:
                   type: string
+                  description: status of the user role.  `ACTIVE` (default)
                 visibility:
                   type: string
+                  description: Visibility of the user role. `PUBLIC` (default)
               required:
                 - title
                 - user_type
                 - status
-                - visibility
             examples:
               example1:
                 value:
