@@ -25,7 +25,7 @@ paths:
          - Endpoint for creating modules  `/scp/v1/modules/create` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -123,7 +123,7 @@ paths:
          - The API Endpoint for updating modules `/scp/v1/modules/update` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -214,7 +214,7 @@ paths:
          - The API Endpoint for getting a list of modules is `/scp/v1/modules/list` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           required: true
@@ -321,7 +321,7 @@ paths:
          - The API Endpoint for deleting modules is `/scp/v1/modules/delete` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -382,7 +382,7 @@ paths:
          - Endpoint for creating permissions  `/scp/v1/permissions/create` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -511,7 +511,7 @@ paths:
          - The API Endpoint for updating permissions is `/scp/v1/permissions/update` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -614,7 +614,7 @@ paths:
          - The API Endpoint for getting a list of permissions is `/scp/v1/permissions/list` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -700,7 +700,7 @@ paths:
          - The API Endpoint for deleting permissions is `/scp/v1/permissions/delete` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -766,7 +766,7 @@ paths:
          - Endpoint for creating Role Permission mapping  `/scp/v1/role-permission-mapping/create` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -877,7 +877,7 @@ paths:
          - The API Endpoint for deleting Role Permissions is `/scp/v1/role-permission-mapping/delete` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -942,7 +942,7 @@ paths:
          - The API Endpoint for getting a list of permissions is `/scp/v1/role-permission-mapping/list` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           required: true
@@ -1018,7 +1018,7 @@ paths:
          - The API Endpoint for creating a user entity is `/scp/v1/entity-types/create` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -1134,7 +1134,7 @@ paths:
          - The API Endpoint for creating a user entity is `/scp/v1/entity-types/update` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -1251,7 +1251,7 @@ paths:
          - The API Endpoint for creating a user entity is `/scp/v1/entity-types/delete` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -1301,7 +1301,7 @@ paths:
          - The API Endpoint for creating a user entity is `/scp/v1/entity-types/read` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -1438,7 +1438,7 @@ paths:
          - The API Endpoint for creating a user entity is `/scp/v1/entity/create` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -1559,7 +1559,7 @@ paths:
          - The API Endpoint to update a user entity is `/scp/v1/entity/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -1679,7 +1679,7 @@ paths:
          - The API Endpoint for reading the details of the user entity is `/scp/v1/entity/read` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -1777,7 +1777,7 @@ paths:
          - The API Endpoint for deleting a user entity is `/scp/v1/entity/delete` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null
-         - This is an Admin API which will be used by admins to create new modules.
+         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
