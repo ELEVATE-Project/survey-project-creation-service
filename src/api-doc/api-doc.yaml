@@ -184,8 +184,6 @@ paths:
                     properties:
                       correlation:
                         type: string
-                      meetingPlatform:
-                        type: string
               examples:
                 example1:
                   value:
@@ -197,7 +195,6 @@ paths:
                       status: INACTIVE
                     meta:
                       correlation: dea5b252-75d2-40ed-a5a7-f8dec087467e
-                      meetingPlatform: BBB
         '400':
           description: Bad Request. Module not Found.
           content:
@@ -280,8 +277,6 @@ paths:
                     properties:
                       correlation:
                         type: string
-                      meetingPlatform:
-                        type: string
               examples:
                 example1:
                   value:
@@ -304,7 +299,6 @@ paths:
                       count: 4
                     meta:
                       correlation: 4cbb42f7-ed92-41a1-b93d-d689121cda08
-                      meetingPlatform: BBB
         '400':
           description: Bad Request. Module Not Found
           content:
@@ -354,8 +348,6 @@ paths:
                     properties:
                       correlation:
                         type: string
-                      meetingPlatform:
-                        type: string
               examples:
                 example1:
                   value:
@@ -364,7 +356,6 @@ paths:
                     result: {}
                     meta:
                       correlation: 471d834a-4954-4564-ae91-6a1f24bec1e5
-                      meetingPlatform: BBB
         '400':
           description: Bad Request. Module not found.
           content:
@@ -738,8 +729,6 @@ paths:
                     properties:
                       correlation:
                         type: string
-                      meetingPlatform:
-                        type: string
               examples:
                 example1:
                   value:
@@ -748,7 +737,6 @@ paths:
                     result: {}
                     meta:
                       correlation: a3f7cde4-83f2-4143-a5c4-7e3291085cb4
-                      meetingPlatform: BBB
         '400':
           description: Bad Request. Permission not found.
           content:
@@ -1354,10 +1342,6 @@ paths:
                           type: string
                         status:
                           type: string
-                        created_by:
-                          type: number
-                        updated_by:
-                          type: number
                         allow_filtering:
                           type: boolean
                         data_type:
@@ -1383,10 +1367,6 @@ paths:
                                 type: string
                               type:
                                 type: string
-                              created_by:
-                                type: number
-                              updated_by:
-                                type: number
                               created_at:
                                 type: string
                               updated_at:
@@ -1406,8 +1386,6 @@ paths:
                         allow_filtering: false
                         data_type: STRING
                         has_entities: true
-                        created_by: 0
-                        updated_by: 0
                         created_at: '2023-09-21T10:16:19.270Z'
                         updated_at: '2023-09-21T10:16:19.270Z'
                         entities:
@@ -1839,7 +1817,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/entity/updateUserEntity400Response'
 
-  /scp/v1/cloud-services/getSignedUrl?fileName={fileName}:
+  /scp/v1/cloud-services/getSignedUrl:
     get:
       summary: Cloud services get signed url
       tags:
@@ -1858,13 +1836,37 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
-          name: fileName
-          required: true
-          description: Please append a valid file name to url which has to be uploaded
-          schema:
-            type: string
-          example: image.jpg
+      requestBody:
+        description: ''
+        content:
+          application/json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                file_name:
+                  type: string
+                  description: Name of the file getting uploaded.
+                  example: images.jpeg
+                reference:
+                  type: string
+                  description: Reference value for the backend to identify the call.
+                  example: certificate
+                draft_id:
+                  type: number
+                  description: draft id
+                  example: 123
+              required:
+                - file_name
+                - reference
+                - draft_id
+            examples:
+              example1:
+                value:
+                  file_name: images.jpeg
+                  reference: certificate
+                  draft_id: 123
+
       responses:
         '200':
           description: ok
@@ -4565,7 +4567,7 @@ paths:
                   resource_type: project
                   url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                   meta:
-                    no_of_logs: 1
+                    no_of_logos: 1
                     no_of_signature: 1
 
       responses:
@@ -5234,7 +5236,78 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/user/updateUser400Response'
-
+  /scp/v1/config/get:
+    get:
+      description: ''
+      operationId: /scp/v1/platform/config
+      tags:
+        - Config APIs
+      parameters: []
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      report_issue:
+                        type: object
+                        properties:
+                          to:
+                            type: string
+                          subject:
+                            type: string
+                  meta:
+                    type: object
+                    properties:
+                      forms_version:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                      correlation:
+                        type: string
+              examples:
+                Success  Response:
+                  value:
+                    responseCode: OK
+                    message: App config fetched successfully
+                    result:
+                      report_issue:
+                        to: support@xyz.com,team@xyz.com
+                        subject: Support request for SCP
+                    meta:
+                      forms_version:
+                        - id: 55
+                          type: projects
+                      correlation: a677494a-b89c-441c-8bdf-70fc91c7136d
+                example1:
+                  value:
+                    responseCode: OK
+                    message: App config fetched successfully
+                    result:
+                      report_issue:
+                        to: support@xyz.com,team@xyz.com
+                        subject: Support request for SCP
+                    meta:
+                      forms_version:
+                        - id: 55
+                          type: session
+                      correlation: a677494a-b89c-441c-8bdf-70fc91c7136d
+      summary: Get app config
 components:
   schemas:
     module:
