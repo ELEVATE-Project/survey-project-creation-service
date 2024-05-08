@@ -1818,7 +1818,7 @@ paths:
                 $ref: '#/components/schemas/entity/updateUserEntity400Response'
 
   /scp/v1/cloud-services/getSignedUrl:
-    get:
+    post:
       summary: Cloud services get signed url
       tags:
         - Cloud Services
@@ -1844,29 +1844,31 @@ paths:
               $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
-                file_name:
+                request:
+                  type: object
+                  patternProperties:
+                    '^5f72f9998925ec7c60f79a91$':
+                      type: object
+                      properties:
+                        files:
+                          type: array
+                          items:
+                            type: string
+                        ref:
+                          type: string
+                ref:
                   type: string
-                  description: Name of the file getting uploaded.
-                  example: images.jpeg
-                reference:
-                  type: string
-                  description: Reference value for the backend to identify the call.
-                  example: certificate
-                draft_id:
-                  type: number
-                  description: draft id
-                  example: 123
               required:
-                - file_name
-                - reference
-                - draft_id
+                - request
+                - ref
             examples:
               example1:
                 value:
-                  file_name: images.jpeg
-                  reference: certificate
-                  draft_id: 123
-
+                  request:
+                    1234:
+                      files:
+                        - certificsteBase.png
+                  ref: certificate
       responses:
         '200':
           description: ok
@@ -5308,6 +5310,118 @@ paths:
                           type: session
                       correlation: a677494a-b89c-441c-8bdf-70fc91c7136d
       summary: Get app config
+  /scp/v1/observation/list?page={page}&limit={limit}&search={search}:
+    post:
+      summary: Observations list
+      tags:
+        - Observation
+      description: |-
+        You can use this API to list Observation
+         - The API Endpoint for listing Observation is `/scp/v1/observation/list` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: observationId
+          description: Please append a valid observation Id to the Request URL.
+          schema:
+            type: number
+          required: true
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                status:
+                  type: string
+                sort:
+                  type: object
+                  items:
+                    type: string
+            examples:
+              sort with asc or desc:
+                value:
+                  status: DRAFT
+                  sort:
+                    key: title
+                    direction: asc/desc
+              sort with status:
+                value:
+                  sort:
+                    key: status
+                    value: INPROGRESS
+
+      responses:
+        '201':
+          description: observation listed successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: number
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Observation listed successfully
+                    result:
+                      data:
+                        - id: 4
+                          title: sample observation
+                          type: observation
+                          organization:
+                            id: 24
+                            name: Shikshalokam
+                            code: sl
+                          status: DRAFT
+                      count: 1
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: observationsuccessfullytCreation
+                          version: 3
+
 components:
   schemas:
     module:
