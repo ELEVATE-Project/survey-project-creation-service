@@ -202,7 +202,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/module/updateModule400Response'
-  /scp/v1/modules/list?page={page}&limit={limit}&search={search}:
+  /scp/v1/modules/list:
     get:
       summary: Get list of modules
       tags:
@@ -600,7 +600,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/permissions/updatePermission400Response'
-  /scp/v1/permissions/list?page={page}&limit={limit}&search={search}:
+  /scp/v1/permissions/list:
     get:
       summary: Get list of permissions
       tags:
@@ -3508,7 +3508,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
-  /scp/v1/resource/list?page={page}&limit={limit}&search={search}&filter={filter}:
+  /scp/v1/resource/list:
     post:
       summary: Resource List
       tags:
@@ -3549,11 +3549,25 @@ paths:
             type: string
         - name: filter
           in: path
-          description: To indicate to list all resource or based on status
+          description: To indicate to list all organization resource or resources created by that user
           required: false
           schema:
             type: string
-          example: created_by_me
+          example: all
+        - name: type
+          in: path
+          description: Type of the resource
+          required: false
+          schema:
+            type: string
+          example: project
+        - name: status
+          in: path
+          description: The status of the resource
+          required: false
+          schema:
+            type: string
+          example: DRAFT
       requestBody:
         content:
           application.json:
@@ -3561,16 +3575,12 @@ paths:
               $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
-                status:
-                  type: string
-                  description: The status of the projects to list.
                 sort:
                   type: object
                   description: It should include the field to sort by and the sorting order.
             examples:
               sort with asc or desc:
                 value:
-                  status: DRAFT
                   sort:
                     key: title
                     direction: asc/desc
@@ -3931,7 +3941,7 @@ paths:
                           commentor:
                             id: 24
                             name: Priyanka
-                          read_status: true
+                          is_read: true
                           resolved_by: 25
                           resolver:
                             id: 25
@@ -4211,7 +4221,7 @@ paths:
                           type: projectCreation
                           version: 3
 
-  /scp/v1/comment/update/{id}:
+  /scp/v1/comment/update/{id}?resource_id={resource_id}:
     post:
       summary: Add or Update Comment
       tags:
@@ -4237,6 +4247,13 @@ paths:
             type: number
           required: false
           example: 2
+        - in: path
+          name: resource_id
+          description: Please append a valid resource Id to the Request URL.
+          schema:
+            type: number
+          required: true
+          example: 1
       requestBody:
         content:
           application.json:
@@ -4244,9 +4261,6 @@ paths:
               $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
-                resource_id:
-                  type: string
-                  description: ID of the resource associated with the comment
                 comment:
                   type: string
                   description: The actual content of the comment
@@ -4266,7 +4280,6 @@ paths:
             examples:
               example1:
                 value:
-                  resource_id: 1
                   comment: 'Check spelling'
                   context: page
                   page: 1
@@ -4317,7 +4330,7 @@ paths:
                       page: 1
                       status: UNRESOLVED
                       parent_id: 2
-                      read_status: false
+                      is_read: false
                     meta:
                       formsVersion:
                         - id: 3
@@ -4414,7 +4427,7 @@ paths:
                           commentor:
                             id: 24
                             name: Priyanka
-                          read_status: true
+                          is_read: true
                           resolved_by: 25
                           resolver:
                             id: 25
@@ -4428,7 +4441,7 @@ paths:
                           commentor:
                             id: 24
                             name: Priyanka
-                          read_status: true
+                          is_read: true
                       count: 2
                     meta:
                       formsVersion:
@@ -5051,7 +5064,7 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-  /scp/v1/certificate/list?resource_type={resource_type}&page={page}&limit={limit}&search={search}:
+  /scp/v1/certificate/list:
     get:
       summary: List Certificate Templates
       tags:
@@ -5527,7 +5540,7 @@ paths:
                           type: session
                       correlation: a677494a-b89c-441c-8bdf-70fc91c7136d
       summary: Get app config
-  /scp/v1/observation/list?page={page}&limit={limit}&search={search}:
+  /scp/v1/observation/list:
     post:
       summary: Observations list
       tags:
