@@ -36,8 +36,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: ok
+        '201':
+          description: Created
           content:
             application.json:
               schema:
@@ -136,9 +136,9 @@ paths:
         - name: id
           in: path
           description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+            Module id
           required: true
+          example: 6
           schema:
             type: string
       requestBody:
@@ -150,6 +150,7 @@ paths:
               properties:
                 code:
                   type: string
+                  description: Unique code for modules.
               required:
                 - code
             examples:
@@ -312,7 +313,7 @@ paths:
         - Modules
       description: |-
         You can use this API to delete module
-         - The API Endpoint for deleting modules is `/scp/v1/modules/delete` 
+         - The API Endpoint for deleting module is `/scp/v1/modules/delete` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - This is an Admin API which will be used by admins.
@@ -325,11 +326,16 @@ paths:
           required: true
           schema:
             type: string
-      requestBody:
-        content: {}
+        - name: id
+          in: path
+          description: Module id
+          required: true
+          example: 6
+          schema:
+            type: string
       responses:
         '202':
-          description: Deleted
+          description: Accepted
           content:
             application.json:
               schema:
@@ -365,12 +371,12 @@ paths:
 
   /scp/v1/permissions/create:
     post:
-      summary: Creating new permissions
+      summary: Creating new permission
       tags:
         - Permissions
       description: |-
         This API is associated with permissions
-         - Endpoint for creating permissions  `/scp/v1/permissions/create` 
+         - Endpoint for creating permission  `/scp/v1/permissions/create` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
          - This is an Admin API which will be used by admins.
@@ -385,7 +391,7 @@ paths:
             type: string
       responses:
         '201':
-          description: ok
+          description: Created
           content:
             application.json:
               schema:
@@ -453,7 +459,7 @@ paths:
                       correlation: 32016da1-8bf1-4157-afad-34508aa609c8
                     message: permission already exists
       requestBody:
-        description: ''
+        description: 'Request body for create permission'
         content:
           application/json:
             schema:
@@ -462,18 +468,18 @@ paths:
               properties:
                 code:
                   type: string
-                  description: Must be unique
+                  description: code of the permission, must be unique
                 module:
                   type: string
-                  description: 'module name'
+                  description: 'Module name'
                 request_type:
                   type: array
-                  description: Array of HTTP request methods of the API like `PUT` , `POST` , `PATCH` , `GET` , `DELETE`.
                   items:
                     type: string
+                  description: Array of HTTP request methods of the API like `PUT` , `POST` , `PATCH` , `GET` , `DELETE`.
                 api_path:
                   type: string
-                  description: Url of the api
+                  description: URL of the api
                 status:
                   type: string
                   description: Status of the permission.
@@ -498,8 +504,8 @@ paths:
       tags:
         - Permissions
       description: |-
-        You can use this API to update permissions
-         - The API Endpoint for updating permissions is `/scp/v1/permissions/update` 
+        You can use this API to update permission
+         - The API Endpoint for updating permission is `/scp/v1/permissions/update` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - This is an Admin API which will be used by admins.
@@ -526,21 +532,21 @@ paths:
               properties:
                 code:
                   type: string
-                  description: code of the permission
+                  description: Code of the permission
                 module:
                   type: string
-                  description: module of the permission
+                  description: Module of the permission
                 request_type:
                   type: array
                   items:
                     type: string
-                  description: 'request type of the api '
+                  description: Request type of the API
                 api_path:
                   type: string
-                  description: Url of the api
+                  description: URL of the api
                 status:
                   type: string
-                  description: status of the permission
+                  description: Status of the permission
             examples:
               example1:
                 value:
@@ -621,14 +627,20 @@ paths:
           schema:
             type: number
           example: 1
-
         - in: path
           name: limit
-          description: Number of records to limit
+          description: Number of records per page
           required: false
           schema:
             type: number
           example: 2
+        - in: path
+          name: search
+          description: Please search for information such as 'code'.
+          required: false
+          schema:
+            type: string
+          example: project
       responses:
         '200':
           description: ok
@@ -683,12 +695,12 @@ paths:
                       count: 1
   /scp/v1/permissions/delete/{id}:
     delete:
-      summary: Delete permissions by id
+      summary: Delete permission by id
       tags:
         - Permissions
       description: |-
         You can use this API to delete permission  
-         - The API Endpoint for deleting permissions is `/scp/v1/permissions/delete` 
+         - The API Endpoint for deleting permission is `/scp/v1/permissions/delete` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - This is an Admin API which will be used by admins.
@@ -710,7 +722,7 @@ paths:
             example: 2
       responses:
         '202':
-          description: Deleted
+          description: Accepted
           content:
             application.json:
               schema:
@@ -767,13 +779,12 @@ paths:
         - name: role_id
           in: path
           description: >-
-            Pass the `role_id` of the user role to add permissions.
+            Pass the `role_id` to add permissions.
           required: true
           schema:
             type: number
           example: 2
       requestBody:
-        description: ''
         content:
           application/json:
             schema:
@@ -782,6 +793,7 @@ paths:
               properties:
                 permission_id:
                   type: number
+                  description: id of the Permission
               required:
                 - permission_id
             examples:
@@ -790,7 +802,7 @@ paths:
                   permission_id: 1
       responses:
         '201':
-          description: ok
+          description: Created
           content:
             application.json:
               schema:
@@ -855,71 +867,6 @@ paths:
                     message: Permission for this role already exists
 
     parameters: []
-  /scp/v1/role-permission-mapping/delete/{role_id}:
-    delete:
-      summary: Delete rolePermissionMapping by id
-      tags:
-        - Role Permission Mapping
-      description: |-
-        You can use this API to delete Role Permission mapping
-         - The API Endpoint for deleting Role Permissions is `/scp/v1/role-permission-mapping/delete` 
-         - It is mandatory to provide values for parameters that are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $schema: http://json-schema.org/draft-04/schema#
-              type: object
-              properties:
-                permission_id:
-                  type: number
-              required:
-                - permission_id
-            examples:
-              example1:
-                value:
-                  permission_id: 1
-      responses:
-        '201':
-          description: Created
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: object
-                    properties: {}
-
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: Permission delete from the role
-                    result: {}
-
-        '400':
-          description: Bad Request. Permission for this role is empty.
-          content:
-            application.json:
-              schema:
-                $ref: '#/components/schemas/role-permission/createMapping400Response'
   /scp/v1/role-permission-mapping/list:
     get:
       summary: Get list of role permissions
@@ -956,22 +903,19 @@ paths:
                   result:
                     type: object
                     properties:
-                      results:
-                        type: object
-                        properties:
-                          permissions:
-                            type: array
-                            items:
-                              type: object
-                              properties:
-                                module:
-                                  type: string
-                                request_type:
-                                  type: array
-                                  items:
-                                    type: string
-                          count:
-                            type: number
+                      permissions:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            module:
+                              type: string
+                            request_type:
+                              type: array
+                              items:
+                                type: string
+                      count:
+                        type: number
 
               examples:
                 example1:
@@ -979,18 +923,85 @@ paths:
                     responseCode: OK
                     message: Permissions list fetched successfully
                     result:
-                      results:
-                        permissions:
-                          module: entity-type
+                      permissions:
+                        - module: entity-type
                           request_type:
                             - POST,
                             - DELETE,
                             - GET,
                             - PUT,
                             - PATCH
-                        count: 1
+                      count: 1
+  /scp/v1/role-permission-mapping/delete/{role_id}:
+    post:
+      summary: Delete rolePermissionMapping by id
+      tags:
+        - Role Permission Mapping
+      description: |-
+        You can use this API to delete Role Permission mapping
+         - The API Endpoint for deleting Role Permissions mapping is `/scp/v1/role-permission-mapping/delete` 
+         - It is mandatory to provide values for parameters that are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: role_id
+          in: path
+          description: >-
+            Pass the `role_id` to add permissions.
+          required: true
+          schema:
+            type: number
+          example: 2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                permission_id:
+                  type: number
+                  description: id of the permission
+              required:
+                - permission_id
+            examples:
+              example1:
+                value:
+                  permission_id: 1
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties: {}
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Permission delete from the role
+                    result: {}
+
         '400':
-          description: Bad Request. Permission for this role is empty
+          description: Bad Request. Permission for this role is empty.
           content:
             application.json:
               schema:
@@ -1025,16 +1036,22 @@ paths:
               properties:
                 value:
                   type: string
+                  description: Unique identifier for the entity type.
                 label:
                   type: string
+                  description: Descriptive label for the entity type.
                 type:
                   type: string
+                  description: Type of the entity (e.g., SYSTEM, USER).
                 allow_filtering:
                   type: boolean
+                  description: Indicates whether filtering is allowed for this entity type.
                 data_type:
                   type: string
+                  description: Data type of the entity.
                 has_entities:
                   type: boolean
+                  description: Indicates whether the entity type has associated entities.
               required: []
             examples:
               example1:
@@ -1118,8 +1135,8 @@ paths:
       tags:
         - Entity Types
       description: |-
-        You can use this API to update a user entity type
-         - The API Endpoint for creating a user entity is `/scp/v1/entity-types/update` 
+        You can use this API to update an entity type
+         - The API Endpoint for updating an entity type is `/scp/v1/entity-types/update` 
          - It is mandatory to provide values for parameters that are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - This is an Admin API which will be used by admins.
@@ -1132,6 +1149,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: id
+          in: path
+          description: Please append a valid entity type ID to the request URL.
+          required: true
+          schema:
+            type: number
+          example: 2
       requestBody:
         content:
           application/json:
@@ -1141,16 +1165,22 @@ paths:
               properties:
                 value:
                   type: string
+                  description: Unique identifier for the entity type.
                 label:
                   type: string
-                status:
-                  type: string
+                  description: Descriptive label for the entity type.
                 type:
                   type: string
+                  description: Type of the entity (e.g., SYSTEM, USER).
                 allow_filtering:
                   type: boolean
+                  description: Indicates whether filtering is allowed for this entity type.
                 data_type:
                   type: string
+                  description: Data type of the entity.
+                has_entities:
+                  type: boolean
+                  description: Indicates whether the entity type has associated entities.
             examples:
               example1:
                 value:
@@ -1229,64 +1259,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/entity-type/updateUserEntity400Response'
-  /scp/v1/entity-types/delete/{id}:
-    delete:
-      summary: Delete entity type
-      tags:
-        - Entity Types
-      description: |-
-        You can use this API to delete a user entity  
-         - The API Endpoint for creating a user entity is `/scp/v1/entity-types/delete` 
-         - It is mandatory to provide values for parameters that are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
-          required: true
-          schema:
-            type: string
-      responses:
-        '201':
-          description: Created
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: array
-                    items:
-                      type: string
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: Entity type deleted successfully
-                    result: []
-
-        '400':
-          description: Bad Request. Entity-Type not found
-          content:
-            application.json:
-              schema:
-                $ref: '#/components/schemas/entity-type/updateUserEntity400Response'
   /scp/v1/entity-types/read:
     post:
       summary: Read entity type
       tags:
         - Entity Types
       description: |-
-        You can use this API to read a entity type  
-         - The API Endpoint for creating a user entity is `/scp/v1/entity-types/read` 
+        You can use this API to retrieve a list of entity types. 
+         - The API Endpoint for getting the list of entity types is `/scp/v1/entity-types/read` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - This is an Admin API which will be used by admins.
@@ -1308,8 +1288,12 @@ paths:
               properties:
                 value:
                   type: array
+                  description: Entity type value
                   items:
                     type: string
+                read_user_entity:
+                  type: boolean
+                  description: Use this param to get all entities, including user created entities.
             examples:
               example1:
                 value:
@@ -1317,8 +1301,8 @@ paths:
                     - ln
                   read_user_entity: false
       responses:
-        '201':
-          description: Created
+        '200':
+          description: ok
           content:
             application.json:
               schema:
@@ -1405,10 +1389,67 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/entity/updateUserEntity400Response'
+  /scp/v1/entity-types/delete/{id}:
+    delete:
+      summary: Delete entity type
+      tags:
+        - Entity Types
+      description: |-
+        You can use this API to delete a user entity type 
+         - The API Endpoint for deleting a user entity type is `/scp/v1/entity-types/delete` 
+         - It is mandatory to provide values for parameters that are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+         - This is an Admin API which will be used by admins.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: Please append a valid entity type ID to the request URL.
+          required: true
+          schema:
+            type: number
+          example: 2
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Entity type deleted successfully
+                    result: []
+
+        '400':
+          description: Bad Request. Entity-Type not found
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/entity-type/updateUserEntity400Response'
 
   /scp/v1/entity/create:
     post:
-      summary: Create entity
+      summary: Create Entity
       tags:
         - Entity
       description: |-
@@ -1435,10 +1476,13 @@ paths:
               properties:
                 value:
                   type: string
+                  description: Unique identifier for the entity.
                 label:
                   type: string
+                  description: Descriptive label for the entity type.
                 entity_type_id:
                   type: number
+                  description: Id of the entity type.
             examples:
               example1:
                 value:
@@ -1528,8 +1572,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/entity/createEntity400Response'
   /scp/v1/entity/update/{id}:
-    put:
-      summary: Update entity
+    patch:
+      summary: Update Entity
       tags:
         - Entity
       description: |-
@@ -1562,12 +1606,13 @@ paths:
               properties:
                 value:
                   type: string
+                  description: Unique identifier for the entity.
                 label:
                   type: string
-                status:
-                  type: string
+                  description: Descriptive label for the entity type.
                 entity_type_id:
                   type: number
+                  description: Id of the entity type.
             examples:
               example1:
                 value:
@@ -1648,7 +1693,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/entity/updateUserEntity400Response'
   /scp/v1/entity/read/{id}:
-    post:
+    get:
       summary: Get entity details
       tags:
         - Entity
@@ -1669,12 +1714,13 @@ paths:
             type: string
         - in: path
           name: id
-          description: ID of the entity
+          description: Please append a valid entity ID.
           schema:
             type: string
+          example: 1
       responses:
         '200':
-          description: Accepted
+          description: ok
           content:
             application.json:
               schema:
@@ -1737,13 +1783,6 @@ paths:
                         deleted_at: null
                     meta:
                       formsVersion: []
-        '400':
-          description: Bad Request. User Entity not found
-          content:
-            application.json:
-              schema:
-                $ref: '#/components/schemas/entity/updateUserEntity400Response'
-
     parameters: []
   /scp/v1/entity/delete/{id}:
     delete:
@@ -1798,8 +1837,6 @@ paths:
                           type: string
                       correlation:
                         type: string
-                      meeting_platform:
-                        type: string
               examples:
                 example1:
                   value:
@@ -1809,7 +1846,6 @@ paths:
                     meta:
                       formsVersion: []
                       correlation: 2f8b1d3d-0a25-4dda-ae5f-8d8bb9dd9282
-                      meeting_platform: BBB
         '400':
           description: Bad Request. User Entity has already been deleted.
           content:
@@ -1845,19 +1881,14 @@ paths:
               type: object
               properties:
                 request:
+                  description: |
+                    Add Resource id inside request, which can be a project id, observation id, etc.
+                    Additionally, append the valid file names in the files.
                   type: object
-                  patternProperties:
-                    '^5f72f9998925ec7c60f79a91$':
-                      type: object
-                      properties:
-                        files:
-                          type: array
-                          items:
-                            type: string
-                        ref:
-                          type: string
+
                 ref:
                   type: string
+                  description: Only add ref as certificate if uploading the certificate templates
               required:
                 - request
                 - ref
@@ -1865,7 +1896,7 @@ paths:
               example1:
                 value:
                   request:
-                    1234:
+                    1:
                       files:
                         - certificsteBase.png
                   ref: certificate
@@ -1940,7 +1971,7 @@ paths:
   /scp/v1/form/create:
     post:
       operationId: formCreate
-      summary: Create form
+      summary: Create Form
       tags:
         - Form
       description: |-
@@ -1966,9 +1997,12 @@ paths:
               properties:
                 type:
                   type: string
+                  description: The type of the form.
                 sub_type:
                   type: string
+                  description: The sub-type or category of the form.
                 data:
+                  description: The main data structure for the form.
                   type: object
                   properties:
                     template_name:
@@ -2044,8 +2078,8 @@ paths:
                             required: true
 
       responses:
-        '200':
-          description: ok
+        '201':
+          description: Created
           content:
             application.json:
               schema:
@@ -2181,7 +2215,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/form/createForm400Response'
   /scp/v1/form/update/{formId}:
-    put:
+    patch:
       operationId: formUpdate
       summary: Update form
       tags:
@@ -2214,11 +2248,13 @@ paths:
               type: object
               properties:
                 type:
-                  type: project
+                  type: string
+                  description: The type of the form.
                 sub_type:
-                  type: createProject
+                  type: string
+                  description: The sub-type or category of the form.
                 data:
-                  type: object
+                  description: The main data structure for the form.
                   properties:
                     template_name:
                       type: string
@@ -2374,8 +2410,10 @@ paths:
               properties:
                 type:
                   type: string
+                  description: The type of the form.
                 sub_type:
                   type: string
+                  description: The sub-type or category of the form.
             examples:
               example1:
                 value:
@@ -2549,41 +2587,53 @@ paths:
               properties:
                 title:
                   type: string
+                  description: The title of the project
                 categories:
+                  description: Categories associated with the project
                   type: array
                   items:
                     type: string
                 recommented_duration:
+                  description: Object containing information about the recommended duration.
                   type: object
                   properties:
                     type:
                       type: string
+                      description: Type of recommended duration (e.g., "days", "hours").
                     number:
                       type: number
+                      description: The numeric value representing the recommended duration.
                 keywords:
                   type: string
+                  description: The keywords associated with the project.
                 recommeneded_for:
+                  description: List of recommented designations for the project.
                   type: array
                   items:
                     type: string
                 languages:
+                  description: List of languages associated with the project.
                   type: array
                   items:
                     type: string
                 learning_resources:
+                  description: List of learning resources related to the project.
                   type: array
                   items:
                     type: object
                     properties:
                       name:
+                        description: The name of the learning resource.
                         type: string
                       url:
+                        description: The URL of the learning resource.
                         type: string
                 solution_details:
                   type: object
-
+                  description: Details about the observation solution.
                 licence:
                   type: string
+                  description: The license associated with the project.
                 task:
                   type: array
                   items:
@@ -2591,11 +2641,15 @@ paths:
                     properties:
                       id:
                         type: string
+                        description: The ID of the task.
                       name:
                         type: string
+                        description: The name of the task.
                       type:
                         type: string
+                        description: The type of the task. content/observation
                       children:
+                        description: List of child tasks.
                         type: array
                         items:
                           type: object
@@ -2604,26 +2658,38 @@ paths:
                               type: string
                       is_mandatory:
                         type: boolean
+                        description: Indicates if the task is mandatory.
                       allow_evidences:
                         type: boolean
+                        description: Indicates if evidence submission is allowed for the task.
                       evidence_details:
+                        description: Details about evidence
                         type: object
                         properties:
                           file_types:
+                            description: List of allowed file types for evidence submission.
                             type: array
                             items:
                               type: string
                           min_no_of_evidences:
+                            description: The minimum number of evidences required.
                             type: string
                       sequence_no:
                         type: number
+                        description: The sequence number of the task.
                 certificate:
+                  description: Details about the project certificate.
                   type: object
                   properties:
                     base_template_id:
                       type: number
+                      description: The ID of the base certificate template.
+                    base_template_url:
+                      type: string
+                      description: The url of the base certificate template.
                     issuer:
                       type: string
+                      description: The issuer of the certificate.
                     logos:
                       type: array
                       items:
@@ -2633,6 +2699,7 @@ paths:
                       items:
                         type: string
                     criteria:
+                      description: Criteria for issuing the certificate.
                       type: object
                       properties:
                         expressions:
@@ -2672,6 +2739,8 @@ paths:
                                               type: string
 
             examples:
+              project without any details:
+                value: {}
               project with child tasks:
                 value:
                   title: Sample Project
@@ -2889,6 +2958,7 @@ paths:
           schema:
             type: number
           required: true
+          example: 1
       requestBody:
         content:
           application.json:
@@ -2898,41 +2968,53 @@ paths:
               properties:
                 title:
                   type: string
+                  description: The title of the project
                 categories:
+                  description: Categories associated with the project
                   type: array
                   items:
                     type: string
                 recommented_duration:
+                  description: Object containing information about the recommended duration.
                   type: object
                   properties:
                     type:
                       type: string
+                      description: Type of recommended duration (e.g., "days", "hours").
                     number:
+                      description: The numeric value representing the recommended duration.
                       type: number
                 keywords:
                   type: string
+                  description: The keywords associated with the project.
                 recommeneded_for:
+                  description: List of recommented designations for the project.
                   type: array
                   items:
                     type: string
                 languages:
+                  description: List of languages associated with the project.
                   type: array
                   items:
                     type: string
                 learning_resources:
+                  description: List of learning resources related to the project.
                   type: array
                   items:
                     type: object
                     properties:
                       name:
+                        description: The name of the learning resource.
                         type: string
                       url:
+                        description: The URL of the learning resource.
                         type: string
                 solution_details:
                   type: object
-
+                  description: Details about the observation solution.
                 licence:
                   type: string
+                  description: The license associated with the project.
                 task:
                   type: array
                   items:
@@ -2940,11 +3022,15 @@ paths:
                     properties:
                       id:
                         type: string
+                        description: The ID of the task.
                       name:
                         type: string
+                        description: The name of the task.
                       type:
                         type: string
+                        description: The type of the task. content/observation
                       children:
+                        description: List of child tasks.
                         type: array
                         items:
                           type: object
@@ -2952,27 +3038,39 @@ paths:
                             id:
                               type: string
                       is_mandatory:
+                        description: Indicates if the task is mandatory.
                         type: boolean
                       allow_evidences:
+                        description: Indicates if evidence submission is allowed for the task.
                         type: boolean
                       evidence_details:
+                        description: Details about evidence
                         type: object
                         properties:
                           file_types:
+                            description: List of allowed file types for evidence submission.
                             type: array
                             items:
                               type: string
                           min_no_of_evidences:
+                            description: The minimum number of evidences required.
                             type: string
                       sequence_no:
+                        description: The sequence number of the task.
                         type: number
                 certificate:
+                  description: Details about the project certificate.
                   type: object
                   properties:
                     base_template_id:
                       type: number
+                      description: The ID of the base certificate template.
+                    base_template_url:
+                      type: string
+                      description: The url of the base certificate template.
                     issuer:
                       type: string
+                      description: The issuer of the certificate.
                     logos:
                       type: array
                       items:
@@ -2982,6 +3080,7 @@ paths:
                       items:
                         type: string
                     criteria:
+                      description: Criteria for issuing the certificate.
                       type: object
                       properties:
                         expressions:
@@ -3219,8 +3318,8 @@ paths:
       tags:
         - Projects
       description: |-
-        You can use this API to create a project 
-         - The API Endpoint for creating a user entity is `/scp/v1/project/create` 
+        You can use this API to delete a project 
+         - The API Endpoint for deleting project is `/scp/v1/project/create` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -3238,9 +3337,10 @@ paths:
           schema:
             type: number
           required: true
+          example: 1
 
       responses:
-        '201':
+        '202':
           description: Project deleted successfully
           content:
             application.json:
@@ -3293,7 +3393,7 @@ paths:
         - Projects
       description: |-
         You can use this API to submit the project for review
-         - The API Endpoint for creating a user entity is `/scp/v1/project/submitForReview` 
+         - The API Endpoint for submit the project for review is `/scp/v1/project/submitForReview` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -3311,6 +3411,7 @@ paths:
           schema:
             type: number
           required: true
+          example: 1
       requestBody:
         content:
           application.json:
@@ -3318,16 +3419,14 @@ paths:
               $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
-                status:
-                  type: string
                 reviwer_ids:
+                  description: The IDs of the reviewers assigned to review the project.
                   type: array
                   items:
                     type: string
             examples:
               example1:
                 value:
-                  status: SUBMITTED
                   reviwer_ids: [23, 25]
 
       responses:
@@ -3380,7 +3479,7 @@ paths:
                 $ref: '#/components/schemas/project/deleteProject400Response'
   /scp/v1/projects/list?page={page}&limit={limit}&search={search}:
     post:
-      summary: Project list
+      summary: Project List
       tags:
         - Projects
       description: |-
@@ -3397,12 +3496,26 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
-          name: projectId
-          description: Please append a valid project Id to the Request URL.
+        - name: page
+          in: path
+          description: The page number for pagination.
+          required: false
           schema:
-            type: number
-          required: true
+            type: integer
+          example: 1
+        - name: limit
+          in: path
+          description: The limit of projects per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
+        - name: search
+          in: path
+          description: The search value to filter projects based on title.
+          required: false
+          schema:
+            type: string
       requestBody:
         content:
           application.json:
@@ -3412,10 +3525,10 @@ paths:
               properties:
                 status:
                   type: string
+                  description: The status of the projects to list.
                 sort:
                   type: object
-                  items:
-                    type: string
+                  description: It should include the field to sort by and the sorting order.
             examples:
               sort with asc or desc:
                 value:
@@ -3428,9 +3541,8 @@ paths:
                   sort:
                     key: status
                     value: INPROGRESS
-
       responses:
-        '201':
+        '200':
           description: project listed successfully
           content:
             application.json:
@@ -3514,9 +3626,10 @@ paths:
           schema:
             type: number
           required: true
+          example: 2
 
       responses:
-        '201':
+        '200':
           description: Project fetched successfully
           content:
             application.json:
@@ -3531,6 +3644,8 @@ paths:
                   result:
                     type: object
                     properties:
+                      id:
+                        type: integer
                       title:
                         type: string
                       categories:
@@ -3676,6 +3791,7 @@ paths:
                     responseCode: OK
                     message: Project fetched successfully
                     result:
+                      id: 1
                       status: IN_REVIEW
                       organization:
                         id: 2
@@ -3683,9 +3799,9 @@ paths:
                         code: SL
                       organization_id: 2
                       reviwers:
-                        id: 24
-                        name: Raven
-                        status: REQUEST_FOR_CHANGES
+                        - id: 24
+                          name: Raven
+                          status: REQUEST_FOR_CHANGES
                       title: Sample Project
                       categories:
                         - label: communication
@@ -3698,7 +3814,8 @@ paths:
                         - label: HM
                           value: hm
                       languages:
-                        - en
+                        - label: English
+                          value: en
                       learning_resources:
                         - name: sample doc
                           url: 'http://test.com'
@@ -3722,6 +3839,7 @@ paths:
                             type: observation
                       certificate:
                         base_template_id: 5
+                        base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                         logos:
                           - https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
                         signatures:
@@ -3763,12 +3881,18 @@ paths:
                           comment: correct spelling
                           context: page
                           page: 1
-                          status: UNRESOLVED
+                          status: RESOLVED
                           parent_id: 0
                           user_id: 24
-                          user:
+                          commentor:
                             id: 24
                             name: Priyanka
+                          read_status: true
+                          resolved_by: 25
+                          resolver:
+                            id: 25
+                            name: Adithya
+                          resolved_at: '2024-04-11T06:43:43.995Z'
 
                     meta:
                       formsVersion:
@@ -3809,7 +3933,7 @@ paths:
           required: true
 
       responses:
-        '201':
+        '200':
           description: Reviewer list fetched successfully
           content:
             application.json:
@@ -3857,18 +3981,21 @@ paths:
                       data:
                         - id: 1
                           name: Priyanka
+                          organization_id: 2
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 2
                           name: Adithya
+                          organization_id: 2
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 3
                           name: Ankit
+                          organization_id: 2
                           organization:
                             id: 2
                             name: Shikshalokam
@@ -3906,7 +4033,7 @@ paths:
           required: true
 
       responses:
-        '201':
+        '200':
           description: project published successfully
           content:
             application.json:
@@ -3960,7 +4087,7 @@ paths:
         - Review
       description: |-
         You can use this API to update review status
-         - The API Endpoint for listing project is `/scp/v1/review/update` 
+         - The API Endpoint for update review status is `/scp/v1/review/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -3987,14 +4114,18 @@ paths:
               properties:
                 status:
                   type: string
+                  description: The new status for the project review (e.g., "REQUEST_FOR_CHANGES").
+                type:
+                  type: string
+                  description: The type of the resource being reviewed (e.g., "project").
 
             examples:
-              sort with asc or desc:
+              example1:
                 value:
                   status: REQUEST_FOR_CHANGES
                   type: project
       responses:
-        '201':
+        '200':
           description: project review updated
           content:
             application.json:
@@ -4043,7 +4174,7 @@ paths:
         - Comment
       description: |-
         You can use this API to create or update comment
-         - The API Endpoint for add or update is `/scp/v1/comment/update` 
+         - The API Endpoint for adding or updating a comment is `/scp/v1/comment/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4060,7 +4191,8 @@ paths:
           description: Please append a valid comment Id to the Request URL.
           schema:
             type: number
-          required: true
+          required: false
+          example: 2
       requestBody:
         content:
           application.json:
@@ -4070,32 +4202,32 @@ paths:
               properties:
                 resource_id:
                   type: string
-                type:
-                  type: object
-                comments:
-                  type: object
-                  properties:
-                    comment:
-                      type: string
-                    context:
-                      type: string
-                    page:
-                      type: string
-                    status:
-                      type: string
-                    parent_id:
-                      type: string
+                  description: ID of the resource associated with the comment
+                comment:
+                  type: string
+                  description: The actual content of the comment
+                context:
+                  type: string
+                  description: Context of the comment (e.g., "page" or any tag)
+                page:
+                  type: string
+                  description: Page number associated with the comment
+                status:
+                  type: string
+                  description: Status of the comment (e.g., "UNRESOLVED").
+                parent_id:
+                  type: string
+                  description: ID of the parent comment, if applicable
 
             examples:
               example1:
                 value:
                   resource_id: 1
-                  comments:
-                    comment: 'Check spelling'
-                    context: page
-                    page: 1
-                    status: UNRESOLVED
-                    parent_id: 2
+                  comment: 'Check spelling'
+                  context: page
+                  page: 1
+                  status: UNRESOLVED
+                  parent_id: 2
 
       responses:
         '201':
@@ -4136,12 +4268,12 @@ paths:
                     result:
                       id: 3
                       resource_id: 1
-                      comments:
-                        comment: 'Check spelling'
-                        context: page
-                        page: 1
-                        status: UNRESOLVED
-                        parent_id: 2
+                      comment: 'Check spelling'
+                      context: page
+                      page: 1
+                      status: UNRESOLVED
+                      parent_id: 2
+                      read_status: false
                     meta:
                       formsVersion:
                         - id: 3
@@ -4161,7 +4293,7 @@ paths:
         - Comment
       description: |-
         You can use this API to get the list all comments
-         - The API Endpoint for comment list is `/scp/v1/comment/list` 
+         - The API Endpoint for get the list of comments is `/scp/v1/comment/list` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4179,9 +4311,10 @@ paths:
           schema:
             type: number
           required: true
+          example: 1
 
       responses:
-        '201':
+        '200':
           description: Comment fetched successfully
           content:
             application.json:
@@ -4228,12 +4361,31 @@ paths:
                     result:
                       resource_id: 1
                       comments:
-                        - comment: 'Check spelling'
+                        - id: 2
+                          comment: 'Check spelling'
+                          context: page
+                          page: 1
+                          status: RESOLVED
+                          parent_id: 1
+                          commentor:
+                            id: 24
+                            name: Priyanka
+                          read_status: true
+                          resolved_by: 25
+                          resolver:
+                            id: 25
+                            name: Adithya
+                          resolved_at: '2024-04-11T06:43:43.995Z'
+                        - comment: 'Add valid title'
                           context: page
                           page: 1
                           status: UNRESOLVED
-                          parent_id: 2
-                      count: 1
+                          parent_id: null
+                          commentor:
+                            id: 24
+                            name: Priyanka
+                          read_status: true
+                      count: 2
                     meta:
                       formsVersion:
                         - id: 3
@@ -4564,13 +4716,19 @@ paths:
             examples:
               example1:
                 value:
-                  code: one-logo-one-sign
-                  name: One Logo One Signature
+                  code: two-logo-two-sign
+                  name: Two Logo Two Signature
                   resource_type: project
                   url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                   meta:
-                    no_of_logos: 1
-                    no_of_signature: 1
+                    logos:
+                      no_of_logos: 2
+                      stateLogo1:
+                      stateLogo2:
+                    signature:
+                      no_of_signature: 2
+                      signatureImg1:
+                      signatureImg2:
 
       responses:
         '201':
@@ -4623,7 +4781,7 @@ paths:
                       resource_type: project
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
-                        no_of_logs: 1
+                        no_of_logos: 1
                         no_of_signature: 1
 
                     meta:
@@ -4677,7 +4835,7 @@ paths:
             examples:
               example1:
                 value:
-                  name: One Logo One Signature
+                  name: Two Logo Two Signature
 
       responses:
         '201':
@@ -4725,13 +4883,19 @@ paths:
                     message: Template updated successfully
                     result:
                       id: 2
-                      code: one-logo-one-sign
-                      name: One Logo One Signature
+                      code: two-logo-two-sign
+                      name: Two Logo Two Signature
                       resource_type: project
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
-                        no_of_logs: 1
-                        no_of_signature: 1
+                        logos:
+                          no_of_logos: 2
+                          stateLogo1:
+                          stateLogo2:
+                        signature:
+                          no_of_signature: 2
+                          signatureImg1:
+                          signatureImg2:
 
                     meta:
                       formsVersion:
@@ -4934,13 +5098,19 @@ paths:
                     result:
                       data:
                         - id: 2
-                          code: one-logo-one-sign
-                          name: One Logo One Signature
+                          code: two-logo-two-sign
+                          name: Two Logo Two Signature
                           resource_type: project
-                          url: https://storage.googleapis.com/scp-dev-storage-private/certificateTemplates/6343bd978f9d8980b7841e85/ba9aa220-ff1b-4717-b6ea-ace55f04fc16_2022-9-10-1665383945769.svg
+                          url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                           meta:
-                            no_of_logs: 1
-                            no_of_signature: 1
+                            logos:
+                              no_of_logos: 2
+                              stateLogo1:
+                              stateLogo2:
+                            signature:
+                              no_of_signature: 2
+                              signatureImg1:
+                              signatureImg2:
                       count: 1
 
                     meta:
@@ -5240,7 +5410,12 @@ paths:
                 $ref: '#/components/schemas/user/updateUser400Response'
   /scp/v1/config/get:
     get:
-      description: ''
+      description: |
+        Use this API to get instance level configurations.
+
+        - Endpoint: `/scp/v1/config/get`
+        - Provide values for parameters marked as `required`.
+        - The X-auth-token is mandatory and cannot be empty or null.
       operationId: /scp/v1/platform/config
       tags:
         - Config APIs
@@ -5288,9 +5463,7 @@ paths:
                     responseCode: OK
                     message: App config fetched successfully
                     result:
-                      report_issue:
-                        to: support@xyz.com,team@xyz.com
-                        subject: Support request for SCP
+                      show_reviewer_list: true
                     meta:
                       forms_version:
                         - id: 55
@@ -5623,8 +5796,8 @@ components:
                 param: title
                 msg: title is invalid
               - location: body
-                param: categiries
-                msg: categiries required
+                param: categories
+                msg: categories required
       deleteProject400Response:
         type: object
         properties:
