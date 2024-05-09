@@ -2844,10 +2844,17 @@ paths:
                         type: observation
                   certificate:
                     base_template_id: 5
+                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                    code: two-logo-two-sign
+                    name: Two Logo Two Signature
                     logos:
-                      - https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
-                    signatures:
-                      - https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                      no_of_logos: 2
+                      stateLogo1: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
+                      stateLogo2: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
+                    signature:
+                      no_of_signature: 2
+                      signatureImg1: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                      signatureImg2: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
                     issuer: SPD
                     criteria:
                       expressions: C1&&C2
@@ -3223,10 +3230,17 @@ paths:
                         type: observation
                   certificate:
                     base_template_id: 5
+                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                    code: two-logo-two-sign
+                    name: Two Logo Two Signature
                     logos:
-                      - https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
-                    signatures:
-                      - https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                      no_of_logos: 2
+                      stateLogo1: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
+                      stateLogo2: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
+                    signature:
+                      no_of_signature: 2
+                      signatureImg1: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                      signatureImg2: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
                     issuer: SPD
                     criteria:
                       expressions: C1&&C2
@@ -3840,10 +3854,16 @@ paths:
                       certificate:
                         base_template_id: 5
                         base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                        code: two-logo-two-sign
+                        name: Two Logo Two Signature
                         logos:
-                          - https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
-                        signatures:
-                          - https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                          no_of_logos: 2
+                          stateLogo1: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
+                          stateLogo2: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
+                        signature:
+                          no_of_signature: 2
+                          signatureImg1: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                          signatureImg2: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
                         issuer: SPD
                         criteria:
                           expressions: C1&&C2
