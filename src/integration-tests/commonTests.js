@@ -17,7 +17,6 @@ const logIn = async () => {
 			interval: 1000, // poll interval in ms, default 250ms
 			timeout: 80000,
 		}
-		await waitOn(opts)
 		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
 		let password = 'WWWWWelcome@@@123'
 		let res = await request.post('/user/v1/account/create').send({
@@ -25,7 +24,7 @@ const logIn = async () => {
 			email: email,
 			password: password,
 		})
-
+		// await waitOn(opts)
 		res = await request.post('/user/v1/account/login').send({
 			email: email,
 			password: password,
@@ -39,7 +38,6 @@ const logIn = async () => {
 			global.request = defaults(supertest(baseURL))
 			global.request.set(defaultHeaders)
 			global.userId = res.body.result.user.id
-
 			return {
 				token: res.body.result.access_token,
 				refreshToken: res.body.result.refresh_token,
@@ -53,7 +51,7 @@ const logIn = async () => {
 			return false
 		}
 	} catch (error) {
-		console.error(error)
+		console.error('ERROR : : :', error)
 	}
 }
 function logError(res) {

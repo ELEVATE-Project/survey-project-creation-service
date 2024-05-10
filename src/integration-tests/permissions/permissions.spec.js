@@ -4,14 +4,7 @@ const schema = require('./responseSchema')
 describe('scp/v1/permissions ', function () {
 	let userDetails
 	beforeAll(async () => {
-		let request = defaults(supertest('http://localhost:5001'))
-		let opts = {
-			resources: [baseURL],
-			delay: 10000, // initial delay in ms, default 0
-			interval: 1000, // poll interval in ms, default 250ms
-			timeout: 80000,
-		}
-		await waitOn(opts)
+		jest.setTimeout(10000)
 		userDetails = await commonHelper.logIn()
 	})
 
