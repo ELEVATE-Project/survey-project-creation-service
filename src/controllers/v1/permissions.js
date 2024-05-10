@@ -17,6 +17,9 @@ module.exports = class permissions {
 		} catch (error) {
 			return error
 		}
+
+		// test circle ci
+		// test circle ci2
 	}
 
 	/**
