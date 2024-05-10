@@ -7,7 +7,6 @@
 		"test": "test"
 	},
 	"scripts": {
-		"test": "jest --verbose ./test --config=jest.config.js",
 		"start": "NODE_ENV=development nodemon app.js",
 		"prod": "NODE_ENV=production node app.js",
 		"stage": "NODE_ENV=stage node app.js",
