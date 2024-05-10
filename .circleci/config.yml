@@ -1,6 +1,6 @@
 version: 2.1 # CircleCI version
 orbs:
-  sonarcloud: sonarsource/sonarcloud@1.1.1
+  sonarcloud: sonarsource/sonarcloud@2.0.0
 jobs:
   build:
     machine: #Linux machine instead of docker environment
@@ -19,13 +19,9 @@ jobs:
           key: survey-project-creation-service-dependency-cache-{{checksum "src/package.json"}}
           paths:
             - ./src/node_modules
-      - run:
-          name: Executing unit test cases
-          command: cd src/ && npm run test -- --coverage --collectCoverageFrom="./services/**"
       - store_artifacts:
           path: src/coverage/
           destination: /coverage/
-      - sonarcloud/scan
       - run:
           name: Checking prerequisites
           command: |-

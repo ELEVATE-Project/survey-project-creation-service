@@ -3,13 +3,13 @@ var defaults = require('superagent-defaults')
 const { faker } = require('@faker-js/faker')
 const crypto = require('crypto')
 const common = require('@constants/common')
-let baseURL = 'http://localhost:3006'
+let baseURL = 'http://localhost:6001'
 //supertest hits the HTTP server (your app)
 let defaultHeaders
 
 const logIn = async () => {
 	try {
-		let request = defaults(supertest('http://localhost:3001'))
+		let request = defaults(supertest('http://localhost:5001'))
 		let waitOn = require('wait-on')
 		let opts = {
 			resources: [baseURL],
