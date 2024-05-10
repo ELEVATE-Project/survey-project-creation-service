@@ -132,21 +132,24 @@ services:
       - ../../survey-project-creation-service/src/:/var/src
     ports:
       - '6001:6001'
-     command: npm run db:init && npm start
-    # command: >
-      # bash -c "echo 'Waiting for PostgreSQL on citus_master:5432 to accept connections...' &&
-      # while ! timeout 1 bash -c 'cat < /dev/null > /dev/tcp/citus_master/5432' 2> /dev/null; do
-      #   echo 'Waiting for citus_master to be ready...';
-      #   sleep 1;
-      # done;
-      # echo 'Database is ready.';
-      # npm run db:init &&
-      # (echo 'Running nodeee' && nodemon app.js &) &&
-      # while ! curl -sSf http://survey-project-creation-service:3006 > /dev/null; do
-      #   echo 'Waiting for service to be up...';
-      #   sleep 1;
-      # done;
-      # echo 'Service is up'"
+    command: >
+      bash -c "echo 'Waiting for PostgreSQL on citus_master:5432 to accept connections...' &&
+      while ! timeout 1 bash -c 'cat < /dev/null > /dev/tcp/citus_master/5432' 2> /dev/null; do
+        echo 'Waiting for citus_master to be ready...';
+        sleep 1;
+      done &&
+      echo 'Database is ready.' &&
+      npm run db:init &&
+      echo 'Running Node.js application' &&
+      nodemon app.js &
+      echo 'Waiting for service to be up...' &&
+      while ! curl -sSf http://user:5001 > /dev/null; do
+        echo 'Waiting for the service to be up...';
+        sleep 1;
+      done &&
+      echo 'Service is up.' &&
+      tail -f /dev/null"
+    
     environment:
       - POSTGRES_URL=postgres://postgres:postgres@citus_master:5432/dev_elevate_scp
       - KAFKA_URL=kafka:9092
