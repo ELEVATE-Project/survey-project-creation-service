@@ -190,11 +190,8 @@ const listSchema = {
 				correlation: {
 					type: 'string',
 				},
-				meetingPlatform: {
-					type: 'string',
-				},
 			},
-			required: ['formsVersion', 'correlation', 'meetingPlatform'],
+			required: ['formsVersion', 'correlation'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
