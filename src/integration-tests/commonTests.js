@@ -17,6 +17,7 @@ const logIn = async () => {
 			interval: 1000, // poll interval in ms, default 250ms
 			timeout: 80000,
 		}
+		// await waitOn(opts)
 		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
 		let password = 'WWWWWelcome@@@123'
 		let res = await request.post('/user/v1/account/create').send({
@@ -24,7 +25,6 @@ const logIn = async () => {
 			email: email,
 			password: password,
 		})
-		// await waitOn(opts)
 		res = await request.post('/user/v1/account/login').send({
 			email: email,
 			password: password,
