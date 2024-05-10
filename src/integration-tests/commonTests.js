@@ -13,8 +13,8 @@ const logIn = async () => {
 		let waitOn = require('wait-on')
 		let opts = {
 			resources: [baseURL],
-			delay: 10, // initial delay in ms, default 0
-			interval: 10, // poll interval in ms, default 250ms
+			delay: 0, // initial delay in ms, default 0
+			interval: 250, // poll interval in ms, default 250ms
 			timeout: 80000,
 		}
 		await waitOn(opts)
