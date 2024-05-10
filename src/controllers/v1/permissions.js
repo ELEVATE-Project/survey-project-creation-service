@@ -20,6 +20,7 @@ module.exports = class permissions {
 
 		// test circle ci
 		// test circle ci2
+		// test circle ci3
 	}
 
 	/**
