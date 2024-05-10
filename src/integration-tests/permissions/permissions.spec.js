@@ -4,8 +4,8 @@ const schema = require('./responseSchema')
 describe('scp/v1/permissions ', function () {
 	let userDetails
 	beforeAll(async () => {
-		jest.setTimeout(10000)
 		userDetails = await commonHelper.logIn()
+		jest.setTimeout(10000)
 	})
 
 	it('/list', async () => {

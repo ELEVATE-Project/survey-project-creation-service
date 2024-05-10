@@ -13,9 +13,9 @@ const logIn = async () => {
 		let waitOn = require('wait-on')
 		let opts = {
 			resources: [baseURL],
-			delay: 0, // initial delay in ms, default 0
-			interval: 250, // poll interval in ms, default 250ms
-			timeout: 80000,
+			delay: 1000, // initial delay in ms, default 0
+			interval: 2500, // poll interval in ms, default 250ms
+			timeout: 100000,
 		}
 		await waitOn(opts)
 		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
