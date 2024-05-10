@@ -222,19 +222,19 @@ paths:
             in the login API Response.
           schema:
             type: string
-        - in: path
+        - in: query
           name: page
           description: Please add page number
           schema:
             type: number
           example: 1
-        - in: path
+        - in: query
           name: limit
           description: Number of records to limit
           schema:
             type: number
           example: 2
-        - in: path
+        - in: query
           name: search
           description: Please search for information such as 'code'.
           schema:
@@ -621,20 +621,20 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
+        - in: query
           name: page
           description: Please add page number
           schema:
             type: number
           example: 1
-        - in: path
+        - in: query
           name: limit
           description: Number of records per page
           required: false
           schema:
             type: number
           example: 2
-        - in: path
+        - in: query
           name: search
           description: Please search for information such as 'code'.
           required: false
@@ -1370,6 +1370,7 @@ paths:
                         allow_filtering: false
                         data_type: STRING
                         has_entities: true
+                        organization_id: 1
                         created_at: '2023-09-21T10:16:19.270Z'
                         updated_at: '2023-09-21T10:16:19.270Z'
                         entities:
@@ -1597,6 +1598,7 @@ paths:
           schema:
             type: number
           required: true
+          example: 1
       requestBody:
         content:
           application.json:
@@ -1915,23 +1917,25 @@ paths:
                     type: string
                   result:
                     type: object
-                    properties:
-                      signed_url:
-                        type: string
-                      file_path:
-                        type: string
-                      dest_file_path:
-                        type: string
+
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Signed URL Generated Successfully.
                     result:
-                      signed_url: >-
-                        https://aws-bucket-storage-name.s3.ap-south-1.amazonaws.com/users/62832531a05cbd57b273aebb-1654149589875-laptop1.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=aws-access-key-id%2F20220602%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20220602T055949Z&X-Amz-Expires=1800&X-Amz-Signature=0588b16fba45cb85efdc45749173c42ba26b47a9faa9bce5715c666b2657a4d4&X-Amz-SignedHeaders=host
-                      file_path: users/62832531a05cbd57b273aebb-1654149589875-laptop1.jpg
-                      dest_file_path: users/62832531a05cbd57b273aebb-1654149589875-laptop1.jpg
+                      '5f72f9998925ec7c60f79a91':
+                        files:
+                          - file: 'survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/uploadFile.jpg'
+                            url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/uploadFile.jpg?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=w&sig=PBRkJWgXdAPgx4RHSZ6aUevzWo1x2XMMQKBoNHQvBkk%3D'
+                            payload:
+                              sourcePath: 'survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/uploadFile.jpg'
+                            cloudStorage: 'AZURE'
+                          - file: 'survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png'
+                            url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=w&sig=4fERc3ERoruUiA1YXquTWRnOnP9DzaVxn4uFjqBmSF8%3D'
+                            payload:
+                              sourcePath: 'survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png'
+                            cloudStorage: 'AZURE'
   /scp/v1/cloud-services/getDownloadableUrl?filePath={filePath}:
     get:
       summary: Cloud services get download url
@@ -3509,7 +3513,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
   /scp/v1/resource/list:
-    post:
+    get:
       summary: Resource List
       tags:
         - Resource
@@ -3528,67 +3532,62 @@ paths:
           schema:
             type: string
         - name: page
-          in: path
+          in: query
           description: The page number for pagination.
           required: false
           schema:
             type: integer
           example: 1
         - name: limit
-          in: path
+          in: query
           description: The limit of projects per page.
           required: false
           schema:
             type: integer
           example: 10
         - name: search
-          in: path
+          in: query
           description: The search value to filter projects based on title.
           required: false
           schema:
             type: string
         - name: filter
-          in: path
+          in: query
           description: To indicate to list all organization resource or resources created by that user
           required: false
           schema:
             type: string
           example: all
         - name: type
-          in: path
+          in: query
           description: Type of the resource
           required: false
           schema:
             type: string
           example: project
         - name: status
-          in: path
+          in: query
           description: The status of the resource
           required: false
           schema:
             type: string
           example: DRAFT
-      requestBody:
-        content:
-          application.json:
-            schema:
-              $schema: http://json-schema.org/draft-04/schema#
-              type: object
-              properties:
-                sort:
-                  type: object
-                  description: It should include the field to sort by and the sorting order.
-            examples:
-              sort with asc or desc:
-                value:
-                  sort:
-                    key: title
-                    direction: asc/desc
-              sort with status:
-                value:
-                  sort:
-                    key: status
-                    value: INPROGRESS
+        - name: sort_by
+          in: query
+          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          required: false
+          schema:
+            type: string
+          example: status
+        - name: sort_order
+          in: query
+          description: Sort order (ascending or descending).
+          required: false
+          schema:
+            type: string
+            enum: ['asc', 'desc']
+          example: asc
+
       responses:
         '200':
           description: project listed successfully
@@ -4173,11 +4172,20 @@ paths:
                   type: string
                   description: The type of the resource being reviewed (e.g., "project").
 
+                comment:
+                  comment: 'Check spelling'
+                  context: page
+                  page: 1
+
             examples:
               example1:
                 value:
                   status: REQUEST_FOR_CHANGES
                   type: project
+                  comment:
+                    comment: 'Check spelling'
+                    context: page
+                    page: 1
       responses:
         '200':
           description: project review updated
@@ -4247,7 +4255,7 @@ paths:
             type: number
           required: false
           example: 2
-        - in: path
+        - in: query
           name: resource_id
           description: Please append a valid resource Id to the Request URL.
           schema:
@@ -4505,7 +4513,7 @@ paths:
                   result:
                     type: object
                     properties:
-                      org_id:
+                      organization_id:
                         type: string
 
                   meta:
@@ -4529,7 +4537,7 @@ paths:
                     responseCode: OK
                     message: Config added successfully
                     result:
-                      org_id: 3
+                      organization_id: 3
                       show_reviewer_list: true
                       min_approval: 2
                       resource_type: project
@@ -4564,7 +4572,7 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
+        - in: query
           name: resource_type
           description: Please append a valid resource type to the Request URL.
           schema:
@@ -4608,7 +4616,7 @@ paths:
                   result:
                     type: object
                     properties:
-                      org_id:
+                      organization_id:
                         type: string
 
                   meta:
@@ -4632,7 +4640,7 @@ paths:
                     responseCode: OK
                     message: Config updated successfully
                     result:
-                      org_id: 3
+                      organization_id: 3
                       show_reviewer_list: true
                       min_approval: 2
                       resource_type: project
@@ -4648,14 +4656,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/organization/updateConfig400Response'
-  /scp/v1/organization-extension/listConfig:
+  /scp/v1/config/list:
     get:
-      summary: List the organization configurations
+      summary: List configurations
       tags:
-        - Organization
+        - Config APIs
       description: |-
-        You can use this API to list organization configurations
-         - The API Endpoint for list all organization configurations is `/scp/v1/organization-extension/listConfig` 
+        You can use this API to list organization configurations and instance level configurations
+         - The API Endpoint for list all configurations is `/scp/v1/config/list` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4688,9 +4696,6 @@ paths:
                         type: array
                         items:
                           type: object
-                          properties:
-                            org_id:
-                              type: string
 
                   meta:
                     type: object
@@ -4714,9 +4719,8 @@ paths:
                     message: Config fetched successfully
                     result:
                       data:
-                        - org_id: 3
-                          show_reviewer_list: true
-                          min_approval: 2
+                        - show_reviewer_list: true
+                          min_approval: 1
                           resource_type: project
                       count: 1
 
@@ -4725,12 +4729,6 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-        '400':
-          description: Bad Request.
-          content:
-            application.json:
-              schema:
-                $ref: '#/components/schemas/organization/updateConfig400Response'
 
   /scp/v1/certificate/update:
     post:
@@ -4838,8 +4836,14 @@ paths:
                       resource_type: project
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
-                        no_of_logos: 1
-                        no_of_signature: 1
+                        logos:
+                          no_of_logos: 2
+                          stateLogo1:
+                          stateLogo2:
+                        signature:
+                          no_of_signature: 2
+                          signatureImg1:
+                          signatureImg2:
 
                     meta:
                       formsVersion:
@@ -5083,25 +5087,25 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
+        - in: query
           name: resource_type
           description: Please add the resource type
           schema:
             type: string
           example: project
-        - in: path
+        - in: query
           name: page
           description: Please add page number
           schema:
             type: number
           example: 1
-        - in: path
+        - in: query
           name: limit
           description: Number of records to limit
           schema:
             type: number
           example: 2
-        - in: path
+        - in: query
           name: search
           description: Please search for information such as names
           schema:
@@ -5381,7 +5385,7 @@ paths:
                 $ref: '#/components/schemas/user/updateRole400Response'
   /user/v1/org-admin/updateUser/{id}:
     post:
-      summary: Update User Roles
+      summary: Update User Role and Organization
       tags:
         - User Service APIS
       description: |
@@ -5417,7 +5421,7 @@ paths:
                   type: string
                 roles:
                   type: number
-                org_id:
+                organization_id:
                   type: string
               required:
                 - title
@@ -5429,7 +5433,7 @@ paths:
                 value:
                   name: Priyanka
                   roles: [CONTENT_CREATOR]
-                  org_id: 1
+                  organization_id: 1
       responses:
         '201':
           description: OK. User updated successfully
@@ -5465,83 +5469,9 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/user/updateUser400Response'
-  /scp/v1/config/get:
-    get:
-      description: |
-        Use this API to get instance level configurations.
 
-        - Endpoint: `/scp/v1/config/get`
-        - Provide values for parameters marked as `required`.
-        - The X-auth-token is mandatory and cannot be empty or null.
-      operationId: /scp/v1/platform/config
-      tags:
-        - Config APIs
-      parameters: []
-      responses:
-        '200':
-          description: ok
-          content:
-            application/json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: object
-                    properties:
-                      report_issue:
-                        type: object
-                        properties:
-                          to:
-                            type: string
-                          subject:
-                            type: string
-                  meta:
-                    type: object
-                    properties:
-                      forms_version:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                      correlation:
-                        type: string
-              examples:
-                Success  Response:
-                  value:
-                    responseCode: OK
-                    message: App config fetched successfully
-                    result:
-                      show_reviewer_list: true
-                    meta:
-                      forms_version:
-                        - id: 55
-                          type: projects
-                      correlation: a677494a-b89c-441c-8bdf-70fc91c7136d
-                example1:
-                  value:
-                    responseCode: OK
-                    message: App config fetched successfully
-                    result:
-                      report_issue:
-                        to: support@xyz.com,team@xyz.com
-                        subject: Support request for SCP
-                    meta:
-                      forms_version:
-                        - id: 55
-                          type: session
-                      correlation: a677494a-b89c-441c-8bdf-70fc91c7136d
-      summary: Get app config
   /scp/v1/observation/list:
-    post:
+    get:
       summary: Observations list
       tags:
         - Observation
@@ -5559,37 +5489,21 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
-          name: observationId
-          description: Please append a valid observation Id to the Request URL.
+        - name: sort_by
+          in: query
+          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          required: false
           schema:
-            type: number
-          required: true
-      requestBody:
-        content:
-          application.json:
-            schema:
-              $schema: http://json-schema.org/draft-04/schema#
-              type: object
-              properties:
-                status:
-                  type: string
-                sort:
-                  type: object
-                  items:
-                    type: string
-            examples:
-              sort with asc or desc:
-                value:
-                  status: DRAFT
-                  sort:
-                    key: title
-                    direction: asc/desc
-              sort with status:
-                value:
-                  sort:
-                    key: status
-                    value: INPROGRESS
+            type: string
+          example: status
+        - name: sort_order
+          in: query
+          description: Sort order (ascending or descending).
+          required: false
+          schema:
+            type: string
+            enum: ['asc', 'desc']
+          example: asc
 
       responses:
         '201':
