@@ -127,7 +127,7 @@ services:
 
   survey-project-creation-service:
     build: '../../survey-project-creation-service/'
-    image: elevate/survey-project-creation-service:1.0
+    # image: elevate/survey-project-creation-service:1.0
     volumes:
       - ../../survey-project-creation-service/src/:/var/src
     ports:
