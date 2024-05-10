@@ -131,7 +131,7 @@ services:
     volumes:
       - ../../survey-project-creation-service/src/:/var/src
     ports:
-      - '3006:3006'
+      - '6001:6001'
     command : ['nodemon' , 'app.js']
     # command: >
       # bash -c "echo 'Waiting for PostgreSQL on citus_master:5432 to accept connections...' &&
