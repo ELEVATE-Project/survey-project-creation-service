@@ -22,7 +22,6 @@ jobs:
       - store_artifacts:
           path: src/coverage/
           destination: /coverage/
-      - sonarcloud/scan
       - run:
           name: Checking prerequisites
           command: |-
