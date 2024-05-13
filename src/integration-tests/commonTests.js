@@ -11,8 +11,6 @@ const logIn = async () => {
 	try {
 		console.log('============>LOGIN 1 : ')
 		let request = defaults(supertest('http://localhost:5001'))
-		const response1 = await fetch('http://localhost:5001')
-		console.log('============>LOGIN 2 : ', response1)
 		let waitOn = require('wait-on')
 		let opts = {
 			resources: [baseURL],

@@ -60,10 +60,12 @@ services:
       driver: none
   
   user:
-      image: shikshalokamqa/elevate-user:2.5.5
+      build: '../../user/'
+      image: elevate/user:1.0
       ports:
         - '5001:5001'
-      
+      volumes:
+        - ../../user/src/:/var/src
       command: >
         bash -c "echo 'Waiting for PostgreSQL to accept connections...' &&
         until timeout 1 bash -c '</dev/tcp/postgres/5432' >/dev/null 2>&1; do
