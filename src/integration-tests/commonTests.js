@@ -14,12 +14,9 @@ const logIn = async () => {
 		let waitOn = require('wait-on')
 		let opts = {
 			resources: [baseURL],
-			delay: 5000, // initial delay in ms, default 0
-			interval: 2500, // poll interval in ms, default 250ms
-			timeout: 100000,
 		}
 		console.log('============>LOGIN 2 : ')
-		// await waitOn(opts)
+		await waitOn(opts)
 		console.log('============>LOGIN 3 : ')
 		jest.setTimeout(10000)
 		console.log('============>LOGIN 4 : ')
