@@ -1,26 +1,39 @@
 'use strict'
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
-		await queryInterface.createTable('forms', {
+		await queryInterface.createTable('reviews', {
 			id: {
 				allowNull: false,
-				primaryKey: true,
 				autoIncrement: true,
 				type: Sequelize.INTEGER,
 			},
-			type: {
+			resource_id: {
 				allowNull: false,
-				type: Sequelize.STRING,
+				primaryKey: true,
+				type: Sequelize.INTEGER,
 			},
-			sub_type: {
+			reviewer_id: {
 				allowNull: false,
-				type: Sequelize.STRING,
+				type: Sequelize.INTEGER,
 			},
-			data: Sequelize.JSON,
-			version: {
+			status: {
+				type: Sequelize.ENUM(
+					'NOT_STARTED',
+					'DRAFT',
+					'STARTED',
+					'INPROGRESS',
+					'REQUESTED_FOR_CHANGES',
+					'APPROVED',
+					'REJECTED',
+					'PUBLISHED'
+				),
+				defaultValue: 'NOT_STARTED',
+			},
+			organization_id: {
 				allowNull: false,
-				defaultValue: 0,
+				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
 			created_at: {
@@ -34,15 +47,10 @@ module.exports = {
 			deleted_at: {
 				type: Sequelize.DATE,
 			},
-			organization_id: {
-				allowNull: false,
-				primaryKey: true,
-				type: Sequelize.INTEGER,
-			},
 		})
 	},
 
 	async down(queryInterface, Sequelize) {
-		await queryInterface.dropTable('forms')
+		await queryInterface.dropTable('reviews')
 	},
 }

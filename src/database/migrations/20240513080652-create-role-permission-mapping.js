@@ -1,27 +1,30 @@
 'use strict'
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
-		await queryInterface.createTable('forms', {
-			id: {
+		await queryInterface.createTable('role_permission_mapping', {
+			role_title: {
 				allowNull: false,
+				type: Sequelize.STRING,
 				primaryKey: true,
-				autoIncrement: true,
-				type: Sequelize.INTEGER,
 			},
-			type: {
+			permission_id: {
+				allowNull: false,
+				type: Sequelize.INTEGER,
+				primaryKey: true,
+			},
+			module: {
 				allowNull: false,
 				type: Sequelize.STRING,
 			},
-			sub_type: {
+			request_type: {
+				allowNull: false,
+				type: Sequelize.ARRAY(Sequelize.STRING),
+			},
+			api_path: {
 				allowNull: false,
 				type: Sequelize.STRING,
-			},
-			data: Sequelize.JSON,
-			version: {
-				allowNull: false,
-				defaultValue: 0,
-				type: Sequelize.INTEGER,
 			},
 			created_at: {
 				allowNull: false,
@@ -31,18 +34,14 @@ module.exports = {
 				allowNull: false,
 				type: Sequelize.DATE,
 			},
-			deleted_at: {
-				type: Sequelize.DATE,
-			},
-			organization_id: {
+			created_by: {
 				allowNull: false,
-				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
 		})
 	},
 
 	async down(queryInterface, Sequelize) {
-		await queryInterface.dropTable('forms')
+		await queryInterface.dropTable('role_permission_mapping')
 	},
 }
