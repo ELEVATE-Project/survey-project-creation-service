@@ -41,10 +41,11 @@ jobs:
       - run:
           name: Starting the docker containers
           command: |-
-            cd dev-ops/ && docker-compose up -d
+            cd dev-ops/ && docker-compose up
       - run: 
           name: Check docker logs
-          command: docker-compose logs --tail=0 --follow
+          command: |-
+            docker ps && docker-compose logs --tail=1000 --follow
 
       - run:
           name: Running test cases
