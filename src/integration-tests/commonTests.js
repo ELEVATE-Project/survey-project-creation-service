@@ -19,7 +19,7 @@ const logIn = async () => {
 			timeout: 100000,
 		}
 		console.log('============>LOGIN 2 : ')
-		await waitOn(opts)
+		// await waitOn(opts)
 		console.log('============>LOGIN 3 : ')
 		jest.setTimeout(10000)
 		console.log('============>LOGIN 4 : ')
