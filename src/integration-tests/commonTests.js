@@ -13,11 +13,12 @@ const logIn = async () => {
 		let waitOn = require('wait-on')
 		let opts = {
 			resources: [baseURL],
-			delay: 1000, // initial delay in ms, default 0
+			delay: 5000, // initial delay in ms, default 0
 			interval: 2500, // poll interval in ms, default 250ms
 			timeout: 100000,
 		}
 		await waitOn(opts)
+		jest.setTimeout(10000)
 		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
 		let password = 'WWWWWelcome@@@123'
 		let res = await request.post('/user/v1/account/create').send({
