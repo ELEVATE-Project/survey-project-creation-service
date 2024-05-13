@@ -22,12 +22,6 @@ module.exports = {
 				type: Sequelize.ENUM('ACTIVE', 'INACTIVE'),
 				defaultValue: 'ACTIVE',
 			},
-			created_by: {
-				type: Sequelize.INTEGER,
-			},
-			updated_by: {
-				type: Sequelize.INTEGER,
-			},
 			allow_filtering: {
 				type: Sequelize.BOOLEAN,
 			},
@@ -50,6 +44,12 @@ module.exports = {
 			},
 			validations: {
 				type: Sequelize.JSON,
+			},
+			created_by: {
+				type: Sequelize.INTEGER,
+			},
+			updated_by: {
+				type: Sequelize.INTEGER,
 			},
 			created_at: {
 				allowNull: false,

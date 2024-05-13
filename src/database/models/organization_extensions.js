@@ -14,6 +14,11 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				primaryKey: true,
 			},
+			resource_type: {
+				allowNull: false,
+				type: DataTypes.STRING,
+				primaryKey: true,
+			},
 			review_required: {
 				allowNull: false,
 				type: DataTypes.BOOLEAN,
@@ -27,10 +32,6 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				defaultValue: 1,
 				type: DataTypes.INTEGER,
-			},
-			resource_type: {
-				allowNull: false,
-				type: DataTypes.STRING,
 			},
 			review_type: {
 				allowNull: false,

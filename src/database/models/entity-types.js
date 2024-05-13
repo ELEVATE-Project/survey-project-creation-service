@@ -22,14 +22,6 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				defaultValue: 'ACTIVE',
 			},
-			created_by: {
-				type: DataTypes.INTEGER,
-				allowNull: true,
-			},
-			updated_by: {
-				type: DataTypes.INTEGER,
-				allowNull: true,
-			},
 			allow_filtering: {
 				type: DataTypes.BOOLEAN,
 				allowNull: false,
@@ -62,6 +54,14 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			validations: {
 				type: DataTypes.JSON,
+			},
+			created_by: {
+				type: DataTypes.INTEGER,
+				allowNull: true,
+			},
+			updated_by: {
+				type: DataTypes.INTEGER,
+				allowNull: true,
 			},
 		},
 		{ sequelize, modelName: 'EntityType', tableName: 'entity_types', freezeTableName: true, paranoid: true }

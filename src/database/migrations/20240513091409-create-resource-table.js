@@ -32,9 +32,6 @@ module.exports = {
 				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
-			published_id: {
-				type: Sequelize.STRING,
-			},
 			next_stage: {
 				type: Sequelize.INTEGER,
 			},
@@ -44,6 +41,9 @@ module.exports = {
 			},
 			reference_id: {
 				type: Sequelize.INTEGER,
+			},
+			published_id: {
+				type: Sequelize.STRING,
 			},
 			meta: {
 				allowNull: false,
@@ -55,15 +55,15 @@ module.exports = {
 			updated_by: {
 				type: Sequelize.INTEGER,
 			},
-			deleted_at: {
-				type: Sequelize.DATE,
-			},
 			created_at: {
 				allowNull: false,
 				type: Sequelize.DATE,
 			},
 			updated_at: {
 				allowNull: false,
+				type: Sequelize.DATE,
+			},
+			deleted_at: {
 				type: Sequelize.DATE,
 			},
 		})

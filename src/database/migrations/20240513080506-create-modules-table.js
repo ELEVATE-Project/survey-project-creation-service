@@ -18,16 +18,15 @@ module.exports = {
 				type: Sequelize.ENUM('ACTIVE', 'INACTIVE'),
 				defaultValue: 'ACTIVE',
 			},
-
-			deleted_at: {
-				type: Sequelize.DATE,
-			},
 			created_at: {
 				allowNull: false,
 				type: Sequelize.DATE,
 			},
 			updated_at: {
 				allowNull: false,
+				type: Sequelize.DATE,
+			},
+			deleted_at: {
 				type: Sequelize.DATE,
 			},
 		})

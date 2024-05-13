@@ -18,7 +18,6 @@ module.exports = (sequelize, DataTypes) => {
 				defaultValue: 'DRAFT',
 			},
 			blob_path: {
-				allowNull: false,
 				type: DataTypes.STRING,
 			},
 			user_id: {
@@ -30,15 +29,15 @@ module.exports = (sequelize, DataTypes) => {
 				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
-			published_id: {
-				type: DataTypes.STRING,
-			},
 			next_stage: {
 				type: DataTypes.INTEGER,
+				allowNull: false,
+				defaultValue: 1,
 			},
 			review_type: {
 				allowNull: false,
-				type: DataTypes.STRING,
+				type: DataTypes.ENUM('SEQUENTIAL', 'PARALLEL'),
+				defaultValue: 'SEQUENTIAL',
 			},
 			reference_id: {
 				type: DataTypes.INTEGER,
@@ -46,6 +45,9 @@ module.exports = (sequelize, DataTypes) => {
 			meta: {
 				allowNull: false,
 				type: DataTypes.JSONB,
+			},
+			published_id: {
+				type: DataTypes.STRING,
 			},
 			created_by: {
 				type: DataTypes.INTEGER,

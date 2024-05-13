@@ -9,12 +9,6 @@ module.exports = (sequelize, DataTypes) => {
 				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
-			organization_id: {
-				type: DataTypes.INTEGER,
-				allowNull: false,
-				defaultValue: 0,
-				primaryKey: true,
-			},
 			code: {
 				type: DataTypes.STRING,
 				allowNull: false,
@@ -30,6 +24,12 @@ module.exports = (sequelize, DataTypes) => {
 			resource_type: {
 				type: DataTypes.STRING,
 				allowNull: false,
+			},
+			organization_id: {
+				type: DataTypes.INTEGER,
+				allowNull: false,
+				defaultValue: 0,
+				primaryKey: true,
 			},
 			meta: {
 				type: DataTypes.JSON,
