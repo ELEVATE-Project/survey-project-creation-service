@@ -2,26 +2,36 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
-		await queryInterface.createTable('forms', {
+		await queryInterface.createTable('certificate_base_templates', {
 			id: {
+				type: Sequelize.INTEGER,
 				allowNull: false,
 				primaryKey: true,
 				autoIncrement: true,
+			},
+			organization_id: {
 				type: Sequelize.INTEGER,
-			},
-			type: {
 				allowNull: false,
+				primaryKey: true,
+			},
+			code: {
 				type: Sequelize.STRING,
-			},
-			sub_type: {
 				allowNull: false,
+			},
+			name: {
 				type: Sequelize.STRING,
-			},
-			data: Sequelize.JSON,
-			version: {
 				allowNull: false,
-				defaultValue: 0,
-				type: Sequelize.INTEGER,
+			},
+			url: {
+				type: Sequelize.STRING,
+				allowNull: false,
+			},
+			resource_type: {
+				type: Sequelize.STRING,
+				allowNull: false,
+			},
+			meta: {
+				type: Sequelize.JSON,
 			},
 			created_at: {
 				allowNull: false,
@@ -34,15 +44,10 @@ module.exports = {
 			deleted_at: {
 				type: Sequelize.DATE,
 			},
-			organization_id: {
-				allowNull: false,
-				primaryKey: true,
-				type: Sequelize.INTEGER,
-			},
 		})
 	},
 
 	async down(queryInterface, Sequelize) {
-		await queryInterface.dropTable('forms')
+		await queryInterface.dropTable('certificate_base_templates')
 	},
 }
