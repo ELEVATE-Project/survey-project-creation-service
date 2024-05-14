@@ -21,4 +21,9 @@ module.exports = {
 	},
 	internalAccessUrls: [],
 	SCP_SERVICE: 'scp',
+	RESOURCE_LIST: ['project', 'observation_with_rubrics', 'observation', 'survey'],
+	REVIEW_TYPE: {
+		SEQUENTIAL: 'SEQUENTIAL',
+		PARALLEL: 'PARALLEL',
+	},
 }
