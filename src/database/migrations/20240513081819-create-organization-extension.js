@@ -2,26 +2,39 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
-		await queryInterface.createTable('forms', {
+		await queryInterface.createTable('organization_extensions', {
 			id: {
 				allowNull: false,
-				primaryKey: true,
 				autoIncrement: true,
 				type: Sequelize.INTEGER,
 			},
-			type: {
+			organization_id: {
 				allowNull: false,
-				type: Sequelize.STRING,
-			},
-			sub_type: {
-				allowNull: false,
-				type: Sequelize.STRING,
-			},
-			data: Sequelize.JSON,
-			version: {
-				allowNull: false,
-				defaultValue: 0,
+				primaryKey: true,
 				type: Sequelize.INTEGER,
+			},
+			resource_type: {
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
+			review_required: {
+				allowNull: false,
+				type: Sequelize.BOOLEAN,
+			},
+			show_reviewer_list: {
+				allowNull: false,
+				defaultValue: true,
+				type: Sequelize.BOOLEAN,
+			},
+			min_approval: {
+				allowNull: false,
+				defaultValue: 1,
+				type: Sequelize.INTEGER,
+			},
+			review_type: {
+				allowNull: false,
+				type: Sequelize.ENUM('SEQUENTIAL', 'PARALLEL'),
+				defaultValue: 'SEQUENTIAL',
 			},
 			created_at: {
 				allowNull: false,
@@ -34,15 +47,10 @@ module.exports = {
 			deleted_at: {
 				type: Sequelize.DATE,
 			},
-			organization_id: {
-				allowNull: false,
-				primaryKey: true,
-				type: Sequelize.INTEGER,
-			},
 		})
 	},
 
 	async down(queryInterface, Sequelize) {
-		await queryInterface.dropTable('forms')
+		await queryInterface.dropTable('organization_extensions')
 	},
 }
