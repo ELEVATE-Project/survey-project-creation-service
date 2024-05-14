@@ -60,10 +60,12 @@ services:
       driver: none
   
   user:
-      image: shikshalokamqa/elevate-user:2.5.5
+      build: '../../user/'
+      image: elevate/user:1.0
       ports:
         - '5001:5001'
-      
+      volumes:
+        - ../../user/src/:/var/src
       command: >
         bash -c "echo 'Waiting for PostgreSQL to accept connections...' &&
         until timeout 1 bash -c '</dev/tcp/postgres/5432' >/dev/null 2>&1; do
@@ -97,16 +99,26 @@ services:
     ports:
       - '6001:6001'
     command: >
-      bash -c "echo 'Waiting for PostgreSQL to accept connections...' &&
-      until timeout 1 bash -c '</dev/tcp/postgres/5432' >/dev/null 2>&1; do
-          echo 'Waiting for PostgreSQL to be ready...'
-          sleep 1
-      done &&
-      echo 'Database is ready.' &&
-      npm run db:init &&
-      npm run db:seed:all && 
-      echo 'Running Node.js application' &&
-      nodemon app.js"
+      bash -c "
+        echo 'Waiting for User service to accept connections...'
+        until timeout 1 bash -c '</dev/tcp/user_service/5001' >/dev/null 2>&1; do
+            echo 'Waiting for User service to be ready...'
+            sleep 1
+        done &&
+        echo 'User service is ready.'
+
+        echo 'Waiting for PostgreSQL to accept connections...'
+        until timeout 1 bash -c '</dev/tcp/postgres/5432' >/dev/null 2>&1; do
+            echo 'Waiting for PostgreSQL to be ready...'
+            sleep 1
+        done &&
+        echo 'Database is ready.'
+
+        npm run db:init &&
+        npm run db:seed:all && 
+        echo 'Running Node.js application' &&
+        nodemon app.js "
+
     environment:
       - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/dev_elevate_scp
       - KAFKA_URL=kafka:9092

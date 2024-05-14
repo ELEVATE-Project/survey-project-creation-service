@@ -9,15 +9,20 @@ let defaultHeaders
 
 const logIn = async () => {
 	try {
+		console.log('============>LOGIN 1 : ')
 		let request = defaults(supertest('http://localhost:5001'))
 		let waitOn = require('wait-on')
 		let opts = {
 			resources: [baseURL],
-			delay: 1000, // initial delay in ms, default 0
-			interval: 1000, // poll interval in ms, default 250ms
-			timeout: 60000,
+			delay: 5000, // initial delay in ms, default 0
+			interval: 2500, // poll interval in ms, default 250ms
+			timeout: 100000,
 		}
+		console.log('============>LOGIN 2 : ')
 		await waitOn(opts)
+		console.log('============>LOGIN 3 : ')
+		jest.setTimeout(10000)
+		console.log('============>LOGIN 4 : ')
 		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
 		let password = 'WWWWWelcome@@@123'
 		let res = await request.post('/user/v1/account/create').send({
@@ -25,11 +30,12 @@ const logIn = async () => {
 			email: email,
 			password: password,
 		})
-
+		console.log('============>LOGIN 5 : ')
 		res = await request.post('/user/v1/account/login').send({
 			email: email,
 			password: password,
 		})
+		console.log('============>LOGIN 6 : ')
 		if (res.body.result.access_token && res.body.result.user.id) {
 			defaultHeaders = {
 				'X-auth-token': 'bearer ' + res.body.result.access_token,
@@ -39,7 +45,6 @@ const logIn = async () => {
 			global.request = defaults(supertest(baseURL))
 			global.request.set(defaultHeaders)
 			global.userId = res.body.result.user.id
-
 			return {
 				token: res.body.result.access_token,
 				refreshToken: res.body.result.refresh_token,
@@ -53,7 +58,7 @@ const logIn = async () => {
 			return false
 		}
 	} catch (error) {
-		console.error(error)
+		console.error('ERROR : : :', error)
 	}
 }
 function logError(res) {
