@@ -20,12 +20,6 @@
 	"UPDATE_FORM_VERSION": "Update form version.",
 	"FORM_VERSION_FETCHED_SUCCESSFULLY": "Form versions fetched successfully",
 	"ACCESS_TOKEN_EXPIRED": "Session expired. Please login again.",
-	"DEFAULT_ORG_ID_NOT_SET": "Failed to set default organization id",
-	"NOTIFICATION_TEMPLATE_ALREADY_EXISTS": "Notification template already exists",
-	"NOTIFICATION_TEMPLATE_CREATED_SUCCESSFULLY": "Notification template created successfully",
-	"NOTIFICATION_TEMPLATE_UPDATED_SUCCESSFULLY": "Notification template updated successfully",
-	"NOTIFICATION_TEMPLATE_FETCHED_SUCCESSFULLY": "Notification template fetched successfully",
-	"NOTIFICATION_TEMPLATE_NOT_FOUND": "Notification template not found",
 	"PERMISSION_CREATED_SUCCESSFULLY": "Permission created successfully",
 	"PERMISSION_ALREADY_EXISTS": "code and api_path should be unique",
 	"PERMISSION_NOT_FOUND": "Permissions does not exists",
@@ -44,5 +38,6 @@
 	"ORG_EXTENSION_CREATED_SUCCESSFULLY": "Organization Extension Created Successfully",
 	"PERMISSIONS_NOT_FOUND": "permissions not found",
 	"INVALID_DATA_PASSED": "Invalid data passed for creation",
-	"CONFIGS_FETCHED_SUCCESSFULLY": "Config fetched successfully"
+	"CONFIGS_FETCHED_SUCCESSFULLY": "Config fetched successfully",
+	"CONFIG_FETCH_FAILED": "Error in fetching Config"
 }
