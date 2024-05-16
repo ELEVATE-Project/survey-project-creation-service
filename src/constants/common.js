@@ -21,4 +21,9 @@ module.exports = {
 	},
 	internalAccessUrls: [],
 	SCP_SERVICE: 'scp',
+	CONTENT_CREATOR: 'CONTENT_CREATOR',
+	REVIEWER: 'REVIEWER',
+	RESOURCE_CREATOR: 'RESOURCE_CREATOR',
+	ADMIN_ROLE: 'admin',
+	ORG_ADMIN_ROLE: 'org-admin',
 }
