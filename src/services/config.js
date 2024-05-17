@@ -1,9 +1,11 @@
 const common = require('@constants/common')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
 const _ = require('lodash')
-
+const entites = require('@database/queries/entities')
+const entityType = require('@database/queries/entityType')
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
+const { Op } = require('sequelize')
 module.exports = class configsHelper {
 	/**
 	 * List Configs.
@@ -26,8 +28,37 @@ module.exports = class configsHelper {
 			const attributes = process.env.INSTANCE_LEVEL_CONFIG_ATTRIBUTES.split(',').map((attribute) =>
 				attribute.trim()
 			)
+
+			// get all the data of entity type resources
+			const fetch_entity_type_ids = await entityType.findManyEntityType(
+				{
+					value: 'resources',
+					organization_id: {
+						[Op.in]: [organization_id, Number(process.env.DEFAULT_ORG_ID)],
+					},
+				},
+				{
+					attributes: ['id', 'organization_id'],
+				}
+			)
+
+			// get the id of entity_type , fetch default if not defined for the org
+			const resource_entity_type =
+				fetch_entity_type_ids.find((obj) => obj.organization_id === organization_id) ||
+				fetch_entity_type_ids.find((obj) => obj.organization_id === Number(process.env.DEFAULT_ORG_ID))
+
 			// fetch the current list of resources
-			const resourceList = common.RESOURCE_LIST
+			const resourceList = await entites.findAllEntities(
+				{
+					entity_type_id: resource_entity_type.id,
+				},
+				{
+					attributes: ['value'],
+				}
+			)
+
+			// convert the object into array
+			const resourceListArr = resourceList.map(({ value }) => value)
 
 			// instance level configurations from env as default configs
 			const default_configs = {
@@ -47,7 +78,7 @@ module.exports = class configsHelper {
 			let resourceTypeFromDB = []
 
 			// fetch the config data
-			configData = resourceList
+			configData = resourceListArr
 				.map((resourceType) => {
 					const filterData = orgExtenstionData.filter((orgExt) => {
 						if (orgExt.resource_type.toLowerCase() === resourceType.toLowerCase()) {
@@ -66,7 +97,7 @@ module.exports = class configsHelper {
 				.flat()
 
 			// check and fill for the missing configs from DB
-			const missedResourceTypes = _.difference(resourceList, resourceTypeFromDB)
+			const missedResourceTypes = _.difference(resourceListArr, resourceTypeFromDB)
 				.map((resourceType) => {
 					return {
 						...default_configs,
@@ -76,6 +107,13 @@ module.exports = class configsHelper {
 				.flat()
 
 			configData = configData.length !== 0 ? _.concat(configData, missedResourceTypes) : missedResourceTypes
+
+			// return success message
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'CONFIGS_FETCHED_SUCCESSFULLY',
+				result: configData,
+			})
 		} catch (error) {
 			// return error message
 			return responses.failureResponse({
@@ -84,12 +122,5 @@ module.exports = class configsHelper {
 				result: [],
 			})
 		}
-
-		// return success message
-		return responses.successResponse({
-			statusCode: httpStatusCode.ok,
-			message: 'CONFIGS_FETCHED_SUCCESSFULLY',
-			result: configData,
-		})
 	}
 }
