@@ -17,17 +17,15 @@ module.exports = class configsHelper {
 	 */
 
 	static async list(organization_id) {
-		let orgExtenstionData = {}
-		let configData = []
 		try {
+			let orgExtenstionData = {}
+			let configData = []
 			// define filter
 			const filter = {
 				organization_id,
 			}
 			// attributes to fetch from organisation Extenstion
-			const attributes = process.env.INSTANCE_LEVEL_CONFIG_ATTRIBUTES.split(',').map((attribute) =>
-				attribute.trim()
-			)
+			const attributes = process.env.INSTANCE_LEVEL_CONFIG_ATTRIBUTES.split(',')
 
 			// get all the data of entity type resources
 			const fetch_entity_type_ids = await entityType.findManyEntityType(
