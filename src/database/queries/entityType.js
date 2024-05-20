@@ -23,22 +23,6 @@ module.exports = class UserEntityData {
 			throw error
 		}
 	}
-
-	static async findAllEntityTypes(orgIds, attributes, filter = {}) {
-		try {
-			const entityData = await EntityType.findAll({
-				where: {
-					organization_id: orgIds,
-					...filter,
-				},
-				attributes,
-				raw: true,
-			})
-			return entityData
-		} catch (error) {
-			return error
-		}
-	}
 	static async findUserEntityTypesAndEntities(filter) {
 		try {
 			const entityTypes = await EntityType.findAll({
