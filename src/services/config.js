@@ -27,33 +27,12 @@ module.exports = class configsHelper {
 			// attributes to fetch from organisation Extenstion
 			const attributes = process.env.INSTANCE_LEVEL_CONFIG_ATTRIBUTES.split(',')
 
-			// get all the data of entity type resources
-			const fetch_entity_type_ids = await entityType.findManyEntityType(
-				{
-					value: 'resources',
-					organization_id: {
-						[Op.in]: [organization_id, Number(process.env.DEFAULT_ORG_ID)],
-					},
-				},
-				{
-					attributes: ['id', 'organization_id'],
-				}
-			)
-
-			// get the id of entity_type , fetch default if not defined for the org
-			const resource_entity_type =
-				fetch_entity_type_ids.find((obj) => obj.organization_id === organization_id) ||
-				fetch_entity_type_ids.find((obj) => obj.organization_id === Number(process.env.DEFAULT_ORG_ID))
-
+			const entity_type_and_entities = await entityType.findUserEntityTypesAndEntities({
+				organization_id: organization_id,
+				value: 'resources',
+			})
 			// fetch the current list of resources
-			const resourceList = await entites.findAllEntities(
-				{
-					entity_type_id: resource_entity_type.id,
-				},
-				{
-					attributes: ['value'],
-				}
-			)
+			const resourceList = entity_type_and_entities[0].entities
 
 			// convert the object into array
 			const resourceListArr = resourceList.map(({ value }) => value)

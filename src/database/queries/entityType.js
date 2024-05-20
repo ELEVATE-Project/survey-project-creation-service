@@ -23,17 +23,6 @@ module.exports = class UserEntityData {
 			throw error
 		}
 	}
-	static async findManyEntityType(filter, options = {}) {
-		try {
-			return await EntityType.findAll({
-				where: filter,
-				...options,
-				raw: true,
-			})
-		} catch (error) {
-			throw error
-		}
-	}
 
 	static async findAllEntityTypes(orgIds, attributes, filter = {}) {
 		try {
