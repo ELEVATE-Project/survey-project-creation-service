@@ -1,4 +1,4 @@
-const orgExtensions = require('../models/index').organizationExtensions
+const orgExtensions = require('../models/index').organizationExtension
 
 module.exports = class organizationExtensions {
 	static async findMany(filter, attributes = []) {
