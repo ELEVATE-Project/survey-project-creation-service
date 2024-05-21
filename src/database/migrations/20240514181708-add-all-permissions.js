@@ -172,7 +172,7 @@ module.exports = {
 				{
 					code: 'organization_permissions',
 					module: 'organization-extensions',
-					request_type: ['POST', 'PUT', 'PATCH'],
+					request_type: ['POST', 'DELETE', 'PUT', 'PATCH'],
 					api_path: '/scp/v1/organization-extensions/*',
 					status: 'ACTIVE',
 					created_at: new Date(),
