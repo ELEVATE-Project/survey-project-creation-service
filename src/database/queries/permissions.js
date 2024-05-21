@@ -73,4 +73,16 @@ module.exports = class permissionData {
 		})
 		return permissions
 	}
+
+	static async findOne(filter) {
+		try {
+			const permissions = await Permissions.findOne({
+				where: filter,
+				raw: true,
+			})
+			return permissions
+		} catch (error) {
+			throw error
+		}
+	}
 }
