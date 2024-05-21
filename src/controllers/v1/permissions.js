@@ -46,9 +46,9 @@ module.exports = class permissions {
 	 * @returns {JSON} - Permissions List.
 	 */
 
-	async list(req) {
+	async getPermissions(req) {
 		try {
-			const PermissionsDetails = await permissionsService.list(req.pageNo, req.pageSize, req.searchText)
+			const PermissionsDetails = await permissionsService.getPermissions(req.pageNo, req.pageSize, req.searchText)
 			return PermissionsDetails
 		} catch (error) {
 			return error
@@ -67,6 +67,22 @@ module.exports = class permissions {
 		try {
 			const permissionsDelete = await permissionsService.delete(req.params.id)
 			return permissionsDelete
+		} catch (error) {
+			return error
+		}
+	}
+
+	/**
+	 * Get all user permissions
+	 * @method
+	 * @name list
+	 * @returns {JSON} - Permissions List.
+	 */
+
+	async list(req) {
+		try {
+			const PermissionsDetails = await permissionsService.list(req.decodedToken.roles)
+			return PermissionsDetails
 		} catch (error) {
 			return error
 		}
