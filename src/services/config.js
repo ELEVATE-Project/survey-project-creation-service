@@ -25,14 +25,14 @@ module.exports = class configsHelper {
 				organization_id,
 			}
 			// attributes to fetch from organisation Extenstion
-			const attributes = process.env.INSTANCE_LEVEL_CONFIG_ATTRIBUTES.split(',')
+			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
 
-			const entity_type_and_entities = await entityType.findUserEntityTypesAndEntities({
+			const entity_type_and_entities = await entityType.findUserEntityTypeAndEntities({
 				organization_id: organization_id,
-				value: 'resources',
+				value: common.RESOURCES,
 			})
 			// fetch the current list of resources
-			const resourceList = entity_type_and_entities[0].entities
+			const resourceList = entity_type_and_entities.entities
 
 			// convert the object into array
 			const resourceListArr = resourceList.map(({ value }) => value)
@@ -83,7 +83,7 @@ module.exports = class configsHelper {
 				})
 				.flat()
 
-			configData = configData.length !== 0 ? _.concat(configData, missedResourceTypes) : missedResourceTypes
+			configData = configData.length > 0 ? _.concat(configData, missedResourceTypes) : missedResourceTypes
 
 			// return success message
 			return responses.successResponse({

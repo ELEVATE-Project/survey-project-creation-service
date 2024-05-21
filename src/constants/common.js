@@ -21,6 +21,15 @@ module.exports = {
 	},
 	internalAccessUrls: [],
 	SCP_SERVICE: 'scp',
-	REVIEW_TYPE_SEQUENTIAL: 'SEQUENTIAL',
-	REVIEW_TYPE_PARALLEL: 'PARALLEL',
+	REVIEW_TYPE_SEQUENTIAL: 'sequential',
+	REVIEW_TYPE_PARALLEL: 'parallel',
+	RESOURCES: 'resources',
+	INSTANCE_LEVEL_CONFIG_ATTRIBUTES: [
+		'review_required',
+		'show_reviewer_list',
+		'min_approval',
+		'resource_type',
+		'review_type',
+	],
+	MIN_APPROVAL: 1,
 }
