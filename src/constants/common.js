@@ -32,4 +32,9 @@ module.exports = {
 		'review_type',
 	],
 	MIN_APPROVAL: 1,
+	CONTENT_CREATOR: 'content_creator',
+	REVIEWER: 'reviewer',
+	RESOURCE_CREATOR: 'resource_creator',
+	ADMIN_ROLE: 'admin',
+	ORG_ADMIN_ROLE: 'org_admin',
 }
