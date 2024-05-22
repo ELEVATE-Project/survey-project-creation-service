@@ -155,6 +155,26 @@ let enviromentVariables = {
 		optional: true,
 		default: common.AUTH_METHOD.JWT_ONLY,
 	},
+	REVIEWREQUIRED: {
+		message: 'Required Review Required field',
+		optional: false,
+		default: true,
+	},
+	SHOW_REVIEWER_LIST: {
+		message: 'Required Show Reviewer field',
+		optional: false,
+		default: true,
+	},
+	MIN_APPROVAL: {
+		message: 'Required Minimum Approval field',
+		optional: false,
+		default: common.MIN_APPROVAL,
+	},
+	REVIEW_TYPE: {
+		message: 'Required Review Type field',
+		optional: false,
+		default: common.REVIEW_TYPE_SEQUENTIAL,
+	},
 }
 
 let success = true
