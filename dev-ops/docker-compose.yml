@@ -1,0 +1,144 @@
+version: '3'
+services:
+  zookeeper:
+    image: 'bitnami/zookeeper:3.8.0'
+    ports:
+      - '2181:2181'
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - elevate_net
+    volumes:
+      - zookeeper-data:/bitnami/zookeeper
+    logging:
+      driver: none
+
+  kafka:
+    image: 'bitnami/kafka:3.1.0'
+    ports:
+      - '9092:9092'
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9093
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
+    depends_on:
+      - zookeeper
+    networks:
+      - elevate_net
+    volumes:
+      - kafka-data:/bitnami/kafka
+    logging:
+      driver: none
+
+  redis:
+    image: 'redis:7.0.0'
+    restart: 'always'
+    expose:
+      - '6379'
+    networks:
+      - elevate_net
+    logging:
+      driver: none
+
+  postgres:
+    image: 'postgres:latest'
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_DB=dev_elevate_scp
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - elevate_net
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    logging:
+      driver: none
+  
+  user:
+      build: '../../user/'
+      image: elevate/user:1.0
+      ports:
+        - '5001:5001'
+      volumes:
+        - ../../user/src/:/var/src
+      command: >
+        bash -c "echo 'Waiting for PostgreSQL to accept connections...' &&
+        until timeout 1 bash -c '</dev/tcp/postgres/5432' >/dev/null 2>&1; do
+            echo 'Waiting for PostgreSQL to be ready...'
+            sleep 1
+        done &&
+        echo 'Database is ready.' &&
+        if ! psql -U postgres -h postgres -lqt | cut -d \| -f 1 | grep -qw elevate_project_user; then
+            npm run db:init && npm run db:seed:all
+        else
+            echo 'Database already exists. Skipping initialization and seeding.'
+            exit 0  # Exit successfully to prevent the container from stopping
+        fi &&
+        (echo 'Running nodeee' && nodemon app.js &) &&
+        (/bin/bash -c 'cd scripts && echo Running user service scripts && node insertDefaultOrg.js && node viewsScript.js && node -r module-alias/register uploadSampleCSV.js') &&
+        tail -f /dev/null"
+
+      depends_on:
+        - kafka
+        - redis
+      environment:
+        - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/elevate_project_user
+        - KAFKA_URL=kafka:9092
+        - REDIS_HOST=redis://redis:6379
+      networks:
+        - elevate_net
+      env_file:
+        - integration_test.user.env
+  survey-project-creation-service:
+    build: '../../survey-project-creation-service/'
+    ports:
+      - '6001:6001'
+    command: >
+      bash -c "
+        echo 'Waiting for User service to accept connections...'
+        until timeout 1 bash -c '</dev/tcp/user_service/5001' >/dev/null 2>&1; do
+            echo 'Waiting for User service to be ready...'
+            sleep 1
+        done &&
+        echo 'User service is ready.'
+
+        echo 'Waiting for PostgreSQL to accept connections...'
+        until timeout 1 bash -c '</dev/tcp/postgres/5432' >/dev/null 2>&1; do
+            echo 'Waiting for PostgreSQL to be ready...'
+            sleep 1
+        done &&
+        echo 'Database is ready.'
+
+        npm run db:init &&
+        npm run db:seed:all && 
+        echo 'Running Node.js application' &&
+        nodemon app.js "
+
+    environment:
+      - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/dev_elevate_scp
+      - KAFKA_URL=kafka:9092
+      - REDIS_HOST=redis://redis:6379
+    depends_on:
+      - kafka
+      - user
+      - postgres
+      - redis
+    networks:
+      - elevate_net
+    env_file:
+      - integration_test.self_creation_portal.env
+
+
+networks:
+  elevate_net:
+    external: false
+
+volumes:
+  zookeeper-data:
+  kafka-data:
+  postgres-data:
