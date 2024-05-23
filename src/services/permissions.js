@@ -5,6 +5,7 @@ const permissionsQueries = require('@database/queries/permissions')
 const { UniqueConstraintError, ForeignKeyConstraintError } = require('sequelize')
 const { Op } = require('sequelize')
 const responses = require('@helpers/responses')
+const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
 
 module.exports = class PermissionsHelper {
 	/**
@@ -127,12 +128,12 @@ module.exports = class PermissionsHelper {
 	/**
 	 * list permissions.
 	 * @method
-	 * @name list
+	 * @name getPermissions
 	 * @param {String} id -  id.
 	 * @returns {JSON} - Permissions list response.
 	 */
 
-	static async list(page, limit, search) {
+	static async getPermissions(page, limit, search) {
 		try {
 			const offset = common.getPaginationOffset(page, limit)
 
@@ -167,5 +168,41 @@ module.exports = class PermissionsHelper {
 		} catch (error) {
 			throw error
 		}
+	}
+
+	/**
+	 * list user permissions
+	 * @method
+	 * @name list
+	 * @param {Array} roles - Array of user roles.
+	 * @returns {Array} - Array of permissions based on user role.
+	 */
+	static async list(roles) {
+		let result = []
+		const roleTitle = roles.map(({ title }) => title)
+		const filter = { role_title: roleTitle }
+		const attributes = ['module', 'request_type']
+		const permissionAndModules = await rolePermissionMappingQueries.findAll(filter, attributes)
+		const permissionsByModule = {}
+		permissionAndModules.forEach(({ module, request_type }) => {
+			if (permissionsByModule[module]) {
+				permissionsByModule[module].request_type = [
+					...new Set([...permissionsByModule[module].request_type, ...request_type]),
+				]
+			} else {
+				permissionsByModule[module] = { module, request_type: [...request_type] }
+			}
+		})
+
+		result = Object.values(permissionsByModule).map(({ module, request_type }) => ({
+			module,
+			request_type,
+		}))
+
+		return responses.successResponse({
+			statusCode: httpStatusCode.ok,
+			message: 'PERMISSION_FETCHED_SUCCESSFULLY',
+			result: result,
+		})
 	}
 }

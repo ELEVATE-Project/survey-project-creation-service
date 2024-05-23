@@ -1,3 +1,11 @@
 
+SELECT create_distributed_table('certificate_base_templates', 'organization_id');
+SELECT create_distributed_table('comments', 'resource_id');
+SELECT create_distributed_table('entities', 'entity_type_id');
+SELECT create_distributed_table('entity_types', 'organization_id');
 SELECT create_distributed_table('forms', 'organization_id');
-SELECT create_distributed_table('permissions', 'module');
+SELECT create_distributed_table('organization_extensions', 'organization_id');
+SELECT create_distributed_table('resources', 'organization_id');
+SELECT create_distributed_table('review_resources', 'reviewer_id');
+SELECT create_distributed_table('review_stages', 'organization_id');
+SELECT create_distributed_table('reviews', 'resource_id');

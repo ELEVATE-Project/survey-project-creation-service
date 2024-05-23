@@ -29,7 +29,6 @@ const successResponse = async ({
 			...meta,
 			formsVersion: versions,
 			correlation: correlationId.getId(),
-			meetingPlatform: process.env.DEFAULT_MEETING_SERVICE,
 		},
 	}
 	if (isResponseAStream) {
