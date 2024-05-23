@@ -11,11 +11,8 @@ module.exports = class configsHelper {
 	 * List Configs.
 	 * @method
 	 * @name list
-	 * @param {Integer} organization_id
-	 * @param {String} id -  id.
-	 * @returns {JSON} - List of configs as response.
+	 * @returns {JSON} - List of configs based on orgId of user as response.
 	 */
-
 	static async list(organization_id) {
 		try {
 			let orgExtenstionData = {}
