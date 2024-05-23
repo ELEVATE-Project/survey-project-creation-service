@@ -6,7 +6,6 @@
  */
 
 const bcryptJs = require('bcryptjs')
-const { AwsFileHelper, GcpFileHelper, AzureFileHelper, OciFileHelper } = require('elevate-cloud-storage')
 const momentTimeZone = require('moment-timezone')
 const moment = require('moment')
 const path = require('path')
@@ -15,6 +14,7 @@ const { RedisCache, InternalCache } = require('elevate-node-cache')
 const startCase = require('lodash/startCase')
 const common = require('@constants/common')
 const crypto = require('crypto')
+const { cloudClient } = require('@configs/cloud-service')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -388,6 +388,20 @@ function validateFilters(input, validationData, modelName) {
 	return input
 }
 
+const getDownloadableUrl = async (filePath) => {
+	let bucketName = process.env.CLOUD_STORAGE_BUCKETNAME
+	let expiryInSeconds = parseInt(process.env.SIGNED_URL_EXPIRY_IN_SECONDS) || 300
+
+	let response = await cloudClient.getSignedUrl(bucketName, filePath, expiryInSeconds, common.READ_ACCESS)
+	return response[0]
+}
+const getPublicDownloadableUrl = async (bucketName, filePath) => {
+	let downloadableUrl = await cloudClient.getDownloadableUrl(bucketName, filePath)
+	if (process.env.CLOUD_STORAGE_PROVIDER == 'azure') {
+		downloadableUrl = downloadableUrl.toString().split('?')[0]
+	}
+	return downloadableUrl
+}
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -406,4 +420,6 @@ module.exports = {
 	generateWhereClause,
 	validateFilters,
 	processQueryParametersWithExclusions,
+	getPublicDownloadableUrl,
+	getDownloadableUrl,
 }

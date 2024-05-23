@@ -21,4 +21,6 @@ module.exports = {
 	},
 	internalAccessUrls: [],
 	SCP_SERVICE: 'scp',
+	WRITE_ACCESS: 'w',
+	READ_ACCESS: 'r',
 }
