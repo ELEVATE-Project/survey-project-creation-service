@@ -6,7 +6,6 @@
  */
 
 // Dependencies
-const cloudServices = require('@generics/cloud-services')
 const httpStatusCode = require('@generics/http-status')
 const common = require('@constants/common')
 const utils = require('@generics/utils')
