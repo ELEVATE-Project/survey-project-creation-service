@@ -1,53 +1,48 @@
+'use strict'
 const Form = require('../models/index').Form
 
-module.exports = class FormsData {
-	static async createForm(data) {
-		try {
-			let form = await Form.create(data, { returning: true })
-			return form
-		} catch (error) {
-			throw error
-		}
+exports.create = async (data) => {
+	try {
+		return await Form.create(data)
+	} catch (error) {
+		return error
 	}
+}
 
-	static async findOneForm(filter) {
-		try {
-			const formData = await Form.findOne({
-				where: filter,
-				raw: true,
-			})
-			return formData
-		} catch (error) {
-			throw error
-		}
+exports.findOne = async (filter, options = {}) => {
+	try {
+		return await Form.findOne({
+			where: filter,
+			...options,
+			raw: true,
+		})
+	} catch (error) {
+		return error
 	}
+}
 
-	static async updateOneForm(filter, update, options = {}) {
-		try {
-			const [rowsAffected] = await Form.update(update, {
-				where: filter,
-				...options,
-				individualHooks: true, // Pass 'individualHooks: true' option to ensure proper triggering of 'beforeUpdate' hook.
-			})
+exports.updateOneForm = async (filter, update, options = {}) => {
+	try {
+		const [res] = await Form.update(update, {
+			where: filter,
+			...options,
+			individualHooks: true,
+		})
 
-			if (rowsAffected > 0) {
-				return 'ENTITY_UPDATED'
-			} else {
-				return 'ENTITY_NOT_FOUND'
-			}
-		} catch (error) {
-			throw error
-		}
+		return res
+	} catch (error) {
+		return error
 	}
+}
 
-	static async findAllTypeFormVersion() {
-		try {
-			const formData = await Form.findAll({
-				attributes: ['id', 'type', 'version'],
-			})
-			return formData
-		} catch (error) {
-			throw error
-		}
+exports.findAllTypeFormVersion = async () => {
+	try {
+		const formData = await Form.findAll({
+			attributes: ['id', 'type', 'version'],
+			raw: true,
+		})
+		return formData
+	} catch (error) {
+		return error
 	}
 }
