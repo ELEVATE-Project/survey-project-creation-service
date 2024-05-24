@@ -175,7 +175,7 @@ let enviromentVariables = {
 		optional: false,
 		default: common.REVIEW_TYPE_SEQUENTIAL,
 	},
-	ORGANIZATION_READ: {
+	ORGANIZATION_READ_ENDPOINT: {
 		message: 'Required Organization read API end-point field',
 		optional: false,
 	},
