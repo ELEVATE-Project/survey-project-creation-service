@@ -93,6 +93,7 @@ module.exports = (app) => {
 				throw error
 			}
 			// Validate controller
+			allowedControllers.push('cloud-services')
 			if (!allowedControllers.includes(controllerName)) {
 				const error = new Error('Invalid controller.')
 				error.statusCode = 400
@@ -123,9 +124,22 @@ module.exports = (app) => {
 
 		try {
 			let controller
-
 			if (req.params.file) {
-				controller = require(`@controllers/${version}/${controllerName}/${file}`)
+				let folderExists = fs.existsSync(
+					PROJECT_ROOT_DIRECTORY +
+						'/controllers/' +
+						req.params.version +
+						'/' +
+						req.params.controller +
+						'/' +
+						req.params.file +
+						'.js'
+				)
+				if (folderExists) {
+					controller = require(`@controllers/${version}/${controllerName}/${file}`)
+				} else {
+					controller = require(`@controllers/${version}/${controllerName}`)
+				}
 			} else {
 				controller = require(`@controllers/${version}/${controllerName}`)
 			}
@@ -161,8 +175,8 @@ module.exports = (app) => {
 	}
 
 	app.all(process.env.APPLICATION_BASE_URL + ':version/:controller/:method', validator, router)
-	app.all(process.env.APPLICATION_BASE_URL + ':version/:controller/:method/:id', validator, router)
 	app.all(process.env.APPLICATION_BASE_URL + ':version/:controller/:file/:method', validator, router)
+	app.all(process.env.APPLICATION_BASE_URL + ':version/:controller/:method/:id', validator, router)
 	app.all(process.env.APPLICATION_BASE_URL + ':version/:controller/:file/:method/:id', validator, router)
 
 	app.use((req, res, next) => {

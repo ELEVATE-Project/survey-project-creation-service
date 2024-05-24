@@ -20,5 +20,6 @@
 	"UPDATE_FORM_VERSION": "फॉर्म के संस्करण को अपडेट करें।",
 	"FORM_VERSION_FETCHED_SUCCESSFULLY": "Form versions fetched successfully",
 	"ACCESS_TOKEN_EXPIRED": "Session expired. Please login again.",
-	"SIGNED_URL_GENERATED_SUCCESSFULLY": "Signed Url Generated Successfully."
+	"SIGNED_URL_GENERATED_SUCCESSFULLY": "Signed Url Generated Successfully.",
+	"DOWNLOAD_URL_GENERATED_SUCCESSFULLY": "Download Url Generated Successfully."
 }

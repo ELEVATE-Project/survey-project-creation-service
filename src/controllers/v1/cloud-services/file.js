@@ -20,10 +20,10 @@ module.exports = class File {
 	async getSignedUrl(req) {
 		try {
 			const signedUrlResponse = await filesService.getSignedUrl(
-				req.query.fileName,
-				req.decodedToken.id,
-				req.query.dynamicPath ? req.query.dynamicPath : '',
-				req.query.public && req.query.public == 'true' ? true : false
+				req.body.request,
+				req.body.ref,
+				req.decodedToken ? req.decodedToken.id : '',
+				req.query.serviceUpload == 'true' ? true : false
 			)
 			return signedUrlResponse
 		} catch (error) {
@@ -40,10 +40,7 @@ module.exports = class File {
 	 */
 	async getDownloadableUrl(req) {
 		try {
-			return await filesService.getDownloadableUrl(
-				req.query.filePath,
-				req.query.public && req.query.public == 'true' ? true : false
-			)
+			return await filesService.getDownloadableUrl(req.body.filePaths)
 		} catch (error) {
 			return error
 		}

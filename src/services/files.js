@@ -11,71 +11,125 @@ const httpStatusCode = require('@generics/http-status')
 const common = require('@constants/common')
 const utils = require('@generics/utils')
 const responses = require('@helpers/responses')
+const { cloudClient } = require('@configs/cloud-service')
+const endpoints = require('@constants/endpoints')
+const cloudStorage = process.env.CLOUD_STORAGE_PROVIDER
+const bucketName = process.env.CLOUD_STORAGE_BUCKETNAME
 
 module.exports = class FilesHelper {
 	/**
 	 * Get Signed Url
 	 * @method
 	 * @name getSignedUrl
-	 * @param {JSON} req  request body.
-	 * @param {string} req.query.fileName - name of the file
-	 * @param {string} id  -  userId
+	 * @param {JSON} payloadData  request body.
+	 * @param {string} referenceType- what type of document
+	 * @param {string} userId  -  userId
+	 * @param {boolean} serviceUpload - needed for nic server
 	 * @returns {JSON} - Response contains signed url
 	 */
-	static async getSignedUrl(fileName, id, dynamicPath, isAssetBucket) {
+	static async getSignedUrl(payloadData, referenceType, userId = '', serviceUpload = false) {
 		try {
-			let destFilePath
-			let cloudBucket
-			if (dynamicPath != '') {
-				destFilePath = dynamicPath + '/' + fileName
-			} else {
-				destFilePath = `users/${id}-${new Date().getTime()}-${fileName}`
+			let payloadIds = Object.keys(payloadData)
+
+			let result = {
+				[payloadIds[0]]: {},
 			}
-			// decide on which bucket has to be passed based on api call
-			if (isAssetBucket) {
-				cloudBucket = process.env.PUBLIC_ASSET_BUCKETNAME
+
+			let folderPath = ''
+
+			if (referenceType == common.CERTIFICATE) {
+				folderPath =
+					common.CERTIFICATE_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
+			} else if (referenceType == common.LOGO) {
+				folderPath = common.LOGO_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
+			} else if (referenceType == common.SIGNATURE) {
+				folderPath = common.SIGNATURE_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
+			} else if (referenceType == common.BASETEMPLATE) {
+				folderPath =
+					common.BASETEMPLATE_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
 			} else {
-				cloudBucket = process.env.CLOUD_STORAGE_BUCKETNAME
+				folderPath = common.PROJECT_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
 			}
-			let expiryInSeconds = parseInt(process.env.SIGNED_URL_EXPIRY_IN_SECONDS) || 300
-			let response = await cloudServices.getSignedUrl(
-				cloudBucket,
-				destFilePath,
-				common.WRITE_ACCESS,
-				expiryInSeconds
-			)
+
+			let actionPermission = common.WRITE_ACCESS
+			let fileNames = payloadData[payloadIds[0]].files
+			if (!Array.isArray(fileNames) || fileNames.length < 1) {
+				throw new Error('File names not given.')
+			}
+			let linkExpireTime = common.NO_OF_EXPIRY_TIME * common.NO_OF_MINUTES
+
+			const signedUrlsPromises = fileNames.map(async (fileName) => {
+				let file = folderPath && folderPath !== '' ? folderPath + fileName : fileName
+				let response = {
+					file: file,
+					payload: { sourcePath: file },
+					cloudStorage: cloudStorage.toUpperCase(),
+				}
+				response.downloadableUrl = await cloudClient.getDownloadableUrl(
+					bucketName,
+					file,
+					linkExpireTime // Link ExpireIn
+				)
+				if (!serviceUpload) {
+					response.url = await cloudClient.getSignedUrl(
+						bucketName, // bucket name
+						file, // file path
+						linkExpireTime, // expire
+						actionPermission // read/write
+					)
+				} else {
+					response.url = `${process.env.PUBLIC_BASE_URL}/${endpoints.UPLOAD_FILE}?file=${file}`
+				}
+
+				return response
+			})
+
+			// Wait for all signed URLs promises to resolve
+			const signedUrls = await Promise.all(signedUrlsPromises)
+			result[payloadIds[0]]['files'] = signedUrls
 
 			return responses.successResponse({
 				message: 'SIGNED_URL_GENERATED_SUCCESSFULLY',
 				statusCode: httpStatusCode.ok,
 				responseCode: 'OK',
-				result: response,
+				result: result,
 			})
 		} catch (error) {
 			throw error
 		}
 	}
-
-	static async getDownloadableUrl(path, isAssetBucket = false) {
+	/**
+	 * Get downloadable Url
+	 * @method
+	 * @name getDownloadableUrl
+	 * @param {JSON} payloadData  request body.
+	 * @returns {JSON} - Response contains signed url
+	 */
+	static async getDownloadableUrl(payloadData) {
 		try {
-			let bucketName = process.env.CLOUD_STORAGE_BUCKETNAME
-			let response
-			let expiryInSeconds = parseInt(process.env.SIGNED_URL_EXPIRY_IN_SECONDS) || 300
+			let linkExpireTime = common.NO_OF_EXPIRY_TIME * common.NO_OF_MINUTES
 
-			// downloadable url for public bucket
-			if (isAssetBucket || process.env.CLOUD_STORAGE_BUCKET_TYPE != 'private') {
-				response = await utils.getPublicDownloadableUrl(process.env.PUBLIC_ASSET_BUCKETNAME, path)
-			} else {
-				response = await cloudServices.getSignedUrl(bucketName, path, common.READ_ACCESS, expiryInSeconds)
-				response = response.signedUrl
+			if (Array.isArray(payloadData) && payloadData.length > 0) {
+				let result = []
+
+				await Promise.all(
+					payloadData.map(async (element) => {
+						let responseObj = {
+							cloudStorage: cloudStorage,
+						}
+						responseObj.filePath = element
+						responseObj.url = await cloudClient.getDownloadableUrl(bucketName, element, linkExpireTime)
+						result.push(responseObj)
+					})
+				)
+
+				return responses.successResponse({
+					message: 'DOWNLOAD_URL_GENERATED_SUCCESSFULLY',
+					statusCode: httpStatusCode.ok,
+					responseCode: 'OK',
+					result: result,
+				})
 			}
-			// let response = await utils.getDownloadableUrl(path, isAssetBucket)
-			return responses.successResponse({
-				message: 'DOWNLOAD_URL_GENERATED_SUCCESSFULLY',
-				statusCode: httpStatusCode.ok,
-				responseCode: 'OK',
-				result: response,
-			})
 		} catch (error) {
 			throw error
 		}

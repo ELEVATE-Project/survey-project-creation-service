@@ -15,6 +15,7 @@ const startCase = require('lodash/startCase')
 const common = require('@constants/common')
 const crypto = require('crypto')
 const { cloudClient } = require('@configs/cloud-service')
+const { v4: uuidV4 } = require('uuid')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -402,6 +403,11 @@ const getPublicDownloadableUrl = async (bucketName, filePath) => {
 	}
 	return downloadableUrl
 }
+
+const generateUniqueId = () => {
+	return uuidV4()
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -422,4 +428,5 @@ module.exports = {
 	processQueryParametersWithExclusions,
 	getPublicDownloadableUrl,
 	getDownloadableUrl,
+	generateUniqueId,
 }
