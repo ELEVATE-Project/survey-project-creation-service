@@ -41,23 +41,68 @@ module.exports = class UserEntityData {
 	}
 	static async findUserEntityTypeAndEntities(filter) {
 		try {
-			const entityType = await EntityType.findOne({
+			const entityTypes = await EntityType.findAll({
 				where: filter,
 				raw: true,
 			})
 
-			const entityTypeId = entityType.id
+			const entityTypeIds = entityTypes.map((entityType) => entityType.id)
 
 			const entities = await Entity.findAll({
-				where: { entity_type_id: entityTypeId, status: 'ACTIVE' },
+				where: { entity_type_id: entityTypeIds, status: 'ACTIVE' },
+				raw: true,
+				//attributes: { exclude: ['entity_type_id'] },
+			})
+
+			const result = entityTypes.map((entityType) => {
+				const matchingEntities = entities.filter((entity) => entity.entity_type_id === entityType.id)
+				return {
+					...entityType,
+					entities: matchingEntities,
+				}
+			})
+
+			return result
+		} catch (error) {
+			console.error('Error fetching data:', error)
+			throw error
+		}
+	}
+	static async findOneEntityTypeAndEntities(filter) {
+		try {
+			let entityTypes = await EntityType.findOne({
+				where: filter,
+				raw: true,
+			})
+
+			if (!entityTypes) {
+				filter.organization_id = process.env.DEFAULT_ORG_ID
+				entityTypes = await EntityType.findOne({
+					where: filter,
+					raw: true,
+				})
+			}
+
+			const entityTypeIds = entityTypes.id
+
+			const entities = await Entity.findAll({
+				where: { entity_type_id: entityTypeIds, status: 'ACTIVE' },
 				raw: true,
 				//attributes: { exclude: ['entity_type_id'] },
 			})
 
 			const result = {
-				...entityType,
+				...entityTypes,
 				entities: [...entities],
 			}
+
+			// entityTypes.map((entityType) => {
+			// 	const matchingEntities = entities.filter((entity) => entity.entity_type_id === entityType.id)
+			// 	return {
+			// 		...entityType,
+			// 		entities: matchingEntities,
+			// 	}
+			// })
 
 			return result
 		} catch (error) {
