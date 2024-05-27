@@ -156,7 +156,7 @@ module.exports = class EntityHelper {
 				}
 			} else {
 				filter = {
-					created_by: '0',
+					created_by: common.CREATED_BY_SYSTEM,
 				}
 			}
 			const entities = await entityTypeQueries.findAllEntities(filter)
