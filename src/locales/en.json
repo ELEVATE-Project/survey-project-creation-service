@@ -38,5 +38,6 @@
 	"ORG_EXTENSION_CREATED_SUCCESSFULLY": "Organization Extension Created Successfully",
 	"PERMISSIONS_NOT_FOUND": "permissions not found",
 	"CONFIGS_FETCHED_SUCCESSFULLY": "Config fetched successfully",
-	"CONFIG_FETCH_FAILED": "Error in fetching Config"
+	"CONFIG_FETCH_FAILED": "Error in fetching Config",
+	"ENTITY_TYPE_NOT_FOUND": "Entity type not found"
 }

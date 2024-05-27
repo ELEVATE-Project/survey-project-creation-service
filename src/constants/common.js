@@ -38,4 +38,5 @@ module.exports = {
 	ADMIN_ROLE: 'admin',
 	ORG_ADMIN_ROLE: 'org_admin',
 	STATUS_ACTIVE: 'ACTIVE',
+	CREATED_BY_SYSTEM: 0,
 }
