@@ -24,7 +24,7 @@ module.exports = class configsHelper {
 			// attributes to fetch from organisation Extenstion
 			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
 
-			const entity_type_and_entities = await entityType.findUserEntityTypeAndEntities({
+			const entity_type_and_entities = await entityType.findOneEntityTypeAndEntities({
 				organization_id: organization_id,
 				value: common.RESOURCES,
 			})
