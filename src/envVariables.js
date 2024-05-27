@@ -155,7 +155,7 @@ let enviromentVariables = {
 		optional: true,
 		default: common.AUTH_METHOD.JWT_ONLY,
 	},
-	REVIEWREQUIRED: {
+	REVIEW_REQUIRED: {
 		message: 'Required Review Required field',
 		optional: false,
 		default: true,
