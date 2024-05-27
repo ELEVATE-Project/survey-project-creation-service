@@ -37,4 +37,5 @@ module.exports = {
 	RESOURCE_CREATOR: 'resource_creator',
 	ADMIN_ROLE: 'admin',
 	ORG_ADMIN_ROLE: 'org_admin',
+	STATUS_ACTIVE: 'ACTIVE',
 }

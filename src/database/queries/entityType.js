@@ -49,7 +49,7 @@ module.exports = class UserEntityData {
 			const entityTypeIds = entityTypes.map((entityType) => entityType.id)
 
 			const entities = await Entity.findAll({
-				where: { entity_type_id: entityTypeIds, status: 'ACTIVE' },
+				where: { entity_type_id: entityTypeIds, status: common.STATUS_ACTIVE },
 				raw: true,
 				//attributes: { exclude: ['entity_type_id'] },
 			})
@@ -86,7 +86,7 @@ module.exports = class UserEntityData {
 			const entityTypeIds = entityTypes.id
 
 			const entities = await Entity.findAll({
-				where: { entity_type_id: entityTypeIds, status: 'ACTIVE' },
+				where: { entity_type_id: entityTypeIds, status: common.STATUS_ACTIVE },
 				raw: true,
 				//attributes: { exclude: ['entity_type_id'] },
 			})
@@ -158,7 +158,7 @@ module.exports = class UserEntityData {
 
 			// Fetch all matching entities using the IDs
 			const entities = await Entity.findAll({
-				where: { entity_type_id: entityTypeIds, status: 'ACTIVE' },
+				where: { entity_type_id: entityTypeIds, status: common.STATUS_ACTIVE },
 				raw: true,
 				//attributes: { exclude: ['entity_type_id'] },
 			})
