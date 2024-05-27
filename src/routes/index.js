@@ -135,6 +135,7 @@ module.exports = (app) => {
 						req.params.file +
 						'.js'
 				)
+
 				if (folderExists) {
 					controller = require(`@controllers/${version}/${controllerName}/${file}`)
 				} else {

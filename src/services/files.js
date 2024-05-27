@@ -6,6 +6,8 @@
  */
 
 // Dependencies
+// const fetch = require('node-fetch');
+const formidable = require('formidable')
 const httpStatusCode = require('@generics/http-status')
 const common = require('@constants/common')
 const utils = require('@generics/utils')
@@ -131,6 +133,36 @@ module.exports = class FilesHelper {
 			}
 		} catch (error) {
 			throw error
+		}
+	}
+
+	static async fetchJsonFromCloud(filePath) {
+		try {
+			let result = {}
+			let downloadableUrl = await cloudClient.getDownloadableUrl(bucketName, filePath)
+			if (downloadableUrl) {
+				const data = await fetch(downloadableUrl).then((res) => res.json())
+				if (data && Object.keys(data).length > 0) {
+					result = data
+				}
+
+				return responses.successResponse({
+					message: 'DOWNLOAD_URL_GENERATED_SUCCESSFULLY',
+					statusCode: httpStatusCode.ok,
+					responseCode: 'OK',
+					result: result,
+				})
+			} else {
+				return responses.failureResponse({
+					message: 'FAILED_TO_DOWNLOAD_FILE',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+				throw new Error('Downloadable URL not generated')
+			}
+		} catch (error) {
+			console.log('fetchJsonFromCloud error')
+			return error
 		}
 	}
 }

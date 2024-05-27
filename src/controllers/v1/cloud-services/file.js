@@ -45,4 +45,12 @@ module.exports = class File {
 			return error
 		}
 	}
+
+	async fetchJsonFromCloud(req) {
+		try {
+			return await filesService.fetchJsonFromCloud(req.body.filePath)
+		} catch (error) {
+			return error
+		}
+	}
 }
