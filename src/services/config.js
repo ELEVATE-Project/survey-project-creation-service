@@ -1,33 +1,38 @@
 const common = require('@constants/common')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
 const _ = require('lodash')
-
+const entites = require('@database/queries/entities')
+const entityType = require('@database/queries/entityType')
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
+const { Op } = require('sequelize')
 module.exports = class configsHelper {
 	/**
 	 * List Configs.
 	 * @method
 	 * @name list
-	 * @param {Integer} organization_id
-	 * @param {String} id -  id.
-	 * @returns {JSON} - List of configs as response.
+	 * @returns {JSON} - List of configs based on orgId of user as response.
 	 */
-
 	static async list(organization_id) {
-		let orgExtenstionData = {}
-		let configData = []
 		try {
+			let orgExtenstionData = {}
+			let configData = []
 			// define filter
 			const filter = {
 				organization_id,
 			}
 			// attributes to fetch from organisation Extenstion
-			const attributes = process.env.INSTANCE_LEVEL_CONFIG_ATTRIBUTES.split(',').map((attribute) =>
-				attribute.trim()
-			)
+			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
+
+			const entity_type_and_entities = await entityType.findOneEntityTypeAndEntities({
+				organization_id: organization_id,
+				value: common.RESOURCES,
+			})
 			// fetch the current list of resources
-			const resourceList = common.RESOURCE_LIST
+			const resourceList = entity_type_and_entities.entities
+
+			// convert the object into array
+			const resourceListArr = resourceList.map(({ value }) => value)
 
 			// instance level configurations from env as default configs
 			const default_configs = {
@@ -47,7 +52,7 @@ module.exports = class configsHelper {
 			let resourceTypeFromDB = []
 
 			// fetch the config data
-			configData = resourceList
+			configData = resourceListArr
 				.map((resourceType) => {
 					const filterData = orgExtenstionData.filter((orgExt) => {
 						if (orgExt.resource_type.toLowerCase() === resourceType.toLowerCase()) {
@@ -66,7 +71,7 @@ module.exports = class configsHelper {
 				.flat()
 
 			// check and fill for the missing configs from DB
-			const missedResourceTypes = _.difference(resourceList, resourceTypeFromDB)
+			const missedResourceTypes = _.difference(resourceListArr, resourceTypeFromDB)
 				.map((resourceType) => {
 					return {
 						...default_configs,
@@ -75,7 +80,14 @@ module.exports = class configsHelper {
 				})
 				.flat()
 
-			configData = configData.length !== 0 ? _.concat(configData, missedResourceTypes) : missedResourceTypes
+			configData = configData.length > 0 ? _.concat(configData, missedResourceTypes) : missedResourceTypes
+
+			// return success message
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'CONFIGS_FETCHED_SUCCESSFULLY',
+				result: configData,
+			})
 		} catch (error) {
 			// return error message
 			return responses.failureResponse({
@@ -84,12 +96,5 @@ module.exports = class configsHelper {
 				result: [],
 			})
 		}
-
-		// return success message
-		return responses.successResponse({
-			statusCode: httpStatusCode.ok,
-			message: 'CONFIGS_FETCHED_SUCCESSFULLY',
-			result: configData,
-		})
 	}
 }

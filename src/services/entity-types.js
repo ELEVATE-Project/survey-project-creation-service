@@ -8,7 +8,7 @@ const { getDefaultOrgId } = require('@helpers/getDefaultOrgId')
 const utils = require('@generics/utils')
 const responses = require('@helpers/responses')
 
-module.exports = class EntityHelper {
+module.exports = class EntityTypeHelper {
 	/**
 	 * Create entity type.
 	 * @method
@@ -18,11 +18,11 @@ module.exports = class EntityHelper {
 	 * @returns {JSON} - Created entity type response.
 	 */
 
-	static async create(bodyData, id, orgId) {
-		bodyData.created_by = id
-		bodyData.updated_by = id
-		bodyData.organization_id = orgId
+	static async create(bodyData, loggedInUserId, orgId) {
 		try {
+			bodyData.created_by = loggedInUserId
+			bodyData.updated_by = loggedInUserId
+			bodyData.organization_id = orgId
 			const entityType = await entityTypeQueries.createEntityType(bodyData)
 			return responses.successResponse({
 				statusCode: httpStatusCode.created,
@@ -51,10 +51,10 @@ module.exports = class EntityHelper {
 	 * @returns {JSON} - Updated Entity Type.
 	 */
 
-	static async update(bodyData, id, loggedInUserId, orgId) {
-		bodyData.updated_by = loggedInUserId
-		bodyData.organization_id = orgId
+	static async update(id, bodyData, loggedInUserId, orgId) {
 		try {
+			bodyData.updated_by = loggedInUserId
+			bodyData.organization_id = orgId
 			const [updateCount, updatedEntityType] = await entityTypeQueries.updateOneEntityType(id, orgId, bodyData, {
 				returning: true,
 				raw: true,
@@ -133,7 +133,7 @@ module.exports = class EntityHelper {
 					[Op.in]: [orgId, defaultOrgId],
 				},
 			}
-			const entityTypes = await entityTypeQueries.findUserEntityTypesAndEntities(filter)
+			const entityTypes = await entityTypeQueries.findUserEntityTypeAndEntities(filter)
 
 			const prunedEntities = removeDefaultOrgEntityTypes(entityTypes, orgId)
 			return responses.successResponse({

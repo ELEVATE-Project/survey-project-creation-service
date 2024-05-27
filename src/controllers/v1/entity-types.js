@@ -29,8 +29,8 @@ module.exports = class Entity {
 	async update(req) {
 		try {
 			return await entityTypeService.update(
-				req.body,
 				req.params.id,
+				req.body,
 				req.decodedToken.id,
 				req.decodedToken.organization_id
 			)
