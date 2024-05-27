@@ -133,7 +133,7 @@ module.exports = class EntityTypeHelper {
 					[Op.in]: [orgId, defaultOrgId],
 				},
 			}
-			const entityTypes = await entityTypeQueries.findUserEntityTypesAndEntities(filter)
+			const entityTypes = await entityTypeQueries.findUserEntityTypeAndEntities(filter)
 
 			const prunedEntities = removeDefaultOrgEntityTypes(entityTypes, orgId)
 			return responses.successResponse({

@@ -24,10 +24,14 @@ const fetchDefaultOrgDetails = function (organisationIdentifier) {
 		try {
 			let orgReadUrl
 			if (!isNaN(organisationIdentifier)) {
-				orgReadUrl = userBaseUrl + process.env.ORGANIZATION_READ + '?organisation_id=' + organisationIdentifier
+				orgReadUrl =
+					userBaseUrl + process.env.ORGANIZATION_READ_ENDPOINT + '?organisation_id=' + organisationIdentifier
 			} else {
 				orgReadUrl =
-					userBaseUrl + process.env.ORGANIZATION_READ + '?organisation_code=' + organisationIdentifier
+					userBaseUrl +
+					process.env.ORGANIZATION_READ_ENDPOINT +
+					'?organisation_code=' +
+					organisationIdentifier
 			}
 
 			let internalToken = true
