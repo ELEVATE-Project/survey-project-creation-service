@@ -136,11 +136,6 @@ let enviromentVariables = {
 		message: 'Required disable log level',
 		optional: false,
 	},
-	DEFAULT_ORGANISATION_CODE: {
-		message: 'Required default organisation code',
-		optional: false,
-		default: 'sl',
-	},
 	DEFAULT_ORG_ID: {
 		message: 'Default organization ID',
 		optional: false,
@@ -174,6 +169,10 @@ let enviromentVariables = {
 		message: 'Required Review Type field',
 		optional: false,
 		default: common.REVIEW_TYPE_SEQUENTIAL,
+	},
+	ORGANIZATION_READ_ENDPOINT: {
+		message: 'Required Organization read API end-point field',
+		optional: false,
 	},
 }
 
