@@ -83,10 +83,8 @@ module.exports = class UserEntityData {
 				})
 			}
 
-			const entityTypeIds = entityType.id
-
 			const entities = await Entity.findAll({
-				where: { entity_type_id: entityTypeIds, status: common.STATUS_ACTIVE },
+				where: { entity_type_id: entityType.id, status: common.STATUS_ACTIVE },
 				raw: true,
 			})
 
