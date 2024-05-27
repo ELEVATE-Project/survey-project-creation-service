@@ -1,7 +1,7 @@
 const EntityType = require('../models/index').EntityType
 const Entity = require('../models/index').Entity
 const { Op } = require('sequelize')
-//const Sequelize = require('../models/index').sequelize
+const common = require('@constants/common')
 
 module.exports = class UserEntityData {
 	static async createEntityType(data) {
