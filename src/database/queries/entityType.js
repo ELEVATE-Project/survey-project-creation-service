@@ -70,39 +70,30 @@ module.exports = class UserEntityData {
 	}
 	static async findOneEntityTypeAndEntities(filter) {
 		try {
-			let entityTypes = await EntityType.findOne({
+			let entityType = await EntityType.findOne({
 				where: filter,
 				raw: true,
 			})
 
-			if (!entityTypes) {
+			if (!entityType) {
 				filter.organization_id = process.env.DEFAULT_ORG_ID
-				entityTypes = await EntityType.findOne({
+				entityType = await EntityType.findOne({
 					where: filter,
 					raw: true,
 				})
 			}
 
-			const entityTypeIds = entityTypes.id
+			const entityTypeIds = entityType.id
 
 			const entities = await Entity.findAll({
 				where: { entity_type_id: entityTypeIds, status: common.STATUS_ACTIVE },
 				raw: true,
-				//attributes: { exclude: ['entity_type_id'] },
 			})
 
 			const result = {
-				...entityTypes,
+				...entityType,
 				entities: [...entities],
 			}
-
-			// entityTypes.map((entityType) => {
-			// 	const matchingEntities = entities.filter((entity) => entity.entity_type_id === entityType.id)
-			// 	return {
-			// 		...entityType,
-			// 		entities: matchingEntities,
-			// 	}
-			// })
 
 			return result
 		} catch (error) {
