@@ -97,7 +97,7 @@ module.exports = class EntityTypeHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 
-			const entities = await entityTypeQueries.findOrgEntityTypes([orgId, defaultOrgId], attributes)
+			const entities = await entityTypeQueries.findAllEntityTypes([orgId, defaultOrgId], attributes)
 
 			if (!entities.length) {
 				return responses.failureResponse({

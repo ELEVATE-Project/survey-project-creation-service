@@ -24,7 +24,7 @@ module.exports = class UserEntityData {
 		}
 	}
 
-	static async findOrgEntityTypes(orgIds, attributes, filter = {}) {
+	static async findAllEntityTypes(orgIds, attributes, filter = {}) {
 		try {
 			const entityData = await EntityType.findAll({
 				where: {

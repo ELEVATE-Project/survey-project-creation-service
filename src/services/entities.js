@@ -4,6 +4,7 @@ const entityTypeQueries = require('@database/queries/entities')
 const { UniqueConstraintError, ForeignKeyConstraintError } = require('sequelize')
 const { Op } = require('sequelize')
 const responses = require('@helpers/responses')
+const common = require('@constants/common')
 
 module.exports = class EntityHelper {
 	/**
@@ -15,9 +16,9 @@ module.exports = class EntityHelper {
 	 * @returns {JSON} - Entity created response.
 	 */
 
-	static async create(bodyData, id) {
-		bodyData.created_by = id
-		bodyData.updated_by = id
+	static async create(bodyData, loggedInUserId) {
+		bodyData.created_by = loggedInUserId
+		bodyData.updated_by = loggedInUserId
 		try {
 			const entity = await entityTypeQueries.createEntity(bodyData)
 			return responses.successResponse({
@@ -102,10 +103,10 @@ module.exports = class EntityHelper {
 					[Op.or]: [
 						{
 							id: query.id,
-							created_by: '0',
-							status: 'ACTIVE',
+							created_by: common.CREATED_BY_SYSTEM,
+							status: common.STATUS_ACTIVE,
 						},
-						{ id: query.id, created_by: userId, status: 'ACTIVE' },
+						{ id: query.id, created_by: userId, status: common.STATUS_ACTIVE },
 					],
 				}
 			} else {
@@ -113,10 +114,10 @@ module.exports = class EntityHelper {
 					[Op.or]: [
 						{
 							value: query.value,
-							created_by: '0',
-							status: 'ACTIVE',
+							created_by: common.CREATED_BY_SYSTEM,
+							status: common.STATUS_ACTIVE,
 						},
-						{ value: query.value, created_by: userId, status: 'ACTIVE' },
+						{ value: query.value, created_by: userId, status: common.STATUS_ACTIVE },
 					],
 				}
 			}
@@ -146,7 +147,7 @@ module.exports = class EntityHelper {
 				filter = {
 					[Op.or]: [
 						{
-							created_by: '0',
+							created_by: common.CREATED_BY_SYSTEM,
 						},
 						{
 							created_by: userId,
@@ -188,7 +189,7 @@ module.exports = class EntityHelper {
 	static async delete(id, userId) {
 		try {
 			const deleteCount = await entityTypeQueries.deleteOneEntityType(id, userId)
-			if (deleteCount === '0') {
+			if (deleteCount === 0) {
 				return responses.failureResponse({
 					message: 'ENTITY_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
