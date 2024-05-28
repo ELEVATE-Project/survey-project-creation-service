@@ -174,6 +174,10 @@ let enviromentVariables = {
 		message: 'Required Organization read API end-point field',
 		optional: false,
 	},
+	USER_LIST_ENDPOINT: {
+		message: 'Required user list API end-point field',
+		optional: false,
+	},
 }
 
 let success = true

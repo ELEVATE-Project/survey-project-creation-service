@@ -99,7 +99,7 @@ const list = function (userType, pageNo, pageSize, searchText, organization_id =
 		try {
 			let apiUrl =
 				userBaseUrl +
-				endpoints.SEARCH_USERS +
+				endpoints.USERS_LIST +
 				'?type=' +
 				userType +
 				'&page=' +
@@ -202,7 +202,7 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
 		try {
 			const apiUrl =
 				userBaseUrl +
-				endpoints.SEARCH_USERS +
+				endpoints.USERS_LIST +
 				'?type=' +
 				userType +
 				'&page=' +

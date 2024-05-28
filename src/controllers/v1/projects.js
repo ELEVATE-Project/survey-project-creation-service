@@ -1,4 +1,3 @@
-const common = require('@constants/common')
 const projectsService = require('@services/projects')
 
 module.exports = class projects {

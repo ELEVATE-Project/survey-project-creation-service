@@ -1,3 +1,3 @@
 module.exports = {
-	SEARCH_USERS: 'v1/account/search',
+	USERS_LIST: process.env.USER_LIST_ENDPOINT ? process.env.USER_LIST_ENDPOINT : 'v1/account/search',
 }
