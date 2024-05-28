@@ -47,7 +47,7 @@ module.exports = (app) => {
 			const allFilesAndDirectories = getAllFilesAndDirectories(directoryPath)
 			const allowedControllers = allFilesAndDirectories
 				.filter((item) => item.type === 'file' && item.name.endsWith('.js'))
-				.map((item) => path.basename(item.name, '.js')) // Remove the ".js" extension
+				.map((item) => path.relative(directoryPath, item.path).replace(/\\/g, '/').replace(/\.js$/, ''))
 
 			const allowedVersions = allFilesAndDirectories
 				.filter((item) => item.type === 'directory')
@@ -69,13 +69,14 @@ module.exports = (app) => {
 	async function router(req, res, next) {
 		let controllerResponse
 		let validationError
-
+		console.log(req.params, 'req.params')
 		const version = (req.params.version.match(/^v\d+$/) || [])[0] // Match version like v1, v2, etc.
 		const controllerName = (req.params.controller.match(/^[a-zA-Z0-9_-]+$/) || [])[0] // Allow only alphanumeric characters, underscore, and hyphen
-		const file = req.params.file ? (req.params.file.match(/^[a-zA-Z0-9_-]+$/) || [])[0] : null // Same validation as controller, or null if file is not provided
-		const method = (req.params.method.match(/^[a-zA-Z0-9]+$/) || [])[0] // Allow only alphanumeric characters
+		const file = req.params.method === 'file' ? (req.params.method.match(/^[a-zA-Z0-9_-]+$/) || [])[0] : null // Validate file if method is 'file'
+		const method = (req.params.method === 'file' ? req.params.id : req.params.method).match(/^[a-zA-Z0-9]+$/) // Allow only alphanumeric characters
+
 		try {
-			if (!version || !controllerName || !method || (req.params.file && !file)) {
+			if (!version || !controllerName || !method) {
 				// Invalid input, return an error response
 				const error = new Error('Invalid Path')
 				error.statusCode = 400
@@ -85,7 +86,8 @@ module.exports = (app) => {
 			const directoryPath = path.resolve(__dirname, '..', 'controllers')
 
 			const { allowedControllers, allowedVersions } = await getAllowedControllers(directoryPath)
-
+			console.log('allowedControllers: ', allowedControllers)
+			console.log('controllerName ', controllerName)
 			// Validate version
 			if (!allowedVersions.includes(version)) {
 				const error = new Error('Invalid version.')
@@ -93,8 +95,8 @@ module.exports = (app) => {
 				throw error
 			}
 			// Validate controller
-			allowedControllers.push('cloud-services')
-			if (!allowedControllers.includes(controllerName)) {
+			const controllerPath = `${version}/${controllerName}${file ? `/${file}` : ''}`
+			if (!allowedControllers.includes(controllerPath)) {
 				const error = new Error('Invalid controller.')
 				error.statusCode = 400
 				throw error
@@ -114,7 +116,7 @@ module.exports = (app) => {
 			return next(error)
 		}
 
-		if (validationError.length) {
+		if (validationError && validationError.length) {
 			const error = new Error('Validation failed, Entered data is incorrect!')
 			error.statusCode = 422
 			error.responseCode = 'CLIENT_ERROR'
@@ -124,23 +126,8 @@ module.exports = (app) => {
 
 		try {
 			let controller
-			if (req.params.file) {
-				let folderExists = fs.existsSync(
-					PROJECT_ROOT_DIRECTORY +
-						'/controllers/' +
-						req.params.version +
-						'/' +
-						req.params.controller +
-						'/' +
-						req.params.file +
-						'.js'
-				)
-
-				if (folderExists) {
-					controller = require(`@controllers/${version}/${controllerName}/${file}`)
-				} else {
-					controller = require(`@controllers/${version}/${controllerName}`)
-				}
+			if (file) {
+				controller = require(`@controllers/${version}/${controllerName}/${file}`)
 			} else {
 				controller = require(`@controllers/${version}/${controllerName}`)
 			}
@@ -176,8 +163,8 @@ module.exports = (app) => {
 	}
 
 	app.all(process.env.APPLICATION_BASE_URL + ':version/:controller/:method', validator, router)
-	app.all(process.env.APPLICATION_BASE_URL + ':version/:controller/:file/:method', validator, router)
 	app.all(process.env.APPLICATION_BASE_URL + ':version/:controller/:method/:id', validator, router)
+	app.all(process.env.APPLICATION_BASE_URL + ':version/:controller/:file/:method', validator, router)
 	app.all(process.env.APPLICATION_BASE_URL + ':version/:controller/:file/:method/:id', validator, router)
 
 	app.use((req, res, next) => {

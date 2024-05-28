@@ -51,4 +51,5 @@ module.exports = {
 	CERTIFICATE: 'certificate',
 	NO_OF_MINUTES: 30,
 	NO_OF_EXPIRY_TIME: 60,
+	STATUS_DRAFT: 'DRAFT',
 }
