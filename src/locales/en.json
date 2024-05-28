@@ -37,7 +37,14 @@
 	"FETCHED_ROLE_PERMISSION_SUCCESSFULLY": "permissions list fetched successfully",
 	"ORG_EXTENSION_CREATED_SUCCESSFULLY": "Organization Extension Created Successfully",
 	"PERMISSIONS_NOT_FOUND": "permissions not found",
+	"INVALID_DATA_PASSED": "Invalid data passed for creation",
+	"SIGNED_URL_GENERATED_SUCCESSFULLY": "Signed Url Generated Successfully.",
+	"DOWNLOAD_URL_GENERATED_SUCCESSFULLY": "Download Url Generated Successfully.",
 	"CONFIGS_FETCHED_SUCCESSFULLY": "Config fetched successfully",
 	"CONFIG_FETCH_FAILED": "Error in fetching Config",
+	"PROJECT_NOT_FOUND": "Project not found",
+	"PROJECT_FETCHED_SUCCESSFULLY": "Project fetched successfully",
+	"FAILED_TO_DOWNLOAD_FILE": "Failed to download the file",
+	"PROJECT_NOT_VISIBLE": "Project is being edited, only the creator can view it.",
 	"ENTITY_TYPE_NOT_FOUND": "Entity type not found"
 }

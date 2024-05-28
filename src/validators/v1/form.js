@@ -1,15 +1,15 @@
 /**
  * name : validators/v1/form.js
- * author : Aman Gupta
- * Date : 03-Nov-2021
+ * author : Priyanka Pradeep
+ * Date : 24-May-2024
  * Description : Validations of forms controller
  */
-const filterRequestBody = require('../common')
-const { form } = require('@constants/blacklistConfig')
+// const filterRequestBody = require('../common')
+// const { form } = require('@constants/blacklistConfig')
 
 module.exports = {
 	create: (req) => {
-		req.body = filterRequestBody(req.body, form.create)
+		// req.body = filterRequestBody(req.body, form.create)
 		req.checkBody('type')
 			.trim()
 			.notEmpty()
@@ -37,7 +37,7 @@ module.exports = {
 	},
 
 	update: (req) => {
-		req.body = filterRequestBody(req.body, form.update)
+		// req.body = filterRequestBody(req.body, form.update)
 		req.checkBody('type')
 			.notEmpty()
 			.withMessage('type field is empty')

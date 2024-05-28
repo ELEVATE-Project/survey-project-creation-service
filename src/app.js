@@ -27,6 +27,7 @@ if (!environmentData.success) {
 }
 
 require('@configs')
+require('@configs/cloud-service')
 
 i18next
 	.use(Backend)
