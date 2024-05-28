@@ -1,7 +1,7 @@
 const EntityType = require('../models/index').EntityType
 const Entity = require('../models/index').Entity
 const { Op } = require('sequelize')
-//const Sequelize = require('../models/index').sequelize
+const common = require('@constants/common')
 
 module.exports = class UserEntityData {
 	static async createEntityType(data) {
@@ -41,17 +41,51 @@ module.exports = class UserEntityData {
 	}
 	static async findUserEntityTypeAndEntities(filter) {
 		try {
-			const entityType = await EntityType.findOne({
+			const entityTypes = await EntityType.findAll({
 				where: filter,
 				raw: true,
 			})
 
-			const entityTypeId = entityType.id
+			const entityTypeIds = entityTypes.map((entityType) => entityType.id)
 
 			const entities = await Entity.findAll({
-				where: { entity_type_id: entityTypeId, status: 'ACTIVE' },
+				where: { entity_type_id: entityTypeIds, status: common.STATUS_ACTIVE },
 				raw: true,
 				//attributes: { exclude: ['entity_type_id'] },
+			})
+
+			const result = entityTypes.map((entityType) => {
+				const matchingEntities = entities.filter((entity) => entity.entity_type_id === entityType.id)
+				return {
+					...entityType,
+					entities: matchingEntities,
+				}
+			})
+
+			return result
+		} catch (error) {
+			console.error('Error fetching data:', error)
+			throw error
+		}
+	}
+	static async findOneEntityTypeAndEntities(filter) {
+		try {
+			let entityType = await EntityType.findOne({
+				where: filter,
+				raw: true,
+			})
+
+			if (!entityType) {
+				filter.organization_id = process.env.DEFAULT_ORG_ID
+				entityType = await EntityType.findOne({
+					where: filter,
+					raw: true,
+				})
+			}
+
+			const entities = await Entity.findAll({
+				where: { entity_type_id: entityType.id, status: common.STATUS_ACTIVE },
+				raw: true,
 			})
 
 			const result = {
@@ -113,7 +147,7 @@ module.exports = class UserEntityData {
 
 			// Fetch all matching entities using the IDs
 			const entities = await Entity.findAll({
-				where: { entity_type_id: entityTypeIds, status: 'ACTIVE' },
+				where: { entity_type_id: entityTypeIds, status: common.STATUS_ACTIVE },
 				raw: true,
 				//attributes: { exclude: ['entity_type_id'] },
 			})

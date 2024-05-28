@@ -1,9 +1,9 @@
 'use strict'
-const Form = require('../models/index').Form
+const Resource = require('../models/index').Resource
 
 exports.create = async (data) => {
 	try {
-		return await Form.create(data)
+		return await Resource.create(data)
 	} catch (error) {
 		return error
 	}
@@ -11,7 +11,7 @@ exports.create = async (data) => {
 
 exports.findOne = async (filter, options = {}) => {
 	try {
-		return await Form.findOne({
+		return await Resource.findOne({
 			where: filter,
 			...options,
 			raw: true,
@@ -21,9 +21,9 @@ exports.findOne = async (filter, options = {}) => {
 	}
 }
 
-exports.updateOneForm = async (filter, update, options = {}) => {
+exports.updateOne = async (filter, update, options = {}) => {
 	try {
-		const [res] = await Form.update(update, {
+		const [res] = await Resource.update(update, {
 			where: filter,
 			...options,
 			individualHooks: true,
@@ -35,13 +35,15 @@ exports.updateOneForm = async (filter, update, options = {}) => {
 	}
 }
 
-exports.findAllTypeFormVersion = async () => {
+exports.findAll = async (filter, attributes = {}) => {
 	try {
-		const formData = await Form.findAll({
-			attributes: ['id', 'type', 'version'],
+		const res = await Resource.findAll({
+			where: filter,
+			attributes,
 			raw: true,
 		})
-		return formData
+
+		return res
 	} catch (error) {
 		return error
 	}

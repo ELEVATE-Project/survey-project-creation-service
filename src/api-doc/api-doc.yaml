@@ -3845,7 +3845,7 @@ paths:
                         name: Shikshlokam
                         code: SL
                       organization_id: 2
-                      reviwers:
+                      reviewers:
                         - id: 24
                           name: Raven
                           status: REQUEST_FOR_CHANGES
@@ -3959,14 +3959,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
-  /scp/v1/projects/reviwerList:
+  /scp/v1/projects/reviewerList:
     get:
       summary: Reviewer List
       tags:
         - Projects
       description: |-
-        You can use this API to get the list all project reviwers
-         - The API Endpoint for comment list is `/scp/v1/projects/reviwerList` 
+        You can use this API to get the list all project reviewers
+         - The API Endpoint for comment list is `/scp/v1/projects/reviewerList` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -3978,12 +3978,6 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
-          name: resource_id
-          description: Please append a valid resource Id to the Request URL.
-          schema:
-            type: number
-          required: true
 
       responses:
         '200':

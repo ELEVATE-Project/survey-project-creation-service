@@ -70,11 +70,6 @@ let enviromentVariables = {
 		message: 'Required disable log level',
 		optional: false,
 	},
-	DEFAULT_ORGANISATION_CODE: {
-		message: 'Required default organisation code',
-		optional: false,
-		default: 'sl',
-	},
 	DEFAULT_ORG_ID: {
 		message: 'Default organization ID',
 		optional: false,
@@ -89,7 +84,7 @@ let enviromentVariables = {
 		optional: true,
 		default: common.AUTH_METHOD.JWT_ONLY,
 	},
-	REVIEWREQUIRED: {
+	REVIEW_REQUIRED: {
 		message: 'Required Review Required field',
 		optional: false,
 		default: true,
@@ -108,6 +103,14 @@ let enviromentVariables = {
 		message: 'Required Review Type field',
 		optional: false,
 		default: common.REVIEW_TYPE_SEQUENTIAL,
+	},
+	ORGANIZATION_READ_ENDPOINT: {
+		message: 'Required Organization read API end-point field',
+		optional: false,
+	},
+	USER_LIST_ENDPOINT: {
+		message: 'Required user list API end-point field',
+		optional: false,
 	},
 	CLOUD_STORAGE_PROVIDER: {
 		message: 'Require cloud storage provider',

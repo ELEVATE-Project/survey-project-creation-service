@@ -19,12 +19,12 @@ module.exports = {
 		JWT_ONLY: 'jwt_only',
 		USER_SERVICE: 'user_service_authenticated',
 	},
-	internalAccessUrls: [],
+	internalAccessUrls: [process.env.APPLICATION_BASE_URL + 'v1/cloud-services/file/fetchJsonFromCloud'],
 	SCP_SERVICE: 'scp',
 	WRITE_ACCESS: 'w',
 	READ_ACCESS: 'r',
-	REVIEW_TYPE_SEQUENTIAL: 'sequential',
-	REVIEW_TYPE_PARALLEL: 'parallel',
+	REVIEW_TYPE_SEQUENTIAL: 'SEQUENTIAL',
+	REVIEW_TYPE_PARALLEL: 'PARALLEL',
 	RESOURCES: 'resources',
 	INSTANCE_LEVEL_CONFIG_ATTRIBUTES: [
 		'review_required',
@@ -51,4 +51,9 @@ module.exports = {
 	CLOUD_SERVICE_EXPIRY_TIME: 30,
 	LINK_EXPIRY_TIME: 60,
 	CLOUD_SERVICE: ['azure', 'gcloud'],
+
+	STATUS_DRAFT: 'DRAFT',
+	STATUS_ACTIVE: 'ACTIVE',
+	CREATED_BY_SYSTEM: 0,
+	PROJECT: 'project',
 }

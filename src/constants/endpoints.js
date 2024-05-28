@@ -1,3 +1,6 @@
 module.exports = {
-	UPLOAD_FILE: 'scp/v1/cloud-sercices/file/upload',
+	USERS_LIST: process.env.USER_LIST_ENDPOINT ? process.env.USER_LIST_ENDPOINT : 'v1/account/search',
+	ORGANIZATION_READ: process.env.ORGANIZATION_READ_ENDPOINT
+		? process.env.ORGANIZATION_READ_ENDPOINT
+		: 'v1/organization/read',
 }

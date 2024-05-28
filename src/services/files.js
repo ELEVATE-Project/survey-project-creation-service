@@ -1,12 +1,10 @@
 /**
- * name : files.js
- * author : Aman Gupta
- * created-date : 03-Nov-2021
- * Description : files helper.
+ * Name: Ankit Shahu
+ * Date: 28-May-2024
+ * Description: file.js service
  */
 
 // Dependencies
-const cloudServices = require('@generics/cloud-services')
 const httpStatusCode = require('@generics/http-status')
 const common = require('@constants/common')
 const utils = require('@generics/utils')
@@ -49,7 +47,7 @@ module.exports = class FilesHelper {
 			if (!Array.isArray(fileNames) || fileNames.length < 1) {
 				throw new Error('File names not given.')
 			}
-			let linkExpireTime = common.LINK_EXPIRY_TIME * common.CLOUD_SERVICE_EXPIRY_TIME
+			let linkExpireTime = common.NO_OF_EXPIRY_TIME * common.NO_OF_MINUTES
 
 			const signedUrlsPromises = fileNames.map(async (fileName) => {
 				let file = folderPath && folderPath !== '' ? folderPath + fileName : fileName
@@ -84,7 +82,7 @@ module.exports = class FilesHelper {
 			return responses.successResponse({
 				message: 'SIGNED_URL_GENERATED_SUCCESSFULLY',
 				statusCode: httpStatusCode.ok,
-
+				responseCode: 'OK',
 				result: result,
 			})
 		} catch (error) {
@@ -100,7 +98,7 @@ module.exports = class FilesHelper {
 	 */
 	static async getDownloadableUrl(payloadData) {
 		try {
-			let linkExpireTime = common.LINK_EXPIRY_TIME * common.CLOUD_SERVICE_EXPIRY_TIME
+			let linkExpireTime = common.NO_OF_EXPIRY_TIME * common.NO_OF_MINUTES
 
 			if (Array.isArray(payloadData) && payloadData.length > 0) {
 				let result = []
@@ -119,12 +117,47 @@ module.exports = class FilesHelper {
 				return responses.successResponse({
 					message: 'DOWNLOAD_URL_GENERATED_SUCCESSFULLY',
 					statusCode: httpStatusCode.ok,
-
+					responseCode: 'OK',
 					result: result,
 				})
 			}
 		} catch (error) {
 			throw error
+		}
+	}
+	/**
+	 * Get Json data from URL
+	 * @method
+	 * @name fetchJsonFromCloud
+	 * @param {JSON} filePath  file path.
+	 * @returns {JSON} - Response contains json
+	 */
+
+	static async fetchJsonFromCloud(filePath) {
+		try {
+			let result = {}
+			let downloadableUrl = await cloudClient.getDownloadableUrl(bucketName, filePath)
+			if (downloadableUrl) {
+				const data = await fetch(downloadableUrl).then((res) => res.json())
+				if (data && Object.keys(data).length > 0) {
+					result = data
+				}
+
+				return responses.successResponse({
+					message: 'DOWNLOAD_URL_GENERATED_SUCCESSFULLY',
+					statusCode: httpStatusCode.ok,
+					responseCode: 'OK',
+					result: result,
+				})
+			} else {
+				return responses.failureResponse({
+					message: 'FAILED_TO_DOWNLOAD_FILE',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+		} catch (error) {
+			return error
 		}
 	}
 }
