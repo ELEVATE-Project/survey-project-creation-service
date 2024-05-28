@@ -36,19 +36,12 @@ module.exports = class FilesHelper {
 			}
 
 			let folderPath = ''
+			let referenceTypes = [common.CERTIFICATE, common.LOGO, common.SIGNATURE, common.BASETEMPLATE]
 
-			if (referenceType == common.CERTIFICATE) {
-				folderPath =
-					common.CERTIFICATE_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
-			} else if (referenceType == common.LOGO) {
-				folderPath = common.LOGO_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
-			} else if (referenceType == common.SIGNATURE) {
-				folderPath = common.SIGNATURE_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
-			} else if (referenceType == common.BASETEMPLATE) {
-				folderPath =
-					common.BASETEMPLATE_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
+			if (referenceTypes.includes(referenceType)) {
+				folderPath = referenceType + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
 			} else {
-				folderPath = common.PROJECT_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
+				folderPath = common.RESOURCE_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
 			}
 
 			let actionPermission = common.WRITE_ACCESS
@@ -56,7 +49,7 @@ module.exports = class FilesHelper {
 			if (!Array.isArray(fileNames) || fileNames.length < 1) {
 				throw new Error('File names not given.')
 			}
-			let linkExpireTime = common.NO_OF_EXPIRY_TIME * common.NO_OF_MINUTES
+			let linkExpireTime = common.LINK_EXPIRY_TIME * common.CLOUD_SERVICE_EXPIRY_TIME
 
 			const signedUrlsPromises = fileNames.map(async (fileName) => {
 				let file = folderPath && folderPath !== '' ? folderPath + fileName : fileName
@@ -91,7 +84,7 @@ module.exports = class FilesHelper {
 			return responses.successResponse({
 				message: 'SIGNED_URL_GENERATED_SUCCESSFULLY',
 				statusCode: httpStatusCode.ok,
-				responseCode: 'OK',
+
 				result: result,
 			})
 		} catch (error) {
@@ -107,7 +100,7 @@ module.exports = class FilesHelper {
 	 */
 	static async getDownloadableUrl(payloadData) {
 		try {
-			let linkExpireTime = common.NO_OF_EXPIRY_TIME * common.NO_OF_MINUTES
+			let linkExpireTime = common.LINK_EXPIRY_TIME * common.CLOUD_SERVICE_EXPIRY_TIME
 
 			if (Array.isArray(payloadData) && payloadData.length > 0) {
 				let result = []
@@ -126,7 +119,7 @@ module.exports = class FilesHelper {
 				return responses.successResponse({
 					message: 'DOWNLOAD_URL_GENERATED_SUCCESSFULLY',
 					statusCode: httpStatusCode.ok,
-					responseCode: 'OK',
+
 					result: result,
 				})
 			}
