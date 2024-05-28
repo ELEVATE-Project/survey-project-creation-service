@@ -3978,12 +3978,6 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
-          name: resource_id
-          description: Please append a valid resource Id to the Request URL.
-          schema:
-            type: number
-          required: true
 
       responses:
         '200':

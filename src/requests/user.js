@@ -87,19 +87,19 @@ const details = function (token = '', userId = '') {
  * User list.
  * @method
  * @name list
- * @param {Boolean} userType - mentor/mentee.
+ * @param {Boolean} userType - reviewer/content_creator.
  * @param {Number} page - page No.
  * @param {Number} limit - page limit.
  * @param {String} search - search field.
  * @returns {JSON} - List of users
  */
 
-const list = function (userType, pageNo, pageSize, searchText) {
+const list = function (userType, pageNo, pageSize, searchText, organization_id = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const apiUrl =
+			let apiUrl =
 				userBaseUrl +
-				endpoints.USERS_LIST +
+				endpoints.SEARCH_USERS +
 				'?type=' +
 				userType +
 				'&page=' +
@@ -108,6 +108,8 @@ const list = function (userType, pageNo, pageSize, searchText) {
 				pageSize +
 				'&search=' +
 				searchText
+			apiUrl = organization_id == null ? apiUrl : apiUrl + '&organization_id=' + organization_id
+
 			const userDetails = await requests.get(apiUrl, false, true)
 
 			return resolve(userDetails)

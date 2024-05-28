@@ -39,5 +39,6 @@
 	"PERMISSIONS_NOT_FOUND": "permissions not found",
 	"CONFIGS_FETCHED_SUCCESSFULLY": "Config fetched successfully",
 	"CONFIG_FETCH_FAILED": "Error in fetching Config",
-	"ENTITY_TYPE_NOT_FOUND": "Entity type not found"
+	"ENTITY_TYPE_NOT_FOUND": "Entity type not found",
+	"REVIEWER_LIST_FETCHED_SUCCESSFULLY": "Reviewers list fetched successfully"
 }
