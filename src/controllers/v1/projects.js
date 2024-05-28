@@ -8,9 +8,9 @@ module.exports = class projects {
 	 * @returns {JSON} - permissions creation object.
 	 */
 
-	async reviwerList(req) {
+	async reviewerList(req) {
 		try {
-			const reviwerList = await projectsService.reviwerList(
+			const reviwerList = await projectsService.reviewerList(
 				req.decodedToken.organization_id,
 				req.pageNo,
 				req.pageSize

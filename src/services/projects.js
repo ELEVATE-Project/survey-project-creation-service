@@ -8,11 +8,11 @@ module.exports = class projectsHelper {
 	/**
 	 * List reviewers based on Org Id
 	 * @method
-	 * @name reviwerList
+	 * @name reviewerList
 	 * @returns {JSON} - List of reviewers from the org
 	 */
 
-	static async reviwerList(organization_id, pageNo, limit) {
+	static async reviewerList(organization_id, pageNo, limit) {
 		try {
 			const reviewers = await userRequests.list(common.REVIEWER, pageNo, limit, '', organization_id)
 			if (reviewers.success) {
