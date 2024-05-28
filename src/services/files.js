@@ -34,10 +34,16 @@ module.exports = class FilesHelper {
 			}
 
 			let folderPath = ''
-			let referenceTypes = [common.CERTIFICATE, common.LOGO, common.SIGNATURE, common.BASETEMPLATE]
-
-			if (referenceTypes.includes(referenceType)) {
-				folderPath = referenceType + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
+			// let referenceTypes = [common.CERTIFICATE, common.LOGO, common.SIGNATURE, common.BASETEMPLATE]
+			let referenceTypes = {
+				[common.CERTIFICATE]: common.CERTIFICATE_PATH,
+				[common.LOGO]: common.LOGO_PATH,
+				[common.SIGNATURE]: common.SIGNATURE_PATH,
+				[common.BASETEMPLATE]: common.BASETEMPLATE_PATH,
+			}
+			if (referenceTypes.hasOwnProperty(referenceType)) {
+				folderPath =
+					referenceTypes[referenceType] + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
 			} else {
 				folderPath = common.RESOURCE_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
 			}
