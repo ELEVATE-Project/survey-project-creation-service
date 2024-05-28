@@ -29,4 +29,23 @@ module.exports = class Projects {
 			return error
 		}
 	}
+	/**
+	 * List reviewers based on Org Id
+	 * @method
+	 * @name reviwerList
+	 * @returns {JSON} - permissions creation object.
+	 */
+
+	async reviewerList(req) {
+		try {
+			const reviwerList = await projectService.reviewerList(
+				req.decodedToken.organization_id,
+				req.pageNo,
+				req.pageSize
+			)
+			return reviwerList
+		} catch (error) {
+			return error
+		}
+	}
 }
