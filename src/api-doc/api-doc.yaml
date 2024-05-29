@@ -2854,7 +2854,7 @@ paths:
                         type: observation
                   certificate:
                     base_template_id: 5
-                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                     code: two-logo-two-sign
                     name: Two Logo Two Signature
                     logos:
@@ -3251,7 +3251,7 @@ paths:
                         type: observation
                   certificate:
                     base_template_id: 5
-                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                     code: two-logo-two-sign
                     name: Two Logo Two Signature
                     logos:
@@ -3886,7 +3886,7 @@ paths:
                             type: observation
                       certificate:
                         base_template_id: 5
-                        base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                        base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                         code: two-logo-two-sign
                         name: Two Logo Two Signature
                         logos:
@@ -4768,7 +4768,7 @@ paths:
                   code: two-logo-two-sign
                   name: Two Logo Two Signature
                   resource_type: project
-                  url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                  url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                   meta:
                     logos:
                       no_of_logos: 2
@@ -4828,7 +4828,7 @@ paths:
                       code: one-logo-one-sign
                       name: One Logo One Signature
                       resource_type: project
-                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
                         logos:
                           no_of_logos: 2
@@ -4941,7 +4941,7 @@ paths:
                       code: two-logo-two-sign
                       name: Two Logo Two Signature
                       resource_type: project
-                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
                         logos:
                           no_of_logos: 2
@@ -5055,7 +5055,7 @@ paths:
                     responseCode: OK
                     message: Template edited successfully
                     result:
-                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
 
                     meta:
                       formsVersion:
@@ -5156,7 +5156,7 @@ paths:
                           code: two-logo-two-sign
                           name: Two Logo Two Signature
                           resource_type: project
-                          url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                          url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                           meta:
                             logos:
                               no_of_logos: 2

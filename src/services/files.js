@@ -34,13 +34,16 @@ module.exports = class FilesHelper {
 			}
 
 			let folderPath = ''
-			// let referenceTypes = [common.CERTIFICATE, common.LOGO, common.SIGNATURE, common.BASETEMPLATE]
+
+			// let referenceTypes = [common.CERTIFICATE, common.LOGO, common.SIGNATURE, common.BASE_TEMPLATE]
+
 			let referenceTypes = {
 				[common.CERTIFICATE]: common.CERTIFICATE_PATH,
 				[common.LOGO]: common.LOGO_PATH,
 				[common.SIGNATURE]: common.SIGNATURE_PATH,
-				[common.BASETEMPLATE]: common.BASETEMPLATE_PATH,
+				[common.BASE_TEMPLATE]: common.BASE_TEMPLATE_PATH,
 			}
+
 			if (referenceTypes.hasOwnProperty(referenceType)) {
 				folderPath =
 					referenceTypes[referenceType] + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
@@ -95,6 +98,7 @@ module.exports = class FilesHelper {
 			throw error
 		}
 	}
+
 	/**
 	 * Get downloadable Url
 	 * @method
