@@ -1,3 +1,4 @@
+const _ = require('lodash')
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
 const certificateQueries = require('@database/queries/certificateBaseTemplate')
@@ -32,17 +33,22 @@ module.exports = class configsHelper {
 				filter.resource_type = resource_type
 			}
 
+			if (search) {
+				filter.name = { [Op.iLike]: `%${search}%` }
+			}
+
 			const certificate = await certificateQueries.findAll(filter)
 			const prunedCertificates = utils.removeDefaultOrgCertificates(certificate, orgId)
 
 			//get the downloadable url of certificates
 			if (prunedCertificates.length > 0) {
-				let sourcePaths = _.map(prunedCertificates, common.URL)
+				let sourcePaths = _.map(prunedCertificates, (item) => item.url)
 				let certificatesUrl = await filesService.getDownloadableUrl({
 					filePaths: sourcePaths,
 				})
 
 				if (
+					certificatesUrl &&
 					certificatesUrl.statusCode === httpStatusCode.ok &&
 					certificatesUrl.result &&
 					certificatesUrl.result.length > 0
@@ -67,7 +73,6 @@ module.exports = class configsHelper {
 				result,
 			})
 		} catch (error) {
-			console.log(error, 'error')
 			// return error message
 			return responses.failureResponse({
 				statusCode: httpStatusCode.internal_server_error,

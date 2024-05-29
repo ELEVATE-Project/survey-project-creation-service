@@ -12,4 +12,12 @@ module.exports = class certificateData {
 			throw error
 		}
 	}
+
+	static async create(data) {
+		try {
+			return await CertificateBaseTemplate.create(data, { returning: true })
+		} catch (error) {
+			throw error
+		}
+	}
 }
