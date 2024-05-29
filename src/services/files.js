@@ -56,7 +56,7 @@ module.exports = class FilesHelper {
 			if (!Array.isArray(fileNames) || fileNames.length < 1) {
 				throw new Error('File names not given.')
 			}
-			let linkExpireTime = common.NO_OF_EXPIRY_TIME * common.NO_OF_MINUTES
+			let linkExpireTime = common.CLOUD_SERVICE_EXPIRY_TIME * common.LINK_EXPIRY_TIME
 
 			const signedUrlsPromises = fileNames.map(async (fileName) => {
 				let file = folderPath && folderPath !== '' ? folderPath + fileName : fileName
@@ -108,7 +108,7 @@ module.exports = class FilesHelper {
 	 */
 	static async getDownloadableUrl(payloadData) {
 		try {
-			let linkExpireTime = common.NO_OF_EXPIRY_TIME * common.NO_OF_MINUTES
+			let linkExpireTime = common.CLOUD_SERVICE_EXPIRY_TIME * common.LINK_EXPIRY_TIME
 
 			if (Array.isArray(payloadData) && payloadData.length > 0) {
 				let result = []
