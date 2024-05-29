@@ -8,6 +8,68 @@ const _ = require('lodash')
 
 module.exports = class ProjectsHelper {
 	/**
+	 *  project create
+	 * @method
+	 * @name create
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - project id
+	 */
+	static async create(orgId, loggedInUserId) {
+		try {
+			let projectData = {
+				type: common.PROJECT,
+				status: common.STATUS_DRAFT,
+				user_id: loggedInUserId,
+				organization_id: orgId,
+				meta: {},
+				created_by: loggedInUserId,
+				updated_by: loggedInUserId,
+			}
+			let projectCreate = await resourceQueries.create(projectData)
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'PROJECT_CREATED_SUCCESSFULLY',
+				result: { id: projectCreate.id },
+			})
+		} catch (error) {
+			console.log(error, 'error')
+			throw error
+		}
+	}
+	/**
+	 * project update
+	 * @method
+	 * @name update
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - project update response.
+	 */
+
+	static async update(resourceId, orgId, loggedInUserId, bodyData) {
+		try {
+			let filter = {
+				id: resourceId,
+				organization_id: orgId,
+			}
+			let updateData = { meta: bodyData, updated_by: loggedInUserId }
+			let updatedProject = await resourceQueries.updateOne(filter, updateData)
+			if (updateCount === 0) {
+				return responses.failureResponse({
+					message: 'PROJECT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'PROJECT_UPDATED_SUCCESSFUL',
+				result: updatedProject,
+			})
+		} catch (error) {
+			console.log(error, 'error')
+			throw error
+		}
+	}
+	/**
 	 * Project details
 	 * @method
 	 * @name details
