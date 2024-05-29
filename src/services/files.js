@@ -1,8 +1,7 @@
 /**
- * name : files.js
- * author : Aman Gupta
- * created-date : 03-Nov-2021
- * Description : files helper.
+ * Name: Ankit Shahu
+ * Date: 28-May-2024
+ * Description: file.js service
  */
 
 // Dependencies
@@ -35,7 +34,9 @@ module.exports = class FilesHelper {
 			}
 
 			let folderPath = ''
+
 			// let referenceTypes = [common.CERTIFICATE, common.LOGO, common.SIGNATURE, common.BASE_TEMPLATE]
+
 			let referenceTypes = {
 				[common.CERTIFICATE]: common.CERTIFICATE_PATH,
 				[common.LOGO]: common.LOGO_PATH,
