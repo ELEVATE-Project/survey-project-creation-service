@@ -50,9 +50,9 @@ module.exports = class ProjectsHelper {
 				id: resourceId,
 				organization_id: orgId,
 			}
-			let updateData = { meta: bodyData, updated_by: loggedInUserId }
+			let updateData = { meta: { title: bodyData.title }, updated_by: loggedInUserId }
 			let updatedProject = await resourceQueries.updateOne(filter, updateData)
-			if (updateCount === 0) {
+			if (updatedProject === 0) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
