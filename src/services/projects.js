@@ -94,6 +94,7 @@ module.exports = class ProjectsHelper {
 
 			let projectUploadStatus = await axios.request(config)
 			if (projectUploadStatus.status == 200 || projectUploadStatus.status == 201) {
+				await fs.promises.unlink(`${ROOT_PATH}/public/assets/${formattedDate}/${fileName}`)
 				let filter = {
 					id: resourceId,
 					organization_id: orgId,
