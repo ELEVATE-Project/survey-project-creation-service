@@ -5,12 +5,7 @@ const common = require('@constants/common')
 const filesService = require('@services/files')
 const userRequests = require('@requests/user')
 const _ = require('lodash')
-const fs = require('fs')
 const axios = require('axios')
-const FormData = require('form-data')
-const moment = require('moment-timezone')
-const path = require('path')
-const ROOT_PATH = path.join(__dirname, '..')
 
 module.exports = class ProjectsHelper {
 	/**
