@@ -43,9 +43,7 @@ module.exports = class configsHelper {
 			//get the downloadable url of certificates
 			if (prunedCertificates.length > 0) {
 				let sourcePaths = _.map(prunedCertificates, (item) => item.url)
-				let certificatesUrl = await filesService.getDownloadableUrl({
-					filePaths: sourcePaths,
-				})
+				let certificatesUrl = await filesService.getDownloadableUrl(sourcePaths)
 
 				if (
 					certificatesUrl &&
