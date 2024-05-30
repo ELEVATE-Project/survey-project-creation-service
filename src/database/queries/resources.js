@@ -3,7 +3,7 @@ const Resource = require('../models/index').Resource
 
 exports.create = async (data) => {
 	try {
-		return await Resource.create(data)
+		return await Resource.create(data, { returning: true })
 	} catch (error) {
 		return error
 	}
@@ -23,11 +23,15 @@ exports.findOne = async (filter, options = {}) => {
 
 exports.updateOne = async (filter, update, options = {}) => {
 	try {
-		const [res] = await Resource.update(update, {
-			where: filter,
-			...options,
-			individualHooks: true,
-		})
+		const [res] = await Resource.update(
+			update,
+			{
+				where: filter,
+				...options,
+				individualHooks: true,
+			},
+			{ returning: true }
+		)
 
 		return res
 	} catch (error) {
