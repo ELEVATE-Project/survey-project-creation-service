@@ -65,36 +65,28 @@ module.exports = class ProjectsHelper {
 			projectData.categories = categories
 			projectData.languages = languages
 			projectData.recommeneded_for = recommeneded_for
-			let currentDate = moment(new Date())
-			let formattedDate = currentDate.format('DD-MM-YYYY')
-			if (!fs.existsSync(`${ROOT_PATH}/public/assets/${formattedDate}`)) {
-				fs.mkdirSync(`${ROOT_PATH}/public/assets/${formattedDate}`)
-			}
-			let localPath = `${ROOT_PATH}/public/assets/${formattedDate}/`
+
 			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
-			await fs.promises.writeFile(localPath + fileName, JSON.stringify(projectData))
+
 			let getSignedUrl = await filesService.getSignedUrl(
-				{ [resourceId]: { files: [loggedInUserId + resourceId + orgId + 'project.json'] } },
+				{ [resourceId]: { files: [fileName + 'project.json'] } },
 				common.PROJECT,
 				loggedInUserId
 			)
-			let data = new FormData()
-			data.append('file', fs.createReadStream(`${ROOT_PATH}/public/assets/${formattedDate}/${fileName}`))
-			const fileStats = fs.statSync(`${ROOT_PATH}/public/assets/${formattedDate}/${fileName}`)
+
 			let config = {
 				method: 'put',
 				maxBodyLength: Infinity,
 				url: getSignedUrl.result[resourceId].files[0].url,
 				headers: {
-					...data.getHeaders(),
-					'Content-Length': fileStats.size,
+					// ...data.getHeaders(),
+					'Content-Type': 'multipart/form-data',
 				},
-				data: data,
+				data: JSON.stringify(projectData),
 			}
 
 			let projectUploadStatus = await axios.request(config)
 			if (projectUploadStatus.status == 200 || projectUploadStatus.status == 201) {
-				await fs.promises.unlink(`${ROOT_PATH}/public/assets/${formattedDate}/${fileName}`)
 				let filter = {
 					id: resourceId,
 					organization_id: orgId,
