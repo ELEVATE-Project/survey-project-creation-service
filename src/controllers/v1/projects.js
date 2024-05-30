@@ -20,16 +20,16 @@ module.exports = class Projects {
 	async update(req) {
 		try {
 			console.log(req.params)
-			if (!req.params.hasOwnProperty('id')) {
-				const project = await projectService.create(req.decodedToken.organization_id, req.decodedToken.id)
-				return project
-			} else {
+			if (req.params.id) {
 				const project = await projectService.update(
 					req.params.id,
 					req.decodedToken.organization_id,
 					req.decodedToken.id,
 					req.body
 				)
+				return project
+			} else {
+				const project = await projectService.create(req.decodedToken.organization_id, req.decodedToken.id)
 				return project
 			}
 		} catch (error) {

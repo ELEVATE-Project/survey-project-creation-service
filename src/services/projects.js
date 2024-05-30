@@ -5,6 +5,12 @@ const common = require('@constants/common')
 const filesService = require('@services/files')
 const userRequests = require('@requests/user')
 const _ = require('lodash')
+const fs = require('fs')
+const axios = require('axios')
+const FormData = require('form-data')
+const moment = require('moment-timezone')
+const path = require('path')
+const ROOT_PATH = path.join(__dirname, '..')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -46,24 +52,71 @@ module.exports = class ProjectsHelper {
 
 	static async update(resourceId, orgId, loggedInUserId, bodyData) {
 		try {
-			let filter = {
-				id: resourceId,
-				organization_id: orgId,
+			let { categories, recommeneded_for, languages, ...projectData } = bodyData
+			categories = categories.map((key) => {
+				return { label: key, value: key }
+			})
+			recommeneded_for = recommeneded_for.map((key) => {
+				return { label: key, value: key }
+			})
+			languages = languages.map((key) => {
+				return { label: key, value: key }
+			})
+			projectData.categories = categories
+			projectData.languages = languages
+			projectData.recommeneded_for = recommeneded_for
+			let currentDate = moment(new Date())
+			let formattedDate = currentDate.format('DD-MM-YYYY')
+			if (!fs.existsSync(`${ROOT_PATH}/public/assets/${formattedDate}`)) {
+				fs.mkdirSync(`${ROOT_PATH}/public/assets/${formattedDate}`)
 			}
-			let updateData = { meta: { title: bodyData.title }, updated_by: loggedInUserId }
-			let updatedProject = await resourceQueries.updateOne(filter, updateData)
-			if (updatedProject === 0) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
+			let localPath = `${ROOT_PATH}/public/assets/${formattedDate}/`
+			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
+			await fs.promises.writeFile(localPath + fileName, JSON.stringify(projectData))
+			let getSignedUrl = await filesService.getSignedUrl(
+				{ [resourceId]: { files: [loggedInUserId + resourceId + orgId + 'project.json'] } },
+				common.PROJECT,
+				loggedInUserId
+			)
+			let data = new FormData()
+			data.append('file', fs.createReadStream(`${ROOT_PATH}/public/assets/${formattedDate}/${fileName}`))
+			const fileStats = fs.statSync(`${ROOT_PATH}/public/assets/${formattedDate}/${fileName}`)
+			let config = {
+				method: 'put',
+				maxBodyLength: Infinity,
+				url: getSignedUrl.result[resourceId].files[0].url,
+				headers: {
+					...data.getHeaders(),
+					'Content-Length': fileStats.size,
+				},
+				data: data,
+			}
+
+			let projectUploadStatus = await axios.request(config)
+			if (projectUploadStatus.status == 200 || projectUploadStatus.status == 201) {
+				let filter = {
+					id: resourceId,
+					organization_id: orgId,
+				}
+				let updateData = {
+					meta: { title: bodyData.title },
+					updated_by: loggedInUserId,
+					blob_path: getSignedUrl.result[resourceId].files[0].file,
+				}
+				let updatedProject = await resourceQueries.updateOne(filter, updateData)
+				if (updatedProject === 0) {
+					return responses.failureResponse({
+						message: 'PROJECT_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+				return responses.successResponse({
+					statusCode: httpStatusCode.accepted,
+					message: 'PROJECT_UPDATED_SUCCESSFUL',
+					result: updatedProject,
 				})
 			}
-			return responses.successResponse({
-				statusCode: httpStatusCode.accepted,
-				message: 'PROJECT_UPDATED_SUCCESSFUL',
-				result: updatedProject,
-			})
 		} catch (error) {
 			console.log(error, 'error')
 			throw error
