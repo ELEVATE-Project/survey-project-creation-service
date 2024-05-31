@@ -48,5 +48,7 @@
 	"FAILED_TO_DOWNLOAD_FILE": "Failed to download the file",
 	"PROJECT_NOT_VISIBLE": "Project is being edited, only the creator can view it.",
 	"PROJECT_CREATED_SUCCESSFULLY": "Project created successfully",
-	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully"
+	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully",
+	"RESOURCE_LISTED_SUCCESSFULLY": "Resource Listed successfully",
+	"INVALID_FILTER": "Invalid Filter Value."
 }
