@@ -208,4 +208,14 @@ module.exports = class ProjectsHelper {
 			throw error
 		}
 	}
+
+	static async submitForReview(userDetails, resourceId, bodyData) {
+		try {
+			let projectDetails = await this.details(resourceId, userDetails.organization_id, userDetails.id)
+			console.log(projectDetails)
+		} catch (error) {
+			logger.error(error)
+			return error
+		}
+	}
 }
