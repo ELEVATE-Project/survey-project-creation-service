@@ -1,8 +1,8 @@
 # Script Excution
 
--   Navigate to the script folder using the following command
+-   Navigate to the scripts folder using the following command
     ```bash
-    cd src/script
+    cd src/scripts
     ```
 -   Run **uploadCertificateBaseTemplate.js** only once while setup the project
     ```bash
