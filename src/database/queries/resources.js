@@ -39,12 +39,14 @@ exports.updateOne = async (filter, update, options = {}) => {
 	}
 }
 
-exports.findAll = async (filter, attributes = {}, sort) => {
+exports.findAll = async (filter, attributes = {}, sort, page, limit) => {
 	try {
 		const res = await Resource.findAll({
 			where: filter,
 			attributes,
 			order: [[sort.sort_by, sort.order]],
+			offset: limit * (page - 1),
+			limit: limit,
 			raw: true,
 		})
 

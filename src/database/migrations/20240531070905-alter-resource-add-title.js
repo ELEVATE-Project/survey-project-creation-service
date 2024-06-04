@@ -8,6 +8,7 @@ module.exports = {
 			type: Sequelize.STRING,
 			allowNull: true,
 		})
+		await queryInterface.addIndex('resources', ['title'])
 	},
 
 	async down(queryInterface, Sequelize) {

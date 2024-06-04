@@ -56,5 +56,14 @@ module.exports = {
 	CREATED_BY_SYSTEM: 0,
 	PROJECT: 'project',
 	FILTER_ALL: 'ALL',
-	STATUS_ENUM: ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED'],
+	SORT_DESC: 'DESC',
+	SORT_ASC: 'ASC',
+	CREATED_AT: 'created_at',
+	QUERY_PARAMS: {
+		FILTER: 'filter',
+		TYPE: 'type',
+		STATUS: 'status',
+		SORT_BY: 'sort_by',
+		SORT_ORDER: 'sort_order',
+	},
 }

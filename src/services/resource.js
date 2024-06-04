@@ -1,3 +1,10 @@
+/**
+ * name : validators/v1/resource.js
+ * author : Adithya Dinesh
+ * Date : 04-June-2024
+ * Description : Resource Service
+ */
+
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
 const responses = require('@helpers/responses')
@@ -13,54 +20,55 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of resources
 	 */
 
-	static async list(user_id, queryParams, pageNo, limit) {
+	static async list(user_id, queryParams, page, limit) {
 		try {
 			let result = {
 				data: [],
 				count: 0,
 			}
 			let sort = {
-				sort_by: 'created_at',
-				order: 'DESC',
+				sort_by: common.CREATED_AT,
+				order: common.SORT_DESC,
 			}
 			let filter = {}
-			if ('filter' in queryParams && queryParams.filter.toLowerCase() === common.FILTER_ALL.toLowerCase()) {
+			if (
+				common.QUERY_PARAMS.FILTER in queryParams &&
+				queryParams.filter.toLowerCase() === common.FILTER_ALL.toLowerCase()
+			) {
 				filter = {
 					user_id,
 				}
 			} else {
-				if ('type' in queryParams && queryParams.type.length > 0) {
+				if (common.QUERY_PARAMS.TYPE in queryParams) {
 					filter.user_id = user_id
 					filter.type = queryParams.type
 				}
 
-				if ('status' in queryParams && queryParams.status.length > 0) {
+				if (common.QUERY_PARAMS.STATUS in queryParams && queryParams.status.length > 0) {
 					filter.user_id = user_id
-					filter.status = common.STATUS_ENUM[common.STATUS_ENUM.indexOf(queryParams.status.toUpperCase())]
+					filter.status = queryParams.status.toUpperCase()
 				}
 			}
 
 			if (
-				'sort_by' in queryParams &&
-				'sort_order' in queryParams &&
+				common.QUERY_PARAMS.SORT_BY in queryParams &&
+				common.QUERY_PARAMS.SORT_ORDER in queryParams &&
 				queryParams.sort_by.length > 0 &&
 				queryParams.sort_order.length > 0
 			) {
 				sort.sort_by = queryParams.sort_by
-				sort.order = queryParams.sort_order.toLowerCase() == 'desc' ? 'DESC' : 'ASC'
+				sort.order =
+					queryParams.sort_order.toUpperCase() == common.SORT_DESC.toUpperCase()
+						? common.SORT_DESC
+						: common.SORT_ASC
 			}
 
-			if (Object.keys(filter).length === 0) {
-				return responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: 'INVALID_FILTER',
-					result,
-				})
-			}
 			const resources = await resourceQueries.findAll(
 				filter,
 				['id', 'title', 'type', 'organization_id', 'status'],
-				sort
+				sort,
+				page,
+				limit
 			)
 
 			if (resources.length <= 0) {
@@ -74,11 +82,10 @@ module.exports = class resourceHelper {
 			const uniqueOrganizationIds = [...new Set(resources.map((item) => item.organization_id))]
 			const orgDetailsResponse = await userRequests.listOrganization(uniqueOrganizationIds)
 			let orgDetails = {}
-			if (orgDetailsResponse.success) {
-				orgDetails = orgDetailsResponse.data.result.reduce((acc, org) => {
-					acc[org.id] = org
-					return acc
-				}, {})
+			if (orgDetailsResponse.success && orgDetailsResponse.data?.result?.length > 0) {
+				orgDetailsResponse.data.result.forEach((org) => {
+					orgDetails[org.id] = org
+				})
 			}
 
 			result.data = resources.map((res) => {

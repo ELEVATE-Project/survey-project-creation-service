@@ -66,6 +66,12 @@ module.exports = (sequelize, DataTypes) => {
 			tableName: 'resources',
 			freezeTableName: true,
 			paranoid: false,
+			indexes: [
+				{
+					name: 'title_index',
+					fields: ['title'],
+				},
+			],
 		}
 	)
 
