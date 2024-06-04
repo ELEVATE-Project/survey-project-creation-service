@@ -20,6 +20,15 @@
 	"UPDATE_FORM_VERSION": "Update form version.",
 	"FORM_VERSION_FETCHED_SUCCESSFULLY": "Form versions fetched successfully",
 	"ACCESS_TOKEN_EXPIRED": "Session expired. Please login again.",
+	"MODULES_CREATED_SUCCESSFULLY": "Module created successfully",
+	"MODULES_NOT_FOUND": "Module does not exists",
+	"MODULES_ALREADY_EXISTS": "Module already exist",
+	"MODULES_NOT_UPDATED": "Module is not updated",
+	"MODULES_UPDATED_SUCCESSFULLY": "Module updated successfully",
+	"MODULES_ALREADY_DELETED_OR_MODULE_NOT_PRESENT": "Module already deleted or not exist",
+	"MODULES_NOT_DELETED": "Module is not deleted",
+	"MODULES_DELETED_SUCCESSFULLY": "Module deleted successfully",
+	"MODULES_FETCHED_SUCCESSFULLY": "Module fetched successfully",
 	"PERMISSION_CREATED_SUCCESSFULLY": "Permission created successfully",
 	"PERMISSION_ALREADY_EXISTS": "code and api_path should be unique",
 	"PERMISSION_NOT_FOUND": "Permissions does not exists",
@@ -47,6 +56,9 @@
 	"PROJECT_FETCHED_SUCCESSFULLY": "Project fetched successfully",
 	"FAILED_TO_DOWNLOAD_FILE": "Failed to download the file",
 	"PROJECT_NOT_VISIBLE": "Project is being edited, only the creator can view it.",
+	"CERTIFICATE_FETCHED_SUCCESSFULLY": "Certificate template listed successfully",
+	"JSON_FETCHED_SUCCESSFULLY": "Data retrieved Successfully.",
+	"CERTIFICATE_FETCH_FAILED": "Error in fetching Certificate"
 	"PROJECT_CREATED_SUCCESSFULLY": "Project created successfully",
 	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully"
 }

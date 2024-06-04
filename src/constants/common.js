@@ -55,4 +55,6 @@ module.exports = {
 	STATUS_ACTIVE: 'ACTIVE',
 	CREATED_BY_SYSTEM: 0,
 	PROJECT: 'project',
+	URL: 'url',
+	FILE_PATH: 'filePath',
 }
