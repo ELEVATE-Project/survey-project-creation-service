@@ -1,4 +1,3 @@
-const common = require('@constants/common')
 const permissionsService = require('@services/permissions')
 
 module.exports = class permissions {
@@ -24,7 +23,7 @@ module.exports = class permissions {
 	 * @method
 	 * @name update
 	 * @param {Object} req - request data.
-	 * @returns {JSON} - permissions updation response.
+	 * @returns {JSON} - permissions update response.
 	 */
 
 	async update(req) {

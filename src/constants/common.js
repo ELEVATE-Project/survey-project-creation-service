@@ -66,4 +66,6 @@ module.exports = {
 		SORT_BY: 'sort_by',
 		SORT_ORDER: 'sort_order',
 	},
+	URL: 'url',
+	FILE_PATH: 'filePath',
 }
