@@ -2,7 +2,7 @@
 const httpStatusCode = require('@generics/http-status')
 const common = require('@constants/common')
 const permissionsQueries = require('@database/queries/permissions')
-const { UniqueConstraintError, ForeignKeyConstraintError } = require('sequelize')
+const { UniqueConstraintError } = require('sequelize')
 const { Op } = require('sequelize')
 const responses = require('@helpers/responses')
 const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')

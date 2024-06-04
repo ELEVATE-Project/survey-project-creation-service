@@ -50,4 +50,6 @@
 	"CERTIFICATE_FETCHED_SUCCESSFULLY": "Certificate template listed successfully",
 	"JSON_FETCHED_SUCCESSFULLY": "Data retrieved Successfully.",
 	"CERTIFICATE_FETCH_FAILED": "Error in fetching Certificate"
+	"PROJECT_CREATED_SUCCESSFULLY": "Project created successfully",
+	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully"
 }

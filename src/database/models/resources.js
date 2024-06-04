@@ -18,6 +18,7 @@ module.exports = (sequelize, DataTypes) => {
 				defaultValue: 'DRAFT',
 			},
 			blob_path: {
+				allowNull: true,
 				type: DataTypes.STRING,
 			},
 			user_id: {

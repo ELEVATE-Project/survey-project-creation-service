@@ -10,6 +10,33 @@ const projectService = require('@services/projects')
 
 module.exports = class Projects {
 	/**
+	 * create or update project details
+	 * @method
+	 * @name update
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - project details
+	 */
+
+	async update(req) {
+		try {
+			console.log(req.params)
+			if (req.params.id) {
+				const project = await projectService.update(
+					req.params.id,
+					req.decodedToken.organization_id,
+					req.decodedToken.id,
+					req.body
+				)
+				return project
+			} else {
+				const project = await projectService.create(req.decodedToken.organization_id, req.decodedToken.id)
+				return project
+			}
+		} catch (error) {
+			return error
+		}
+	}
+	/**
 	 * get project details
 	 * @method
 	 * @name details

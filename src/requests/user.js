@@ -105,7 +105,7 @@ const list = function (userType, pageNo, pageSize, searchText, organization_id =
 				searchText
 			apiUrl = organization_id == null ? apiUrl : apiUrl + '&organization_id=' + organization_id
 
-			const userDetails = await requests.get(apiUrl, false, true)
+			const userDetails = await requests.post(apiUrl, {}, '', true)
 
 			return resolve(userDetails)
 		} catch (error) {

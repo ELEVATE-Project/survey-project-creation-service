@@ -5,8 +5,111 @@ const common = require('@constants/common')
 const filesService = require('@services/files')
 const userRequests = require('@requests/user')
 const _ = require('lodash')
+const axios = require('axios')
 
 module.exports = class ProjectsHelper {
+	/**
+	 *  project create
+	 * @method
+	 * @name create
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - project id
+	 */
+	static async create(orgId, loggedInUserId) {
+		try {
+			let projectData = {
+				type: common.PROJECT,
+				status: common.STATUS_DRAFT,
+				user_id: loggedInUserId,
+				organization_id: orgId,
+				meta: {},
+				created_by: loggedInUserId,
+				updated_by: loggedInUserId,
+			}
+			let projectCreate = await resourceQueries.create(projectData)
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'PROJECT_CREATED_SUCCESSFULLY',
+				result: { id: projectCreate.id },
+			})
+		} catch (error) {
+			console.log(error, 'error')
+			throw error
+		}
+	}
+	/**
+	 * project update
+	 * @method
+	 * @name update
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - project update response.
+	 */
+
+	static async update(resourceId, orgId, loggedInUserId, bodyData) {
+		try {
+			let { categories, recommeneded_for, languages, ...projectData } = bodyData
+			categories = categories.map((key) => {
+				return { label: key, value: key }
+			})
+			recommeneded_for = recommeneded_for.map((key) => {
+				return { label: key, value: key }
+			})
+			languages = languages.map((key) => {
+				return { label: key, value: key }
+			})
+			projectData.categories = categories
+			projectData.languages = languages
+			projectData.recommeneded_for = recommeneded_for
+
+			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
+
+			let getSignedUrl = await filesService.getSignedUrl(
+				{ [resourceId]: { files: [fileName + 'project.json'] } },
+				common.PROJECT,
+				loggedInUserId
+			)
+
+			let config = {
+				method: 'put',
+				maxBodyLength: Infinity,
+				url: getSignedUrl.result[resourceId].files[0].url,
+				headers: {
+					// ...data.getHeaders(),
+					'Content-Type': 'multipart/form-data',
+				},
+				data: JSON.stringify(projectData),
+			}
+
+			let projectUploadStatus = await axios.request(config)
+			if (projectUploadStatus.status == 200 || projectUploadStatus.status == 201) {
+				let filter = {
+					id: resourceId,
+					organization_id: orgId,
+				}
+				let updateData = {
+					meta: { title: bodyData.title },
+					updated_by: loggedInUserId,
+					blob_path: getSignedUrl.result[resourceId].files[0].file,
+				}
+				let updatedProject = await resourceQueries.updateOne(filter, updateData)
+				if (updatedProject === 0) {
+					return responses.failureResponse({
+						message: 'PROJECT_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+				return responses.successResponse({
+					statusCode: httpStatusCode.accepted,
+					message: 'PROJECT_UPDATED_SUCCESSFUL',
+					result: updatedProject,
+				})
+			}
+		} catch (error) {
+			console.log(error, 'error')
+			throw error
+		}
+	}
 	/**
 	 * Project details
 	 * @method
