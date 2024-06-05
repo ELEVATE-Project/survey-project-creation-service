@@ -20,7 +20,7 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of resources
 	 */
 
-	static async list(user_id, queryParams, page, limit) {
+	static async list(user_id, organization_id, queryParams, page, limit) {
 		try {
 			let result = {
 				data: [],
@@ -36,16 +36,15 @@ module.exports = class resourceHelper {
 				queryParams.filter.toLowerCase() === common.FILTER_ALL.toLowerCase()
 			) {
 				filter = {
-					user_id,
+					organization_id,
 				}
 			} else {
+				filter.user_id = user_id
 				if (common.QUERY_PARAMS.TYPE in queryParams) {
-					filter.user_id = user_id
 					filter.type = queryParams.type
 				}
 
 				if (common.QUERY_PARAMS.STATUS in queryParams && queryParams.status.length > 0) {
-					filter.user_id = user_id
 					filter.status = queryParams.status.toUpperCase()
 				}
 			}
@@ -63,7 +62,7 @@ module.exports = class resourceHelper {
 						: common.SORT_ASC
 			}
 
-			const resources = await resourceQueries.findAll(
+			const resources = await resourceQueries.resourceList(
 				filter,
 				['id', 'title', 'type', 'organization_id', 'status'],
 				sort,
@@ -83,9 +82,7 @@ module.exports = class resourceHelper {
 			const orgDetailsResponse = await userRequests.listOrganization(uniqueOrganizationIds)
 			let orgDetails = {}
 			if (orgDetailsResponse.success && orgDetailsResponse.data?.result?.length > 0) {
-				orgDetailsResponse.data.result.forEach((org) => {
-					orgDetails[org.id] = org
-				})
+				orgDetails = _.keyBy(orgDetailsResponse.data.result, 'id')
 			}
 
 			result.data = resources.map((res) => {

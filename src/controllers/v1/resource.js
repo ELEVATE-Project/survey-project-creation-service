@@ -19,7 +19,13 @@ module.exports = class Resource {
 
 	async list(req) {
 		try {
-			const project = await resourceService.list(req.decodedToken.id, req.query, req.pageNo, req.pageSize)
+			const project = await resourceService.list(
+				req.decodedToken.id,
+				req.decodedToken.organization_id,
+				req.query,
+				req.pageNo,
+				req.pageSize
+			)
 			return project
 		} catch (error) {
 			return error

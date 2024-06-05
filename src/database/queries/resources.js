@@ -39,7 +39,20 @@ exports.updateOne = async (filter, update, options = {}) => {
 	}
 }
 
-exports.findAll = async (filter, attributes = {}, sort, page, limit) => {
+exports.findAll = async (filter, attributes = {}) => {
+	try {
+		const res = await Resource.findAll({
+			where: filter,
+			attributes,
+			raw: true,
+		})
+
+		return res
+	} catch (error) {
+		return error
+	}
+}
+exports.resourceList = async (filter, attributes = {}, sort, page, limit) => {
 	try {
 		const res = await Resource.findAll({
 			where: filter,
