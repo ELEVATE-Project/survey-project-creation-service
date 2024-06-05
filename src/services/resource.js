@@ -30,23 +30,23 @@ module.exports = class resourceHelper {
 				sort_by: common.CREATED_AT,
 				order: common.SORT_DESC,
 			}
-			let filter = {}
+			let filter = {
+				organization_id,
+			}
 			if (
-				common.QUERY_PARAMS.FILTER in queryParams &&
-				queryParams.filter.toLowerCase() === common.FILTER_ALL.toLowerCase()
+				(common.QUERY_PARAMS.FILTER in queryParams &&
+					queryParams?.filter.toLowerCase() != common.FILTER_ALL.toLowerCase()) ||
+				!queryParams.hasOwnProperty(common.QUERY_PARAMS.FILTER)
 			) {
-				filter = {
-					organization_id,
-				}
-			} else {
 				filter.user_id = user_id
-				if (common.QUERY_PARAMS.TYPE in queryParams) {
-					filter.type = queryParams.type
-				}
+			}
 
-				if (common.QUERY_PARAMS.STATUS in queryParams && queryParams.status.length > 0) {
-					filter.status = queryParams.status.toUpperCase()
-				}
+			if (common.QUERY_PARAMS.TYPE in queryParams) {
+				filter.type = queryParams.type
+			}
+
+			if (common.QUERY_PARAMS.STATUS in queryParams && queryParams.status.length > 0) {
+				filter.status = queryParams.status.toUpperCase()
 			}
 
 			if (
