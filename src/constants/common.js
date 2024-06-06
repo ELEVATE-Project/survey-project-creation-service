@@ -59,13 +59,11 @@ module.exports = {
 	SORT_DESC: 'DESC',
 	SORT_ASC: 'ASC',
 	CREATED_AT: 'created_at',
-	QUERY_PARAMS: {
-		FILTER: 'filter',
-		TYPE: 'type',
-		STATUS: 'status',
-		SORT_BY: 'sort_by',
-		SORT_ORDER: 'sort_order',
-	},
+	FILTER: 'filter',
+	TYPE: 'type',
+	STATUS: 'status',
+	SORT_BY: 'sort_by',
+	SORT_ORDER: 'sort_order',
 	URL: 'url',
 	FILE_PATH: 'filePath',
 }

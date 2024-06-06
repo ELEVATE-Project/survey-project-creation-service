@@ -34,24 +34,24 @@ module.exports = class resourceHelper {
 				organization_id,
 			}
 			if (
-				(common.QUERY_PARAMS.FILTER in queryParams &&
+				(common.FILTER in queryParams &&
 					queryParams?.filter.toLowerCase() != common.FILTER_ALL.toLowerCase()) ||
-				!queryParams.hasOwnProperty(common.QUERY_PARAMS.FILTER)
+				!queryParams.hasOwnProperty(common.FILTER)
 			) {
 				filter.user_id = user_id
 			}
 
-			if (common.QUERY_PARAMS.TYPE in queryParams) {
+			if (common.TYPE in queryParams) {
 				filter.type = queryParams.type
 			}
 
-			if (common.QUERY_PARAMS.STATUS in queryParams && queryParams.status.length > 0) {
+			if (common.STATUS in queryParams && queryParams.status.length > 0) {
 				filter.status = queryParams.status.toUpperCase()
 			}
 
 			if (
-				common.QUERY_PARAMS.SORT_BY in queryParams &&
-				common.QUERY_PARAMS.SORT_ORDER in queryParams &&
+				common.SORT_BY in queryParams &&
+				common.SORT_ORDER in queryParams &&
 				queryParams.sort_by.length > 0 &&
 				queryParams.sort_order.length > 0
 			) {
