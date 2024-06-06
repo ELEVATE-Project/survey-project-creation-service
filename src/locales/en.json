@@ -58,7 +58,9 @@
 	"PROJECT_NOT_VISIBLE": "Project is being edited, only the creator can view it.",
 	"CERTIFICATE_FETCHED_SUCCESSFULLY": "Certificate template listed successfully",
 	"JSON_FETCHED_SUCCESSFULLY": "Data retrieved Successfully.",
-	"CERTIFICATE_FETCH_FAILED": "Error in fetching Certificate"
+	"CERTIFICATE_FETCH_FAILED": "Error in fetching Certificate",
 	"PROJECT_CREATED_SUCCESSFULLY": "Project created successfully",
-	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully"
+	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully",
+	"RESOURCE_LISTED_SUCCESSFULLY": "Resource Listed successfully",
+	"INVALID_FILTER": "Invalid Filter Value."
 }

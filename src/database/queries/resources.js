@@ -52,3 +52,19 @@ exports.findAll = async (filter, attributes = {}) => {
 		return error
 	}
 }
+exports.resourceList = async (filter, attributes = {}, sort, page, limit) => {
+	try {
+		const res = await Resource.findAll({
+			where: filter,
+			attributes,
+			order: [[sort.sort_by, sort.order]],
+			offset: limit * (page - 1),
+			limit: limit,
+			raw: true,
+		})
+
+		return res
+	} catch (error) {
+		return error
+	}
+}
