@@ -57,4 +57,6 @@ module.exports = {
 	PROJECT: 'project',
 	URL: 'url',
 	FILE_PATH: 'filePath',
+	STATUS_RESOLVED: 'RESOLVED',
+	ALL_USER_ROLES: 'all',
 }

@@ -15,7 +15,7 @@ module.exports = class configs {
 	 */
 	async list(req) {
 		try {
-			const comments = await commentService.list(req.decodedToken.organization_id)
+			const comments = await commentService.list(req.query.resource_id, req.decodedToken.organization_id)
 			return comments
 		} catch (error) {
 			return error
@@ -23,14 +23,19 @@ module.exports = class configs {
 	}
 
 	/**
-	 * Update Comment.
+	 * Create or Update Comment.
 	 * @method
 	 * @name update
 	 * @returns {JSON} - Detail of comments as response.
 	 */
 	async update(req) {
 		try {
-			const comment = await commentService.update(req.decodedToken.organization_id)
+			const comment = await commentService.update(
+				req.params.id ? req.params.id : '',
+				req.query.resource_id,
+				req.body,
+				req.decodedToken.id
+			)
 			return comment
 		} catch (error) {
 			return error

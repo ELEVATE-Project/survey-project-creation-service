@@ -19,24 +19,25 @@ module.exports = class CommentData {
 
 	static async findAll(filter, attributes, options = {}) {
 		try {
-			const comments = await Comment.findAndCountAll({
+			const { rows, count } = await Comment.findAndCountAll({
 				where: filter,
 				attributes,
 				...options,
+				raw: true,
 			})
-			return comments
+
+			return { rows, count }
 		} catch (error) {
 			throw error
 		}
 	}
 
-	static async update(filter, updateData) {
+	static async updateOne(filter, update, options = {}) {
 		try {
-			const [rowsUpdated, [updatedComment]] = await Comment.update(updateData, {
+			return await Comment.update(update, {
 				where: filter,
-				returning: true,
+				...options,
 			})
-			return updatedComment
 		} catch (error) {
 			throw error
 		}
