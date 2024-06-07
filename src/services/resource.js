@@ -64,7 +64,7 @@ module.exports = class resourceHelper {
 
 			const resources = await resourceQueries.resourceList(
 				filter,
-				['id', 'title', 'type', 'organization_id', 'status', 'created_by'],
+				['id', 'title', 'type', 'organization_id', 'status', 'user_id'],
 				sort,
 				page,
 				limit
@@ -79,7 +79,7 @@ module.exports = class resourceHelper {
 			}
 
 			const uniqueOrganizationIds = [...new Set(resources.map((item) => item.organization_id))]
-			const uniqueCreatorIds = [...new Set(resources.map((item) => item.created_by))]
+			const uniqueCreatorIds = [...new Set(resources.map((item) => item.user_id))]
 
 			const orgDetailsResponse = await userRequests.listOrganization(uniqueOrganizationIds)
 			const userDetailsResponse = await userRequests.list(
@@ -103,8 +103,8 @@ module.exports = class resourceHelper {
 
 			result.data = resources.map((res) => {
 				res.organization = orgDetails[res.organization_id] ? orgDetails[res.organization_id] : {}
-				res.creator = userDetails[res.created_by].name ? userDetails[res.created_by].name : ''
-				delete res.created_by
+				res.creator = userDetails[res.user_id].name ? userDetails[res.user_id].name : ''
+				delete res.user_id
 				delete res.organization_id
 				return res
 			})
