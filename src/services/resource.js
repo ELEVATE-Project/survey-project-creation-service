@@ -64,7 +64,7 @@ module.exports = class resourceHelper {
 
 			const resources = await resourceQueries.resourceList(
 				filter,
-				['id', 'title', 'type', 'organization_id', 'status'],
+				['id', 'title', 'type', 'organization_id', 'status', 'created_by'],
 				sort,
 				page,
 				limit
@@ -79,17 +79,36 @@ module.exports = class resourceHelper {
 			}
 
 			const uniqueOrganizationIds = [...new Set(resources.map((item) => item.organization_id))]
+			const uniqueCreatorIds = [...new Set(resources.map((item) => item.created_by))]
+
 			const orgDetailsResponse = await userRequests.listOrganization(uniqueOrganizationIds)
+			const userDetailsResponse = await userRequests.list(
+				common.FILTER_ALL.toLowerCase(),
+				1,
+				uniqueCreatorIds.length,
+				'',
+				organization_id,
+				{ user_ids: uniqueCreatorIds }
+			)
+
 			let orgDetails = {}
+			let userDetails = {}
 			if (orgDetailsResponse.success && orgDetailsResponse.data?.result?.length > 0) {
 				orgDetails = _.keyBy(orgDetailsResponse.data.result, 'id')
 			}
 
+			if (userDetailsResponse.success && userDetailsResponse.data.result.data.length > 0) {
+				userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
+			}
+
 			result.data = resources.map((res) => {
 				res.organization = orgDetails[res.organization_id] ? orgDetails[res.organization_id] : {}
+				res.creator = userDetails[res.created_by].name ? userDetails[res.created_by].name : ''
+				delete res.created_by
 				delete res.organization_id
 				return res
 			})
+
 			result.count = result.data.length
 
 			return responses.successResponse({
