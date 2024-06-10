@@ -8,4 +8,4 @@ SELECT create_distributed_table('organization_extensions', 'organization_id');
 SELECT create_distributed_table('resources', 'organization_id');
 SELECT create_distributed_table('review_resources', 'reviewer_id');
 SELECT create_distributed_table('review_stages', 'organization_id');
-SELECT create_distributed_table('reviews', 'resource_id');
+SELECT create_distributed_table('reviews', 'organization_id');
