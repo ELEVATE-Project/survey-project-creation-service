@@ -16,7 +16,8 @@ module.exports = class ProjectsHelper {
 	static async update(comment_id = '', resource_id, bodyData, loggedInUserId) {
 		try {
 			if (bodyData.status === common.STATUS_RESOLVED || !bodyData.resolved_by) {
-				;(bodyData.resolved_by = loggedInUserId), (bodyData.resolved_at = new Date())
+				bodyData.resolved_by = loggedInUserId
+				bodyData.resolved_at = new Date()
 				bodyData.status = common.STATUS_RESOLVED
 			}
 
