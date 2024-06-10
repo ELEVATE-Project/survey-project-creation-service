@@ -25,6 +25,7 @@ module.exports = class modulesHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
 			const data = {
 				role_title: roleTitle,
 				permission_id: permissionId,
@@ -33,7 +34,9 @@ module.exports = class modulesHelper {
 				api_path: permission.api_path,
 				created_by: loggedInUserId,
 			}
+
 			const rolePermissionMapping = await rolePermissionMappingQueries.create(data)
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.created,
 				message: 'ROLE_PERMISSION_CREATED_SUCCESSFULLY',
@@ -67,7 +70,11 @@ module.exports = class modulesHelper {
 
 	static async delete(roleTitle, permissionId) {
 		try {
-			const filter = { role_title: roleTitle, permission_id: permissionId }
+			const filter = {
+				role_title: roleTitle,
+				permission_id: permissionId,
+			}
+
 			const rolePermissionMapping = await rolePermissionMappingQueries.delete(filter)
 			if (rolePermissionMapping == 0) {
 				return responses.failureResponse({
@@ -76,6 +83,7 @@ module.exports = class modulesHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.created,
 				message: 'ROLE_PERMISSION_DELETED_SUCCESSFULLY',
@@ -96,9 +104,12 @@ module.exports = class modulesHelper {
 
 	static async list(roleTitle) {
 		try {
-			const filter = { role_title: roleTitle }
+			const filter = {
+				role_title: roleTitle,
+			}
 			const attributes = ['module', 'request_type']
 			const permissionAndModules = await rolePermissionMappingQueries.findAll(filter, attributes)
+
 			const permissionsByModule = {}
 			permissionAndModules.forEach(({ module, request_type }) => {
 				if (permissionsByModule[module]) {
@@ -122,6 +133,7 @@ module.exports = class modulesHelper {
 					result: { permissions: [] },
 				})
 			}
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.created,
 				message: 'FETCHED_ROLE_PERMISSION_SUCCESSFULLY',

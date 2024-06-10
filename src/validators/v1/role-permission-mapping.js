@@ -1,3 +1,10 @@
+/**
+ * name : validators/v1/role-permission-mapping.js
+ * author : Priyanka Pradeep
+ * Date : 10-Jun-2024
+ * Description : Validations of role permission mapping controller
+ */
+
 module.exports = {
 	create: (req) => {
 		req.checkBody('permission_id')
