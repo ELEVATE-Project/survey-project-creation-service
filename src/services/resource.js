@@ -11,6 +11,7 @@ const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const userRequests = require('@requests/user')
 const _ = require('lodash')
+const { Op } = require('sequelize')
 
 module.exports = class resourceHelper {
 	/**
@@ -49,6 +50,12 @@ module.exports = class resourceHelper {
 				filter.status = queryParams.status.toUpperCase()
 			}
 
+			if (common.SEARCH in queryParams && queryParams.search.length > 0) {
+				filter.title = {
+					[Op.iLike]: '%' + queryParams.search + '%',
+				}
+			}
+
 			if (
 				common.SORT_BY in queryParams &&
 				common.SORT_ORDER in queryParams &&
@@ -84,8 +91,8 @@ module.exports = class resourceHelper {
 			const orgDetailsResponse = await userRequests.listOrganization(uniqueOrganizationIds)
 			const userDetailsResponse = await userRequests.list(
 				common.FILTER_ALL.toLowerCase(),
-				1,
-				uniqueCreatorIds.length,
+				'',
+				'',
 				'',
 				organization_id,
 				{ user_ids: uniqueCreatorIds }
@@ -97,7 +104,7 @@ module.exports = class resourceHelper {
 				orgDetails = _.keyBy(orgDetailsResponse.data.result, 'id')
 			}
 
-			if (userDetailsResponse.success && userDetailsResponse.data.result.data.length > 0) {
+			if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
 				userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
 			}
 
