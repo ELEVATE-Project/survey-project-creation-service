@@ -62,6 +62,7 @@ module.exports = {
 	FILTER: 'filter',
 	TYPE: 'type',
 	STATUS: 'status',
+	SEARCH: 'search',
 	SORT_BY: 'sort_by',
 	SORT_ORDER: 'sort_order',
 	URL: 'url',

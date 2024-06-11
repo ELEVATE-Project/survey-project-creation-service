@@ -11,6 +11,7 @@ const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const userRequests = require('@requests/user')
 const _ = require('lodash')
+const { Op } = require('sequelize')
 
 module.exports = class resourceHelper {
 	/**
@@ -49,6 +50,12 @@ module.exports = class resourceHelper {
 				filter.status = queryParams.status.toUpperCase()
 			}
 
+			if (common.SEARCH in queryParams && queryParams.search.length > 0) {
+				filter.title = {
+					[Op.iLike]: '%' + queryParams.search + '%',
+				}
+			}
+
 			if (
 				common.SORT_BY in queryParams &&
 				common.SORT_ORDER in queryParams &&
@@ -64,7 +71,7 @@ module.exports = class resourceHelper {
 
 			const resources = await resourceQueries.resourceList(
 				filter,
-				['id', 'title', 'type', 'organization_id', 'status'],
+				['id', 'title', 'type', 'organization_id', 'status', 'user_id'],
 				sort,
 				page,
 				limit
@@ -79,17 +86,36 @@ module.exports = class resourceHelper {
 			}
 
 			const uniqueOrganizationIds = [...new Set(resources.map((item) => item.organization_id))]
+			const uniqueCreatorIds = [...new Set(resources.map((item) => item.user_id))]
+
 			const orgDetailsResponse = await userRequests.listOrganization(uniqueOrganizationIds)
+			const userDetailsResponse = await userRequests.list(
+				common.FILTER_ALL.toLowerCase(),
+				'',
+				'',
+				'',
+				organization_id,
+				{ user_ids: uniqueCreatorIds }
+			)
+
 			let orgDetails = {}
+			let userDetails = {}
 			if (orgDetailsResponse.success && orgDetailsResponse.data?.result?.length > 0) {
 				orgDetails = _.keyBy(orgDetailsResponse.data.result, 'id')
 			}
 
+			if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
+				userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
+			}
+
 			result.data = resources.map((res) => {
 				res.organization = orgDetails[res.organization_id] ? orgDetails[res.organization_id] : {}
+				res.creator = userDetails[res.user_id].name ? userDetails[res.user_id].name : ''
+				delete res.user_id
 				delete res.organization_id
 				return res
 			})
+
 			result.count = result.data.length
 
 			return responses.successResponse({
