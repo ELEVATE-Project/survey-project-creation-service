@@ -54,7 +54,7 @@ exports.findAll = async (filter, attributes = {}) => {
 }
 exports.resourceList = async (filter, attributes = {}, sort, page, limit) => {
 	try {
-		const res = await Resource.findAll({
+		const res = await Resource.findAndCountAll({
 			where: filter,
 			attributes,
 			order: [[sort.sort_by, sort.order]],
@@ -63,7 +63,7 @@ exports.resourceList = async (filter, attributes = {}, sort, page, limit) => {
 			raw: true,
 		})
 
-		return res
+		return { result: res.rows, count: res.count }
 	} catch (error) {
 		return error
 	}
