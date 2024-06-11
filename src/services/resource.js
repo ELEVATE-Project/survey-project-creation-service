@@ -69,13 +69,15 @@ module.exports = class resourceHelper {
 						: common.SORT_ASC
 			}
 
-			const resources = await resourceQueries.resourceList(
+			const response = await resourceQueries.resourceList(
 				filter,
 				['id', 'title', 'type', 'organization_id', 'status', 'user_id'],
 				sort,
 				page,
 				limit
 			)
+
+			const resources = response.result
 
 			if (resources.length <= 0) {
 				return responses.successResponse({
@@ -116,7 +118,7 @@ module.exports = class resourceHelper {
 				return res
 			})
 
-			result.count = result.data.length
+			result.count = response.count
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
