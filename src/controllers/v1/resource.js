@@ -23,6 +23,7 @@ module.exports = class Resource {
 				req.decodedToken.id,
 				req.decodedToken.organization_id,
 				req.query,
+				req.searchText,
 				req.pageNo,
 				req.pageSize
 			)
