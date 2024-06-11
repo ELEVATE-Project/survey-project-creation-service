@@ -21,7 +21,7 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of resources
 	 */
 
-	static async list(user_id, organization_id, queryParams, page, limit) {
+	static async list(user_id, organization_id, queryParams, searchText = '', page, limit) {
 		try {
 			let result = {
 				data: [],
@@ -50,9 +50,9 @@ module.exports = class resourceHelper {
 				filter.status = queryParams.status.toUpperCase()
 			}
 
-			if (common.SEARCH in queryParams && queryParams.search.length > 0) {
+			if (searchText.length > 0) {
 				filter.title = {
-					[Op.iLike]: '%' + queryParams.search + '%',
+					[Op.iLike]: '%' + searchText + '%',
 				}
 			}
 
