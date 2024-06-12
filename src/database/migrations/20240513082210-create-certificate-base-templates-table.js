@@ -12,7 +12,6 @@ module.exports = {
 			organization_id: {
 				type: Sequelize.INTEGER,
 				allowNull: false,
-				primaryKey: true,
 			},
 			code: {
 				type: Sequelize.STRING,

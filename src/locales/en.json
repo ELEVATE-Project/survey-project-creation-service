@@ -62,5 +62,9 @@
 	"PROJECT_CREATED_SUCCESSFULLY": "Project created successfully",
 	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully",
 	"RESOURCE_LISTED_SUCCESSFULLY": "Resource Listed successfully",
-	"INVALID_FILTER": "Invalid Filter Value."
+	"INVALID_FILTER": "Invalid Filter Value.",
+	"CERTIFICATE_TEMPLATE_CREATED": "Template created successfully",
+	"CERTIFICATE_ALREADY_EXISTS": "Template already exists",
+	"CERTIFICATE_NOT_FOUND": "Template not found",
+	"CERTIFICATE_UPDATED_SUCCESSFULLY": "Template updated successfully"
 }
