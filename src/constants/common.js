@@ -67,4 +67,6 @@ module.exports = {
 	SORT_ORDER: 'sort_order',
 	URL: 'url',
 	FILE_PATH: 'filePath',
+	STATUS_RESOLVED: 'RESOLVED',
+	ALL_USER_ROLES: 'all',
 }
