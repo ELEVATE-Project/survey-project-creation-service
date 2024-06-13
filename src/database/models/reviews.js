@@ -9,12 +9,13 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			resource_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: DataTypes.INTEGER,
+				primaryKey: true, // Part of composite primary key
 			},
 			reviewer_id: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
+				primaryKey: true, // Part of composite primary key
 			},
 			status: {
 				type: DataTypes.ENUM(
@@ -31,7 +32,6 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			organization_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
 		},
@@ -40,6 +40,12 @@ module.exports = (sequelize, DataTypes) => {
 			tableName: 'reviews',
 			freezeTableName: true,
 			paranoid: false,
+			indexes: [
+				{
+					unique: true,
+					fields: ['resource_id', 'reviewer_id'],
+				},
+			],
 		}
 	)
 

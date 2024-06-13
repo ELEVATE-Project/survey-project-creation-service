@@ -1,11 +1,14 @@
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
+const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const filesService = require('@services/files')
 const userRequests = require('@requests/user')
 const _ = require('lodash')
 const axios = require('axios')
+const { Op } = require('sequelize')
+const reviewsQueries = require('@database/queries/reviews')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -27,6 +30,12 @@ module.exports = class ProjectsHelper {
 				updated_by: loggedInUserId,
 			}
 			let projectCreate = await resourceQueries.create(projectData)
+			const mappingData = {
+				resource_id: projectCreate.id,
+				creator_id: loggedInUserId,
+				organization_id: orgId,
+			}
+			await resourceCreatorMappingQueries.create(mappingData)
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_CREATED_SUCCESSFULLY',
@@ -47,6 +56,48 @@ module.exports = class ProjectsHelper {
 
 	static async update(resourceId, orgId, loggedInUserId, bodyData) {
 		try {
+			let blockUpdate = false
+			const forbidden_resource_statuses = [
+				common.RESOURCE_STATUS_PUBLISHED,
+				common.RESOURCE_STATUS_REJECTED,
+				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+				common.RESOURCE_STATUS_SUBMITTED,
+				common.RESOURCE_STATUS_APPROVED,
+			]
+			const fetchResource = await resourceQueries.findOne({
+				id: resourceId,
+				organization_id: orgId,
+			})
+			const countReviews = await reviewsQueries.countDistinct({
+				id: resourceId,
+				status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
+				organization_id: orgId,
+			})
+
+			if (!fetchResource) {
+				return responses.failureResponse({
+					message: 'PROJECT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			// block update if the resource status is in forbidden_resource_statuses
+			blockUpdate = blockUpdate ? blockUpdate : forbidden_resource_statuses.includes(fetchResource.status)
+
+			// block update if the resource status is in forbidden_resource_statuses or the resource is in review stage and no one have requested for any changes
+			blockUpdate = blockUpdate
+				? blockUpdate
+				: fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews <= 0
+
+			if (blockUpdate) {
+				return responses.failureResponse({
+					message: 'FORBIDDEN_RESOURCE_UPDATE',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
 			let { categories, recommeneded_for, languages, ...projectData } = bodyData
 			categories = categories.map((key) => {
 				return { label: key, value: key }
@@ -64,7 +115,7 @@ module.exports = class ProjectsHelper {
 			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
 
 			let getSignedUrl = await filesService.getSignedUrl(
-				{ [resourceId]: { files: [fileName + 'project.json'] } },
+				{ [resourceId]: { files: [fileName] } },
 				common.PROJECT,
 				loggedInUserId
 			)
@@ -85,9 +136,13 @@ module.exports = class ProjectsHelper {
 				let filter = {
 					id: resourceId,
 					organization_id: orgId,
+					status: {
+						[Op.notIn]: forbidden_resource_statuses,
+					},
 				}
 				let updateData = {
 					meta: { title: bodyData.title },
+					title: bodyData.title,
 					updated_by: loggedInUserId,
 					blob_path: getSignedUrl.result[resourceId].files[0].file,
 				}

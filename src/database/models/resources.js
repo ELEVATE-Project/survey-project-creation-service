@@ -18,7 +18,16 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			status: {
 				allowNull: false,
-				type: DataTypes.ENUM('DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED'),
+				type: DataTypes.ENUM(
+					'DRAFT',
+					'SUBMITTED',
+					'IN_REVIEW',
+					'APPROVED',
+					'REJECTED',
+					'PUBLISHED',
+					'REJECTED_AND_REPORTED',
+					'REQUESTED_FOR_CHANGES'
+				),
 				defaultValue: 'DRAFT',
 			},
 			blob_path: {

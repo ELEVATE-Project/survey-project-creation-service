@@ -7,6 +7,8 @@
 
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
+const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
+const reviewsQueries = require('@database/queries/reviews')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const userRequests = require('@requests/user')
@@ -34,20 +36,80 @@ module.exports = class resourceHelper {
 			let filter = {
 				organization_id,
 			}
+			// fetch the details of resource and organization from resource creator mapping table by the user
+			const resource_creator_mapping_data = await resourceCreatorMappingQueries.findAll({ creator_id: user_id }, [
+				'resource_id',
+				'organization_id',
+			])
+
+			// get the unique resource ids from resource creator mapping table by the user
+			const uniqueResourceIds = [...new Set(resource_creator_mapping_data.map((item) => item.resource_id))]
+
+			// get the unique organization ids from resource creator mapping table by the user
+			const OrganizationIds = [...new Set(resource_creator_mapping_data.map((item) => item.organization_id))]
+
 			if (
-				(common.FILTER in queryParams &&
-					queryParams?.filter.toLowerCase() != common.FILTER_ALL.toLowerCase()) ||
-				!queryParams.hasOwnProperty(common.FILTER)
+				queryParams[common.PAGE_STATUS] === common.PAGE_STATUS_DRAFTS ||
+				queryParams[common.PAGE_STATUS] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW
 			) {
+				// common filters for drafts page and submitted for review page
 				filter.user_id = user_id
+
+				filter.id = {
+					[Op.in]: uniqueResourceIds,
+				}
+
+				filter.organization_id = {
+					[Op.in]: OrganizationIds,
+				}
+				filter.status = {
+					[Op.in]: common.PAGE_STATUS_VALUES[queryParams[common.PAGE_STATUS]],
+				}
 			}
 
-			if (common.TYPE in queryParams) {
-				filter.type = queryParams.type
-			}
+			if (queryParams[common.PAGE_STATUS] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW) {
+				// specific filters for submitted for review page
 
-			if (common.STATUS in queryParams && queryParams.status.length > 0) {
-				filter.status = queryParams.status.toUpperCase()
+				// count the number of resources with changes requested
+				const changesCount = await reviewsQueries.countDistinct({
+					organization_id: {
+						[Op.in]: OrganizationIds,
+					},
+					resource_id: {
+						[Op.in]: uniqueResourceIds,
+					},
+					status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+				})
+				result.changes_requested_count = changesCount
+
+				if (common.STATUS in queryParams) {
+					// remove status which are not related
+					filter.status = {
+						[Op.in]: _.intersection(
+							queryParams.status.split(',').map((status) => status.toUpperCase()),
+							common.PAGE_STATUS_VALUES[queryParams[common.PAGE_STATUS]]
+						),
+					}
+
+					if (queryParams.status.split(',').includes(common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)) {
+						// fetch the resource ids from review table - changes requested
+						let changeRequestedResources = await reviewsQueries.findAll(
+							{
+								resource_id: {
+									[Op.in]: uniqueResourceIds,
+								},
+								status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+							},
+							['resource_id']
+						)
+
+						changeRequestedResources = [...new Set([..._.map(changeRequestedResources, 'resource_id')])]
+						filter.id = {
+							[Op.in]: changeRequestedResources,
+						}
+						filter.status = common.RESOURCE_STATUS_IN_REVIEW
+					}
+				}
 			}
 
 			if (searchText.length > 0) {
