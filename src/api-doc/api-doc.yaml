@@ -3937,7 +3937,7 @@ paths:
                           status: RESOLVED
                           parent_id: 0
                           user_id: 24
-                          commentor:
+                          commenter:
                             id: 24
                             name: Priyanka
                           is_read: true
@@ -4274,7 +4274,7 @@ paths:
                   description: Page number associated with the comment
                 status:
                   type: string
-                  description: Status of the comment (e.g., "UNRESOLVED").
+                  description: Status of the comment (e.g., "OPEN").
                 parent_id:
                   type: string
                   description: ID of the parent comment, if applicable
@@ -4285,7 +4285,7 @@ paths:
                   comment: 'Check spelling'
                   context: page
                   page: 1
-                  status: UNRESOLVED
+                  status: OPEN
                   parent_id: 2
 
       responses:
@@ -4330,7 +4330,7 @@ paths:
                       comment: 'Check spelling'
                       context: page
                       page: 1
-                      status: UNRESOLVED
+                      status: OPEN
                       parent_id: 2
                       is_read: false
                     meta:
@@ -4416,7 +4416,7 @@ paths:
                 example1:
                   value:
                     responseCode: OK
-                    message: Comment updated successfully
+                    message: Comment fetched successfully
                     result:
                       resource_id: 1
                       comments:
@@ -4426,7 +4426,7 @@ paths:
                           page: 1
                           status: RESOLVED
                           parent_id: 1
-                          commentor:
+                          commenter:
                             id: 24
                             name: Priyanka
                           is_read: true
@@ -4440,7 +4440,7 @@ paths:
                           page: 1
                           status: UNRESOLVED
                           parent_id: null
-                          commentor:
+                          commenter:
                             id: 24
                             name: Priyanka
                           is_read: true
