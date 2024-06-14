@@ -66,5 +66,9 @@
 	"STATUS_INVALID": "Invalid status value provided. Valid values are OPEN or RESOLVED.",
 	"COMMENT_FETCHED": "Comment fetched successfully",
 	"RESOURCE_LISTED_SUCCESSFULLY": "Resource Listed successfully",
-	"INVALID_FILTER": "Invalid Filter Value."
+	"INVALID_FILTER": "Invalid Filter Value.",
+	"CERTIFICATE_TEMPLATE_CREATED": "Template created successfully",
+	"CERTIFICATE_ALREADY_EXISTS": "Template already exists",
+	"CERTIFICATE_NOT_FOUND": "Template not found",
+	"CERTIFICATE_UPDATED_SUCCESSFULLY": "Template updated successfully"
 }
