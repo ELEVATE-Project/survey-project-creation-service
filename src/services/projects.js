@@ -4,6 +4,7 @@ const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const filesService = require('@services/files')
 const userRequests = require('@requests/user')
+const configService = require('@services/config')
 const _ = require('lodash')
 const axios = require('axios')
 
@@ -17,10 +18,22 @@ module.exports = class ProjectsHelper {
 	 */
 	static async create(orgId, loggedInUserId) {
 		try {
+			const orgConfig = await configService.list(orgId)
+
+			const orgConfigList = _.reduce(
+				orgConfig.result,
+				(acc, item) => {
+					acc[item.resource_type] = item.review_type
+					return acc
+				},
+				{}
+			)
+
 			let projectData = {
 				type: common.PROJECT,
 				status: common.STATUS_DRAFT,
 				user_id: loggedInUserId,
+				review_type: orgConfigList[common.PROJECT],
 				organization_id: orgId,
 				meta: {},
 				created_by: loggedInUserId,
@@ -47,9 +60,7 @@ module.exports = class ProjectsHelper {
 
 	static async update(resourceId, orgId, loggedInUserId, bodyData) {
 		try {
-			delete bodyData.review_type
-			delete bodyData.organization_id
-			delete bodyData.type
+			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id'])
 
 			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
 
