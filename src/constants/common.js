@@ -70,16 +70,8 @@ module.exports = {
 	PAGE_STATUS: 'page_status',
 	PAGE_STATUS_VALUES: {
 		drafts: ['DRAFT'],
-		up_for_review: ['in_review'],
-		submitted_for_review: [
-			'IN_REVIEW',
-			'SUBMITTED',
-			'PUBLISHED',
-			'REJECTED',
-			'REJECTED_AND_REPORTED',
-			'REQUESTED_FOR_CHANGES',
-			'APPROVED',
-		],
+		up_for_review: ['IN_REVIEW'],
+		submitted_for_review: ['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED', 'APPROVED'],
 	},
 	PAGE_STATUS_DRAFTS: 'drafts',
 	PAGE_STATUS_UP_FOR_REVIEW: 'up_for_review',
@@ -93,4 +85,5 @@ module.exports = {
 	RESOURCE_STATUS_REJECTED_AND_REPORTED: 'REJECTED_AND_REPORTED',
 	STATUS_RESOLVED: 'RESOLVED',
 	ALL_USER_ROLES: 'all',
+	LIMIT: 100,
 }

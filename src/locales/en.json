@@ -61,7 +61,7 @@
 	"CERTIFICATE_FETCH_FAILED": "Error in fetching Certificate",
 	"PROJECT_CREATED_SUCCESSFULLY": "Project created successfully",
 	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully",
-	"FORBIDDEN_RESOURCE_UPDATE": "Forbidden Update Operation",
+	"FORBIDDEN_RESOURCE_UPDATE": "Update Failed! Resource '{{resourceTitle}}' is being reviewed by {{reviewer_count}} Reviewer(s) ",
 	"COMMENT_UPDATED_SUCCESSFULLY": "Comment updated successfully",
 	"COMMENT_NOT_FOUND": "Comment not found",
 	"STATUS_INVALID": "Invalid status value provided. Valid values are OPEN or RESOLVED.",

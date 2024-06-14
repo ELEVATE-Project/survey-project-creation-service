@@ -56,7 +56,6 @@ module.exports = class ProjectsHelper {
 
 	static async update(resourceId, orgId, loggedInUserId, bodyData) {
 		try {
-			let blockUpdate = false
 			const forbidden_resource_statuses = [
 				common.RESOURCE_STATUS_PUBLISHED,
 				common.RESOURCE_STATUS_REJECTED,
@@ -67,6 +66,9 @@ module.exports = class ProjectsHelper {
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
 				organization_id: orgId,
+				status: {
+					[Op.notIn]: forbidden_resource_statuses,
+				},
 			})
 			const countReviews = await reviewsQueries.countDistinct({
 				id: resourceId,
@@ -82,17 +84,12 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			// block update if the resource status is in forbidden_resource_statuses
-			blockUpdate = blockUpdate ? blockUpdate : forbidden_resource_statuses.includes(fetchResource.status)
-
-			// block update if the resource status is in forbidden_resource_statuses or the resource is in review stage and no one have requested for any changes
-			blockUpdate = blockUpdate
-				? blockUpdate
-				: fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews <= 0
-
-			if (blockUpdate) {
+			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews > 0) {
 				return responses.failureResponse({
-					message: 'FORBIDDEN_RESOURCE_UPDATE',
+					message: {
+						key: 'FORBIDDEN_RESOURCE_UPDATE',
+						interpolation: { resourceTitle: fetchResource.title, reviewer_count: countReviews },
+					},
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
@@ -136,9 +133,6 @@ module.exports = class ProjectsHelper {
 				let filter = {
 					id: resourceId,
 					organization_id: orgId,
-					status: {
-						[Op.notIn]: forbidden_resource_statuses,
-					},
 				}
 				let updateData = {
 					meta: { title: bodyData.title },

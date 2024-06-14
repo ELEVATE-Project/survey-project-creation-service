@@ -9,12 +9,13 @@ exports.create = async (data) => {
 	}
 }
 
-exports.findAll = async (filter, attributes = {}) => {
+exports.findAll = async (filter, attributes = {}, options = {}) => {
 	try {
 		const res = await resource_user_mapping.findAll({
 			where: filter,
 			attributes,
 			raw: true,
+			...options,
 		})
 
 		return res

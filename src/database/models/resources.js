@@ -25,8 +25,7 @@ module.exports = (sequelize, DataTypes) => {
 					'APPROVED',
 					'REJECTED',
 					'PUBLISHED',
-					'REJECTED_AND_REPORTED',
-					'REQUESTED_FOR_CHANGES'
+					'REJECTED_AND_REPORTED'
 				),
 				defaultValue: 'DRAFT',
 			},

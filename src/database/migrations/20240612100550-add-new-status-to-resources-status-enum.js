@@ -8,7 +8,7 @@ module.exports = {
 			// Step 1: Create a new ENUM type with the new values
 			await queryInterface.sequelize.query(
 				`
-        CREATE TYPE "enum_resources_status_new" AS ENUM('DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED', 'REJECTED_AND_REPORTED', 'REQUESTED_FOR_CHANGES');
+        CREATE TYPE "enum_resources_status_new" AS ENUM('DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED', 'REJECTED_AND_REPORTED');
       `,
 				{ transaction }
 			)

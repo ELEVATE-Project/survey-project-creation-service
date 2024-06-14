@@ -3,11 +3,6 @@
 module.exports = {
 	async up(queryInterface, Sequelize) {
 		await queryInterface.createTable('reviews', {
-			id: {
-				allowNull: false,
-				autoIncrement: true,
-				type: Sequelize.INTEGER,
-			},
 			resource_id: {
 				allowNull: false,
 				type: Sequelize.INTEGER,
@@ -18,38 +13,22 @@ module.exports = {
 				type: Sequelize.INTEGER,
 				primaryKey: true,
 			},
-			status: {
-				type: Sequelize.ENUM(
-					'NOT_STARTED',
-					'DRAFT',
-					'STARTED',
-					'INPROGRESS',
-					'REQUESTED_FOR_CHANGES',
-					'APPROVED',
-					'REJECTED',
-					'PUBLISHED'
-				),
-				defaultValue: 'NOT_STARTED',
-			},
 			organization_id: {
 				allowNull: false,
 				type: Sequelize.INTEGER,
 			},
-			created_at: {
-				allowNull: false,
-				type: Sequelize.DATE,
-			},
-			updated_at: {
-				allowNull: false,
-				type: Sequelize.DATE,
-			},
-			deleted_at: {
-				type: Sequelize.DATE,
-			},
+		})
+
+		// Add composite primary key on resource_id and reviewer_id
+		await queryInterface.addConstraint('reviews', {
+			fields: ['resource_id', 'reviewer_id'],
+			type: 'primary key',
+			name: 'reviews_pkey',
 		})
 	},
 
 	async down(queryInterface, Sequelize) {
-		await queryInterface.dropTable('reviews')
+		// Remove the composite primary key
+		await queryInterface.removeConstraint('reviews', 'reviews_pkey')
 	},
 }

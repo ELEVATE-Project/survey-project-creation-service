@@ -70,13 +70,19 @@ module.exports = class resourceHelper {
 			if (queryParams[common.PAGE_STATUS] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW) {
 				// specific filters for submitted for review page
 
+				let inreviewFilters = filter
+				inreviewFilters.status = common.RESOURCE_STATUS_IN_REVIEW
+				const inReviewResources = await resourceQueries.findAll(filter, ['id'])
+
+				const uniqueInReviewResourcesIds = [...new Set(inReviewResources.map((item) => item.id))]
+
 				// count the number of resources with changes requested
 				const changesCount = await reviewsQueries.countDistinct({
 					organization_id: {
 						[Op.in]: OrganizationIds,
 					},
 					resource_id: {
-						[Op.in]: uniqueResourceIds,
+						[Op.in]: uniqueInReviewResourcesIds,
 					},
 					status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 				})
@@ -99,6 +105,9 @@ module.exports = class resourceHelper {
 									[Op.in]: uniqueResourceIds,
 								},
 								status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+								organization_id: {
+									[Op.in]: OrganizationIds,
+								},
 							},
 							['resource_id']
 						)
