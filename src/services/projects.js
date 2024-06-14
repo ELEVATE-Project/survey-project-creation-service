@@ -4,6 +4,7 @@ const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const filesService = require('@services/files')
 const userRequests = require('@requests/user')
+const configService = require('@services/config')
 const _ = require('lodash')
 const axios = require('axios')
 
@@ -17,10 +18,22 @@ module.exports = class ProjectsHelper {
 	 */
 	static async create(orgId, loggedInUserId) {
 		try {
+			const orgConfig = await configService.list(orgId)
+
+			const orgConfigList = _.reduce(
+				orgConfig.result,
+				(acc, item) => {
+					acc[item.resource_type] = item.review_type
+					return acc
+				},
+				{}
+			)
+
 			let projectData = {
 				type: common.PROJECT,
 				status: common.STATUS_DRAFT,
 				user_id: loggedInUserId,
+				review_type: orgConfigList[common.PROJECT],
 				organization_id: orgId,
 				meta: {},
 				created_by: loggedInUserId,
@@ -47,24 +60,12 @@ module.exports = class ProjectsHelper {
 
 	static async update(resourceId, orgId, loggedInUserId, bodyData) {
 		try {
-			let { categories, recommeneded_for, languages, ...projectData } = bodyData
-			categories = categories.map((key) => {
-				return { label: key, value: key }
-			})
-			recommeneded_for = recommeneded_for.map((key) => {
-				return { label: key, value: key }
-			})
-			languages = languages.map((key) => {
-				return { label: key, value: key }
-			})
-			projectData.categories = categories
-			projectData.languages = languages
-			projectData.recommeneded_for = recommeneded_for
+			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id'])
 
 			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
 
 			let getSignedUrl = await filesService.getSignedUrl(
-				{ [resourceId]: { files: [fileName + 'project.json'] } },
+				{ [resourceId]: { files: [fileName] } },
 				common.PROJECT,
 				loggedInUserId
 			)
@@ -74,10 +75,9 @@ module.exports = class ProjectsHelper {
 				maxBodyLength: Infinity,
 				url: getSignedUrl.result[resourceId].files[0].url,
 				headers: {
-					// ...data.getHeaders(),
 					'Content-Type': 'multipart/form-data',
 				},
-				data: JSON.stringify(projectData),
+				data: JSON.stringify(bodyData),
 			}
 
 			let projectUploadStatus = await axios.request(config)
@@ -88,6 +88,7 @@ module.exports = class ProjectsHelper {
 				}
 				let updateData = {
 					meta: { title: bodyData.title },
+					title: bodyData.title,
 					updated_by: loggedInUserId,
 					blob_path: getSignedUrl.result[resourceId].files[0].file,
 				}
