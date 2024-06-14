@@ -47,13 +47,9 @@ module.exports = class ProjectsHelper {
 
 	static async update(resourceId, orgId, loggedInUserId, bodyData) {
 		try {
-			let { categories, recommeneded_for, languages, ...projectData } = bodyData
-			languages = languages.map((key) => {
-				return { label: key, value: key }
-			})
-			projectData.categories = categories
-			projectData.languages = languages
-			projectData.recommeneded_for = recommeneded_for
+			delete bodyData.review_type
+			delete bodyData.organization_id
+			delete bodyData.type
 
 			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
 
@@ -70,7 +66,7 @@ module.exports = class ProjectsHelper {
 				headers: {
 					'Content-Type': 'multipart/form-data',
 				},
-				data: JSON.stringify(projectData),
+				data: JSON.stringify(bodyData),
 			}
 
 			let projectUploadStatus = await axios.request(config)
@@ -81,6 +77,7 @@ module.exports = class ProjectsHelper {
 				}
 				let updateData = {
 					meta: { title: bodyData.title },
+					title: bodyData.title,
 					updated_by: loggedInUserId,
 					blob_path: getSignedUrl.result[resourceId].files[0].file,
 				}
