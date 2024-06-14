@@ -48,9 +48,6 @@ module.exports = class ProjectsHelper {
 	static async update(resourceId, orgId, loggedInUserId, bodyData) {
 		try {
 			let { categories, recommeneded_for, languages, ...projectData } = bodyData
-			recommeneded_for = recommeneded_for.map((key) => {
-				return { label: key, value: key }
-			})
 			languages = languages.map((key) => {
 				return { label: key, value: key }
 			})
