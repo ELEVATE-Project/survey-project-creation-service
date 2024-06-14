@@ -48,9 +48,6 @@ module.exports = class ProjectsHelper {
 	static async update(resourceId, orgId, loggedInUserId, bodyData) {
 		try {
 			let { categories, recommeneded_for, languages, ...projectData } = bodyData
-			categories = categories.map((key) => {
-				return { label: key, value: key }
-			})
 			recommeneded_for = recommeneded_for.map((key) => {
 				return { label: key, value: key }
 			})
@@ -64,7 +61,7 @@ module.exports = class ProjectsHelper {
 			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
 
 			let getSignedUrl = await filesService.getSignedUrl(
-				{ [resourceId]: { files: [fileName + 'project.json'] } },
+				{ [resourceId]: { files: [fileName] } },
 				common.PROJECT,
 				loggedInUserId
 			)
@@ -74,7 +71,6 @@ module.exports = class ProjectsHelper {
 				maxBodyLength: Infinity,
 				url: getSignedUrl.result[resourceId].files[0].url,
 				headers: {
-					// ...data.getHeaders(),
 					'Content-Type': 'multipart/form-data',
 				},
 				data: JSON.stringify(projectData),
