@@ -39,7 +39,6 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			organization_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
 			next_stage: {

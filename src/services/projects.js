@@ -19,7 +19,7 @@ module.exports = class ProjectsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - project id
 	 */
-	static async create(orgId, loggedInUserId) {
+	static async create(orgId, loggedInUserId, bodyData) {
 		try {
 			const orgConfig = await configService.list(orgId)
 
@@ -33,6 +33,7 @@ module.exports = class ProjectsHelper {
 			)
 
 			let projectData = {
+				title: bodyData.title,
 				type: common.PROJECT,
 				status: common.STATUS_DRAFT,
 				user_id: loggedInUserId,
@@ -42,6 +43,7 @@ module.exports = class ProjectsHelper {
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 			}
+
 			let projectCreate = await resourceQueries.create(projectData)
 			const mappingData = {
 				resource_id: projectCreate.id,
@@ -69,7 +71,6 @@ module.exports = class ProjectsHelper {
 
 	static async update(resourceId, orgId, loggedInUserId, bodyData) {
 		try {
-
 			const forbidden_resource_statuses = [
 				common.RESOURCE_STATUS_PUBLISHED,
 				common.RESOURCE_STATUS_REJECTED,
@@ -84,11 +85,6 @@ module.exports = class ProjectsHelper {
 					[Op.notIn]: forbidden_resource_statuses,
 				},
 			})
-			const countReviews = await reviewsQueries.countDistinct({
-				id: resourceId,
-				status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
-				organization_id: orgId,
-			})
 
 			if (!fetchResource) {
 				return responses.failureResponse({
@@ -97,6 +93,12 @@ module.exports = class ProjectsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
+			const countReviews = await reviewsQueries.countDistinct({
+				id: resourceId,
+				status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
+				organization_id: orgId,
+			})
 
 			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews > 0) {
 				return responses.failureResponse({
@@ -109,22 +111,7 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			let { categories, recommeneded_for, languages, ...projectData } = bodyData
-			categories = categories.map((key) => {
-				return { label: key, value: key }
-			})
-			recommeneded_for = recommeneded_for.map((key) => {
-				return { label: key, value: key }
-			})
-			languages = languages.map((key) => {
-				return { label: key, value: key }
-			})
-			projectData.categories = categories
-			projectData.languages = languages
-			projectData.recommeneded_for = recommeneded_for
-
 			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id'])
-
 
 			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
 

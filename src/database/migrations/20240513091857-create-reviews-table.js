@@ -11,7 +11,6 @@ module.exports = {
 			},
 			resource_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
 			reviewer_id: {
@@ -33,7 +32,6 @@ module.exports = {
 			},
 			organization_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
 			created_at: {
