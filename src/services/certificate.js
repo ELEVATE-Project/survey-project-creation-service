@@ -2,6 +2,7 @@ const _ = require('lodash')
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
 const certificateQueries = require('@database/queries/certificateBaseTemplate')
+const { UniqueConstraintError } = require('sequelize')
 const { getDefaultOrgId } = require('@helpers/getDefaultOrgId')
 const { Op } = require('sequelize')
 const utils = require('@generics/utils')
@@ -77,6 +78,57 @@ module.exports = class configsHelper {
 				message: 'CERTIFICATE_FETCH_FAILED',
 				result: [],
 			})
+		}
+	}
+
+	/**
+	 * Create or Update Certificate templates.
+	 * @method
+	 * @name update
+	 * @returns {JSON} - certificate templates JSON.
+	 */
+	static async update(id, bodyData, loggedInUserId, orgId) {
+		try {
+			console.log(id, loggedInUserId, orgId)
+			bodyData.updated_by = loggedInUserId
+
+			if (id) {
+				const [updateCount, updatedTemplate] = await certificateQueries.updateOne({ id: id }, bodyData, {
+					returning: true,
+					raw: true,
+				})
+
+				if (updateCount === 0) {
+					return responses.failureResponse({
+						message: 'CERTIFICATE_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				return responses.successResponse({
+					statusCode: httpStatusCode.accepted,
+					message: 'CERTIFICATE_UPDATED_SUCCESSFULLY',
+					result: updatedTemplate[0],
+				})
+			} else {
+				bodyData.created_by = loggedInUserId
+				bodyData.organization_id = orgId
+				const certificate = await certificateQueries.create(bodyData)
+				return responses.successResponse({
+					statusCode: httpStatusCode.created,
+					message: 'CERTIFICATE_TEMPLATE_CREATED',
+					result: certificate,
+				})
+			}
+		} catch (error) {
+			if (error instanceof UniqueConstraintError) {
+				return responses.failureResponse({
+					message: 'CERTIFICATE_ALREADY_EXISTS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 		}
 	}
 }

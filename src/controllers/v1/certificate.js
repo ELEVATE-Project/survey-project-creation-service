@@ -26,4 +26,25 @@ module.exports = class certificates {
 			return error
 		}
 	}
+
+	/**
+	 * create or update certificates.
+	 * @method
+	 * @name update
+	 * @returns {JSON} - certificate data as response.
+	 */
+	async update(req) {
+		try {
+			const certificate = await certificateService.update(
+				req.params.id ? req.params.id : '',
+				req.body,
+				req.decodedToken.id,
+				req.decodedToken.organization_id
+			)
+
+			return certificate
+		} catch (error) {
+			return error
+		}
+	}
 }
