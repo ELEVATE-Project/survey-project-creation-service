@@ -2854,7 +2854,7 @@ paths:
                         type: observation
                   certificate:
                     base_template_id: 5
-                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                     code: two-logo-two-sign
                     name: Two Logo Two Signature
                     logos:
@@ -3251,7 +3251,7 @@ paths:
                         type: observation
                   certificate:
                     base_template_id: 5
-                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                     code: two-logo-two-sign
                     name: Two Logo Two Signature
                     logos:
@@ -3551,13 +3551,6 @@ paths:
           required: false
           schema:
             type: string
-        - name: filter
-          in: query
-          description: To indicate to list all organization resource or resources created by that user
-          required: false
-          schema:
-            type: string
-          example: all
         - name: type
           in: query
           description: Type of the resource
@@ -3569,6 +3562,13 @@ paths:
           in: query
           description: The status of the resource
           required: false
+          schema:
+            type: string
+          example: DRAFT
+        - name: page_status
+          in: query
+          description: To identify the page from frontend. Values can be ['drafts','up_for_review','submitted_for_review']
+          required: true
           schema:
             type: string
           example: DRAFT
@@ -3845,7 +3845,7 @@ paths:
                         name: Shikshlokam
                         code: SL
                       organization_id: 2
-                      reviwers:
+                      reviewers:
                         - id: 24
                           name: Raven
                           status: REQUEST_FOR_CHANGES
@@ -3886,7 +3886,7 @@ paths:
                             type: observation
                       certificate:
                         base_template_id: 5
-                        base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                        base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                         code: two-logo-two-sign
                         name: Two Logo Two Signature
                         logos:
@@ -3937,7 +3937,7 @@ paths:
                           status: RESOLVED
                           parent_id: 0
                           user_id: 24
-                          commentor:
+                          commenter:
                             id: 24
                             name: Priyanka
                           is_read: true
@@ -3959,14 +3959,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
-  /scp/v1/projects/reviwerList:
+  /scp/v1/projects/reviewerList:
     get:
       summary: Reviewer List
       tags:
         - Projects
       description: |-
-        You can use this API to get the list all project reviwers
-         - The API Endpoint for comment list is `/scp/v1/projects/reviwerList` 
+        You can use this API to get the list all project reviewers
+         - The API Endpoint for comment list is `/scp/v1/projects/reviewerList` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -3978,12 +3978,6 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
-          name: resource_id
-          description: Please append a valid resource Id to the Request URL.
-          schema:
-            type: number
-          required: true
 
       responses:
         '200':
@@ -4280,7 +4274,7 @@ paths:
                   description: Page number associated with the comment
                 status:
                   type: string
-                  description: Status of the comment (e.g., "UNRESOLVED").
+                  description: Status of the comment (e.g., "OPEN").
                 parent_id:
                   type: string
                   description: ID of the parent comment, if applicable
@@ -4291,7 +4285,7 @@ paths:
                   comment: 'Check spelling'
                   context: page
                   page: 1
-                  status: UNRESOLVED
+                  status: OPEN
                   parent_id: 2
 
       responses:
@@ -4336,7 +4330,7 @@ paths:
                       comment: 'Check spelling'
                       context: page
                       page: 1
-                      status: UNRESOLVED
+                      status: OPEN
                       parent_id: 2
                       is_read: false
                     meta:
@@ -4422,7 +4416,7 @@ paths:
                 example1:
                   value:
                     responseCode: OK
-                    message: Comment updated successfully
+                    message: Comment fetched successfully
                     result:
                       resource_id: 1
                       comments:
@@ -4432,7 +4426,7 @@ paths:
                           page: 1
                           status: RESOLVED
                           parent_id: 1
-                          commentor:
+                          commenter:
                             id: 24
                             name: Priyanka
                           is_read: true
@@ -4446,7 +4440,7 @@ paths:
                           page: 1
                           status: UNRESOLVED
                           parent_id: null
-                          commentor:
+                          commenter:
                             id: 24
                             name: Priyanka
                           is_read: true
@@ -4774,7 +4768,7 @@ paths:
                   code: two-logo-two-sign
                   name: Two Logo Two Signature
                   resource_type: project
-                  url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                  url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                   meta:
                     logos:
                       no_of_logos: 2
@@ -4834,7 +4828,7 @@ paths:
                       code: one-logo-one-sign
                       name: One Logo One Signature
                       resource_type: project
-                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
                         logos:
                           no_of_logos: 2
@@ -4947,7 +4941,7 @@ paths:
                       code: two-logo-two-sign
                       name: Two Logo Two Signature
                       resource_type: project
-                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
                         logos:
                           no_of_logos: 2
@@ -5061,7 +5055,7 @@ paths:
                     responseCode: OK
                     message: Template edited successfully
                     result:
-                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
 
                     meta:
                       formsVersion:
@@ -5162,7 +5156,7 @@ paths:
                           code: two-logo-two-sign
                           name: Two Logo Two Signature
                           resource_type: project
-                          url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBaseTemplates/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                          url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                           meta:
                             logos:
                               no_of_logos: 2

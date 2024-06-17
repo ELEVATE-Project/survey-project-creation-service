@@ -28,14 +28,19 @@ module.exports = (sequelize, DataTypes) => {
 			organization_id: {
 				type: DataTypes.INTEGER,
 				allowNull: false,
-				defaultValue: 0,
-				primaryKey: true,
 			},
 			meta: {
 				type: DataTypes.JSON,
 			},
 		},
+
 		{
+			indexes: [
+				{
+					unique: true,
+					fields: ['code', 'organization_id'],
+				},
+			],
 			sequelize,
 			modelName: 'CertificateBaseTemplate',
 			tableName: 'certificate_base_templates',
