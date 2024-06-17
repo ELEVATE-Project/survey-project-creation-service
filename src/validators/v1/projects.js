@@ -9,4 +9,7 @@ module.exports = {
 	details: (req) => {
 		req.checkParams('id').notEmpty().withMessage('id param is empty')
 	},
+	update: (req) => {
+		req.checkBody('title').trim().notEmpty().withMessage('title field is empty')
+	},
 }

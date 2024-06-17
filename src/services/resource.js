@@ -173,6 +173,7 @@ module.exports = class resourceHelper {
 
 			let orgDetails = {}
 			let userDetails = {}
+
 			if (orgDetailsResponse.success && orgDetailsResponse.data?.result?.length > 0) {
 				orgDetails = _.keyBy(orgDetailsResponse.data.result, 'id')
 			}
@@ -183,7 +184,8 @@ module.exports = class resourceHelper {
 
 			result.data = resources.map((res) => {
 				res.organization = orgDetails[res.organization_id] ? orgDetails[res.organization_id] : {}
-				res.creator = userDetails[res.user_id].name ? userDetails[res.user_id].name : ''
+				res.creator =
+					userDetails[res.user_id] && userDetails[res.user_id].name ? userDetails[res.user_id].name : ''
 				delete res.user_id
 				delete res.organization_id
 				return res

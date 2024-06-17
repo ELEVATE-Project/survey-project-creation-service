@@ -6,16 +6,15 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				autoIncrement: true,
 				type: DataTypes.INTEGER,
+				primaryKey: true,
 			},
 			resource_id: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
-				primaryKey: true, // Part of composite primary key
 			},
 			reviewer_id: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
-				primaryKey: true, // Part of composite primary key
 			},
 			status: {
 				type: DataTypes.ENUM(
