@@ -1,5 +1,6 @@
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
+const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const filesService = require('@services/files')
@@ -7,6 +8,8 @@ const userRequests = require('@requests/user')
 const configService = require('@services/config')
 const _ = require('lodash')
 const axios = require('axios')
+const { Op } = require('sequelize')
+const reviewsQueries = require('@database/queries/reviews')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -40,6 +43,12 @@ module.exports = class ProjectsHelper {
 				updated_by: loggedInUserId,
 			}
 			let projectCreate = await resourceQueries.create(projectData)
+			const mappingData = {
+				resource_id: projectCreate.id,
+				creator_id: loggedInUserId,
+				organization_id: orgId,
+			}
+			await resourceCreatorMappingQueries.create(mappingData)
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_CREATED_SUCCESSFULLY',
@@ -60,7 +69,62 @@ module.exports = class ProjectsHelper {
 
 	static async update(resourceId, orgId, loggedInUserId, bodyData) {
 		try {
+
+			const forbidden_resource_statuses = [
+				common.RESOURCE_STATUS_PUBLISHED,
+				common.RESOURCE_STATUS_REJECTED,
+				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+				common.RESOURCE_STATUS_SUBMITTED,
+				common.RESOURCE_STATUS_APPROVED,
+			]
+			const fetchResource = await resourceQueries.findOne({
+				id: resourceId,
+				organization_id: orgId,
+				status: {
+					[Op.notIn]: forbidden_resource_statuses,
+				},
+			})
+			const countReviews = await reviewsQueries.countDistinct({
+				id: resourceId,
+				status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
+				organization_id: orgId,
+			})
+
+			if (!fetchResource) {
+				return responses.failureResponse({
+					message: 'PROJECT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews > 0) {
+				return responses.failureResponse({
+					message: {
+						key: 'FORBIDDEN_RESOURCE_UPDATE',
+						interpolation: { resourceTitle: fetchResource.title, reviewer_count: countReviews },
+					},
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			let { categories, recommeneded_for, languages, ...projectData } = bodyData
+			categories = categories.map((key) => {
+				return { label: key, value: key }
+			})
+			recommeneded_for = recommeneded_for.map((key) => {
+				return { label: key, value: key }
+			})
+			languages = languages.map((key) => {
+				return { label: key, value: key }
+			})
+			projectData.categories = categories
+			projectData.languages = languages
+			projectData.recommeneded_for = recommeneded_for
+
 			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id'])
+
 
 			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
 
