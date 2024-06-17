@@ -29,7 +29,11 @@ module.exports = class Projects {
 				)
 				return project
 			} else {
-				const project = await projectService.create(req.decodedToken.organization_id, req.decodedToken.id)
+				const project = await projectService.create(
+					req.decodedToken.organization_id,
+					req.decodedToken.id,
+					req.body
+				)
 				return project
 			}
 		} catch (error) {
