@@ -212,6 +212,11 @@ module.exports = class ProjectsHelper {
 	static async submitForReview(userDetails, resourceId, bodyData) {
 		try {
 			let projectDetails = await this.details(resourceId, userDetails.organization_id, userDetails.id)
+			if (projectDetails.statusCode == 200) {
+				let projectData = projectDetails.result
+
+				console.log(projectData)
+			}
 			console.log(projectDetails)
 		} catch (error) {
 			logger.error(error)
