@@ -48,6 +48,10 @@ module.exports = class resourceHelper {
 			// get the unique organization ids from resource creator mapping table by the user
 			const OrganizationIds = [...new Set(resource_creator_mapping_data.map((item) => item.organization_id))]
 
+			if (queryParams[common.TYPE]) {
+				filter.type = queryParams[common.TYPE]
+			}
+
 			if (
 				queryParams[common.PAGE_STATUS] === common.PAGE_STATUS_DRAFTS ||
 				queryParams[common.PAGE_STATUS] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW
