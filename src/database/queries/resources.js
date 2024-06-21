@@ -1,4 +1,7 @@
 'use strict'
+
+const common = require('@constants/common')
+
 const Resource = require('../models/index').Resource
 
 exports.create = async (data) => {
@@ -48,6 +51,22 @@ exports.findAll = async (filter, attributes = {}) => {
 		})
 
 		return res
+	} catch (error) {
+		return error
+	}
+}
+exports.resourceList = async (filter, attributes = {}, sort = common.CREATED_AT, page = 1, limit = common.LIMIT) => {
+	try {
+		const res = await Resource.findAndCountAll({
+			where: filter,
+			attributes,
+			order: [[sort.sort_by, sort.order]],
+			offset: limit * (page - 1),
+			limit: limit,
+			raw: true,
+		})
+
+		return { result: res.rows, count: res.count }
 	} catch (error) {
 		return error
 	}

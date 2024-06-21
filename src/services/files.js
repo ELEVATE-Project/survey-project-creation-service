@@ -154,7 +154,7 @@ module.exports = class FilesHelper {
 				}
 
 				return responses.successResponse({
-					message: 'DOWNLOAD_URL_GENERATED_SUCCESSFULLY',
+					message: 'JSON_FETCHED_SUCCESSFULLY',
 					statusCode: httpStatusCode.ok,
 					responseCode: 'OK',
 					result: result,

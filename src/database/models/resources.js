@@ -12,9 +12,21 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				type: DataTypes.STRING,
 			},
+			title: {
+				allowNull: true,
+				type: DataTypes.STRING,
+			},
 			status: {
 				allowNull: false,
-				type: DataTypes.ENUM('DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED'),
+				type: DataTypes.ENUM(
+					'DRAFT',
+					'SUBMITTED',
+					'IN_REVIEW',
+					'APPROVED',
+					'REJECTED',
+					'PUBLISHED',
+					'REJECTED_AND_REPORTED'
+				),
 				defaultValue: 'DRAFT',
 			},
 			blob_path: {
@@ -27,7 +39,6 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			organization_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
 			next_stage: {
@@ -62,6 +73,12 @@ module.exports = (sequelize, DataTypes) => {
 			tableName: 'resources',
 			freezeTableName: true,
 			paranoid: false,
+			indexes: [
+				{
+					name: 'title_index',
+					fields: ['title'],
+				},
+			],
 		}
 	)
 

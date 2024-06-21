@@ -6,10 +6,10 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				autoIncrement: true,
 				type: DataTypes.INTEGER,
+				primaryKey: true,
 			},
 			resource_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
 			reviewer_id: {
@@ -31,7 +31,6 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			organization_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
 		},
@@ -40,6 +39,12 @@ module.exports = (sequelize, DataTypes) => {
 			tableName: 'reviews',
 			freezeTableName: true,
 			paranoid: false,
+			indexes: [
+				{
+					unique: true,
+					fields: ['resource_id', 'reviewer_id'],
+				},
+			],
 		}
 	)
 

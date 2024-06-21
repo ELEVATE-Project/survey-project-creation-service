@@ -1,11 +1,15 @@
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
+const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const filesService = require('@services/files')
 const userRequests = require('@requests/user')
+const configService = require('@services/config')
 const _ = require('lodash')
 const axios = require('axios')
+const { Op } = require('sequelize')
+const reviewsQueries = require('@database/queries/reviews')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -15,18 +19,38 @@ module.exports = class ProjectsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - project id
 	 */
-	static async create(orgId, loggedInUserId) {
+	static async create(orgId, loggedInUserId, bodyData) {
 		try {
+			const orgConfig = await configService.list(orgId)
+
+			const orgConfigList = _.reduce(
+				orgConfig.result,
+				(acc, item) => {
+					acc[item.resource_type] = item.review_type
+					return acc
+				},
+				{}
+			)
+
 			let projectData = {
+				title: bodyData.title,
 				type: common.PROJECT,
 				status: common.STATUS_DRAFT,
 				user_id: loggedInUserId,
+				review_type: orgConfigList[common.PROJECT],
 				organization_id: orgId,
 				meta: {},
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 			}
+
 			let projectCreate = await resourceQueries.create(projectData)
+			const mappingData = {
+				resource_id: projectCreate.id,
+				creator_id: loggedInUserId,
+				organization_id: orgId,
+			}
+			await resourceCreatorMappingQueries.create(mappingData)
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_CREATED_SUCCESSFULLY',
@@ -47,24 +71,52 @@ module.exports = class ProjectsHelper {
 
 	static async update(resourceId, orgId, loggedInUserId, bodyData) {
 		try {
-			let { categories, recommeneded_for, languages, ...projectData } = bodyData
-			categories = categories.map((key) => {
-				return { label: key, value: key }
+			const forbidden_resource_statuses = [
+				common.RESOURCE_STATUS_PUBLISHED,
+				common.RESOURCE_STATUS_REJECTED,
+				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+				common.RESOURCE_STATUS_SUBMITTED,
+				common.RESOURCE_STATUS_APPROVED,
+			]
+			const fetchResource = await resourceQueries.findOne({
+				id: resourceId,
+				organization_id: orgId,
+				status: {
+					[Op.notIn]: forbidden_resource_statuses,
+				},
 			})
-			recommeneded_for = recommeneded_for.map((key) => {
-				return { label: key, value: key }
+
+			if (!fetchResource) {
+				return responses.failureResponse({
+					message: 'PROJECT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			const countReviews = await reviewsQueries.countDistinct({
+				id: resourceId,
+				status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
+				organization_id: orgId,
 			})
-			languages = languages.map((key) => {
-				return { label: key, value: key }
-			})
-			projectData.categories = categories
-			projectData.languages = languages
-			projectData.recommeneded_for = recommeneded_for
+
+			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews > 0) {
+				return responses.failureResponse({
+					message: {
+						key: 'FORBIDDEN_RESOURCE_UPDATE',
+						interpolation: { resourceTitle: fetchResource.title, reviewer_count: countReviews },
+					},
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id'])
 
 			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
 
 			let getSignedUrl = await filesService.getSignedUrl(
-				{ [resourceId]: { files: [fileName + 'project.json'] } },
+				{ [resourceId]: { files: [fileName] } },
 				common.PROJECT,
 				loggedInUserId
 			)
@@ -74,10 +126,9 @@ module.exports = class ProjectsHelper {
 				maxBodyLength: Infinity,
 				url: getSignedUrl.result[resourceId].files[0].url,
 				headers: {
-					// ...data.getHeaders(),
 					'Content-Type': 'multipart/form-data',
 				},
-				data: JSON.stringify(projectData),
+				data: JSON.stringify(bodyData),
 			}
 
 			let projectUploadStatus = await axios.request(config)
@@ -88,6 +139,7 @@ module.exports = class ProjectsHelper {
 				}
 				let updateData = {
 					meta: { title: bodyData.title },
+					title: bodyData.title,
 					updated_by: loggedInUserId,
 					blob_path: getSignedUrl.result[resourceId].files[0].file,
 				}

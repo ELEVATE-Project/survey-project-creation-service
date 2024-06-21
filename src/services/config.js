@@ -40,7 +40,7 @@ module.exports = class configsHelper {
 				show_reviewer_list: process.env.SHOW_REVIEWER_LIST === 'true' ? true : false,
 				min_approval: Number(process.env.MIN_APPROVAL),
 				review_type:
-					process.env.REVIEW_TYPE.toUpperCase === common.REVIEW_TYPE_SEQUENTIAL
+					process.env.REVIEW_TYPE.toUpperCase() === common.REVIEW_TYPE_SEQUENTIAL
 						? common.REVIEW_TYPE_SEQUENTIAL
 						: common.REVIEW_TYPE_PARALLEL,
 			}

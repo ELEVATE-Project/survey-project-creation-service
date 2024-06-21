@@ -402,6 +402,15 @@ const generateUniqueId = () => {
 	return uuidV4()
 }
 
+const removeDefaultOrgCertificates = (certificates, orgId) => {
+	const certificateMap = new Map()
+	certificates.forEach((cert) => {
+		if (!certificateMap.has(cert.code)) certificateMap.set(cert.code, cert)
+		else if (cert.organization_id === orgId) certificateMap.set(cert.code, cert)
+	})
+	return Array.from(certificateMap.values())
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -422,4 +431,5 @@ module.exports = {
 	processQueryParametersWithExclusions,
 	removeDefaultOrgEntityTypes,
 	generateUniqueId,
+	removeDefaultOrgCertificates,
 }

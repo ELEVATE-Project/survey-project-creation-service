@@ -11,7 +11,6 @@ module.exports = {
 			},
 			resource_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
 			comment: {

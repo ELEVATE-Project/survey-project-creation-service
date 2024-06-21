@@ -29,7 +29,6 @@ module.exports = {
 			},
 			organization_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
 			next_stage: {

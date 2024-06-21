@@ -1,36 +1,27 @@
 'use strict'
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
-		await queryInterface.createTable('certificate_base_templates', {
+		await queryInterface.createTable('resource_creator_mapping', {
 			id: {
-				type: Sequelize.INTEGER,
 				allowNull: false,
 				primaryKey: true,
 				autoIncrement: true,
+				type: Sequelize.INTEGER,
+			},
+			resource_id: {
+				allowNull: false,
+				type: Sequelize.INTEGER,
+			},
+			creator_id: {
+				allowNull: false,
+				type: Sequelize.INTEGER,
 			},
 			organization_id: {
+				allowNull: false,
+				primaryKey: true,
 				type: Sequelize.INTEGER,
-				allowNull: false,
-			},
-			code: {
-				type: Sequelize.STRING,
-				allowNull: false,
-			},
-			name: {
-				type: Sequelize.STRING,
-				allowNull: false,
-			},
-			url: {
-				type: Sequelize.STRING,
-				allowNull: false,
-			},
-			resource_type: {
-				type: Sequelize.STRING,
-				allowNull: false,
-			},
-			meta: {
-				type: Sequelize.JSON,
 			},
 			created_at: {
 				allowNull: false,
@@ -47,6 +38,6 @@ module.exports = {
 	},
 
 	async down(queryInterface, Sequelize) {
-		await queryInterface.dropTable('certificate_base_templates')
+		await queryInterface.dropTable('resource_creator_mapping')
 	},
 }
