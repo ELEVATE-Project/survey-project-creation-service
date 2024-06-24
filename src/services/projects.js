@@ -10,6 +10,7 @@ const _ = require('lodash')
 const axios = require('axios')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
+const entityService = require('@services/entities')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -264,12 +265,109 @@ module.exports = class ProjectsHelper {
 	static async submitForReview(userDetails, resourceId, bodyData) {
 		try {
 			let projectDetails = await this.details(resourceId, userDetails.organization_id, userDetails.id)
+
 			if (projectDetails.statusCode == 200) {
 				let projectData = projectDetails.result
+				if (projectData.type !== common.PROJECT) {
+					return responses.failureResponse({
+						message: 'ONLY_PROJECT_CAN_BE_SUBMITTED_FOR_REVIEW',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+				if (projectData.title == '') {
+					return responses.failureResponse({
+						message: 'PROJECT_TITLE_NOT_ADDED',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+				if (projectData.objective == '') {
+					return responses.failureResponse({
+						message: 'PROJECT_OBJECTIVE_NOT_ADDED',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+				if (projectData.keywords == '') {
+					return responses.failureResponse({
+						message: 'PROJECT_KEYWORD_NOT_ADDED',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				} //recommeneded_for
+				let entitiesData = ['languages', 'licenses', 'categories']
+				let entities = ''
+				for (let i = 0; i < entitiesData.length; i++) {
+					if (projectData[entitiesData[i]] && projectData[entitiesData[i]] != '') {
+						if (entities == '') {
+							entities = projectData[entitiesData[i]].value
+						} else {
+							entities = entities + ',' + projectData[entitiesData[i]].value
+						}
+					}
+				}
+				let allEntities = await entityService.read({ value: entities }, userDetails.id)
+				for (let i = 0; i < entitiesData.length; i++) {
+					let entitiesPresent = allEntities.result.find(
+						(item) => item.value === projectData[entitiesData[i]].value
+					)
+					if (!entitiesPresent) {
+						return responses.failureResponse({
+							message: entitiesData[i].toUpperCase() + '_NOT_ADDED',
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+						})
+					}
+				}
+				// if(projectData.tasks.length < 1){
+				// 	return responses.failureResponse({
+				// 		message: "TASK_NOT_FOUND",
+				// 		statusCode: httpStatusCode.bad_request,
+				// 		responseCode: 'CLIENT_ERROR',
+				// 	})
+				// }
+				// for(let i=0; i<projectData.tasks.length; i++){
+				// 	if(projectData.tasks[i].type === common.CONTENT){
+				// 		if(projectData.tasks[i].children.length < 1){
+				// 			return responses.failureResponse({
+				// 				message: "SUB_TASK_NOT_FOUND",
+				// 				statusCode: httpStatusCode.bad_request,
+				// 				responseCode: 'CLIENT_ERROR',
+				// 			})
+				// 		}
+				// 	}
+				// }
+				let updateProject = await resourceQueries.updateOne(
+					{ id: projectData.id },
+					{ status: common.SUBMITTED }
+				)
 
-				console.log(projectData)
+				if (bodyData.hasOwnProperty('reviwer_ids')) {
+					let reviewsData = []
+					for (let i = 0; i < bodyData.reviwer_ids.length; i++) {
+						let review = {
+							resource_id: projectData.id,
+							reviewer_id: bodyData.reviwer_ids[i],
+							status: common.NOT_STARTED,
+							organization_id: userDetails.organization_id,
+						}
+						reviewsData.push(review)
+					}
+					let projectReview = await reviewsQueries.bulkCreate(reviewsData)
+					return responses.successResponse({
+						statusCode: httpStatusCode.created,
+						message: 'PROJECT_SUBMITTED_SUCCESSFULLY',
+						result: { id: projectData.id },
+					})
+				} else {
+					return responses.successResponse({
+						statusCode: httpStatusCode.created,
+						message: 'PROJECT_SUBMITTED_SUCCESSFULLY',
+						result: { id: projectData.id },
+					})
+				}
 			}
-			console.log(projectDetails)
 		} catch (error) {
 			logger.error(error)
 			return error

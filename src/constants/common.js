@@ -86,4 +86,7 @@ module.exports = {
 	STATUS_RESOLVED: 'RESOLVED',
 	ALL_USER_ROLES: 'all',
 	LIMIT: 100,
+	CONTENT: 'content',
+	SUBMITTED: 'SUBMITTED',
+	NOT_STARTED: 'NOT_STARTED',
 }

@@ -113,7 +113,7 @@ module.exports = class EntityHelper {
 				filter = {
 					[Op.or]: [
 						{
-							value: query.value,
+							value: query.value.split(','),
 							created_by: common.CREATED_BY_SYSTEM,
 							status: common.STATUS_ACTIVE,
 						},
