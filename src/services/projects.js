@@ -295,8 +295,8 @@ module.exports = class ProjectsHelper {
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
 					})
-				} //recommeneded_for
-				let entitiesData = ['languages', 'licenses', 'categories']
+				}
+				let entitiesData = ['recommeneded_for', 'languages', 'licenses', 'categories']
 				let entities = ''
 				for (let i = 0; i < entitiesData.length; i++) {
 					if (projectData[entitiesData[i]] && projectData[entitiesData[i]] != '') {
