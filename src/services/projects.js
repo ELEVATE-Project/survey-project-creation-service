@@ -320,24 +320,24 @@ module.exports = class ProjectsHelper {
 						})
 					}
 				}
-				// if(projectData.tasks.length < 1){
-				// 	return responses.failureResponse({
-				// 		message: "TASK_NOT_FOUND",
-				// 		statusCode: httpStatusCode.bad_request,
-				// 		responseCode: 'CLIENT_ERROR',
-				// 	})
-				// }
-				// for(let i=0; i<projectData.tasks.length; i++){
-				// 	if(projectData.tasks[i].type === common.CONTENT){
-				// 		if(projectData.tasks[i].children.length < 1){
-				// 			return responses.failureResponse({
-				// 				message: "SUB_TASK_NOT_FOUND",
-				// 				statusCode: httpStatusCode.bad_request,
-				// 				responseCode: 'CLIENT_ERROR',
-				// 			})
-				// 		}
-				// 	}
-				// }
+				if (projectData.tasks.length < 1) {
+					return responses.failureResponse({
+						message: 'TASK_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+				for (let i = 0; i < projectData.tasks.length; i++) {
+					if (projectData.tasks[i].type === common.CONTENT) {
+						if (projectData.tasks[i].children.length < 1) {
+							return responses.failureResponse({
+								message: 'SUB_TASK_NOT_FOUND',
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+							})
+						}
+					}
+				}
 				let updateProject = await resourceQueries.updateOne(
 					{ id: projectData.id },
 					{ status: common.SUBMITTED }
