@@ -2,13 +2,728 @@
 	"info": {
 		"_postman_id": "fb8c080a-443a-4b80-bfa0-efefa69ebe4d",
 		"name": "MentorED - Self Creation Portal",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
 		"_exporter_id": "12011146",
 		"_collection_link": "https://crimson-star-573488.postman.co/workspace/backend~c1daa04f-8872-40f8-9e04-dcefba7434d5/collection/12011146-fb8c080a-443a-4b80-bfa0-efefa69ebe4d?action=share&source=collection_link&creator=12011146"
 	},
 	"item": [
 		{
-			"name": "permissions",
+			"name": "AssignRolePermission",
+			"item": [
+				{
+					"name": "Create RolePermission",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"permission_id\" : 1,\n    \"role_title\": \"CONTENT_CREATOR\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/role-permission-mapping/create/1"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete RolePermission",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"permission_id\" : 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/role-permission-mapping/delete/:role_id",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "role-permission-mapping", "delete", ":role_id"],
+							"variable": [
+								{
+									"key": "role_id",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List RolePermission",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/role-permission-mapping/list"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Permissions",
+			"item": [
+				{
+					"name": "Create Permissions",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\"code\": \"delete_entity_permissions\", \n\"module\": \"manage_user\", \n\"request_type\": [\"POST\"],\n\"api_path\" : \"/mentoring/v1/entity/delete\",\n\"status\": \"ACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/permissions/create"
+					},
+					"response": []
+				},
+				{
+					"name": "List Permissions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/permissions/list?page=1&limit=10",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "permissions", "list"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "search",
+									"value": "s",
+									"disabled": true
+								},
+								{
+									"key": "actions",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Permissions",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\"code\": \"ssss\", \n\"module\": \"read_permissions_listttt\", \n\"request_type\": [\"POST\"],\n\"api_path\": \"/mentoring/v1/sessions/sections\",\n\"status\": \"ACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/permissions/update/:id",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "permissions", "update", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "28",
+									"description": "update id"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Permissions",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/permissions/delete/:id",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "permissions", "delete", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "28",
+									"description": "Delete id"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Module",
+			"item": [
+				{
+					"name": "Create Module",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\" : \"SystemAdmin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/modules/create"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Module",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\" : \"AllSessionss\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/modules/update/:id",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "modules", "update", ":id"],
+							"query": [
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "update Id"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Module",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/modules/list?page=1&limit=10&search=cw==",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "modules", "list"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "search",
+									"value": "cw=="
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Module",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/modules/delete/:id",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "modules", "delete", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Delete Id"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Form",
+			"item": [
+				{
+					"name": "Create Form",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"session\",\n    \"sub_type\": \"createSessions\",\n    \"data\": {\n        \"template_name\": \"defaultTemplate\",\n        \"fields\": {\n            \"controls\": [\n                {\n                    \"name\": \"title\",\n                    \"label\": \"title\",\n                    \"value\": \"\",\n                    \"class\": \"ion-margin\",\n                    \"type\": \"text\",\n                    \"position\": \"floating\",\n                    \"validators\": {\n                        \"required\": true,\n                        \"min_length\": 5\n                    }\n                },\n                {\n                    \"name\": \"categories\",\n                    \"label\": \"Select categories\",\n                    \"value\": \"\",\n                    \"class\": \"ion-margin\",\n                    \"type\": \"chip\",\n                    \"position\": \"\",\n                    \"disabled\": false,\n                    \"show_select_all\": true,\n                    \"validators\": {\n                        \"required\": true\n                    }\n                },\n                {\n                    \"name\": \"ages\",\n                    \"label\": \"Select age\",\n                    \"value\": \"\",\n                    \"class\": \"ion-margin\",\n                    \"type\": \"chip\",\n                    \"position\": \"\",\n                    \"disabled\": false,\n                    \"show_select_all\": true,\n                    \"validators\": {\n                        \"required\": true\n                    }\n                }\n            ]\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/form/create"
+					},
+					"response": []
+				},
+				{
+					"name": "Read Form",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"session\",\n    \"sub_type\": \"createSessionsNew\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/form/read/16"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Form",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"session\",\n    \"sub_type\": \"createSessionsNew\",\n    \"data\": {\n        \"template_name\": \"Test\",\n        \"fields\": {\n            \"controls\": [\n                {\n                    \"name\": \"title\",\n                    \"label\": \"title\",\n                    \"value\": \"\",\n                    \"class\": \"ion-margin\",\n                    \"type\": \"text\",\n                    \"position\": \"floating\",\n                    \"validators\": {\n                        \"required\": true,\n                        \"min_length\": 5\n                    }\n                },\n                {\n                    \"name\": \"categories\",\n                    \"label\": \"Select categories\",\n                    \"value\": \"\",\n                    \"class\": \"ion-margin\",\n                    \"type\": \"chip\",\n                    \"position\": \"\",\n                    \"disabled\": false,\n                    \"show_select_all\": true,\n                    \"validators\": {\n                        \"required\": true\n                    }\n                },\n                {\n                    \"name\": \"ages\",\n                    \"label\": \"Select age\",\n                    \"value\": \"\",\n                    \"class\": \"ion-margin\",\n                    \"type\": \"chip\",\n                    \"position\": \"\",\n                    \"disabled\": false,\n                    \"show_select_all\": true,\n                    \"validators\": {\n                        \"required\": true\n                    }\n                }\n            ]\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/form/update/16",
+						"description": "NOTE: Id is required in params and that should be objectId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Entities",
+			"item": [
+				{
+					"name": "Create Entity",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"ml\",\n    \"label\": \"Malayalam\",\n    \"status\": \"ACTIVE\",\n    \"type\": \"SYSTEM\",\n    \"entity_type_id\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/entities/create",
+						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
+					},
+					"response": []
+				},
+				{
+					"name": "Read Entity",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/entities/read?read_user_entity=true&id=1",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "entities", "read"],
+							"query": [
+								{
+									"key": "id",
+									"value": "2",
+									"description": "User value or id",
+									"disabled": true
+								},
+								{
+									"key": "value",
+									"value": "ml",
+									"description": "User value or id",
+									"disabled": true
+								},
+								{
+									"key": "read_user_entity",
+									"value": "true"
+								},
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
+					},
+					"response": []
+				},
+				{
+					"name": "Read Entity Copy",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"hm\",\n    \"label\": \"malayalam\",\n    \"status\": \"ACTIVE\",\n    \"type\": \"SYSTEM\",\n    \"entity_type_id\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/entities/read?read_user_entity=true",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "entities", "read"],
+							"query": [
+								{
+									"key": "id",
+									"value": "2",
+									"description": "User value or id",
+									"disabled": true
+								},
+								{
+									"key": "value",
+									"value": "ml",
+									"description": "User value or id",
+									"disabled": true
+								},
+								{
+									"key": "read_user_entity",
+									"value": "true",
+									"description": "use this param to get all entities, including user created entities."
+								}
+							]
+						},
+						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Entity",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"ts-updated\",\n    \"label\": \"Test-updated\",\n    \"status\": \"ACTIVE\",\n    \"type\": \"SYSTEM\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{interfaceBaseUrl}}scp/v1/entities/update/42",
+						"description": "NOET: All body req parameters are optional to update."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Entity",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/entities/delete/1"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Entity Type",
+			"item": [
+				{
+					"name": "Create Entity Type",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"languages\",\n    \"label\": \"Languages\",\n    \"status\": \"ACTIVE\",\n    \"type\": \"SYSTEM\",\n    \"data_type\": \"STRING\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/entity-types/create",
+						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
+					},
+					"response": []
+				},
+				{
+					"name": "Read All System Entity Type",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/entity-types/read",
+						"description": "NOTE: Query Parmas\n1). type is mandatory\n2). deleted is optional\n3). status is optional"
+					},
+					"response": []
+				},
+				{
+					"name": "Read Entity Types with entities",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": [\n        \"medium\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/entity-types/read",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "entity-types", "read"],
+							"query": [
+								{
+									"key": "value",
+									"value": "role_one",
+									"disabled": true
+								},
+								{
+									"key": "deleted",
+									"value": "false",
+									"disabled": true
+								},
+								{
+									"key": "status",
+									"value": "ACTIVE",
+									"disabled": true
+								}
+							]
+						},
+						"description": "NOTE: Query Parmas\n1). type is mandatory\n2). deleted is optional\n3). status is optional"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Entity Type",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"language\",\n    \"label\": \"language\",\n    \"status\": \"ACTIVE\",\n    \"type\": \"SYSTEM\",\n    \"data_type\": \"STRING\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/entity-types/update/1",
+						"description": "NOET: All body req parameters are optional to update."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Entity Type",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/entity-types/delete/1"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "config",
 			"item": [
 				{
 					"name": "list",
@@ -21,15 +736,164 @@
 								"type": "text"
 							}
 						],
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/config/list"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Projects",
+			"item": [
+				{
+					"name": "reviwerList",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
 						"url": {
-							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/permissions/list",
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/projects/reviewerList?page=1&limit=20",
 							"host": ["{{selfCreationPortalBaseUrl}}scp"],
-							"path": ["v1", "permissions", "list"]
+							"path": ["v1", "projects", "reviewerList"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Projects create or update",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/projects/update"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Resources",
+			"item": [
+				{
+					"name": "list",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/resource/list?limit=100&sort_by=title&sort_order=asc&page_status=drafts&page=1",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "resource", "list"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100"
+								},
+								{
+									"key": "sort_by",
+									"value": "title"
+								},
+								{
+									"key": "sort_order",
+									"value": "asc"
+								},
+								{
+									"key": "search",
+									"value": "YXBp",
+									"disabled": true
+								},
+								{
+									"key": "page_status",
+									"value": "drafts"
+								},
+								{
+									"key": "status",
+									"value": "draft",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "type",
+									"value": "project",
+									"disabled": true
+								}
+							]
 						}
 					},
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Certificates",
+			"item": [
+				{
+					"name": "List",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/certificate/list"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "http://localhost:3006/scp/v1/cloud-services/file/getSignedUrl",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-auth-token",
+						"value": "bearer {{token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"request\": {\n    \"1\": {\n      \"files\": [\n        \"stateLogo1.png\"\n      ]\n    }\n  },\n  \"ref\": \"certificate\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{selfCreationPortalBaseUrl}}scp/v1/cloud-services/file/getSignedUrl"
+			},
+			"response": []
 		}
 	]
 }
