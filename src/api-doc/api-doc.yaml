@@ -5174,7 +5174,7 @@ paths:
                           type: projectCreation
                           version: 3
 
-  /user/v1/userRole/create:
+  /elevate-user/v1/user-role/create:
     post:
       summary: Create User Roles
       tags:
@@ -5182,7 +5182,7 @@ paths:
       description: |
         Use this API to create an user Role.
 
-        - Endpoint: `/user/v1/userRole/create`
+        - Endpoint: `/elevate-user/v1/user-role/create`
         - Provide values for parameters marked as `required`.
         - The X-auth-token is mandatory and cannot be empty or null.
       requestBody:
@@ -5211,7 +5211,7 @@ paths:
             examples:
               example1:
                 value:
-                  title: CONTENT_CREATOR
+                  title: content_creator
                   user_type: 1
                   status: ACTIVE
                   visibility: PUBLIC
@@ -5269,7 +5269,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/user/createRole400Response'
-  /user/v1/userRole/update/{id}:
+  /elevate-user/v1/user-role/update/{id}:
     post:
       summary: Update User Roles
       tags:
@@ -5277,7 +5277,7 @@ paths:
       description: |
         Use this API to update an user Role.
 
-        - Endpoint: `/user/v1/userRole/update/{id}`
+        - Endpoint: `/elevate-user/v1/user-role/update/{id}`
         - Provide values for parameters marked as `required`.
         - The X-auth-token is mandatory and cannot be empty or null.
       parameters:
@@ -5377,7 +5377,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/user/updateRole400Response'
-  /user/v1/org-admin/updateUser/{id}:
+  /elevate-user/user/v1/org-admin/updateUser/{id}:
     post:
       summary: Update User Role and Organization
       tags:
@@ -5385,7 +5385,7 @@ paths:
       description: |
         Use this API to update an user.
 
-        - Endpoint: `/user/v1/org-admin/updateUser/{id}`
+        - Endpoint: `/elevate-user/user/v1/org-admin/updateUser/{id}`
         - Provide values for parameters marked as `required`.
         - The X-auth-token is mandatory and cannot be empty or null.
       parameters:
@@ -5399,7 +5399,7 @@ paths:
             type: string
         - in: path
           name: id
-          description: Please append a valid role id to the Request URL.
+          description: Please append user id to the Request URL.
           schema:
             type: string
           required: true
@@ -5425,8 +5425,7 @@ paths:
             examples:
               example1:
                 value:
-                  name: Priyanka
-                  roles: [CONTENT_CREATOR]
+                  roles: [content_creator]
                   organization_id: 1
       responses:
         '201':
