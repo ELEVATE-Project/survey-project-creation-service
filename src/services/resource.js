@@ -49,7 +49,9 @@ module.exports = class resourceHelper {
 			const OrganizationIds = [...new Set(resource_creator_mapping_data.map((item) => item.organization_id))]
 
 			if (queryParams[common.TYPE]) {
-				filter.type = queryParams[common.TYPE]
+				filter.type = {
+					[Op.in]: queryParams[common.TYPE].split(','),
+				}
 			}
 
 			if (
