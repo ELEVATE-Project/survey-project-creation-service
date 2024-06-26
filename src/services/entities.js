@@ -1,6 +1,6 @@
 // Dependencies
 const httpStatusCode = require('@generics/http-status')
-const entityQueries = require('@database/queries/entities')
+const entitiesQueries = require('@database/queries/entities')
 const { UniqueConstraintError, ForeignKeyConstraintError } = require('sequelize')
 const { Op } = require('sequelize')
 const responses = require('@helpers/responses')
@@ -20,7 +20,7 @@ module.exports = class EntityHelper {
 		bodyData.created_by = loggedInUserId
 		bodyData.updated_by = loggedInUserId
 		try {
-			const entity = await entityQueries.createEntity(bodyData)
+			const entity = await entitiesQueries.createEntity(bodyData)
 			return responses.successResponse({
 				statusCode: httpStatusCode.created,
 				message: 'ENTITY_CREATED_SUCCESSFULLY',
@@ -58,7 +58,7 @@ module.exports = class EntityHelper {
 	static async update(bodyData, id, loggedInUserId) {
 		bodyData.updated_by = loggedInUserId
 		try {
-			const [updateCount, updatedEntity] = await entityQueries.updateOneEntity(id, bodyData, loggedInUserId, {
+			const [updateCount, updatedEntity] = await entitiesQueries.updateOneEntity(id, bodyData, loggedInUserId, {
 				returning: true,
 				raw: true,
 			})
@@ -121,7 +121,7 @@ module.exports = class EntityHelper {
 					],
 				}
 			}
-			const entities = await entityQueries.findAllEntities(filter)
+			const entities = await entitiesQueries.findAllEntities(filter)
 
 			if (!entities.length) {
 				return responses.failureResponse({
@@ -159,7 +159,7 @@ module.exports = class EntityHelper {
 					created_by: common.CREATED_BY_SYSTEM,
 				}
 			}
-			const entities = await entityQueries.findAllEntities(filter)
+			const entities = await entitiesQueries.findAllEntities(filter)
 
 			if (!entities.length) {
 				return responses.failureResponse({
@@ -178,21 +178,6 @@ module.exports = class EntityHelper {
 		}
 	}
 
-	static async findAllEntities(data) {
-		try {
-			const entities = await entityQueries.findAll({
-				where: {
-					value: data.value,
-					status: common.STATUS_ACTIVE,
-				},
-				raw: true,
-			})
-			return entities
-		} catch (error) {
-			return error
-		}
-	}
-
 	/**
 	 * Delete entity.
 	 * @method
@@ -203,7 +188,7 @@ module.exports = class EntityHelper {
 
 	static async delete(id, userId) {
 		try {
-			const deleteCount = await entityQueries.deleteOneEntityType(id, userId)
+			const deleteCount = await entitiesQueries.deleteOneEntityType(id, userId)
 			if (deleteCount === 0) {
 				return responses.failureResponse({
 					message: 'ENTITY_NOT_FOUND',
