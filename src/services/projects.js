@@ -267,7 +267,7 @@ module.exports = class ProjectsHelper {
 		try {
 			let projectDetails = await this.details(resourceId, userDetails.organization_id, userDetails.id)
 
-			if (projectDetails.statusCode == 200) {
+			if (projectDetails.statusCode == httpStatusCode.ok) {
 				let projectData = projectDetails.result
 				if (projectData.type !== common.PROJECT) {
 					return responses.failureResponse({
@@ -304,10 +304,10 @@ module.exports = class ProjectsHelper {
 				let entities = []
 				for (let i = 0; i < entitiyTypes.length; i++) {
 					if (projectData[entitiyTypes[i]] && projectData[entitiyTypes[i]] != '') {
-						entities.push(projectData[entitiyTypes[i]].value)
+						entities.push(projectData[entitiyTypes[i]].id)
 					}
 				}
-				let allEntities = await entityService.read({ value: entities }, userDetails.id)
+				let allEntities = await entityService.read({ id: entities }, userDetails.id)
 				for (let i = 0; i < entitiyTypes.length; i++) {
 					let entitiesPresent = allEntities.result.find(
 						(item) => item.value === projectData[entitiyTypes[i]].value
