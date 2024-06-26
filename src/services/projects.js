@@ -10,6 +10,7 @@ const _ = require('lodash')
 const axios = require('axios')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
+const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const entityService = require('@services/entities')
 
 module.exports = class ProjectsHelper {
@@ -296,25 +297,24 @@ module.exports = class ProjectsHelper {
 						responseCode: 'CLIENT_ERROR',
 					})
 				}
-				let entitiesData = ['recommeneded_for', 'languages', 'licenses', 'categories']
-				let entities = ''
-				for (let i = 0; i < entitiesData.length; i++) {
-					if (projectData[entitiesData[i]] && projectData[entitiesData[i]] != '') {
-						if (entities == '') {
-							entities = projectData[entitiesData[i]].value
-						} else {
-							entities = entities + ',' + projectData[entitiesData[i]].value
-						}
+				let entitiyTypes = await entityModelMappingQuery.findModelAndEntityTypes({
+					model: 'project',
+					status: common.STATUS_ACTIVE,
+				})
+				let entities = []
+				for (let i = 0; i < entitiyTypes.length; i++) {
+					if (projectData[entitiyTypes[i]] && projectData[entitiyTypes[i]] != '') {
+						entities.push(projectData[entitiyTypes[i]].value)
 					}
 				}
 				let allEntities = await entityService.read({ value: entities }, userDetails.id)
-				for (let i = 0; i < entitiesData.length; i++) {
+				for (let i = 0; i < entitiyTypes.length; i++) {
 					let entitiesPresent = allEntities.result.find(
-						(item) => item.value === projectData[entitiesData[i]].value
+						(item) => item.value === projectData[entitiyTypes[i]].value
 					)
 					if (!entitiesPresent) {
 						return responses.failureResponse({
-							message: entitiesData[i].toUpperCase() + '_NOT_ADDED',
+							message: entitiyTypes[i] + ' not added',
 							statusCode: httpStatusCode.bad_request,
 							responseCode: 'CLIENT_ERROR',
 						})
@@ -328,6 +328,15 @@ module.exports = class ProjectsHelper {
 					})
 				}
 				for (let i = 0; i < projectData.tasks.length; i++) {
+					if (projectData.tasks[i].allow_evidences == common.TRUE) {
+						if (projectData.tasks[i].evidence_details.file_types.length < 1) {
+							return responses.failureResponse({
+								message: 'FILE_TYPE_NOT_SELECTED',
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+							})
+						}
+					}
 					if (projectData.tasks[i].type === common.CONTENT) {
 						if (projectData.tasks[i].children.length < 1) {
 							return responses.failureResponse({

@@ -89,4 +89,6 @@ module.exports = {
 	CONTENT: 'content',
 	SUBMITTED: 'SUBMITTED',
 	NOT_STARTED: 'NOT_STARTED',
+	TRUE: true,
+	FALSE: false,
 }

@@ -1,13 +1,14 @@
 // DependenciesI
 const httpStatusCode = require('@generics/http-status')
-const entityTypeQueries = require('../database/queries/entityType')
 const { UniqueConstraintError } = require('sequelize')
 const { Op } = require('sequelize')
 const { removeDefaultOrgEntityTypes } = require('@generics/utils')
 const { getDefaultOrgId } = require('@helpers/getDefaultOrgId')
 const utils = require('@generics/utils')
 const responses = require('@helpers/responses')
-
+const entityTypeQueries = require('@database/queries/entityType')
+const entityModelMappingQuery = require('@database/queries/entityModelMapping')
+const common = require('@constants/common')
 module.exports = class EntityTypeHelper {
 	/**
 	 * Create entity type.
@@ -23,12 +24,21 @@ module.exports = class EntityTypeHelper {
 			bodyData.created_by = loggedInUserId
 			bodyData.updated_by = loggedInUserId
 			bodyData.organization_id = orgId
-			const entityType = await entityTypeQueries.createEntityType(bodyData)
-			return responses.successResponse({
-				statusCode: httpStatusCode.created,
-				message: 'ENTITY_TYPE_CREATED_SUCCESSFULLY',
-				result: entityType,
-			})
+			let entityType = await entityTypeQueries.createEntityType(bodyData)
+			console.log(entityType.dataValues)
+			if (entityType) {
+				let entityModelMapping = {
+					entity_type_id: entityType.dataValues.id,
+					model: bodyData.model,
+					status: common.STATUS_ACTIVE,
+				}
+				await entityModelMappingQuery.create(entityModelMapping)
+				return responses.successResponse({
+					statusCode: httpStatusCode.created,
+					message: 'ENTITY_TYPE_CREATED_SUCCESSFULLY',
+					result: entityType,
+				})
+			}
 		} catch (error) {
 			if (error instanceof UniqueConstraintError) {
 				return responses.failureResponse({

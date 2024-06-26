@@ -72,12 +72,9 @@
 	"CERTIFICATE_ALREADY_EXISTS": "Template already exists",
 	"CERTIFICATE_NOT_FOUND": "Template not found",
 	"CERTIFICATE_UPDATED_SUCCESSFULLY": "Template updated successfully",
-	"RECOMMENDED_FOR_NOT_ADDED": "Recommended for not added",
-	"LANGUAGES_NOT_ADDED": "Languages not added",
-	"LICENSES_NOT_ADDED": "Licenses not added",
-	"CATEGORIES_NOT_ADDED": "Categories not added",
 	"ONLY_PROJECT_CAN_BE_SUBMITTED_FOR_REVIEW": "Project can be submitted for review",
 	"PROJECT_OBJECTIVE_NOT_ADDED": "Project objective not added",
 	"SUB_TASK_NOT_FOUND": "Sub task not found",
-	"TASK_NOT_FOUND": "Task not found"
+	"TASK_NOT_FOUND": "Task not found",
+	"FILE_TYPE_NOT_SELECTED": "File type not selected"
 }

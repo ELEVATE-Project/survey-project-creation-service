@@ -5,7 +5,7 @@
  * Description : Contains connections of all configs
  */
 
-require('./kafka')()
+// require('./kafka')()
 
 require('./cache')()
 const path = require('path')

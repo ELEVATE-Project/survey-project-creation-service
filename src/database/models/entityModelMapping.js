@@ -32,5 +32,22 @@ module.exports = (sequelize, DataTypes) => {
 		}
 	)
 
+	EntityModelMapping.addHook('beforeDestroy', async (instance, options) => {
+		try {
+			// Soft-delete only the associated Entity records with matching entity_model_mapping_id
+			await sequelize.models.EntityModelMapping.update(
+				{ deleted_at: new Date() }, // Set the deleted_at column to the current timestamp
+				{
+					where: {
+						entity_model_mapping_id: instance.id, // instance.id contains the primary key of the EntityType record being deleted
+					},
+				}
+			)
+		} catch (error) {
+			console.error('Error during beforeDestroy hook:', error)
+			throw error
+		}
+	})
+
 	return EntityModelMapping
 }
