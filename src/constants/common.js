@@ -88,7 +88,7 @@ module.exports = {
 	LIMIT: 100,
 	CONTENT: 'content',
 	SUBMITTED: 'SUBMITTED',
-	NOT_STARTED: 'NOT_STARTED',
+	RESOURCE_NOT_STARTED: 'NOT_STARTED',
 	TRUE: true,
 	FALSE: false,
 }
