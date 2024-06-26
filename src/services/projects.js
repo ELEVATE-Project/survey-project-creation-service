@@ -298,7 +298,7 @@ module.exports = class ProjectsHelper {
 					})
 				}
 				let entitiyTypes = await entityModelMappingQuery.findModelAndEntityTypes({
-					model: 'project',
+					model: common.PROJECT,
 					status: common.STATUS_ACTIVE,
 				})
 				let entities = []
