@@ -25,14 +25,16 @@ module.exports = class EntityTypeHelper {
 			bodyData.updated_by = loggedInUserId
 			bodyData.organization_id = orgId
 			let entityType = await entityTypeQueries.createEntityType(bodyData)
-			console.log(entityType.dataValues)
+
 			if (entityType) {
-				let entityModelMapping = {
-					entity_type_id: entityType.dataValues.id,
-					model: bodyData.model,
-					status: common.STATUS_ACTIVE,
+				if (bodyData.model) {
+					let entityModelMapping = {
+						entity_type_id: entityType.dataValues.id,
+						model: bodyData.model,
+						status: common.STATUS_ACTIVE,
+					}
+					await entityModelMappingQuery.create(entityModelMapping)
 				}
-				await entityModelMappingQuery.create(entityModelMapping)
 				return responses.successResponse({
 					statusCode: httpStatusCode.created,
 					message: 'ENTITY_TYPE_CREATED_SUCCESSFULLY',
