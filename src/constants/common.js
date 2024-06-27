@@ -86,5 +86,16 @@ module.exports = {
 	STATUS_RESOLVED: 'RESOLVED',
 	ALL_USER_ROLES: 'all',
 	LIMIT: 100,
-	roleValidationPaths: [],
+	roleValidationPaths: [
+		'/scp/v1/resource/list',
+		'/scp/v1/projects/reviewerList',
+		'/scp/v1/projects/update',
+		'/scp/v1/projects/details/',
+		'/scp/v1/certificate/list',
+		'/scp/v1/resource/list',
+		'/scp/v1/certificate/list',
+		'/scp/v1/certificate/update',
+		'/scp/v1/comment/update',
+		'/scp/v1/comment/list',
+	],
 }
