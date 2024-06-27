@@ -8,10 +8,12 @@ const userRequests = require('@requests/user')
 const configService = require('@services/config')
 const _ = require('lodash')
 const axios = require('axios')
-const { Op } = require('sequelize')
+const { Op, Utils } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const entityService = require('@services/entities')
+const utils = require('@generics/utils')
+const { logger } = require('handlebars')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -274,13 +276,15 @@ module.exports = class ProjectsHelper {
 						message: 'ONLY_PROJECT_CAN_BE_SUBMITTED_FOR_REVIEW',
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
+						result: utils.errorObject('body', 'type'),
 					})
 				}
-				if (projectData.title == '') {
+				if (projectData.title == '' || projectData.title == null) {
 					return responses.failureResponse({
 						message: 'PROJECT_TITLE_NOT_ADDED',
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
+						result: utils.errorObject('body', 'title'),
 					})
 				}
 				if (projectData.objective == '') {
@@ -288,6 +292,7 @@ module.exports = class ProjectsHelper {
 						message: 'PROJECT_OBJECTIVE_NOT_ADDED',
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
+						error: utils.errorObject('body', 'objective'),
 					})
 				}
 				if (projectData.keywords == '') {
@@ -295,6 +300,7 @@ module.exports = class ProjectsHelper {
 						message: 'PROJECT_KEYWORD_NOT_ADDED',
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
+						error: utils.errorObject('body', 'keywords'),
 					})
 				}
 				let entitiyTypes = await entityModelMappingQuery.findModelAndEntityTypes({
@@ -317,6 +323,7 @@ module.exports = class ProjectsHelper {
 							message: entitiyTypes[i] + ' not added',
 							statusCode: httpStatusCode.bad_request,
 							responseCode: 'CLIENT_ERROR',
+							error: utils.errorObject('body', entitiyTypes[i]),
 						})
 					}
 				}
@@ -325,6 +332,7 @@ module.exports = class ProjectsHelper {
 						message: 'TASK_NOT_FOUND',
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
+						error: utils.errorObject('body', 'tasks'),
 					})
 				}
 				for (let i = 0; i < projectData.tasks.length; i++) {
@@ -334,6 +342,7 @@ module.exports = class ProjectsHelper {
 								message: 'FILE_TYPE_NOT_SELECTED',
 								statusCode: httpStatusCode.bad_request,
 								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject('body', 'file_types'),
 							})
 						}
 					}
@@ -343,6 +352,7 @@ module.exports = class ProjectsHelper {
 								message: 'SUB_TASK_NOT_FOUND',
 								statusCode: httpStatusCode.bad_request,
 								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject('body', 'children'),
 							})
 						}
 					}

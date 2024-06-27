@@ -411,6 +411,10 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 	return Array.from(certificateMap.values())
 }
 
+const errorObject = (params, filed) => {
+	return [{ location: params, param: filed, message: filed + ' field is empty' }]
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -432,4 +436,5 @@ module.exports = {
 	removeDefaultOrgEntityTypes,
 	generateUniqueId,
 	removeDefaultOrgCertificates,
+	errorObject,
 }
