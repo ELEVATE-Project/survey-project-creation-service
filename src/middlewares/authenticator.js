@@ -6,14 +6,11 @@
  */
 
 const jwt = require('jsonwebtoken')
-
 const httpStatusCode = require('@generics/http-status')
 const common = require('@constants/common')
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
-// const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
-const userRequests = require('@requests/user')
-// const permissionsQueries = require('@database/queries/permissions')
+const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
 const responses = require('@helpers/responses')
 const { Op } = require('sequelize')
 
@@ -59,29 +56,29 @@ module.exports = async function (req, res, next) {
 			return false
 		})
 
-		// common.roleValidationPaths.map(function (path) {
-		// 	if (req.path.includes(path)) {
-		// 		roleValidation = true
-		// 	}
-		// })
+		common.roleValidationPaths.map(function (path) {
+			if (req.path.includes(path)) {
+				roleValidation = true
+			}
+		})
 
 		if (internalAccess && !authHeader) return next()
 
-		// if (!authHeader) {
-		// 	try {
-		// 		const isPermissionValid = await checkPermissions(common.PUBLIC_ROLE, req.path, req.method)
-		// 		if (!isPermissionValid) {
-		// 			throw responses.failureResponse({
-		// 				message: 'PERMISSION_DENIED',
-		// 				statusCode: httpStatusCode.unauthorized,
-		// 				responseCode: 'UNAUTHORIZED',
-		// 			})
-		// 		}
-		// 		return next()
-		// 	} catch (error) {
-		// 		throw unAuthorizedResponse
-		// 	}
-		// }
+		if (!authHeader) {
+			try {
+				const isPermissionValid = await checkPermissions(common.PUBLIC_ROLE, req.path, req.method)
+				if (!isPermissionValid) {
+					throw responses.failureResponse({
+						message: 'PERMISSION_DENIED',
+						statusCode: httpStatusCode.unauthorized,
+						responseCode: 'UNAUTHORIZED',
+					})
+				}
+				return next()
+			} catch (error) {
+				throw unAuthorizedResponse
+			}
+		}
 
 		const authHeaderArray = authHeader.split(' ')
 		if (authHeaderArray[0] !== 'bearer') throw unAuthorizedResponse
@@ -134,50 +131,50 @@ module.exports = async function (req, res, next) {
 		if (!decodedToken) throw unAuthorizedResponse
 
 		let isAdmin = false
-		// if (decodedToken.data.roles) {
-		// 	isAdmin = decodedToken.data.roles.some((role) => role.title == common.ADMIN_ROLE)
-		// 	if (isAdmin) {
-		// 		req.decodedToken = decodedToken.data
-		// 		return next()
-		// 	}
-		// }
-		// if (roleValidation) {
-		// 	/* Invalidate token when user role is updated, say from mentor to mentee or vice versa */
-		// 	const userBaseUrl = process.env.USER_SERVICE_HOST + process.env.USER_SERVICE_BASE_URL
-		// 	const profileUrl = userBaseUrl + endpoints.USER_PROFILE_DETAILS + '/' + decodedToken.data.id
-		// 	const user = await requests.get(profileUrl, null, true)
-		// 	if (!user || !user.success) {
-		// 		throw responses.failureResponse({
-		// 			message: 'USER_NOT_FOUND',
-		// 			statusCode: httpStatusCode.unauthorized,
-		// 			responseCode: 'UNAUTHORIZED',
-		// 		})
-		// 	}
+		if (decodedToken.data.roles) {
+			isAdmin = decodedToken.data.roles.some((role) => role.title == common.ADMIN_ROLE)
+			if (isAdmin) {
+				req.decodedToken = decodedToken.data
+				return next()
+			}
+		}
+		if (roleValidation) {
+			/* Invalidate token when user role is updated, say from mentor to mentee or vice versa */
+			const userBaseUrl = process.env.USER_SERVICE_HOST + process.env.USER_SERVICE_BASE_URL
+			const profileUrl = userBaseUrl + endpoints.USER_PROFILE_DETAILS + '/' + decodedToken.data.id
+			const user = await requests.get(profileUrl, null, true)
+			if (!user || !user.success) {
+				throw responses.failureResponse({
+					message: 'USER_NOT_FOUND',
+					statusCode: httpStatusCode.unauthorized,
+					responseCode: 'UNAUTHORIZED',
+				})
+			}
 
-		// 	if (user.data.result.deleted_at !== null) {
-		// 		throw responses.failureResponse({
-		// 			message: 'USER_ROLE_UPDATED',
-		// 			statusCode: httpStatusCode.unauthorized,
-		// 			responseCode: 'UNAUTHORIZED',
-		// 		})
-		// 	}
+			if (user.data.result.deleted_at !== null) {
+				throw responses.failureResponse({
+					message: 'USER_ROLE_UPDATED',
+					statusCode: httpStatusCode.unauthorized,
+					responseCode: 'UNAUTHORIZED',
+				})
+			}
 
-		// 	decodedToken.data.roles = user.data.result.user_roles
-		// 	decodedToken.data.organization_id = user.data.result.organization_id
-		// }
+			decodedToken.data.roles = user.data.result.user_roles
+			decodedToken.data.organization_id = user.data.result.organization_id
+		}
 
-		// const isPermissionValid = await checkPermissions(
-		// 	decodedToken.data.roles.map((role) => role.title),
-		// 	req.path,
-		// 	req.method
-		// )
-		// if (!isPermissionValid) {
-		// 	throw responses.failureResponse({
-		// 		message: 'PERMISSION_DENIED',
-		// 		statusCode: httpStatusCode.unauthorized,
-		// 		responseCode: 'UNAUTHORIZED',
-		// 	})
-		// }
+		const isPermissionValid = await checkPermissions(
+			decodedToken.data.roles.map((role) => role.title),
+			req.path,
+			req.method
+		)
+		if (!isPermissionValid) {
+			throw responses.failureResponse({
+				message: 'PERMISSION_DENIED',
+				statusCode: httpStatusCode.unauthorized,
+				responseCode: 'UNAUTHORIZED',
+			})
+		}
 
 		req.decodedToken = {
 			id: decodedToken.data.id,

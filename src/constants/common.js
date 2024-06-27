@@ -86,4 +86,5 @@ module.exports = {
 	STATUS_RESOLVED: 'RESOLVED',
 	ALL_USER_ROLES: 'all',
 	LIMIT: 100,
+	roleValidationPaths: [],
 }
