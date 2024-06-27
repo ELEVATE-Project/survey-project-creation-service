@@ -78,6 +78,15 @@ module.exports = (sequelize, DataTypes) => {
 					},
 				}
 			)
+
+			await sequelize.models.EntityModelMapping.update(
+				{ deleted_at: new Date() }, // Set the deleted_at column to the current timestamp
+				{
+					where: {
+						entity_type_id: instance.id, // instance.id contains the primary key of the EntityType record being deleted
+					},
+				}
+			)
 		} catch (error) {
 			console.error('Error during beforeDestroy hook:', error)
 			throw error

@@ -8,8 +8,12 @@ const userRequests = require('@requests/user')
 const configService = require('@services/config')
 const _ = require('lodash')
 const axios = require('axios')
-const { Op } = require('sequelize')
+const { Op, Utils } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
+const entityModelMappingQuery = require('@database/queries/entityModelMapping')
+const entityService = require('@services/entities')
+const utils = require('@generics/utils')
+const { logger } = require('handlebars')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -258,6 +262,134 @@ module.exports = class ProjectsHelper {
 			}
 		} catch (error) {
 			throw error
+		}
+	}
+
+	static async submitForReview(userDetails, resourceId, bodyData) {
+		try {
+			let projectDetails = await this.details(resourceId, userDetails.organization_id, userDetails.id)
+
+			if (projectDetails.statusCode == httpStatusCode.ok) {
+				let projectData = projectDetails.result
+				if (projectData.type !== common.PROJECT) {
+					return responses.failureResponse({
+						message: 'ONLY_PROJECT_CAN_BE_SUBMITTED_FOR_REVIEW',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+						result: utils.errorObject('body', 'type'),
+					})
+				}
+				if (projectData.title == '' || projectData.title == null) {
+					return responses.failureResponse({
+						message: 'PROJECT_TITLE_NOT_ADDED',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+						result: utils.errorObject('body', 'title'),
+					})
+				}
+				if (projectData.objective == '') {
+					return responses.failureResponse({
+						message: 'PROJECT_OBJECTIVE_NOT_ADDED',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+						error: utils.errorObject('body', 'objective'),
+					})
+				}
+				if (projectData.keywords == '') {
+					return responses.failureResponse({
+						message: 'PROJECT_KEYWORD_NOT_ADDED',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+						error: utils.errorObject('body', 'keywords'),
+					})
+				}
+				let entitiyTypes = await entityModelMappingQuery.findModelAndEntityTypes({
+					model: common.PROJECT,
+					status: common.STATUS_ACTIVE,
+				})
+				let entities = []
+				for (let i = 0; i < entitiyTypes.length; i++) {
+					if (projectData[entitiyTypes[i]] && projectData[entitiyTypes[i]] != '') {
+						entities.push(projectData[entitiyTypes[i]].id)
+					}
+				}
+				let allEntities = await entityService.read({ id: entities }, userDetails.id)
+				for (let i = 0; i < entitiyTypes.length; i++) {
+					let entitiesPresent = allEntities.result.find(
+						(item) => item.value === projectData[entitiyTypes[i]].value
+					)
+					if (!entitiesPresent) {
+						return responses.failureResponse({
+							message: entitiyTypes[i] + ' not added',
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+							error: utils.errorObject('body', entitiyTypes[i]),
+						})
+					}
+				}
+				if (projectData.tasks.length < 1) {
+					return responses.failureResponse({
+						message: 'TASK_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+						error: utils.errorObject('body', 'tasks'),
+					})
+				}
+				for (let i = 0; i < projectData.tasks.length; i++) {
+					if (projectData.tasks[i].allow_evidences == common.TRUE) {
+						if (projectData.tasks[i].evidence_details.file_types.length < 1) {
+							return responses.failureResponse({
+								message: 'FILE_TYPE_NOT_SELECTED',
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject('body', 'file_types'),
+							})
+						}
+					}
+					if (projectData.tasks[i].type === common.CONTENT) {
+						if (projectData.tasks[i].children.length < 1) {
+							return responses.failureResponse({
+								message: 'SUB_TASK_NOT_FOUND',
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject('body', 'children'),
+							})
+						}
+					}
+				}
+				let updateProject = await resourceQueries.updateOne(
+					{ id: projectData.id },
+					{ status: common.SUBMITTED }
+				)
+
+				if (bodyData.hasOwnProperty('reviwer_ids')) {
+					let reviewsData = []
+					for (let i = 0; i < bodyData.reviwer_ids.length; i++) {
+						let review = {
+							resource_id: projectData.id,
+							reviewer_id: bodyData.reviwer_ids[i],
+							status: common.NOT_STARTED,
+							organization_id: userDetails.organization_id,
+						}
+						reviewsData.push(review)
+					}
+					let projectReview = await reviewsQueries.bulkCreate(reviewsData)
+					return responses.successResponse({
+						statusCode: httpStatusCode.created,
+						message: 'PROJECT_SUBMITTED_SUCCESSFULLY',
+						result: { id: projectData.id },
+					})
+				} else {
+					return responses.successResponse({
+						statusCode: httpStatusCode.created,
+						message: 'PROJECT_SUBMITTED_SUCCESSFULLY',
+						result: { id: projectData.id },
+					})
+				}
+			}
+		} catch (error) {
+			logger.error(error)
+			return error
 		}
 	}
 }

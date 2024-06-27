@@ -71,5 +71,10 @@
 	"CERTIFICATE_TEMPLATE_CREATED": "Template created successfully",
 	"CERTIFICATE_ALREADY_EXISTS": "Template already exists",
 	"CERTIFICATE_NOT_FOUND": "Template not found",
-	"CERTIFICATE_UPDATED_SUCCESSFULLY": "Template updated successfully"
+	"CERTIFICATE_UPDATED_SUCCESSFULLY": "Template updated successfully",
+	"ONLY_PROJECT_CAN_BE_SUBMITTED_FOR_REVIEW": "Project can be submitted for review",
+	"PROJECT_OBJECTIVE_NOT_ADDED": "Project objective not added",
+	"SUB_TASK_NOT_FOUND": "Sub task not found",
+	"TASK_NOT_FOUND": "Task not found",
+	"FILE_TYPE_NOT_SELECTED": "File type not selected"
 }
