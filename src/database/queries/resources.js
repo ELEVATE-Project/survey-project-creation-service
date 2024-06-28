@@ -1,7 +1,7 @@
 'use strict'
 
 const common = require('@constants/common')
-
+const { Sequelize } = require('sequelize')
 const Resource = require('../models/index').Resource
 
 exports.create = async (data) => {
@@ -60,7 +60,7 @@ exports.resourceList = async (filter, attributes = {}, sort = common.CREATED_AT,
 		const res = await Resource.findAndCountAll({
 			where: filter,
 			attributes,
-			order: [[sort.sort_by, sort.order]],
+			order: [[Sequelize.fn('LOWER', Sequelize.col(sort.sort_by)), sort.order]],
 			offset: limit * (page - 1),
 			limit: limit,
 			raw: true,
