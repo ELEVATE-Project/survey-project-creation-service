@@ -99,4 +99,5 @@ module.exports = {
 		'/scp/v1/comment/list',
 	],
 	PUBLIC_ROLE: 'public',
+	RESOURCE_TITLE: 'title'
 }
