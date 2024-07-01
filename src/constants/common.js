@@ -98,5 +98,6 @@ module.exports = {
 		'/scp/v1/comment/update',
 		'/scp/v1/comment/list',
 	],
-	RESOURCE_TITLE: 'title',
+	PUBLIC_ROLE: 'public',
+	RESOURCE_TITLE: 'title'
 }

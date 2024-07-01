@@ -10,14 +10,12 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.INTEGER,
 			},
 			organization_id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 				allowNull: false,
-				primaryKey: true,
 			},
 			resource_type: {
 				allowNull: false,
 				type: DataTypes.STRING,
-				primaryKey: true,
 			},
 			review_required: {
 				allowNull: false,
@@ -45,6 +43,13 @@ module.exports = (sequelize, DataTypes) => {
 			tableName: 'organization_extensions',
 			freezeTableName: true,
 			paranoid: true,
+			indexes: [
+				{
+					unique: true,
+					fields: ['organization_id', 'resource_type'],
+					name: 'unique_org_resource_type',
+				},
+			],
 		}
 	)
 

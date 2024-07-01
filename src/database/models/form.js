@@ -25,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
 				defaultValue: 0,
 			},
 			organization_id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 				allowNull: false,
 				primaryKey: true,
 			},

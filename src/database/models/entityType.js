@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
 				defaultValue: 'STRING',
 			},
 			organization_id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: 0,
 				primaryKey: true,
@@ -56,11 +56,11 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.JSON,
 			},
 			created_by: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 				allowNull: true,
 			},
 			updated_by: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 				allowNull: true,
 			},
 		},

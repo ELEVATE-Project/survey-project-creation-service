@@ -14,14 +14,22 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			creator_id: {
 				allowNull: false,
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 			},
 			organization_id: {
 				allowNull: false,
-				type: DataTypes.INTEGER,
+				primaryKey: true,
+				type: DataTypes.STRING,
 			},
 		},
 		{
+			indexes: [
+				{
+					unique: true,
+					fields: ['resource_id', 'creator_id'],
+					name: 'unique_creator_resource',
+				},
+			],
 			modelName: 'ResourceCreatorMapping',
 			tableName: 'resource_creator_mapping',
 			freezeTableName: true,

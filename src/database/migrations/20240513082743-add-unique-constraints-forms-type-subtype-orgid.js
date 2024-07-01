@@ -11,11 +11,6 @@ module.exports = {
 	},
 
 	async down(queryInterface, Sequelize) {
-		/**
-		 * Add reverting commands here.
-		 *
-		 * Example:
-		 * await queryInterface.dropTable('users');
-		 */
+		await queryInterface.removeConstraint('forms', 'unique_type_sub_type_org_id')
 	},
 }

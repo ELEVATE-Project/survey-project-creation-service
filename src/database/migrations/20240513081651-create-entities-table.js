@@ -28,10 +28,10 @@ module.exports = {
 				type: Sequelize.STRING,
 			},
 			created_by: {
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 			},
 			updated_by: {
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 			},
 			created_at: {
 				allowNull: false,

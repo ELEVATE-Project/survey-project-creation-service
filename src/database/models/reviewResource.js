@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
 			id: {
 				allowNull: false,
 				autoIncrement: true,
+				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
 			resource_id: {
@@ -14,7 +15,11 @@ module.exports = (sequelize, DataTypes) => {
 			reviewer_id: {
 				allowNull: false,
 				primaryKey: true,
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
+			},
+			organization_id: {
+				allowNull: false,
+				type: DataTypes.STRING,
 			},
 		},
 		{
