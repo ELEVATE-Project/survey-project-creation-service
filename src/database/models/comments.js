@@ -5,11 +5,11 @@ module.exports = (sequelize, DataTypes) => {
 			id: {
 				allowNull: false,
 				autoIncrement: true,
+				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
 			resource_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
 			comment: {
@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			user_id: {
 				allowNull: false,
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 			},
 			parent_id: {
 				allowNull: false,
@@ -31,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
 				defaultValue: 'OPEN',
 			},
 			resolved_by: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 			},
 			resolved_at: {
 				type: DataTypes.DATE,

@@ -13,7 +13,7 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 			},
 			title: {
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.STRING,
 			},
 			status: {
@@ -35,11 +35,11 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			user_id: {
 				allowNull: false,
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 			},
 			organization_id: {
 				allowNull: false,
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 			},
 			next_stage: {
 				type: DataTypes.INTEGER,
@@ -62,10 +62,10 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 			},
 			created_by: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 			},
 			updated_by: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 			},
 		},
 		{

@@ -7,6 +7,7 @@ module.exports = {
 			id: {
 				allowNull: false,
 				autoIncrement: true,
+				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
 			resource_id: {
@@ -19,7 +20,7 @@ module.exports = {
 			},
 			user_id: {
 				allowNull: false,
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 			},
 			parent_id: {
 				allowNull: false,
@@ -32,7 +33,7 @@ module.exports = {
 				defaultValue: 'OPEN',
 			},
 			resolved_by: {
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 			},
 			resolved_at: {
 				type: Sequelize.DATE,

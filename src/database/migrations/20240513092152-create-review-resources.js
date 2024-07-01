@@ -7,6 +7,7 @@ module.exports = {
 			id: {
 				allowNull: false,
 				autoIncrement: true,
+				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
 			resource_id: {
@@ -14,9 +15,12 @@ module.exports = {
 				allowNull: false,
 			},
 			reviewer_id: {
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 				allowNull: false,
-				primaryKey: true,
+			},
+			organization_id: {
+				allowNull: false,
+				type: Sequelize.STRING,
 			},
 			created_at: {
 				allowNull: false,
