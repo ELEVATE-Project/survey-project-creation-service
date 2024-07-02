@@ -14,6 +14,8 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const entityService = require('@services/entities')
 const utils = require('@generics/utils')
 const { logger } = require('handlebars')
+const unidecode = require('unidecode')
+const specialCharRegex = /[^A-Za-z0-9 <>_&-]/
 
 module.exports = class ProjectsHelper {
 	/**
@@ -271,62 +273,105 @@ module.exports = class ProjectsHelper {
 
 			if (projectDetails.statusCode == httpStatusCode.ok) {
 				let projectData = projectDetails.result
-				if (projectData.type !== common.PROJECT) {
-					return responses.failureResponse({
-						message: 'ONLY_PROJECT_CAN_BE_SUBMITTED_FOR_REVIEW',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-						result: utils.errorObject('body', 'type'),
-					})
-				}
-				if (projectData.title == '' || projectData.title == null) {
-					return responses.failureResponse({
-						message: 'PROJECT_TITLE_NOT_ADDED',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-						result: utils.errorObject('body', 'title'),
-					})
-				}
-				if (projectData.objective == '') {
-					return responses.failureResponse({
-						message: 'PROJECT_OBJECTIVE_NOT_ADDED',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-						error: utils.errorObject('body', 'objective'),
-					})
-				}
-				if (projectData.keywords == '') {
-					return responses.failureResponse({
-						message: 'PROJECT_KEYWORD_NOT_ADDED',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-						error: utils.errorObject('body', 'keywords'),
-					})
-				}
-				let entitiyTypes = await entityModelMappingQuery.findModelAndEntityTypes({
-					model: common.PROJECT,
-					status: common.STATUS_ACTIVE,
-				})
-				let entities = []
-				for (let i = 0; i < entitiyTypes.length; i++) {
-					if (projectData[entitiyTypes[i]] && projectData[entitiyTypes[i]] != '') {
-						entities.push(projectData[entitiyTypes[i]].id)
+				let entityTypes = await entityModelMappingQuery.findEntityTypes(
+					{
+						model: common.PROJECT,
+						status: common.STATUS_ACTIVE,
+					},
+					['value', 'has_entities']
+				)
+				const entities = []
+
+				for (let i = 0; i < entityTypes.length; i++) {
+					const entityType = entityTypes[i]
+
+					if (entityType.has_entities) {
+						const projectEntityData = projectData[entityType.value]
+
+						if (projectEntityData) {
+							if (Array.isArray(projectEntityData)) {
+								// If projectEntityData is an array, extract ids from each item
+								projectEntityData.forEach((item) => {
+									entities.push(item.value)
+								})
+							} else if (typeof projectEntityData === 'object') {
+								// If projectEntityData is an object, extract the id
+								entities.push(projectEntityData.value)
+							}
+						}
 					}
 				}
-				let allEntities = await entityService.read({ id: entities }, userDetails.id)
-				for (let i = 0; i < entitiyTypes.length; i++) {
-					let entitiesPresent = allEntities.result.find(
-						(item) => item.value === projectData[entitiyTypes[i]].value
-					)
-					if (!entitiesPresent) {
-						return responses.failureResponse({
-							message: entitiyTypes[i] + ' not added',
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
-							error: utils.errorObject('body', entitiyTypes[i]),
-						})
+
+				const allEntities = await entityService.read({ value: entities }, userDetails.id)
+
+				for (let i = 0; i < entityTypes.length; i++) {
+					const entityType = entityTypes[i]
+					const projectEntityData = projectData[entityType.value]
+
+					if (entityType.has_entities) {
+						if (
+							!projectEntityData ||
+							(Array.isArray(projectEntityData) && projectEntityData.length === 0)
+						) {
+							return responses.failureResponse({
+								message: `${entityType.value} not added`,
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject('body', entityType.value),
+							})
+						}
+
+						if (Array.isArray(projectEntityData)) {
+							// If projectEntityData is an array, check if all items are present in allEntities
+							for (const item of projectEntityData) {
+								const entitiesPresent = allEntities.result.find((entity) => entity.value === item.value)
+								if (!entitiesPresent) {
+									return responses.failureResponse({
+										message: `${entityType.value} not added`,
+										statusCode: httpStatusCode.bad_request,
+										responseCode: 'CLIENT_ERROR',
+										error: utils.errorObject('body', entityType.value),
+									})
+								}
+							}
+						} else if (typeof projectEntityData === 'object') {
+							// If projectEntityData is an object, check if the item is present in allEntities
+							const entitiesPresent = allEntities.result.find(
+								(entity) => entity.value === projectEntityData.value
+							)
+							if (!entitiesPresent) {
+								return responses.failureResponse({
+									message: `${entityType.value} not added`,
+									statusCode: httpStatusCode.bad_request,
+									responseCode: 'CLIENT_ERROR',
+									error: utils.errorObject('body', entityType.value),
+								})
+							}
+						}
+					} else {
+						// If has_entities is false, check if the key in projectData has a non-empty value
+						if (!projectEntityData || projectEntityData === '') {
+							return responses.failureResponse({
+								message: `${entityType.value} should not be empty`,
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject('body', entityType.value),
+							})
+						}
+						if (entityType.value !== 'tasks') {
+							const normalizedValue = unidecode(projectEntityData)
+							if (specialCharRegex.test(normalizedValue)) {
+								return responses.failureResponse({
+									message: `Special characters not allowed in ${entityType.value}`,
+									statusCode: httpStatusCode.bad_request,
+									responseCode: 'CLIENT_ERROR',
+									error: utils.errorObject('body', entityType.value),
+								})
+							}
+						}
 					}
 				}
+
 				if (projectData.tasks.length < 1) {
 					return responses.failureResponse({
 						message: 'TASK_NOT_FOUND',

@@ -114,9 +114,15 @@ module.exports = {
 					label: 'CC BY NC SA',
 				},
 			],
+			title: '',
+			objective: '',
+			keywords: '',
+			tasks: '',
 		}
 
 		const entityTypeFinalArray = Object.keys(entitiesArray).map((key) => {
+			const value = entitiesArray[key]
+			const hasEntities = Array.isArray(value) ? value.some((item) => item.value !== '') : value !== ''
 			const entityTypeRow = {
 				value: key,
 				label: convertToWords(key),
@@ -128,7 +134,7 @@ module.exports = {
 				updated_by: 0,
 				allow_filtering: false,
 				organization_id: defaultOrgId,
-				has_entities: true,
+				has_entities: hasEntities,
 				allow_custom_entities: false,
 			}
 
@@ -140,10 +146,22 @@ module.exports = {
 		const entityTypes = await queryInterface.sequelize.query('SELECT * FROM entity_types', {
 			type: queryInterface.sequelize.QueryTypes.SELECT,
 		})
-
+		const entityModelMapping = []
+		entityTypes.forEach((entityType) => {
+			let modelMappingData = {
+				entity_type_id: entityType.id,
+				model: 'project',
+				status: 'ACTIVE',
+				updated_at: new Date(),
+				created_at: new Date(),
+			}
+			entityModelMapping.push(modelMappingData)
+		})
+		await queryInterface.bulkInsert('entities_model_mapping', entityModelMapping, {})
+		const entityType = entityTypes.filter((entity) => entity.has_entities)
 		const entitiesFinalArray = []
 
-		entityTypes.forEach((eachType) => {
+		entityType.forEach((eachType) => {
 			if (eachType.value in entitiesArray) {
 				entitiesArray[eachType.value].forEach((eachEntity) => {
 					eachEntity.entity_type_id = eachType.id

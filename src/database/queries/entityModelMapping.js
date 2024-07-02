@@ -11,7 +11,7 @@ exports.create = async (data) => {
 	}
 }
 
-exports.findModelAndEntityTypes = async (filter) => {
+exports.findEntityTypes = async (filter, attributes = {}) => {
 	try {
 		const entityModelMappingData = await EntityModelMapping.findAll({
 			where: filter,
@@ -23,10 +23,10 @@ exports.findModelAndEntityTypes = async (filter) => {
 		const EntityTypes = await EntityType.findAll({
 			where: { id: entityTypeIds, status: common.STATUS_ACTIVE },
 			raw: true,
-			//attributes: { exclude: ['entity_type_id'] },
+			attributes: attributes,
 		})
 
-		const result = EntityTypes.map((entityType) => entityType.value)
+		const result = EntityTypes
 
 		return result
 	} catch (error) {
