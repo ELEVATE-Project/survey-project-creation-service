@@ -91,4 +91,18 @@ module.exports = {
 	RESOURCE_NOT_STARTED: 'NOT_STARTED',
 	TRUE: true,
 	FALSE: false,
+	roleValidationPaths: [
+		'/scp/v1/resource/list',
+		'/scp/v1/projects/reviewerList',
+		'/scp/v1/projects/update',
+		'/scp/v1/projects/details/',
+		'/scp/v1/certificate/list',
+		'/scp/v1/resource/list',
+		'/scp/v1/certificate/list',
+		'/scp/v1/certificate/update',
+		'/scp/v1/comment/update',
+		'/scp/v1/comment/list',
+	],
+	RESOURCE_TITLE: 'title',
+
 }
