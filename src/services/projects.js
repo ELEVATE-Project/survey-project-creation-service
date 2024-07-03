@@ -271,6 +271,14 @@ module.exports = class ProjectsHelper {
 
 			if (projectDetails.statusCode == httpStatusCode.ok) {
 				let projectData = projectDetails.result
+				if (projectData.user_id !== userDetails.id) {
+					return responses.failureResponse({
+						message: 'DONT_HAVE_PROJECT_ACCESS',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
 				let entityTypes = await entityModelMappingQuery.findEntityTypes(
 					{
 						model: common.PROJECT,
@@ -315,7 +323,7 @@ module.exports = class ProjectsHelper {
 								message: `${entityType.value} not added`,
 								statusCode: httpStatusCode.bad_request,
 								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject('body', entityType.value),
+								error: utils.errorObject(common.BODY, entityType.value),
 							})
 						}
 
@@ -328,7 +336,7 @@ module.exports = class ProjectsHelper {
 										message: `${entityType.value} not added`,
 										statusCode: httpStatusCode.bad_request,
 										responseCode: 'CLIENT_ERROR',
-										error: utils.errorObject('body', entityType.value),
+										error: utils.errorObject(common.BODY, entityType.value),
 									})
 								}
 							}
@@ -342,7 +350,7 @@ module.exports = class ProjectsHelper {
 									message: `${entityType.value} not added`,
 									statusCode: httpStatusCode.bad_request,
 									responseCode: 'CLIENT_ERROR',
-									error: utils.errorObject('body', entityType.value),
+									error: utils.errorObject(common.BODY, entityType.value),
 								})
 							}
 						}
@@ -353,7 +361,7 @@ module.exports = class ProjectsHelper {
 								message: `${entityType.value} should not be empty`,
 								statusCode: httpStatusCode.bad_request,
 								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject('body', entityType.value),
+								error: utils.errorObject(common.BODY, entityType.value),
 							})
 						}
 						if (entityType.value !== common.TASKS) {
@@ -363,7 +371,7 @@ module.exports = class ProjectsHelper {
 									message: `Special characters not allowed in ${entityType.value}`,
 									statusCode: httpStatusCode.bad_request,
 									responseCode: 'CLIENT_ERROR',
-									error: utils.errorObject('body', entityType.value),
+									error: utils.errorObject(common.BODY, entityType.value),
 								})
 							}
 						}
@@ -375,7 +383,7 @@ module.exports = class ProjectsHelper {
 						message: 'TASK_NOT_FOUND',
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
-						error: utils.errorObject('body', 'tasks'),
+						error: utils.errorObject(common.BODY, 'tasks'),
 					})
 				}
 				for (let i = 0; i < projectData.tasks.length; i++) {
@@ -385,7 +393,7 @@ module.exports = class ProjectsHelper {
 								message: 'FILE_TYPE_NOT_SELECTED',
 								statusCode: httpStatusCode.bad_request,
 								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject('body', 'file_types'),
+								error: utils.errorObject(common.BODY, 'file_types'),
 							})
 						}
 					}
@@ -407,7 +415,7 @@ module.exports = class ProjectsHelper {
 									message: 'INCORRECT_LEARNING_RESOURCE',
 									statusCode: httpStatusCode.bad_request,
 									responseCode: 'CLIENT_ERROR',
-									error: utils.errorObject('body', 'children'),
+									error: utils.errorObject(common.BODY, 'children'),
 								})
 							}
 						}

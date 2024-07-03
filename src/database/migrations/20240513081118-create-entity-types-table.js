@@ -62,10 +62,6 @@ module.exports = {
 			deleted_at: {
 				type: Sequelize.DATE,
 			},
-			regex: {
-				type: Sequelize.TEXT,
-				allowNull: true,
-			},
 		})
 
 		// Add an index for the 'value' column

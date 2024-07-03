@@ -74,8 +74,8 @@
 	"CERTIFICATE_UPDATED_SUCCESSFULLY": "Template updated successfully",
 	"ONLY_PROJECT_CAN_BE_SUBMITTED_FOR_REVIEW": "Project can be submitted for review",
 	"PROJECT_OBJECTIVE_NOT_ADDED": "Project objective not added",
-	"SUB_TASK_NOT_FOUND": "Sub task not found",
 	"TASK_NOT_FOUND": "Task not found",
 	"FILE_TYPE_NOT_SELECTED": "File type not selected",
-	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource url "
+	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource url",
+	"DONT_HAVE_PROJECT_ACCESS": "You dont have permission to access this project"
 }
