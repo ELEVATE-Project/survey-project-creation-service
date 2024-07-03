@@ -82,6 +82,11 @@ module.exports = class configsHelper {
 
 			configData = configData.length > 0 ? _.concat(configData, missedResourceTypes) : missedResourceTypes
 
+			_.forEach(configData, (item) => {
+				if (item.resource_type === common.PROJECT) {
+					item.max_task_count = parseInt(process.env.MAX_TASK_COUNT, 10)
+				}
+			})
 			// return success message
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
