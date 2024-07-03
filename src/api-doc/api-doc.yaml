@@ -4451,14 +4451,14 @@ paths:
                           type: projectCreation
                           version: 3
 
-  /scp/v1/organization-extension/createConfig:
+  /scp/v1/organization-extensions/createConfig:
     post:
       summary: Create the organization configurations
       tags:
         - Organization
       description: |-
         You can use this API to create organization configurations, for example change the minimum number of approvals for the resource.
-         - The API Endpoint for add organization configurations is `/scp/v1/organization-extension/createConfig` 
+         - The API Endpoint for add organization configurations is `/scp/v1/organization-extensions/createConfig` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4547,14 +4547,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/organization/createConfig400Response'
-  /scp/v1/organization-extension/updateConfig/{id}?resource_type={resource_type}:
+  /scp/v1/organization-extensions/updateConfig/{id}?resource_type={resource_type}:
     post:
       summary: Update the organization configurations
       tags:
         - Organization
       description: |-
         You can use this API to update organization configurations, for example change the minimum number of approvals for the resource.
-         - The API Endpoint for update organization configurations is `/scp/v1/organization-extension/updateConfig` 
+         - The API Endpoint for update organization configurations is `/scp/v1/organization-extensions/updateConfig` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
