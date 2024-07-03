@@ -87,8 +87,9 @@ module.exports = {
 	ALL_USER_ROLES: 'all',
 	LIMIT: 100,
 	CONTENT: 'content',
-	SUBMITTED: 'SUBMITTED',
-	RESOURCE_NOT_STARTED: 'NOT_STARTED',
+	REVIEW_STATUS_NOT_STARTED: 'NOT_STARTED',
 	TRUE: true,
 	FALSE: false,
+	TASKS: 'tasks',
+	OBJECT: 'object',
 }

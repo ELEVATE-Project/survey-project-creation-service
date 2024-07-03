@@ -8,14 +8,12 @@ const userRequests = require('@requests/user')
 const configService = require('@services/config')
 const _ = require('lodash')
 const axios = require('axios')
-const { Op, Utils } = require('sequelize')
+const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const entityService = require('@services/entities')
 const utils = require('@generics/utils')
 const { logger } = require('handlebars')
-const unidecode = require('unidecode')
-const specialCharRegex = /[^A-Za-z0-9 <>_&-]/
 
 module.exports = class ProjectsHelper {
 	/**
@@ -267,7 +265,7 @@ module.exports = class ProjectsHelper {
 		}
 	}
 
-	static async submitForReview(userDetails, resourceId, bodyData) {
+	static async submitForReview(resourceId, bodyData, userDetails) {
 		try {
 			let projectDetails = await this.details(resourceId, userDetails.organization_id, userDetails.id)
 
@@ -278,7 +276,7 @@ module.exports = class ProjectsHelper {
 						model: common.PROJECT,
 						status: common.STATUS_ACTIVE,
 					},
-					['value', 'has_entities']
+					['value', 'has_entities', 'validations']
 				)
 				const entities = []
 
@@ -334,7 +332,7 @@ module.exports = class ProjectsHelper {
 									})
 								}
 							}
-						} else if (typeof projectEntityData === 'object') {
+						} else if (typeof projectEntityData === common.OBJECT) {
 							// If projectEntityData is an object, check if the item is present in allEntities
 							const entitiesPresent = allEntities.result.find(
 								(entity) => entity.value === projectEntityData.value
@@ -358,9 +356,9 @@ module.exports = class ProjectsHelper {
 								error: utils.errorObject('body', entityType.value),
 							})
 						}
-						if (entityType.value !== 'tasks') {
-							const normalizedValue = unidecode(projectEntityData)
-							if (specialCharRegex.test(normalizedValue)) {
+						if (entityType.value !== common.TASKS) {
+							let checkForRegex = utils.checkRegexPattarn(projectEntityData, entityType.validations)
+							if (checkForRegex) {
 								return responses.failureResponse({
 									message: `Special characters not allowed in ${entityType.value}`,
 									statusCode: httpStatusCode.bad_request,
@@ -391,20 +389,33 @@ module.exports = class ProjectsHelper {
 							})
 						}
 					}
-					if (projectData.tasks[i].type === common.CONTENT) {
-						if (projectData.tasks[i].children.length < 1) {
-							return responses.failureResponse({
-								message: 'SUB_TASK_NOT_FOUND',
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject('body', 'children'),
-							})
+					if (projectData.tasks[i].learning_resources && projectData.tasks[i].learning_resources.length > 0) {
+						let taskEntityTypes = await entityModelMappingQuery.findEntityTypes(
+							{
+								model: common.TASKS,
+								status: common.STATUS_ACTIVE,
+							},
+							['value', 'validations']
+						)
+						for (let j = 0; j < projectData.tasks[i].learning_resources.length; j++) {
+							let validateURL = utils.checkRegexPattarn(
+								projectData.tasks[i].learning_resources[j].url,
+								taskEntityTypes[0].validations
+							)
+							if (validateURL) {
+								return responses.failureResponse({
+									message: 'INCORRECT_LEARNING_RESOURCE',
+									statusCode: httpStatusCode.bad_request,
+									responseCode: 'CLIENT_ERROR',
+									error: utils.errorObject('body', 'children'),
+								})
+							}
 						}
 					}
 				}
 				let updateProject = await resourceQueries.updateOne(
 					{ id: projectData.id },
-					{ status: common.SUBMITTED }
+					{ status: common.RESOURCE_STATUS_SUBMITTED }
 				)
 
 				if (bodyData.hasOwnProperty('reviwer_ids')) {
@@ -413,7 +424,7 @@ module.exports = class ProjectsHelper {
 						let review = {
 							resource_id: projectData.id,
 							reviewer_id: bodyData.reviwer_ids[i],
-							status: common.NOT_STARTED,
+							status: common.REVIEW_STATUS_NOT_STARTED,
 							organization_id: userDetails.organization_id,
 						}
 						reviewsData.push(review)

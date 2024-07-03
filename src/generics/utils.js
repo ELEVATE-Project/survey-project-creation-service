@@ -16,6 +16,7 @@ const common = require('@constants/common')
 const crypto = require('crypto')
 const { cloudClient } = require('@configs/cloud-service')
 const { v4: uuidV4 } = require('uuid')
+const unidecode = require('unidecode')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -414,6 +415,11 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 const errorObject = (params, filed) => {
 	return [{ location: params, param: filed, message: filed + ' field is empty' }]
 }
+const checkRegexPattarn = (data, validation) => {
+	let normalizedValue = unidecode(data)
+	let regex = new RegExp(validation.regex)
+	return regex.test(normalizedValue)
+}
 
 module.exports = {
 	composeEmailBody,
@@ -437,4 +443,5 @@ module.exports = {
 	generateUniqueId,
 	removeDefaultOrgCertificates,
 	errorObject,
+	checkRegexPattarn,
 }
