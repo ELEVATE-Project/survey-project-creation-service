@@ -54,7 +54,7 @@ module.exports = {
 	STATUS_DRAFT: 'DRAFT',
 	STATUS_ACTIVE: 'ACTIVE',
 	CREATED_BY_SYSTEM: 0,
-	PROJECT: 'project',
+	PROJECT: 'projects',
 	FILTER_ALL: 'ALL',
 	SORT_DESC: 'DESC',
 	SORT_ASC: 'ASC',
