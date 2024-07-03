@@ -75,3 +75,16 @@ exports.resourceList = async (filter, attributes = {}, sort = common.CREATED_AT,
 		return error
 	}
 }
+
+exports.deleteOne = async (id, organization_id) => {
+	try {
+		return await Resource.destroy({
+			where: {
+				id,
+				organization_id,
+			},
+		})
+	} catch (error) {
+		throw error
+	}
+}

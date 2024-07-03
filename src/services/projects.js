@@ -163,6 +163,64 @@ module.exports = class ProjectsHelper {
 		}
 	}
 	/**
+	 * project delete
+	 * @method
+	 * @name delete
+	 * @param {Object} req.id - project id
+	 * @returns {JSON} - project delete response.
+	 */
+
+	static async delete(resourceId, loggedInUserId) {
+		try {
+			const fetchOrgId = await resourceCreatorMappingQueries.findOne(
+				{
+					resource_id: resourceId,
+					creator_id: loggedInUserId,
+				},
+				['id', 'organization_id']
+			)
+
+			const fetchResourceId = await resourceQueries.findOne(
+				{
+					id: resourceId,
+					organization_id: fetchOrgId.organization_id,
+					status: common.STATUS_DRAFT,
+				},
+				{ attributes: ['id'] }
+			)
+
+			if (!fetchResourceId) {
+				return responses.failureResponse({
+					message: 'PROJECT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			let updatedProject = await resourceQueries.deleteOne(resourceId, fetchOrgId.organization_id)
+			let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
+				fetchOrgId.id,
+				loggedInUserId
+			)
+
+			if (updatedProject === 0 && updatedProjectCreatorMapping === 0) {
+				return responses.failureResponse({
+					message: 'PROJECT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'PROJECT_DELETED_SUCCESSFUL',
+				result: {},
+			})
+		} catch (error) {
+			console.log(error, 'error')
+			throw error
+		}
+	}
+	/**
 	 * Project details
 	 * @method
 	 * @name details
