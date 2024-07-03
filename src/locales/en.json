@@ -77,5 +77,5 @@
 	"SUB_TASK_NOT_FOUND": "Sub task not found",
 	"TASK_NOT_FOUND": "Task not found",
 	"FILE_TYPE_NOT_SELECTED": "File type not selected",
-	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource"
+	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource url "
 }
