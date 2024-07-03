@@ -71,5 +71,9 @@
 	"CERTIFICATE_TEMPLATE_CREATED": "Template created successfully",
 	"CERTIFICATE_ALREADY_EXISTS": "Template already exists",
 	"CERTIFICATE_NOT_FOUND": "Template not found",
-	"CERTIFICATE_UPDATED_SUCCESSFULLY": "Template updated successfully"
+	"CERTIFICATE_UPDATED_SUCCESSFULLY": "Template updated successfully",
+	"CONFIG_ADDED_SUCCESSFULLY": "Config added successfully",
+	"CONFIG_ALREADY_EXIST": "Config already exist",
+	"ORG_CONFIG_NOT_FOUND": "Organization config not found",
+	"ORG_CONFIG_UPDATED": "Organization config updated successfully"
 }

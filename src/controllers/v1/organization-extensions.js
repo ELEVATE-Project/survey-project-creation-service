@@ -1,5 +1,5 @@
 /**
- * name : organization-extension.js
+ * name : organization-extensions.js
  * author : Priyanka Pradeep
  * created-date : 18-June-2024
  * Description : Controller for organization details.
@@ -9,16 +9,16 @@ const orgExtensionService = require('@services/organization-extension')
 
 module.exports = class orgExtensions {
 	/**
-	 * create org extension
+	 * create org extension config
 	 * @method
 	 * @name create
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - org extension creation object.
 	 */
 
-	async create(req) {
+	async createConfig(req) {
 		try {
-			const orgExtension = await orgExtensionService.create(req.body)
+			const orgExtension = await orgExtensionService.createConfig(req.body, req.decodedToken.organization_id)
 			return orgExtension
 		} catch (error) {
 			return error
@@ -26,16 +26,21 @@ module.exports = class orgExtensions {
 	}
 
 	/**
-	 * updates org extension
+	 * updates org extension config
 	 * @method
-	 * @name update
+	 * @name updateConfig
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - org extension updating response.
 	 */
 
-	async update(req) {
+	async updateConfig(req) {
 		try {
-			const orgExtension = await orgExtensionService.update(req.params.id, req.body)
+			const orgExtension = await orgExtensionService.updateConfig(
+				req.params.id,
+				req.query.resource_type,
+				req.body,
+				req.decodedToken.organization_id
+			)
 			return orgExtension
 		} catch (error) {
 			return error

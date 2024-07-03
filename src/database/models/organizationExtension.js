@@ -20,6 +20,7 @@ module.exports = (sequelize, DataTypes) => {
 			review_required: {
 				allowNull: false,
 				type: DataTypes.BOOLEAN,
+				defaultValue: true,
 			},
 			show_reviewer_list: {
 				allowNull: false,
