@@ -42,7 +42,7 @@
 	"ROLE_PERMISSION_DELETED_SUCCESSFULLY": "Permission delete from the role",
 	"ROLE_PERMISSION_ALREADY_EXISTS": "Permission for this role already exists",
 	"ROLE_PERMISSION_NOT_FOUND": "Permission for this role is empty",
-	"PERMISSION_DENIED": "You do not have the required permissions to access this resource. Please contact your administrator for assistance.",
+	"PERMISSION_DENIED": "You don't have the rights on platform to access the creation workspace",
 	"FETCHED_ROLE_PERMISSION_SUCCESSFULLY": "permissions list fetched successfully",
 	"ORG_EXTENSION_CREATED_SUCCESSFULLY": "Organization Extension Created Successfully",
 	"PERMISSIONS_NOT_FOUND": "permissions not found",

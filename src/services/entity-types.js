@@ -66,7 +66,6 @@ module.exports = class EntityTypeHelper {
 	static async update(id, bodyData, loggedInUserId, orgId) {
 		try {
 			bodyData.updated_by = loggedInUserId
-			bodyData.organization_id = orgId
 			const [updateCount, updatedEntityType] = await entityTypeQueries.updateOneEntityType(id, orgId, bodyData, {
 				returning: true,
 				raw: true,
