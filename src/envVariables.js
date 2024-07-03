@@ -133,7 +133,7 @@ let enviromentVariables = {
 		optional: true,
 		default: '',
 	},
-	MAX_TASK_COUNT: {
+	MAX_PROJECT_TASK_COUNT: {
 		message: 'Maximum task count is required',
 		optional: false,
 		default: 10,
