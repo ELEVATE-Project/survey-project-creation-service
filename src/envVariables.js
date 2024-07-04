@@ -112,6 +112,10 @@ let enviromentVariables = {
 		message: 'Required user list API end-point field',
 		optional: false,
 	},
+	USER_PROFILE_DETAILS_ENDPOINT: {
+		message: 'Required user read API end-point field',
+		optional: false,
+	},
 	CLOUD_STORAGE_PROVIDER: {
 		message: 'Require cloud storage provider',
 		optional: false,
@@ -128,6 +132,11 @@ let enviromentVariables = {
 		message: 'Public Base Url required',
 		optional: true,
 		default: '',
+	},
+	MAX_PROJECT_TASK_COUNT: {
+		message: 'Maximum task count is required',
+		optional: false,
+		default: 10,
 	},
 }
 
