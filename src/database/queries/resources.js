@@ -83,6 +83,7 @@ exports.deleteOne = async (id, organization_id) => {
 				id,
 				organization_id,
 			},
+			individualHooks: true,
 		})
 	} catch (error) {
 		throw error
