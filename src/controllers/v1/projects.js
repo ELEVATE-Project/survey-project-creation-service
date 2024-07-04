@@ -92,7 +92,6 @@ module.exports = class Projects {
 			const submitForReview = await projectService.submitForReview(req.params.id, req.body, req.decodedToken)
 			return submitForReview
 		} catch (error) {
-			logger.error(error)
 			return error
 		}
 	}

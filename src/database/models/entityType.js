@@ -53,7 +53,7 @@ module.exports = (sequelize, DataTypes) => {
 				defaultValue: true,
 			},
 			validations: {
-				type: DataTypes.JSON,
+				type: DataTypes.JSONB,
 			},
 			created_by: {
 				type: DataTypes.INTEGER,

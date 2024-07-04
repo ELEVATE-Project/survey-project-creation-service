@@ -13,7 +13,6 @@ const reviewsQueries = require('@database/queries/reviews')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const entityService = require('@services/entities')
 const utils = require('@generics/utils')
-const { logger } = require('handlebars')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -397,6 +396,7 @@ module.exports = class ProjectsHelper {
 							})
 						}
 					}
+					//this will validate learning resource based on entity type validation for this will have tasks as model and learning-resource will be entityType
 					if (projectData.tasks[i].learning_resources && projectData.tasks[i].learning_resources.length > 0) {
 						let taskEntityTypes = await entityModelMappingQuery.findEntityTypes(
 							{
@@ -452,7 +452,6 @@ module.exports = class ProjectsHelper {
 				}
 			}
 		} catch (error) {
-			logger.error(error)
 			return error
 		}
 	}
