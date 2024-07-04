@@ -14,7 +14,8 @@
 		"prepare": "cd .. && husky install src/.husky",
 		"test:integration": "jest --verbose ./integration-tests  --config=integrationJest.config.js --runInBand",
 		"db:init": "npx sequelize-cli db:create && npx sequelize-cli db:migrate ",
-		"db:seed:all": "npx sequelize-cli db:seed:all"
+		"db:seed:all": "npx sequelize-cli db:seed:all",
+		"db:migrate": "npx sequelize-cli db:migrate"
 	},
 	"author": "Adithya Dinesh",
 	"license": "ISC",
@@ -24,6 +25,7 @@
 		"bcryptjs": "^2.4.3",
 		"body-parser": "^1.19.0",
 		"cli-table": "^0.3.11",
+		"client-cloud-services": "^8.0.0",
 		"cors": "^2.8.5",
 		"crypto": "^1.0.1",
 		"deep-object-diff": "^1.1.9",
@@ -34,6 +36,7 @@
 		"express": "^4.17.1",
 		"express-validator": "^5.3.1",
 		"fn-args": "^4.0.0",
+		"form-data": "^4.0.0",
 		"fs-extra": "^9.0.1",
 		"i18next": "^21.8.13",
 		"i18next-fs-backend": "^1.1.4",
@@ -62,10 +65,10 @@
 	"devDependencies": {
 		"@faker-js/faker": "^7.6.0",
 		"eslint": "^8.16.0",
-		"husky": "^8.0.1",
 		"grunt-apidoc": "^0.11.0",
 		"gulp": "^4.0.2",
 		"gulp-apidoc": "^0.2.8",
+		"husky": "^8.0.1",
 		"jest": "^28.1.1",
 		"jest-json-schema": "^6.1.0",
 		"jest-junit": "^14.0.1",

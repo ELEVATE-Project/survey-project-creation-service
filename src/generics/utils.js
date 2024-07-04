@@ -6,7 +6,6 @@
  */
 
 const bcryptJs = require('bcryptjs')
-const { AwsFileHelper, GcpFileHelper, AzureFileHelper, OciFileHelper } = require('elevate-cloud-storage')
 const momentTimeZone = require('moment-timezone')
 const moment = require('moment')
 const path = require('path')
@@ -15,6 +14,8 @@ const { RedisCache, InternalCache } = require('elevate-node-cache')
 const startCase = require('lodash/startCase')
 const common = require('@constants/common')
 const crypto = require('crypto')
+const { cloudClient } = require('@configs/cloud-service')
+const { v4: uuidV4 } = require('uuid')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -388,6 +389,28 @@ function validateFilters(input, validationData, modelName) {
 	return input
 }
 
+const removeDefaultOrgEntityTypes = (entityTypes, orgId) => {
+	const entityTypeMap = new Map()
+	entityTypes.forEach((entityType) => {
+		if (!entityTypeMap.has(entityType.value)) entityTypeMap.set(entityType.value, entityType)
+		else if (entityType.organization_id === orgId) entityTypeMap.set(entityType.value, entityType)
+	})
+	return Array.from(entityTypeMap.values())
+}
+
+const generateUniqueId = () => {
+	return uuidV4()
+}
+
+const removeDefaultOrgCertificates = (certificates, orgId) => {
+	const certificateMap = new Map()
+	certificates.forEach((cert) => {
+		if (!certificateMap.has(cert.code)) certificateMap.set(cert.code, cert)
+		else if (cert.organization_id === orgId) certificateMap.set(cert.code, cert)
+	})
+	return Array.from(certificateMap.values())
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -406,4 +429,7 @@ module.exports = {
 	generateWhereClause,
 	validateFilters,
 	processQueryParametersWithExclusions,
+	removeDefaultOrgEntityTypes,
+	generateUniqueId,
+	removeDefaultOrgCertificates,
 }
