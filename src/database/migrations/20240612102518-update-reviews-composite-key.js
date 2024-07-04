@@ -4,7 +4,7 @@
 module.exports = {
 	async up(queryInterface, Sequelize) {
 		// Add composite primary key on resource_id and reviewer_id
-		// await queryInterface.removeConstraint('reviews', 'reviews_pkey')
+		await queryInterface.removeConstraint('reviews', 'reviews_pkey')
 		await queryInterface.addConstraint('reviews', {
 			fields: ['resource_id', 'reviewer_id'],
 			type: 'primary key',
