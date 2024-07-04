@@ -99,4 +99,5 @@ module.exports = {
 		'/scp/v1/comment/list',
 	],
 	RESOURCE_TITLE: 'title',
+	REQUEST_METHOD_DELETE: 'DELETE',
 }
