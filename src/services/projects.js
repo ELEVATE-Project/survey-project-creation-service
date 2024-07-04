@@ -405,6 +405,7 @@ module.exports = class ProjectsHelper {
 							},
 							['value', 'validations']
 						)
+						//validation will regex we need to verify that its a valid learning resource
 						for (let j = 0; j < projectData.tasks[i].learning_resources.length; j++) {
 							let validateURL = utils.checkRegexPattarn(
 								projectData.tasks[i].learning_resources[j].url,
