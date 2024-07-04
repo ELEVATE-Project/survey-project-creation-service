@@ -101,11 +101,18 @@ module.exports = {
 				model: 'project',
 			},
 			{
+				entityType: 'name',
+				entities: '',
+				has_entities: false,
+				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
+				model: 'tasks',
+			},
+			{
 				entityType: 'learning_resources',
 				entities: '',
 				has_entities: false,
 				validation: { regex: `^(?!-)[A-Za-z0-9-]+([-.]{1}[a-z0-9]+)*.[A-Za-z]{2,6}$`, required: true },
-				model: 'tasks',
+				model: 'subTasks',
 			},
 		]
 

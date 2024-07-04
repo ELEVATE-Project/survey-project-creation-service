@@ -91,6 +91,7 @@ module.exports = {
 	TRUE: true,
 	FALSE: false,
 	TASKS: 'tasks',
+	SUBTASKS: 'subTasks',
 	OBJECT: 'object',
 	roleValidationPaths: [
 		'/scp/v1/resource/list',

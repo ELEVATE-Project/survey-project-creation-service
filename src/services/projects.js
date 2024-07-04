@@ -388,7 +388,41 @@ module.exports = class ProjectsHelper {
 						error: utils.errorObject(common.BODY, 'tasks'),
 					})
 				}
+				let taskEntityTypes = await entityModelMappingQuery.findEntityTypes(
+					{
+						model: common.TASKS,
+						status: common.STATUS_ACTIVE,
+					},
+					['value', 'validations']
+				)
 				for (let i = 0; i < projectData.tasks.length; i++) {
+					for (let j = 0; j < taskEntityTypes.length; j++) {
+						if (taskEntityTypes[j].validations.required) {
+							if (
+								!projectData.tasks[i][taskEntityTypes[j].value] ||
+								projectData.tasks[i][taskEntityTypes[j].value] == ''
+							) {
+								return responses.failureResponse({
+									message: `${taskEntityTypes[j].value} should not be empty`,
+									statusCode: httpStatusCode.bad_request,
+									responseCode: 'CLIENT_ERROR',
+									error: utils.errorObject(common.BODY, `task.${taskEntityTypes[j].value}`),
+								})
+							}
+							let validateRegex = utils.checkRegexPattarn(
+								projectData.tasks[i][taskEntityTypes[j].value],
+								taskEntityTypes[j].validations
+							)
+							if (validateRegex) {
+								return responses.failureResponse({
+									message: `Special characters not allowed in task.${taskEntityTypes[j].value}`,
+									statusCode: httpStatusCode.bad_request,
+									responseCode: 'CLIENT_ERROR',
+									error: utils.errorObject(common.BODY, `task.${taskEntityTypes[j].value}`),
+								})
+							}
+						}
+					}
 					if (projectData.tasks[i].allow_evidences == common.TRUE) {
 						if (projectData.tasks[i].evidence_details.file_types.length < 1) {
 							return responses.failureResponse({
@@ -401,9 +435,9 @@ module.exports = class ProjectsHelper {
 					}
 					//this will validate learning resource based on entity type validation for this will have tasks as model and learning-resource will be entityType
 					if (projectData.tasks[i].learning_resources && projectData.tasks[i].learning_resources.length > 0) {
-						let taskEntityTypes = await entityModelMappingQuery.findEntityTypes(
+						let subTaskEntityTypes = await entityModelMappingQuery.findEntityTypes(
 							{
-								model: common.TASKS,
+								model: common.SUBTASKS,
 								status: common.STATUS_ACTIVE,
 							},
 							['value', 'validations']
@@ -412,7 +446,7 @@ module.exports = class ProjectsHelper {
 						for (let j = 0; j < projectData.tasks[i].learning_resources.length; j++) {
 							let validateURL = utils.checkRegexPattarn(
 								projectData.tasks[i].learning_resources[j].url,
-								taskEntityTypes[0].validations
+								subTaskEntityTypes[0].validations
 							)
 							if (validateURL) {
 								return responses.failureResponse({
