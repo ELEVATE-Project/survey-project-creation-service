@@ -312,24 +312,40 @@ module.exports = class ProjectsHelper {
 				for (let i = 0; i < entityTypes.length; i++) {
 					const entityType = entityTypes[i]
 					const projectEntityData = projectData[entityType.value]
+					if (entityType.validations.required) {
+						if (entityType.has_entities) {
+							if (
+								!projectEntityData ||
+								(Array.isArray(projectEntityData) && projectEntityData.length === 0)
+							) {
+								return responses.failureResponse({
+									message: `${entityType.value} not added`,
+									statusCode: httpStatusCode.bad_request,
+									responseCode: 'CLIENT_ERROR',
+									error: utils.errorObject(common.BODY, entityType.value),
+								})
+							}
 
-					if (entityType.has_entities) {
-						if (
-							!projectEntityData ||
-							(Array.isArray(projectEntityData) && projectEntityData.length === 0)
-						) {
-							return responses.failureResponse({
-								message: `${entityType.value} not added`,
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.BODY, entityType.value),
-							})
-						}
-
-						if (Array.isArray(projectEntityData)) {
-							// If projectEntityData is an array, check if all items are present in allEntities
-							for (const item of projectEntityData) {
-								const entitiesPresent = allEntities.result.find((entity) => entity.value === item.value)
+							if (Array.isArray(projectEntityData)) {
+								// If projectEntityData is an array, check if all items are present in allEntities
+								for (const item of projectEntityData) {
+									const entitiesPresent = allEntities.result.find(
+										(entity) => entity.value === item.value
+									)
+									if (!entitiesPresent) {
+										return responses.failureResponse({
+											message: `${entityType.value} not added`,
+											statusCode: httpStatusCode.bad_request,
+											responseCode: 'CLIENT_ERROR',
+											error: utils.errorObject(common.BODY, entityType.value),
+										})
+									}
+								}
+							} else if (typeof projectEntityData === common.OBJECT) {
+								// If projectEntityData is an object, check if the item is present in allEntities
+								const entitiesPresent = allEntities.result.find(
+									(entity) => entity.value === projectEntityData.value
+								)
 								if (!entitiesPresent) {
 									return responses.failureResponse({
 										message: `${entityType.value} not added`,
@@ -339,39 +355,26 @@ module.exports = class ProjectsHelper {
 									})
 								}
 							}
-						} else if (typeof projectEntityData === common.OBJECT) {
-							// If projectEntityData is an object, check if the item is present in allEntities
-							const entitiesPresent = allEntities.result.find(
-								(entity) => entity.value === projectEntityData.value
-							)
-							if (!entitiesPresent) {
+						} else {
+							// If has_entities is false, check if the key in projectData has a non-empty value
+							if (!projectEntityData || projectEntityData === '') {
 								return responses.failureResponse({
-									message: `${entityType.value} not added`,
+									message: `${entityType.value} should not be empty`,
 									statusCode: httpStatusCode.bad_request,
 									responseCode: 'CLIENT_ERROR',
 									error: utils.errorObject(common.BODY, entityType.value),
 								})
 							}
-						}
-					} else {
-						// If has_entities is false, check if the key in projectData has a non-empty value
-						if (!projectEntityData || projectEntityData === '') {
-							return responses.failureResponse({
-								message: `${entityType.value} should not be empty`,
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.BODY, entityType.value),
-							})
-						}
-						if (entityType.value !== common.TASKS) {
-							let checkForRegex = utils.checkRegexPattarn(projectEntityData, entityType.validations)
-							if (checkForRegex) {
-								return responses.failureResponse({
-									message: `Special characters not allowed in ${entityType.value}`,
-									statusCode: httpStatusCode.bad_request,
-									responseCode: 'CLIENT_ERROR',
-									error: utils.errorObject(common.BODY, entityType.value),
-								})
+							if (entityType.value !== common.TASKS) {
+								let checkForRegex = utils.checkRegexPattarn(projectEntityData, entityType.validations)
+								if (checkForRegex) {
+									return responses.failureResponse({
+										message: `Special characters not allowed in ${entityType.value}`,
+										statusCode: httpStatusCode.bad_request,
+										responseCode: 'CLIENT_ERROR',
+										error: utils.errorObject(common.BODY, entityType.value),
+									})
+								}
 							}
 						}
 					}
