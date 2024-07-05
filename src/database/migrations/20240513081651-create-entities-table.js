@@ -28,6 +28,7 @@ module.exports = {
 				type: Sequelize.STRING,
 			},
 			created_by: {
+				allowNull: false,
 				type: Sequelize.STRING,
 			},
 			updated_by: {

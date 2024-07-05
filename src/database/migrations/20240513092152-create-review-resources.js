@@ -17,6 +17,7 @@ module.exports = {
 			reviewer_id: {
 				type: Sequelize.STRING,
 				allowNull: false,
+				primaryKey: true,
 			},
 			organization_id: {
 				allowNull: false,

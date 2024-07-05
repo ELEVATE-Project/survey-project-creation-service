@@ -10,6 +10,7 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			resource_id: {
 				allowNull: false,
+				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
 			comment: {

@@ -38,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 			},
 			organization_id: {
+				primaryKey: true,
 				allowNull: false,
 				type: DataTypes.STRING,
 			},
@@ -55,13 +56,14 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.INTEGER,
 			},
 			meta: {
-				allowNull: false,
+				allowNull: true,
 				type: DataTypes.JSONB,
 			},
 			published_id: {
 				type: DataTypes.STRING,
 			},
 			created_by: {
+				allowNull: false,
 				type: DataTypes.STRING,
 			},
 			updated_by: {

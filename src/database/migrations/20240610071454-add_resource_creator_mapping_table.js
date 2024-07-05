@@ -16,11 +16,11 @@ module.exports = {
 			},
 			creator_id: {
 				allowNull: false,
+				primaryKey: true,
 				type: Sequelize.STRING,
 			},
 			organization_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: Sequelize.STRING,
 			},
 			created_at: {

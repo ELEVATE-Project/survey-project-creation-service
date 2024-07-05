@@ -15,10 +15,10 @@ module.exports = (sequelize, DataTypes) => {
 			creator_id: {
 				allowNull: false,
 				type: DataTypes.STRING,
+				primaryKey: true,
 			},
 			organization_id: {
 				allowNull: false,
-				primaryKey: true,
 				type: DataTypes.STRING,
 			},
 		},

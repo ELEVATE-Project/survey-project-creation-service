@@ -8,3 +8,17 @@ exports.bulkCreate = async (data) => {
 		return error
 	}
 }
+
+exports.findAll = async (filter, attributes = {}) => {
+	try {
+		const res = await ReviewStage.findAll({
+			where: filter,
+			attributes,
+			raw: true,
+		})
+
+		return res
+	} catch (error) {
+		return error
+	}
+}

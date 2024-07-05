@@ -4483,13 +4483,36 @@ paths:
                   type: string
                 resource_type:
                   type: string
+                review_type:
+                  type: string
+                review_stages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                      level:
+                        type: number
 
             examples:
-              example1:
+              review type parallel:
                 value:
                   show_reviewer_list: true
                   min_approval: 2
                   resource_type: project
+                  review_type: PARALLEL
+              review type sequential:
+                value:
+                  show_reviewer_list: true
+                  min_approval: 2
+                  resource_type: project
+                  review_type: SEQUENTIAL
+                  review_stages:
+                    - role: reviewer_level_1
+                      level: 1
+                    - role: reviewer_level_2
+                      level: 2
 
       responses:
         '201':

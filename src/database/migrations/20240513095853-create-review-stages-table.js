@@ -25,6 +25,7 @@ module.exports = {
 			},
 			organization_id: {
 				allowNull: false,
+				primaryKey: true,
 				type: Sequelize.STRING,
 			},
 			created_at: {

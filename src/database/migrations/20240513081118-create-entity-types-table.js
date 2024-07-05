@@ -46,6 +46,7 @@ module.exports = {
 				type: Sequelize.JSON,
 			},
 			created_by: {
+				allowNull: false,
 				type: Sequelize.STRING,
 			},
 			updated_by: {

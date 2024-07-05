@@ -1,5 +1,17 @@
 const OrgExtensions = require('../models/index').organizationExtension
 
+exports.findMany = async (filter, attributes = []) => {
+	try {
+		return await OrgExtensions.findAll({
+			where: filter,
+			attributes,
+			raw: true,
+		})
+	} catch (error) {
+		return error
+	}
+}
+
 exports.create = async (data) => {
 	try {
 		return await OrgExtensions.create(data, { returning: true })

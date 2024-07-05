@@ -40,6 +40,7 @@ module.exports = {
 				type: Sequelize.STRING,
 			},
 			organization_id: {
+				primaryKey: true,
 				allowNull: false,
 				type: Sequelize.STRING,
 			},
@@ -57,10 +58,11 @@ module.exports = {
 				type: Sequelize.STRING,
 			},
 			meta: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.JSONB,
 			},
 			created_by: {
+				allowNull: false,
 				type: Sequelize.STRING,
 			},
 			updated_by: {
