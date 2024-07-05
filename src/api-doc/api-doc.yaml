@@ -600,15 +600,15 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/permissions/updatePermission400Response'
-  /scp/v1/permissions/list:
+  /scp/v1/permissions/getPermissions:
     get:
-      summary: Get list of permissions
+      summary: Get list of all permissions
       tags:
         - Permissions
       description: >-
         You can use this API to get the list of permissions 
 
-         - The API Endpoint for getting a list of permissions is `/scp/v1/permissions/list` 
+         - The API Endpoint for getting a list of permissions is `/scp/v1/permissions/getPermissions` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
          - This is an Admin API which will be used by admins.
@@ -693,6 +693,81 @@ paths:
                           status: ACTIVE
                           api_path: '/scp/v1/project/create'
                       count: 1
+  /scp/v1/permissions/list:
+    get:
+      summary: Get list of permissions based on Role
+      tags:
+        - Permissions
+      description: >-
+        You can use this API to get the list of permissions 
+
+         - The API Endpoint for getting a list of permissions is `/scp/v1/permissions/list` 
+         - It is mandatory to provide values for parameters marked with `required` 
+         - Mandatory parameter cannot be empty or null
+         - This is an Admin API which will be used by admins.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            You require an X-auth-token to use this API. This token is available
+            in the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          description: Please add page number
+          schema:
+            type: number
+          example: 1
+        - in: query
+          name: limit
+          description: Number of records per page
+          required: false
+          schema:
+            type: number
+          example: 2
+        - in: query
+          name: search
+          description: Please search for information such as 'code'.
+          required: false
+          schema:
+            type: string
+          example: project
+      responses:
+        '200':
+          description: ok
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        module:
+                          type: string
+                        request_type:
+                          type: array
+                          items:
+                            type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Permissions fetched successfully.
+                    result:
+                      - module: projects
+                        request_type:
+                          - POST
+                          - GET
   /scp/v1/permissions/delete/{id}:
     delete:
       summary: Delete permission by id
@@ -4451,14 +4526,14 @@ paths:
                           type: projectCreation
                           version: 3
 
-  /scp/v1/organization-extension/createConfig:
+  /scp/v1/organization-extensions/createConfig:
     post:
       summary: Create the organization configurations
       tags:
         - Organization
       description: |-
         You can use this API to create organization configurations, for example change the minimum number of approvals for the resource.
-         - The API Endpoint for add organization configurations is `/scp/v1/organization-extension/createConfig` 
+         - The API Endpoint for add organization configurations is `/scp/v1/organization-extensions/createConfig` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4547,14 +4622,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/organization/createConfig400Response'
-  /scp/v1/organization-extension/updateConfig?resource_type={resource_type}:
+  /scp/v1/organization-extensions/updateConfig/{id}?resource_type={resource_type}:
     post:
       summary: Update the organization configurations
       tags:
         - Organization
       description: |-
         You can use this API to update organization configurations, for example change the minimum number of approvals for the resource.
-         - The API Endpoint for update organization configurations is `/scp/v1/organization-extension/updateConfig` 
+         - The API Endpoint for update organization configurations is `/scp/v1/organization-extensions/updateConfig` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4566,6 +4641,13 @@ paths:
           required: true
           schema:
             type: string
+        - in: path
+          name: id
+          description: Please append a valid config id to the Request URL.
+          schema:
+            type: string
+          required: true
+          example: 3
         - in: query
           name: resource_type
           description: Please append a valid resource type to the Request URL.

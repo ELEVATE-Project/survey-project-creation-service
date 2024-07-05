@@ -72,7 +72,7 @@ module.exports = (sequelize, DataTypes) => {
 			modelName: 'Resource',
 			tableName: 'resources',
 			freezeTableName: true,
-			paranoid: false,
+			paranoid: true,
 			indexes: [
 				{
 					name: 'title_index',
