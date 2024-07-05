@@ -326,273 +326,253 @@ module.exports = class ProjectsHelper {
 		try {
 			let projectDetails = await this.details(resourceId, userDetails.organization_id, userDetails.id)
 
-			if (projectDetails.statusCode == httpStatusCode.ok) {
-				let projectData = projectDetails.result
-				if (projectData.user_id !== userDetails.id) {
-					return responses.failureResponse({
-						message: 'DONT_HAVE_PROJECT_ACCESS',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
-				}
+			if (projectDetails.statusCode !== httpStatusCode.ok) {
+				return responses.failureResponse({
+					message: 'DONT_HAVE_PROJECT_ACCESS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 
-				let entityTypes = await entityModelMappingQuery.findEntityTypes(
-					{
-						model: common.PROJECT,
-						status: common.STATUS_ACTIVE,
-					},
-					['value', 'has_entities', 'validations']
-				)
-				const entities = []
+			let projectData = projectDetails.result
 
-				for (let i = 0; i < entityTypes.length; i++) {
-					const entityType = entityTypes[i]
+			if (projectData.user_id !== userDetails.id) {
+				return responses.failureResponse({
+					message: 'DONT_HAVE_PROJECT_ACCESS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 
-					if (entityType.has_entities) {
-						const projectEntityData = projectData[entityType.value]
+			let entityTypes = await entityModelMappingQuery.findEntityTypes(
+				{
+					model: common.PROJECT,
+					status: common.STATUS_ACTIVE,
+				},
+				['value', 'has_entities', 'validations']
+			)
 
-						if (projectEntityData) {
-							if (Array.isArray(projectEntityData)) {
-								// If projectEntityData is an array, extract ids from each item
-								projectEntityData.forEach((item) => {
-									entities.push(item.value)
-								})
-							} else if (typeof projectEntityData === 'object') {
-								// If projectEntityData is an object, extract the id
-								entities.push(projectEntityData.value)
-							}
-						}
+			const entities = []
+
+			// Using forEach instead of for loop to collect entities
+			entityTypes.forEach((entityType) => {
+				const projectEntityData = projectData[entityType.value]
+				if (entityType.has_entities && projectEntityData) {
+					if (Array.isArray(projectEntityData)) {
+						projectEntityData.forEach((item) => {
+							entities.push(item.value)
+						})
+					} else if (typeof projectEntityData === common.OBJECT) {
+						entities.push(projectEntityData.value)
 					}
 				}
+			})
 
-				const allEntities = await entityService.read({ value: entities }, userDetails.id)
+			const allEntities = await entityService.read({ value: entities }, userDetails.id)
 
-				for (let i = 0; i < entityTypes.length; i++) {
-					const entityType = entityTypes[i]
-					const projectEntityData = projectData[entityType.value]
-					if (entityType.validations.required) {
-						if (entityType.has_entities) {
-							if (
-								!projectEntityData ||
-								(Array.isArray(projectEntityData) && projectEntityData.length === 0)
-							) {
-								return responses.failureResponse({
-									message: `${entityType.value} not added`,
-									statusCode: httpStatusCode.bad_request,
-									responseCode: 'CLIENT_ERROR',
-									error: utils.errorObject(common.BODY, entityType.value),
-								})
-							}
+			// Using forEach instead of for loop for entity type validations
+			entityTypes.forEach((entityType) => {
+				const projectEntityData = projectData[entityType.value]
 
-							if (Array.isArray(projectEntityData)) {
-								// If projectEntityData is an array, check if all items are present in allEntities
-								for (const item of projectEntityData) {
-									const entitiesPresent = allEntities.result.find(
-										(entity) => entity.value === item.value
-									)
-									if (!entitiesPresent) {
-										return responses.failureResponse({
-											message: `invalid ${entityType.value} added`,
-											statusCode: httpStatusCode.bad_request,
-											responseCode: 'CLIENT_ERROR',
-											error: utils.errorObject(common.BODY, entityType.value),
-										})
-									}
-								}
-							} else if (typeof projectEntityData === common.OBJECT) {
-								// If projectEntityData is an object, check if the item is present in allEntities
-								const entitiesPresent = allEntities.result.find(
-									(entity) => entity.value === projectEntityData.value
-								)
+				if (entityType.validations.required) {
+					if (entityType.has_entities) {
+						if (
+							!projectEntityData ||
+							(Array.isArray(projectEntityData) && projectEntityData.length === 0)
+						) {
+							throw responses.failureResponse({
+								message: `${entityType.value} not added`,
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject(common.BODY, entityType.value),
+							})
+						}
+
+						if (Array.isArray(projectEntityData)) {
+							projectEntityData.forEach((item) => {
+								const entitiesPresent = allEntities.result.find((entity) => entity.value === item.value)
 								if (!entitiesPresent) {
-									return responses.failureResponse({
+									throw responses.failureResponse({
 										message: `invalid ${entityType.value} added`,
 										statusCode: httpStatusCode.bad_request,
 										responseCode: 'CLIENT_ERROR',
 										error: utils.errorObject(common.BODY, entityType.value),
 									})
 								}
-							}
-						} else {
-							// If has_entities is false, check if the key in projectData has a non-empty value
-							if (!projectEntityData || projectEntityData === '') {
-								return responses.failureResponse({
-									message: `${entityType.value} should not be empty`,
+							})
+						} else if (typeof projectEntityData === common.OBJECT) {
+							const entitiesPresent = allEntities.result.find(
+								(entity) => entity.value === projectEntityData.value
+							)
+							if (!entitiesPresent) {
+								throw responses.failureResponse({
+									message: `invalid ${entityType.value} added`,
 									statusCode: httpStatusCode.bad_request,
 									responseCode: 'CLIENT_ERROR',
 									error: utils.errorObject(common.BODY, entityType.value),
 								})
-							}
-							if (entityType.value !== common.TASKS) {
-								let checkForRegex = utils.checkRegexPattarn(projectEntityData, entityType.validations)
-								if (checkForRegex) {
-									return responses.failureResponse({
-										message: `Special characters not allowed in ${entityType.value}`,
-										statusCode: httpStatusCode.bad_request,
-										responseCode: 'CLIENT_ERROR',
-										error: utils.errorObject(common.BODY, entityType.value),
-									})
-								}
 							}
 						}
 					} else {
-						if (entityType.has_entities) {
-							if (Array.isArray(projectEntityData)) {
-								// If projectEntityData is an array, check if all items are present in allEntities
-								for (const item of projectEntityData) {
-									const entitiesPresent = allEntities.result.find(
-										(entity) => entity.value === item.value
-									)
-									if (!entitiesPresent) {
-										return responses.failureResponse({
-											message: `invalid ${entityType.value} added`,
-											statusCode: httpStatusCode.bad_request,
-											responseCode: 'CLIENT_ERROR',
-											error: utils.errorObject(common.BODY, entityType.value),
-										})
-									}
-								}
-							} else if (typeof projectEntityData === common.OBJECT) {
-								// If projectEntityData is an object, check if the item is present in allEntities
-								const entitiesPresent = allEntities.result.find(
-									(entity) => entity.value === projectEntityData.value
-								)
+						if (!projectEntityData || projectEntityData === '') {
+							throw responses.failureResponse({
+								message: `${entityType.value} should not be empty`,
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject(common.BODY, entityType.value),
+							})
+						}
+						if (entityType.value !== common.TASKS) {
+							let checkForRegex = utils.checkRegexPattarn(projectEntityData, entityType.validations)
+							if (checkForRegex) {
+								throw responses.failureResponse({
+									message: `Special characters not allowed in ${entityType.value}`,
+									statusCode: httpStatusCode.bad_request,
+									responseCode: 'CLIENT_ERROR',
+									error: utils.errorObject(common.BODY, entityType.value),
+								})
+							}
+						}
+					}
+				} else {
+					if (entityType.has_entities) {
+						if (Array.isArray(projectEntityData)) {
+							projectEntityData.forEach((item) => {
+								const entitiesPresent = allEntities.result.find((entity) => entity.value === item.value)
 								if (!entitiesPresent) {
-									return responses.failureResponse({
+									throw responses.failureResponse({
 										message: `invalid ${entityType.value} added`,
 										statusCode: httpStatusCode.bad_request,
 										responseCode: 'CLIENT_ERROR',
 										error: utils.errorObject(common.BODY, entityType.value),
 									})
 								}
-							}
-						} else {
-							// If has_entities is false, check if the key in projectData has a non-empty value
-
-							if (entityType.value !== common.TASKS && entityType.value) {
-								let checkForRegex = utils.checkRegexPattarn(projectEntityData, entityType.validations)
-								if (checkForRegex) {
-									return responses.failureResponse({
-										message: `Special characters not allowed in ${entityType.value}`,
-										statusCode: httpStatusCode.bad_request,
-										responseCode: 'CLIENT_ERROR',
-										error: utils.errorObject(common.BODY, entityType.value),
-									})
-								}
-							}
-						}
-					}
-				}
-
-				if (projectData.tasks.length < 1) {
-					return responses.failureResponse({
-						message: 'TASK_NOT_FOUND',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-						error: utils.errorObject(common.BODY, 'tasks'),
-					})
-				}
-				let taskEntityTypes = await entityModelMappingQuery.findEntityTypes(
-					{
-						model: common.TASKS,
-						status: common.STATUS_ACTIVE,
-					},
-					['value', 'validations']
-				)
-				for (let i = 0; i < projectData.tasks.length; i++) {
-					for (let j = 0; j < taskEntityTypes.length; j++) {
-						if (taskEntityTypes[j].validations.required) {
-							if (
-								!projectData.tasks[i][taskEntityTypes[j].value] ||
-								projectData.tasks[i][taskEntityTypes[j].value] == ''
-							) {
-								return responses.failureResponse({
-									message: `${taskEntityTypes[j].value} should not be empty`,
-									statusCode: httpStatusCode.bad_request,
-									responseCode: 'CLIENT_ERROR',
-									error: utils.errorObject(common.BODY, `task.${taskEntityTypes[j].value}`),
-								})
-							}
-							let validateRegex = utils.checkRegexPattarn(
-								projectData.tasks[i][taskEntityTypes[j].value],
-								taskEntityTypes[j].validations
+							})
+						} else if (typeof projectEntityData === common.OBJECT) {
+							const entitiesPresent = allEntities.result.find(
+								(entity) => entity.value === projectEntityData.value
 							)
-							if (validateRegex) {
-								return responses.failureResponse({
-									message: `Special characters not allowed in task.${taskEntityTypes[j].value}`,
+							if (!entitiesPresent) {
+								throw responses.failureResponse({
+									message: `invalid ${entityType.value} added`,
 									statusCode: httpStatusCode.bad_request,
 									responseCode: 'CLIENT_ERROR',
-									error: utils.errorObject(common.BODY, `task.${taskEntityTypes[j].value}`),
+									error: utils.errorObject(common.BODY, entityType.value),
+								})
+							}
+						}
+					} else {
+						if (entityType.value !== common.TASKS && entityType.value) {
+							let checkForRegex = utils.checkRegexPattarn(projectEntityData, entityType.validations)
+							if (checkForRegex) {
+								throw responses.failureResponse({
+									message: `Special characters not allowed in ${entityType.value}`,
+									statusCode: httpStatusCode.bad_request,
+									responseCode: 'CLIENT_ERROR',
+									error: utils.errorObject(common.BODY, entityType.value),
 								})
 							}
 						}
 					}
-					if (projectData.tasks[i].allow_evidences == common.TRUE) {
-						if (projectData.tasks[i].evidence_details.file_types.length < 1) {
-							return responses.failureResponse({
-								message: 'FILE_TYPE_NOT_SELECTED',
+				}
+			})
+
+			if (projectData.tasks.length < 1) {
+				throw responses.failureResponse({
+					message: 'TASK_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+					error: utils.errorObject(common.BODY, common.TASKS),
+				})
+			}
+
+			let taskEntityTypes = await entityModelMappingQuery.findEntityTypes(
+				{
+					model: common.TASKS,
+					status: common.STATUS_ACTIVE,
+				},
+				['value', 'validations']
+			)
+
+			// Using forEach for iterating through tasks and taskEntityTypes
+			projectData.tasks.forEach(async (task) => {
+				taskEntityTypes.forEach(async (taskEntityType) => {
+					if (taskEntityType.validations.required) {
+						if (!task[taskEntityType.value] || task[taskEntityType.value] === '') {
+							throw responses.failureResponse({
+								message: `${taskEntityType.value} should not be empty`,
 								statusCode: httpStatusCode.bad_request,
 								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.BODY, 'file_types'),
+								error: utils.errorObject(common.BODY, `task.${taskEntityType.value}`),
+							})
+						}
+						let validateRegex = utils.checkRegexPattarn(
+							task[taskEntityType.value],
+							taskEntityType.validations
+						)
+						if (validateRegex) {
+							throw responses.failureResponse({
+								message: `Special characters not allowed in task.${taskEntityType.value}`,
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject(common.BODY, `task.${taskEntityType.value}`),
 							})
 						}
 					}
-					//this will validate learning resource based on entity type validation for this will have tasks as model and learning-resource will be entityType
-					if (projectData.tasks[i].learning_resources && projectData.tasks[i].learning_resources.length > 0) {
-						let subTaskEntityTypes = await entityModelMappingQuery.findEntityTypes(
-							{
-								model: common.SUBTASKS,
-								status: common.STATUS_ACTIVE,
-							},
-							['value', 'validations']
-						)
-						//validation will regex we need to verify that its a valid learning resource
-						for (let j = 0; j < projectData.tasks[i].learning_resources.length; j++) {
-							let validateURL = utils.checkRegexPattarn(
-								projectData.tasks[i].learning_resources[j].url,
-								subTaskEntityTypes[0].validations
-							)
-							if (validateURL) {
-								return responses.failureResponse({
-									message: 'INCORRECT_LEARNING_RESOURCE',
-									statusCode: httpStatusCode.bad_request,
-									responseCode: 'CLIENT_ERROR',
-									error: utils.errorObject(common.BODY, 'children'),
-								})
-							}
-						}
-					}
-				}
-				let updateProject = await resourceQueries.updateOne(
-					{ id: projectData.id },
-					{ status: common.RESOURCE_STATUS_SUBMITTED }
-				)
+				})
 
-				if (bodyData.hasOwnProperty('reviwer_ids')) {
-					let reviewsData = []
-					for (let i = 0; i < bodyData.reviwer_ids.length; i++) {
-						let review = {
-							resource_id: projectData.id,
-							reviewer_id: bodyData.reviwer_ids[i],
-							status: common.REVIEW_STATUS_NOT_STARTED,
-							organization_id: userDetails.organization_id,
-						}
-						reviewsData.push(review)
-					}
-					let projectReview = await reviewsQueries.bulkCreate(reviewsData)
-					return responses.successResponse({
-						statusCode: httpStatusCode.created,
-						message: 'PROJECT_SUBMITTED_SUCCESSFULLY',
-						result: { id: projectData.id },
-					})
-				} else {
-					return responses.successResponse({
-						statusCode: httpStatusCode.created,
-						message: 'PROJECT_SUBMITTED_SUCCESSFULLY',
-						result: { id: projectData.id },
+				if (task.allow_evidences == common.TRUE && task.evidence_details.file_types.length < 1) {
+					throw responses.failureResponse({
+						message: 'FILE_TYPE_NOT_SELECTED',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+						error: utils.errorObject(common.BODY, 'file_types'),
 					})
 				}
+
+				if (task.learning_resources && task.learning_resources.length > 0) {
+					let subTaskEntityTypes = await entityModelMappingQuery.findEntityTypes(
+						{
+							model: common.SUBTASKS,
+							status: common.STATUS_ACTIVE,
+						},
+						['value', 'validations']
+					)
+					task.learning_resources.forEach((learningResource) => {
+						let validateURL = utils.checkRegexPattarn(
+							learningResource.url,
+							subTaskEntityTypes[0].validations
+						)
+						if (validateURL) {
+							throw responses.failureResponse({
+								message: 'INCORRECT_LEARNING_RESOURCE',
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject(common.BODY, 'children'),
+							})
+						}
+					})
+				}
+			})
+
+			await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
+
+			if (bodyData.hasOwnProperty('reviwer_ids') && bodyData.reviwer_ids.length > 0) {
+				let reviewsData = bodyData.reviwer_ids.map((reviewer_id) => ({
+					resource_id: projectData.id,
+					reviewer_id,
+					status: common.REVIEW_STATUS_NOT_STARTED,
+					organization_id: userDetails.organization_id,
+				}))
+
+				await reviewsQueries.bulkCreate(reviewsData)
 			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.created,
+				message: 'PROJECT_SUBMITTED_SUCCESSFULLY',
+				result: { id: projectData.id },
+			})
 		} catch (error) {
 			return error
 		}
