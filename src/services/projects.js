@@ -349,6 +349,7 @@ module.exports = class ProjectsHelper {
 					model: common.PROJECT,
 					status: common.STATUS_ACTIVE,
 				},
+				userDetails.organization_id,
 				['value', 'has_entities', 'validations']
 			)
 
@@ -388,30 +389,14 @@ module.exports = class ProjectsHelper {
 							})
 						}
 
-						if (Array.isArray(projectEntityData)) {
-							projectEntityData.forEach((item) => {
-								const entitiesPresent = allEntities.result.find((entity) => entity.value === item.value)
-								if (!entitiesPresent) {
-									throw responses.failureResponse({
-										message: `invalid ${entityType.value} added`,
-										statusCode: httpStatusCode.bad_request,
-										responseCode: 'CLIENT_ERROR',
-										error: utils.errorObject(common.BODY, entityType.value),
-									})
-								}
+						let validEntities = utils.validateEntities(projectEntityData, allEntities)
+						if (!validEntities) {
+							throw responses.failureResponse({
+								message: `invalid ${entityType.value} added`,
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject(common.BODY, entityType.value),
 							})
-						} else if (typeof projectEntityData === common.OBJECT) {
-							const entitiesPresent = allEntities.result.find(
-								(entity) => entity.value === projectEntityData.value
-							)
-							if (!entitiesPresent) {
-								throw responses.failureResponse({
-									message: `invalid ${entityType.value} added`,
-									statusCode: httpStatusCode.bad_request,
-									responseCode: 'CLIENT_ERROR',
-									error: utils.errorObject(common.BODY, entityType.value),
-								})
-							}
 						}
 					} else {
 						if (!projectEntityData || projectEntityData === '') {
@@ -436,30 +421,14 @@ module.exports = class ProjectsHelper {
 					}
 				} else {
 					if (entityType.has_entities) {
-						if (Array.isArray(projectEntityData)) {
-							projectEntityData.forEach((item) => {
-								const entitiesPresent = allEntities.result.find((entity) => entity.value === item.value)
-								if (!entitiesPresent) {
-									throw responses.failureResponse({
-										message: `invalid ${entityType.value} added`,
-										statusCode: httpStatusCode.bad_request,
-										responseCode: 'CLIENT_ERROR',
-										error: utils.errorObject(common.BODY, entityType.value),
-									})
-								}
+						let validEntities = utils.validateEntities(projectEntityData, allEntities)
+						if (!validEntities) {
+							throw responses.failureResponse({
+								message: `invalid ${entityType.value} added`,
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject(common.BODY, entityType.value),
 							})
-						} else if (typeof projectEntityData === common.OBJECT) {
-							const entitiesPresent = allEntities.result.find(
-								(entity) => entity.value === projectEntityData.value
-							)
-							if (!entitiesPresent) {
-								throw responses.failureResponse({
-									message: `invalid ${entityType.value} added`,
-									statusCode: httpStatusCode.bad_request,
-									responseCode: 'CLIENT_ERROR',
-									error: utils.errorObject(common.BODY, entityType.value),
-								})
-							}
 						}
 					} else {
 						if (entityType.value !== common.TASKS && entityType.value) {
@@ -491,6 +460,7 @@ module.exports = class ProjectsHelper {
 					model: common.TASKS,
 					status: common.STATUS_ACTIVE,
 				},
+				userDetails.organization_id,
 				['value', 'validations']
 			)
 
@@ -536,6 +506,7 @@ module.exports = class ProjectsHelper {
 							model: common.SUBTASKS,
 							status: common.STATUS_ACTIVE,
 						},
+						userDetails.organization_id,
 						['value', 'validations']
 					)
 					task.learning_resources.forEach((learningResource) => {

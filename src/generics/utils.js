@@ -421,6 +421,26 @@ const checkRegexPattarn = (data, validation) => {
 	return regex.test(normalizedValue)
 }
 
+const validateEntities = (projectEntityData, allEntities) => {
+	try {
+		if (Array.isArray(projectEntityData)) {
+			projectEntityData.forEach((item) => {
+				const entitiesPresent = allEntities.result.find((entity) => entity.value === item.value)
+				if (!entitiesPresent) {
+					return false
+				}
+			})
+		} else if (typeof projectEntityData === common.OBJECT) {
+			const entitiesPresent = allEntities.result.find((entity) => entity.value === projectEntityData.value)
+			if (!entitiesPresent) {
+				return false
+			}
+		}
+	} catch (error) {
+		return error
+	}
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -444,4 +464,5 @@ module.exports = {
 	removeDefaultOrgCertificates,
 	errorObject,
 	checkRegexPattarn,
+	validateEntities,
 }

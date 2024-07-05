@@ -39,7 +39,7 @@ module.exports = class UserEntityData {
 			return error
 		}
 	}
-	static async findUserEntityTypeAndEntities(filter) {
+	static async findUserEntityTypeAndEntities(filter, attributes = {}) {
 		try {
 			const entityTypes = await EntityType.findAll({
 				where: filter,
@@ -51,7 +51,7 @@ module.exports = class UserEntityData {
 			const entities = await Entity.findAll({
 				where: { entity_type_id: entityTypeIds, status: common.STATUS_ACTIVE },
 				raw: true,
-				//attributes: { exclude: ['entity_type_id'] },
+				attributes: attributes,
 			})
 
 			const result = entityTypes.map((entityType) => {
