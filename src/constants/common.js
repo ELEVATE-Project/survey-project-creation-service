@@ -108,4 +108,6 @@ module.exports = {
 	RESOURCE_TITLE: 'title',
 	BODY: 'body',
 	REQUEST_METHOD_DELETE: 'DELETE',
+	FILE_TYPE: 'file_types',
+	CHILDREN: 'children',
 }

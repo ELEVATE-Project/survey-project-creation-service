@@ -415,27 +415,44 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 const errorObject = (params, filed) => {
 	return [{ location: params, param: filed, message: filed + ' field is empty' }]
 }
-const checkRegexPattarn = (data, validation) => {
-	let normalizedValue = unidecode(data)
-	let regex = new RegExp(validation.regex)
-	return regex.test(normalizedValue)
+const checkRegexPattarn = (entityType, entityData) => {
+	try {
+		let normalizedValue = unidecode(entityData)
+		let regex = new RegExp(entityType.validations.regex)
+		return regex.test(normalizedValue)
+	} catch (error) {
+		return error
+	}
 }
 
-const validateEntities = (projectEntityData, allEntities) => {
+const checkRequired = (entityType, entityData) => {
 	try {
-		if (Array.isArray(projectEntityData)) {
-			projectEntityData.forEach((item) => {
-				const entitiesPresent = allEntities.result.find((entity) => entity.value === item.value)
-				if (!entitiesPresent) {
-					return false
-				}
-			})
-		} else if (typeof projectEntityData === common.OBJECT) {
-			const entitiesPresent = allEntities.result.find((entity) => entity.value === projectEntityData.value)
-			if (!entitiesPresent) {
-				return false
+		if (
+			entityType.validations.required &&
+			(!entityData || (Array.isArray(entityData) && entityData.length === 0))
+		) {
+			return false
+		}
+		return true
+	} catch (error) {
+		return error
+	}
+}
+
+const checkEntities = (entityType, entityData) => {
+	try {
+		if (entityType.has_entities) {
+			if (!Array.isArray(entityData) && entityData !== null) {
+				entityData = [entityData]
+			}
+			const validEntities = entityType.entities.map((e) => e.value)
+			const invalidEntities = entityData.filter((entities) => !validEntities.includes(entities.value))
+
+			if (invalidEntities.length > 0) {
+				return { message: `${entityType.value} contains invalid entities`, status: false }
 			}
 		}
+		return { status: true }
 	} catch (error) {
 		return error
 	}
@@ -464,5 +481,6 @@ module.exports = {
 	removeDefaultOrgCertificates,
 	errorObject,
 	checkRegexPattarn,
-	validateEntities,
+	checkRequired,
+	checkEntities,
 }

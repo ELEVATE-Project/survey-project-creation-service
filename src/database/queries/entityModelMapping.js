@@ -9,6 +9,8 @@ const { removeDefaultOrgEntityTypes } = require('@generics/utils')
 const responses = require('@helpers/responses')
 const httpStatusCode = require('@generics/http-status')
 const { Op } = require('sequelize')
+
+const entityQueries = require('@database/queries/entities')
 exports.create = async (data) => {
 	try {
 		return await EntityModelMapping.create(data)
@@ -17,9 +19,10 @@ exports.create = async (data) => {
 	}
 }
 
-exports.findEntityTypes = async (filter, orgId, attributes = {}) => {
+exports.findEntityTypesAndEntities = async (filter, userDetails, attributes = {}) => {
 	try {
-		const defaultOrgId = await getDefaultOrgId()
+		const defaultOrgId = 1
+		// await getDefaultOrgId()
 		if (!defaultOrgId)
 			return responses.failureResponse({
 				message: 'DEFAULT_ORG_ID_NOT_SET',
@@ -37,7 +40,7 @@ exports.findEntityTypes = async (filter, orgId, attributes = {}) => {
 			id: entityTypeIds,
 			status: common.STATUS_ACTIVE,
 			organization_id: {
-				[Op.in]: [orgId, defaultOrgId],
+				[Op.in]: [userDetails.organization_id, defaultOrgId],
 			},
 		}
 		const EntityTypes = await EntityType.findAll({
@@ -45,7 +48,30 @@ exports.findEntityTypes = async (filter, orgId, attributes = {}) => {
 			raw: true,
 			attributes: attributes,
 		})
-		const prunedEntities = removeDefaultOrgEntityTypes(EntityTypes, orgId)
+		const prunedEntities = removeDefaultOrgEntityTypes(EntityTypes, userDetails.organization_id)
+
+		let reletedEntityTypeIds = prunedEntities
+			.filter((entityType) => entityType.has_entities)
+			.map((entityType) => entityType.id)
+		if (reletedEntityTypeIds.length > 0) {
+			let filter = {
+				[Op.or]: [
+					{
+						entity_type_id: reletedEntityTypeIds,
+						created_by: common.CREATED_BY_SYSTEM,
+						status: common.STATUS_ACTIVE,
+					},
+					{ id: reletedEntityTypeIds, created_by: userDetails.id, status: common.STATUS_ACTIVE },
+				],
+			}
+			let entities = await entityQueries.findAllEntities(filter)
+
+			const result = prunedEntities.map((entityType) => {
+				const relatedEntities = entities.filter((entity) => entity.entity_type_id === entityType.id)
+				return { ...entityType, entities: relatedEntities }
+			})
+			return result
+		}
 
 		return prunedEntities
 	} catch (error) {
