@@ -402,6 +402,13 @@ module.exports = class ProjectsHelper {
 					responseCode: 'CLIENT_ERROR',
 					error: utils.errorObject(common.BODY, common.TASKS),
 				})
+			} else if (projectData.tasks.length < process.env.MAX_PROJECT_TASK_COUNT) {
+				throw responses.failureResponse({
+					message: 'EXCEEDED_PROJECT_TASK_COUNT',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+					error: utils.errorObject(common.BODY, common.TASKS),
+				})
 			}
 
 			let taskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
@@ -488,6 +495,7 @@ module.exports = class ProjectsHelper {
 
 			await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
 			//TODO: For review flow this has to be changed we might need to add further conditions
+			// and Validate those reviewer as well
 			if (bodyData.hasOwnProperty('reviwer_ids') && bodyData.reviwer_ids.length > 0) {
 				let reviewsData = bodyData.reviwer_ids.map((reviewer_id) => ({
 					resource_id: projectData.id,

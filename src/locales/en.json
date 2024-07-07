@@ -78,5 +78,6 @@
 	"TASK_NOT_FOUND": "Task not found",
 	"FILE_TYPE_NOT_SELECTED": "File type not selected",
 	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource url",
-	"DONT_HAVE_PROJECT_ACCESS": "You dont have permission to access this project"
+	"DONT_HAVE_PROJECT_ACCESS": "You dont have permission to access this project",
+	"EXCEEDED_PROJECT_TASK_COUNT": "Project task has exceeded the max count"
 }
