@@ -21,8 +21,7 @@ exports.create = async (data) => {
 
 exports.findEntityTypesAndEntities = async (filter, userDetails, attributes = {}) => {
 	try {
-		const defaultOrgId = 1
-		// await getDefaultOrgId()
+		const defaultOrgId = await getDefaultOrgId()
 		if (!defaultOrgId)
 			return responses.failureResponse({
 				message: 'DEFAULT_ORG_ID_NOT_SET',
