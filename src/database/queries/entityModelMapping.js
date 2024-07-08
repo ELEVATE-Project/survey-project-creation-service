@@ -54,14 +54,8 @@ exports.findEntityTypesAndEntities = async (filter, userDetails, attributes = {}
 			.map((entityType) => entityType.id)
 		if (reletedEntityTypeIds.length > 0) {
 			let filter = {
-				[Op.or]: [
-					{
-						entity_type_id: reletedEntityTypeIds,
-						created_by: common.CREATED_BY_SYSTEM,
-						status: common.STATUS_ACTIVE,
-					},
-					{ id: reletedEntityTypeIds, created_by: userDetails.id, status: common.STATUS_ACTIVE },
-				],
+				entity_type_id: reletedEntityTypeIds,
+				status: common.STATUS_ACTIVE,
 			}
 			let entities = await entityQueries.findAllEntities(filter)
 
