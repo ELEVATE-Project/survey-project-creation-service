@@ -458,6 +458,16 @@ const checkEntities = (entityType, entityData) => {
 	}
 }
 
+const validateRoleAccess = (roles, requiredRoles) => {
+	if (!roles || roles.length === 0) return false
+
+	if (!Array.isArray(requiredRoles)) {
+		requiredRoles = [requiredRoles]
+	}
+
+	return roles.some((role) => requiredRoles.includes(role.title))
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -483,4 +493,5 @@ module.exports = {
 	checkRegexPattarn,
 	checkRequired,
 	checkEntities,
+	validateRoleAccess,
 }

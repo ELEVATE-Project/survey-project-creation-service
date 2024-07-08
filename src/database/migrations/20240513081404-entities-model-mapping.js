@@ -31,6 +31,15 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
+
+		// Add an index for the 'value' column
+		await queryInterface.addIndex('entities_model_mapping', ['entity_type_id', 'model'], {
+			unique: true,
+			name: 'unique_entity_type_id_model',
+			where: {
+				deleted_at: null,
+			},
+		})
 	},
 
 	async down(queryInterface, Sequelize) {

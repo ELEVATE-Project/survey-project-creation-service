@@ -1,11 +1,8 @@
 const common = require('@constants/common')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
 const _ = require('lodash')
-const entites = require('@database/queries/entities')
-const entityType = require('@database/queries/entityType')
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
-const { Op } = require('sequelize')
 module.exports = class configsHelper {
 	/**
 	 * List Configs.
@@ -24,15 +21,8 @@ module.exports = class configsHelper {
 			// attributes to fetch from organisation Extenstion
 			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
 
-			const entity_type_and_entities = await entityType.findOneEntityTypeAndEntities({
-				organization_id: organization_id,
-				value: common.RESOURCES,
-			})
 			// fetch the current list of resources
-			const resourceList = entity_type_and_entities.entities
-
-			// convert the object into array
-			const resourceListArr = resourceList.map(({ value }) => value)
+			const resourceListArr = process.env.RESOURCE_TYPES.split(',')
 
 			// instance level configurations from env as default configs
 			const default_configs = {

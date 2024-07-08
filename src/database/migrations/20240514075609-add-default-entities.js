@@ -9,19 +9,6 @@ module.exports = {
 
 		const entitiesArray = [
 			{
-				entityType: 'resources',
-				entities: [
-					{ value: 'projects', label: 'Project' },
-					{ value: 'observations', label: 'Observation' },
-					{ value: 'observation_with_rubrics', label: 'Observation with rubric' },
-					{ value: 'surveys', label: 'Survey' },
-					{ value: 'programs', label: 'Program' },
-				],
-				has_entities: true,
-				validation: { required: true },
-				model: 'resources',
-			},
-			{
 				entityType: 'categories',
 				entities: [
 					{ value: 'teachers', label: 'Teachers' },

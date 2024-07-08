@@ -306,13 +306,13 @@ module.exports = class ProjectsHelper {
 			const reviewers = await userRequests.list(common.REVIEWER, pageNo, limit, '', organization_id)
 			if (reviewers.success) {
 				return responses.successResponse({
-					statusCode: httpStatusCode.created,
+					statusCode: httpStatusCode.ok,
 					message: 'REVIEWER_LIST_FETCHED_SUCCESSFULLY',
 					result: reviewers.data.result,
 				})
 			} else {
 				return responses.successResponse({
-					statusCode: httpStatusCode.created,
+					statusCode: httpStatusCode.ok,
 					message: 'REVIEWER_LIST_FETCHED_SUCCESSFULLY',
 					result: [],
 				})

@@ -133,6 +133,10 @@ let enviromentVariables = {
 		optional: true,
 		default: '',
 	},
+	RESOURCE_TYPES: {
+		message: 'Resource types required',
+		optional: false,
+	},
 	MAX_PROJECT_TASK_COUNT: {
 		message: 'Maximum task count is required',
 		optional: false,

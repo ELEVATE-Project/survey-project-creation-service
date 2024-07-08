@@ -14,24 +14,25 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			reviewer_id: {
 				allowNull: false,
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 			},
 			status: {
 				type: DataTypes.ENUM(
 					'NOT_STARTED',
-					'DRAFT',
 					'STARTED',
 					'INPROGRESS',
 					'REQUESTED_FOR_CHANGES',
 					'APPROVED',
 					'REJECTED',
-					'PUBLISHED'
+					'PUBLISHED',
+					'REJECTED_AND_REPORTED'
 				),
 				defaultValue: 'NOT_STARTED',
 			},
 			organization_id: {
 				allowNull: false,
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
+				primaryKey: true,
 			},
 		},
 		{
@@ -43,6 +44,7 @@ module.exports = (sequelize, DataTypes) => {
 				{
 					unique: true,
 					fields: ['resource_id', 'reviewer_id'],
+					name: 'unique_resource_reviewer',
 				},
 			],
 		}
