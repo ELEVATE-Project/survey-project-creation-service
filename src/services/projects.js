@@ -419,7 +419,7 @@ module.exports = class ProjectsHelper {
 				userDetails,
 				['value', 'validations']
 			)
-			//TODO: This dont have
+			//TODO: This dont have code for each type of validation please make sure that in future when adding new validadtion include code for that
 			// Using forEach for iterating through tasks and taskEntityTypes
 			projectData.tasks.forEach(async (task) => {
 				taskEntityTypes.forEach(async (taskEntityType) => {
