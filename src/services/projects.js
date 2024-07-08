@@ -402,7 +402,7 @@ module.exports = class ProjectsHelper {
 					responseCode: 'CLIENT_ERROR',
 					error: utils.errorObject(common.BODY, common.TASKS),
 				})
-			} else if (projectData.tasks.length < process.env.MAX_PROJECT_TASK_COUNT) {
+			} else if (projectData.tasks.length > process.env.MAX_PROJECT_TASK_COUNT) {
 				throw responses.failureResponse({
 					message: 'EXCEEDED_PROJECT_TASK_COUNT',
 					statusCode: httpStatusCode.bad_request,
