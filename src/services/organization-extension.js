@@ -20,28 +20,6 @@ module.exports = class orgExtensionsHelper {
 			bodyData.organization_id = organization_id
 			const { resource_type, review_stages, review_type } = bodyData
 
-			// Check if review_stages is not null, undefined, not an array, empty or invalid
-			if (review_type === common.REVIEW_TYPE_SEQUENTIAL) {
-				if (
-					!Array.isArray(review_stages) ||
-					review_stages.length === 0 ||
-					!review_stages.every(
-						(item) =>
-							item &&
-							typeof item === 'object' &&
-							!Array.isArray(item) &&
-							item.hasOwnProperty('role') &&
-							item.hasOwnProperty('level')
-					)
-				) {
-					return responses.failureResponse({
-						message: 'REVIEW_STAGES_INVALID',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
-				}
-			}
-
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
 			if (!validResourceTypes.includes(resource_type)) {
 				return responses.failureResponse({
@@ -51,10 +29,30 @@ module.exports = class orgExtensionsHelper {
 				})
 			}
 
-			if (bodyData.review_type === common.REVIEW_TYPE_SEQUENTIAL && bodyData.review_stages) {
-				//review stage creation
+			// Check if review_stages is not null, undefined, not an array, empty or invalid
+			if (review_type === common.REVIEW_TYPE_SEQUENTIAL) {
+				const isValidReviewStages =
+					Array.isArray(review_stages) &&
+					review_stages.length > 0 &&
+					review_stages.every(
+						(eachStage) =>
+							eachStage &&
+							typeof eachStage === 'object' &&
+							!Array.isArray(eachStage) &&
+							eachStage.hasOwnProperty('role') &&
+							eachStage.hasOwnProperty('level')
+					)
+
+				if (!isValidReviewStages) {
+					return responses.failureResponse({
+						message: 'REVIEW_STAGES_INVALID',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
 				try {
-					const createReviewStages = bodyData.review_stages.map((stage) => ({
+					const createReviewStages = review_stages.map((stage) => ({
 						...stage,
 						organization_id,
 						resource_type,
