@@ -43,7 +43,7 @@ module.exports = {
 				type: Sequelize.BOOLEAN,
 			},
 			validations: {
-				type: Sequelize.JSON,
+				type: Sequelize.JSONB,
 			},
 			created_by: {
 				type: Sequelize.INTEGER,

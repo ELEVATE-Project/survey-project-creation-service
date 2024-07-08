@@ -1,6 +1,6 @@
 // Dependencies
 const httpStatusCode = require('@generics/http-status')
-const entityTypeQueries = require('@database/queries/entities')
+const entityQueries = require('@database/queries/entities')
 const { UniqueConstraintError, ForeignKeyConstraintError } = require('sequelize')
 const { Op } = require('sequelize')
 const responses = require('@helpers/responses')
@@ -20,7 +20,7 @@ module.exports = class EntityHelper {
 		bodyData.created_by = loggedInUserId
 		bodyData.updated_by = loggedInUserId
 		try {
-			const entity = await entityTypeQueries.createEntity(bodyData)
+			const entity = await entityQueries.createEntity(bodyData)
 			return responses.successResponse({
 				statusCode: httpStatusCode.created,
 				message: 'ENTITY_CREATED_SUCCESSFULLY',
@@ -58,7 +58,7 @@ module.exports = class EntityHelper {
 	static async update(bodyData, id, loggedInUserId) {
 		bodyData.updated_by = loggedInUserId
 		try {
-			const [updateCount, updatedEntity] = await entityTypeQueries.updateOneEntity(id, bodyData, loggedInUserId, {
+			const [updateCount, updatedEntity] = await entityQueries.updateOneEntity(id, bodyData, loggedInUserId, {
 				returning: true,
 				raw: true,
 			})
@@ -121,7 +121,7 @@ module.exports = class EntityHelper {
 					],
 				}
 			}
-			const entities = await entityTypeQueries.findAllEntities(filter)
+			const entities = await entityQueries.findAllEntities(filter)
 
 			if (!entities.length) {
 				return responses.failureResponse({
@@ -159,7 +159,7 @@ module.exports = class EntityHelper {
 					created_by: common.CREATED_BY_SYSTEM,
 				}
 			}
-			const entities = await entityTypeQueries.findAllEntities(filter)
+			const entities = await entityQueries.findAllEntities(filter)
 
 			if (!entities.length) {
 				return responses.failureResponse({
@@ -188,7 +188,7 @@ module.exports = class EntityHelper {
 
 	static async delete(id, userId) {
 		try {
-			const deleteCount = await entityTypeQueries.deleteOneEntityType(id, userId)
+			const deleteCount = await entityQueries.deleteOneEntityType(id, userId)
 			if (deleteCount === 0) {
 				return responses.failureResponse({
 					message: 'ENTITY_NOT_FOUND',

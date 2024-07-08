@@ -26,3 +26,13 @@ exports.countDistinct = async (filter, attributes = {}) => {
 		return error
 	}
 }
+
+exports.bulkCreate = async (data) => {
+	try {
+		const res = await reviews.bulkCreate(data)
+
+		return res
+	} catch (error) {
+		return error
+	}
+}

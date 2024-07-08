@@ -85,4 +85,20 @@ module.exports = class Projects {
 			return error
 		}
 	}
+
+	/**
+	 * submit for review
+	 * @method
+	 * @name submitForReview
+	 * @returns {JSON} - submitted project id.
+	 */
+
+	async submitForReview(req) {
+		try {
+			const submitForReview = await projectService.submitForReview(req.params.id, req.body, req.decodedToken)
+			return submitForReview
+		} catch (error) {
+			return error
+		}
+	}
 }

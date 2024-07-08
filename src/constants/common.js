@@ -86,6 +86,13 @@ module.exports = {
 	STATUS_RESOLVED: 'RESOLVED',
 	ALL_USER_ROLES: 'all',
 	LIMIT: 100,
+	CONTENT: 'content',
+	REVIEW_STATUS_NOT_STARTED: 'NOT_STARTED',
+	TRUE: true,
+	FALSE: false,
+	TASKS: 'tasks',
+	SUBTASKS: 'subTasks',
+	OBJECT: 'object',
 	roleValidationPaths: [
 		'/scp/v1/resource/list',
 		'/scp/v1/projects/reviewerList',
@@ -99,5 +106,8 @@ module.exports = {
 		'/scp/v1/comment/list',
 	],
 	RESOURCE_TITLE: 'title',
+	BODY: 'body',
 	REQUEST_METHOD_DELETE: 'DELETE',
+	FILE_TYPE: 'file_types',
+	CHILDREN: 'children',
 }
