@@ -76,8 +76,6 @@ module.exports = class resourceHelper {
 			if (queryParams[common.PAGE_STATUS] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW) {
 				// specific filters for submitted for review page
 
-				let inreviewFilters = filter
-				inreviewFilters.status = common.RESOURCE_STATUS_IN_REVIEW
 				const inReviewResources = await resourceQueries.findAll(filter, ['id'])
 
 				const uniqueInReviewResourcesIds = [...new Set(inReviewResources.map((item) => item.id))]
@@ -94,7 +92,7 @@ module.exports = class resourceHelper {
 				})
 				result.changes_requested_count = changesCount
 
-				if (common.STATUS in queryParams) {
+				if ((common.STATUS in queryParams) & (queryParams[common.STATUS] != '')) {
 					// remove status which are not related
 					filter.status = {
 						[Op.in]: _.intersection(

@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
 			modelName: 'ResourceCreatorMapping',
 			tableName: 'resource_creator_mapping',
 			freezeTableName: true,
-			paranoid: false,
+			paranoid: true,
 		}
 	)
 

@@ -61,6 +61,7 @@
 	"CERTIFICATE_FETCH_FAILED": "Error in fetching Certificate",
 	"PROJECT_CREATED_SUCCESSFULLY": "Project created successfully",
 	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully",
+	"PROJECT_DELETED_SUCCESSFUL": "Project deleted successfully",
 	"FORBIDDEN_RESOURCE_UPDATE": "Update Failed! Resource '{{resourceTitle}}' is being reviewed by {{reviewer_count}} Reviewer(s) ",
 	"COMMENT_UPDATED_SUCCESSFULLY": "Comment updated successfully",
 	"COMMENT_NOT_FOUND": "Comment not found",
@@ -76,5 +77,12 @@
 	"CONFIG_ALREADY_EXIST": "Config already exist",
 	"ORG_CONFIG_NOT_FOUND": "Organization config not found",
 	"ORG_CONFIG_UPDATED": "Organization config updated successfully",
-	"REVIEW_STAGES_INVALID": "review_stages required or review_stages must be a non-null array of objects with role and level properties"
+	"REVIEW_STAGES_INVALID": "review_stages required or review_stages must be a non-null array of objects with role and level properties",
+	"ONLY_PROJECT_CAN_BE_SUBMITTED_FOR_REVIEW": "Project can be submitted for review",
+	"PROJECT_OBJECTIVE_NOT_ADDED": "Project objective not added",
+	"TASK_NOT_FOUND": "Task not found",
+	"FILE_TYPE_NOT_SELECTED": "File type not selected",
+	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource url",
+	"DONT_HAVE_PROJECT_ACCESS": "You dont have permission to access this project",
+	"EXCEEDED_PROJECT_TASK_COUNT": "Project task has exceeded the max count"
 }

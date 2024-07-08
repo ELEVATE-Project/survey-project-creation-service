@@ -6,6 +6,7 @@
  */
 
 // Dependencies
+const common = require('@constants/common')
 const projectService = require('@services/projects')
 
 module.exports = class Projects {
@@ -21,12 +22,17 @@ module.exports = class Projects {
 		try {
 			console.log(req.params)
 			if (req.params.id) {
-				const project = await projectService.update(
-					req.params.id,
-					req.decodedToken.organization_id,
-					req.decodedToken.id,
-					req.body
-				)
+				let project = {}
+				if (req.method === common.REQUEST_METHOD_DELETE) {
+					project = await projectService.delete(req.params.id, req.decodedToken.id)
+				} else {
+					project = await projectService.update(
+						req.params.id,
+						req.decodedToken.organization_id,
+						req.decodedToken.id,
+						req.body
+					)
+				}
 				return project
 			} else {
 				const project = await projectService.create(
@@ -75,6 +81,22 @@ module.exports = class Projects {
 				req.pageSize
 			)
 			return reviwerList
+		} catch (error) {
+			return error
+		}
+	}
+
+	/**
+	 * submit for review
+	 * @method
+	 * @name submitForReview
+	 * @returns {JSON} - submitted project id.
+	 */
+
+	async submitForReview(req) {
+		try {
+			const submitForReview = await projectService.submitForReview(req.params.id, req.body, req.decodedToken)
+			return submitForReview
 		} catch (error) {
 			return error
 		}

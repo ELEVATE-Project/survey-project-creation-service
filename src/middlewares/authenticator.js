@@ -64,7 +64,7 @@ module.exports = async function (req, res, next) {
 
 		if (internalAccess && !authHeader) return next()
 
-		if (!authHeader) {
+		if (!authHeader || authHeader === undefined) {
 			try {
 				const isPermissionValid = await checkPermissions(common.PUBLIC_ROLE, req.path, req.method)
 				if (!isPermissionValid) {

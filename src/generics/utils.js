@@ -16,6 +16,7 @@ const common = require('@constants/common')
 const crypto = require('crypto')
 const { cloudClient } = require('@configs/cloud-service')
 const { v4: uuidV4 } = require('uuid')
+const unidecode = require('unidecode')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -411,6 +412,52 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 	return Array.from(certificateMap.values())
 }
 
+const errorObject = (params, filed) => {
+	return [{ location: params, param: filed, message: filed + ' field is empty' }]
+}
+const checkRegexPattarn = (entityType, entityData) => {
+	try {
+		let normalizedValue = unidecode(entityData)
+		let regex = new RegExp(entityType.validations.regex)
+		return regex.test(normalizedValue)
+	} catch (error) {
+		return error
+	}
+}
+
+const checkRequired = (entityType, entityData) => {
+	try {
+		if (
+			entityType.validations.required &&
+			(!entityData || (Array.isArray(entityData) && entityData.length === 0))
+		) {
+			return false
+		}
+		return true
+	} catch (error) {
+		return error
+	}
+}
+
+const checkEntities = (entityType, entityData) => {
+	try {
+		if (entityType.has_entities) {
+			if (!Array.isArray(entityData) && entityData !== null) {
+				entityData = [entityData]
+			}
+			const validEntities = entityType.entities.map((e) => e.value)
+			const invalidEntities = entityData.filter((entities) => !validEntities.includes(entities.value))
+
+			if (invalidEntities.length > 0) {
+				return { message: `${entityType.value} contains invalid entities`, status: false }
+			}
+		}
+		return { status: true }
+	} catch (error) {
+		return error
+	}
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -432,4 +479,8 @@ module.exports = {
 	removeDefaultOrgEntityTypes,
 	generateUniqueId,
 	removeDefaultOrgCertificates,
+	errorObject,
+	checkRegexPattarn,
+	checkRequired,
+	checkEntities,
 }
