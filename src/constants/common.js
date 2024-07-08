@@ -25,7 +25,6 @@ module.exports = {
 	READ_ACCESS: 'r',
 	REVIEW_TYPE_SEQUENTIAL: 'SEQUENTIAL',
 	REVIEW_TYPE_PARALLEL: 'PARALLEL',
-	RESOURCES: 'resources',
 	INSTANCE_LEVEL_CONFIG_ATTRIBUTES: [
 		'review_required',
 		'show_reviewer_list',
@@ -99,5 +98,5 @@ module.exports = {
 		'/scp/v1/comment/list',
 	],
 	PUBLIC_ROLE: 'public',
-	RESOURCE_TITLE: 'title'
+	RESOURCE_TITLE: 'title',
 }

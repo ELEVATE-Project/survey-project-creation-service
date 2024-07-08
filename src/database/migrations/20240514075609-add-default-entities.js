@@ -8,28 +8,6 @@ module.exports = {
 		}
 
 		const entitiesArray = {
-			resources: [
-				{
-					value: 'projects',
-					label: 'Project',
-				},
-				{
-					value: 'observations',
-					label: 'Observation',
-				},
-				{
-					value: 'observation_with_rubrics',
-					label: 'Observation with rubric',
-				},
-				{
-					value: 'surveys',
-					label: 'Survey',
-				},
-				{
-					value: 'programs',
-					label: 'Program',
-				},
-			],
 			categories: [
 				{
 					value: 'teachers',

@@ -1,19 +1,41 @@
 const ReviewStage = require('../models/index').ReviewStage
+const { UniqueConstraintError, ValidationError } = require('sequelize')
 
 exports.bulkCreate = async (data) => {
 	try {
 		const res = await ReviewStage.bulkCreate(data)
 		return res
 	} catch (error) {
+		if (error instanceof UniqueConstraintError) {
+			throw new Error('Review stages for role and level already exist')
+		} else if (error instanceof ValidationError) {
+			const messages = error.errors.map((err) => `${err.path} cannot be null.`)
+			throw new Error(messages.join(' '))
+		} else {
+			throw new Error(error.message)
+		}
+	}
+}
+
+exports.findAll = async (filter, options = {}) => {
+	try {
+		const res = await ReviewStage.findAll({
+			where: filter,
+			...options,
+			raw: true,
+		})
+
+		return res
+	} catch (error) {
 		return error
 	}
 }
 
-exports.findAll = async (filter, attributes = {}) => {
+exports.findOne = async (filter, options = {}) => {
 	try {
-		const res = await ReviewStage.findAll({
+		const res = await ReviewStage.findOne({
 			where: filter,
-			attributes,
+			...options,
 			raw: true,
 		})
 

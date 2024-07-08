@@ -3,7 +3,6 @@ const httpStatusCode = require('@generics/http-status')
 const common = require('@constants/common')
 const orgExtensionQueries = require('@database/queries/organizationExtensions')
 const reviewStageQueries = require('@database/queries/reviewStage')
-const entityTypeQueries = require('@database/queries/entityType')
 const { UniqueConstraintError } = require('sequelize')
 const responses = require('@helpers/responses')
 const _ = require('lodash')
@@ -19,15 +18,31 @@ module.exports = class orgExtensionsHelper {
 	static async createConfig(bodyData, organization_id) {
 		try {
 			bodyData.organization_id = organization_id
-			const { resource_type } = bodyData
+			const { resource_type, review_stages, review_type } = bodyData
 
-			const resources = await entityTypeQueries.findOneEntityTypeAndEntities({
-				organization_id: organization_id,
-				value: common.RESOURCES,
-			})
+			// Check if review_stages is not null, undefined, not an array, empty or invalid
+			if (review_type === common.REVIEW_TYPE_SEQUENTIAL) {
+				if (
+					!Array.isArray(review_stages) ||
+					review_stages.length === 0 ||
+					!review_stages.every(
+						(item) =>
+							item &&
+							typeof item === 'object' &&
+							!Array.isArray(item) &&
+							item.hasOwnProperty('role') &&
+							item.hasOwnProperty('level')
+					)
+				) {
+					return responses.failureResponse({
+						message: 'REVIEW_STAGES_INVALID',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+			}
 
-			const resourceList = resources.entities
-			const validResourceTypes = _.map(resourceList, 'value')
+			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
 			if (!validResourceTypes.includes(resource_type)) {
 				return responses.failureResponse({
 					message: `resource_type ${resource_type} is not a valid`,
@@ -38,14 +53,23 @@ module.exports = class orgExtensionsHelper {
 
 			if (bodyData.review_type === common.REVIEW_TYPE_SEQUENTIAL && bodyData.review_stages) {
 				//review stage creation
-				const reviewStages = bodyData.review_stages.map((stage) => ({
-					...stage,
-					organization_id,
-					resource_type,
-				}))
+				try {
+					const createReviewStages = bodyData.review_stages.map((stage) => ({
+						...stage,
+						organization_id,
+						resource_type,
+					}))
 
-				await reviewStageQueries.bulkCreate(reviewStages)
+					await reviewStageQueries.bulkCreate(createReviewStages)
+				} catch (error) {
+					return responses.failureResponse({
+						message: error.message,
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
 			}
+
 			const orgExtension = await orgExtensionQueries.create(bodyData)
 
 			return responses.successResponse({
@@ -77,10 +101,84 @@ module.exports = class orgExtensionsHelper {
 
 	static async updateConfig(id, resource_type, bodyData, organization_id) {
 		try {
+			//validate resource type
+			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
+			if (!validResourceTypes.includes(resource_type)) {
+				return responses.failureResponse({
+					message: `resource_type ${resource_type} is not a valid`,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			const { review_stages, review_type } = bodyData
+
 			const filter = {
 				id: id,
 				resource_type: resource_type,
 				organization_id: organization_id,
+			}
+
+			if (review_type === common.REVIEW_TYPE_SEQUENTIAL) {
+				// Fetch existing review stages
+				const existingReviewStages = await reviewStageQueries.findAll({
+					resource_type: resource_type,
+					organization_id: organization_id,
+				})
+
+				// Check if review_stages is not null, undefined, not an array, empty or invalid
+				const isValidReviewStages =
+					Array.isArray(review_stages) &&
+					review_stages.length > 0 &&
+					review_stages.every(
+						(eachStage) =>
+							eachStage &&
+							typeof eachStage === 'object' &&
+							!Array.isArray(eachStage) &&
+							eachStage.hasOwnProperty('role') &&
+							eachStage.hasOwnProperty('level')
+					)
+
+				if (existingReviewStages.length === 0 && !isValidReviewStages) {
+					return responses.failureResponse({
+						message: 'REVIEW_STAGES_INVALID',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				//review stage creation
+				if (isValidReviewStages) {
+					// Identify new review stages to add
+					const newReviewStages = review_stages.filter(
+						(stage) =>
+							!existingReviewStages.some(
+								(existingStage) =>
+									existingStage.role === stage.role &&
+									existingStage.level === stage.level &&
+									existingStage.resource_type === resource_type &&
+									existingStage.organization_id === organization_id
+							)
+					)
+
+					// Add new review stages
+					if (newReviewStages.length > 0) {
+						const createReviewStages = newReviewStages.map((stage) => ({
+							...stage,
+							organization_id,
+							resource_type,
+						}))
+						try {
+							await reviewStageQueries.bulkCreate(createReviewStages)
+						} catch (error) {
+							return responses.failureResponse({
+								message: error.message,
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+							})
+						}
+					}
+				}
 			}
 
 			const [updateCount, updatedConfig] = await orgExtensionQueries.update(filter, bodyData, {

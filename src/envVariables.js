@@ -133,6 +133,10 @@ let enviromentVariables = {
 		optional: true,
 		default: '',
 	},
+	RESOURCE_TYPES: {
+		message: 'Resource types required',
+		optional: false,
+	},
 }
 
 let success = true

@@ -75,5 +75,6 @@
 	"CONFIG_ADDED_SUCCESSFULLY": "Config added successfully",
 	"CONFIG_ALREADY_EXIST": "Config already exist",
 	"ORG_CONFIG_NOT_FOUND": "Organization config not found",
-	"ORG_CONFIG_UPDATED": "Organization config updated successfully"
+	"ORG_CONFIG_UPDATED": "Organization config updated successfully",
+	"REVIEW_STAGES_INVALID": "review_stages required or review_stages must be a non-null array of objects with role and level properties"
 }
