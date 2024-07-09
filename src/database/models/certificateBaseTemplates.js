@@ -33,6 +33,11 @@ module.exports = (sequelize, DataTypes) => {
 			meta: {
 				type: DataTypes.JSON,
 			},
+			created_by: {
+				type: DataTypes.STRING,
+				primaryKey: true,
+				allowNull: false,
+			},
 		},
 
 		{
