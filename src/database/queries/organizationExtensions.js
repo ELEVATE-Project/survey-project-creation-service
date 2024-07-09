@@ -1,15 +1,32 @@
-const orgExtensions = require('../models/index').organizationExtension
+const OrgExtensions = require('../models/index').organizationExtension
 
-module.exports = class organizationExtensions {
-	static async findMany(filter, attributes = []) {
-		try {
-			return await orgExtensions.findAll({
-				where: filter,
-				attributes,
-				raw: true,
-			})
-		} catch (error) {
-			throw error
-		}
+exports.findMany = async (filter, attributes = []) => {
+	try {
+		return await OrgExtensions.findAll({
+			where: filter,
+			attributes,
+			raw: true,
+		})
+	} catch (error) {
+		return error
+	}
+}
+
+exports.create = async (data) => {
+	try {
+		return await OrgExtensions.create(data, { returning: true })
+	} catch (error) {
+		return error
+	}
+}
+
+exports.update = async (filter, update, options = {}) => {
+	try {
+		return await OrgExtensions.update(update, {
+			where: filter,
+			...options,
+		})
+	} catch (error) {
+		return error
 	}
 }

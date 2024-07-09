@@ -80,13 +80,13 @@ module.exports = {
 				{
 					role_title: common.ADMIN_ROLE,
 					permission_id: await getPermissionId(
-						'forms',
+						'form',
 						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-						'/scp/v1/forms/*'
+						'/scp/v1/form/*'
 					),
-					module: 'forms',
+					module: 'form',
 					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-					api_path: '/scp/v1/forms/*',
+					api_path: '/scp/v1/form/*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
@@ -94,43 +94,43 @@ module.exports = {
 				{
 					role_title: common.ORG_ADMIN_ROLE,
 					permission_id: await getPermissionId(
-						'forms',
+						'form',
 						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-						'/scp/v1/forms/*'
+						'/scp/v1/form/*'
 					),
-					module: 'forms',
+					module: 'form',
 					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-					api_path: '/scp/v1/forms/*',
+					api_path: '/scp/v1/form/*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
 				},
 				{
 					role_title: common.CONTENT_CREATOR,
-					permission_id: await getPermissionId('forms', ['POST'], '/scp/v1/forms/read*'),
-					module: 'forms',
+					permission_id: await getPermissionId('form', ['POST'], '/scp/v1/form/read*'),
+					module: 'form',
 					request_type: ['POST'],
-					api_path: '/scp/v1/forms/read*',
+					api_path: '/scp/v1/form/read*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
 				},
 				{
 					role_title: common.REVIEWER,
-					permission_id: await getPermissionId('forms', ['POST'], '/scp/v1/forms/read*'),
-					module: 'forms',
+					permission_id: await getPermissionId('form', ['POST'], '/scp/v1/form/read*'),
+					module: 'form',
 					request_type: ['POST'],
-					api_path: '/scp/v1/forms/read*',
+					api_path: '/scp/v1/form/read*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
 				},
 				{
 					role_title: common.RESOURCE_CREATOR,
-					permission_id: await getPermissionId('forms', ['POST'], '/scp/v1/forms/read*'),
-					module: 'forms',
+					permission_id: await getPermissionId('form', ['POST'], '/scp/v1/form/read*'),
+					module: 'form',
 					request_type: ['POST'],
-					api_path: '/scp/v1/forms/read*',
+					api_path: '/scp/v1/form/read*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
@@ -470,6 +470,20 @@ module.exports = {
 
 				// organization extensions
 				{
+					role_title: common.ADMIN_ROLE,
+					permission_id: await getPermissionId(
+						'organization-extensions',
+						['POST', 'DELETE', 'PUT', 'PATCH'],
+						'/scp/v1/organization-extensions/*'
+					),
+					module: 'organization-extensions',
+					request_type: ['POST', 'DELETE', 'PUT', 'PATCH'],
+					api_path: '/scp/v1/organization-extensions/*',
+					created_at: new Date(),
+					updated_at: new Date(),
+					created_by: 0,
+				},
+				{
 					role_title: common.ORG_ADMIN_ROLE,
 					permission_id: await getPermissionId(
 						'organization-extensions',
@@ -539,20 +553,20 @@ module.exports = {
 				//resource permissions
 				{
 					role_title: common.CONTENT_CREATOR,
-					permission_id: await getPermissionId('resources', ['GET'], '/scp/v1/resources/list'),
-					module: 'resources',
+					permission_id: await getPermissionId('resource', ['GET'], '/scp/v1/resource/list*'),
+					module: 'resource',
 					request_type: ['GET'],
-					api_path: '/scp/v1/resources/list',
+					api_path: '/scp/v1/resource/list*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
 				},
 				{
 					role_title: common.REVIEWER,
-					permission_id: await getPermissionId('resources', ['GET'], '/scp/v1/resources/list'),
-					module: 'resources',
+					permission_id: await getPermissionId('resource', ['GET'], '/scp/v1/resource/list*'),
+					module: 'resource',
 					request_type: ['GET'],
-					api_path: '/scp/v1/resources/list',
+					api_path: '/scp/v1/resource/list*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
@@ -561,20 +575,28 @@ module.exports = {
 				//project permissions
 				{
 					role_title: common.CONTENT_CREATOR,
-					permission_id: await getPermissionId('projects', ['GET'], '/scp/v1/projects/details'),
+					permission_id: await getPermissionId(
+						'projects',
+						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
+						'/scp/v1/projects/details*'
+					),
 					module: 'projects',
-					request_type: ['GET'],
-					api_path: '/scp/v1/projects/details',
+					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
+					api_path: '/scp/v1/projects/details*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
 				},
 				{
 					role_title: common.REVIEWER,
-					permission_id: await getPermissionId('projects', ['GET'], '/scp/v1/projects/details'),
+					permission_id: await getPermissionId(
+						'projects',
+						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
+						'/scp/v1/projects/details*'
+					),
 					module: 'projects',
-					request_type: ['GET'],
-					api_path: '/scp/v1/projects/details',
+					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
+					api_path: '/scp/v1/projects/details*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
@@ -584,21 +606,25 @@ module.exports = {
 					permission_id: await getPermissionId(
 						'projects',
 						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-						'/scp/v1/projects/update'
+						'/scp/v1/projects/update*'
 					),
 					module: 'projects',
 					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-					api_path: '/scp/v1/projects/update',
+					api_path: '/scp/v1/projects/update*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
 				},
 				{
 					role_title: common.CONTENT_CREATOR,
-					permission_id: await getPermissionId('projects', ['POST'], '/scp/v1/projects/submitForReview'),
+					permission_id: await getPermissionId(
+						'projects',
+						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
+						'/scp/v1/projects/submitForReview*'
+					),
 					module: 'projects',
-					request_type: ['POST'],
-					api_path: '/scp/v1/projects/submitForReview',
+					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
+					api_path: '/scp/v1/projects/submitForReview*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
@@ -627,10 +653,10 @@ module.exports = {
 				//review permissions
 				{
 					role_title: common.REVIEWER,
-					permission_id: await getPermissionId('reviews', ['POST', 'PATCH'], '/scp/v1/reviews/update'),
+					permission_id: await getPermissionId('reviews', ['POST', 'PATCH'], '/scp/v1/reviews/update*'),
 					module: 'reviews',
 					request_type: ['POST', 'PATCH'],
-					api_path: '/scp/v1/reviews/update',
+					api_path: '/scp/v1/reviews/update*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
@@ -644,9 +670,9 @@ module.exports = {
 						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
 						'/scp/v1/comments/*'
 					),
-					module: 'reviews',
+					module: 'comments',
 					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-					api_path: '/scp/v1/reviews/*',
+					api_path: '/scp/v1/comments/*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
@@ -658,9 +684,9 @@ module.exports = {
 						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
 						'/scp/v1/comments/*'
 					),
-					module: 'reviews',
+					module: 'comments',
 					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-					api_path: '/scp/v1/reviews/*',
+					api_path: '/scp/v1/comments/*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
@@ -672,7 +698,7 @@ module.exports = {
 						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
 						'/scp/v1/comments/*'
 					),
-					module: 'reviews',
+					module: 'comments',
 					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
 					api_path: '/scp/v1/comments/*',
 					created_at: new Date(),

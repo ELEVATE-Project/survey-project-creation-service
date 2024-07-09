@@ -7,6 +7,7 @@ module.exports = {
 			id: {
 				allowNull: false,
 				autoIncrement: true,
+				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
 			role: {
@@ -25,7 +26,7 @@ module.exports = {
 			organization_id: {
 				allowNull: false,
 				primaryKey: true,
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 			},
 			created_at: {
 				allowNull: false,

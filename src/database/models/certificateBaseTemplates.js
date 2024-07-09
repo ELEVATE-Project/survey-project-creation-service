@@ -26,7 +26,8 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 			},
 			organization_id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
+				primaryKey: true,
 				allowNull: false,
 			},
 			meta: {
@@ -39,6 +40,7 @@ module.exports = (sequelize, DataTypes) => {
 				{
 					unique: true,
 					fields: ['code', 'organization_id'],
+					name: 'unique_code_per_organization',
 				},
 			],
 			sequelize,

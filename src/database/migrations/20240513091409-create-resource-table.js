@@ -10,26 +10,39 @@ module.exports = {
 				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
+			title: {
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
 			type: {
 				allowNull: false,
 				type: Sequelize.STRING,
 			},
 			status: {
 				allowNull: false,
-				type: Sequelize.ENUM('DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED'),
+				type: Sequelize.ENUM(
+					'DRAFT',
+					'SUBMITTED',
+					'IN_REVIEW',
+					'APPROVED',
+					'REJECTED',
+					'PUBLISHED',
+					'REJECTED_AND_REPORTED'
+				),
 				defaultValue: 'DRAFT',
 			},
 			blob_path: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.STRING,
 			},
 			user_id: {
 				allowNull: false,
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 			},
 			organization_id: {
+				primaryKey: true,
 				allowNull: false,
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 			},
 			next_stage: {
 				type: Sequelize.INTEGER,
@@ -45,14 +58,18 @@ module.exports = {
 				type: Sequelize.STRING,
 			},
 			meta: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.JSONB,
 			},
 			created_by: {
-				type: Sequelize.INTEGER,
+				allowNull: false,
+				type: Sequelize.STRING,
 			},
 			updated_by: {
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
+			},
+			last_reviewed_at: {
+				type: Sequelize.DATE,
 			},
 			created_at: {
 				allowNull: false,
