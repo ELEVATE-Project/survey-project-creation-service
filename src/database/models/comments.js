@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			comment: {
 				allowNull: false,
-				type: DataTypes.STRING,
+				type: DataTypes.TEXT,
 			},
 			user_id: {
 				allowNull: false,
