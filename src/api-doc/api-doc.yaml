@@ -3723,6 +3723,645 @@ paths:
                         - id: 3
                           type: projecsuccessfullytCreation
                           version: 3
+  /scp/v1/resource/upForReview:
+    get:
+      summary: Resource List - Up for review
+      tags:
+        - Resource
+      description: |-
+        You can use this API to list resources like project, observation, survey, etc. which are up for review in the reviewer profile.
+        - The API Endpoint for listing resources is `/scp/v1/resource/upForReview`
+        - It is mandatory to provide values for parameters which are marked as `required`
+        - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: The page number for pagination.
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: The limit of projects per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
+        - name: search
+          in: query
+          description: The search value to filter projects based on title.
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Type of the resource
+          required: false
+          schema:
+            type: string
+          example: project
+        - name: status
+          in: query
+          description: The status of the resource
+          required: false
+          schema:
+            type: string
+          example: IN_REVIEW
+        - name: sort_by
+          in: query
+          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request.
+          required: false
+          schema:
+            type: string
+          example: status
+        - name: sort_order
+          in: query
+          description: Sort order (ascending or descending).
+          required: false
+          schema:
+            type: string
+            enum: ['asc', 'desc']
+          example: asc
+      responses:
+        '200':
+          description: Project listed successfully
+          content:
+            application/json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            title:
+                              type: string
+                            type:
+                              type: string
+                            organization:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                name:
+                                  type: string
+                                code:
+                                  type: string
+                            status:
+                              type: string
+                            creator:
+                              type: string
+                      count:
+                        type: integer
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            type:
+                              type: string
+                            version:
+                              type: integer
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: project listed successfully
+                    result:
+                      data:
+                        - id: 4
+                          title: sample project
+                          type: project
+                          organization:
+                            id: 24
+                            name: Shikshalokam
+                            code: sl
+                          status: IN_PROGRESS
+                          creator: Jhon
+                      count: 1
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projecsuccessfullytCreation
+                          version: 3
+  /scp/v1/resources/published:
+    get:
+      summary: Published Resource List
+      tags:
+        - Resource
+      description: |-
+        An API to list published resources such as projects, observations, etc.
+        - The API Endpoint for listing published resources is `/scp/v1/resources/published`
+        - It is mandatory to provide values for parameters which are marked as `required`
+        - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: The page number for pagination.
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: The limit of resources per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
+        - name: search
+          in: query
+          description: The search value to filter resources based on title.
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Type of the resource
+          required: false
+          schema:
+            type: string
+          example: project
+        - name: sort_by
+          in: query
+          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request.
+          required: false
+          schema:
+            type: string
+          example: title
+        - name: sort_order
+          in: query
+          description: Sort order (ascending or descending).
+          required: false
+          schema:
+            type: string
+            enum: ['asc', 'desc']
+          example: asc
+      responses:
+        '200':
+          description: Resource list fetched successfully
+          content:
+            application/json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            title:
+                              type: string
+                            type:
+                              type: string
+                            status:
+                              type: string
+                            published_id:
+                              type: string
+                            organization:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                name:
+                                  type: string
+                                code:
+                                  type: string
+                                description:
+                                  type: string
+                            creator:
+                              type: string
+                      count:
+                        type: integer
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Resource list fetched successfully
+                    result:
+                      data:
+                        - id: 123
+                          title: Sample Project
+                          type: project
+                          status: published
+                          published_id: 667ac85201cccd59c1b2001a
+                          organization:
+                            id: 647av85201cbbd60c1b9009c
+                            name: Example
+                            code: ex
+                            description: Example
+                          creator: Ben Kent
+                        - id: 667ac85201cccd59c1b7093c
+                          title: Sample Observation
+                          type: observation
+                          status: published
+                          published_id: 667ac85201cccd59c1b3001a
+                          organization:
+                            id: 647av85201cbbd60c1b9009c
+                            name: Example
+                            code: ex
+                            description: Example
+                          creator: Jhon Honai
+                      count: 2
+  /scp/v1/resources/published/{resourceId}:
+    get:
+      summary: Fetch Existing Resource Details
+      tags:
+        - Resource
+      description: |-
+        An API to fetch details of the published resources.
+        - The API Endpoint for fetching details of a published resource is `/scp/v1/resources/published/{resourceId}`
+        - It is mandatory to provide values for parameters which are marked as `required`
+        - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: resourceId
+          in: path
+          description: The ID of the resource to be fetched.
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Type of the resource.
+          required: true
+          schema:
+            type: string
+          example: project
+      responses:
+        '200':
+          description: Resource fetched successfully
+          content:
+            application/json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      organization:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          name:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                      creator:
+                        type: string
+                      title:
+                        type: string
+                      categories:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            label:
+                              type: string
+                            value:
+                              type: string
+                      recommended_duration:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                          number:
+                            type: integer
+                      keywords:
+                        type: string
+                      recommended_for:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            label:
+                              type: string
+                            value:
+                              type: string
+                      languages:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            label:
+                              type: string
+                            value:
+                              type: string
+                      learning_resources:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            url:
+                              type: string
+                      license:
+                        type: string
+                      tasks:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            type:
+                              type: string
+                            is_mandatory:
+                              type: boolean
+                            allow_evidences:
+                              type: boolean
+                            children:
+                              type: array
+                              items:
+                                type: string
+                            evidence_details:
+                              type: object
+                              properties:
+                                file_types:
+                                  type: array
+                                  items:
+                                    type: string
+                                min_no_of_evidences:
+                                  type: integer
+                            sequence_no:
+                              type: integer
+                            solution_details:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                name:
+                                  type: string
+                                min_no_of_submissions_required:
+                                  type: integer
+                                type:
+                                  type: string
+                      certificate:
+                        type: object
+                        properties:
+                          base_template_id:
+                            type: integer
+                          base_template_url:
+                            type: string
+                          code:
+                            type: string
+                          name:
+                            type: string
+                          logos:
+                            type: object
+                            properties:
+                              no_of_logos:
+                                type: integer
+                              stateLogo1:
+                                type: string
+                              stateLogo2:
+                                type: string
+                          signature:
+                            type: object
+                            properties:
+                              no_of_signature:
+                                type: integer
+                              signatureImg1:
+                                type: string
+                              signatureImg2:
+                                type: string
+                          issuer:
+                            type: string
+                          criteria:
+                            type: object
+                            properties:
+                              expressions:
+                                type: string
+                              conditions:
+                                type: object
+                                properties:
+                                  C1:
+                                    type: object
+                                    properties:
+                                      validation_text:
+                                        type: string
+                                      expression:
+                                        type: string
+                                      conditions:
+                                        type: object
+                                        properties:
+                                          C1:
+                                            type: object
+                                            properties:
+                                              scope:
+                                                type: string
+                                              key:
+                                                type: string
+                                              function:
+                                                type: string
+                                              filter:
+                                                type: object
+                                                properties:
+                                                  key:
+                                                    type: string
+                                                  value:
+                                                    type: string
+                                              operator:
+                                                type: string
+                                              value:
+                                                type: integer
+                                  C2:
+                                    type: object
+                                    properties:
+                                      validation_text:
+                                        type: string
+                                      expression:
+                                        type: string
+                                      conditions:
+                                        type: object
+                                        properties:
+                                          C1:
+                                            type: object
+                                            properties:
+                                              scope:
+                                                type: string
+                                              key:
+                                                type: string
+                                              function:
+                                                type: string
+                                              filter:
+                                                type: object
+                                                properties:
+                                                  key:
+                                                    type: string
+                                                  value:
+                                                    type: string
+                                              operator:
+                                                type: string
+                                              value:
+                                                type: integer
+                                              task_details:
+                                                type: array
+                                                items:
+                                                  type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Resource fetched successfully
+                    result:
+                      id: 667ac85201cccd59c1b9094c
+                      type: project
+                      status: published
+                      organization:
+                        id: 647av85201cbbd60c1b9009c
+                        name: Example
+                        code: ex
+                        description: Example
+                      creator: Ben Kent
+                      title: Sample Project
+                      categories:
+                        - label: communication
+                          value: communication
+                      recommended_duration:
+                        type: week
+                        number: 5
+                      keywords: test
+                      recommended_for:
+                        - label: HM
+                          value: hm
+                      languages:
+                        - label: English
+                          value: en
+                      learning_resources:
+                        - name: sample doc
+                          url: http://test.com
+                      license: CC BY 4.0
+                      tasks:
+                        - id: 3a8b13fb-c9e1-4296-8abd-8b64b357a128
+                          name: task observation
+                          type: observation
+                          is_mandatory: true
+                          allow_evidences: true
+                          children: []
+                          evidence_details:
+                            file_types:
+                              - mp4
+                            min_no_of_evidences: 5
+                          sequence_no: 1
+                          solution_details:
+                            id: 3
+                            name: sample observation
+                            min_no_of_submissions_required: 2
+                            type: observation
+                      certificate:
+                        base_template_id: 5
+                        base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                        code: two-logo-two-sign
+                        name: Two Logo Two Signature
+                        logos:
+                          no_of_logos: 2
+                          stateLogo1: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
+                          stateLogo2: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
+                        signature:
+                          no_of_signature: 2
+                          signatureImg1: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                          signatureImg2: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                        issuer: SPD
+                        criteria:
+                          expressions: C1&&C2
+                          conditions:
+                            C1:
+                              validation_text: minimum no of evidences at project level
+                              expression: C1
+                              conditions:
+                                C1:
+                                  scope: project
+                                  key: evidence
+                                  function: count
+                                  filter:
+                                    key: type
+                                    value: all
+                                  operator: '>='
+                                  value: 4
+                            C2:
+                              validation_text: minimum no of evidences at project level
+                              expression: C1
+                              conditions:
+                                C1:
+                                  scope: task
+                                  key: evidence
+                                  function: count
+                                  filter:
+                                    key: type
+                                    value: all
+                                  operator: '>='
+                                  value: 4
+                                  task_details:
+                                    - 7a8b13fb-c9e1-4296-8abd-8b64b357a128
+
   /scp/v1/projects/details/{projectId}:
     post:
       summary: Project Details
@@ -5544,6 +6183,122 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/user/updateUser400Response'
+  /scp/v1/users/list:
+    get:
+      summary: User Search
+      tags:
+        - User Service APIS
+      description: |-
+        An API to list the users based on roles and organizations.
+        - The API Endpoint for listing users is `/scp/v1/users/list`
+        - It is mandatory to provide values for parameters which are marked as `required`
+        - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: The page number for pagination.
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: The limit of users per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
+        - name: search
+          in: query
+          description: The search value to filter users based on name or email.
+          required: false
+          schema:
+            type: string
+        - name: role
+          in: query
+          description: Role of the user
+          required: false
+          schema:
+            type: string
+          example: content_creator
+        - name: organization_id
+          in: query
+          description: ID of the organization
+          required: false
+          schema:
+            type: string
+          example: 667ac85201cccd59c1b9094c
+      responses:
+        '200':
+          description: Users fetched successfully
+          content:
+            application/json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            email:
+                              type: string
+                            roles:
+                              type: array
+                              items:
+                                type: string
+                            organization:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                code:
+                                  type: string
+                                name:
+                                  type: string
+                                description:
+                                  type: string
+                  count:
+                    type: integer
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Users fetched successfully
+                    result:
+                      data:
+                        - id: 56f4e4dc-0985-464a-b38d-ddda96a06a53
+                          name: Jhon Doe
+                          email: jhondoe@example.com
+                          roles:
+                            - content_creator
+                            - reviewer
+                          organization:
+                            id: 667ac85201cccd59c1b9094c
+                            code: example
+                            name: example
+                            description: example
+                      count: 1
 
   /scp/v1/observation/list:
     get:
