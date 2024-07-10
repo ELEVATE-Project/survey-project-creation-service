@@ -1,7 +1,6 @@
 require('dotenv').config()
-
 const defaultOrgId =
-	process.env.DEFAULT_ORG_ID ||
+	process.env.DEFAULT_ORG_ID.toString() ||
 	(() => {
 		throw new Error(
 			'DEFAULT_ORG_ID is not defined in env. Run the script called insertDefaultOrg.js in /scripts folder.'
