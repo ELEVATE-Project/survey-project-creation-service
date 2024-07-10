@@ -22,6 +22,7 @@ module.exports = {
 			{ code: 'certificates', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'reviews', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'observations', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
+			{ code: 'users', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 		]
 
 		// Insert the data into the 'modules' table

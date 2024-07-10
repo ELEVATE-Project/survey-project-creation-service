@@ -241,6 +241,42 @@ module.exports = {
 					created_at: new Date(),
 					updated_at: new Date(),
 				},
+				{
+					code: 'list_upForReview_resource_permissions',
+					module: 'resource',
+					request_type: ['GET'],
+					api_path: '/scp/v1/resource/upForReview*',
+					status: 'ACTIVE',
+					created_at: new Date(),
+					updated_at: new Date(),
+				},
+				{
+					code: 'list_browseExisting_resource_permissions',
+					module: 'resource',
+					request_type: ['GET'],
+					api_path: '/scp/v1/resource/browseExisting*',
+					status: 'ACTIVE',
+					created_at: new Date(),
+					updated_at: new Date(),
+				},
+				{
+					code: 'list_browseExisting_resource_details_permissions',
+					module: 'resource',
+					request_type: ['GET'],
+					api_path: '/scp/v1/resources/details/*',
+					status: 'ACTIVE',
+					created_at: new Date(),
+					updated_at: new Date(),
+				},
+				{
+					code: 'list_users_permissions',
+					module: 'users',
+					request_type: ['GET'],
+					api_path: '/scp/v1/users/list/*',
+					status: 'ACTIVE',
+					created_at: new Date(),
+					updated_at: new Date(),
+				},
 			]
 			await queryInterface.bulkInsert('permissions', permissionsData)
 		} catch (error) {
