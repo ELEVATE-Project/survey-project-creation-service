@@ -52,7 +52,7 @@ module.exports = {
 	CLOUD_SERVICE: ['azure', 'gcloud'],
 	STATUS_DRAFT: 'DRAFT',
 	STATUS_ACTIVE: 'ACTIVE',
-	CREATED_BY_SYSTEM: 0,
+	CREATED_BY_SYSTEM: '0',
 	PROJECT: 'projects',
 	FILTER_ALL: 'ALL',
 	SORT_DESC: 'DESC',

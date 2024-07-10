@@ -177,11 +177,11 @@ module.exports = async function (req, res, next) {
 		}
 
 		req.decodedToken = {
-			id: decodedToken.data.id,
+			id: decodedToken.data.id.toString(),
 			roles: decodedToken.data.roles,
 			name: decodedToken.data.name,
 			token: authHeader,
-			organization_id: decodedToken.data.organization_id,
+			organization_id: decodedToken.data.organization_id.toString(),
 		}
 		return next()
 	} catch (err) {
