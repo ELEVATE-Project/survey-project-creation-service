@@ -94,7 +94,7 @@ module.exports = class FormsHelper {
 			const form = await formQueries.findOne(filter)
 			let defaultOrgForm
 			if (!form) {
-				const defaultOrgId = utils.convertIntToString(process.env.DEFAULT_ORG_ID)
+				const defaultOrgId = utils.convertToString(process.env.DEFAULT_ORG_ID)
 				filter = id ? { id: id, organization_id: defaultOrgId } : { ...bodyData, organization_id: defaultOrgId }
 				defaultOrgForm = await formQueries.findOne(filter)
 			}
