@@ -135,6 +135,8 @@ module.exports = async function (req, res, next) {
 			isAdmin = decodedToken.data.roles.some((role) => role.title == common.ADMIN_ROLE)
 			if (isAdmin) {
 				req.decodedToken = decodedToken.data
+				req.decodedToken.organization_id = req.decodedToken.organization_id.toString()
+				req.decodedToken.id = req.decodedToken.id.toString()
 				return next()
 			}
 		}
@@ -160,7 +162,7 @@ module.exports = async function (req, res, next) {
 			}
 
 			decodedToken.data.roles = user.data.result.user_roles
-			decodedToken.data.organization_id = user.data.result.organization_id
+			decodedToken.data.organization_id = user.data.result.organization_id.toString()
 		}
 
 		const isPermissionValid = await checkPermissions(
