@@ -77,7 +77,7 @@ module.exports = class UserEntityData {
 			})
 
 			if (!entityType) {
-				filter.organization_id = utils.convertIntToString(process.env.DEFAULT_ORG_ID)
+				filter.organization_id = utils.convertToString(process.env.DEFAULT_ORG_ID)
 				entityType = await EntityType.findOne({
 					where: filter,
 					raw: true,
