@@ -4,8 +4,6 @@ const utils = require('@generics/utils')
 const KafkaProducer = require('@generics/kafka-communication')
 const form = require('@generics/form')
 const responses = require('@helpers/responses')
-const utils = require('@generics/utils')
-
 module.exports = class FormsHelper {
 	/**
 	 * Create Form.
