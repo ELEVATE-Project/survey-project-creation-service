@@ -256,14 +256,6 @@ const listOrganization = function (organizationIds = []) {
 	})
 }
 
-const returnOrganizationId = (orgId) => {
-	// Check if orgId is a valid integer
-	if (Number.isInteger(orgId)) {
-		return orgId.toString()
-	}
-	return orgId
-}
-
 module.exports = {
 	fetchDefaultOrgDetails,
 	details,
@@ -272,5 +264,4 @@ module.exports = {
 	search,
 	getListOfUserRoles,
 	listOrganization,
-	returnOrganizationId,
 }

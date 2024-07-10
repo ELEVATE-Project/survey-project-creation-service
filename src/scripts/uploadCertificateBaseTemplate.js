@@ -12,7 +12,7 @@ const fileService = require('../services/files')
 const request = require('request')
 const certificateQueries = require('../database/queries/certificateBaseTemplate')
 const common = require('../constants/common')
-const users = require('@requests/user')
+const utils = require('@generics/utils')
 
 ;(async () => {
 	try {
@@ -139,7 +139,7 @@ const users = require('@requests/user')
 			const certificateData = {
 				...currentPointerArray,
 				url: uploadedFilePath,
-				organization_id: users.returnOrganizationId(process.env.DEFAULT_ORG_ID),
+				organization_id: utils.convertIntToString(process.env.DEFAULT_ORG_ID),
 				resource_type: common.PROJECT,
 				created_by: common.CREATED_BY_SYSTEM,
 				created_at: new Date(),

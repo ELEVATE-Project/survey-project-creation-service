@@ -4,7 +4,7 @@ const utils = require('@generics/utils')
 const KafkaProducer = require('@generics/kafka-communication')
 const form = require('@generics/form')
 const responses = require('@helpers/responses')
-const users = require('@requests/user')
+const utils = require('@generics/utils')
 
 module.exports = class FormsHelper {
 	/**
@@ -94,7 +94,7 @@ module.exports = class FormsHelper {
 			const form = await formQueries.findOne(filter)
 			let defaultOrgForm
 			if (!form) {
-				const defaultOrgId = users.returnOrganizationId(process.env.DEFAULT_ORG_ID)
+				const defaultOrgId = utils.convertIntToString(process.env.DEFAULT_ORG_ID)
 				filter = id ? { id: id, organization_id: defaultOrgId } : { ...bodyData, organization_id: defaultOrgId }
 				defaultOrgForm = await formQueries.findOne(filter)
 			}
