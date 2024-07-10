@@ -4,7 +4,7 @@ exports.getDefaultOrgId = async () => {
 	try {
 		let defaultOrgDetails = await userRequests.fetchDefaultOrgDetails(process.env.DEFAULT_ORGANISATION_CODE)
 		if (defaultOrgDetails.success && defaultOrgDetails.data && defaultOrgDetails.data.result)
-			return defaultOrgDetails.data.result.id
+			return defaultOrgDetails.data.result.id.toString()
 		else return null
 	} catch (err) {
 		console.log(err)

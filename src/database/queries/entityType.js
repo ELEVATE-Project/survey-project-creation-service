@@ -2,6 +2,7 @@ const EntityType = require('../models/index').EntityType
 const Entity = require('../models/index').Entity
 const { Op } = require('sequelize')
 const common = require('@constants/common')
+const utils = require('@generics/utils')
 
 module.exports = class UserEntityData {
 	static async createEntityType(data) {
@@ -76,7 +77,7 @@ module.exports = class UserEntityData {
 			})
 
 			if (!entityType) {
-				filter.organization_id = process.env.DEFAULT_ORG_ID
+				filter.organization_id = utils.convertIntToString(process.env.DEFAULT_ORG_ID)
 				entityType = await EntityType.findOne({
 					where: filter,
 					raw: true,
