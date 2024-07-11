@@ -34,6 +34,10 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 				primaryKey: true,
 			},
+			notes: {
+				allowNull: true,
+				type: DataTypes.STRING,
+			},
 		},
 		{
 			modelName: 'Review',

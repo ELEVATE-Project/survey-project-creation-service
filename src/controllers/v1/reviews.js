@@ -12,17 +12,13 @@ module.exports = class reviews {
 
 	async update(req) {
 		try {
-			if (req.params.id) {
-				const updateReview = await reviewService.update(req.body)
-				return updateReview
-			} else {
-				const createReview = await reviewService.create(
-					req.body,
-					req.decodedToken.id,
-					req.decodedToken.organization_id
-				)
-				return createReview
-			}
+			const updateReview = await reviewService.update(
+				req.params.id,
+				req.body,
+				req.decodedToken.id,
+				req.decodedToken.organization_id
+			)
+			return updateReview
 		} catch (error) {
 			return error
 		}

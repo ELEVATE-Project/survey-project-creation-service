@@ -8,7 +8,7 @@ const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const filesService = require('@services/files')
 const common = require('@constants/common')
-module.exports = class configsHelper {
+module.exports = class certificatesHelper {
 	/**
 	 * List Certificate templates.
 	 * @method

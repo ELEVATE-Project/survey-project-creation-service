@@ -47,3 +47,29 @@ exports.findOne = async (filter, options = {}) => {
 		throw error
 	}
 }
+
+exports.create = async (data) => {
+	try {
+		return await Review.create(data, { returning: true })
+	} catch (error) {
+		return error
+	}
+}
+
+exports.updateOne = async (filter, update, options = {}) => {
+	try {
+		const [res] = await Review.update(
+			update,
+			{
+				where: filter,
+				...options,
+				individualHooks: true,
+			},
+			{ returning: true }
+		)
+
+		return res
+	} catch (error) {
+		return error
+	}
+}

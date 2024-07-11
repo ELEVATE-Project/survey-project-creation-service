@@ -83,6 +83,14 @@
 	"TASK_NOT_FOUND": "Task not found",
 	"FILE_TYPE_NOT_SELECTED": "File type not selected",
 	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource url",
-	"DONT_HAVE_PROJECT_ACCESS": "You dont have permission to access this project",
-	"EXCEEDED_PROJECT_TASK_COUNT": "Project task has exceeded the max count"
+	"DONT_HAVE_PROJECT_ACCESS": "You don't have permission to access this project",
+	"EXCEEDED_PROJECT_TASK_COUNT": "Project task has exceeded the max count",
+	"RESOURCE_NOT_FOUND": "Resource not found",
+	"REVIEW_INPROGRESS": "Another review in progress",
+	"FAILED_TO_START_REVIEW": "Review to start the review",
+	"REVIEW_REJECTED": "This resource has been rejected",
+	"REVIEW_REJECTED_AND_REPORTED": "This resource has been rejected and reported",
+	"RESOURCE_PUBLISHED": "You have successfully published the resource",
+	"REVIEW_CHANGES_REQUESTED": "Changes requested successfully",
+	"REVIEW_CREATED": "Review started successfully"
 }
