@@ -63,7 +63,6 @@ module.exports = class ProjectsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-			// let projectCreate = await resourceQueries.create(projectData)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
