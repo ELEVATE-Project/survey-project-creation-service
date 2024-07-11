@@ -20,7 +20,6 @@ module.exports = class Projects {
 
 	async update(req) {
 		try {
-			console.log(req.params)
 			if (req.params.id) {
 				let project = {}
 				if (req.method === common.REQUEST_METHOD_DELETE) {

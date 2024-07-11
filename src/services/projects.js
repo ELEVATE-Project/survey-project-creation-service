@@ -47,20 +47,30 @@ module.exports = class ProjectsHelper {
 				updated_by: loggedInUserId,
 			}
 
-			let projectCreate = await resourceQueries.create(projectData)
-			const mappingData = {
-				resource_id: projectCreate.id,
-				creator_id: loggedInUserId,
-				organization_id: orgId,
+			let projectCreate
+			try {
+				projectCreate = await resourceQueries.create(projectData)
+				const mappingData = {
+					resource_id: projectCreate.id,
+					creator_id: loggedInUserId,
+					organization_id: orgId,
+				}
+				await resourceCreatorMappingQueries.create(mappingData)
+			} catch (error) {
+				return responses.failureResponse({
+					message: error.message || error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
-			await resourceCreatorMappingQueries.create(mappingData)
+			// let projectCreate = await resourceQueries.create(projectData)
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_CREATED_SUCCESSFULLY',
 				result: { id: projectCreate.id },
 			})
 		} catch (error) {
-			console.log(error, 'error')
 			throw error
 		}
 	}
