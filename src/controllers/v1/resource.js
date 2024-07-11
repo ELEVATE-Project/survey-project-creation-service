@@ -32,4 +32,20 @@ module.exports = class Resource {
 			return error
 		}
 	}
+	async upForReview(req) {
+		try {
+			const resource = await resourceService.upForReview(
+				req.decodedToken.id,
+				req.decodedToken.organization_id,
+				req.decodedToken.roles,
+				req.query,
+				req.searchText,
+				req.pageNo,
+				req.pageSize
+			)
+			return resource
+		} catch (error) {
+			return error
+		}
+	}
 }

@@ -42,6 +42,13 @@ module.exports = class resourceHelper {
 				'organization_id',
 			])
 
+			if (resource_creator_mapping_data.length <= 0) {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'RESOURCE_LISTED_SUCCESSFULLY',
+					result,
+				})
+			}
 			// get the unique resource ids from resource creator mapping table by the user
 			const uniqueResourceIds = [...new Set(resource_creator_mapping_data.map((item) => item.resource_id))]
 
@@ -196,6 +203,27 @@ module.exports = class resourceHelper {
 			})
 
 			result.count = response.count
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCE_LISTED_SUCCESSFULLY',
+				result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	static async upForReview(user_id, organization_id, roles, query, searchText, pageNo, pageSize) {
+		try {
+			let result = {
+				data: [],
+				count: 0,
+			}
+			let sort = {
+				sort_by: common.CREATED_AT,
+				order: common.SORT_DESC,
+			}
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
