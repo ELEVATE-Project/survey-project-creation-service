@@ -468,12 +468,8 @@ const validateRoleAccess = (roles, requiredRoles) => {
 	return roles.some((role) => requiredRoles.includes(role.title))
 }
 
-const convertIntToString = (integerValue) => {
-	// Check if integerValue is a valid integer and convert to string
-	if (Number.isInteger(integerValue)) {
-		return integerValue.toString()
-	}
-	return integerValue
+const convertToString = (value) => {
+	return value.toString()
 }
 
 module.exports = {
@@ -502,5 +498,5 @@ module.exports = {
 	checkRequired,
 	checkEntities,
 	validateRoleAccess,
-	convertIntToString,
+	convertToString,
 }
