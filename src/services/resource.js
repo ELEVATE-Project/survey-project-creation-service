@@ -8,10 +8,13 @@
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
+const reviewResourcesQueries = require('@database/queries/reviewsResources')
 const reviewsQueries = require('@database/queries/reviews')
+const reviewStagesQueries = require('@database/queries/reviewStage')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const userRequests = require('@requests/user')
+const configs = require('@services/config')
 const _ = require('lodash')
 const { Op } = require('sequelize')
 
@@ -223,6 +226,73 @@ module.exports = class resourceHelper {
 			let sort = {
 				sort_by: common.CREATED_AT,
 				order: common.SORT_DESC,
+			}
+			let finalResourceIds = []
+
+			// fetch orgnization based configurations
+			const configList = await configs.list(organization_id)
+
+			// org based resource review type look up
+			const resourceWiseReviewType = configList.result.reduce((acc, item) => {
+				acc[item.resource_type] = item.review_type
+				return acc
+			}, {})
+
+			const userRoleTitles = [...new Set(roles.map((item) => item.title))]
+			// fetch review level of the reviewer
+			const reviewLevelDetails = await reviewStagesQueries.findAll(
+				{
+					organization_id,
+					role: {
+						[Op.in]: userRoleTitles,
+					},
+					resource_type: {
+						[Op.in]: Object.keys(resourceWiseReviewType),
+					},
+				},
+				{ attributes: ['resource_type', 'level'], order: [['level', 'ASC']] }
+			)
+			const resourceWiseLevels = {}
+			reviewLevelDetails.forEach((item) => {
+				if (!resourceWiseLevels[item.resource_type]) {
+					resourceWiseLevels[item.resource_type] = item.level
+				}
+			})
+
+			let uniqueResourceIds = []
+			let uniqueOrganizationIds = [organization_id]
+			const commonAttributes = ['resource_id', 'organization_id']
+
+			// check review resources and find all resources under the reviewer name.
+			const reviewResources = await reviewResourcesQueries.findAll(
+				{
+					reviewer_id: user_id,
+				},
+				commonAttributes
+			)
+			if (reviewResources.length > 0) {
+				// get the unique organization ids from reviewResources table by the reviewer
+				uniqueOrganizationIds = [...new Set(reviewResources.map((item) => item.organization_id))]
+			}
+			// get 4 statuses from reviews table
+			//NOT_STARTED -> Show Not started based on review stage ,
+			// IN_PROGRESS -> Which the reviewer already picked up and reviewing ,
+			//REQUEST_CHANGE -> Which the reviewer already picked up , reviewing and requested for changes ,
+			//CHANGES_UPDATED --> changes updated by the creator
+			const reviewsFilter = {
+				reviewer_id: user_id,
+				organization_id: { [Op.in]: uniqueOrganizationIds },
+				status: { [Op.in]: common.PAGE_STATUS_VALUES.up_for_review },
+			}
+
+			const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, commonAttributes)
+
+			if (reviewsResponse.length > 0) {
+				// get the unique organization ids from reviews table by the reviewer
+				uniqueOrganizationIds = [...new Set(reviewsResponse.map((item) => item.organization_id))]
+
+				// get the unique resource ids from reviews table by the reviewer
+				uniqueResourceIds = [...new Set(reviewsResponse.map((item) => item.resource_id))]
 			}
 
 			return responses.successResponse({
