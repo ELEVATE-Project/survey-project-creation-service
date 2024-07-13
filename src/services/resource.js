@@ -217,7 +217,7 @@ module.exports = class resourceHelper {
 		}
 	}
 
-	static async upForReview(user_id, organization_id, roles, query, searchText, pageNo, pageSize) {
+	static async upForReview(user_id, organization_id, roles, queryParams, searchText = '', page, limit) {
 		try {
 			let result = {
 				data: [],
@@ -228,8 +228,9 @@ module.exports = class resourceHelper {
 				order: common.SORT_DESC,
 			}
 			let finalResourceIds = []
+			let resourceIdsToBeRemoved = []
 
-			// fetch orgnization based configurations
+			// fetch orgnization based configurations for each resources
 			const configList = await configs.list(organization_id)
 
 			// org based resource review type look up
@@ -237,6 +238,16 @@ module.exports = class resourceHelper {
 				acc[item.resource_type] = item.review_type
 				return acc
 			}, {})
+
+			// fetch all resource type set as sequential review in the organization
+			const resourceTypesInSequentialReview = Object.keys(resourceWiseReviewType).filter(
+				(key) => resourceWiseReviewType[key] === common.REVIEW_TYPE_SEQUENTIAL
+			)
+
+			// fetch all resource type set as parallel review in the organization
+			const resourceTypesInParallelReview = Object.keys(resourceWiseReviewType).filter(
+				(key) => resourceWiseReviewType[key] === common.REVIEW_TYPE_PARALLEL
+			)
 
 			const userRoleTitles = [...new Set(roles.map((item) => item.title))]
 			// fetch review level of the reviewer
@@ -252,7 +263,7 @@ module.exports = class resourceHelper {
 				},
 				{ attributes: ['resource_type', 'level'], order: [['level', 'ASC']] }
 			)
-			const resourceWiseLevels = {}
+			const resourceWiseLevels = {} //resource wise levels look up for the given reviewer
 			reviewLevelDetails.forEach((item) => {
 				if (!resourceWiseLevels[item.resource_type]) {
 					resourceWiseLevels[item.resource_type] = item.level
@@ -260,7 +271,7 @@ module.exports = class resourceHelper {
 			})
 
 			let uniqueResourceIds = []
-			let uniqueOrganizationIds = [organization_id]
+			let uniqueOrganizationIds = [organization_id] //initialize current org id
 			const commonAttributes = ['resource_id', 'organization_id']
 
 			// check review resources and find all resources under the reviewer name.
@@ -270,30 +281,146 @@ module.exports = class resourceHelper {
 				},
 				commonAttributes
 			)
+
 			if (reviewResources.length > 0) {
 				// get the unique organization ids from reviewResources table by the reviewer
-				uniqueOrganizationIds = [...new Set(reviewResources.map((item) => item.organization_id))]
+				uniqueOrganizationIds = [
+					...new Set([...uniqueOrganizationIds, ...reviewResources.map((item) => item.organization_id)]),
+				]
 			}
-			// get 4 statuses from reviews table
-			//NOT_STARTED -> Show Not started based on review stage ,
-			// IN_PROGRESS -> Which the reviewer already picked up and reviewing ,
-			//REQUEST_CHANGE -> Which the reviewer already picked up , reviewing and requested for changes ,
-			//CHANGES_UPDATED --> changes updated by the creator
-			const reviewsFilter = {
+			let reviewsFilter = {}
+			let reviewsResponse = {}
+			const in_progress_count = await reviewsQueries.countDistinct({
+				organization_id: {
+					[Op.in]: uniqueOrganizationIds,
+				},
 				reviewer_id: user_id,
-				organization_id: { [Op.in]: uniqueOrganizationIds },
-				status: { [Op.in]: common.PAGE_STATUS_VALUES.up_for_review },
+				status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS, common.REVIEW_STATUS_CHANGES_UPDATED] },
+			})
+
+			if (common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS) {
+				reviewsFilter = {
+					reviewer_id: user_id,
+					organization_id: { [Op.in]: uniqueOrganizationIds },
+					status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS, common.REVIEW_STATUS_CHANGES_UPDATED] },
+				}
+
+				reviewsResponse = await reviewsQueries.findAll(reviewsFilter, commonAttributes)
+				if (reviewsResponse.length > 0) {
+					// get the unique organization ids from reviews table by the reviewer
+					uniqueOrganizationIds = [...new Set(reviewsResponse.map((item) => item.organization_id))]
+
+					// get the unique resource ids from reviews table by the reviewer
+					uniqueResourceIds = [...new Set(reviewsResponse.map((item) => item.resource_id))]
+					finalResourceIds = [...new Set(uniqueResourceIds)]
+				}
+			} else {
+				reviewsFilter = {
+					reviewer_id: user_id,
+					organization_id: { [Op.in]: uniqueOrganizationIds },
+					status: { [Op.in]: common.PAGE_STATUS_VALUES.up_for_review },
+				}
+
+				reviewsResponse = await reviewsQueries.findAll(reviewsFilter, commonAttributes)
+
+				if (reviewsResponse.length > 0) {
+					// get the unique organization ids from reviews table by the reviewer
+					uniqueOrganizationIds = [...new Set(reviewsResponse.map((item) => item.organization_id))]
+
+					// get the unique resource ids from reviews table by the reviewer
+					uniqueResourceIds = [...new Set(reviewsResponse.map((item) => item.resource_id))]
+				}
+
+				// fetch all submitted and inreview resources from my orgs
+				const allSequentialResourcesFromOrg = await resourceQueries.findAll(
+					{
+						organization_id,
+						type: { [Op.in]: resourceTypesInSequentialReview },
+						status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
+					},
+					['id', 'type', 'next_stage']
+				)
+
+				const openToAllResourcesMatchingMyLevel = allSequentialResourcesFromOrg.map((item) => {
+					if (item.next_stage === resourceWiseLevels[item.type]) return item.id
+				})
+
+				const allParallelResourcesFromOrg = await resourceQueries.findAll(
+					{
+						organization_id,
+						type: { [Op.in]: resourceTypesInParallelReview },
+						status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
+					},
+					['id']
+				)
+
+				const allParallelResourceIdsFromOrg = allParallelResourcesFromOrg.map((item) => item.id)
+
+				// remove all the resouces in sequential review picked up by another reviewer
+				reviewsFilter = {
+					reviewer_id: { [Op.notIn]: [user_id] },
+					status: {
+						[Op.in]: [
+							common.REVIEW_STATUS_INPROGRESS,
+							common.REVIEW_STATUS_CHANGES_UPDATED,
+							common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+						],
+					},
+					resource_id: { [Op.in]: openToAllResourcesMatchingMyLevel },
+				}
+				reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
+
+				// push resource ids to resourceIdsToBeRemoved array
+				resourceIdsToBeRemoved = reviewsResponse.map((item) => item.resource_id)
+
+				finalResourceIds = _.difference(
+					[
+						...new Set([
+							...uniqueResourceIds,
+							...openToAllResourcesMatchingMyLevel,
+							...allParallelResourceIdsFromOrg,
+						]),
+					],
+					resourceIdsToBeRemoved
+				)
 			}
 
-			const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, commonAttributes)
-
-			if (reviewsResponse.length > 0) {
-				// get the unique organization ids from reviews table by the reviewer
-				uniqueOrganizationIds = [...new Set(reviewsResponse.map((item) => item.organization_id))]
-
-				// get the unique resource ids from reviews table by the reviewer
-				uniqueResourceIds = [...new Set(reviewsResponse.map((item) => item.resource_id))]
+			const resourceFilter = {
+				id: { [Op.in]: finalResourceIds },
+				organization_id,
 			}
+			if (searchText != '')
+				resourceFilter.title = {
+					[Op.iLike]: '%' + searchText + '%',
+				}
+
+			if (common.TYPE in queryParams) {
+				resourceFilter.type = queryParams[common.TYPE]
+			}
+
+			if (
+				common.SORT_BY in queryParams &&
+				common.SORT_ORDER in queryParams &&
+				queryParams.sort_by.length > 0 &&
+				queryParams.sort_order.length > 0
+			) {
+				sort.sort_by = queryParams.sort_by
+				sort.order =
+					queryParams.sort_order.toUpperCase() == common.SORT_DESC.toUpperCase()
+						? common.SORT_DESC
+						: common.SORT_ASC
+			}
+
+			const response = await resourceQueries.resourceList(
+				resourceFilter,
+				['id', 'title', 'type', 'organization_id', 'status', 'user_id'],
+				sort,
+				page,
+				limit
+			)
+			result.data = response.result
+			result.count = response.count
+			result.in_progress_count = in_progress_count
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
