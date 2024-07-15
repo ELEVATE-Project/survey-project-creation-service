@@ -19,7 +19,10 @@ module.exports = {
 		JWT_ONLY: 'jwt_only',
 		USER_SERVICE: 'user_service_authenticated',
 	},
-	internalAccessUrls: [process.env.APPLICATION_BASE_URL + 'v1/cloud-services/file/fetchJsonFromCloud'],
+	internalAccessUrls: [
+		process.env.APPLICATION_BASE_URL + 'v1/cloud-services/file/fetchJsonFromCloud',
+		process.env.APPLICATION_BASE_URL + 'v1/resource/publishCallback',
+	],
 	SCP_SERVICE: 'scp',
 	WRITE_ACCESS: 'w',
 	READ_ACCESS: 'r',

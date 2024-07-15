@@ -261,4 +261,37 @@ module.exports = class resourceHelper {
 			throw error
 		}
 	}
+
+	/**
+	 * Callback URL for Update Published Resource
+	 * @method
+	 * @name publishCallback
+	 * @returns {JSON} - details of resource
+	 */
+	static async publishCallback(resourceId, publishedId) {
+		try {
+			let resource = await resourceQueries.updateOne(
+				{
+					id: resourceId,
+				},
+				{
+					published_id: publishedId,
+				}
+			)
+
+			if (resource === 0) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'RESOURCE_UPDATED_SUCCESSFULLY',
+			})
+		} catch (error) {
+			throw error
+		}
+	}
 }

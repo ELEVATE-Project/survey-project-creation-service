@@ -14,12 +14,12 @@ module.exports = class Resource {
 	 * @method
 	 * @name list
 	 * @param {Object} req - request data.
-	 * @returns {JSON} - project details
+	 * @returns {JSON} - resource details
 	 */
 
 	async list(req) {
 		try {
-			const project = await resourceService.list(
+			const resources = await resourceService.list(
 				req.decodedToken.id,
 				req.decodedToken.organization_id,
 				req.query,
@@ -27,9 +27,25 @@ module.exports = class Resource {
 				req.pageNo,
 				req.pageSize
 			)
-			return project
+			return resources
 		} catch (error) {
 			return error
+		}
+	}
+
+	/**
+	 * Callback URL for Update Published Resource
+	 * @method
+	 * @name publishCallback
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - details of resource
+	 */
+	async publishCallback(req) {
+		try {
+			const resource = await resourceService.publishCallback(req.query.resource_id, req.query.published_id)
+			return resource
+		} catch (error) {
+			throw error
 		}
 	}
 }
