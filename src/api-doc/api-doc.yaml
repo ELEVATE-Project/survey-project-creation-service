@@ -4298,14 +4298,14 @@ paths:
                           type: projectCreation
                           version: 3
 
-  /scp/v1/comment/update/{id}?resource_id={resource_id}:
+  /scp/v1/comments/update/{id}?resource_id={resource_id}:
     post:
       summary: Add or Update Comment
       tags:
         - Comment
       description: |-
         You can use this API to create or update comment
-         - The API Endpoint for adding or updating a comment is `/scp/v1/comment/update` 
+         - The API Endpoint for adding or updating a comment is `/scp/v1/comments/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4420,14 +4420,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/comment/updateComment400Response'
 
-  /scp/v1/comment/list?resource_id={resource_id}:
+  /scp/v1/comments/list?resource_id={resource_id}:
     get:
       summary: Comment List
       tags:
         - Comment
       description: |-
         You can use this API to get the list all comments
-         - The API Endpoint for get the list of comments is `/scp/v1/comment/list` 
+         - The API Endpoint for get the list of comments is `/scp/v1/comments/list` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4439,13 +4439,27 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
+        - in: query
           name: resource_id
           description: Please append a valid resource Id to the Request URL.
           schema:
             type: number
           required: true
           example: 1
+        - in: query
+          name: page_value
+          description: Please append a valid page number or name.
+          schema:
+            type: string
+          required: true
+          example: task_page
+        - in: query
+          name: context
+          description: Please append a valid context value like tag or page.
+          schema:
+            type: string
+          required: true
+          example: page
 
       responses:
         '200':

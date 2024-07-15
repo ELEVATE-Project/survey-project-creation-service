@@ -38,7 +38,7 @@ module.exports = class ProjectsHelper {
 			let projectData = {
 				title: bodyData.title,
 				type: common.PROJECT,
-				status: common.STATUS_DRAFT,
+				status: common.RESOURCE_STATUS_DRAFT,
 				user_id: loggedInUserId,
 				review_type: orgConfigList[common.PROJECT],
 				organization_id: orgId,
@@ -187,7 +187,7 @@ module.exports = class ProjectsHelper {
 				{
 					id: resourceId,
 					organization_id: fetchOrgId.organization_id,
-					status: common.STATUS_DRAFT,
+					status: common.RESOURCE_STATUS_DRAFT,
 				},
 				{ attributes: ['id'] }
 			)
@@ -254,13 +254,13 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			if (project.status == common.STATUS_DRAFT && project.user_id !== loggedInUserId) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_VISIBLE',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
+			// if (project.status == common.RESOURCE_STATUS_DRAFT && project.user_id !== loggedInUserId) {
+			// 	return responses.failureResponse({
+			// 		message: 'PROJECT_NOT_VISIBLE',
+			// 		statusCode: httpStatusCode.bad_request,
+			// 		responseCode: 'CLIENT_ERROR',
+			// 	})
+			// }
 
 			//get the data from storage
 			if (project.blob_path) {
@@ -493,7 +493,35 @@ module.exports = class ProjectsHelper {
 				}
 			})
 
-			await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
+			//update the reviews and resource status
+			// if resource status is draft update to submitted no review changes
+			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
+			if (projectData.status === common.RESOURCE_STATUS_DRAFT) {
+				resourceStatus = common.RESOURCE_STATUS_SUBMITTED
+			} else if (
+				projectData.status === common.RESOURCE_STATUS_IN_REVIEW ||
+				projectData.status === common.RESOURCE_STATUS_SUBMITTED
+			) {
+				//update the reviews table status
+				await reviewsQueries.update(
+					{
+						resource_id: projectData.id,
+						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+						organization_id: projectData.organization_id,
+					},
+					{
+						status: common.REVIEW_STATUS_CHANGES_UPDATED,
+					}
+				)
+
+				resourceStatus = common.RESOURCE_STATUS_IN_REVIEW
+			}
+
+			//update resource with submitted_on and status
+			await resourceQueries.updateOne(
+				{ id: projectData.id },
+				{ status: resourceStatus, submitted_on: new Date() }
+			)
 			//TODO: For review flow this has to be changed we might need to add further conditions
 			// and Validate those reviewer as well
 			if (bodyData.hasOwnProperty('reviwer_ids') && bodyData.reviwer_ids.length > 0) {

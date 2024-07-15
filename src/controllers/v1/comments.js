@@ -5,7 +5,7 @@
  * Description : Controller for comments
  */
 
-const commentService = require('@services/comment')
+const commentService = require('@services/comments')
 module.exports = class configs {
 	/**
 	 * List Comments.
@@ -15,7 +15,13 @@ module.exports = class configs {
 	 */
 	async list(req) {
 		try {
-			const comments = await commentService.list(req.query.resource_id, req.decodedToken.organization_id)
+			const comments = await commentService.list(
+				req.query.resource_id,
+				req.query.page_value ? req.query.page_value : req.query.page_value,
+				req.query.context ? req.query.context : req.query.context,
+				req.decodedToken.id,
+				req.decodedToken.organization_id
+			)
 			return comments
 		} catch (error) {
 			return error

@@ -33,10 +33,9 @@ let enviromentVariables = {
 		optional: false,
 	},
 	NOTIFICATION_KAFKA_TOPIC: {
-		message: 'Required kafka topic',
+		message: 'Required notification kafka topic',
 		optional: false,
 	},
-
 	USER_SERVICE_HOST: {
 		message: 'Required user service host',
 		optional: false,
@@ -61,7 +60,6 @@ let enviromentVariables = {
 		message: 'Redis Host Url',
 		optional: false,
 	},
-
 	ERROR_LOG_LEVEL: {
 		message: 'Required Error log level',
 		optional: false,
@@ -141,6 +139,18 @@ let enviromentVariables = {
 		message: 'Maximum task count is required',
 		optional: false,
 		default: 10,
+	},
+	CONSUMPTION_SERVICE: {
+		message: 'Consumption service is required',
+		optional: false,
+	},
+	PUBLISH_METHOD: {
+		message: 'Publish method is required',
+		optional: false,
+	},
+	PUBLISH_KAFKA_TOPIC: {
+		message: 'Required publish kafka topic',
+		optional: false,
 	},
 }
 

@@ -1,4 +1,6 @@
 const Comment = require('@database/models/index').Comment
+const { Op } = require('sequelize')
+const common = require('@constants/common')
 
 module.exports = class CommentData {
 	static async create(data) {
@@ -19,14 +21,14 @@ module.exports = class CommentData {
 
 	static async findAll(filter, attributes, options = {}) {
 		try {
-			const { rows, count } = await Comment.findAndCountAll({
+			const res = await Comment.findAll({
 				where: filter,
 				attributes,
 				...options,
 				raw: true,
 			})
 
-			return { rows, count }
+			return res
 		} catch (error) {
 			throw error
 		}
@@ -50,6 +52,35 @@ module.exports = class CommentData {
 				raw: true,
 			})
 			return comments
+		} catch (error) {
+			throw error
+		}
+	}
+
+	static async commentList(resourceId, loggedInUserId, page_value, context) {
+		try {
+			let filterQuery = {
+				resource_id: resourceId,
+				[Op.or]: [
+					{ status: { [Op.ne]: common.COMMENT_STATUS_DRAFT } },
+					{ status: common.COMMENT_STATUS_DRAFT, user_id: loggedInUserId },
+				],
+			}
+
+			if (page_value) {
+				filterQuery.page = page_value
+			}
+
+			if (context) {
+				filterQuery.context = context
+			}
+
+			const { rows, count } = await Comment.findAndCountAll({
+				where: filterQuery,
+				order: [[common.CREATED_AT, common.SORT_DESC]],
+			})
+
+			return { rows, count }
 		} catch (error) {
 			throw error
 		}

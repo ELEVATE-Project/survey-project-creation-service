@@ -63,7 +63,6 @@
 	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully",
 	"PROJECT_DELETED_SUCCESSFUL": "Project deleted successfully",
 	"FORBIDDEN_RESOURCE_UPDATE": "Update Failed! Resource '{{resourceTitle}}' is being reviewed by {{reviewer_count}} Reviewer(s) ",
-	"COMMENT_UPDATED_SUCCESSFULLY": "Comment updated successfully",
 	"COMMENT_NOT_FOUND": "Comment not found",
 	"STATUS_INVALID": "Invalid status value provided. Valid values are OPEN or RESOLVED.",
 	"COMMENT_FETCHED": "Comment fetched successfully",
@@ -92,5 +91,11 @@
 	"REVIEW_REJECTED_AND_REPORTED": "This resource has been rejected and reported",
 	"RESOURCE_PUBLISHED": "You have successfully published the resource",
 	"REVIEW_CHANGES_REQUESTED": "Changes requested successfully",
-	"REVIEW_CREATED": "Review started successfully"
+	"REVIEW_CREATED": "Review started successfully",
+	"REVIEW_UPDATED": "Review updated successfully",
+	"RESOURCE_FETCHED": "Resource fetched successfully",
+	"COMMENT_RESOLVED": "All comments have been resolved",
+	"COMMENT_UPDATED_SUCCESSFULLY": "Your changes have been saved",
+	"PROGRAM_REJECTION_NOT_ALLOWED": "The program cannot be rejected or reported",
+	"PROJECT_SUBMITTED_SUCCESSFULLY": "Your resource has been sent for review"
 }

@@ -6,8 +6,10 @@ const reviewResourceQueries = require('@database/queries/reviewResources')
 const resourceQueries = require('@database/queries/resources')
 const responses = require('@helpers/responses')
 const configService = require('@services/config')
-const commentQueries = require('@database/queries/comment')
+const commentQueries = require('@database/queries/comments')
 const _ = require('lodash')
+const kafkaCommunication = require('@generics/kafka-communication')
+const resourceService = require('@services/resource')
 
 module.exports = class reviewsHelper {
 	/**
@@ -23,14 +25,16 @@ module.exports = class reviewsHelper {
 	static async update(resourceId, bodyData, loggedInUserId, orgId) {
 		try {
 			//validate resource
-			const resource = await resourceQueries.findOne({ id: resource_id })
-			if (!resource) {
+			let resourceDetails = await resourceService.getDetails(resourceId)
+			if (resourceDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'RESOURCE_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
+			let resource = resourceDetails.result
 
 			//validate resource status
 			if (_notAllowedStatusForReview.includes(resource.status)) {
@@ -60,11 +64,11 @@ module.exports = class reviewsHelper {
 			// Extract review type and minimum approval for the resource type
 			const { review_type: reviewType, min_approval: minApproval } = orgConfigList[resource.type] || {}
 			let isPublishResource = false
+			let updateNextLevel = false
 
 			// Handle review creation
 			if (!review) {
 				//check review type is sequential and nobody started review
-
 				if (reviewType === common.REVIEW_TYPE_SEQUENTIAL) {
 					const existingReview = await reviewsQueries.findOne({
 						resource_id: resourceId,
@@ -73,11 +77,13 @@ module.exports = class reviewsHelper {
 
 					if (existingReview) {
 						return responses.failureResponse({
-							message: REVIEW_INPROGRESS,
+							message: 'REVIEW_INPROGRESS',
 							statusCode: httpStatusCode.bad_request,
 							responseCode: 'CLIENT_ERROR',
 						})
 					}
+
+					updateNextLevel = true
 				}
 
 				//create the review entry
@@ -91,7 +97,7 @@ module.exports = class reviewsHelper {
 				const createReview = await reviewsQueries.create(reviewData)
 				if (!createReview?.id) {
 					return responses.failureResponse({
-						message: FAILED_TO_START_REVIEW,
+						message: 'FAILED_TO_START_REVIEW',
 						statusCode: httpStatusCode.internal_server_error,
 						responseCode: 'CLIENT_ERROR',
 					})
@@ -99,14 +105,17 @@ module.exports = class reviewsHelper {
 
 				await reviewResourceQueries.create(_.omit(reviewData, [common.STATUS]))
 
-				// Update resource status to in review
-				await resourceQueries.updateOne(
-					{ id: resource_id },
-					{
-						status: common.RESOURCE_STATUS_IN_REVIEW,
-						last_reviewed_on: new Date(),
-					}
-				)
+				// Update resource table data
+				let filter = {
+					status: common.RESOURCE_STATUS_IN_REVIEW,
+					last_reviewed_on: new Date(),
+				}
+
+				if (updateNextLevel) {
+					filter.next_level = resource.next_level + 1
+				}
+
+				await resourceQueries.updateOne({ id: resourceId }, filter)
 
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
@@ -119,54 +128,79 @@ module.exports = class reviewsHelper {
 						bodyData.status
 					)
 				) {
-					await handleRejectionOrReport(review.id, bodyData, resourceId)
+					await this.handleRejectionOrReport(
+						review.id,
+						bodyData,
+						resourceId,
+						loggedInUserId,
+						bodyData.comment,
+						resource.type
+					)
 				} else if (bodyData.status === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
 					//update the reviews table
-					await reviewResourceQueries.updateOne(
-						{
-							id: review.id,
-						},
-						{ status: bodyData.status }
-					)
-
-					return responses.successResponse({
-						statusCode: httpStatusCode.ok,
-						message: 'REVIEW_CHANGES_REQUESTED',
-					})
+					await this.handleChangesRequested(review.id, bodyData, resourceId, loggedInUserId, bodyData.comment)
 				} else if (bodyData.status === common.RESOURCE_STATUS_APPROVED) {
-					isPublishResource = await handleApproval(review.id, resourceId, minApproval)
+					isPublishResource = await this.handleApproval(
+						review.id,
+						resourceId,
+						loggedInUserId,
+						bodyData.comment,
+						minApproval
+					)
 				}
-			}
-
-			// Add or update comments
-			if (bodyData.comments) {
-				await handleComments(bodyData.comments, resourceId, loggedInUserId)
 			}
 
 			// Publish resource if applicable
 			if (isPublishResource) {
-				//call diksha api or flink job
+				//call api or kafka
+				if (process.env.CONSUMPTION_SERVICE != common.SELF) {
+					if (process.env.PUBLISH_METHOD === common.PUBLISH_METHOD_KAFKA) {
+						await kafkaCommunication.pushResourceToKafka(resource)
+					} else {
+						//api need to implement
+					}
+				}
+
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'RESOURCE_PUBLISHED',
 				})
 			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'REVIEW_UPDATED',
+			})
 		} catch (error) {
 			throw error
 		}
 	}
 
-	static async handleRejectionOrReport(reviewId, bodyData, resourceId) {
+	static async handleRejectionOrReport(reviewId, bodyData, resourceId, loggedInUserId, comments = [], resourceType) {
 		try {
+			//program cannot reject or report
+			if (resourceType === common.RESOURCE_TYPE_PROGRAM) {
+				return responses.failureResponse({
+					message: 'PROGRAM_REJECTION_NOT_ALLOWED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
 			// handle rejection or report of a review
 			let updateObj = { status: bodyData.status }
 			if (bodyData.notes) {
 				updateObj.notes = bodyData.notes
 			}
 
-			await resourceQueries.updateOne({ id: resourceId }, updateObj)
+			await resourceQueries.updateOne({ id: resourceId }, _.omit(updateObj, ['notes']))
 
-			await reviewResourceQueries.updateOne({ id: reviewId }, { status: bodyData.status })
+			await reviewsQueries.update({ id: reviewId }, updateObj)
+
+			// Add or update comments
+			if (comments) {
+				await handleComments(comments, resourceId, loggedInUserId)
+			}
 
 			const message =
 				bodyData.status === common.REVIEW_STATUS_REJECTED ? 'REVIEW_REJECTED' : 'REVIEW_REJECTED_AND_REPORTED'
@@ -180,11 +214,35 @@ module.exports = class reviewsHelper {
 		}
 	}
 
-	static async handleApproval(reviewId, resourceId, minApproval) {
+	static async handleChangesRequested(reviewId, bodyData, resourceId, loggedInUserId, comments = []) {
+		try {
+			//update reviews table
+			await reviewsQueries.update({ id: reviewId }, { status: bodyData.status })
+
+			// Add or update comments
+			if (comments) {
+				await handleComments(comments, resourceId, loggedInUserId)
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'REVIEW_CHANGES_REQUESTED',
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	static async handleApproval(reviewId, resourceId, loggedInUserId, comments = [], minApproval) {
 		try {
 			// handle approval of a review
 			let publishResource = false
-			await reviewResourceQueries.updateOne({ id: reviewId }, { status: common.RESOURCE_STATUS_APPROVED })
+			await reviewsQueries.update({ id: reviewId }, { status: common.RESOURCE_STATUS_APPROVED })
+
+			// Add or update comments
+			if (comments) {
+				await handleComments(comments, resourceId, loggedInUserId)
+			}
 
 			//check the no of approvals meets
 			const reviewsApproved = await reviewsQueries.findAll({
@@ -194,7 +252,6 @@ module.exports = class reviewsHelper {
 
 			if (minApproval <= reviewsApproved.length + 1) {
 				await resourceQueries.updateOne({ id: resourceId }, { status: common.RESOURCE_STATUS_PUBLISHED })
-
 				publishResource = true
 			}
 
@@ -217,6 +274,7 @@ function _notAllowedReviewStatus() {
 	return [
 		common.RESOURCE_STATUS_REJECTED,
 		common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+		common.REVIEW_STATUS_CHANGES_UPDATED,
 		common.REVIEW_STATUS_INPROGRESS,
 		common.REVIEW_STATUS_REJECTED_AND_REPORTED,
 	]
@@ -224,6 +282,10 @@ function _notAllowedReviewStatus() {
 
 async function handleComments(comments, resourceId, loggedInUserId) {
 	try {
+		// Normalize comments to an array if it's a single object
+		if (!Array.isArray(comments)) {
+			comments = [comments]
+		}
 		// handle adding or updating comments
 		for (const comment of comments) {
 			if (comment.id) {

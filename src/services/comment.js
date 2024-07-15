@@ -1,5 +1,5 @@
 const httpStatusCode = require('@generics/http-status')
-const commentQueries = require('@database/queries/comment')
+const commentQueries = require('@database/queries/comments')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const userRequests = require('@requests/user')
@@ -15,12 +15,7 @@ module.exports = class ProjectsHelper {
 	 */
 	static async update(comment_id = '', resource_id, bodyData, loggedInUserId) {
 		try {
-			if (bodyData.status === common.STATUS_RESOLVED || !bodyData.resolved_by) {
-				bodyData.resolved_by = loggedInUserId
-				bodyData.resolved_at = new Date()
-				bodyData.status = common.STATUS_RESOLVED
-			}
-
+			//create the comment
 			if (!comment_id) {
 				bodyData.user_id = loggedInUserId
 				bodyData.resource_id = resource_id
@@ -30,6 +25,13 @@ module.exports = class ProjectsHelper {
 					message: 'COMMENT_UPDATED_SUCCESSFULLY',
 					result: commentCreate,
 				})
+			}
+
+			//update the comment
+			if (bodyData.status === common.STATUS_RESOLVED || !bodyData.resolved_by) {
+				bodyData.resolved_by = loggedInUserId
+				bodyData.resolved_at = new Date()
+				bodyData.status = common.STATUS_RESOLVED
 			}
 
 			const filter = {
@@ -52,7 +54,8 @@ module.exports = class ProjectsHelper {
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
-				message: 'COMMENT_UPDATED_SUCCESSFULLY',
+				message:
+					bodyData.status === common.STATUS_RESOLVED ? 'COMMENT_RESOLVED' : 'COMMENT_UPDATED_SUCCESSFULLY',
 				result: updatedComment,
 			})
 		} catch (error) {
@@ -76,7 +79,7 @@ module.exports = class ProjectsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - comment list
 	 */
-	static async list(resource_id, organization_id) {
+	static async list(resource_id, page_value = '', context = '', loggedInUserId, organization_id) {
 		try {
 			let result = {
 				resource_id: resource_id,
@@ -84,9 +87,7 @@ module.exports = class ProjectsHelper {
 				count: 0,
 			}
 
-			const comments = await commentQueries.findAll({
-				resource_id: resource_id,
-			})
+			const comments = await commentQueries.commentList(resource_id, loggedInUserId, page_value, context)
 
 			if (comments.count <= 0) {
 				return responses.successResponse({
@@ -97,13 +98,15 @@ module.exports = class ProjectsHelper {
 			}
 
 			//get commenter and resolver details
-			const user_ids = _.uniq(
+			const uniqueUserIds = _.uniq(
 				_.flatMap(comments.rows, (row) =>
 					row.resolved_by !== null ? [row.resolved_by, row.user_id] : [row.user_id]
 				)
 			)
 
-			const users = await userRequests.list(common.ALL_USER_ROLES, '', '', '', organization_id)
+			const users = await userRequests.list(common.ALL_USER_ROLES, '', '', '', organization_id, {
+				user_ids: uniqueUserIds,
+			})
 
 			if (users.success && users.data?.result?.length > 0) {
 				const user_map = _.keyBy(users.data.result, 'id')

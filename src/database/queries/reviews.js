@@ -56,7 +56,7 @@ exports.create = async (data) => {
 	}
 }
 
-exports.updateOne = async (filter, update, options = {}) => {
+exports.update = async (filter, update, options = {}) => {
 	try {
 		const [res] = await Review.update(
 			update,

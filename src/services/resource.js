@@ -14,6 +14,7 @@ const common = require('@constants/common')
 const userRequests = require('@requests/user')
 const _ = require('lodash')
 const { Op } = require('sequelize')
+const filesService = require('@services/files')
 
 module.exports = class resourceHelper {
 	/**
@@ -201,6 +202,60 @@ module.exports = class resourceHelper {
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
 				result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Resource Details
+	 * @method
+	 * @name getDetails
+	 * @returns {JSON} - details of resource
+	 */
+	static async getDetails(resourceId) {
+		try {
+			let result = {
+				organization: {},
+			}
+
+			const resource = await resourceQueries.findOne({
+				id: resourceId,
+			})
+
+			if (!resource?.id) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			if (resource.blob_path) {
+				const response = await filesService.fetchJsonFromCloud(resource.blob_path)
+				if (
+					response.statusCode === httpStatusCode.ok &&
+					response.result &&
+					Object.keys(response.result).length > 0
+				) {
+					result = { ...result, ...response.result }
+				}
+			}
+
+			//get organization details
+			let organizationDetails = await userRequests.fetchDefaultOrgDetails(resource.organization_id)
+			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
+				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
+			}
+
+			delete resource.blob_path
+			result = { ...result, ...resource }
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCE_FETCHED',
+				result: result,
 			})
 		} catch (error) {
 			throw error
