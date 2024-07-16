@@ -113,7 +113,7 @@ module.exports = {
 	CHILDREN: 'children',
 	TASK_ALLOWED_FILE_TYPES: 'allowed_file_types',
 	ALLOWED_FILE_TYPES: {
-		Images: ['jpg', 'png', 'jpeg'],
+		Images: ['jpg', 'png', 'jpeg', 'BMP', 'GIF', 'TIFF', 'HEIF'],
 		Document: ['pdf'],
 		Videos: [
 			'mp4',
@@ -135,6 +135,6 @@ module.exports = {
 			'flv',
 			'MOV',
 		],
-		Audio: [],
+		Audio: ['MP3', 'MP4', 'AAC', 'FLAC', 'WAV', 'MIDI', 'AIFF'],
 	},
 }
