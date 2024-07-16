@@ -192,16 +192,20 @@ module.exports = class ProjectsHelper {
 				['id', 'organization_id']
 			)
 
-			const fetchResourceId = await resourceQueries.findOne(
-				{
-					id: resourceId,
-					organization_id: fetchOrgId.organization_id,
-					status: common.STATUS_DRAFT,
-				},
-				{ attributes: ['id'] }
-			)
+			let fetchResourceId = null
 
-			if (!fetchResourceId) {
+			if (fetchOrgId) {
+				fetchResourceId = await resourceQueries.findOne(
+					{
+						id: resourceId,
+						organization_id: fetchOrgId.organization_id,
+						status: common.STATUS_DRAFT,
+					},
+					{ attributes: ['id'] }
+				)
+			}
+
+			if (!fetchOrgId || !fetchResourceId) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
