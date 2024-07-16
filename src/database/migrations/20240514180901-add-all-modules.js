@@ -13,7 +13,7 @@ module.exports = {
 			{ code: 'cloud-services', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'entity-types', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'entities', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
-			{ code: 'forms', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
+			{ code: 'form', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'organization-extensions', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'config', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'comments', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
