@@ -403,6 +403,15 @@ module.exports = class ProjectsHelper {
 					}
 				}
 			})
+			let x = Object.keys(projectData)
+			if (!Object.keys(projectData).includes(common.TASKS)) {
+				throw responses.failureResponse({
+					message: 'TASK_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+					error: utils.errorObject(common.BODY, common.TASKS),
+				})
+			}
 
 			if (projectData.tasks.length < 1) {
 				throw responses.failureResponse({
@@ -426,9 +435,10 @@ module.exports = class ProjectsHelper {
 					status: common.STATUS_ACTIVE,
 				},
 				userDetails,
-				['value', 'validations']
+				['id', 'value', 'validations', 'has_entities']
 			)
-			//TODO: This dont have code for each type of validation please make sure that in future when adding new validadtion include code for that
+			//TODO: This dont have code for each type of validation please make sure that in future
+			//when adding new validadtion include code for that
 			// Using forEach for iterating through tasks and taskEntityTypes
 			projectData.tasks.forEach(async (task) => {
 				taskEntityTypes.forEach(async (taskEntityType) => {
@@ -470,6 +480,8 @@ module.exports = class ProjectsHelper {
 					}
 				})
 				// TODO: Get file types from products teams and add validation for them
+				// entity model mapping add one more key. file types . Ask Nivedhitha accepted file types
+				// dont check file_types.length , change it from array to string. in API - docs also
 				if (task.allow_evidences == common.TRUE && task.evidence_details.file_types.length < 1) {
 					throw responses.failureResponse({
 						message: 'FILE_TYPE_NOT_SELECTED',
@@ -477,6 +489,24 @@ module.exports = class ProjectsHelper {
 						responseCode: 'CLIENT_ERROR',
 						error: utils.errorObject(common.BODY, common.FILE_TYPE),
 					})
+				} else if (task.allow_evidences == common.TRUE && task.evidence_details.file_types.length > 0) {
+					let allowed_fileTypes_entities = taskEntityTypes.reduce((acc, taskEntityType) => {
+						if (taskEntityType.value === common.TASK_ALLOWED_FILE_TYPES) {
+							acc.push(...taskEntityType.entities.map((entity) => entity.value))
+						}
+						return acc
+					}, [])
+
+					let difference = _.difference(task.evidence_details.file_types, allowed_fileTypes_entities)
+
+					if (difference.length > 0) {
+						throw responses.failureResponse({
+							message: 'FILE_TYPE_INVALID',
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+							error: utils.errorObject(common.TASK_EVIDENCE, common.FILE_TYPE),
+						})
+					}
 				}
 
 				if (task.learning_resources && task.learning_resources.length > 0) {

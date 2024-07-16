@@ -2845,7 +2845,10 @@ paths:
                       allow_evidences: true
                       evidence_details:
                         file_types:
-                          - mp4
+                          - Images
+                          - Document
+                          - Videos
+                          - Audio
                         min_no_of_evidences: 5
                       sequence_no: 1
                       learning_resources:
@@ -2886,7 +2889,10 @@ paths:
                       allow_evidences: true
                       evidence_details:
                         file_types:
-                          - mp4
+                          - Images
+                          - Document
+                          - Videos
+                          - Audio
                         min_no_of_evidences: 5
                       learning_resources:
                         - name: sample doc
@@ -2919,7 +2925,10 @@ paths:
                       children: []
                       evidence_details:
                         file_types:
-                          - mp4
+                          - Images
+                          - Document
+                          - Videos
+                          - Audio
                         min_no_of_evidences: 5
                       sequence_no: 1
                       solution_details:
@@ -3242,7 +3251,10 @@ paths:
                       allow_evidences: true
                       evidence_details:
                         file_types:
-                          - mp4
+                          - Images
+                          - Document
+                          - Videos
+                          - Audio
                         min_no_of_evidences: 5
                       sequence_no: 1
                       learning_resources:
@@ -3283,7 +3295,10 @@ paths:
                       allow_evidences: true
                       evidence_details:
                         file_types:
-                          - mp4
+                          - Images
+                          - Document
+                          - Videos
+                          - Audio
                         min_no_of_evidences: 5
                       learning_resources:
                         - name: sample doc
@@ -3316,7 +3331,10 @@ paths:
                       children: []
                       evidence_details:
                         file_types:
-                          - mp4
+                          - Images
+                          - Document
+                          - Videos
+                          - Audio
                         min_no_of_evidences: 5
                       sequence_no: 1
                       solution_details:
@@ -3951,7 +3969,10 @@ paths:
                           children: []
                           evidence_details:
                             file_types:
-                              - mp4
+                              - Images
+                              - Document
+                              - videos
+                              - Audio
                             min_no_of_evidences: 5
                           sequence_no: 1
                           solution_details:
