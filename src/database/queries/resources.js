@@ -3,12 +3,18 @@
 const common = require('@constants/common')
 const { Sequelize } = require('sequelize')
 const Resource = require('../models/index').Resource
+const { ValidationError } = require('sequelize')
 
 exports.create = async (data) => {
 	try {
 		return await Resource.create(data, { returning: true })
 	} catch (error) {
-		return error
+		if (error instanceof ValidationError) {
+			const messages = error.errors.map((err) => `${err.path} cannot be null.`)
+			throw new Error(messages.join(' '))
+		} else {
+			throw new Error(error.message)
+		}
 	}
 }
 
@@ -73,5 +79,19 @@ exports.resourceList = async (filter, attributes = {}, sort = common.CREATED_AT,
 		return { result: res.rows, count: res.count }
 	} catch (error) {
 		return error
+	}
+}
+
+exports.deleteOne = async (id, organization_id) => {
+	try {
+		return await Resource.destroy({
+			where: {
+				id,
+				organization_id,
+			},
+			individualHooks: true,
+		})
+	} catch (error) {
+		throw error
 	}
 }

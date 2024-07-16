@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
 				defaultValue: 'STRING',
 			},
 			organization_id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: 0,
 				primaryKey: true,
@@ -53,14 +53,14 @@ module.exports = (sequelize, DataTypes) => {
 				defaultValue: true,
 			},
 			validations: {
-				type: DataTypes.JSON,
+				type: DataTypes.JSONB,
 			},
 			created_by: {
-				type: DataTypes.INTEGER,
-				allowNull: true,
+				type: DataTypes.STRING,
+				allowNull: false,
 			},
 			updated_by: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 				allowNull: true,
 			},
 		},
@@ -71,6 +71,15 @@ module.exports = (sequelize, DataTypes) => {
 		try {
 			// Soft-delete only the associated Entity records with matching entity_type_id
 			await sequelize.models.Entity.update(
+				{ deleted_at: new Date() }, // Set the deleted_at column to the current timestamp
+				{
+					where: {
+						entity_type_id: instance.id, // instance.id contains the primary key of the EntityType record being deleted
+					},
+				}
+			)
+
+			await sequelize.models.EntityModelMapping.update(
 				{ deleted_at: new Date() }, // Set the deleted_at column to the current timestamp
 				{
 					where: {

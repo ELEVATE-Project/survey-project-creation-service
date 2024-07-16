@@ -10,7 +10,8 @@ module.exports = {
 				autoIncrement: true,
 			},
 			organization_id: {
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
+				primaryKey: true,
 				allowNull: false,
 			},
 			code: {
@@ -31,6 +32,14 @@ module.exports = {
 			},
 			meta: {
 				type: Sequelize.JSON,
+			},
+			created_by: {
+				type: Sequelize.STRING,
+				allowNull: false,
+			},
+			updated_by: {
+				type: Sequelize.STRING,
+				allowNull: true,
 			},
 			created_at: {
 				allowNull: false,

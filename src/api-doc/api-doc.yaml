@@ -4558,13 +4558,36 @@ paths:
                   type: string
                 resource_type:
                   type: string
+                review_type:
+                  type: string
+                review_stages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                      level:
+                        type: number
 
             examples:
-              example1:
+              review type parallel:
                 value:
                   show_reviewer_list: true
                   min_approval: 2
                   resource_type: project
+                  review_type: PARALLEL
+              review type sequential:
+                value:
+                  show_reviewer_list: true
+                  min_approval: 2
+                  resource_type: project
+                  review_type: SEQUENTIAL
+                  review_stages:
+                    - role: reviewer_level_1
+                      level: 1
+                    - role: reviewer_level_2
+                      level: 2
 
       responses:
         '201':
@@ -4643,11 +4666,11 @@ paths:
             type: string
         - in: path
           name: id
-          description: Please append a valid config id to the Request URL.
+          description: Please append a valid config Id to the Request URL.
           schema:
-            type: string
+            type: number
           required: true
-          example: 3
+          example: 1
         - in: query
           name: resource_type
           description: Please append a valid resource type to the Request URL.
@@ -4666,15 +4689,12 @@ paths:
                   type: boolean
                 min_approval:
                   type: string
-                resource_type:
-                  type: string
 
             examples:
               example1:
                 value:
                   show_reviewer_list: true
                   min_approval: 2
-                  resource_type: project
 
       responses:
         '201':

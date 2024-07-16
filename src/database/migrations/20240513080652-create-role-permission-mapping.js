@@ -28,7 +28,7 @@ module.exports = {
 			},
 			created_by: {
 				allowNull: false,
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 			},
 			created_at: {
 				allowNull: false,
@@ -36,6 +36,9 @@ module.exports = {
 			},
 			updated_at: {
 				allowNull: false,
+				type: Sequelize.DATE,
+			},
+			deleted_at: {
 				type: Sequelize.DATE,
 			},
 		})

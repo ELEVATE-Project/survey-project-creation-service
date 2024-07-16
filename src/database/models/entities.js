@@ -11,6 +11,7 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			entity_type_id: {
 				type: DataTypes.INTEGER,
+				primaryKey: true,
 				allowNull: false,
 			},
 			value: {
@@ -30,11 +31,11 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 			},
 			created_by: {
-				type: DataTypes.INTEGER,
-				allowNull: true,
+				type: DataTypes.STRING,
+				allowNull: false,
 			},
 			updated_by: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 				allowNull: true,
 			},
 		},

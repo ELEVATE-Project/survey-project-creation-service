@@ -7,6 +7,7 @@ module.exports = {
 			id: {
 				allowNull: false,
 				autoIncrement: true,
+				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
 			resource_id: {
@@ -15,24 +16,26 @@ module.exports = {
 			},
 			reviewer_id: {
 				allowNull: false,
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 			},
 			status: {
 				type: Sequelize.ENUM(
 					'NOT_STARTED',
-					'DRAFT',
 					'STARTED',
 					'INPROGRESS',
 					'REQUESTED_FOR_CHANGES',
 					'APPROVED',
 					'REJECTED',
-					'PUBLISHED'
+					'PUBLISHED',
+					'REJECTED_AND_REPORTED',
+					'CHANGES_UPDATED'
 				),
 				defaultValue: 'NOT_STARTED',
 			},
 			organization_id: {
+				primaryKey: true,
 				allowNull: false,
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 			},
 			created_at: {
 				allowNull: false,
@@ -44,6 +47,15 @@ module.exports = {
 			},
 			deleted_at: {
 				type: Sequelize.DATE,
+			},
+		})
+
+		// Add an index for the 'value' column
+		await queryInterface.addIndex('reviews', ['resource_id', 'reviewer_id'], {
+			unique: true,
+			name: 'unique_resource_reviewer',
+			where: {
+				deleted_at: null,
 			},
 		})
 	},

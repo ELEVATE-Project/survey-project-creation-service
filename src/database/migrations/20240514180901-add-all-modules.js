@@ -7,13 +7,13 @@ module.exports = {
 
 		const modulesData = [
 			{ code: 'all', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
-			{ code: 'resources', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
+			{ code: 'resource', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'modules', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'permissions', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'cloud-services', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'entity-types', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'entities', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
-			{ code: 'forms', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
+			{ code: 'form', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'organization-extensions', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'config', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'comments', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
@@ -22,6 +22,7 @@ module.exports = {
 			{ code: 'certificates', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'reviews', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'observations', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
+			{ code: 'users', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 		]
 
 		// Insert the data into the 'modules' table
