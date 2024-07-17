@@ -90,7 +90,7 @@ module.exports = class reviewsHelper {
 				const reviewData = {
 					resource_id: resourceId,
 					reviewer_id: loggedInUserId,
-					status: common.REVIEW_STATUS_INPROGRESS,
+					status: bodyData.status,
 					organization_id: orgId,
 				}
 
@@ -123,25 +123,48 @@ module.exports = class reviewsHelper {
 				})
 			} else {
 				// Handle existing review updates
+
+				const reviewData = await reviewsQueries.findOne({
+					resource_id: resourceId,
+					reviewer_id: loggedInUserId,
+					organization_id: review.organization_id,
+				})
+
+				if (!reviewData?.id) {
+					return responses.failureResponse({
+						message: 'RESOURCE_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
 				if (
 					[common.REVIEW_STATUS_REJECTED, common.REVIEW_STATUS_REJECTED_AND_REPORTED].includes(
 						bodyData.status
 					)
 				) {
-					await this.handleRejectionOrReport(
-						review.id,
+					const rejection = await this.handleRejectionOrReport(
+						reviewData.id,
 						bodyData,
 						resourceId,
 						loggedInUserId,
 						bodyData.comment,
 						resource.type
 					)
+					return rejection
 				} else if (bodyData.status === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
 					//update the reviews table
-					await this.handleChangesRequested(review.id, bodyData, resourceId, loggedInUserId, bodyData.comment)
+					const requestChange = await this.handleChangesRequested(
+						reviewData.id,
+						bodyData,
+						resourceId,
+						loggedInUserId,
+						bodyData.comment
+					)
+					return requestChange
 				} else if (bodyData.status === common.RESOURCE_STATUS_APPROVED) {
 					isPublishResource = await this.handleApproval(
-						review.id,
+						reviewData.id,
 						resourceId,
 						loggedInUserId,
 						bodyData.comment,
@@ -262,23 +285,19 @@ module.exports = class reviewsHelper {
 	}
 }
 
-function _notAllowedStatusForReview() {
-	return [
-		common.RESOURCE_STATUS_REJECTED,
-		common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
-		common.RESOURCE_STATUS_PUBLISHED,
-	]
-}
+const _notAllowedStatusForReview = [
+	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+	common.RESOURCE_STATUS_PUBLISHED,
+]
 
-function _notAllowedReviewStatus() {
-	return [
-		common.RESOURCE_STATUS_REJECTED,
-		common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
-		common.REVIEW_STATUS_CHANGES_UPDATED,
-		common.REVIEW_STATUS_INPROGRESS,
-		common.REVIEW_STATUS_REJECTED_AND_REPORTED,
-	]
-}
+const _notAllowedReviewStatus = [
+	common.RESOURCE_STATUS_REJECTED,
+	common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+	common.REVIEW_STATUS_CHANGES_UPDATED,
+	common.REVIEW_STATUS_INPROGRESS,
+	common.REVIEW_STATUS_REJECTED_AND_REPORTED,
+]
 
 async function handleComments(comments, resourceId, loggedInUserId) {
 	try {

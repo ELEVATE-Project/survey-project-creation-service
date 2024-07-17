@@ -46,7 +46,7 @@ module.exports = {
 			},
 			page: {
 				allowNull: false,
-				type: Sequelize.INTEGER,
+				type: Sequelize.STRING,
 			},
 			is_read: {
 				allowNull: false,

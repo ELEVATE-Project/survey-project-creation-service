@@ -26,3 +26,11 @@ exports.findOne = async (filter, options = {}) => {
 		throw error
 	}
 }
+
+exports.create = async (data) => {
+	try {
+		return await ReviewResource.create(data, { returning: true })
+	} catch (error) {
+		return error
+	}
+}

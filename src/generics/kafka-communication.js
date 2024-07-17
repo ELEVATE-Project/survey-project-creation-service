@@ -38,7 +38,10 @@ const pushPayloadToKafka = async (payload) => {
 
 const pushResourceToKafka = async (message) => {
 	try {
-		const payload = { topic: process.env.PUBLISH_KAFKA_TOPIC, messages: [{ value: JSON.stringify(message) }] }
+		const payload = {
+			topic: process.env.PROJECT_PUBLISH_KAFKA_TOPIC,
+			messages: [{ value: JSON.stringify(message) }],
+		}
 		return await pushPayloadToKafka(payload)
 	} catch (error) {
 		throw error

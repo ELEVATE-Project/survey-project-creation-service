@@ -148,7 +148,7 @@ let enviromentVariables = {
 		message: 'Publish method is required',
 		optional: false,
 	},
-	PUBLISH_KAFKA_TOPIC: {
+	PROJECT_PUBLISH_KAFKA_TOPIC: {
 		message: 'Required publish kafka topic',
 		optional: false,
 	},

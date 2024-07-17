@@ -157,7 +157,6 @@ module.exports = class ProjectsHelper {
 				return responses.successResponse({
 					statusCode: httpStatusCode.accepted,
 					message: 'PROJECT_UPDATED_SUCCESSFUL',
-					result: updatedProject,
 				})
 			}
 		} catch (error) {
