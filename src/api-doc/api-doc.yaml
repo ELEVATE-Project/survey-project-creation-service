@@ -3503,9 +3503,9 @@ paths:
         - Projects
       description: |-
         You can use this API to submit the project for review
-         - The API Endpoint for submit the project for review is `/scp/v1/project/submitForReview` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        - The API Endpoint for submit the project for review is `/scp/v1/project/submitForReview` 
+        - It is mandatory to provide values for parameters which are marked as `required` 
+        - This is a mandatory parameter and cannot be empty or null.
       parameters:
         - name: X-auth-token
           in: header
@@ -3524,26 +3524,31 @@ paths:
           example: 1
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
               $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
-                reviwer_ids:
+                reviewer:
                   description: The IDs of the reviewers assigned to review the project.
                   type: array
                   items:
                     type: string
             examples:
               example1:
+                summary: Example when user selects reviewers
+                description: When user selects any reviewers, The reviewer user ids are send as an array and the resource will be assigned to those specific reviewers.
                 value:
-                  reviwer_ids: [23, 25]
-
+                  reviewer_ids: [23, 25]
+              example2:
+                summary: Example when user selects to send to all reviewers
+                description: When user selects to send the resource to all reviewers, API is not expecting any body parameter and the resource will be available for all the reviewers according to other factors to review it.
+                value: {}
       responses:
         '201':
           description: Project submitted for review successfully
           content:
-            application.json:
+            application/json:
               schema:
                 $schema: http://json-schema.org/draft-04/schema#
                 type: object
@@ -3552,7 +3557,6 @@ paths:
                     type: string
                   message:
                     type: string
-
                   meta:
                     type: object
                     properties:
@@ -3567,26 +3571,24 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Project submitted for review successfully
                     result: {}
-
                     meta:
                       formsVersion:
                         - id: 3
                           type: projectCreation
                           version: 3
-
         '400':
           description: Bad Request.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
+
   /scp/v1/resource/list:
     get:
       summary: Resource List
