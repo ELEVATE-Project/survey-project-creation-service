@@ -34,7 +34,7 @@ module.exports = class reviewsHelper {
 				})
 			}
 
-			let resource = resourceDetails.result
+			const resource = resourceDetails.result
 
 			//validate resource status
 			if (_notAllowedStatusForReview.includes(resource.status)) {
@@ -115,7 +115,7 @@ module.exports = class reviewsHelper {
 					filter.next_level = resource.next_level + 1
 				}
 
-				await resourceQueries.updateOne({ id: resourceId }, filter)
+				await resourceQueries.updateOne({ id: resourceId, organization_id: resource.organization_id }, filter)
 
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
@@ -149,7 +149,9 @@ module.exports = class reviewsHelper {
 						resourceId,
 						loggedInUserId,
 						bodyData.comment,
-						resource.type
+						resource.type,
+						resource.organization_id,
+						review.organization_id
 					)
 					return rejection
 				} else if (bodyData.status === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
@@ -159,7 +161,8 @@ module.exports = class reviewsHelper {
 						bodyData,
 						resourceId,
 						loggedInUserId,
-						bodyData.comment
+						bodyData.comment,
+						review.organization_id
 					)
 					return requestChange
 				} else if (bodyData.status === common.RESOURCE_STATUS_APPROVED) {
@@ -168,7 +171,9 @@ module.exports = class reviewsHelper {
 						resourceId,
 						loggedInUserId,
 						bodyData.comment,
-						minApproval
+						minApproval,
+						resource.organization_id,
+						review.organization_id
 					)
 				}
 			}
@@ -199,7 +204,16 @@ module.exports = class reviewsHelper {
 		}
 	}
 
-	static async handleRejectionOrReport(reviewId, bodyData, resourceId, loggedInUserId, comments = [], resourceType) {
+	static async handleRejectionOrReport(
+		reviewId,
+		bodyData,
+		resourceId,
+		loggedInUserId,
+		comments = [],
+		resourceType,
+		resourceOrgId,
+		reviewOrgId
+	) {
 		try {
 			//program cannot reject or report
 			if (resourceType === common.RESOURCE_TYPE_PROGRAM) {
@@ -216,9 +230,12 @@ module.exports = class reviewsHelper {
 				updateObj.notes = bodyData.notes
 			}
 
-			await resourceQueries.updateOne({ id: resourceId }, _.omit(updateObj, ['notes']))
+			await resourceQueries.updateOne(
+				{ id: resourceId, organization_id: resourceOrgId },
+				_.omit(updateObj, ['notes'])
+			)
 
-			await reviewsQueries.update({ id: reviewId }, updateObj)
+			await reviewsQueries.update({ id: reviewId, organization_id: reviewOrgId }, updateObj)
 
 			// Add or update comments
 			if (comments) {
@@ -237,10 +254,17 @@ module.exports = class reviewsHelper {
 		}
 	}
 
-	static async handleChangesRequested(reviewId, bodyData, resourceId, loggedInUserId, comments = []) {
+	static async handleChangesRequested(
+		reviewId,
+		bodyData,
+		resourceId,
+		loggedInUserId,
+		comments = [],
+		organization_id
+	) {
 		try {
 			//update reviews table
-			await reviewsQueries.update({ id: reviewId }, { status: bodyData.status })
+			await reviewsQueries.update({ id: reviewId, organization_id: organization_id }, { status: bodyData.status })
 
 			// Add or update comments
 			if (comments) {
@@ -256,11 +280,22 @@ module.exports = class reviewsHelper {
 		}
 	}
 
-	static async handleApproval(reviewId, resourceId, loggedInUserId, comments = [], minApproval) {
+	static async handleApproval(
+		reviewId,
+		resourceId,
+		loggedInUserId,
+		comments = [],
+		minApproval,
+		resourceOrgId,
+		reviewOrgId
+	) {
 		try {
 			// handle approval of a review
 			let publishResource = false
-			await reviewsQueries.update({ id: reviewId }, { status: common.RESOURCE_STATUS_APPROVED })
+			await reviewsQueries.update(
+				{ id: reviewId, organization_id: reviewOrgId },
+				{ status: common.RESOURCE_STATUS_APPROVED }
+			)
 
 			// Add or update comments
 			if (comments) {
@@ -268,13 +303,16 @@ module.exports = class reviewsHelper {
 			}
 
 			//check the no of approvals meets
-			const reviewsApproved = await reviewsQueries.findAll({
+			const reviewsApproved = await reviewsQueries.countDistinct({
 				resource_id: resourceId,
 				status: common.REVIEW_STATUS_APPROVED,
 			})
 
-			if (minApproval <= reviewsApproved.length + 1) {
-				await resourceQueries.updateOne({ id: resourceId }, { status: common.RESOURCE_STATUS_PUBLISHED })
+			if (minApproval <= reviewsApproved + 1) {
+				await resourceQueries.updateOne(
+					{ id: resourceId, organization_id: resourceOrgId },
+					{ status: common.RESOURCE_STATUS_PUBLISHED }
+				)
 				publishResource = true
 			}
 
