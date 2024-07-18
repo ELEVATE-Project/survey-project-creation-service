@@ -14,6 +14,7 @@ servers:
     description: local server. NB :- port may vary according to the local setup.
   - url: https://dev.elevate-apis.shikshalokam.org/
     description: dev server
+
 paths:
   /scp/v1/modules/create:
     post:
@@ -2638,410 +2639,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/form/updateForm400Response'
 
-  /scp/v1/projects/update:
+  /scp/v1/projects/update/{projectId}:
     post:
-      summary: Create Project
-      tags:
-        - Projects
-      description: |-
-        You can use this API to create a project 
-         - The API Endpoint for creating a project is `/scp/v1/project/create` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application.json:
-            schema:
-              $schema: http://json-schema.org/draft-04/schema#
-              type: object
-              properties:
-                title:
-                  type: string
-                  description: The title of the project
-                categories:
-                  description: Categories associated with the project
-                  type: array
-                  items:
-                    type: string
-                recommented_duration:
-                  description: Object containing information about the recommended duration.
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                      description: Type of recommended duration (e.g., "days", "hours").
-                    number:
-                      type: number
-                      description: The numeric value representing the recommended duration.
-                keywords:
-                  type: string
-                  description: The keywords associated with the project.
-                recommeneded_for:
-                  description: List of recommented designations for the project.
-                  type: array
-                  items:
-                    type: string
-                languages:
-                  description: List of languages associated with the project.
-                  type: array
-                  items:
-                    type: string
-                learning_resources:
-                  description: List of learning resources related to the project.
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      name:
-                        description: The name of the learning resource.
-                        type: string
-                      url:
-                        description: The URL of the learning resource.
-                        type: string
-                solution_details:
-                  type: object
-                  description: Details about the observation solution.
-                licence:
-                  type: string
-                  description: The license associated with the project.
-                task:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                        description: The ID of the task.
-                      name:
-                        type: string
-                        description: The name of the task.
-                      type:
-                        type: string
-                        description: The type of the task. content/observation
-                      children:
-                        description: List of child tasks.
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: string
-                      is_mandatory:
-                        type: boolean
-                        description: Indicates if the task is mandatory.
-                      allow_evidences:
-                        type: boolean
-                        description: Indicates if evidence submission is allowed for the task.
-                      evidence_details:
-                        description: Details about evidence
-                        type: object
-                        properties:
-                          file_types:
-                            description: List of allowed file types for evidence submission.
-                            type: array
-                            items:
-                              type: string
-                          min_no_of_evidences:
-                            description: The minimum number of evidences required.
-                            type: string
-                      sequence_no:
-                        type: number
-                        description: The sequence number of the task.
-                certificate:
-                  description: Details about the project certificate.
-                  type: object
-                  properties:
-                    base_template_id:
-                      type: number
-                      description: The ID of the base certificate template.
-                    base_template_url:
-                      type: string
-                      description: The url of the base certificate template.
-                    issuer:
-                      type: string
-                      description: The issuer of the certificate.
-                    logos:
-                      type: array
-                      items:
-                        type: string
-                    signatures:
-                      type: array
-                      items:
-                        type: string
-                    criteria:
-                      description: Criteria for issuing the certificate.
-                      type: object
-                      properties:
-                        expressions:
-                          type: string
-                        conditions:
-                          type: object
-                          properties:
-                            C1:
-                              type: object
-                              properties:
-                                validation_text:
-                                  type: string
-                                expression:
-                                  type: string
-                                conditions:
-                                  type: object
-                                  properties:
-                                    C1:
-                                      type: object
-                                      properties:
-                                        scope:
-                                          type: string
-                                        key:
-                                          type: string
-                                        function:
-                                          type: string
-                                        filter:
-                                          type: object
-                                          properties:
-                                            key:
-                                              type: string
-                                            value:
-                                              type: string
-                                            operator:
-                                              type: string
-                                            value1:
-                                              type: string
-
-            examples:
-              project without any details:
-                value: {}
-              project with child tasks:
-                value:
-                  title: Sample Project
-                  categories:
-                    - communication
-                  recommented_duration:
-                    type: week
-                    number: 5
-                  keywords: test
-                  recommeneded_for:
-                    - HM
-                  languages:
-                    - en
-                  learning_resources:
-                    - name: sample doc
-                      url: 'http://test.com'
-                  licence: CC BY 4.0
-                  tasks:
-                    - id: 7a8b13fb-c9e1-4296-8abd-8b64b357a128
-                      name: 'task without children'
-                      type: content
-                      is_mandatory: true
-                      allow_evidences: true
-                      evidence_details:
-                        file_types:
-                          - Images
-                          - Document
-                          - Videos
-                          - Audio
-                        min_no_of_evidences: 5
-                      sequence_no: 1
-                      learning_resources:
-                        - name: sample doc
-                          url: 'http://test.com'
-                      children:
-                        - id: 0a8b13fb-c9e1-4296-8abd-8b64b357a128
-                          name: child task 1
-                          type: content
-                          is_mandatory: true
-                          allow_evidences: true
-                          parent_id: 7a8b13fb-c9e1-4296-8abd-8b64b357a128
-                          sequence_no: 1
-
-                  certificate: {}
-              project without child tasks and certificates:
-                value:
-                  title: Sample Project
-                  categories:
-                    - communication
-                  recommented_duration:
-                    type: week
-                    number: 5
-                  keywords: test
-                  recommeneded_for:
-                    - HM
-                  languages:
-                    - en
-                  learning_resources:
-                    - name: sample doc
-                      url: 'http://test.com'
-                  licence: CC BY 4.0
-                  tasks:
-                    - id: 7a8b13fb-c9e1-4296-8abd-8b64b357a128
-                      name: 'task without children'
-                      type: content
-                      is_mandatory: true
-                      allow_evidences: true
-                      evidence_details:
-                        file_types:
-                          - Images
-                          - Document
-                          - Videos
-                          - Audio
-                        min_no_of_evidences: 5
-                      learning_resources:
-                        - name: sample doc
-                          url: 'http://test.com'
-                      sequence_no: 1
-                  certificate: {}
-              project with task observation with certificate:
-                value:
-                  title: Sample Project
-                  categories:
-                    - communication
-                  recommented_duration:
-                    type: week
-                    number: 5
-                  keywords: test
-                  recommeneded_for:
-                    - HM
-                  languages:
-                    - en
-                  learning_resources:
-                    - name: sample doc
-                      url: 'http://test.com'
-                  licence: CC BY 4.0
-                  tasks:
-                    - id: 3a8b13fb-c9e1-4296-8abd-8b64b357a128
-                      name: 'task observation'
-                      type: observation
-                      is_mandatory: true
-                      allow_evidences: true
-                      children: []
-                      evidence_details:
-                        file_types:
-                          - Images
-                          - Document
-                          - Videos
-                          - Audio
-                        min_no_of_evidences: 5
-                      sequence_no: 1
-                      solution_details:
-                        id: 3
-                        name: sample observation
-                        min_no_of_submissions_required: 2
-                        type: observation
-                  certificate:
-                    base_template_id: 5
-                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
-                    code: two-logo-two-sign
-                    name: Two Logo Two Signature
-                    logos:
-                      no_of_logos: 2
-                      stateLogo1: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
-                      stateLogo2: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
-                    signature:
-                      no_of_signature: 2
-                      signatureImg1: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
-                      signatureImg2: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
-                    issuer: SPD
-                    criteria:
-                      expressions: C1&&C2
-                      conditions:
-                        C1:
-                          validation_text: minimum no of evidences at project level
-                          expression: C1
-                          conditions:
-                            C1:
-                              scope: project
-                              key: evidence
-                              function: count
-                              filter:
-                                key: type
-                                value: all
-                              operator: '>='
-                              value: 4
-                        C2:
-                          validation_text: minimum no of evidences at project level
-                          expression: C1
-                          conditions:
-                            C1:
-                              scope: task
-                              key: evidence
-                              function: count
-                              filter:
-                                key: type
-                                value: all
-                              operator: '>='
-                              value: 4
-                              task_details:
-                                - 7a8b13fb-c9e1-4296-8abd-8b64b357a128
-
-      responses:
-        '201':
-          description: Project created successfully
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: object
-                    properties:
-                      id:
-                        type: number
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
-
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: Project created successfully
-                    result:
-                      id: 1
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
-
-        '400':
-          description: Bad Request. Project creation failed.
-          content:
-            application.json:
-              schema:
-                $ref: '#/components/schemas/project/createProject400Response'
-  /scp/v1/projects/update/{id}:
-    post:
-      summary: Update Project
+      summary: Create or Update Project
       tags:
         - Projects
       description: |-
         You can use this API to update a project 
-         - The API Endpoint for update a project is `/scp/v1/project/update` 
+         - The API Endpoint for update a project is `/scp/v1/projects/update/{id}` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -3055,14 +2660,14 @@ paths:
             type: string
         - in: path
           name: id
-          description: Please append a valid project Id to the Request URL.
+          description: For creating the project, id is not required. For update please append a valid project Id to the Request URL.
           schema:
             type: number
-          required: true
+          required: false
           example: 1
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
               $schema: http://json-schema.org/draft-04/schema#
               type: object
@@ -3072,10 +2677,13 @@ paths:
                   description: The title of the project
                 categories:
                   description: Categories associated with the project
-                  type: array
-                  items:
-                    type: string
-                recommented_duration:
+                  type: object
+                  properties:
+                    label:
+                      type: string
+                    value:
+                      type: string
+                recommended_duration:
                   description: Object containing information about the recommended duration.
                   type: object
                   properties:
@@ -3086,18 +2694,26 @@ paths:
                       description: The numeric value representing the recommended duration.
                       type: number
                 keywords:
-                  type: string
-                  description: The keywords associated with the project.
-                recommeneded_for:
-                  description: List of recommented designations for the project.
                   type: array
                   items:
                     type: string
+                  description: The keywords associated with the project.
+                recommended_for:
+                  description: List of recommended designations for the project.
+                  type: object
+                  properties:
+                    label:
+                      type: string
+                    value:
+                      type: string
                 languages:
                   description: List of languages associated with the project.
-                  type: array
-                  items:
-                    type: string
+                  type: object
+                  properties:
+                    label:
+                      type: string
+                    value:
+                      type: string
                 learning_resources:
                   description: List of learning resources related to the project.
                   type: array
@@ -3114,8 +2730,13 @@ paths:
                   type: object
                   description: Details about the observation solution.
                 licence:
-                  type: string
                   description: The license associated with the project.
+                  type: object
+                  properties:
+                    label:
+                      type: string
+                    value:
+                      type: string
                 task:
                   type: array
                   items:
@@ -3226,23 +2847,31 @@ paths:
                                               type: string
 
             examples:
+              project creation:
+                value:
+                  title: Sample Project
               project with child tasks:
                 value:
                   title: Sample Project
                   categories:
-                    - communication
+                    - label: Community
+                      value: community
                   recommented_duration:
-                    type: week
-                    number: 5
-                  keywords: test
+                    - type: week
+                      number: 5
+                  keywords: ['test']
                   recommeneded_for:
-                    - HM
+                    - label: HM
+                      value: hm
                   languages:
-                    - en
+                    - label: English
+                      value: en
                   learning_resources:
                     - name: sample doc
                       url: 'http://test.com'
-                  licence: CC BY 4.0
+                  licence:
+                    - label: CC BY 4.0
+                      value: cc_by_4.0
                   tasks:
                     - id: 7a8b13fb-c9e1-4296-8abd-8b64b357a128
                       name: 'task without children'
@@ -3274,19 +2903,24 @@ paths:
                 value:
                   title: Sample Project
                   categories:
-                    - communication
+                    - label: Community
+                      value: community
                   recommented_duration:
-                    type: week
-                    number: 5
-                  keywords: test
+                    - type: week
+                      number: 5
+                  keywords: ['test']
                   recommeneded_for:
-                    - HM
+                    - label: HM
+                      value: hm
                   languages:
-                    - en
+                    - label: English
+                      value: en
                   learning_resources:
                     - name: sample doc
                       url: 'http://test.com'
-                  licence: CC BY 4.0
+                  licence:
+                    - label: CC BY 4.0
+                      value: cc_by_4.0
                   tasks:
                     - id: 7a8b13fb-c9e1-4296-8abd-8b64b357a128
                       name: 'task without children'
@@ -3309,15 +2943,18 @@ paths:
                 value:
                   title: Sample Project
                   categories:
-                    - communication
+                    - label: Community
+                      value: community
                   recommented_duration:
-                    type: week
-                    number: 5
-                  keywords: test
+                    - type: week
+                      number: 5
+                  keywords: ['test']
                   recommeneded_for:
-                    - HM
+                    - label: HM
+                      value: hm
                   languages:
-                    - en
+                    - label: English
+                      value: en
                   learning_resources:
                     - name: sample doc
                       url: 'http://test.com'
@@ -3440,14 +3077,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/project/createProject400Response'
-  /scp/v1/projects/update/{projectId}:
+
     delete:
       summary: Delete Project
       tags:
         - Projects
       description: |-
         You can use this API to delete a project 
-         - The API Endpoint for deleting project is `/scp/v1/project/create` 
+         - The API Endpoint for deleting project is `/scp/v1/project/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -3514,6 +3151,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
+
   /scp/v1/projects/submitForReview/{projectId}:
     post:
       summary: Submit for review
@@ -3521,9 +3159,9 @@ paths:
         - Projects
       description: |-
         You can use this API to submit the project for review
-         - The API Endpoint for submit the project for review is `/scp/v1/project/submitForReview` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        - The API Endpoint for submit the project for review is `/scp/v1/projects/submitForReview` 
+        - It is mandatory to provide values for parameters which are marked as `required` 
+        - This is a mandatory parameter and cannot be empty or null.
       parameters:
         - name: X-auth-token
           in: header
@@ -3542,26 +3180,31 @@ paths:
           example: 1
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
               $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
-                reviwer_ids:
+                reviewer_id:
                   description: The IDs of the reviewers assigned to review the project.
                   type: array
                   items:
                     type: string
             examples:
               example1:
+                summary: Example when user selects reviewers
+                description: When user selects any reviewers, The reviewer user ids are send as an array and the resource will be assigned to those specific reviewers.
                 value:
-                  reviwer_ids: [23, 25]
-
+                  reviewer_ids: [23, 25]
+              example2:
+                summary: Example when user selects to send to all reviewers
+                description: When user selects to send the resource to all reviewers, API is not expecting any body parameter and the resource will be available for all the reviewers according to other factors to review it.
+                value: {}
       responses:
         '201':
           description: Project submitted for review successfully
           content:
-            application.json:
+            application/json:
               schema:
                 $schema: http://json-schema.org/draft-04/schema#
                 type: object
@@ -3570,7 +3213,6 @@ paths:
                     type: string
                   message:
                     type: string
-
                   meta:
                     type: object
                     properties:
@@ -3585,26 +3227,24 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Project submitted for review successfully
                     result: {}
-
                     meta:
                       formsVersion:
                         - id: 3
                           type: projectCreation
                           version: 3
-
         '400':
           description: Bad Request.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
+
   /scp/v1/resource/list:
     get:
       summary: Resource List
@@ -3741,6 +3381,137 @@ paths:
                         - id: 3
                           type: projecsuccessfullytCreation
                           version: 3
+
+  /scp/v1/resource/upForReview:
+    get:
+      summary: Up For Review Resource List
+      tags:
+        - Resource
+      description: |-
+        You can use this API to list resources which are up for review for the reviewers
+         - The API Endpoint : `/scp/v1/resource/upForReview` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: The page number for pagination.
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: The limit of projects per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
+        - name: search
+          in: query
+          description: The search value to filter projects based on title.
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Type of the resource
+          required: false
+          schema:
+            type: string
+          example: project
+        - name: status
+          in: query
+          description: Pass status INPROGRESS to get the resources which are review in progress.
+          required: false
+          schema:
+            type: string
+          example: INPROGRESS
+        - name: sort_by
+          in: query
+          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          required: false
+          schema:
+            type: string
+          example: status
+        - name: sort_order
+          in: query
+          description: Sort order (ascending or descending).
+          required: false
+          schema:
+            type: string
+            enum: ['asc', 'desc']
+          example: asc
+
+      responses:
+        '200':
+          description: project listed successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: number
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Resource listed successfully
+                    result:
+                      data:
+                        - id: 4
+                          title: sample project
+                          type: project
+                          organization:
+                            id: 24
+                            name: Shikshalokam
+                            code: sl
+                          status: INPROGRESS
+                      count: 1
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projecsuccessfullytCreation
+                          version: 3
+
   /scp/v1/projects/details/{projectId}:
     post:
       summary: Project Details
@@ -4223,7 +3994,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
 
-  /scp/v1/review/update/{projectId}:
+  /scp/v1/review/update/{resourceId}:
     post:
       summary: Review Update
       tags:
@@ -4243,8 +4014,8 @@ paths:
           schema:
             type: string
         - in: path
-          name: projectId
-          description: Please append a valid project Id to the Request URL.
+          name: resourceId
+          description: Please append a valid resource Id to the Request URL.
           schema:
             type: number
           required: true
@@ -4258,20 +4029,14 @@ paths:
                 status:
                   type: string
                   description: The new status for the project review (e.g., "REQUEST_FOR_CHANGES").
-                type:
-                  type: string
-                  description: The type of the resource being reviewed (e.g., "project").
 
                 comment:
-                  comment: 'Check spelling'
-                  context: page
-                  page: 1
+                  description: Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.
 
             examples:
               example1:
                 value:
-                  status: REQUEST_FOR_CHANGES
-                  type: project
+                  status: REQUEST_FOR_CHANGES / STARTED / INPROGRESS / APPROVED / REJECTED / REJECTED_AND_REPORTED
                   comment:
                     comment: 'Check spelling'
                     context: page
@@ -4319,14 +4084,14 @@ paths:
                           type: projectCreation
                           version: 3
 
-  /scp/v1/comment/update/{id}?resource_id={resource_id}:
+  /scp/v1/comments/update/{id}?resource_id={resource_id}:
     post:
       summary: Add or Update Comment
       tags:
         - Comment
       description: |-
         You can use this API to create or update comment
-         - The API Endpoint for adding or updating a comment is `/scp/v1/comment/update` 
+         - The API Endpoint for adding or updating a comment is `/scp/v1/comments/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4441,14 +4206,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/comment/updateComment400Response'
 
-  /scp/v1/comment/list?resource_id={resource_id}:
+  /scp/v1/comments/list?resource_id={resource_id}:
     get:
       summary: Comment List
       tags:
         - Comment
       description: |-
         You can use this API to get the list all comments
-         - The API Endpoint for get the list of comments is `/scp/v1/comment/list` 
+         - The API Endpoint for get the list of comments is `/scp/v1/comments/list` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4467,6 +4232,20 @@ paths:
             type: number
           required: true
           example: 1
+        - in: query
+          name: page_value
+          description: Please append a valid page number or name.
+          schema:
+            type: string
+          required: false
+          example: task_page
+        - in: query
+          name: context
+          description: Please append a valid context value like tag or page.
+          schema:
+            type: string
+          required: false
+          example: page
 
       responses:
         '200':
@@ -5681,7 +5460,6 @@ paths:
                         - id: 3
                           type: observationsuccessfullytCreation
                           version: 3
-
 components:
   schemas:
     module:
@@ -6066,213 +5844,3 @@ components:
       type: apiKey
       name: X-auth-token
       in: header
-  /scp/v1/comment/list:
-    get:
-      summary: List all comments based on resource id.
-      tags:
-        - Comments APIs
-      description: >-
-        You can use this API to get the list of all comments based on resource id.
-        - The API Endpoint for getting a list of permissions is `/scp/v1/comment/list` 
-        - It is mandatory to provide values for parameters marked with `required` 
-        - Mandatory parameter cannot be empty or null
-      parameters:
-        - name: X-auth-token
-          required: true
-          in: header
-          description: >-
-            You require an X-auth-token to use this API. This token is available
-            in the login API Response.
-          schema:
-            type: string
-        - in: path
-          name: page
-          description: Please add page number
-          schema:
-            type: number
-          example: 1
-        - in: path
-          name: limit
-          description: Number of records to limit
-          schema:
-            type: number
-          example: 2
-        - in: path
-          name: resource_id
-          description: Pass the resource_id to get all the comments for the particular resource.
-          schema:
-            type: number
-          required: true
-          example: 2603
-
-      responses:
-        '200':
-          description: ok
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                responseCode:
-                  type: string
-                message:
-                  type: string
-                result:
-                  type: object
-                  properties:
-                    resource_id:
-                      type: number
-                    comments:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          id:
-                            type: number
-                          comment:
-                            type: string
-                          context:
-                            type: string
-                          page:
-                            type: number
-                          status:
-                            type: string
-                          author:
-                            type: object
-                            properties:
-                              id:
-                                type: number
-                              name:
-                                type: string
-
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: Comments fetched successfully.
-                    result:
-                      resource_id: 2603
-                      comments:
-                        - id: 1234
-                          comment: 'This is a comment'
-                          context: 'page'
-                          page: 1
-                          status: 'UNRESOLVED'
-                          author:
-                            id: 123
-                            name: 'Priyanka'
-                        - id: 5678
-                          comment: 'This is a reply comment'
-                          context: 'page'
-                          parent_id: 1234
-                          page: 1
-                          status: 'UNRESOLVED'
-                          author:
-                            id: 412
-                            name: 'Adithya Dinesh'
-                    meta:
-                      formsVersion: []
-                      correlation: a761e205-7d3a-4f6c-a31a-4641a14f1e91
-
-  /scp/v1/comment/update:
-    post:
-      summary: Add or Update comments to resources.
-      tags:
-        - Comments APIs
-      description: |-
-        This Api is associated with adding new comments or updating the existing comments.
-        - The Endpoint for creating and updating remains the same.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: >-
-            To make use of the API, you require X-auth-token. This is Available
-            in login API Response.
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application.json:
-            schema:
-              $schema: http://json-schema.org/draft-04/schema#
-              type: object
-              properties:
-                resource_id:
-                  type: number
-                comments:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      comment:
-                        type: string
-                      context:
-                        type: string
-                      page:
-                        type: number
-                      status:
-                        type: string
-                      parent_id:
-                        type: number
-      responses:
-        '200':
-          description: ok
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: object
-                    properties:
-                      id:
-                        type: number
-                      resource_id:
-                        type: number
-
-                      comments:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            comment:
-                              type: string
-                            context:
-                              type: string
-                            page:
-                              type: number
-                            status:
-                              type: string
-                            parent_id:
-                              type: number
-
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: string
-                      correlation:
-                        type: string
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: Comment updated successfully.
-                    result: []
-                    meta:
-                      formsVersion: []
-                      correlation: a761e205-7d3a-4f6c-a31a-4641a14f1e91
-        '400':
-          description: Bad Request. Resource not found
-          content:
-            application.json:
-              schema:
-                $ref: '#/components/schemas/comment/updateComment400Response'

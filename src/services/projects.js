@@ -540,14 +540,14 @@ module.exports = class ProjectsHelper {
 			// await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
 			//TODO: For review flow this has to be changed we might need to add further conditions
 			// and Validate those reviewer as well
-			if (bodyData.hasOwnProperty('reviewer_ids') && bodyData.reviewer_ids.length > 0) {
+			if (bodyData.hasOwnProperty('revieewer_ids') && bodyData.revieewer_ids.length > 0) {
 				const orgReviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id)
 				let orgReviewerIds = []
 				if (orgReviewers.success) {
 					orgReviewerIds = orgReviewers.data.result.data.map((item) => item.id)
 				}
 
-				let filteredReviewerIds = bodyData.reviewer_ids.filter((id) => orgReviewerIds.includes(id))
+				let filteredReviewerIds = bodyData.revieewer_ids.filter((id) => orgReviewerIds.includes(id))
 
 				let reviewsData = filteredReviewerIds.map((reviewer_id) => ({
 					resource_id: projectData.id,
