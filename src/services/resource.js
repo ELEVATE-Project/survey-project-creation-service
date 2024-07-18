@@ -222,10 +222,11 @@ module.exports = class resourceHelper {
 			let result = {
 				data: [],
 				count: 0,
+				in_progress_count: 0,
 			}
-			let sort = {
-				sort_by: common.CREATED_AT,
-				order: common.SORT_DESC,
+			const sort = {
+				sort_by: queryParams.sort_by || common.CREATED_AT,
+				order: queryParams.sort_order?.toUpperCase() === common.SORT_ASC ? common.SORT_ASC : common.SORT_DESC,
 			}
 			let finalResourceIds = []
 			let resourceIdsToBeRemoved = []
@@ -263,12 +264,12 @@ module.exports = class resourceHelper {
 				},
 				{ attributes: ['resource_type', 'level'], order: [['level', 'ASC']] }
 			)
-			const resourceWiseLevels = {} //resource wise levels look up for the given reviewer
-			reviewLevelDetails.forEach((item) => {
-				if (!resourceWiseLevels[item.resource_type]) {
-					resourceWiseLevels[item.resource_type] = item.level
-				}
-			})
+
+			const resourceWiseLevels = reviewLevelDetails.reduce((acc, item) => {
+				acc[item.resource_type] = item.level
+
+				return acc
+			}, {})
 
 			let uniqueResourceIds = []
 			let uniqueOrganizationIds = [organization_id] //initialize current org id
@@ -396,19 +397,6 @@ module.exports = class resourceHelper {
 
 			if (common.TYPE in queryParams) {
 				resourceFilter.type = queryParams[common.TYPE]
-			}
-
-			if (
-				common.SORT_BY in queryParams &&
-				common.SORT_ORDER in queryParams &&
-				queryParams.sort_by.length > 0 &&
-				queryParams.sort_order.length > 0
-			) {
-				sort.sort_by = queryParams.sort_by
-				sort.order =
-					queryParams.sort_order.toUpperCase() == common.SORT_DESC.toUpperCase()
-						? common.SORT_DESC
-						: common.SORT_ASC
 			}
 
 			const response = await resourceQueries.resourceList(
