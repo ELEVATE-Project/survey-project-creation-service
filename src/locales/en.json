@@ -82,7 +82,9 @@
 	"PROJECT_OBJECTIVE_NOT_ADDED": "Project objective not added",
 	"TASK_NOT_FOUND": "Task not found",
 	"FILE_TYPE_NOT_SELECTED": "File type not selected",
+	"FILE_TYPE_INVALID": "Invalid file type",
 	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource url",
 	"DONT_HAVE_PROJECT_ACCESS": "You dont have permission to access this project",
-	"EXCEEDED_PROJECT_TASK_COUNT": "Project task has exceeded the max count"
+	"EXCEEDED_PROJECT_TASK_COUNT": "Project task has exceeded the max count",
+	"PROJECT_SUBMITTED_SUCCESSFULLY": "Your resource has been sent for review"
 }
