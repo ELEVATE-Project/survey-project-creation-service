@@ -366,7 +366,7 @@ module.exports = class ProjectsHelper {
 				['id', 'value', 'has_entities', 'validations']
 			)
 
-			// Using forEach instead of for loop for entity type validations
+			// // Using forEach instead of for loop for entity type validations
 
 			entityTypes.forEach((entityType) => {
 				const fieldData = projectData[entityType.value]
@@ -407,7 +407,7 @@ module.exports = class ProjectsHelper {
 					}
 				}
 			})
-			let x = Object.keys(projectData)
+
 			if (!Object.keys(projectData).includes(common.TASKS)) {
 				throw responses.failureResponse({
 					message: 'TASK_NOT_FOUND',
@@ -486,14 +486,15 @@ module.exports = class ProjectsHelper {
 				// TODO: Get file types from products teams and add validation for them
 				// entity model mapping add one more key. file types . Ask Nivedhitha accepted file types
 				// dont check file_types.length , change it from array to string. in API - docs also
-				if (task.allow_evidences == common.TRUE && task.evidence_details.file_types.length < 1) {
-					throw responses.failureResponse({
-						message: 'FILE_TYPE_NOT_SELECTED',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-						error: utils.errorObject(common.BODY, common.FILE_TYPE),
-					})
-				} else if (task.allow_evidences == common.TRUE && task.evidence_details.file_types.length > 0) {
+				if (task.allow_evidences == common.TRUE) {
+					if (task.evidence_details.file_types.length < 1) {
+						throw responses.failureResponse({
+							message: 'FILE_TYPE_NOT_SELECTED',
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+							error: utils.errorObject(common.BODY, common.FILE_TYPE),
+						})
+					}
 					let allowed_fileTypes_entities = taskEntityTypes.reduce((acc, taskEntityType) => {
 						if (taskEntityType.value === common.TASK_ALLOWED_FILE_TYPES) {
 							acc.push(...taskEntityType.entities.map((entity) => entity.value))
@@ -536,11 +537,19 @@ module.exports = class ProjectsHelper {
 				}
 			})
 
-			await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
+			// await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
 			//TODO: For review flow this has to be changed we might need to add further conditions
 			// and Validate those reviewer as well
-			if (bodyData.hasOwnProperty('reviwer_ids') && bodyData.reviwer_ids.length > 0) {
-				let reviewsData = bodyData.reviwer_ids.map((reviewer_id) => ({
+			if (bodyData.hasOwnProperty('reviewer_ids') && bodyData.reviewer_ids.length > 0) {
+				const orgReviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id)
+				let orgReviewerIds = []
+				if (orgReviewers.success) {
+					orgReviewerIds = orgReviewers.data.result.data.map((item) => item.id)
+				}
+
+				let filteredReviewerIds = bodyData.reviewer_ids.filter((id) => orgReviewerIds.includes(id))
+
+				let reviewsData = filteredReviewerIds.map((reviewer_id) => ({
 					resource_id: projectData.id,
 					reviewer_id,
 					status: common.REVIEW_STATUS_NOT_STARTED,
