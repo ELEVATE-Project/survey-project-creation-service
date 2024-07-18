@@ -11,7 +11,6 @@ const axios = require('axios')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
-const entityService = require('@services/entities')
 const utils = require('@generics/utils')
 
 module.exports = class ProjectsHelper {
@@ -366,8 +365,10 @@ module.exports = class ProjectsHelper {
 				['id', 'value', 'has_entities', 'validations']
 			)
 
-			// // Using forEach instead of for loop for entity type validations
+			// //allowed fileTypes
+			// const allowed_fileTypes_entities =
 
+			// Using forEach instead of for loop for entity type validations
 			entityTypes.forEach((entityType) => {
 				const fieldData = projectData[entityType.value]
 
@@ -396,7 +397,8 @@ module.exports = class ProjectsHelper {
 				}
 
 				if (entityType.validations.regex) {
-					let checkRegex = utils.checkRegexPattarn(entityType, fieldData)
+					console.log(entityType.value, fieldData, 'entityType 40111111111111')
+					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
 					if (checkRegex) {
 						throw responses.failureResponse({
 							message: `Special characters not allowed in ${entityType.value}`,
@@ -441,11 +443,14 @@ module.exports = class ProjectsHelper {
 				userDetails,
 				['id', 'value', 'validations', 'has_entities']
 			)
+
 			//TODO: This dont have code for each type of validation please make sure that in future
 			//when adding new validadtion include code for that
 			// Using forEach for iterating through tasks and taskEntityTypes
 			projectData.tasks.forEach(async (task) => {
 				taskEntityTypes.forEach(async (taskEntityType) => {
+					// console.log(taskEntityType.value,'taskEntityType')
+					console.log(fieldData, 'fieldData')
 					const fieldData = task[taskEntityType.value]
 					if (taskEntityType.validations.required) {
 						let required = await utils.checkRequired(taskEntityType, fieldData)
@@ -458,27 +463,31 @@ module.exports = class ProjectsHelper {
 							})
 						}
 					}
-
+					// console.log(taskEntityType,'taskEntityType line no 460----------')
 					if (taskEntityType.has_entities) {
+						console.log(taskEntityType, 'taskEntityType')
 						let checkEntities = utils.checkEntities(taskEntityType, fieldData)
+
 						if (!checkEntities.status) {
+							// process.exit()
+							// let checkNestedEntities = utils.checkEntities(taskEntityType, fieldData)
 							throw responses.failureResponse({
 								message: checkEntities.message,
 								statusCode: httpStatusCode.bad_request,
 								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.TASKS, entityType.value),
+								error: utils.errorObject(common.TASKS, taskEntityType.value),
 							})
 						}
 					}
 
 					if (taskEntityType.validations.regex) {
-						let checkRegex = utils.checkRegexPattarn(taskEntityType, fieldData)
+						let checkRegex = utils.checkRegexPattern(taskEntityType, fieldData)
 						if (checkRegex) {
 							throw responses.failureResponse({
-								message: `Special characters not allowed in ${entityType.value}`,
+								message: `Special characters not allowed in ${taskEntityType.value}`,
 								statusCode: httpStatusCode.bad_request,
 								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.TASKS, entityType.value),
+								error: utils.errorObject(common.TASKS, taskEntityType.value),
 							})
 						}
 					}
@@ -495,23 +504,26 @@ module.exports = class ProjectsHelper {
 							error: utils.errorObject(common.BODY, common.FILE_TYPE),
 						})
 					}
-					let allowed_fileTypes_entities = taskEntityTypes.reduce((acc, taskEntityType) => {
-						if (taskEntityType.value === common.TASK_ALLOWED_FILE_TYPES) {
-							acc.push(...taskEntityType.entities.map((entity) => entity.value))
-						}
-						return acc
-					}, [])
 
-					let difference = _.difference(task.evidence_details.file_types, allowed_fileTypes_entities)
+					// let allowed_fileTypes_entities = taskEntityTypes.reduce((acc, taskEntityType) => {
+					// 	if (taskEntityType.value === common.TASK_ALLOWED_FILE_TYPES) {
+					// 		acc.push(...taskEntityType.entities.map((entity) => entity.value))
+					// 	}
+					// 	return acc
+					// }, [])
 
-					if (difference.length > 0) {
-						throw responses.failureResponse({
-							message: 'FILE_TYPE_INVALID',
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
-							error: utils.errorObject(common.TASK_EVIDENCE, common.FILE_TYPE),
-						})
-					}
+					// console.log(allowed_fileTypes_entities,'allowed_fileTypes_entities')
+
+					// let difference = _.difference(task.evidence_details.file_types, allowed_fileTypes_entities)
+					// console.log(difference,'difference')
+					// if (difference.length > 0) {
+					// 	throw responses.failureResponse({
+					// 		message: 'FILE_TYPE_INVALID',
+					// 		statusCode: httpStatusCode.bad_request,
+					// 		responseCode: 'CLIENT_ERROR',
+					// 		error: utils.errorObject(common.TASK_EVIDENCE, common.FILE_TYPE),
+					// 	})
+					// }
 				}
 
 				if (task.learning_resources && task.learning_resources.length > 0) {
@@ -524,7 +536,7 @@ module.exports = class ProjectsHelper {
 						['value', 'validations']
 					)
 					task.learning_resources.forEach((learningResource) => {
-						let validateURL = utils.checkRegexPattarn(subTaskEntityTypes[0], learningResource.url)
+						let validateURL = utils.checkRegexPattern(subTaskEntityTypes[0], learningResource.url)
 						if (validateURL) {
 							throw responses.failureResponse({
 								message: 'INCORRECT_LEARNING_RESOURCE',
@@ -540,14 +552,14 @@ module.exports = class ProjectsHelper {
 			// await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
 			//TODO: For review flow this has to be changed we might need to add further conditions
 			// and Validate those reviewer as well
-			if (bodyData.hasOwnProperty('revieewer_ids') && bodyData.revieewer_ids.length > 0) {
+			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
 				const orgReviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id)
 				let orgReviewerIds = []
 				if (orgReviewers.success) {
 					orgReviewerIds = orgReviewers.data.result.data.map((item) => item.id)
 				}
 
-				let filteredReviewerIds = bodyData.revieewer_ids.filter((id) => orgReviewerIds.includes(id))
+				let filteredReviewerIds = bodyData.reviewer_ids.filter((id) => orgReviewerIds.includes(id))
 
 				let reviewsData = filteredReviewerIds.map((reviewer_id) => ({
 					resource_id: projectData.id,

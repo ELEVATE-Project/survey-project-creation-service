@@ -415,7 +415,7 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 const errorObject = (params, filed) => {
 	return [{ location: params, param: filed, message: filed + ' field is empty' }]
 }
-const checkRegexPattarn = (entityType, entityData) => {
+const checkRegexPattern = (entityType, entityData) => {
 	try {
 		let normalizedValue = unidecode(entityData)
 		let regex = new RegExp(entityType.validations.regex)
@@ -494,7 +494,7 @@ module.exports = {
 	generateUniqueId,
 	removeDefaultOrgCertificates,
 	errorObject,
-	checkRegexPattarn,
+	checkRegexPattern: checkRegexPattern,
 	checkRequired,
 	checkEntities,
 	validateRoleAccess,

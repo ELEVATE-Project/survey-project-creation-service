@@ -9,7 +9,7 @@ module.exports = {
 
 		const entitiesArray = [
 			{
-				entityType: 'allowed_file_types',
+				entityType: 'file_types',
 				entities: [
 					{ value: 'Images', label: 'Images' },
 					{ value: 'Document', label: 'Document' },
@@ -79,6 +79,32 @@ module.exports = {
 		}, [])
 
 		await queryInterface.bulkInsert('entities', entitiesFinalArray, {})
+
+		//add model mapping for learning resource
+		const learningResourceEntityType = await queryInterface.sequelize.query(
+			'SELECT id FROM entity_types WHERE value = :value',
+			{
+				type: queryInterface.sequelize.QueryTypes.SELECT,
+				replacements: { value: 'learning_resources' },
+			}
+		)
+		if (learningResourceEntityType && learningResourceEntityType.length > 0) {
+			let learningResourceEntityTypeId = learningResourceEntityType.map((item) => {
+				return item.id
+			})
+
+			let learningResourceModelMapping = [
+				{
+					entity_type_id: learningResourceEntityTypeId,
+					model: 'projects',
+					status: 'ACTIVE',
+					updated_at: new Date(),
+					created_at: new Date(),
+				},
+			]
+
+			await queryInterface.bulkInsert('entities_model_mapping', learningResourceModelMapping, {})
+		}
 	},
 
 	async down(queryInterface, Sequelize) {
@@ -86,7 +112,8 @@ module.exports = {
 			type: queryInterface.sequelize.QueryTypes.SELECT,
 			replacements: { value: 'allowed_file_types' },
 		})
-		entityTypeId = entityTypes.map((item) => {
+
+		let entityTypeId = entityTypes.map((item) => {
 			return item.id
 		})
 
