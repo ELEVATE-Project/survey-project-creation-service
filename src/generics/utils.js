@@ -472,6 +472,10 @@ const convertToString = (value) => {
 	return value.toString()
 }
 
+const returnUnique = (array) => {
+	return [...new Set([...array])]
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -499,4 +503,5 @@ module.exports = {
 	checkEntities,
 	validateRoleAccess,
 	convertToString,
+	returnUnique,
 }
