@@ -142,6 +142,10 @@ let enviromentVariables = {
 		optional: false,
 		default: 10,
 	},
+	PROJECT_TASK_DESCTIPTION_LENGTH: {
+		message: 'Maximum length of project task description required',
+		optional: false,
+	},
 }
 
 let success = true

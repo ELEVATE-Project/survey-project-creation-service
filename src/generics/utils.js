@@ -472,6 +472,16 @@ const convertToString = (value) => {
 	return value.toString()
 }
 
+const convertToInteger = (value) => {
+	value = value.replace(/['"]/g, '')
+	return isNaN(value) ? false : parseInt(value, 10)
+}
+
+const lengthChecker = (value1, value2) => {
+	const returnValue = value1 === value2 ? 0 : value1 > value2 ? -1 : 1
+	return returnValue
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -499,4 +509,6 @@ module.exports = {
 	checkEntities,
 	validateRoleAccess,
 	convertToString,
+	lengthChecker,
+	convertToInteger,
 }

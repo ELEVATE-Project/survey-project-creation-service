@@ -366,7 +366,6 @@ module.exports = class ProjectsHelper {
 				['id', 'value', 'has_entities', 'validations']
 			)
 
-			// //allowed fileTypes
 			const allowed_fileTypes_entities = await entityTypeQuery.findUserEntityTypeAndEntities(
 				{
 					value: common.TASK_ALLOWED_FILE_TYPES,
@@ -376,12 +375,11 @@ module.exports = class ProjectsHelper {
 				['id', 'value', 'has_entities', 'validations']
 			)
 
-			// Using forEach instead of for loop for entity type validations
-			entityTypes.forEach((entityType) => {
+			for (const entityType of entityTypes) {
 				const fieldData = projectData[entityType.value]
 
 				if (entityType.validations.required) {
-					let required = utils.checkRequired(entityType, fieldData)
+					const required = utils.checkRequired(entityType, fieldData)
 					if (!required) {
 						throw responses.failureResponse({
 							message: `${entityType.value} not added`,
@@ -393,7 +391,7 @@ module.exports = class ProjectsHelper {
 				}
 
 				if (entityType.has_entities) {
-					let checkEntities = utils.checkEntities(entityType, fieldData)
+					const checkEntities = utils.checkEntities(entityType, fieldData)
 					if (!checkEntities.status) {
 						throw responses.failureResponse({
 							message: checkEntities.message,
@@ -405,7 +403,7 @@ module.exports = class ProjectsHelper {
 				}
 
 				if (entityType.validations.regex) {
-					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
+					const checkRegex = utils.checkRegexPattern(entityType, fieldData)
 					if (checkRegex) {
 						throw responses.failureResponse({
 							message: `Special characters not allowed in ${entityType.value}`,
@@ -415,7 +413,7 @@ module.exports = class ProjectsHelper {
 						})
 					}
 				}
-			})
+			}
 
 			if (!Object.keys(projectData).includes(common.TASKS)) {
 				throw responses.failureResponse({
@@ -455,13 +453,14 @@ module.exports = class ProjectsHelper {
 			//when adding new validadtion include code for that
 			// Using forEach for iterating through tasks and taskEntityTypes
 
-			projectData.tasks.forEach(async (task) => {
-				taskEntityTypes.forEach(async (taskEntityType) => {
+			for (const task of projectData.tasks) {
+				for (const taskEntityType of taskEntityTypes) {
 					const fieldData = task[taskEntityType.value]
-					if (taskEntityType.validations.required) {
-						let required = await utils.checkRequired(taskEntityType, fieldData)
+
+					if (fieldData && taskEntityType.validations.required) {
+						const required = await utils.checkRequired(taskEntityType, fieldData)
 						if (!required) {
-							return new responses.failureResponse({
+							throw responses.failureResponse({
 								message: `task.${taskEntityType.value} not added`,
 								statusCode: httpStatusCode.bad_request,
 								responseCode: 'CLIENT_ERROR',
@@ -469,12 +468,11 @@ module.exports = class ProjectsHelper {
 							})
 						}
 					}
-					if (taskEntityType.has_entities) {
-						let checkEntities = utils.checkEntities(taskEntityType, fieldData)
+
+					if (fieldData && taskEntityType.has_entities) {
+						const checkEntities = utils.checkEntities(taskEntityType, fieldData)
 
 						if (!checkEntities.status) {
-							// process.exit()
-							// let checkNestedEntities = utils.checkEntities(taskEntityType, fieldData)
 							throw responses.failureResponse({
 								message: checkEntities.message,
 								statusCode: httpStatusCode.bad_request,
@@ -484,8 +482,8 @@ module.exports = class ProjectsHelper {
 						}
 					}
 
-					if (taskEntityType.validations.regex) {
-						let checkRegex = utils.checkRegexPattern(taskEntityType, fieldData)
+					if (fieldData && taskEntityType.validations.regex) {
+						const checkRegex = utils.checkRegexPattern(taskEntityType, fieldData)
 						if (checkRegex) {
 							throw responses.failureResponse({
 								message: `Special characters not allowed in ${taskEntityType.value}`,
@@ -495,7 +493,33 @@ module.exports = class ProjectsHelper {
 							})
 						}
 					}
-				})
+
+					if (fieldData && taskEntityType.validations?.check_max_length === common.TRUE) {
+						const max_task_description_length = utils.convertToInteger(
+							process.env.PROJECT_TASK_DESCTIPTION_LENGTH
+						)
+						if (!max_task_description_length) {
+							throw responses.failureResponse({
+								message: 'PROJECT_TASK_DESCTIPTION_LENGTH_INVALID',
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject(common.TASKS, taskEntityType.value),
+							})
+						}
+
+						const checkLength = utils.lengthChecker(max_task_description_length, fieldData.length)
+
+						if (checkLength > 0) {
+							throw responses.failureResponse({
+								message: `Max length value exceeded for Task ${taskEntityType.value}`,
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject(common.TASKS, taskEntityType.value),
+							})
+						}
+					}
+				}
+
 				// TODO: Get file types from products teams and add validation for them
 				// entity model mapping add one more key. file types . Ask Nivedhitha accepted file types
 				// dont check file_types.length , change it from array to string. in API - docs also
@@ -509,29 +533,27 @@ module.exports = class ProjectsHelper {
 						})
 					}
 
-					let allowed_fileTypes_entitiesList = allowed_fileTypes_entities.reduce((acc, taskEntityType) => {
+					const allowed_fileTypes_entitiesList = allowed_fileTypes_entities.reduce((acc, taskEntityType) => {
 						if (taskEntityType.value === common.TASK_ALLOWED_FILE_TYPES) {
 							acc.push(...taskEntityType.entities.map((entity) => entity.value))
 						}
 						return acc
 					}, [])
 
-					let difference = _.difference(task.evidence_details.file_types, allowed_fileTypes_entitiesList)
+					const difference = _.difference(task.evidence_details.file_types, allowed_fileTypes_entitiesList)
 
 					if (difference.length > 0) {
-						return Promise.reject(
-							responses.failureResponse({
-								message: 'FILE_TYPE_INVALID',
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.TASK_EVIDENCE, common.FILE_TYPE),
-							})
-						)
+						throw responses.failureResponse({
+							message: 'FILE_TYPE_INVALID',
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+							error: utils.errorObject(common.TASK_EVIDENCE, common.FILE_TYPE),
+						})
 					}
 				}
 
 				if (task.learning_resources && task.learning_resources.length > 0) {
-					let subTaskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+					const subTaskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 						{
 							model: common.SUBTASKS,
 							status: common.STATUS_ACTIVE,
@@ -539,8 +561,8 @@ module.exports = class ProjectsHelper {
 						userDetails,
 						['value', 'validations']
 					)
-					task.learning_resources.forEach((learningResource) => {
-						let validateURL = utils.checkRegexPattern(subTaskEntityTypes[0], learningResource.url)
+					for (const learningResource of task.learning_resources) {
+						const validateURL = utils.checkRegexPattern(subTaskEntityTypes[0], learningResource.url)
 						if (validateURL) {
 							throw responses.failureResponse({
 								message: 'INCORRECT_LEARNING_RESOURCE',
@@ -549,11 +571,11 @@ module.exports = class ProjectsHelper {
 								error: utils.errorObject(common.BODY, common.CHILDREN),
 							})
 						}
-					})
+					}
 				}
-			})
+			}
 
-			// await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
+			await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
 			//TODO: For review flow this has to be changed we might need to add further conditions
 			// and Validate those reviewer as well
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {

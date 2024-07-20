@@ -137,5 +137,4 @@ module.exports = {
 		],
 		Audio: ['MP3', 'MP4', 'AAC', 'FLAC', 'WAV', 'MIDI', 'AIFF'],
 	},
-	USER_SERVICE_USER_IDS: 'user_ids',
 }
