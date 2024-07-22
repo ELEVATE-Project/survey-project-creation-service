@@ -375,7 +375,7 @@ module.exports = class ProjectsHelper {
 				['id', 'value', 'has_entities', 'validations']
 			)
 
-			for (const entityType of entityTypes) {
+			for (let entityType of entityTypes) {
 				const fieldData = projectData[entityType.value]
 
 				if (entityType.validations.required) {
@@ -383,6 +383,19 @@ module.exports = class ProjectsHelper {
 					if (!required) {
 						throw responses.failureResponse({
 							message: `${entityType.value} not added`,
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+							error: utils.errorObject(common.BODY, entityType.value),
+						})
+					}
+				}
+
+				if (fieldData && Object.keys(entityType.validations).includes('max_length')) {
+					const max_text_length = entityType.validations.max_length
+					const checkLength = utils.lengthChecker(max_text_length, fieldData.length)
+					if (checkLength > 0) {
+						throw responses.failureResponse({
+							message: `Max length value exceeded for project ${entityType.value}`,
 							statusCode: httpStatusCode.bad_request,
 							responseCode: 'CLIENT_ERROR',
 							error: utils.errorObject(common.BODY, entityType.value),
@@ -415,16 +428,7 @@ module.exports = class ProjectsHelper {
 				}
 			}
 
-			if (!Object.keys(projectData).includes(common.TASKS)) {
-				throw responses.failureResponse({
-					message: 'TASK_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-					error: utils.errorObject(common.BODY, common.TASKS),
-				})
-			}
-
-			if (projectData.tasks.length < 1) {
+			if (!Object.keys(projectData).includes(common.TASKS) || projectData.tasks.length < 1) {
 				throw responses.failureResponse({
 					message: 'TASK_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -453,8 +457,8 @@ module.exports = class ProjectsHelper {
 			//when adding new validadtion include code for that
 			// Using forEach for iterating through tasks and taskEntityTypes
 
-			for (const task of projectData.tasks) {
-				for (const taskEntityType of taskEntityTypes) {
+			for (let task of projectData.tasks) {
+				for (let taskEntityType of taskEntityTypes) {
 					const fieldData = task[taskEntityType.value]
 
 					if (fieldData && taskEntityType.validations.required) {
@@ -494,18 +498,8 @@ module.exports = class ProjectsHelper {
 						}
 					}
 
-					if (fieldData && taskEntityType.validations?.check_max_length === common.TRUE) {
-						const max_task_description_length = utils.convertToInteger(
-							process.env.PROJECT_TASK_DESCTIPTION_LENGTH
-						)
-						if (!max_task_description_length) {
-							throw responses.failureResponse({
-								message: 'PROJECT_TASK_DESCTIPTION_LENGTH_INVALID',
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.TASKS, taskEntityType.value),
-							})
-						}
+					if (fieldData && Object.keys(taskEntityType.validations).includes('max_length')) {
+						const max_task_description_length = taskEntityType.validations.max_length
 
 						const checkLength = utils.lengthChecker(max_task_description_length, fieldData.length)
 
@@ -562,6 +556,23 @@ module.exports = class ProjectsHelper {
 						['value', 'validations']
 					)
 					for (const learningResource of task.learning_resources) {
+						const xx = subTaskEntityTypes[0]?.validations?.max_length
+
+						if (Object.keys(subTaskEntityTypes[0].validations).includes('max_length')) {
+							const validateLRtitleLength = utils.lengthChecker(
+								subTaskEntityTypes[0]?.validations?.max_length,
+								learningResource.name.length
+							)
+
+							if (validateLRtitleLength > 0) {
+								throw responses.failureResponse({
+									message: `Max length value exceeded for title in ${subTaskEntityTypes[0].value}`,
+									statusCode: httpStatusCode.bad_request,
+									responseCode: 'CLIENT_ERROR',
+									error: utils.errorObject(common.TASKS, subTaskEntityTypes[0].value),
+								})
+							}
+						}
 						const validateURL = utils.checkRegexPattern(subTaskEntityTypes[0], learningResource.url)
 						if (validateURL) {
 							throw responses.failureResponse({

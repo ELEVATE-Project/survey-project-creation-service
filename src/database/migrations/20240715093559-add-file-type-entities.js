@@ -11,10 +11,10 @@ module.exports = {
 			{
 				entityType: 'file_types',
 				entities: [
-					{ value: 'Images', label: 'Images' },
-					{ value: 'Document', label: 'Document' },
-					{ value: 'Videos', label: 'Videos' },
-					{ value: 'Audio', label: 'Audio' },
+					{ value: 'images', label: 'Images' },
+					{ value: 'document', label: 'Document' },
+					{ value: 'videos', label: 'Videos' },
+					{ value: 'audio', label: 'Audio' },
 				],
 				has_entities: true,
 				validation: { required: false },
