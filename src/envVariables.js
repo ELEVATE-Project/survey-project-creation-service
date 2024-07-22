@@ -142,6 +142,11 @@ let enviromentVariables = {
 		optional: false,
 		default: 10,
 	},
+	MAX_BODY_LENGTH_FOR_UPLOAD: {
+		message: 'Maximum body length for file upload is required',
+		optional: false,
+		default: Infinity,
+	},
 }
 
 let success = true

@@ -49,6 +49,7 @@ module.exports = class ProjectsHelper {
 
 			let projectCreate
 			try {
+				//create project
 				projectCreate = await resourceQueries.create(projectData)
 				const mappingData = {
 					resource_id: projectCreate.id,
@@ -58,7 +59,44 @@ module.exports = class ProjectsHelper {
 				await resourceCreatorMappingQueries.create(mappingData)
 
 				//upload to blob
-				await this.uploadToCloud(projectCreate.id, loggedInUserId, orgId, bodyData)
+				const resourceId = projectCreate.id
+				const fileName = `${loggedInUserId}${resourceId}${orgId}project.json`
+
+				const projectUploadStatus = await this.uploadToCloud(
+					fileName,
+					projectCreate.id,
+					loggedInUserId,
+					bodyData
+				)
+				if (
+					projectUploadStatus.result.status == httpStatusCode.ok ||
+					projectUploadStatus.result.status == httpStatusCode.created
+				) {
+					let filter = {
+						id: resourceId,
+						organization_id: orgId,
+					}
+
+					let updateData = {
+						updated_by: loggedInUserId,
+						blob_path: projectUploadStatus.blob_path,
+					}
+
+					const [updateCount] = await resourceQueries.updateOne(filter, updateData, {
+						returning: true,
+						raw: true,
+					})
+
+					if (updateCount === 0) {
+						return responses.failureResponse({
+							message: 'PROJECT_NOT_FOUND',
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+						})
+					}
+				} else {
+					throw new Error('FILE_UPLOADED_FAILED')
+				}
 			} catch (error) {
 				return responses.failureResponse({
 					message: error.message || error,
@@ -129,11 +167,49 @@ module.exports = class ProjectsHelper {
 			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id'])
 
 			//upload to blob
-			const uploadStatus = await this.uploadToCloud(resourceId, loggedInUserId, orgId, bodyData)
-			return uploadStatus
+			const fileName = `${loggedInUserId}${resourceId}${orgId}project.json`
+			const projectUploadStatus = await this.uploadToCloud(fileName, resourceId, loggedInUserId, bodyData)
+			if (
+				projectUploadStatus.result.status == httpStatusCode.ok ||
+				projectUploadStatus.result.status == httpStatusCode.created
+			) {
+				let filter = {
+					id: resourceId,
+					organization_id: orgId,
+				}
+
+				let updateData = {
+					updated_by: loggedInUserId,
+					blob_path: projectUploadStatus.blob_path,
+				}
+
+				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {
+					returning: true,
+					raw: true,
+				})
+
+				if (updateCount === 0) {
+					return responses.failureResponse({
+						message: 'PROJECT_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				return responses.successResponse({
+					statusCode: httpStatusCode.accepted,
+					message: 'PROJECT_UPDATED_SUCCESSFUL',
+					result: updatedProject[0].id,
+				})
+			} else {
+				throw new Error('FILE_UPLOADED_FAILED')
+			}
 		} catch (error) {
-			console.log(error, 'error')
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -247,17 +323,14 @@ module.exports = class ProjectsHelper {
 				) {
 					//modify the response as label value pair
 					let resultData = response.result
-					const userDetails = {
-						organization_id: orgId,
-						id: loggedInUserId,
-					}
+
 					//get all entity types with entities
 					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 						{
 							model: common.PROJECT,
 							status: common.STATUS_ACTIVE,
 						},
-						userDetails,
+						orgId,
 						['id', 'value', 'label', 'has_entities']
 					)
 
@@ -385,7 +458,7 @@ module.exports = class ProjectsHelper {
 					model: common.PROJECT,
 					status: common.STATUS_ACTIVE,
 				},
-				userDetails,
+				userDetails.organization_id,
 				['id', 'value', 'has_entities', 'validations']
 			)
 
@@ -452,7 +525,7 @@ module.exports = class ProjectsHelper {
 					model: common.TASKS,
 					status: common.STATUS_ACTIVE,
 				},
-				userDetails,
+				userDetails.organization_id,
 				['value', 'validations']
 			)
 			//TODO: This dont have code for each type of validation please make sure that in future when adding new validadtion include code for that
@@ -512,7 +585,7 @@ module.exports = class ProjectsHelper {
 							model: common.SUBTASKS,
 							status: common.STATUS_ACTIVE,
 						},
-						userDetails,
+						userDetails.organization_id,
 						['value', 'validations']
 					)
 					task.learning_resources.forEach((learningResource) => {
@@ -558,13 +631,13 @@ module.exports = class ProjectsHelper {
 	 * @method
 	 * @name uploadToCloud
 	 * @param {Object} req.id - project id
-	 * @returns {JSON} - project delete response.
+	 * @returns {JSON} - upload project response.
 	 */
 
-	static async uploadToCloud(resourceId, loggedInUserId, orgId, bodyData) {
+	static async uploadToCloud(fileName, resourceId, loggedInUserId, bodyData) {
 		try {
-			const fileName = `${loggedInUserId}${resourceId}${orgId}project.json`
-
+			//sample blob path
+			// resource/162/6/06f444d0-03e1-4c36-92a4-78f27c18caf6/162624project.json
 			let getSignedUrl = await filesService.getSignedUrl(
 				{ [resourceId]: { files: [fileName] } },
 				common.PROJECT,
@@ -576,7 +649,7 @@ module.exports = class ProjectsHelper {
 
 			let config = {
 				method: 'put',
-				maxBodyLength: Infinity,
+				maxBodyLength: process.env.MAX_BODY_LENGTH_FOR_UPLOAD,
 				url: url,
 				headers: {
 					'Content-Type': 'multipart/form-data',
@@ -585,45 +658,9 @@ module.exports = class ProjectsHelper {
 			}
 
 			let projectUploadStatus = await axios.request(config)
-
-			if (
-				projectUploadStatus.status == httpStatusCode.ok ||
-				projectUploadStatus.status == httpStatusCode.created
-			) {
-				let filter = {
-					id: resourceId,
-					organization_id: orgId,
-				}
-
-				let updateData = {
-					updated_by: loggedInUserId,
-					blob_path: blobPath,
-				}
-
-				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {
-					returning: true,
-					raw: true,
-				})
-
-				if (updateCount === 0) {
-					return responses.failureResponse({
-						message: 'PROJECT_NOT_FOUND',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
-				}
-
-				return responses.successResponse({
-					statusCode: httpStatusCode.accepted,
-					message: 'PROJECT_UPDATED_SUCCESSFUL',
-					result: updatedProject[0].id,
-				})
-			} else {
-				return responses.failureResponse({
-					message: 'FILE_UPLOADED_FAILED',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+			return {
+				blob_path: blobPath,
+				result: projectUploadStatus,
 			}
 		} catch (error) {
 			console.log(error, 'error')
