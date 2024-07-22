@@ -246,67 +246,66 @@ module.exports = class ProjectsHelper {
 					Object.keys(response.result).length > 0
 				) {
 					//modify the response as label value pair
-					if (Object.keys(response.result).length > 0) {
-						const userDetails = {
-							organization_id: orgId,
-							id: loggedInUserId,
-						}
-						let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
-							{
-								model: common.PROJECT,
-								status: common.STATUS_ACTIVE,
-							},
-							userDetails,
-							['id', 'value', 'label', 'has_entities']
-						)
+					let resultData = response.result
+					const userDetails = {
+						organization_id: orgId,
+						id: loggedInUserId,
+					}
+					//get all entity types with entities
+					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+						{
+							model: common.PROJECT,
+							status: common.STATUS_ACTIVE,
+						},
+						userDetails,
+						['id', 'value', 'label', 'has_entities']
+					)
 
-						if (entityTypes.length > 0) {
-							const entityTypeMap = entityTypes.reduce((map, type) => {
-								if (type.has_entities && type.entities) {
-									map[type.value] = type.entities
-										.filter((entity) => entity.status === common.ACTIVE)
-										.map((entity) => ({ label: entity.label, value: entity.value.toLowerCase() }))
+					if (entityTypes.length > 0) {
+						const entityTypeMap = entityTypes.reduce((map, type) => {
+							if (type.has_entities && type.entities) {
+								map[type.value] = type.entities
+									.filter((entity) => entity.status === common.ACTIVE)
+									.map((entity) => ({ label: entity.label, value: entity.value.toLowerCase() }))
+							}
+							return map
+						}, {})
+
+						for (const entityType of entityTypes) {
+							const key = entityType.value
+							// Skip the entity type if entities are not available
+							if (
+								entityType.has_entities &&
+								entityType.entities &&
+								entityType.entities.length > 0 &&
+								resultData.hasOwnProperty(key)
+							) {
+								const value = resultData[key]
+								// If the value is already in label-value pair format, skip processing
+								if (utils.isLabelValuePair(value)) {
+									continue
 								}
-								return map
-							}, {})
 
-							for (const entityType of entityTypes) {
-								const key = entityType.value
+								// get the entities
+								const validEntities = entityTypeMap[key] || []
 
-								// Skip the entity type if entities are not available
-								if (entityType.has_entities && entityType.entities && entityType.entities.length > 0) {
-									if (response.result.hasOwnProperty(key)) {
-										const value = response.result[key]
-
-										// If the value is already in label-value pair format, skip processing
-										if (utils.isLabelValuePair(value)) {
-											continue
-										}
-
-										// get the entities
-										const validEntities = entityTypeMap[key] || []
-
-										if (Array.isArray(value)) {
-											// Map each item in the array to a label-value pair, if it exists in validEntities
-											response.result[key] = value.map((item) => {
-												const match = validEntities.find(
-													(entity) => entity.value === item.toLowerCase()
-												)
-												return match || { label: item, value: item.toLowerCase() }
-											})
-										} else {
-											// If the value is a single item, find it in validEntities
-											const match = validEntities.find(
-												(entity) => entity.value === value.toLowerCase()
-											)
-											response.result[key] = match || { label: value, value: value.toLowerCase() }
-										}
-									}
+								if (Array.isArray(value)) {
+									// Map each item in the array to a label-value pair, if it exists in validEntities
+									resultData[key] = value.map((item) => {
+										const match = validEntities.find(
+											(entity) => entity.value === item.toLowerCase()
+										)
+										return match || { label: item, value: item.toLowerCase() }
+									})
+								} else {
+									// If the value is a single item, find it in validEntities
+									const match = validEntities.find((entity) => entity.value === value.toLowerCase())
+									resultData[key] = match || { label: value, value: value.toLowerCase() }
 								}
 							}
-
-							result = { ...result, ...response.result }
 						}
+
+						result = { ...result, ...resultData }
 					}
 				}
 			}
