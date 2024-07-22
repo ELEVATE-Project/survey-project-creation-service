@@ -32,15 +32,11 @@ exports.findOne = async (filter, options = {}) => {
 
 exports.updateOne = async (filter, update, options = {}) => {
 	try {
-		const [res] = await Resource.update(
-			update,
-			{
-				where: filter,
-				...options,
-				individualHooks: true,
-			},
-			{ returning: true }
-		)
+		const res = await Resource.update(update, {
+			where: filter,
+			...options,
+			individualHooks: true,
+		})
 
 		return res
 	} catch (error) {

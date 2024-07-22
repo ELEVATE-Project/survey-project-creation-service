@@ -74,12 +74,12 @@ module.exports = class Projects {
 
 	async reviewerList(req) {
 		try {
-			const reviwerList = await projectService.reviewerList(
+			const reviewerList = await projectService.reviewerList(
 				req.decodedToken.organization_id,
 				req.pageNo,
 				req.pageSize
 			)
-			return reviwerList
+			return reviewerList
 		} catch (error) {
 			return error
 		}
