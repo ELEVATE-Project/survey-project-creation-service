@@ -47,20 +47,29 @@ module.exports = class ProjectsHelper {
 				updated_by: loggedInUserId,
 			}
 
-			let projectCreate = await resourceQueries.create(projectData)
-			const mappingData = {
-				resource_id: projectCreate.id,
-				creator_id: loggedInUserId,
-				organization_id: orgId,
+			let projectCreate
+			try {
+				projectCreate = await resourceQueries.create(projectData)
+				const mappingData = {
+					resource_id: projectCreate.id,
+					creator_id: loggedInUserId,
+					organization_id: orgId,
+				}
+				await resourceCreatorMappingQueries.create(mappingData)
+			} catch (error) {
+				return responses.failureResponse({
+					message: error.message || error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
-			await resourceCreatorMappingQueries.create(mappingData)
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_CREATED_SUCCESSFULLY',
 				result: { id: projectCreate.id },
 			})
 		} catch (error) {
-			console.log(error, 'error')
 			throw error
 		}
 	}
@@ -182,16 +191,20 @@ module.exports = class ProjectsHelper {
 				['id', 'organization_id']
 			)
 
-			const fetchResourceId = await resourceQueries.findOne(
-				{
-					id: resourceId,
-					organization_id: fetchOrgId.organization_id,
-					status: common.RESOURCE_STATUS_DRAFT,
-				},
-				{ attributes: ['id'] }
-			)
+			let fetchResourceId = null
 
-			if (!fetchResourceId) {
+			if (fetchOrgId) {
+				fetchResourceId = await resourceQueries.findOne(
+					{
+						id: resourceId,
+						organization_id: fetchOrgId.organization_id,
+						status: common.STATUS_DRAFT,
+					},
+					{ attributes: ['id'] }
+				)
+			}
+
+			if (!fetchOrgId || !fetchResourceId) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -523,8 +536,8 @@ module.exports = class ProjectsHelper {
 			)
 			//TODO: For review flow this has to be changed we might need to add further conditions
 			// and Validate those reviewer as well
-			if (bodyData.hasOwnProperty('reviwer_ids') && bodyData.reviwer_ids.length > 0) {
-				let reviewsData = bodyData.reviwer_ids.map((reviewer_id) => ({
+			if (bodyData.hasOwnProperty('reviewer_ids') && bodyData.reviewer_ids.length > 0) {
+				let reviewsData = bodyData.reviewer_ids.map((reviewer_id) => ({
 					resource_id: projectData.id,
 					reviewer_id,
 					status: common.REVIEW_STATUS_NOT_STARTED,
