@@ -312,14 +312,6 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			// if (project.status == common.RESOURCE_STATUS_DRAFT && project.user_id !== loggedInUserId) {
-			// 	return responses.failureResponse({
-			// 		message: 'PROJECT_NOT_VISIBLE',
-			// 		statusCode: httpStatusCode.bad_request,
-			// 		responseCode: 'CLIENT_ERROR',
-			// 	})
-			// }
-
 			//get the data from storage
 			if (project.blob_path) {
 				const response = await filesService.fetchJsonFromCloud(project.blob_path)
