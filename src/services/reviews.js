@@ -183,7 +183,7 @@ module.exports = class reviewsHelper {
 				//call api or kafka
 				if (process.env.CONSUMPTION_SERVICE != common.SELF) {
 					if (process.env.PUBLISH_METHOD === common.PUBLISH_METHOD_KAFKA) {
-						await kafkaCommunication.pushResourceToKafka(resource)
+						await kafkaCommunication.pushResourceToKafka(resource, resource.type)
 					} else {
 						//api need to implement
 					}
