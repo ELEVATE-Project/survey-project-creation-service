@@ -297,11 +297,14 @@ module.exports = class ProjectsHelper {
 				organization: {},
 			}
 
-			const project = await resourceQueries.findOne({
-				id: projectId,
-				organization_id: orgId,
-				type: common.PROJECT,
-			})
+			const project = await resourceQueries.findOne(
+				{
+					id: projectId,
+					organization_id: orgId,
+					type: common.PROJECT,
+				},
+				{ attributes: { exclude: ['next_stage', 'review_type', 'published_id', 'reference_id'] } }
+			)
 
 			if (!project) {
 				return responses.failureResponse({
@@ -361,7 +364,7 @@ module.exports = class ProjectsHelper {
 							) {
 								const value = resultData[key]
 								// If the value is already in label-value pair format, skip processing
-								if (utils.isLabelValuePair(value)) {
+								if (utils.isLabelValuePair(value) || value === '') {
 									continue
 								}
 
