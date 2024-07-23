@@ -361,7 +361,7 @@ module.exports = class ProjectsHelper {
 							) {
 								const value = resultData[key]
 								// If the value is already in label-value pair format, skip processing
-								if (utils.isLabelValuePair(value)) {
+								if (utils.isLabelValuePair(value) || value === '') {
 									continue
 								}
 
