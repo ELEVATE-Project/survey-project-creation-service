@@ -4,6 +4,7 @@
  * Date : 29 - April - 2024
  * Description : Kafka producer methods
  */
+const common = require('@constants/common')
 
 const pushEmailToKafka = async (message) => {
 	try {
