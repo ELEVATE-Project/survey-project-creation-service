@@ -19,7 +19,7 @@ exports.create = async (data) => {
 	}
 }
 
-exports.findEntityTypesAndEntities = async (filter, userDetails, attributes = {}) => {
+exports.findEntityTypesAndEntities = async (filter, organization_id, attributes = {}) => {
 	try {
 		const defaultOrgId = await getDefaultOrgId()
 		if (!defaultOrgId)
@@ -39,7 +39,7 @@ exports.findEntityTypesAndEntities = async (filter, userDetails, attributes = {}
 			id: entityTypeIds,
 			status: common.STATUS_ACTIVE,
 			organization_id: {
-				[Op.in]: [userDetails.organization_id, defaultOrgId],
+				[Op.in]: [organization_id, defaultOrgId],
 			},
 		}
 		const EntityTypes = await EntityType.findAll({
@@ -47,7 +47,7 @@ exports.findEntityTypesAndEntities = async (filter, userDetails, attributes = {}
 			raw: true,
 			attributes: attributes,
 		})
-		const prunedEntities = removeDefaultOrgEntityTypes(EntityTypes, userDetails.organization_id)
+		const prunedEntities = removeDefaultOrgEntityTypes(EntityTypes, organization_id)
 
 		let reletedEntityTypeIds = prunedEntities
 			.filter((entityType) => entityType.has_entities)

@@ -98,5 +98,6 @@
 	"COMMENT_UPDATED_SUCCESSFULLY": "Your changes have been saved",
 	"PROGRAM_REJECTION_NOT_ALLOWED": "The program cannot be rejected or reported",
 	"PROJECT_SUBMITTED_SUCCESSFULLY": "Your resource has been sent for review",
-	"RESOURCE_UPDATED_SUCCESSFULLY": "Resource updated successfully"
+	"RESOURCE_UPDATED_SUCCESSFULLY": "Resource updated successfully",
+	"FILE_UPLOADED_FAILED": "Failed to upload file"
 }
