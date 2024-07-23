@@ -142,9 +142,10 @@ let enviromentVariables = {
 		optional: false,
 		default: 10,
 	},
-	PROJECT_TASK_DESCTIPTION_LENGTH: {
-		message: 'Maximum length of project task description required',
+	MAX_BODY_LENGTH_FOR_UPLOAD: {
+		message: 'Maximum body length for file upload is required',
 		optional: false,
+		default: 5242880, //5mb in bytes
 	},
 }
 

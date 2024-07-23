@@ -482,6 +482,12 @@ const lengthChecker = (value1, value2) => {
 	return returnValue
 }
 
+const isLabelValuePair = (item) => {
+	return Array.isArray(item)
+		? item.every((subItem) => subItem && typeof subItem === 'object' && 'label' in subItem && 'value' in subItem)
+		: typeof item === 'object' && 'label' in item && 'value' in item
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -504,11 +510,12 @@ module.exports = {
 	generateUniqueId,
 	removeDefaultOrgCertificates,
 	errorObject,
-	checkRegexPattern: checkRegexPattern,
+	checkRegexPattern,
 	checkRequired,
 	checkEntities,
 	validateRoleAccess,
 	convertToString,
 	lengthChecker,
 	convertToInteger,
+	isLabelValuePair,
 }
