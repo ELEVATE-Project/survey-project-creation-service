@@ -84,5 +84,6 @@
 	"FILE_TYPE_NOT_SELECTED": "File type not selected",
 	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource url",
 	"DONT_HAVE_PROJECT_ACCESS": "You dont have permission to access this project",
-	"EXCEEDED_PROJECT_TASK_COUNT": "Project task has exceeded the max count"
+	"EXCEEDED_PROJECT_TASK_COUNT": "Project task has exceeded the max count",
+	"FILE_UPLOADED_FAILED": "Failed to upload file"
 }
