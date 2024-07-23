@@ -7,12 +7,11 @@ const filesService = require('@services/files')
 const userRequests = require('@requests/user')
 const configService = require('@services/config')
 const _ = require('lodash')
-const axios = require('axios')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
-const entityService = require('@services/entities')
 const utils = require('@generics/utils')
+const resourceService = require('@services/resource')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -60,14 +59,16 @@ module.exports = class ProjectsHelper {
 
 				//upload to blob
 				const resourceId = projectCreate.id
-				const fileName = `${loggedInUserId}${resourceId}${orgId}project.json`
+				const fileName = `${loggedInUserId}${resourceId}project.json`
 
-				const projectUploadStatus = await this.uploadToCloud(
+				const projectUploadStatus = await resourceService.uploadToCloud(
 					fileName,
 					projectCreate.id,
+					common.PROJECT,
 					loggedInUserId,
 					bodyData
 				)
+
 				if (
 					projectUploadStatus.result.status == httpStatusCode.ok ||
 					projectUploadStatus.result.status == httpStatusCode.created
@@ -167,8 +168,14 @@ module.exports = class ProjectsHelper {
 			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id'])
 
 			//upload to blob
-			const fileName = `${loggedInUserId}${resourceId}${orgId}project.json`
-			const projectUploadStatus = await this.uploadToCloud(fileName, resourceId, loggedInUserId, bodyData)
+			const fileName = `${loggedInUserId}${resourceId}project.json`
+			const projectUploadStatus = await resourceService.uploadToCloud(
+				fileName,
+				resourceId,
+				common.PROJECT,
+				loggedInUserId,
+				bodyData
+			)
 			if (
 				projectUploadStatus.result.status == httpStatusCode.ok ||
 				projectUploadStatus.result.status == httpStatusCode.created
@@ -270,7 +277,6 @@ module.exports = class ProjectsHelper {
 				result: {},
 			})
 		} catch (error) {
-			console.log(error, 'error')
 			throw error
 		}
 	}
@@ -398,7 +404,6 @@ module.exports = class ProjectsHelper {
 				result: result,
 			})
 		} catch (error) {
-			console.log(error, 'error')
 			throw error
 		}
 	}
@@ -623,48 +628,6 @@ module.exports = class ProjectsHelper {
 			})
 		} catch (error) {
 			return error
-		}
-	}
-
-	/**
-	 * Upload to cloud
-	 * @method
-	 * @name uploadToCloud
-	 * @param {Object} req.id - project id
-	 * @returns {JSON} - upload project response.
-	 */
-
-	static async uploadToCloud(fileName, resourceId, loggedInUserId, bodyData) {
-		try {
-			//sample blob path
-			// resource/162/6/06f444d0-03e1-4c36-92a4-78f27c18caf6/162624project.json
-			let getSignedUrl = await filesService.getSignedUrl(
-				{ [resourceId]: { files: [fileName] } },
-				common.PROJECT,
-				loggedInUserId
-			)
-
-			const url = getSignedUrl.result[resourceId].files[0].url
-			const blobPath = getSignedUrl.result[resourceId].files[0].file
-
-			let config = {
-				method: 'put',
-				maxBodyLength: process.env.MAX_BODY_LENGTH_FOR_UPLOAD,
-				url: url,
-				headers: {
-					'Content-Type': 'multipart/form-data',
-				},
-				data: JSON.stringify(bodyData),
-			}
-
-			let projectUploadStatus = await axios.request(config)
-			return {
-				blob_path: blobPath,
-				result: projectUploadStatus,
-			}
-		} catch (error) {
-			console.log(error, 'error')
-			throw error
 		}
 	}
 }
