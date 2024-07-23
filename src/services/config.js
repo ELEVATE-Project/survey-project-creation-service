@@ -23,7 +23,7 @@ module.exports = class configsHelper {
 				resource: [],
 				instance: {
 					auto_save_interval: utils.convertToInteger(process.env.RESOURCE_AUTO_SAVE_TIMER),
-					note_length: utils.convertToInteger(process.env.RESOURCE_NOTE_MAX_LENGTH),
+					note_length: utils.convertToInteger(process.env.MAX_RESOURCE_NOTE_LENGTH),
 				},
 			}
 			// attributes to fetch from organisation Extenstion
