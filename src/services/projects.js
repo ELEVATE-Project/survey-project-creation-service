@@ -165,7 +165,7 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id'])
+			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id', 'user_id'])
 
 			//upload to blob
 			const fileName = `${loggedInUserId}${resourceId}project.json`
@@ -292,8 +292,6 @@ module.exports = class ProjectsHelper {
 	static async details(projectId, orgId, loggedInUserId) {
 		try {
 			let result = {
-				reviewers: {},
-				comments: [],
 				organization: {},
 			}
 
