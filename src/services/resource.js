@@ -15,6 +15,7 @@ const userRequests = require('@requests/user')
 const _ = require('lodash')
 const { Op } = require('sequelize')
 const axios = require('axios')
+const utils = require('@generics/utils')
 const filesService = require('@services/files')
 
 module.exports = class resourceHelper {
@@ -236,7 +237,7 @@ module.exports = class resourceHelper {
 
 			let config = {
 				method: 'put',
-				maxBodyLength: parseInt(process.env.MAX_BODY_LENGTH_FOR_UPLOAD),
+				maxBodyLength: utils.convertToInteger(process.env.MAX_BODY_LENGTH_FOR_UPLOAD),
 				url: url,
 				headers: {
 					'Content-Type': 'multipart/form-data',

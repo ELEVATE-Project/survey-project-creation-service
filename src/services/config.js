@@ -82,7 +82,7 @@ module.exports = class configsHelper {
 
 			_.forEach(configData, (item) => {
 				if (item.resource_type === common.PROJECT) {
-					item.max_task_count = parseInt(process.env.MAX_PROJECT_TASK_COUNT, 10)
+					item.max_task_count = utils.convertToInteger(process.env.MAX_PROJECT_TASK_COUNT)
 				}
 			})
 

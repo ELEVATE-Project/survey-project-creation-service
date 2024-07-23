@@ -189,6 +189,9 @@ module.exports = class ProjectsHelper {
 					updated_by: loggedInUserId,
 					blob_path: projectUploadStatus.blob_path,
 				}
+				if (bodyData['title'] != '') {
+					updateData.title = bodyData['title']
+				}
 
 				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {
 					returning: true,
