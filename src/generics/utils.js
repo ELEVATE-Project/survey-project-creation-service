@@ -472,6 +472,11 @@ const convertToString = (value) => {
 	return value.toString()
 }
 
+const convertToInteger = (value) => {
+	value = value.replace(/['"]/g, '')
+	return isNaN(value) ? false : parseInt(value, 10)
+}
+
 const isLabelValuePair = (item) => {
 	return Array.isArray(item)
 		? item.every((subItem) => subItem && typeof subItem === 'object' && 'label' in subItem && 'value' in subItem)
@@ -506,4 +511,5 @@ module.exports = {
 	validateRoleAccess,
 	convertToString,
 	isLabelValuePair,
+	convertToInteger,
 }

@@ -147,6 +147,16 @@ let enviromentVariables = {
 		optional: false,
 		default: 5242880, //5mb in bytes
 	},
+	RESOURCE_AUTO_SAVE_TIMER: {
+		message: 'Resource auto save interval is required',
+		optional: false,
+		default: 30000, //30000 millisec
+	},
+	MAX_RESOURCE_NOTE_LENGTH: {
+		message: 'Resource note max length is required',
+		optional: false,
+		default: 256, //256 characters
+	},
 }
 
 let success = true
