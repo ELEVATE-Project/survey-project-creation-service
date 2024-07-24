@@ -19,6 +19,7 @@ module.exports = class EntityHelper {
 	static async create(bodyData, loggedInUserId) {
 		bodyData.created_by = loggedInUserId
 		bodyData.updated_by = loggedInUserId
+		bodyData.value = bodyData.value.toLowerCase()
 		try {
 			const entity = await entityQueries.createEntity(bodyData)
 			return responses.successResponse({
@@ -58,6 +59,7 @@ module.exports = class EntityHelper {
 	static async update(bodyData, id, loggedInUserId) {
 		bodyData.updated_by = loggedInUserId
 		try {
+			if (bodyData.value) bodyData.value = bodyData.value.toLowerCase()
 			const [updateCount, updatedEntity] = await entityQueries.updateOneEntity(id, bodyData, loggedInUserId, {
 				returning: true,
 				raw: true,

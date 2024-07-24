@@ -350,7 +350,7 @@ module.exports = class ProjectsHelper {
 							if (type.has_entities && Array.isArray(type.entities) && type.entities.length > 0) {
 								map[type.value] = type.entities
 									.filter((entity) => entity.status === common.STATUS_ACTIVE)
-									.map((entity) => ({ label: entity.label, value: entity.value }))
+									.map((entity) => ({ label: entity.label, value: entity.value.toLowerCase() }))
 							}
 							return map
 						}, {})
@@ -381,8 +381,8 @@ module.exports = class ProjectsHelper {
 									})
 								} else {
 									// If the value is a single item, find it in validEntities
-									const match = validEntities.find((entity) => entity.value === value)
-									resultData[key] = match || { label: value, value: value }
+									const match = validEntities.find((entity) => entity.value === value.toLowerCase())
+									resultData[key] = match || { label: value, value: value.toLowerCase() }
 								}
 							}
 						}
