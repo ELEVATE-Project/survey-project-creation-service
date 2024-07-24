@@ -345,16 +345,17 @@ module.exports = class ProjectsHelper {
 					)
 
 					if (entityTypes.length > 0) {
+						//create label value pair map
 						const entityTypeMap = entityTypes.reduce((map, type) => {
-							if (type.has_entities && type.entities) {
+							if (type.has_entities && Array.isArray(type.entities) && type.entities.length > 0) {
 								map[type.value] = type.entities
-									.filter((entity) => entity.status === common.ACTIVE)
-									.map((entity) => ({ label: entity.label, value: entity.value.toLowerCase() }))
+									.filter((entity) => entity.status === common.STATUS_ACTIVE)
+									.map((entity) => ({ label: entity.label, value: entity.value }))
 							}
 							return map
 						}, {})
 
-						for (const entityType of entityTypes) {
+						for (let entityType of entityTypes) {
 							const key = entityType.value
 							// Skip the entity type if entities are not available
 							if (
@@ -375,15 +376,13 @@ module.exports = class ProjectsHelper {
 								if (Array.isArray(value)) {
 									// Map each item in the array to a label-value pair, if it exists in validEntities
 									resultData[key] = value.map((item) => {
-										const match = validEntities.find(
-											(entity) => entity.value === item.toLowerCase()
-										)
-										return match || { label: item, value: item.toLowerCase() }
+										const match = validEntities.find((entity) => entity.value === item)
+										return match || { label: item, value: item }
 									})
 								} else {
 									// If the value is a single item, find it in validEntities
-									const match = validEntities.find((entity) => entity.value === value.toLowerCase())
-									resultData[key] = match || { label: value, value: value.toLowerCase() }
+									const match = validEntities.find((entity) => entity.value === value)
+									resultData[key] = match || { label: value, value: value }
 								}
 							}
 						}
