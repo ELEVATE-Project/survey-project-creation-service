@@ -376,8 +376,10 @@ module.exports = class ProjectsHelper {
 								if (Array.isArray(value)) {
 									// Map each item in the array to a label-value pair, if it exists in validEntities
 									resultData[key] = value.map((item) => {
-										const match = validEntities.find((entity) => entity.value === item)
-										return match || { label: item, value: item }
+										const match = validEntities.find(
+											(entity) => entity.value === item.toLowerCase()
+										)
+										return match || { label: item, value: item.toLowerCase() }
 									})
 								} else {
 									// If the value is a single item, find it in validEntities
