@@ -345,16 +345,17 @@ module.exports = class ProjectsHelper {
 					)
 
 					if (entityTypes.length > 0) {
+						//create label value pair map
 						const entityTypeMap = entityTypes.reduce((map, type) => {
-							if (type.has_entities && type.entities) {
+							if (type.has_entities && Array.isArray(type.entities) && type.entities.length > 0) {
 								map[type.value] = type.entities
-									.filter((entity) => entity.status === common.ACTIVE)
+									.filter((entity) => entity.status === common.STATUS_ACTIVE)
 									.map((entity) => ({ label: entity.label, value: entity.value.toLowerCase() }))
 							}
 							return map
 						}, {})
 
-						for (const entityType of entityTypes) {
+						for (let entityType of entityTypes) {
 							const key = entityType.value
 							// Skip the entity type if entities are not available
 							if (
