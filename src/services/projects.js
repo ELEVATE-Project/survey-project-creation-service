@@ -351,7 +351,7 @@ module.exports = class ProjectsHelper {
 							return map
 						}, {})
 
-						for (const entityType of entityTypes) {
+						for (let entityType of entityTypes) {
 							const key = entityType.value
 							// Skip the entity type if entities are not available
 							if (
@@ -467,6 +467,18 @@ module.exports = class ProjectsHelper {
 				userDetails.organization_id,
 				['id', 'value', 'has_entities', 'validations']
 			)
+			const subTaskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+				{
+					model: common.SUBTASKS,
+					status: common.STATUS_ACTIVE,
+				},
+				userDetails.organization_id,
+				['value', 'validations']
+			)
+			const subTaskEntityTypesMapping = subTaskEntityTypes.reduce((acc, item) => {
+				acc[item.value] = item
+				return acc
+			}, {})
 
 			const allowed_fileTypes_entities = await entityTypeQuery.findUserEntityTypeAndEntities(
 				{
@@ -518,14 +530,66 @@ module.exports = class ProjectsHelper {
 				}
 
 				if (entityType.validations.regex) {
-					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
-					if (checkRegex) {
-						throw responses.failureResponse({
-							message: `Special characters not allowed in ${entityType.value}`,
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
-							error: utils.errorObject(common.BODY, entityType.value),
-						})
+					if (entityType.value != 'learning_resources') {
+						let checkRegex = utils.checkRegexPattern(entityType, fieldData)
+						if (checkRegex) {
+							throw responses.failureResponse({
+								message: `Special characters not allowed in ${entityType.value}`,
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject(common.BODY, entityType.value),
+							})
+						}
+					} else if (entityType.value == 'learning_resources' && fieldData) {
+						for (let learningResource of fieldData) {
+							const checkTitleRegex = utils.checkRegexPattern(
+								subTaskEntityTypesMapping['name'],
+								learningResource.name
+							)
+							if (checkTitleRegex) {
+								throw responses.failureResponse({
+									message: `Special characters not allowed in project learning resources ${subTaskEntityTypesMapping['name'].value}`,
+									statusCode: httpStatusCode.bad_request,
+									responseCode: 'CLIENT_ERROR',
+									error: utils.errorObject(common.TASKS, subTaskEntityTypesMapping['name'].value),
+								})
+							}
+
+							if (
+								Object.keys(subTaskEntityTypesMapping['learning_resources'].validations).includes(
+									'max_length'
+								)
+							) {
+								const validateLRtitleLength = utils.lengthChecker(
+									subTaskEntityTypesMapping['learning_resources']?.validations?.max_length,
+									learningResource.name.length
+								)
+
+								if (validateLRtitleLength > 0) {
+									throw responses.failureResponse({
+										message: `Max length value exceeded for title in ${subTaskEntityTypesMapping['learning_resources'].value}`,
+										statusCode: httpStatusCode.bad_request,
+										responseCode: 'CLIENT_ERROR',
+										error: utils.errorObject(
+											common.TASKS,
+											subTaskEntityTypesMapping['learning_resources'].value
+										),
+									})
+								}
+							}
+							const validateURL = utils.checkRegexPattern(
+								subTaskEntityTypesMapping['learning_resources'],
+								learningResource.url
+							)
+							if (validateURL) {
+								throw responses.failureResponse({
+									message: 'INCORRECT_LEARNING_RESOURCE',
+									statusCode: httpStatusCode.bad_request,
+									responseCode: 'CLIENT_ERROR',
+									error: utils.errorObject(common.BODY, common.CHILDREN),
+								})
+							}
+						}
 					}
 				}
 			}
@@ -649,31 +713,46 @@ module.exports = class ProjectsHelper {
 				}
 
 				if (task.learning_resources && task.learning_resources.length > 0) {
-					const subTaskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
-						{
-							model: common.SUBTASKS,
-							status: common.STATUS_ACTIVE,
-						},
-						userDetails.organization_id,
-						['value', 'validations']
-					)
-					for (const learningResource of task.learning_resources) {
-						if (Object.keys(subTaskEntityTypes[0].validations).includes('max_length')) {
+					for (let learningResource of task.learning_resources) {
+						const checkTitleRegex = utils.checkRegexPattern(
+							subTaskEntityTypesMapping['name'],
+							learningResource.name
+						)
+						if (checkTitleRegex) {
+							throw responses.failureResponse({
+								message: `Special characters not allowed in learning resources ${subTaskEntityTypesMapping['name'].value}`,
+								statusCode: httpStatusCode.bad_request,
+								responseCode: 'CLIENT_ERROR',
+								error: utils.errorObject(common.TASKS, subTaskEntityTypesMapping['name'].value),
+							})
+						}
+
+						if (
+							Object.keys(subTaskEntityTypesMapping['learning_resources'].validations).includes(
+								'max_length'
+							)
+						) {
 							const validateLRtitleLength = utils.lengthChecker(
-								subTaskEntityTypes[0]?.validations?.max_length,
+								subTaskEntityTypesMapping['learning_resources']?.validations?.max_length,
 								learningResource.name.length
 							)
 
 							if (validateLRtitleLength > 0) {
 								throw responses.failureResponse({
-									message: `Max length value exceeded for title in ${subTaskEntityTypes[0].value}`,
+									message: `Max length value exceeded for title in ${subTaskEntityTypesMapping['learning_resources'].value}`,
 									statusCode: httpStatusCode.bad_request,
 									responseCode: 'CLIENT_ERROR',
-									error: utils.errorObject(common.TASKS, subTaskEntityTypes[0].value),
+									error: utils.errorObject(
+										common.TASKS,
+										subTaskEntityTypesMapping['learning_resources'].value
+									),
 								})
 							}
 						}
-						const validateURL = utils.checkRegexPattern(subTaskEntityTypes[0], learningResource.url)
+						const validateURL = utils.checkRegexPattern(
+							subTaskEntityTypesMapping['learning_resources'],
+							learningResource.url
+						)
 						if (validateURL) {
 							throw responses.failureResponse({
 								message: 'INCORRECT_LEARNING_RESOURCE',

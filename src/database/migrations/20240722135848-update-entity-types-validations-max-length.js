@@ -7,10 +7,12 @@ module.exports = {
 			title: 256,
 			description: 2000,
 			learning_resources: 256,
+			objective: 2000,
+			keywords: 256,
 		}
 
 		const [results] = await queryInterface.sequelize.query(
-			`SELECT id,value,validations FROM entity_types WHERE value IN ('title','description','learning_resources');`
+			`SELECT id,value,validations FROM entity_types WHERE value IN ('title','description','learning_resources','objective','keywords');`
 		)
 
 		// Iterate over the results and update the validations field
@@ -18,9 +20,12 @@ module.exports = {
 			const currentValidations = row.validations ? row.validations : {}
 
 			// // Add max_length validation
-			const updatedValidations = {
+			let updatedValidations = {
 				...currentValidations,
 				max_length: char_length_map[row.value],
+			}
+			if (row.value === 'learning_resources') {
+				updatedValidations.required = false
 			}
 
 			await queryInterface.bulkUpdate(

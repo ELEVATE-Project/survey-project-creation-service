@@ -88,21 +88,44 @@ module.exports = {
 				replacements: { value: 'learning_resources' },
 			}
 		)
-		if (learningResourceEntityType && learningResourceEntityType.length > 0) {
+		//add model mapping for learning resource
+		const nameEntityType = await queryInterface.sequelize.query(
+			'SELECT id FROM entity_types WHERE value = :value',
+			{
+				type: queryInterface.sequelize.QueryTypes.SELECT,
+				replacements: { value: 'name' },
+			}
+		)
+		if (
+			learningResourceEntityType &&
+			learningResourceEntityType.length > 0 &&
+			nameEntityType &&
+			nameEntityType.length
+		) {
 			let learningResourceEntityTypeId = learningResourceEntityType.map((item) => {
+				return item.id
+			})
+
+			let nameEntityTypeId = nameEntityType.map((item) => {
 				return item.id
 			})
 
 			let learningResourceModelMapping = [
 				{
-					entity_type_id: learningResourceEntityTypeId,
+					entity_type_id: learningResourceEntityTypeId[0],
 					model: 'projects',
 					status: 'ACTIVE',
 					updated_at: new Date(),
 					created_at: new Date(),
 				},
+				{
+					entity_type_id: nameEntityTypeId[0],
+					model: 'subTasks',
+					status: 'ACTIVE',
+					updated_at: new Date(),
+					created_at: new Date(),
+				},
 			]
-
 			await queryInterface.bulkInsert('entities_model_mapping', learningResourceModelMapping, {})
 		}
 	},
@@ -110,7 +133,7 @@ module.exports = {
 	async down(queryInterface, Sequelize) {
 		const entityTypes = await queryInterface.sequelize.query('SELECT id FROM entity_types WHERE value = :value', {
 			type: queryInterface.sequelize.QueryTypes.SELECT,
-			replacements: { value: 'allowed_file_types' },
+			replacements: { value: 'file_types' },
 		})
 
 		let entityTypeId = entityTypes.map((item) => {
@@ -137,6 +160,40 @@ module.exports = {
 			{
 				entity_type_id: {
 					[Sequelize.Op.in]: entityTypeId,
+				},
+			},
+			{}
+		)
+
+		const entityTypeName = await queryInterface.sequelize.query(
+			'SELECT id FROM entity_types WHERE value = :value',
+			{
+				type: queryInterface.sequelize.QueryTypes.SELECT,
+				replacements: { value: 'name' },
+			}
+		)
+
+		let entityTypeNameId = entityTypeName.map((item) => {
+			return item.id
+		})
+
+		// remove entity model mapping of learning resource name
+
+		const entities_model_mappingName = await queryInterface.sequelize.query(
+			'SELECT id FROM entities_model_mapping WHERE entity_type_id = :entity_type_id AND model = :model',
+			{
+				type: queryInterface.sequelize.QueryTypes.SELECT,
+				replacements: { entity_type_id: entityTypeNameId, model: 'subTasks' },
+			}
+		)
+		let entities_model_mappingNameId = entities_model_mappingName.map((item) => {
+			return item.id
+		})
+		await queryInterface.bulkDelete(
+			'entities_model_mapping',
+			{
+				entity_type_id: {
+					[Sequelize.Op.in]: entities_model_mappingNameId,
 				},
 			},
 			{}
