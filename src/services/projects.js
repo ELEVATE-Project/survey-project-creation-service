@@ -345,16 +345,17 @@ module.exports = class ProjectsHelper {
 					)
 
 					if (entityTypes.length > 0) {
+						//create label value pair map
 						const entityTypeMap = entityTypes.reduce((map, type) => {
-							if (type.has_entities && type.entities) {
+							if (type.has_entities && Array.isArray(type.entities) && type.entities.length > 0) {
 								map[type.value] = type.entities
-									.filter((entity) => entity.status === common.ACTIVE)
+									.filter((entity) => entity.status === common.STATUS_ACTIVE)
 									.map((entity) => ({ label: entity.label, value: entity.value.toLowerCase() }))
 							}
 							return map
 						}, {})
 
-						for (const entityType of entityTypes) {
+						for (let entityType of entityTypes) {
 							const key = entityType.value
 							// Skip the entity type if entities are not available
 							if (
@@ -457,8 +458,6 @@ module.exports = class ProjectsHelper {
 			if (projectData.user_id !== userDetails.id) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROJECT_ACCESS',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
 				})
 			}
 
@@ -479,54 +478,44 @@ module.exports = class ProjectsHelper {
 				if (entityType.validations.required) {
 					let required = utils.checkRequired(entityType, fieldData)
 					if (!required) {
-						throw responses.failureResponse({
+						throw {
 							message: `${entityType.value} not added`,
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
 							error: utils.errorObject(common.BODY, entityType.value),
-						})
+						}
 					}
 				}
 
 				if (entityType.has_entities) {
 					let checkEntities = utils.checkEntities(entityType, fieldData)
 					if (!checkEntities.status) {
-						throw responses.failureResponse({
+						throw {
 							message: checkEntities.message,
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
 							error: utils.errorObject(common.BODY, entityType.value),
-						})
+						}
 					}
 				}
 
 				if (entityType.validations.regex) {
 					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
 					if (checkRegex) {
-						throw responses.failureResponse({
+						throw {
 							message: `Special characters not allowed in ${entityType.value}`,
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
 							error: utils.errorObject(common.BODY, entityType.value),
-						})
+						}
 					}
 				}
 			})
 
 			if (projectData.tasks.length < 1) {
-				throw responses.failureResponse({
+				throw {
 					message: 'TASK_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
 					error: utils.errorObject(common.BODY, common.TASKS),
-				})
+				}
 			} else if (projectData.tasks.length > process.env.MAX_PROJECT_TASK_COUNT) {
-				throw responses.failureResponse({
+				throw {
 					message: 'EXCEEDED_PROJECT_TASK_COUNT',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
 					error: utils.errorObject(common.BODY, common.TASKS),
-				})
+				}
 			}
 
 			let taskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
@@ -545,47 +534,39 @@ module.exports = class ProjectsHelper {
 					if (taskEntityType.validations.required) {
 						let required = await utils.checkRequired(taskEntityType, fieldData)
 						if (!required) {
-							return new responses.failureResponse({
+							throw {
 								message: `task.${taskEntityType.value} not added`,
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
 								error: utils.errorObject(common.TASKS, taskEntityType.value),
-							})
+							}
 						}
 					}
 
 					if (taskEntityType.has_entities) {
 						let checkEntities = utils.checkEntities(taskEntityType, fieldData)
 						if (!checkEntities.status) {
-							throw responses.failureResponse({
+							throw {
 								message: checkEntities.message,
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
 								error: utils.errorObject(common.TASKS, taskEntityType.value),
-							})
+							}
 						}
 					}
 
 					if (taskEntityType.validations.regex) {
 						let checkRegex = utils.checkRegexPattern(taskEntityType, fieldData)
 						if (checkRegex) {
-							throw responses.failureResponse({
+							throw {
 								message: `Special characters not allowed in ${taskEntityType.value}`,
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
 								error: utils.errorObject(common.TASKS, taskEntityType.value),
-							})
+							}
 						}
 					}
 				})
 				// TODO: Get file types from products teams and add validation for them
 				if (task.allow_evidences == common.TRUE && task.evidence_details.file_types.length < 1) {
-					throw responses.failureResponse({
+					throw {
 						message: 'FILE_TYPE_NOT_SELECTED',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-						error: utils.errorObject(common.BODY, common.FILE_TYPE),
-					})
+						error: 'utils.errorObject(common.BODY, common.FILE_TYPE)',
+					}
 				}
 
 				if (task.learning_resources && task.learning_resources.length > 0) {
@@ -600,12 +581,10 @@ module.exports = class ProjectsHelper {
 					task.learning_resources.forEach((learningResource) => {
 						let validateURL = utils.checkRegexPattern(subTaskEntityTypes[0], learningResource.url)
 						if (validateURL) {
-							throw responses.failureResponse({
+							throw {
 								message: 'INCORRECT_LEARNING_RESOURCE',
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
 								error: utils.errorObject(common.BODY, common.CHILDREN),
-							})
+							}
 						}
 					})
 				}
@@ -631,7 +610,13 @@ module.exports = class ProjectsHelper {
 				result: { id: projectData.id },
 			})
 		} catch (error) {
-			return error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+				result: error.error || [],
+			})
+			// return error
 		}
 	}
 }
