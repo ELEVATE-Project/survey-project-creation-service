@@ -18,7 +18,7 @@ module.exports = {
 		if (req.method != common.REQUEST_METHOD_DELETE) {
 			req.checkBody('title').notEmpty().withMessage('title is required')
 		}
-
+    
 		req.checkParams('id')
 			.trim()
 			.optional()
