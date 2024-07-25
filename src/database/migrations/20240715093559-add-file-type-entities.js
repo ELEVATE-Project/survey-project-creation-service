@@ -82,18 +82,18 @@ module.exports = {
 
 		//add model mapping for learning resource
 		const learningResourceEntityType = await queryInterface.sequelize.query(
-			'SELECT id FROM entity_types WHERE value = :value',
+			'SELECT id FROM entity_types WHERE value = :value AND organization_id = :defaultOrgId',
 			{
 				type: queryInterface.sequelize.QueryTypes.SELECT,
-				replacements: { value: 'learning_resources' },
+				replacements: { value: 'learning_resources', defaultOrgId },
 			}
 		)
 		//add model mapping for learning resource
 		const nameEntityType = await queryInterface.sequelize.query(
-			'SELECT id FROM entity_types WHERE value = :value',
+			'SELECT id FROM entity_types WHERE value = :value AND organization_id = :defaultOrgId',
 			{
 				type: queryInterface.sequelize.QueryTypes.SELECT,
-				replacements: { value: 'name' },
+				replacements: { value: 'name', defaultOrgId },
 			}
 		)
 		if (
@@ -131,10 +131,17 @@ module.exports = {
 	},
 
 	async down(queryInterface, Sequelize) {
-		const entityTypes = await queryInterface.sequelize.query('SELECT id FROM entity_types WHERE value = :value', {
-			type: queryInterface.sequelize.QueryTypes.SELECT,
-			replacements: { value: 'file_types' },
-		})
+		const defaultOrgId = queryInterface.sequelize.options.defaultOrgId
+		if (!defaultOrgId) {
+			throw new Error('Default org ID is undefined. Please make sure it is set in sequelize options.')
+		}
+		const entityTypes = await queryInterface.sequelize.query(
+			'SELECT id FROM entity_types WHERE value = :value AND organization_id = :defaultOrgId',
+			{
+				type: queryInterface.sequelize.QueryTypes.SELECT,
+				replacements: { value: 'file_types', defaultOrgId },
+			}
+		)
 
 		let entityTypeId = entityTypes.map((item) => {
 			return item.id
@@ -166,17 +173,16 @@ module.exports = {
 		)
 
 		const entityTypeName = await queryInterface.sequelize.query(
-			'SELECT id FROM entity_types WHERE value = :value',
+			'SELECT id FROM entity_types WHERE value = :value AND organization_id = :defaultOrgId',
 			{
 				type: queryInterface.sequelize.QueryTypes.SELECT,
-				replacements: { value: 'name' },
+				replacements: { value: 'name', defaultOrgId },
 			}
 		)
 
 		let entityTypeNameId = entityTypeName.map((item) => {
 			return item.id
 		})
-
 		// remove entity model mapping of learning resource name
 
 		const entities_model_mappingName = await queryInterface.sequelize.query(
@@ -189,11 +195,44 @@ module.exports = {
 		let entities_model_mappingNameId = entities_model_mappingName.map((item) => {
 			return item.id
 		})
+
 		await queryInterface.bulkDelete(
 			'entities_model_mapping',
 			{
 				entity_type_id: {
 					[Sequelize.Op.in]: entities_model_mappingNameId,
+				},
+			},
+			{}
+		)
+		const entityType_learning = await queryInterface.sequelize.query(
+			'SELECT id FROM entity_types WHERE value = :value AND organization_id = :defaultOrgId',
+			{
+				type: queryInterface.sequelize.QueryTypes.SELECT,
+				replacements: { value: 'learning_resources', defaultOrgId },
+			}
+		)
+
+		let entityType_learningId = entityType_learning.map((item) => {
+			return item.id
+		})
+		// remove entity model mapping of learning resource name
+
+		const entities_model_mapping_learning = await queryInterface.sequelize.query(
+			'SELECT id FROM entities_model_mapping WHERE entity_type_id = :entity_type_id AND model = :model',
+			{
+				type: queryInterface.sequelize.QueryTypes.SELECT,
+				replacements: { entity_type_id: entityType_learningId, model: 'projects' },
+			}
+		)
+		let entities_model_mappingLrId = entities_model_mapping_learning.map((item) => {
+			return item.id
+		})
+		await queryInterface.bulkDelete(
+			'entities_model_mapping',
+			{
+				entity_type_id: {
+					[Sequelize.Op.in]: entities_model_mappingLrId,
 				},
 			},
 			{}

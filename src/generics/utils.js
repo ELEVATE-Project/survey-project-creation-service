@@ -412,8 +412,8 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 	return Array.from(certificateMap.values())
 }
 
-const errorObject = (params, filed) => {
-	return [{ location: params, param: filed, msg: filed + ' field is empty' }]
+const errorObject = (params, filed, msg) => {
+	return [{ location: params, param: filed, msg }]
 }
 const checkRegexPattern = (entityType, entityData) => {
 	try {

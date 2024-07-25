@@ -81,13 +81,10 @@
 	"REVIEW_STAGES_INVALID": "review_stages required or review_stages must be a non-null array of objects with role and level properties",
 	"ONLY_PROJECT_CAN_BE_SUBMITTED_FOR_REVIEW": "Project can be submitted for review",
 	"PROJECT_OBJECTIVE_NOT_ADDED": "Project objective not added",
-	"TASK_NOT_FOUND": "Task not found",
-	"FILE_TYPE_NOT_SELECTED": "File type not selected",
-	"FILE_TYPE_INVALID": "Invalid file type",
-	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource url",
 	"DONT_HAVE_PROJECT_ACCESS": "You dont have permission to access this project",
-	"EXCEEDED_PROJECT_TASK_COUNT": "Project task has exceeded the max count",
 	"PROJECT_SUBMITTED_SUCCESSFULLY": "Your resource has been sent for review",
 	"PROJECT_TASK_DESCTIPTION_LENGTH_INVALID": "Project Task description max-length is an invalid value at the instance level.",
-	"FILE_UPLOADED_FAILED": "Failed to upload file"
+	"FILE_UPLOADED_FAILED": "Failed to upload file",
+	"RESOURCE_VALIDATION_FAILED": "Failed to send resource for review. Try again.",
+	"RESOURCE_ALREADY_SUBMITTED": "This resource is already submitted."
 }

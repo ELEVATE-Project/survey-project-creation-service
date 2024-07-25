@@ -75,6 +75,7 @@ module.exports = class Projects {
 	async reviewerList(req) {
 		try {
 			const reviewerList = await projectService.reviewerList(
+				req.decodedToken.id,
 				req.decodedToken.organization_id,
 				req.pageNo,
 				req.pageSize

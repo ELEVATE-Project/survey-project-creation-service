@@ -421,14 +421,19 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - List of reviewers from the org
 	 */
 
-	static async reviewerList(organization_id, pageNo, limit) {
+	static async reviewerList(user_id, organization_id, pageNo, limit) {
 		try {
-			const reviewers = await userRequests.list(common.REVIEWER, pageNo, limit, '', organization_id)
+			let reviewers = await userRequests.list(common.REVIEWER, pageNo, limit, '', organization_id)
+			const userList = reviewers.data.result.data.filter((user) => user.id !== user_id)
+
 			if (reviewers.success) {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'REVIEWER_LIST_FETCHED_SUCCESSFULLY',
-					result: reviewers.data.result,
+					result: {
+						data: userList,
+						count: reviewers.data.result.count,
+					},
 				})
 			} else {
 				return responses.successResponse({
@@ -462,6 +467,12 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
+			if (projectData.status === common.RESOURCE_STATUS_SUBMITTED) {
+				return responses.failureResponse({
+					message: 'RESOURCE_ALREADY_SUBMITTED',
+				})
+			}
+
 			let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 				{
 					model: common.PROJECT,
@@ -483,7 +494,7 @@ module.exports = class ProjectsHelper {
 				return acc
 			}, {})
 
-			const allowed_fileTypes_entities = await entityTypeQuery.findUserEntityTypeAndEntities(
+			const allowed_fileTypes_entity_types = await entityTypeQuery.findUserEntityTypeAndEntities(
 				{
 					value: common.TASK_ALLOWED_FILE_TYPES,
 					status: common.STATUS_ACTIVE,
@@ -492,43 +503,38 @@ module.exports = class ProjectsHelper {
 				['id', 'value', 'has_entities', 'validations']
 			)
 
+			const allowed_fileTypes_entities = allowed_fileTypes_entity_types[0].entities.map((item) => {
+				return item.value
+			})
+
 			for (let entityType of entityTypes) {
-				const fieldData = projectData[entityType.value]
+				let fieldData = projectData[entityType.value]
 
 				if (entityType.validations.required) {
-					const required = utils.checkRequired(entityType, fieldData)
+					let required = utils.checkRequired(entityType, fieldData)
 					if (!required) {
 						throw {
-							message: `${entityType.value} not added`,
-							error: utils.errorObject(common.BODY, entityType.value),
+							error: utils.errorObject(common.BODY, entityType.value, `${entityType.value} not added`),
 						}
 					}
 				}
 
 				if (fieldData && Object.keys(entityType.validations).includes('max_length')) {
-					const max_text_length = entityType.validations.max_length
-					const checkLength = utils.lengthChecker(max_text_length, fieldData.length)
-					if (checkLength > 0) {
-						throw responses.failureResponse({
-							message: `Max length value exceeded for project ${entityType.value}`,
-							error: utils.errorObject(common.BODY, entityType.value),
-						}
-					}
-				}
-
-				if (fieldData && Object.keys(entityType.validations).includes('max_length')) {
-					const max_text_length = entityType.validations.max_length
-					const checkLength = utils.lengthChecker(max_text_length, fieldData.length)
+					let max_text_length = entityType.validations.max_length
+					let checkLength = utils.lengthChecker(max_text_length, fieldData.length)
 					if (checkLength > 0) {
 						throw {
-							message: `Max length value exceeded for project ${entityType.value}`,
-							error: utils.errorObject(common.BODY, entityType.value),
+							error: utils.errorObject(
+								common.BODY,
+								entityType.value,
+								`Max length value exceeded for project ${entityType.value}`
+							),
 						}
 					}
 				}
 
 				if (entityType.has_entities) {
-					const checkEntities = utils.checkEntities(entityType, fieldData)
+					let checkEntities = utils.checkEntities(entityType, fieldData)
 					if (!checkEntities.status) {
 						throw {
 							message: checkEntities.message,
@@ -538,25 +544,58 @@ module.exports = class ProjectsHelper {
 				}
 
 				if (entityType.validations.regex) {
-					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
-					if (checkRegex) {
-						throw {
-							message: `Special characters not allowed in ${entityType.value}`,
-							error: utils.errorObject(common.BODY, entityType.value),
+					if (fieldData && entityType.value === common.LEARNING_RESOURCE) {
+						fieldData.forEach((learningResource) => {
+							let validateName = utils.checkRegexPattern(
+								subTaskEntityTypesMapping['name'],
+								learningResource.name
+							)
+							if (validateName) {
+								throw {
+									error: utils.errorObject(
+										common.BODY,
+										common.LEARNING_RESOURCE,
+										'Incorrect learning resource name'
+									),
+								}
+							}
+
+							let validateURL = utils.checkRegexPattern(
+								subTaskEntityTypesMapping['learning_resources'],
+								learningResource.url
+							)
+							if (validateURL) {
+								throw {
+									error: utils.errorObject(
+										common.BODY,
+										common.CHILDREN,
+										'Incorrect learning resource url'
+									),
+								}
+							}
+						})
+					} else {
+						let checkRegex = utils.checkRegexPattern(entityType, fieldData)
+						if (checkRegex) {
+							throw {
+								error: utils.errorObject(
+									common.BODY,
+									entityType.value,
+									`Special characters not allowed in ${entityType.value}`
+								),
+							}
 						}
 					}
 				}
-			})
+			}
 
 			if (projectData.tasks.length < 1) {
 				throw {
-					message: 'TASK_NOT_FOUND',
-					error: utils.errorObject(common.BODY, common.TASKS),
+					error: utils.errorObject(common.BODY, common.TASKS, 'Task not found'),
 				}
 			} else if (projectData.tasks.length > process.env.MAX_PROJECT_TASK_COUNT) {
 				throw {
-					message: 'EXCEEDED_PROJECT_TASK_COUNT',
-					error: utils.errorObject(common.BODY, common.TASKS),
+					error: utils.errorObject(common.BODY, common.TASKS, 'Project task has exceeded the max count'),
 				}
 			}
 
@@ -575,69 +614,90 @@ module.exports = class ProjectsHelper {
 
 			for (let task of projectData.tasks) {
 				for (let taskEntityType of taskEntityTypes) {
-					const fieldData = task[taskEntityType.value]
+					let fieldData = task[taskEntityType.value]
 
 					if (fieldData && taskEntityType.validations.required) {
-						const required = await utils.checkRequired(taskEntityType, fieldData)
+						let required = await utils.checkRequired(taskEntityType, fieldData)
 						if (!required) {
 							throw {
-								message: `task.${taskEntityType.value} not added`,
-								error: utils.errorObject(common.TASKS, taskEntityType.value),
+								error: utils.errorObject(
+									common.TASKS,
+									taskEntityType.value,
+									`task.${taskEntityType.value} not added`
+								),
 							}
 						}
 					}
 
 					if (fieldData && taskEntityType.has_entities) {
-						const checkEntities = utils.checkEntities(taskEntityType, fieldData)
+						let checkEntities = utils.checkEntities(taskEntityType, fieldData)
 
 						if (!checkEntities.status) {
 							throw {
-								message: checkEntities.message,
-								error: utils.errorObject(common.TASKS, taskEntityType.value),
+								error: utils.errorObject(common.TASKS, taskEntityType.value, checkEntities.message),
 							}
 						}
 					}
 
 					if (fieldData && taskEntityType.validations.regex) {
-						const checkRegex = utils.checkRegexPattern(taskEntityType, fieldData)
+						let checkRegex = utils.checkRegexPattern(taskEntityType, fieldData)
 						if (checkRegex) {
 							throw {
-								message: `Special characters not allowed in ${taskEntityType.value}`,
 								statusCode: httpStatusCode.bad_request,
 								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.TASKS, taskEntityType.value),
+								error: utils.errorObject(
+									common.TASKS,
+									taskEntityType.value,
+									`Special characters not allowed in ${taskEntityType.value}`
+								),
 							}
 						}
 					}
-				})
+				}
 				// TODO: Get file types from products teams and add validation for them
 				if (task.allow_evidences == common.TRUE && task.evidence_details.file_types.length < 1) {
 					throw {
-						message: 'FILE_TYPE_NOT_SELECTED',
-						error: 'utils.errorObject(common.BODY, common.FILE_TYPE)',
+						error: utils.errorObject(common.BODY, common.FILE_TYPE, 'File type not selected'),
+					}
+				} else if (task.allow_evidences == common.TRUE && task.evidence_details.file_types.length > 0) {
+					let difference = _.difference(task.evidence_details.file_types, allowed_fileTypes_entities)
+
+					if (difference.length > 0) {
+						throw {
+							error: utils.errorObject(common.TASK_EVIDENCE, common.FILE_TYPE, 'Invalid file type'),
+						}
 					}
 				}
 
 				if (task.learning_resources && task.learning_resources.length > 0) {
-					let subTaskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
-						{
-							model: common.SUBTASKS,
-							status: common.STATUS_ACTIVE,
-						},
-						userDetails.organization_id,
-						['value', 'validations']
-					)
 					task.learning_resources.forEach((learningResource) => {
-						let validateURL = utils.checkRegexPattern(subTaskEntityTypes[0], learningResource.url)
-						if (validateURL) {
-							throw responses.failureResponse({
-								message: 'INCORRECT_LEARNING_RESOURCE',
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.BODY, common.CHILDREN),
+						let validateName = utils.checkRegexPattern(
+							subTaskEntityTypesMapping['name'],
+							learningResource.name
+						)
+						if (validateName) {
+							throw {
+								error: utils.errorObject(
+									common.BODY,
+									common.LEARNING_RESOURCE,
+									`Special characters not allowed in ${subTaskEntityTypesMapping['learning_resources'].value}`
+								),
 							}
 						}
-					}
+						let validateURL = utils.checkRegexPattern(
+							subTaskEntityTypesMapping['learning_resources'],
+							learningResource.url
+						)
+						if (validateURL) {
+							throw {
+								error: utils.errorObject(
+									common.BODY,
+									common.CHILDREN,
+									'Incorrect format of Learning resource url.'
+								),
+							}
+						}
+					})
 				}
 			}
 
@@ -653,11 +713,9 @@ module.exports = class ProjectsHelper {
 					orgReviewerIds = orgReviewers.data.result.data.map((item) => item.id)
 				}
 				if (orgReviewerIds.length <= 0) {
-					throw responses.failureResponse({
+					throw {
 						message: 'REVIEWER_IDS_NOT_FOUND',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
+					}
 				}
 
 				let filteredReviewerIds = bodyData.reviewer_ids.filter((id) => orgReviewerIds.includes(id))
@@ -679,12 +737,11 @@ module.exports = class ProjectsHelper {
 			})
 		} catch (error) {
 			return responses.failureResponse({
-				message: error.message || error,
+				message: 'RESOURCE_VALIDATION_FAILED',
 				statusCode: httpStatusCode.bad_request,
 				responseCode: 'CLIENT_ERROR',
 				result: error.error || [],
 			})
-			// return error
 		}
 	}
 }
