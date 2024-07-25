@@ -52,6 +52,7 @@
 	"CONFIG_FETCH_FAILED": "Error in fetching Config",
 	"ENTITY_TYPE_NOT_FOUND": "Entity type not found",
 	"REVIEWER_LIST_FETCHED_SUCCESSFULLY": "Reviewers list fetched successfully",
+	"REVIEWER_IDS_NOT_FOUND": "Selected Reviewers are invalid.",
 	"PROJECT_NOT_FOUND": "Project not found",
 	"PROJECT_FETCHED_SUCCESSFULLY": "Project fetched successfully",
 	"FAILED_TO_DOWNLOAD_FILE": "Failed to download the file",
@@ -82,8 +83,11 @@
 	"PROJECT_OBJECTIVE_NOT_ADDED": "Project objective not added",
 	"TASK_NOT_FOUND": "Task not found",
 	"FILE_TYPE_NOT_SELECTED": "File type not selected",
+	"FILE_TYPE_INVALID": "Invalid file type",
 	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource url",
 	"DONT_HAVE_PROJECT_ACCESS": "You dont have permission to access this project",
 	"EXCEEDED_PROJECT_TASK_COUNT": "Project task has exceeded the max count",
+	"PROJECT_SUBMITTED_SUCCESSFULLY": "Your resource has been sent for review",
+	"PROJECT_TASK_DESCTIPTION_LENGTH_INVALID": "Project Task description max-length is an invalid value at the instance level.",
 	"FILE_UPLOADED_FAILED": "Failed to upload file"
 }

@@ -107,7 +107,15 @@ module.exports = {
 	PUBLIC_ROLE: 'public',
 	RESOURCE_TITLE: 'title',
 	BODY: 'body',
+	TASK_EVIDENCE: 'evidence_details',
 	REQUEST_METHOD_DELETE: 'DELETE',
 	FILE_TYPE: 'file_types',
 	CHILDREN: 'children',
+	TASK_ALLOWED_FILE_TYPES: 'file_types',
+	ALLOWED_FILE_TYPES: {
+		images: ['jpg', 'png', 'jpeg', 'bmp', 'gif', 'tiff', 'heif'],
+		document: ['pdf'],
+		videos: ['mp4', '3gp', 'm4v', 'mov', 'mkv', 'mpeg', 'ogg', 'webm', '3gpp', 'wmv', 'avi', 'flv'],
+		audio: ['mp3', 'mp4', 'acc', 'flac', 'wav', 'midi', 'aiff'],
+	},
 }

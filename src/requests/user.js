@@ -92,17 +92,11 @@ const details = function (token = '', userId = '') {
 const list = function (userType, pageNo, pageSize, searchText, organization_id = null, body = {}) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let apiUrl =
-				userBaseUrl +
-				endpoints.USERS_LIST +
-				'?type=' +
-				userType +
-				'&page=' +
-				pageNo +
-				'&limit=' +
-				pageSize +
-				'&search=' +
-				searchText
+			let apiUrl = userBaseUrl + endpoints.USERS_LIST + '?type=' + userType
+			apiUrl = pageNo != '' ? apiUrl + '&page=' + pageNo : apiUrl
+			apiUrl = pageSize != '' ? apiUrl + '&limit=' + pageSize : apiUrl
+			apiUrl = apiUrl + '&search=' + searchText
+
 			apiUrl = organization_id == null ? apiUrl : apiUrl + '&organization_id=' + organization_id
 
 			const userDetails = await requests.post(apiUrl, body, '', true)

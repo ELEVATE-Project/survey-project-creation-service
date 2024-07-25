@@ -477,6 +477,11 @@ const convertToInteger = (value) => {
 	return isNaN(value) ? false : parseInt(value, 10)
 }
 
+const lengthChecker = (value1, value2) => {
+	const returnValue = value1 === value2 ? 0 : value1 > value2 ? -1 : 1
+	return returnValue
+}
+
 const isLabelValuePair = (item) => {
 	return Array.isArray(item)
 		? item.every((subItem) => subItem && typeof subItem === 'object' && 'label' in subItem && 'value' in subItem)
@@ -510,6 +515,8 @@ module.exports = {
 	checkEntities,
 	validateRoleAccess,
 	convertToString,
+	lengthChecker,
+	convertToInteger,
 	isLabelValuePair,
 	convertToInteger,
 }
