@@ -86,5 +86,6 @@
 	"PROJECT_TASK_DESCTIPTION_LENGTH_INVALID": "Project Task description max-length is an invalid value at the instance level.",
 	"FILE_UPLOADED_FAILED": "Failed to upload file",
 	"RESOURCE_VALIDATION_FAILED": "Failed to send resource for review. Try again.",
-	"RESOURCE_ALREADY_SUBMITTED": "This resource is already submitted."
+	"RESOURCE_ALREADY_SUBMITTED": "This resource is already submitted.",
+	"RESOURCE_NOTE_LENGTH_EXCEEDED": "This resource note length exceeded."
 }

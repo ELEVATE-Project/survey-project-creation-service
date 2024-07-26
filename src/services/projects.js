@@ -22,7 +22,7 @@ module.exports = class ProjectsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - project id
 	 */
-	static async create(orgId, loggedInUserId, bodyData) {
+	static async create(bodyData, loggedInUserId, orgId) {
 		try {
 			const orgConfig = await configService.list(orgId)
 
@@ -124,7 +124,7 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - project update response.
 	 */
 
-	static async update(resourceId, orgId, loggedInUserId, bodyData) {
+	static async update(resourceId, bodyData, loggedInUserId, orgId) {
 		try {
 			const forbidden_resource_statuses = [
 				common.RESOURCE_STATUS_PUBLISHED,
@@ -473,6 +473,12 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
+			if (projectData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOTE_LENGTH_EXCEEDED',
+				})
+			}
+
 			let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 				{
 					model: common.PROJECT,
@@ -519,9 +525,9 @@ module.exports = class ProjectsHelper {
 					}
 				}
 
-				if (fieldData && Object.keys(entityType.validations).includes('max_length')) {
+				if (Object.keys(entityType.validations).includes('max_length')) {
 					let max_text_length = entityType.validations.max_length
-					let checkLength = utils.lengthChecker(max_text_length, fieldData.length)
+					let checkLength = utils.compareLength(max_text_length, fieldData.length)
 					if (checkLength > 0) {
 						throw {
 							error: utils.errorObject(
@@ -544,7 +550,7 @@ module.exports = class ProjectsHelper {
 				}
 
 				if (entityType.validations.regex) {
-					if (fieldData && entityType.value === common.LEARNING_RESOURCE) {
+					if (entityType.value === common.LEARNING_RESOURCE) {
 						fieldData.forEach((learningResource) => {
 							let validateName = utils.checkRegexPattern(
 								subTaskEntityTypesMapping['name'],
@@ -589,7 +595,7 @@ module.exports = class ProjectsHelper {
 				}
 			}
 
-			if (projectData.tasks.length < 1) {
+			if (!projectData?.tasks) {
 				throw {
 					error: utils.errorObject(common.BODY, common.TASKS, 'Task not found'),
 				}
@@ -613,10 +619,15 @@ module.exports = class ProjectsHelper {
 			// Using forEach for iterating through tasks and taskEntityTypes
 
 			for (let task of projectData.tasks) {
+				let fieldData
 				for (let taskEntityType of taskEntityTypes) {
-					let fieldData = task[taskEntityType.value]
+					if (taskEntityType.value === common.FILE_TYPE) {
+						fieldData = task.evidence_details[taskEntityType.value]
+					} else {
+						fieldData = task[taskEntityType.value]
+					}
 
-					if (fieldData && taskEntityType.validations.required) {
+					if (taskEntityType.validations.required) {
 						let required = await utils.checkRequired(taskEntityType, fieldData)
 						if (!required) {
 							throw {
@@ -629,7 +640,7 @@ module.exports = class ProjectsHelper {
 						}
 					}
 
-					if (fieldData && taskEntityType.has_entities) {
+					if (taskEntityType.has_entities) {
 						let checkEntities = utils.checkEntities(taskEntityType, fieldData)
 
 						if (!checkEntities.status) {
@@ -639,7 +650,7 @@ module.exports = class ProjectsHelper {
 						}
 					}
 
-					if (fieldData && taskEntityType.validations.regex) {
+					if (taskEntityType.validations.regex) {
 						let checkRegex = utils.checkRegexPattern(taskEntityType, fieldData)
 						if (checkRegex) {
 							throw {

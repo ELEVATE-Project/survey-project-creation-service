@@ -477,7 +477,7 @@ const convertToInteger = (value) => {
 	return isNaN(value) ? false : parseInt(value, 10)
 }
 
-const lengthChecker = (value1, value2) => {
+const compareLength = (value1, value2) => {
 	const returnValue = value1 === value2 ? 0 : value1 > value2 ? -1 : 1
 	return returnValue
 }
@@ -515,7 +515,7 @@ module.exports = {
 	checkEntities,
 	validateRoleAccess,
 	convertToString,
-	lengthChecker,
+	compareLength,
 	convertToInteger,
 	isLabelValuePair,
 	convertToInteger,

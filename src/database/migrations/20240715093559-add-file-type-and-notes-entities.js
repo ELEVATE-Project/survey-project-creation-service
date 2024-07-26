@@ -18,7 +18,14 @@ module.exports = {
 				],
 				has_entities: true,
 				validation: { required: false },
-				model: 'tasks',
+				model: 'subTasks',
+			},
+			{
+				entityType: 'notes',
+				entities: [],
+				has_entities: false,
+				validation: { required: false, regex: `[^A-Za-z0-9]` },
+				model: 'projects',
 			},
 		]
 
@@ -79,55 +86,6 @@ module.exports = {
 		}, [])
 
 		await queryInterface.bulkInsert('entities', entitiesFinalArray, {})
-
-		//add model mapping for learning resource
-		const learningResourceEntityType = await queryInterface.sequelize.query(
-			'SELECT id FROM entity_types WHERE value = :value AND organization_id = :defaultOrgId',
-			{
-				type: queryInterface.sequelize.QueryTypes.SELECT,
-				replacements: { value: 'learning_resources', defaultOrgId },
-			}
-		)
-		//add model mapping for learning resource
-		const nameEntityType = await queryInterface.sequelize.query(
-			'SELECT id FROM entity_types WHERE value = :value AND organization_id = :defaultOrgId',
-			{
-				type: queryInterface.sequelize.QueryTypes.SELECT,
-				replacements: { value: 'name', defaultOrgId },
-			}
-		)
-		if (
-			learningResourceEntityType &&
-			learningResourceEntityType.length > 0 &&
-			nameEntityType &&
-			nameEntityType.length
-		) {
-			let learningResourceEntityTypeId = learningResourceEntityType.map((item) => {
-				return item.id
-			})
-
-			let nameEntityTypeId = nameEntityType.map((item) => {
-				return item.id
-			})
-
-			let learningResourceModelMapping = [
-				{
-					entity_type_id: learningResourceEntityTypeId[0],
-					model: 'projects',
-					status: 'ACTIVE',
-					updated_at: new Date(),
-					created_at: new Date(),
-				},
-				{
-					entity_type_id: nameEntityTypeId[0],
-					model: 'subTasks',
-					status: 'ACTIVE',
-					updated_at: new Date(),
-					created_at: new Date(),
-				},
-			]
-			await queryInterface.bulkInsert('entities_model_mapping', learningResourceModelMapping, {})
-		}
 	},
 
 	async down(queryInterface, Sequelize) {
