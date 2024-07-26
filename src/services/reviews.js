@@ -106,16 +106,19 @@ module.exports = class reviewsHelper {
 				await reviewResourceQueries.create(_.omit(reviewData, [common.STATUS]))
 
 				// Update resource table data
-				let filter = {
+				let updateData = {
 					status: common.RESOURCE_STATUS_IN_REVIEW,
 					last_reviewed_on: new Date(),
 				}
 
 				if (updateNextLevel) {
-					filter.next_level = resource.next_level + 1
+					updateData.next_level = resource.next_level + 1
 				}
 
-				await resourceQueries.updateOne({ id: resourceId, organization_id: resource.organization_id }, filter)
+				await resourceQueries.updateOne(
+					{ id: resourceId, organization_id: resource.organization_id },
+					updateData
+				)
 
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
@@ -302,13 +305,13 @@ module.exports = class reviewsHelper {
 				await handleComments(comments, resourceId, loggedInUserId)
 			}
 
-			//check the no of approvals meets
+			// Check if the number of approved reviews meets or exceeds the minimum required approvals
 			const reviewsApproved = await reviewsQueries.countDistinct({
 				resource_id: resourceId,
 				status: common.REVIEW_STATUS_APPROVED,
 			})
 
-			if (minApproval <= reviewsApproved + 1) {
+			if (minApproval <= reviewsApproved) {
 				await resourceQueries.updateOne(
 					{ id: resourceId, organization_id: resourceOrgId },
 					{ status: common.RESOURCE_STATUS_PUBLISHED }

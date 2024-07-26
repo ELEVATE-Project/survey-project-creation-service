@@ -47,7 +47,6 @@ module.exports = async () => {
 			},
 		})
 	}
-
 	subscribeToConsumer()
 
 	global.kafkaProducer = producer

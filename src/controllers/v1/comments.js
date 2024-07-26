@@ -17,8 +17,8 @@ module.exports = class configs {
 		try {
 			const comments = await commentService.list(
 				req.query.resource_id,
-				req.query.page_value ? req.query.page_value : req.query.page_value,
-				req.query.context ? req.query.context : req.query.context,
+				req.query.page_value ? req.query.page_value : '',
+				req.query.context ? req.query.context : '',
 				req.decodedToken.id,
 				req.decodedToken.organization_id
 			)
