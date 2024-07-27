@@ -314,7 +314,7 @@ module.exports = class reviewsHelper {
 			if (minApproval <= reviewsApproved) {
 				await resourceQueries.updateOne(
 					{ id: resourceId, organization_id: resourceOrgId },
-					{ status: common.RESOURCE_STATUS_PUBLISHED }
+					{ status: common.RESOURCE_STATUS_PUBLISHED, published_on: new Date() }
 				)
 				publishResource = true
 			}

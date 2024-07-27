@@ -82,10 +82,12 @@ module.exports = class ProjectsHelper {
 		try {
 			let result = {
 				resource_id: resource_id,
+				commented_by: [],
 				comments: [],
 				count: 0,
 			}
 
+			//get all comments
 			const comments = await commentQueries.commentList(resource_id, loggedInUserId, page_value, context)
 
 			if (comments.count <= 0) {
@@ -107,15 +109,24 @@ module.exports = class ProjectsHelper {
 				user_ids: uniqueUserIds,
 			})
 
+			let commented_by = []
+
 			if (users.success && users.data?.result?.length > 0) {
 				const user_map = _.keyBy(users.data.result, 'id')
 				comments.rows = _.map(comments.rows, (comment) => {
+					//add commenter and resolver details
 					const commenter = user_map[comment.user_id] ? _.pick(user_map[comment.user_id], ['id', 'name']) : {}
 					const resolver = comment.resolved_by
 						? user_map[comment.resolved_by]
 							? _.pick(user_map[comment.resolved_by], ['id', 'name'])
 							: {}
 						: {}
+
+					// Add the commenter's name to the commented_by array if the name exists
+					if (commenter.name) {
+						commented_by.push(commenter.name)
+					}
+
 					return {
 						...comment,
 						commenter: commenter,
@@ -125,6 +136,7 @@ module.exports = class ProjectsHelper {
 			}
 
 			result.comments = comments.rows
+			result.commented_by = commented_by
 			result.count = comments.count
 
 			return responses.successResponse({

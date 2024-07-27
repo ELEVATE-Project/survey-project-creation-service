@@ -12,6 +12,7 @@ const reviewsQueries = require('@database/queries/reviews')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
+const kafkaCommunication = require('@generics/kafka-communication')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -624,11 +625,46 @@ module.exports = class ProjectsHelper {
 				resourceStatus = common.RESOURCE_STATUS_IN_REVIEW
 			}
 
-			//update resource with submitted_on and status
-			await resourceQueries.updateOne(
-				{ id: projectData.id },
-				{ status: resourceStatus, submitted_on: new Date() }
+			//if review is not required direct publish
+			const orgConfig = await configService.list(userDetails.organization_id)
+			const orgConfigList = _.reduce(
+				orgConfig.result,
+				(acc, item) => {
+					acc[item.resource_type] = item.review_required
+					return acc
+				},
+				{}
 			)
+
+			let updateObj = {}
+
+			if (!orgConfigList[common.PROJECT]) {
+				updateObj.status = common.PUBLISHED
+				updateObj.published_on = new Date()
+
+				//update resource with published_on and status
+				await resourceQueries.updateOne({ id: projectData.id }, updateObj)
+
+				//publish the resource in consumption side
+				if (process.env.CONSUMPTION_SERVICE != common.SELF) {
+					if (process.env.PUBLISH_METHOD === common.PUBLISH_METHOD_KAFKA) {
+						await kafkaCommunication.pushResourceToKafka(projectData, projectData.type)
+					} else {
+						//api need to implement
+					}
+				}
+
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'RESOURCE_PUBLISHED',
+				})
+			} else {
+				updateObj.status = resourceStatus
+				updateObj.submitted_on = new Date()
+			}
+
+			//update resource with submitted_on and status
+			await resourceQueries.updateOne({ id: projectData.id }, updateObj)
 			//TODO: For review flow this has to be changed we might need to add further conditions
 			// and Validate those reviewer as well
 			if (bodyData.hasOwnProperty('reviewer_ids') && bodyData.reviewer_ids.length > 0) {
