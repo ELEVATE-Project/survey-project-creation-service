@@ -10,7 +10,7 @@ const _ = require('lodash')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
-const entityTypeQuery = require('@database/queries/entityType')
+const entityTypeQueries = require('@database/queries/entityType')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 
@@ -424,9 +424,12 @@ module.exports = class ProjectsHelper {
 	static async reviewerList(user_id, organization_id, pageNo, limit) {
 		try {
 			let reviewers = await userRequests.list(common.REVIEWER, pageNo, limit, '', organization_id)
-			const userList = reviewers.data.result.data.filter((user) => user.id !== user_id)
+			let userList = []
 
 			if (reviewers.success) {
+				if (reviewers.data.result.data.length > 0) {
+					userList = reviewers.data.result.data.filter((user) => user.id !== user_id)
+				}
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'REVIEWER_LIST_FETCHED_SUCCESSFULLY',
@@ -500,7 +503,7 @@ module.exports = class ProjectsHelper {
 				return acc
 			}, {})
 
-			const allowed_fileTypes_entity_types = await entityTypeQuery.findUserEntityTypeAndEntities(
+			const allowedFileTypesEntityTypes = await entityTypeQueries.findUserEntityTypeAndEntities(
 				{
 					value: common.TASK_ALLOWED_FILE_TYPES,
 					status: common.STATUS_ACTIVE,
@@ -509,7 +512,7 @@ module.exports = class ProjectsHelper {
 				['id', 'value', 'has_entities', 'validations']
 			)
 
-			const allowed_fileTypes_entities = allowed_fileTypes_entity_types[0].entities.map((item) => {
+			const allowedFileTypesEntities = allowedFileTypesEntityTypes[0].entities.map((item) => {
 				return item.value
 			})
 
@@ -551,35 +554,17 @@ module.exports = class ProjectsHelper {
 
 				if (entityType.validations.regex) {
 					if (entityType.value === common.LEARNING_RESOURCE) {
-						fieldData.forEach((learningResource) => {
-							let validateName = utils.checkRegexPattern(
-								subTaskEntityTypesMapping['name'],
-								learningResource.name
-							)
-							if (validateName) {
-								throw {
-									error: utils.errorObject(
-										common.BODY,
-										common.LEARNING_RESOURCE,
-										'Incorrect learning resource name'
-									),
-								}
+						let learning = await this.validate_learning_resources(
+							fieldData,
+							subTaskEntityTypesMapping['name'],
+							subTaskEntityTypesMapping['learning_resources'],
+							common.BODY
+						)
+						if (learning.errorFlag) {
+							throw {
+								error: learning.error,
 							}
-
-							let validateURL = utils.checkRegexPattern(
-								subTaskEntityTypesMapping['learning_resources'],
-								learningResource.url
-							)
-							if (validateURL) {
-								throw {
-									error: utils.errorObject(
-										common.BODY,
-										common.CHILDREN,
-										'Incorrect learning resource url'
-									),
-								}
-							}
-						})
+						}
 					} else {
 						let checkRegex = utils.checkRegexPattern(entityType, fieldData)
 						if (checkRegex) {
@@ -595,7 +580,7 @@ module.exports = class ProjectsHelper {
 				}
 			}
 
-			if (!projectData?.tasks) {
+			if (projectData?.tasks.length <= 0 || !projectData?.tasks) {
 				throw {
 					error: utils.errorObject(common.BODY, common.TASKS, 'Task not found'),
 				}
@@ -671,7 +656,7 @@ module.exports = class ProjectsHelper {
 						error: utils.errorObject(common.BODY, common.FILE_TYPE, 'File type not selected'),
 					}
 				} else if (task.allow_evidences == common.TRUE && task.evidence_details.file_types.length > 0) {
-					let difference = _.difference(task.evidence_details.file_types, allowed_fileTypes_entities)
+					let difference = _.difference(task.evidence_details.file_types, allowedFileTypesEntities)
 
 					if (difference.length > 0) {
 						throw {
@@ -681,34 +666,17 @@ module.exports = class ProjectsHelper {
 				}
 
 				if (task.learning_resources && task.learning_resources.length > 0) {
-					task.learning_resources.forEach((learningResource) => {
-						let validateName = utils.checkRegexPattern(
-							subTaskEntityTypesMapping['name'],
-							learningResource.name
-						)
-						if (validateName) {
-							throw {
-								error: utils.errorObject(
-									common.BODY,
-									common.LEARNING_RESOURCE,
-									`Special characters not allowed in ${subTaskEntityTypesMapping['learning_resources'].value}`
-								),
-							}
+					let learning = await this.validate_learning_resources(
+						task.learning_resources,
+						subTaskEntityTypesMapping['name'],
+						subTaskEntityTypesMapping['learning_resources'],
+						common.TASKS
+					)
+					if (learning.errorFlag) {
+						throw {
+							error: learning.error,
 						}
-						let validateURL = utils.checkRegexPattern(
-							subTaskEntityTypesMapping['learning_resources'],
-							learningResource.url
-						)
-						if (validateURL) {
-							throw {
-								error: utils.errorObject(
-									common.BODY,
-									common.CHILDREN,
-									'Incorrect format of Learning resource url.'
-								),
-							}
-						}
-					})
+					}
 				}
 			}
 
@@ -720,7 +688,7 @@ module.exports = class ProjectsHelper {
 					user_ids: bodyData.reviewer_ids,
 				})
 				let orgReviewerIds = []
-				if (orgReviewers.success) {
+				if (orgReviewers.success && orgReviewers.data.result.data.length > 0) {
 					orgReviewerIds = orgReviewers.data.result.data.map((item) => item.id)
 				}
 				if (orgReviewerIds.length <= 0) {
@@ -753,6 +721,29 @@ module.exports = class ProjectsHelper {
 				responseCode: 'CLIENT_ERROR',
 				result: error.error || [],
 			})
+		}
+	}
+	static async validate_learning_resources(fieldData, name_validation_entityType, url_validation_entity_type, field) {
+		for (let learningResource of fieldData) {
+			let validateName = utils.checkRegexPattern(name_validation_entityType, learningResource.name)
+			if (validateName) {
+				return {
+					errorFlag: true,
+					error: utils.errorObject(field, common.LEARNING_RESOURCE, 'Incorrect learning resource name'),
+				}
+			}
+
+			let validateURL = utils.checkRegexPattern(url_validation_entity_type, learningResource.url)
+			if (validateURL) {
+				return {
+					errorFlag: true,
+					error: utils.errorObject(field, common.LEARNING_RESOURCE, 'Incorrect learning resource URL'),
+				}
+			}
+		}
+		return {
+			errorFlag: false,
+			error: [],
 		}
 	}
 }

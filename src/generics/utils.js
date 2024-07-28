@@ -516,7 +516,6 @@ module.exports = {
 	validateRoleAccess,
 	convertToString,
 	compareLength,
-	convertToInteger,
 	isLabelValuePair,
 	convertToInteger,
 }
