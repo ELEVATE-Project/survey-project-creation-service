@@ -3502,7 +3502,80 @@ paths:
                         - id: 3
                           type: projecsuccessfullytCreation
                           version: 3
+  /scp/v1/resource/publishCallback:
+    post:
+      summary: Callback URL for Update Published Resource
+      tags:
+        - Resource
+      description: |-
+        You can use this API to update the resource details after publishing the resource in consumption portal
+         - The API Endpoint : `/scp/v1/resource/publishCallback` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: resource_id
+          in: query
+          description: Resource id
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: published_id
+          in: query
+          description: Consumption side resource id
+          required: false
+          schema:
+            type: string
+          example: 10
 
+      responses:
+        '200':
+          description: Resource updated successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Resource updated successfully
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projecsuccessfullytCreation
+                          version: 3
   /scp/v1/projects/details/{projectId}:
     post:
       summary: Project Details

@@ -17,7 +17,7 @@ module.exports = class reviewsHelper {
 	 * @method
 	 * @name update
 	 * @param {Object} bodyData - review body data.
-	 * @param {String} _id - review id.
+	 * @param {Integer} resourceId - resource id.
 	 * @param {String} loggedInUserId - logged in user id.
 	 * @returns {JSON} - review updated response.
 	 */
