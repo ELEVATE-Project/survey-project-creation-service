@@ -7,12 +7,11 @@ const filesService = require('@services/files')
 const userRequests = require('@requests/user')
 const configService = require('@services/config')
 const _ = require('lodash')
-const axios = require('axios')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
-const entityService = require('@services/entities')
 const utils = require('@generics/utils')
+const resourceService = require('@services/resource')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -49,6 +48,7 @@ module.exports = class ProjectsHelper {
 
 			let projectCreate
 			try {
+				//create project
 				projectCreate = await resourceQueries.create(projectData)
 				const mappingData = {
 					resource_id: projectCreate.id,
@@ -56,6 +56,48 @@ module.exports = class ProjectsHelper {
 					organization_id: orgId,
 				}
 				await resourceCreatorMappingQueries.create(mappingData)
+
+				//upload to blob
+				const resourceId = projectCreate.id
+				const fileName = `${loggedInUserId}${resourceId}project.json`
+
+				const projectUploadStatus = await resourceService.uploadToCloud(
+					fileName,
+					projectCreate.id,
+					common.PROJECT,
+					loggedInUserId,
+					bodyData
+				)
+
+				if (
+					projectUploadStatus.result.status == httpStatusCode.ok ||
+					projectUploadStatus.result.status == httpStatusCode.created
+				) {
+					let filter = {
+						id: resourceId,
+						organization_id: orgId,
+					}
+
+					let updateData = {
+						updated_by: loggedInUserId,
+						blob_path: projectUploadStatus.blob_path,
+					}
+
+					const [updateCount] = await resourceQueries.updateOne(filter, updateData, {
+						returning: true,
+						raw: true,
+					})
+
+					if (updateCount === 0) {
+						return responses.failureResponse({
+							message: 'PROJECT_NOT_FOUND',
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+						})
+					}
+				} else {
+					throw new Error('FILE_UPLOADED_FAILED')
+				}
 			} catch (error) {
 				return responses.failureResponse({
 					message: error.message || error,
@@ -123,55 +165,61 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id'])
+			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id', 'user_id'])
 
-			let fileName = loggedInUserId + resourceId + orgId + 'project.json'
-
-			let getSignedUrl = await filesService.getSignedUrl(
-				{ [resourceId]: { files: [fileName] } },
+			//upload to blob
+			const fileName = `${loggedInUserId}${resourceId}project.json`
+			const projectUploadStatus = await resourceService.uploadToCloud(
+				fileName,
+				resourceId,
 				common.PROJECT,
-				loggedInUserId
+				loggedInUserId,
+				bodyData
 			)
-
-			let config = {
-				method: 'put',
-				maxBodyLength: Infinity,
-				url: getSignedUrl.result[resourceId].files[0].url,
-				headers: {
-					'Content-Type': 'multipart/form-data',
-				},
-				data: JSON.stringify(bodyData),
-			}
-
-			let projectUploadStatus = await axios.request(config)
-			if (projectUploadStatus.status == 200 || projectUploadStatus.status == 201) {
+			if (
+				projectUploadStatus.result.status == httpStatusCode.ok ||
+				projectUploadStatus.result.status == httpStatusCode.created
+			) {
 				let filter = {
 					id: resourceId,
 					organization_id: orgId,
 				}
+
 				let updateData = {
-					meta: { title: bodyData.title },
-					title: bodyData.title,
 					updated_by: loggedInUserId,
-					blob_path: getSignedUrl.result[resourceId].files[0].file,
+					blob_path: projectUploadStatus.blob_path,
 				}
-				let updatedProject = await resourceQueries.updateOne(filter, updateData)
-				if (updatedProject === 0) {
+				if (bodyData['title'] != '') {
+					updateData.title = bodyData['title']
+				}
+
+				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {
+					returning: true,
+					raw: true,
+				})
+
+				if (updateCount === 0) {
 					return responses.failureResponse({
 						message: 'PROJECT_NOT_FOUND',
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
 					})
 				}
+
 				return responses.successResponse({
 					statusCode: httpStatusCode.accepted,
 					message: 'PROJECT_UPDATED_SUCCESSFUL',
-					result: updatedProject,
+					result: updatedProject[0].id,
 				})
+			} else {
+				throw new Error('FILE_UPLOADED_FAILED')
 			}
 		} catch (error) {
-			console.log(error, 'error')
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -192,16 +240,20 @@ module.exports = class ProjectsHelper {
 				['id', 'organization_id']
 			)
 
-			const fetchResourceId = await resourceQueries.findOne(
-				{
-					id: resourceId,
-					organization_id: fetchOrgId.organization_id,
-					status: common.STATUS_DRAFT,
-				},
-				{ attributes: ['id'] }
-			)
+			let fetchResourceId = null
 
-			if (!fetchResourceId) {
+			if (fetchOrgId) {
+				fetchResourceId = await resourceQueries.findOne(
+					{
+						id: resourceId,
+						organization_id: fetchOrgId.organization_id,
+						status: common.STATUS_DRAFT,
+					},
+					{ attributes: ['id'] }
+				)
+			}
+
+			if (!fetchOrgId || !fetchResourceId) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -228,7 +280,6 @@ module.exports = class ProjectsHelper {
 				result: {},
 			})
 		} catch (error) {
-			console.log(error, 'error')
 			throw error
 		}
 	}
@@ -244,16 +295,17 @@ module.exports = class ProjectsHelper {
 	static async details(projectId, orgId, loggedInUserId) {
 		try {
 			let result = {
-				reviewers: {},
-				comments: [],
 				organization: {},
 			}
 
-			const project = await resourceQueries.findOne({
-				id: projectId,
-				organization_id: orgId,
-				type: common.PROJECT,
-			})
+			const project = await resourceQueries.findOne(
+				{
+					id: projectId,
+					organization_id: orgId,
+					type: common.PROJECT,
+				},
+				{ attributes: { exclude: ['next_stage', 'review_type', 'published_id', 'reference_id'] } }
+			)
 
 			if (!project) {
 				return responses.failureResponse({
@@ -279,7 +331,66 @@ module.exports = class ProjectsHelper {
 					response.result &&
 					Object.keys(response.result).length > 0
 				) {
-					result = { ...result, ...response.result }
+					//modify the response as label value pair
+					let resultData = response.result
+
+					//get all entity types with entities
+					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+						{
+							model: common.PROJECT,
+							status: common.STATUS_ACTIVE,
+						},
+						orgId,
+						['id', 'value', 'label', 'has_entities']
+					)
+
+					if (entityTypes.length > 0) {
+						//create label value pair map
+						const entityTypeMap = entityTypes.reduce((map, type) => {
+							if (type.has_entities && Array.isArray(type.entities) && type.entities.length > 0) {
+								map[type.value] = type.entities
+									.filter((entity) => entity.status === common.STATUS_ACTIVE)
+									.map((entity) => ({ label: entity.label, value: entity.value.toLowerCase() }))
+							}
+							return map
+						}, {})
+
+						for (let entityType of entityTypes) {
+							const key = entityType.value
+							// Skip the entity type if entities are not available
+							if (
+								entityType.has_entities &&
+								entityType.entities &&
+								entityType.entities.length > 0 &&
+								resultData.hasOwnProperty(key)
+							) {
+								const value = resultData[key]
+								// If the value is already in label-value pair format, skip processing
+								if (utils.isLabelValuePair(value) || value === '') {
+									continue
+								}
+
+								// get the entities
+								const validEntities = entityTypeMap[key] || []
+
+								if (Array.isArray(value)) {
+									// Map each item in the array to a label-value pair, if it exists in validEntities
+									resultData[key] = value.map((item) => {
+										const match = validEntities.find(
+											(entity) => entity.value === item.toLowerCase()
+										)
+										return match || { label: item, value: item.toLowerCase() }
+									})
+								} else {
+									// If the value is a single item, find it in validEntities
+									const match = validEntities.find((entity) => entity.value === value.toLowerCase())
+									resultData[key] = match || { label: value, value: value.toLowerCase() }
+								}
+							}
+						}
+
+						result = { ...result, ...resultData }
+					}
 				}
 			}
 
@@ -298,7 +409,6 @@ module.exports = class ProjectsHelper {
 				result: result,
 			})
 		} catch (error) {
-			console.log(error, 'error')
 			throw error
 		}
 	}
@@ -348,8 +458,6 @@ module.exports = class ProjectsHelper {
 			if (projectData.user_id !== userDetails.id) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROJECT_ACCESS',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
 				})
 			}
 
@@ -358,7 +466,7 @@ module.exports = class ProjectsHelper {
 					model: common.PROJECT,
 					status: common.STATUS_ACTIVE,
 				},
-				userDetails,
+				userDetails.organization_id,
 				['id', 'value', 'has_entities', 'validations']
 			)
 
@@ -370,54 +478,44 @@ module.exports = class ProjectsHelper {
 				if (entityType.validations.required) {
 					let required = utils.checkRequired(entityType, fieldData)
 					if (!required) {
-						throw responses.failureResponse({
+						throw {
 							message: `${entityType.value} not added`,
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
 							error: utils.errorObject(common.BODY, entityType.value),
-						})
+						}
 					}
 				}
 
 				if (entityType.has_entities) {
 					let checkEntities = utils.checkEntities(entityType, fieldData)
 					if (!checkEntities.status) {
-						throw responses.failureResponse({
+						throw {
 							message: checkEntities.message,
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
 							error: utils.errorObject(common.BODY, entityType.value),
-						})
+						}
 					}
 				}
 
 				if (entityType.validations.regex) {
-					let checkRegex = utils.checkRegexPattarn(entityType, fieldData)
+					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
 					if (checkRegex) {
-						throw responses.failureResponse({
+						throw {
 							message: `Special characters not allowed in ${entityType.value}`,
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
 							error: utils.errorObject(common.BODY, entityType.value),
-						})
+						}
 					}
 				}
 			})
 
 			if (projectData.tasks.length < 1) {
-				throw responses.failureResponse({
+				throw {
 					message: 'TASK_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
 					error: utils.errorObject(common.BODY, common.TASKS),
-				})
+				}
 			} else if (projectData.tasks.length > process.env.MAX_PROJECT_TASK_COUNT) {
-				throw responses.failureResponse({
+				throw {
 					message: 'EXCEEDED_PROJECT_TASK_COUNT',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
 					error: utils.errorObject(common.BODY, common.TASKS),
-				})
+				}
 			}
 
 			let taskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
@@ -425,7 +523,7 @@ module.exports = class ProjectsHelper {
 					model: common.TASKS,
 					status: common.STATUS_ACTIVE,
 				},
-				userDetails,
+				userDetails.organization_id,
 				['value', 'validations']
 			)
 			//TODO: This dont have code for each type of validation please make sure that in future when adding new validadtion include code for that
@@ -436,47 +534,39 @@ module.exports = class ProjectsHelper {
 					if (taskEntityType.validations.required) {
 						let required = await utils.checkRequired(taskEntityType, fieldData)
 						if (!required) {
-							return new responses.failureResponse({
+							throw {
 								message: `task.${taskEntityType.value} not added`,
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
 								error: utils.errorObject(common.TASKS, taskEntityType.value),
-							})
+							}
 						}
 					}
 
 					if (taskEntityType.has_entities) {
 						let checkEntities = utils.checkEntities(taskEntityType, fieldData)
 						if (!checkEntities.status) {
-							throw responses.failureResponse({
+							throw {
 								message: checkEntities.message,
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.TASKS, entityType.value),
-							})
+								error: utils.errorObject(common.TASKS, taskEntityType.value),
+							}
 						}
 					}
 
 					if (taskEntityType.validations.regex) {
-						let checkRegex = utils.checkRegexPattarn(taskEntityType, fieldData)
+						let checkRegex = utils.checkRegexPattern(taskEntityType, fieldData)
 						if (checkRegex) {
-							throw responses.failureResponse({
-								message: `Special characters not allowed in ${entityType.value}`,
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.TASKS, entityType.value),
-							})
+							throw {
+								message: `Special characters not allowed in ${taskEntityType.value}`,
+								error: utils.errorObject(common.TASKS, taskEntityType.value),
+							}
 						}
 					}
 				})
 				// TODO: Get file types from products teams and add validation for them
 				if (task.allow_evidences == common.TRUE && task.evidence_details.file_types.length < 1) {
-					throw responses.failureResponse({
+					throw {
 						message: 'FILE_TYPE_NOT_SELECTED',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-						error: utils.errorObject(common.BODY, common.FILE_TYPE),
-					})
+						error: 'utils.errorObject(common.BODY, common.FILE_TYPE)',
+					}
 				}
 
 				if (task.learning_resources && task.learning_resources.length > 0) {
@@ -485,18 +575,16 @@ module.exports = class ProjectsHelper {
 							model: common.SUBTASKS,
 							status: common.STATUS_ACTIVE,
 						},
-						userDetails,
+						userDetails.organization_id,
 						['value', 'validations']
 					)
 					task.learning_resources.forEach((learningResource) => {
-						let validateURL = utils.checkRegexPattarn(subTaskEntityTypes[0], learningResource.url)
+						let validateURL = utils.checkRegexPattern(subTaskEntityTypes[0], learningResource.url)
 						if (validateURL) {
-							throw responses.failureResponse({
+							throw {
 								message: 'INCORRECT_LEARNING_RESOURCE',
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
 								error: utils.errorObject(common.BODY, common.CHILDREN),
-							})
+							}
 						}
 					})
 				}
@@ -505,8 +593,8 @@ module.exports = class ProjectsHelper {
 			await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
 			//TODO: For review flow this has to be changed we might need to add further conditions
 			// and Validate those reviewer as well
-			if (bodyData.hasOwnProperty('reviwer_ids') && bodyData.reviwer_ids.length > 0) {
-				let reviewsData = bodyData.reviwer_ids.map((reviewer_id) => ({
+			if (bodyData.hasOwnProperty('reviewer_ids') && bodyData.reviewer_ids.length > 0) {
+				let reviewsData = bodyData.reviewer_ids.map((reviewer_id) => ({
 					resource_id: projectData.id,
 					reviewer_id,
 					status: common.REVIEW_STATUS_NOT_STARTED,
@@ -522,7 +610,13 @@ module.exports = class ProjectsHelper {
 				result: { id: projectData.id },
 			})
 		} catch (error) {
-			return error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+				result: error.error || [],
+			})
+			// return error
 		}
 	}
 }

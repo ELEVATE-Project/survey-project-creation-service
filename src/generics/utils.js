@@ -413,9 +413,9 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 }
 
 const errorObject = (params, filed) => {
-	return [{ location: params, param: filed, message: filed + ' field is empty' }]
+	return [{ location: params, param: filed, msg: filed + ' field is empty' }]
 }
-const checkRegexPattarn = (entityType, entityData) => {
+const checkRegexPattern = (entityType, entityData) => {
 	try {
 		let normalizedValue = unidecode(entityData)
 		let regex = new RegExp(entityType.validations.regex)
@@ -476,6 +476,17 @@ const getUniqueElements = (array) => {
 	return [...new Set([...array])]
 }
 
+const convertToInteger = (value) => {
+	value = value.replace(/['"]/g, '')
+	return isNaN(value) ? false : parseInt(value, 10)
+}
+
+const isLabelValuePair = (item) => {
+	return Array.isArray(item)
+		? item.every((subItem) => subItem && typeof subItem === 'object' && 'label' in subItem && 'value' in subItem)
+		: typeof item === 'object' && 'label' in item && 'value' in item
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -498,10 +509,12 @@ module.exports = {
 	generateUniqueId,
 	removeDefaultOrgCertificates,
 	errorObject,
-	checkRegexPattarn,
+	checkRegexPattern,
 	checkRequired,
 	checkEntities,
 	validateRoleAccess,
 	convertToString,
 	getUniqueElements,
+	isLabelValuePair,
+	convertToInteger,
 }

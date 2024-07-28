@@ -18,6 +18,9 @@ const configs = require('@services/config')
 const _ = require('lodash')
 const { Op, Utils } = require('sequelize')
 const utils = require('@generics/utils')
+const axios = require('axios')
+const utils = require('@generics/utils')
+const filesService = require('@services/files')
 
 module.exports = class resourceHelper {
 	/**
@@ -698,5 +701,50 @@ module.exports = class resourceHelper {
 			orgDetails = _.keyBy(orgDetailsResponse.data.result, 'id')
 		}
 		return orgDetails
+	}
+
+	/**
+	 * Upload to cloud
+	 * @method
+	 * @name uploadToCloud
+	 * @param {Integer} resourceId - resource id
+	 * @param {String} loggedInUserId - logged in user id
+	 * @param {String} resourceType - resource type
+	 * @param {String} fileName - fileName
+	 * @param {Object} bodyData - bodyData
+	 * @returns {JSON} - upload  response.
+	 */
+
+	static async uploadToCloud(fileName, resourceId, resourceType, loggedInUserId, bodyData) {
+		try {
+			//sample blob path
+			// resource/162/6/06f444d0-03e1-4c36-92a4-78f27c18caf6/162624project.json
+			let getSignedUrl = await filesService.getSignedUrl(
+				{ [resourceId]: { files: [fileName] } },
+				resourceType,
+				loggedInUserId
+			)
+
+			const url = getSignedUrl.result[resourceId].files[0].url
+			const blobPath = getSignedUrl.result[resourceId].files[0].file
+
+			let config = {
+				method: 'put',
+				maxBodyLength: utils.convertToInteger(process.env.MAX_BODY_LENGTH_FOR_UPLOAD),
+				url: url,
+				headers: {
+					'Content-Type': 'multipart/form-data',
+				},
+				data: JSON.stringify(bodyData),
+			}
+
+			let resourceUploadStatus = await axios.request(config)
+			return {
+				blob_path: blobPath,
+				result: resourceUploadStatus,
+			}
+		} catch (error) {
+			throw error
+		}
 	}
 }
