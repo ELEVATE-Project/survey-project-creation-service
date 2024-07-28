@@ -85,5 +85,8 @@
 	"INCORRECT_LEARNING_RESOURCE": "incorrect learning resource url",
 	"DONT_HAVE_PROJECT_ACCESS": "You dont have permission to access this project",
 	"EXCEEDED_PROJECT_TASK_COUNT": "Project task has exceeded the max count",
-	"FILE_UPLOADED_FAILED": "Failed to upload file"
+	"FILE_UPLOADED_FAILED": "Failed to upload file",
+	"REVIEW_STAGE_NOT_FOUND": "Review stages not found",
+	"REVIEW_STAGE_UPDATED_SUCCESSFULLY": "Review stages updated successfully",
+	"REVIEW_STAGES_FETCHED_SUCCESSFULLY": "Review stages fetched successfully"
 }
