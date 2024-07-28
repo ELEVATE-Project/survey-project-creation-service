@@ -35,9 +35,7 @@ module.exports = class Resource {
 	async upForReview(req) {
 		try {
 			const resource = await resourceService.upForReview(
-				req.decodedToken.id,
-				req.decodedToken.organization_id,
-				req.decodedToken.roles,
+				req.decodedToken,
 				req.query,
 				req.searchText,
 				req.pageNo,

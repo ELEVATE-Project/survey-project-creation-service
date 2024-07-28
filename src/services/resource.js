@@ -60,10 +60,12 @@ module.exports = class resourceHelper {
 				})
 			}
 			// get the unique resource ids from resource creator mapping table by the user
-			const uniqueResourceIds = utils.returnUnique(resource_creator_mapping_data.map((item) => item.resource_id))
+			const uniqueResourceIds = utils.getUniqueElements(
+				resource_creator_mapping_data.map((item) => item.resource_id)
+			)
 
 			// get the unique organization ids from resource creator mapping table by the user
-			const OrganizationIds = utils.returnUnique(
+			const OrganizationIds = utils.getUniqueElements(
 				resource_creator_mapping_data.map((item) => item.organization_id)
 			)
 
@@ -97,7 +99,7 @@ module.exports = class resourceHelper {
 
 				const inReviewResources = await resourceQueries.findAll(filter, ['id'])
 
-				uniqueInReviewResourcesIds = utils.returnUnique(inReviewResources.map((item) => item.id))
+				uniqueInReviewResourcesIds = utils.getUniqueElements(inReviewResources.map((item) => item.id))
 
 				const fetch_resource_ids_from_reviews = await reviewsQueries.findAll(
 					{
@@ -160,7 +162,7 @@ module.exports = class resourceHelper {
 					}
 				})
 				// count the number of resources with changes requested
-				const find_and_count = await reviewsQueries.countDistinct({
+				const findAndCount = await reviewsQueries.countDistinct({
 					organization_id: {
 						[Op.in]: OrganizationIds,
 					},
@@ -169,7 +171,7 @@ module.exports = class resourceHelper {
 					},
 					status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 				})
-				result.changes_requested_count = find_and_count.count
+				result.changes_requested_count = findAndCount.count
 
 				if ((common.STATUS in queryParams) & (queryParams[common.STATUS] != '')) {
 					// remove status which are not related
@@ -195,7 +197,9 @@ module.exports = class resourceHelper {
 							['resource_id']
 						)
 
-						changeRequestedResources = utils.returnUnique(..._.map(changeRequestedResources, 'resource_id'))
+						changeRequestedResources = utils.getUniqueElements(
+							..._.map(changeRequestedResources, 'resource_id')
+						)
 						filter.id = {
 							[Op.in]: changeRequestedResources,
 						}
@@ -259,8 +263,8 @@ module.exports = class resourceHelper {
 				})
 			}
 
-			const uniqueOrganizationIds = utils.returnUnique(resources.map((item) => item.organization_id))
-			let uniqueCreatorIds = utils.returnUnique(resources.map((item) => item.user_id))
+			const uniqueOrganizationIds = utils.getUniqueElements(resources.map((item) => item.organization_id))
+			let uniqueCreatorIds = utils.getUniqueElements(resources.map((item) => item.user_id))
 			let additionalResourceInformation = {}
 
 			// Iterate over each key-value pair in the object
@@ -331,9 +335,9 @@ module.exports = class resourceHelper {
 						userDetails[additionalResourceInformation[res.id].reviewer_id].name
 							? userDetails[additionalResourceInformation[res.id].reviewer_id].name
 							: ''
-					if (common.REVIEW_STATUS_REJECTED_AT in additionalResourceInformation[res.id]) {
-						res[common.REVIEW_STATUS_REJECTED_AT] =
-							additionalResourceInformation[res.id][common.REVIEW_STATUS_REJECTED_AT]
+					if (common.REVIEW_COLOUMN_REJECTED_AT in additionalResourceInformation[res.id]) {
+						res[common.REVIEW_COLOUMN_REJECTED_AT] =
+							additionalResourceInformation[res.id][common.REVIEW_COLOUMN_REJECTED_AT]
 						res[common.REVIEW_STATUS] = additionalResourceInformation[res.id][common.REVIEW_STATUS]
 					}
 				}
@@ -354,39 +358,52 @@ module.exports = class resourceHelper {
 		}
 	}
 
-	static async upForReview(user_id, organization_id, roles, queryParams, searchText = '', page, limit) {
+	static async upForReview(tokenDetails, queryParams, searchText = '', page, limit) {
 		try {
+			// get user details from token
+			const user_id = tokenDetails.id
+			const organization_id = tokenDetails
+			const roles = tokenDetails.roles
+
 			let result = {
 				data: [],
 				count: 0,
 				in_progress_count: 0,
 			}
+
 			const sort = {
 				sort_by: queryParams.sort_by || common.CREATED_AT,
 				order: queryParams.sort_order?.toUpperCase() === common.SORT_ASC ? common.SORT_ASC : common.SORT_DESC,
 			}
 			let finalResourceIds = []
 			let resourceIdsToBeRemoved = []
-			let resources_ids_notes = {}
+			let resourcesIdsNotes = {}
 			let inProgressResources = []
 
+			// fetch the resources types of an organization
 			const { sequential: resourceTypesInSequentialReview, parallel: resourceTypesInParallelReview } =
 				await this.fetchResourceReviewTypes(organization_id)
 
-			const userRoleTitles = utils.returnUnique(roles.map((item) => item.title))
+			// get unique user roles
+			const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
 
+			// get all the resource types irrespective of review type
 			let all_resource_types = [...resourceTypesInSequentialReview, ...resourceTypesInParallelReview]
 
+			// check if types filter is applied
 			if (common.TYPE in queryParams && queryParams[common.TYPE]) {
+				// remove all the other types if type filter is applied
 				all_resource_types = [queryParams[common.TYPE]]
 			}
 
-			const resourceWiseLevels = await this.fetchResourceReviewLevel(
-				organization_id,
-				userRoleTitles,
-				all_resource_types
-			)
-
+			if (resourceTypesInSequentialReview.length > 0) {
+				// fetch the resource wise review levels
+				const resourceWiseLevels = await this.fetchResourceReviewLevel(
+					organization_id,
+					userRoleTitles,
+					all_resource_types
+				)
+			}
 			let uniqueResourceIds = []
 			let uniqueOrganizationIds = [organization_id] //initialize current org id
 
@@ -400,14 +417,15 @@ module.exports = class resourceHelper {
 
 			if (reviewResources.length > 0) {
 				// get the unique organization ids from reviewResources table by the reviewer
-				uniqueOrganizationIds = utils.returnUnique([
+				uniqueOrganizationIds = utils.getUniqueElements([
 					...uniqueOrganizationIds,
 					...reviewResources.map((item) => item.organization_id),
 				])
 			}
 			let reviewsFilter = {}
 			let reviewsResponse = {}
-			const find_and_count = await reviewsQueries.countDistinct(
+
+			const findAndCount = await reviewsQueries.countDistinct(
 				{
 					organization_id: {
 						[Op.in]: uniqueOrganizationIds,
@@ -418,8 +436,8 @@ module.exports = class resourceHelper {
 				['resource_id']
 			)
 
-			const in_progress_count = find_and_count.count
-			inProgressResources = utils.returnUnique(find_and_count.resource_ids)
+			const in_progress_count = findAndCount.count
+			inProgressResources = utils.getUniqueElements(findAndCount.resource_ids)
 
 			if (common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS) {
 				const inprogressReviewsResponse = await this.fetchReviewersInprogressResources(
@@ -429,13 +447,15 @@ module.exports = class resourceHelper {
 
 				if (inprogressReviewsResponse.length > 0) {
 					// get the unique organization ids from reviews table by the reviewer
-					uniqueOrganizationIds = utils.returnUnique(
+					uniqueOrganizationIds = utils.getUniqueElements(
 						inprogressReviewsResponse.map((item) => item.organization_id)
 					)
 
 					// get the unique resource ids from reviews table by the reviewer
-					uniqueResourceIds = utils.returnUnique(inprogressReviewsResponse.map((item) => item.resource_id))
-					finalResourceIds = utils.returnUnique(uniqueResourceIds)
+					uniqueResourceIds = utils.getUniqueElements(
+						inprogressReviewsResponse.map((item) => item.resource_id)
+					)
+					finalResourceIds = utils.getUniqueElements(uniqueResourceIds)
 				}
 			} else {
 				reviewsFilter = {
@@ -447,31 +467,38 @@ module.exports = class resourceHelper {
 				reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id', 'organization_id'])
 
 				if (reviewsResponse.length > 0) {
+					for (const item of reviewsResponse) {
+						uniqueOrganizationIdsSet.add(item.organization_id)
+						uniqueResourceIdsSet.add(item.resource_id)
+					}
 					// get the unique organization ids from reviews table by the reviewer
-					uniqueOrganizationIds = utils.returnUnique(reviewsResponse.map((item) => item.organization_id))
-
+					uniqueOrganizationIdsSet = utils.getUniqueElements(uniqueOrganizationIdsSet)
 					// get the unique resource ids from reviews table by the reviewer
-					uniqueResourceIds = utils.returnUnique(reviewsResponse.map((item) => item.resource_id))
+					uniqueResourceIdsSet = utils.getUniqueElements(uniqueResourceIdsSet)
 				}
 
 				// fetch all submitted and inreview resources from my orgs
-				const allSequentialResourcesFromOrg = await resourceQueries.findAll(
-					{
-						organization_id,
-						type: { [Op.in]: resourceTypesInSequentialReview },
-						status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
-					},
-					['id', 'type', 'next_stage']
-				)
+				let allSequentialResourcesFromOrg = []
+				let openToAllResourcesMatchingMyLevel = []
+				if (resourceTypesInSequentialReview.length > 0) {
+					allSequentialResourcesFromOrg = await resourceQueries.findAll(
+						{
+							organization_id,
+							type: { [Op.in]: resourceTypesInSequentialReview },
+							status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
+						},
+						['id', 'type', 'next_stage']
+					)
 
-				const openToAllResourcesMatchingMyLevel = allSequentialResourcesFromOrg.map((item) => {
-					if (item.next_stage === resourceWiseLevels[item.type]) return item.id
-				})
+					openToAllResourcesMatchingMyLevel = allSequentialResourcesFromOrg.map((item) => {
+						if (item.next_stage === resourceWiseLevels[item.type]) return item.id
+					})
+				}
 
 				const allParallelResourcesFromOrg = await resourceQueries.findAll(
 					{
 						organization_id,
-						type: { [Op.in]: resourceTypesInParallelReview },
+						type: { [Op.in]: _.difference(resourceTypesInParallelReview, allSequentialResourcesFromOrg) },
 						status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
 					},
 					['id']
@@ -497,7 +524,7 @@ module.exports = class resourceHelper {
 				resourceIdsToBeRemoved = reviewsResponse.map((item) => item.resource_id)
 
 				finalResourceIds = _.difference(
-					utils.returnUnique([
+					utils.getUniqueElements([
 						...uniqueResourceIds,
 						...openToAllResourcesMatchingMyLevel,
 						...allParallelResourceIdsFromOrg,
@@ -533,7 +560,7 @@ module.exports = class resourceHelper {
 			const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
 			const orgDetails = await this.fetchOrganizationDetails(uniqueOrganizationIds)
 
-			resources_ids_notes = await this.fetchReviewerNotesForResources(
+			resourcesIdsNotes = await this.fetchReviewerNotesForResources(
 				user_id,
 				finalResourceIds,
 				uniqueOrganizationIds
@@ -541,7 +568,7 @@ module.exports = class resourceHelper {
 
 			result.data = response.result.map((item) => {
 				let returnValue = item
-				returnValue.notes = resources_ids_notes[item.id] || ''
+				returnValue.notes = resourcesIdsNotes[item.id] || ''
 				returnValue.inprogress = inProgressResources.includes(item.id)
 				returnValue.creator =
 					userDetails[item.user_id] && userDetails[item.user_id].name ? userDetails[item.user_id].name : ''
@@ -563,6 +590,13 @@ module.exports = class resourceHelper {
 		}
 	}
 
+	// this function fetches review levels from the reviews table for
+	// an organization, roles and resouce type and returns this as an object
+	// Ex : this function returns
+	// {
+	// 	project : 1,
+	// 	observation : 4
+	// }
 	static async fetchResourceReviewLevel(organization_id, userRoleTitles, resourceTypeList) {
 		// fetch review levels according to roles in the organization
 		const reviewLevelDetails = await reviewStagesQueries.findAll(
@@ -586,7 +620,7 @@ module.exports = class resourceHelper {
 
 		return resourceWiseLevels || {}
 	}
-
+	// fetch the resources types of an organization
 	static async fetchResourceReviewTypes(organization_id) {
 		try {
 			// Fetch organization-based configurations for resources
@@ -598,15 +632,16 @@ module.exports = class resourceHelper {
 				return acc
 			}, {})
 
-			// Extract resource types set as sequential review in the organization
-			const resourceTypesInSequentialReview = Object.keys(resourceWiseReviewType).filter(
-				(key) => resourceWiseReviewType[key] === common.REVIEW_TYPE_SEQUENTIAL
-			)
+			let resourceTypesInSequentialReview = []
+			let resourceTypesInParallelReview = []
 
-			// Extract resource types set as parallel review in the organization
-			const resourceTypesInParallelReview = Object.keys(resourceWiseReviewType).filter(
-				(key) => resourceWiseReviewType[key] === common.REVIEW_TYPE_PARALLEL
-			)
+			for (const [key, value] of Object.entries(resourceWiseReviewType)) {
+				if (value === common.REVIEW_TYPE_SEQUENTIAL) {
+					resourceTypesInSequentialReview.push(key)
+				} else if (value === common.REVIEW_TYPE_PARALLEL) {
+					resourceTypesInParallelReview.push(key)
+				}
+			}
 
 			// Return the categorized resource types
 			return {

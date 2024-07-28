@@ -472,7 +472,7 @@ const convertToString = (value) => {
 	return value.toString()
 }
 
-const returnUnique = (array) => {
+const getUniqueElements = (array) => {
 	return [...new Set([...array])]
 }
 
@@ -503,5 +503,5 @@ module.exports = {
 	checkEntities,
 	validateRoleAccess,
 	convertToString,
-	returnUnique,
+	getUniqueElements,
 }
