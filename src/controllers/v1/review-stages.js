@@ -1,15 +1,15 @@
 /**
- * name : organization-extensions.js
+ * name : review-stages.js
  * author : Priyanka Pradeep
- * created-date : 18-June-2024
- * Description : Controller for organization details.
+ * created-date : 29-July-2024
+ * Description : Controller for review stage details.
  */
 
 const reviewStagesService = require('@services/review-stages')
 const common = require('@constants/common')
 const utils = require('@generics/utils')
 
-module.exports = class orgExtensions {
+module.exports = class reviewStages {
 	/**
 	 * update review stage
 	 * @method

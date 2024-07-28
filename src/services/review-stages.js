@@ -3,13 +3,13 @@ const httpStatusCode = require('@generics/http-status')
 const reviewStageQueries = require('@database/queries/reviewStage')
 const responses = require('@helpers/responses')
 
-module.exports = class orgExtensionsHelper {
+module.exports = class reviewStagesHelper {
 	/**
 	 * update review stage
 	 * @method
 	 * @name update
-	 * @param {Object} bodyData - Organization Config body data.
-	 * @returns {JSON} - Organization Config created response.
+	 * @param {Object} bodyData - review stage body data.
+	 * @returns {JSON} - update review stage response.
 	 */
 
 	static async update(id, bodyData, organization_id) {
