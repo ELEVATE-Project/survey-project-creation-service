@@ -423,7 +423,9 @@ module.exports = class ProjectsHelper {
 
 	static async reviewerList(user_id, organization_id, pageNo, limit) {
 		try {
-			let reviewers = await userRequests.list(common.REVIEWER, pageNo, limit, '', organization_id)
+			let reviewers = await userRequests.list(common.REVIEWER, pageNo, limit, '', organization_id, {
+				excluded_user_ids: [user_id],
+			})
 			let userList = []
 
 			if (reviewers.success) {
@@ -686,6 +688,7 @@ module.exports = class ProjectsHelper {
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
 				const orgReviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
 					user_ids: bodyData.reviewer_ids,
+					excluded_user_ids: [userDetails.id],
 				})
 				let orgReviewerIds = []
 				if (orgReviewers.success && orgReviewers.data.result.data.length > 0) {
