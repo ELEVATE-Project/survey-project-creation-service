@@ -19,7 +19,6 @@ const _ = require('lodash')
 const { Op, Utils } = require('sequelize')
 const utils = require('@generics/utils')
 const axios = require('axios')
-const utils = require('@generics/utils')
 const filesService = require('@services/files')
 
 module.exports = class resourceHelper {
@@ -365,7 +364,7 @@ module.exports = class resourceHelper {
 		try {
 			// get user details from token
 			const user_id = tokenDetails.id
-			const organization_id = tokenDetails
+			const organization_id = tokenDetails.organization_id
 			const roles = tokenDetails.roles
 
 			let result = {
@@ -551,7 +550,17 @@ module.exports = class resourceHelper {
 
 			const response = await resourceQueries.resourceList(
 				resourceFilter,
-				['id', 'title', 'type', 'organization_id', 'status', 'user_id', 'submitted_on', 'last_reviewed_on'],
+				[
+					'id',
+					'title',
+					'type',
+					'organization_id',
+					'status',
+					'user_id',
+					'submitted_on',
+					'last_reviewed_on',
+					'created_at',
+				],
 				sort,
 				page,
 				limit
@@ -630,7 +639,7 @@ module.exports = class resourceHelper {
 			const configList = await configs.list(organization_id)
 
 			// Map resource types to their review types
-			const resourceWiseReviewType = configList.result.reduce((acc, item) => {
+			const resourceWiseReviewType = configList.result.resource.reduce((acc, item) => {
 				acc[item.resource_type] = item.review_type
 				return acc
 			}, {})
