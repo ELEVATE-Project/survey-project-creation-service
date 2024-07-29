@@ -381,51 +381,18 @@ module.exports = class resourceHelper {
 			let resourceIdsToBeRemoved = []
 			let resourcesIdsNotes = {}
 			let inProgressResources = []
+			let uniqueOrganizationIds = []
 
-			// fetch the resources types of an organization
-			const { sequential: resourceTypesInSequentialReview, parallel: resourceTypesInParallelReview } =
-				await this.fetchResourceReviewTypes(organization_id)
-
-			// get unique user roles
-			const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
-
-			// get all the resource types irrespective of review type
-			let all_resource_types = [...resourceTypesInSequentialReview, ...resourceTypesInParallelReview]
-
-			// check if types filter is applied
-			if (common.TYPE in queryParams && queryParams[common.TYPE]) {
-				// remove all the other types if type filter is applied
-				all_resource_types = [queryParams[common.TYPE]]
-			}
-
-			if (resourceTypesInSequentialReview.length > 0) {
-				// fetch the resource wise review levels
-				const resourceWiseLevels = await this.fetchResourceReviewLevel(
-					organization_id,
-					userRoleTitles,
-					all_resource_types
-				)
-			}
-			let uniqueResourceIds = []
-			let uniqueOrganizationIds = [organization_id] //initialize current org id
-
-			// check review resources and find all resources under the reviewer name.
-			const reviewResources = await reviewResourcesQueries.findAll(
+			// check review resources and find all resources and org for the reviewer name.
+			const fetchReviewResourceDetails = await reviewResourcesQueries.findAll(
 				{
 					reviewer_id: user_id,
 				},
 				['resource_id', 'organization_id']
 			)
-
-			if (reviewResources.length > 0) {
-				// get the unique organization ids from reviewResources table by the reviewer
-				uniqueOrganizationIds = utils.getUniqueElements([
-					...uniqueOrganizationIds,
-					...reviewResources.map((item) => item.organization_id),
-				])
-			}
-			let reviewsFilter = {}
-			let reviewsResponse = {}
+			uniqueOrganizationIds = utils.getUniqueElements(
+				fetchReviewResourceDetails.map((item) => item.organization_id)
+			)
 
 			const findAndCount = await reviewsQueries.countDistinct(
 				{
@@ -442,102 +409,54 @@ module.exports = class resourceHelper {
 			inProgressResources = utils.getUniqueElements(findAndCount.resource_ids)
 
 			if (common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS) {
-				const inprogressReviewsResponse = await this.fetchReviewersInprogressResources(
-					user_id,
-					uniqueOrganizationIds
-				)
-
-				if (inprogressReviewsResponse.length > 0) {
-					// get the unique organization ids from reviews table by the reviewer
-					uniqueOrganizationIds = utils.getUniqueElements(
-						inprogressReviewsResponse.map((item) => item.organization_id)
-					)
-
-					// get the unique resource ids from reviews table by the reviewer
-					uniqueResourceIds = utils.getUniqueElements(
-						inprogressReviewsResponse.map((item) => item.resource_id)
-					)
-					finalResourceIds = utils.getUniqueElements(uniqueResourceIds)
-				}
+				finalResourceIds = inProgressResources
 			} else {
-				reviewsFilter = {
-					reviewer_id: user_id,
-					organization_id: { [Op.in]: uniqueOrganizationIds },
-					status: { [Op.in]: common.PAGE_STATUS_VALUES.up_for_review },
+				// fetch the resources types of an organization
+				let { sequential: resourceTypesInSequentialReview, parallel: resourceTypesInParallelReview } =
+					await this.fetchResourceReviewTypes(organization_id)
+
+				if (common.TYPE in queryParams && queryParams[common.TYPE]) {
+					resourceTypesInSequentialReview = [queryParams[common.TYPE]]
+					resourceTypesInParallelReview = [queryParams[common.TYPE]]
 				}
 
-				reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id', 'organization_id'])
-
-				if (reviewsResponse.length > 0) {
-					for (const item of reviewsResponse) {
-						uniqueOrganizationIdsSet.add(item.organization_id)
-						uniqueResourceIdsSet.add(item.resource_id)
-					}
-					// get the unique organization ids from reviews table by the reviewer
-					uniqueOrganizationIdsSet = utils.getUniqueElements(uniqueOrganizationIdsSet)
-					// get the unique resource ids from reviews table by the reviewer
-					uniqueResourceIdsSet = utils.getUniqueElements(uniqueResourceIdsSet)
-				}
-
-				// fetch all submitted and inreview resources from my orgs
-				let allSequentialResourcesFromOrg = []
-				let openToAllResourcesMatchingMyLevel = []
 				if (resourceTypesInSequentialReview.length > 0) {
-					allSequentialResourcesFromOrg = await resourceQueries.findAll(
-						{
-							organization_id,
-							type: { [Op.in]: resourceTypesInSequentialReview },
-							status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
-						},
-						['id', 'type', 'next_stage']
-					)
-
-					openToAllResourcesMatchingMyLevel = allSequentialResourcesFromOrg.map((item) => {
-						if (item.next_stage === resourceWiseLevels[item.type]) return item.id
-					})
-				}
-
-				const allParallelResourcesFromOrg = await resourceQueries.findAll(
-					{
+					// fetch all sequential resource ids from org
+					const sequentialResourcesIds = await this.findSequentialResources(
 						organization_id,
-						type: { [Op.in]: _.difference(resourceTypesInParallelReview, allSequentialResourcesFromOrg) },
-						status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
-					},
-					['id']
-				)
+						roles,
+						resourceTypesInSequentialReview
+					)
+					finalResourceIds = [...finalResourceIds, ...sequentialResourcesIds]
 
-				const allParallelResourceIdsFromOrg = allParallelResourcesFromOrg.map((item) => item.id)
-
-				// remove all the resouces in sequential review picked up by another reviewer
-				reviewsFilter = {
-					reviewer_id: { [Op.notIn]: [user_id] },
-					status: {
-						[Op.in]: [
-							common.REVIEW_STATUS_INPROGRESS,
-							common.REVIEW_STATUS_CHANGES_UPDATED,
-							common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
-						],
-					},
-					resource_id: { [Op.in]: openToAllResourcesMatchingMyLevel },
+					// fetch all resource ids assigned to another reviewer or reviewing by another reviewer
+					resourceIdsToBeRemoved = await this.findResourcesPickedUpByAnotherReviewer(
+						user_id,
+						finalResourceIds
+					)
 				}
-				reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
 
-				// push resource ids to resourceIdsToBeRemoved array
-				resourceIdsToBeRemoved = reviewsResponse.map((item) => item.resource_id)
+				if (resourceTypesInParallelReview.length > 0) {
+					// fetch all parallel resource ids from org
+					const parallelResourcesIds = await this.findParallelResources(
+						organization_id,
+						resourceTypesInParallelReview
+					)
+					finalResourceIds = [...finalResourceIds, ...parallelResourcesIds]
+				}
+
+				const assignedToMe = await this.findResourcesAssignedToReviewer(uniqueOrganizationIds, user_id)
+				finalResourceIds = [...finalResourceIds, ...assignedToMe]
 
 				finalResourceIds = _.difference(
-					utils.getUniqueElements([
-						...uniqueResourceIds,
-						...openToAllResourcesMatchingMyLevel,
-						...allParallelResourceIdsFromOrg,
-					]),
-					resourceIdsToBeRemoved
+					utils.getUniqueElements(finalResourceIds),
+					utils.getUniqueElements(resourceIdsToBeRemoved)
 				)
 			}
 
 			const resourceFilter = {
 				id: { [Op.in]: finalResourceIds },
-				organization_id,
+				organization_id: { [Op.in]: uniqueOrganizationIds },
 			}
 			if (searchText != '')
 				resourceFilter.title = {
@@ -565,9 +484,12 @@ module.exports = class resourceHelper {
 				page,
 				limit
 			)
-			const uniqueCreatorIds = response.result.map((item) => {
-				return item.user_id
-			})
+
+			const uniqueCreatorIds = utils.getUniqueElements(
+				response.result.map((item) => {
+					return item.user_id
+				})
+			)
 
 			const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
 			const orgDetails = await this.fetchOrganizationDetails(uniqueOrganizationIds)
@@ -581,7 +503,9 @@ module.exports = class resourceHelper {
 			result.data = response.result.map((item) => {
 				let returnValue = item
 				returnValue.notes = resourcesIdsNotes[item.id] || ''
-				returnValue.inprogress = inProgressResources.includes(item.id)
+				if (inProgressResources.includes(item.id)) {
+					returnValue.reviewer_status = common.REVIEW_STATUS_INPROGRESS
+				}
 				returnValue.creator =
 					userDetails[item.user_id] && userDetails[item.user_id].name ? userDetails[item.user_id].name : ''
 				returnValue.organization = orgDetails[item.organization_id]
@@ -600,6 +524,88 @@ module.exports = class resourceHelper {
 		} catch (error) {
 			throw error
 		}
+	}
+
+	static async findSequentialResources(organization_id, roles, resourceTypesInSequentialReview = []) {
+		// get unique user roles
+		const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
+
+		// fetch the resource wise review levels
+		const resourceWiseLevels = await this.fetchResourceReviewLevel(
+			organization_id,
+			userRoleTitles,
+			resourceTypesInSequentialReview
+		)
+		let innerArr = []
+		resourceTypesInSequentialReview.filter((item) => {
+			if (resourceWiseLevels[item]) {
+				innerArr.push({
+					[Op.and]: [{ type: item }, { next_stage: resourceWiseLevels[item] }],
+				})
+			}
+		})
+		const resourceFilter = {
+			[Op.or]: innerArr,
+			organization_id,
+			review_type: common.REVIEW_TYPE_SEQUENTIAL,
+			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
+		}
+		const resourcesDetails = await resourceQueries.resourceList(resourceFilter, ['id'])
+		const resoureId = resourcesDetails.result.map((item) => {
+			return item.id
+		})
+		return resoureId
+	}
+
+	static async findParallelResources(organization_id, resourceTypesInParallelReview = []) {
+		const resourceFilter = {
+			type: {
+				[Op.in]: resourceTypesInParallelReview,
+			},
+			organization_id,
+			review_type: common.REVIEW_TYPE_PARALLEL,
+			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
+		}
+		const resourcesDetails = await resourceQueries.resourceList(resourceFilter, ['id'])
+		const resoureId = resourcesDetails.result.map((item) => {
+			return item.id
+		})
+		return resoureId
+	}
+	// fetch all the resource ids from reviews table which is assigned to the reviewer
+	//  and already started reviewer
+	static async findResourcesAssignedToReviewer(organization_ids, reviewer_id) {
+		const reviewsFilter = {
+			reviewer_id,
+			organization_id: { [Op.in]: organization_ids },
+			status: { [Op.in]: common.PAGE_STATUS_VALUES.up_for_review },
+		}
+
+		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
+		const res = reviewsResponse.map((item) => {
+			return item.resource_id
+		})
+		return res
+	}
+
+	static async findResourcesPickedUpByAnotherReviewer(reviewerId, openToAllResourcesMatchingMyLevel) {
+		// remove all the resouces in sequential review picked up by another reviewer
+		const reviewsFilter = {
+			reviewer_id: { [Op.notIn]: [reviewerId] },
+			status: {
+				[Op.in]: [
+					common.REVIEW_STATUS_INPROGRESS,
+					common.REVIEW_STATUS_CHANGES_UPDATED,
+					common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+				],
+			},
+			resource_id: { [Op.in]: openToAllResourcesMatchingMyLevel },
+		}
+		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
+
+		// push resource ids to resourceIdsToBeRemoved array
+		const resourceIdsToBeRemoved = reviewsResponse.map((item) => item.resource_id)
+		return resourceIdsToBeRemoved
 	}
 
 	// this function fetches review levels from the reviews table for
