@@ -35,8 +35,8 @@ module.exports = class Resource {
 	async upForReview(req) {
 		try {
 			const resource = await resourceService.upForReview(
-				req.decodedToken,
 				req.query,
+				req.decodedToken,
 				req.searchText,
 				req.pageNo,
 				req.pageSize

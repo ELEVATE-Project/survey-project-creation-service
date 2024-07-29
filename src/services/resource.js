@@ -360,7 +360,7 @@ module.exports = class resourceHelper {
 		}
 	}
 
-	static async upForReview(tokenDetails, queryParams, searchText = '', page, limit) {
+	static async upForReview(queryParams, tokenDetails, searchText = '', page, limit) {
 		try {
 			// get user details from token
 			const user_id = tokenDetails.id
