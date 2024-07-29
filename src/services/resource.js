@@ -16,7 +16,7 @@ const common = require('@constants/common')
 const userRequests = require('@requests/user')
 const configs = require('@services/config')
 const _ = require('lodash')
-const { Op, Utils } = require('sequelize')
+const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const axios = require('axios')
 const filesService = require('@services/files')
@@ -43,10 +43,10 @@ module.exports = class resourceHelper {
 				organization_id,
 			}
 			let uniqueInReviewResourcesIds = []
-			let reviewer_notes = {}
-			let in_progress_resource_ids = {}
-			let rejected_resource_ids = {}
-			let rejected_and_resported_resource_ids = {}
+			let reviewer_notes = []
+			let in_progress_resource_ids = []
+			let rejected_resource_ids = []
+			let rejected_and_resported_resource_ids = []
 			let showNotes = false
 			// fetch the details of resource and organization from resource creator mapping table by the user
 			const resource_creator_mapping_data = await resourceCreatorMappingQueries.findAll({ creator_id: user_id }, [
@@ -62,9 +62,7 @@ module.exports = class resourceHelper {
 				})
 			}
 			// get the unique resource ids from resource creator mapping table by the user
-			const uniqueResourceIds = utils.getUniqueElements(
-				resource_creator_mapping_data.map((item) => item.resource_id)
-			)
+			const uniqueResourceIds = resource_creator_mapping_data.map((item) => item.resource_id)
 
 			// get the unique organization ids from resource creator mapping table by the user
 			const OrganizationIds = utils.getUniqueElements(
@@ -416,8 +414,8 @@ module.exports = class resourceHelper {
 					await this.fetchResourceReviewTypes(organization_id)
 
 				if (common.TYPE in queryParams && queryParams[common.TYPE]) {
-					resourceTypesInSequentialReview = [queryParams[common.TYPE]]
-					resourceTypesInParallelReview = [queryParams[common.TYPE]]
+					resourceTypesInSequentialReview = queryParams[common.TYPE].split(',')
+					resourceTypesInParallelReview = queryParams[common.TYPE].split(',')
 				}
 
 				if (resourceTypesInSequentialReview.length > 0) {
@@ -464,7 +462,7 @@ module.exports = class resourceHelper {
 				}
 
 			if (common.TYPE in queryParams && queryParams[common.TYPE]) {
-				resourceFilter.type = queryParams[common.TYPE]
+				resourceFilter.type = queryParams[common.TYPE].split(',')
 			}
 
 			const response = await resourceQueries.resourceList(

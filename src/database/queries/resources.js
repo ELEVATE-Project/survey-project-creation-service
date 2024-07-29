@@ -76,13 +76,9 @@ exports.resourceList = async (
 			order,
 			raw: true,
 		}
+		if (limit) resourceFilter.limit = limit
+		if (page) resourceFilter.offset = limit * (page - 1)
 
-		if (limit || page) {
-			if (!limit) limit = common.LIMIT
-			if (!page) page = common.PAGE
-			resourceFilter.limit = limit
-			resourceFilter.offset = limit * (page - 1)
-		}
 		const res = await Resource.findAndCountAll(resourceFilter)
 
 		return { result: res.rows, count: res.count }
