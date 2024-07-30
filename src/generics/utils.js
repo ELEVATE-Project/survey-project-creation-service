@@ -412,8 +412,8 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 	return Array.from(certificateMap.values())
 }
 
-const errorObject = (params, filed) => {
-	return [{ location: params, param: filed, msg: filed + ' field is empty' }]
+const errorObject = (params, filed, msg) => {
+	return [{ location: params, param: filed, msg }]
 }
 const checkRegexPattern = (entityType, entityData) => {
 	try {
@@ -477,6 +477,11 @@ const convertToInteger = (value) => {
 	return isNaN(value) ? false : parseInt(value, 10)
 }
 
+const compareLength = (value1, value2) => {
+	const returnValue = value1 === value2 ? 0 : value1 > value2 ? -1 : 1
+	return returnValue
+}
+
 const isLabelValuePair = (item) => {
 	return Array.isArray(item)
 		? item.every((subItem) => subItem && typeof subItem === 'object' && 'label' in subItem && 'value' in subItem)
@@ -510,6 +515,7 @@ module.exports = {
 	checkEntities,
 	validateRoleAccess,
 	convertToString,
+	compareLength,
 	isLabelValuePair,
 	convertToInteger,
 }
