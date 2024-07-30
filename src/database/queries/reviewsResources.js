@@ -14,15 +14,3 @@ exports.findAll = async (filter, attributes = {}) => {
 		return error
 	}
 }
-exports.countDistinct = async (filter, attributes = {}) => {
-	try {
-		const res = await ReviewResource.count({
-			where: filter,
-			distinct: true,
-		})
-
-		return res
-	} catch (error) {
-		return error
-	}
-}

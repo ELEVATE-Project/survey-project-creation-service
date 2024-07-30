@@ -1,11 +1,13 @@
 'use strict'
 const reviews = require('../models/index').Review
+const { fn, col } = require('sequelize')
 
-exports.findAll = async (filter, attributes = {}) => {
+exports.findAll = async (filter, attributes = {}, options = {}) => {
 	try {
 		const res = await reviews.findAll({
 			where: filter,
 			attributes,
+			...options,
 			raw: true,
 		})
 
@@ -15,23 +17,23 @@ exports.findAll = async (filter, attributes = {}) => {
 	}
 }
 
-exports.countDistinct = async (filter, attributes = ['resource_id']) => {
+exports.countDistinct = async (filter, attributes) => {
 	try {
-		const res = await reviews.findAndCountAll({
+		const res = await reviews.findAll({
 			where: filter,
-			attributes: attributes, // Select the specified attributes, defaulting to 'resource_id'
-			distinct: true, // Ensure distinct results
+			attributes: [[fn('COUNT', fn('DISTINCT', col('status'))), 'distinctCount'], ...attributes],
+			group: ['resource_id'],
+			raw: true,
 		})
 
-		// Extract unique resource IDs
-		const uniqueResourceIds = res.rows.map((row) => row.resource_id)
+		// Extract the distinct count from the result
+		const distinctCount = res.length > 0 ? res.length : 0
 
 		return {
-			count: res.count,
-			resource_ids: uniqueResourceIds,
+			count: distinctCount,
+			resource_ids: res.map((row) => row.resource_id),
 		}
 	} catch (error) {
-		console.error('Error in countDistinct:', error)
 		return error
 	}
 }
