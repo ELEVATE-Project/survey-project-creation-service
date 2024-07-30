@@ -27,4 +27,13 @@ module.exports = {
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
 	},
+	submitForReview: (req) => {
+		req.checkParams('id')
+			.trim()
+			.optional()
+			.notEmpty()
+			.withMessage('id param is empty')
+			.isNumeric()
+			.withMessage('id param is invalid, must be an integer')
+	},
 }

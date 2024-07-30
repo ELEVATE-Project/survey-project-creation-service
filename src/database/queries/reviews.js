@@ -17,7 +17,7 @@ exports.findAll = async (filter, attributes = {}, options = {}) => {
 	}
 }
 
-exports.countDistinct = async (filter, attributes) => {
+exports.distinctResources = async (filter, attributes) => {
 	try {
 		const res = await reviews.findAll({
 			where: filter,
@@ -26,11 +26,8 @@ exports.countDistinct = async (filter, attributes) => {
 			raw: true,
 		})
 
-		// Extract the distinct count from the result
-		const distinctCount = res.length > 0 ? res.length : 0
-
 		return {
-			count: distinctCount,
+			count: res.length,
 			resource_ids: res.map((row) => row.resource_id),
 		}
 	} catch (error) {
