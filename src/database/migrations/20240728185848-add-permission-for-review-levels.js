@@ -37,7 +37,7 @@ module.exports = {
 			{
 				code: 'review_stages_permissions',
 				module: 'review-stages',
-				request_type: ['POST', 'GET'],
+				request_type: ['PUT', 'GET'],
 				api_path: '/scp/v1/review-stages/update',
 				status: 'ACTIVE',
 				created_at: new Date(),
@@ -51,7 +51,7 @@ module.exports = {
 		const rolePermissionsData = [
 			{
 				role_title: common.ADMIN_ROLE,
-				permission_id: await getPermissionId('review-stages', ['POST', 'GET'], '/scp/v1/review-stages/*'),
+				permission_id: await getPermissionId('review-stages', ['PUT', 'GET'], '/scp/v1/review-stages/*'),
 				module: 'review-stages',
 				request_type: ['PUT', 'GET'],
 				api_path: '/scp/v1/review-stages/*',
@@ -61,7 +61,7 @@ module.exports = {
 			},
 			{
 				role_title: common.ORG_ADMIN_ROLE,
-				permission_id: await getPermissionId('review-stages', ['POST', 'GET'], '/scp/v1/review-stages/*'),
+				permission_id: await getPermissionId('review-stages', ['PUT', 'GET'], '/scp/v1/review-stages/*'),
 				module: 'review-stages',
 				request_type: ['PUT', 'GET'],
 				api_path: '/scp/v1/review-stages/*',
