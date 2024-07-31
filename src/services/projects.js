@@ -826,7 +826,6 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			// await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
 			//validate the reviewer
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
 				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
@@ -860,6 +859,8 @@ module.exports = class ProjectsHelper {
 
 				await reviewsQueries.bulkCreate(reviewsData)
 			}
+
+			await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
