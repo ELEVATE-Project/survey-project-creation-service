@@ -24,8 +24,18 @@ const filesService = require('@services/files')
 module.exports = class resourceHelper {
 	/**
 	 * List resources of each users
-	 * @method
+	 * Description : This is a creator centric API which will return the list of all Drafts / Submitted for review based on page_status value
+	 * @method GET
 	 * @name list
+	 * @params page_status (mandatory) - can have values drafts , submitted_for_review to understand which page in UI is accessing the API
+	 * 		   type (optional) - <string> Type of the resource. Ex : Projects , Observations etc...
+	 * 		   search (optional) - <string> Partial search of the resource with title.
+	 * 		   status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
+	 * 		   sort_by (optional) - <string> Column name where we should apply sort. By default it will be created_at
+	 * 		   sort_order (optional) - <string> Order of the sort operation asc / desc . by default desc
+	 * 		   page (optional) - <integer> Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * 		   limit (optional) - <integer> Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
+	 *
 	 * @returns {JSON} - List of resources
 	 */
 
@@ -326,6 +336,23 @@ module.exports = class resourceHelper {
 		}
 	}
 
+	/**
+	 * List up for review resources of reviewers
+	 * Description : This is a reviewer centric API which will return the list of all the resources which the reviewer can review.
+	 * 				 The list will contain all the resources the user is already reviewing  , resources which are assigned to the reviewer ,
+	 * 				 sequential resources which are open to all and matching to the reviewers role level and open to all parallel review resources.
+	 * @method GET
+	 * @name upForReview
+	 * @params type (optional) - <string> Type of the resource. Ex : Projects , Observations etc...
+	 * 		   search (optional) - <string> Partial search of the resource with title.
+	 * 		   status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
+	 * 		   sort_by (optional) - <string> Column name where we should apply sort. By default it will be created_at
+	 * 		   sort_order (optional) - <string> Order of the sort operation asc / desc . by default desc
+	 * 		   page (optional) - <integer> Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * 		   limit (optional) - <integer> Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
+	 *
+	 * @returns {JSON} - List of up for review resources
+	 */
 	static async upForReview(queryParams, tokenDetails, searchText = '', page, limit) {
 		try {
 			// get user details from token
