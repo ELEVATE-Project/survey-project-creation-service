@@ -7,6 +7,7 @@
 
 // Dependencies
 const resourceService = require('@services/resource')
+const common = require('@constants/common')
 
 module.exports = class Resource {
 	/**
@@ -19,14 +20,32 @@ module.exports = class Resource {
 
 	async list(req) {
 		try {
-			const project = await resourceService.list(
-				req.decodedToken.id,
-				req.decodedToken.organization_id,
-				req.query,
-				req.searchText,
-				req.pageNo,
-				req.pageSize
-			)
+			let project = {}
+			if (req.query[common.PAGE_STATUS] === common.PAGE_STATUS_DRAFTS) {
+				project = await resourceService.draftsList(
+					req.decodedToken.id,
+					req.query,
+					req.searchText,
+					req.pageNo,
+					req.pageSize
+				)
+			} else if (req.query[common.PAGE_STATUS] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW) {
+				project = await resourceService.submittedForReviewList(
+					req.decodedToken.id,
+					req.query,
+					req.searchText,
+					req.pageNo,
+					req.pageSize
+				)
+			}
+			// const project = await resourceService.list(
+			// 	req.decodedToken.id,
+			// 	req.decodedToken.organization_id,
+			// 	req.query,
+			// 	req.searchText,
+			// 	req.pageNo,
+			// 	req.pageSize
+			// )
 			return project
 		} catch (error) {
 			return error
