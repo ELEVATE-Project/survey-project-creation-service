@@ -417,7 +417,7 @@ const errorObject = (params, filed, msg) => {
 }
 const checkRegexPattern = (entityType, entityData) => {
 	try {
-		let normalizedValue = unidecode(entityData)
+		let normalizedValue = typeof entityData === common.DATA_TYPE_NUMBER ? entityData : unidecode(entityData)
 		let regex = new RegExp(entityType.validations.regex)
 		return regex.test(normalizedValue)
 	} catch (error) {
@@ -449,7 +449,7 @@ const checkEntities = (entityType, entityData) => {
 			const invalidEntities = entityData.filter((entities) => !validEntities.includes(entities.value))
 
 			if (invalidEntities.length > 0) {
-				return { message: `${entityType.value} contains invalid entities`, status: false }
+				return { message: `${entityType.value} is invalid`, status: false }
 			}
 		}
 		return { status: true }

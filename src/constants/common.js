@@ -119,4 +119,8 @@ module.exports = {
 		videos: ['mp4', '3gp', 'm4v', 'mov', 'mkv', 'mpeg', 'ogg', 'webm', '3gpp', 'wmv', 'avi', 'flv'],
 		audio: ['mp3', 'mp4', 'acc', 'flac', 'wav', 'midi', 'aiff'],
 	},
+	MAX_CHARACTER_LIMIT: 'max_char_limit',
+	DATA_TYPE_NUMBER: 'number',
+	SUB_TASK: 'subtask',
+	MIN_NO_OF_EVIDENCES: 'min_no_of_evidences',
 }

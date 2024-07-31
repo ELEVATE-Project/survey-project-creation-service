@@ -3,7 +3,7 @@
 module.exports = {
 	async up(queryInterface, Sequelize) {
 		// as per the discussion with products , all text field length is set to 256 and text-area tp 2000
-		const char_length_map = {
+		const fieldCharLimits = {
 			title: 256,
 			description: 2000,
 			learning_resources: 256,
@@ -19,34 +19,37 @@ module.exports = {
 		for (const row of results) {
 			const currentValidations = row.validations ? row.validations : {}
 
-			// // Add max_length validation
+			// Add max_char_limit validation
 			let updatedValidations = {
 				...currentValidations,
-				max_length: char_length_map[row.value],
+				max_char_limit: fieldCharLimits[row.value],
 			}
-			if (row.value === 'learning_resources') {
+			if (row.value === 'learning_resources' || row.value === 'keywords') {
 				updatedValidations.required = false
 			}
-
-			await queryInterface.bulkUpdate(
-				'entity_types',
-				{ validations: JSON.stringify(updatedValidations) },
-				{ id: row.id }
-			)
+			try {
+				await queryInterface.bulkUpdate(
+					'entity_types',
+					{ validations: JSON.stringify(updatedValidations) },
+					{ id: row.id }
+				)
+			} catch (error) {
+				console.log(error, 'error')
+			}
 		}
 	},
 
 	async down(queryInterface, Sequelize) {
-		// Revert the validations to remove the max_length field for rows with value = 'title'
+		// Revert the validations to remove the max_char_limit field
 		const [results] = await queryInterface.sequelize.query(
-			`SELECT id, validations FROM entity_types WHERE value IN ('title','description','learning_resources');`
+			`SELECT id, validations FROM entity_types WHERE value IN ('title', 'description', 'learning_resources', 'objective', 'keywords');`
 		)
 
 		for (const row of results) {
 			const currentValidations = row.validations ? row.validations : {}
 
-			// Remove max_length validation
-			const { max_length, ...restValidations } = currentValidations
+			// Remove max_char_limit validation
+			const { max_char_limit, ...restValidations } = currentValidations
 
 			await queryInterface.bulkUpdate(
 				'entity_types',

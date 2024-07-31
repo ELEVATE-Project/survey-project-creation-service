@@ -157,6 +157,11 @@ let enviromentVariables = {
 		optional: false,
 		default: 256, //256 characters
 	},
+	MAX_NO_OF_EVIDENCE_ALLOWED: {
+		message: 'Max number of evidences allowed is required',
+		optional: false,
+		default: 10,
+	},
 }
 
 let success = true

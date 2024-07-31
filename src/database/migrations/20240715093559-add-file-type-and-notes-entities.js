@@ -18,7 +18,7 @@ module.exports = {
 				],
 				has_entities: true,
 				validation: { required: false },
-				model: 'subTasks',
+				model: 'tasks',
 			},
 			{
 				entityType: 'notes',
@@ -29,6 +29,7 @@ module.exports = {
 			},
 		]
 
+		//add entity type details
 		const entityTypeFinalArray = entitiesArray.map((entity) => {
 			const { entityType, has_entities, validation, model } = entity
 			return {
@@ -47,12 +48,14 @@ module.exports = {
 				validations: validation ? JSON.stringify(validation) : null,
 			}
 		})
-		await queryInterface.bulkInsert('entity_types', entityTypeFinalArray, {})
+		//create entity type
+		// await queryInterface.bulkInsert('entity_types', entityTypeFinalArray, {})
 
 		const entityTypes = await queryInterface.sequelize.query('SELECT * FROM entity_types', {
 			type: queryInterface.sequelize.QueryTypes.SELECT,
 		})
 
+		//create entity model mapping
 		const entityModelMapping = entitiesArray.map((entity) => {
 			const entityType = entityTypes.find((type) => type.value === entity.entityType)
 			return {
@@ -63,9 +66,10 @@ module.exports = {
 				created_at: new Date(),
 			}
 		})
-
+		console.log(entityModelMapping, 'entityModelMapping')
 		await queryInterface.bulkInsert('entities_model_mapping', entityModelMapping, {})
 
+		//create entities
 		const entitiesFinalArray = entityTypes.reduce((acc, eachType) => {
 			const entityData = entitiesArray.find((entity) => entity.entityType === eachType.value)
 			if (entityData && eachType.has_entities) {
@@ -105,11 +109,14 @@ module.exports = {
 			return item.id
 		})
 
+		//delete entity types
 		await queryInterface.bulkDelete('entity_types', {
 			id: {
 				[Sequelize.Op.in]: entityTypeId,
 			},
 		})
+
+		//delete entities
 		await queryInterface.bulkDelete(
 			'entities',
 			{
@@ -120,77 +127,12 @@ module.exports = {
 			{}
 		)
 
+		//delete model mapping
 		await queryInterface.bulkDelete(
 			'entities_model_mapping',
 			{
 				entity_type_id: {
 					[Sequelize.Op.in]: entityTypeId,
-				},
-			},
-			{}
-		)
-
-		const entityTypeName = await queryInterface.sequelize.query(
-			'SELECT id FROM entity_types WHERE value = :value AND organization_id = :defaultOrgId',
-			{
-				type: queryInterface.sequelize.QueryTypes.SELECT,
-				replacements: { value: 'name', defaultOrgId },
-			}
-		)
-
-		let entityTypeNameId = entityTypeName.map((item) => {
-			return item.id
-		})
-		// remove entity model mapping of learning resource name
-
-		const entities_model_mappingName = await queryInterface.sequelize.query(
-			'SELECT id FROM entities_model_mapping WHERE entity_type_id = :entity_type_id AND model = :model',
-			{
-				type: queryInterface.sequelize.QueryTypes.SELECT,
-				replacements: { entity_type_id: entityTypeNameId, model: 'subTasks' },
-			}
-		)
-		let entities_model_mappingNameId = entities_model_mappingName.map((item) => {
-			return item.id
-		})
-
-		await queryInterface.bulkDelete(
-			'entities_model_mapping',
-			{
-				entity_type_id: {
-					[Sequelize.Op.in]: entities_model_mappingNameId,
-				},
-			},
-			{}
-		)
-		const entityType_learning = await queryInterface.sequelize.query(
-			'SELECT id FROM entity_types WHERE value = :value AND organization_id = :defaultOrgId',
-			{
-				type: queryInterface.sequelize.QueryTypes.SELECT,
-				replacements: { value: 'learning_resources', defaultOrgId },
-			}
-		)
-
-		let entityType_learningId = entityType_learning.map((item) => {
-			return item.id
-		})
-		// remove entity model mapping of learning resource name
-
-		const entities_model_mapping_learning = await queryInterface.sequelize.query(
-			'SELECT id FROM entities_model_mapping WHERE entity_type_id = :entity_type_id AND model = :model',
-			{
-				type: queryInterface.sequelize.QueryTypes.SELECT,
-				replacements: { entity_type_id: entityType_learningId, model: 'projects' },
-			}
-		)
-		let entities_model_mappingLrId = entities_model_mapping_learning.map((item) => {
-			return item.id
-		})
-		await queryInterface.bulkDelete(
-			'entities_model_mapping',
-			{
-				entity_type_id: {
-					[Sequelize.Op.in]: entities_model_mappingLrId,
 				},
 			},
 			{}

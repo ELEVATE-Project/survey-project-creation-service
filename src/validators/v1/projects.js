@@ -18,10 +18,18 @@ module.exports = {
 		if (req.method != common.REQUEST_METHOD_DELETE) {
 			req.checkBody('title').notEmpty().withMessage('title is required')
 		}
-    
+
 		req.checkParams('id')
 			.trim()
 			.optional()
+			.notEmpty()
+			.withMessage('id param is empty')
+			.isNumeric()
+			.withMessage('id param is invalid, must be an integer')
+	},
+	submitForReview: (req) => {
+		req.checkParams('id')
+			.trim()
 			.notEmpty()
 			.withMessage('id param is empty')
 			.isNumeric()
