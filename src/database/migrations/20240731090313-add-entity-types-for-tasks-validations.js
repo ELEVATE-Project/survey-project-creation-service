@@ -9,6 +9,12 @@ module.exports = {
 
 		const entityTypeArray = [
 			{
+				entityType: 'id',
+				has_entities: false,
+				validation: { required: true },
+				model: ['tasks', 'subTasks'],
+			},
+			{
 				entityType: 'type',
 				has_entities: false,
 				validation: { required: true },
@@ -20,13 +26,6 @@ module.exports = {
 				validation: { required: true },
 				model: ['tasks'],
 			},
-			{
-				entityType: 'id',
-				has_entities: false,
-				validation: { required: true },
-				model: ['tasks', 'subTasks'],
-			},
-
 			{
 				entityType: 'parent_id',
 				has_entities: false,

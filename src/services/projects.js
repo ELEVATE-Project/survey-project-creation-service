@@ -538,22 +538,6 @@ module.exports = class ProjectsHelper {
 				return acc
 			}, {})
 
-			//get all entity type validation for file types
-			let allowedFileTypesEntityTypes = await entityTypeQueries.findUserEntityTypeAndEntities(
-				{
-					value: common.TASK_ALLOWED_FILE_TYPES,
-					status: common.STATUS_ACTIVE,
-				},
-				userDetails,
-				['id', 'value', 'has_entities', 'validations']
-			)
-
-			allowedFileTypesEntityTypes =
-				allowedFileTypesEntityTypes.length > 0 ? allowedFileTypesEntityTypes[0] : allowedFileTypesEntityTypes
-			const allowedFileTypesEntities = allowedFileTypesEntityTypes.entities.map((entity) => {
-				return entity.value
-			})
-
 			for (let entityType of entityTypes) {
 				let fieldData = projectData[entityType.value]
 				//check field is required
@@ -669,11 +653,47 @@ module.exports = class ProjectsHelper {
 
 					//validate the entities for task
 					if (taskEntityType.has_entities) {
-						let checkEntities = utils.checkEntities(taskEntityType, fieldData)
+						//validate file type
+						if (task.allow_evidences == common.TRUE && taskEntityType.value === common.FILE_TYPE) {
+							// Check if file types are selected{
+							if (!task.evidence_details.file_types.length) {
+								throw {
+									error: utils.errorObject(common.BODY, common.FILE_TYPE, 'File type not selected'),
+								}
+							}
 
-						if (!checkEntities.status) {
-							throw {
-								error: utils.errorObject(common.TASKS, taskEntityType.value, checkEntities.message),
+							// Validate min_no_of_evidences
+							const minNoOfEvidences = task.evidence_details.min_no_of_evidences
+							if (
+								!minNoOfEvidences ||
+								typeof minNoOfEvidences !== common.DATA_TYPE_NUMBER ||
+								minNoOfEvidences < 1 ||
+								minNoOfEvidences > process.env.MAX_NO_OF_EVIDENCE_ALLOWED
+							) {
+								throw {
+									error: utils.errorObject(
+										common.TASK_EVIDENCE,
+										common.MIN_NO_OF_EVIDENCES,
+										'Please enter a valid number between 1 and ' +
+											process.env.MAX_NO_OF_EVIDENCE_ALLOWED
+									),
+								}
+							}
+
+							// Check for invalid file types
+							let checkEntities = utils.checkEntities(taskEntityType, fieldData)
+							if (!checkEntities.status) {
+								throw {
+									error: utils.errorObject(common.TASKS, taskEntityType.value, checkEntities.message),
+								}
+							}
+						} else {
+							// Validate other entity types
+							let checkEntities = utils.checkEntities(taskEntityType, fieldData)
+							if (!checkEntities.status) {
+								throw {
+									error: utils.errorObject(common.TASKS, taskEntityType.value, checkEntities.message),
+								}
 							}
 						}
 					}
@@ -709,7 +729,7 @@ module.exports = class ProjectsHelper {
 						}
 					}
 
-					// check max character limit exceeded
+					// Check that the character limit does not exceed the maximum limit
 					if (Object.keys(taskEntityType.validations).includes(common.MAX_CHARACTER_LIMIT) && fieldData) {
 						let max_text_length = taskEntityType.validations.max_char_limit
 						let checkLength = utils.compareLength(max_text_length, fieldData.length)
@@ -721,41 +741,6 @@ module.exports = class ProjectsHelper {
 									`Max length value exceeded for task ${taskEntityType.value}`
 								),
 							}
-						}
-					}
-				}
-
-				//validate the task evidences
-				if (task.allow_evidences == common.TRUE) {
-					// Check if file types are selected
-					if (!task.evidence_details.file_types.length) {
-						throw {
-							error: utils.errorObject(common.BODY, common.FILE_TYPE, 'File type not selected'),
-						}
-					} else {
-						// Check for invalid file types
-						let difference = _.difference(task.evidence_details.file_types, allowedFileTypesEntities)
-						if (difference.length > 0) {
-							throw {
-								error: utils.errorObject(common.TASK_EVIDENCE, common.FILE_TYPE, 'Invalid file type'),
-							}
-						}
-					}
-
-					//validate min_no_of_evidences
-					const minNoOfEvidences = task.evidence_details.min_no_of_evidences
-					if (
-						!minNoOfEvidences ||
-						typeof minNoOfEvidences !== common.DATA_TYPE_NUMBER ||
-						minNoOfEvidences < 1 ||
-						minNoOfEvidences > process.env.MAX_NO_OF_EVIDENCE_ALLOWED
-					) {
-						throw {
-							error: utils.errorObject(
-								common.TASK_EVIDENCE,
-								common.MIN_NO_OF_EVIDENCES,
-								'Please enter a valid number between 1 and 10'
-							),
 						}
 					}
 				}
@@ -860,8 +845,8 @@ module.exports = class ProjectsHelper {
 				await reviewsQueries.bulkCreate(reviewsData)
 			}
 
+			//update the resource status to submitted
 			await resourceQueries.updateOne({ id: projectData.id }, { status: common.RESOURCE_STATUS_SUBMITTED })
-
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_SUBMITTED_SUCCESSFULLY',
