@@ -49,7 +49,7 @@ module.exports = {
 			}
 		})
 		//create entity type
-		// await queryInterface.bulkInsert('entity_types', entityTypeFinalArray, {})
+		await queryInterface.bulkInsert('entity_types', entityTypeFinalArray, {})
 
 		const entityTypes = await queryInterface.sequelize.query('SELECT * FROM entity_types', {
 			type: queryInterface.sequelize.QueryTypes.SELECT,

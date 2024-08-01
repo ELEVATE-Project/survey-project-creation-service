@@ -154,13 +154,8 @@ let enviromentVariables = {
 	},
 	MAX_RESOURCE_NOTE_LENGTH: {
 		message: 'Resource note max length is required',
-		optional: false,
-		default: 256, //256 characters
-	},
-	MAX_NO_OF_EVIDENCE_ALLOWED: {
-		message: 'Max number of evidences allowed is required',
 		optional: true,
-		default: 10,
+		default: 256, //256 characters
 	},
 }
 
