@@ -523,7 +523,7 @@ module.exports = class ProjectsHelper {
 					model: common.PROJECT,
 					status: common.STATUS_ACTIVE,
 				},
-				userDetails.organization_id,
+				projectData.organization_id,
 				['id', 'value', 'has_entities', 'validations']
 			)
 
@@ -533,7 +533,7 @@ module.exports = class ProjectsHelper {
 					model: common.TASKS,
 					status: common.STATUS_ACTIVE,
 				},
-				userDetails.organization_id,
+				projectData.organization_id,
 				['id', 'value', 'validations', 'has_entities']
 			)
 
@@ -543,14 +543,11 @@ module.exports = class ProjectsHelper {
 			}, {})
 
 			//validate project data
-			for (let entityType of entityTypes) {
-				let validationResult = await this.validateEntityData(
-					projectData,
-					entityType,
-					common.PROJECT,
-					common.BODY,
-					taskEntityTypesMapping
-				)
+			const projectValidationPromises = entityTypes.map((entityType) =>
+				this.validateEntityData(projectData, entityType, common.PROJECT, common.BODY, taskEntityTypesMapping)
+			)
+			const projectValidationResults = await Promise.all(projectValidationPromises)
+			for (const validationResult of projectValidationResults) {
 				if (validationResult.hasError) {
 					throw {
 						error: validationResult.error,
@@ -575,7 +572,7 @@ module.exports = class ProjectsHelper {
 					model: common.SUBTASKS,
 					status: common.STATUS_ACTIVE,
 				},
-				userDetails.organization_id,
+				projectData.organization_id,
 				['value', 'validations']
 			)
 
@@ -747,7 +744,7 @@ module.exports = class ProjectsHelper {
 						}
 						//validate the name
 						let validateName = utils.checkRegexPattern(entityMapping[common.NAME], eachResource.name)
-						if (validateName) {
+						if (!validateName) {
 							return {
 								hasError: true,
 								error: utils.errorObject(
@@ -775,7 +772,7 @@ module.exports = class ProjectsHelper {
 					}
 				} else {
 					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
-					if (checkRegex) {
+					if (!checkRegex) {
 						return {
 							hasError: true,
 							error: utils.errorObject(

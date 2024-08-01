@@ -417,7 +417,8 @@ const errorObject = (params, filed, msg) => {
 }
 const checkRegexPattern = (entityType, entityData) => {
 	try {
-		let normalizedValue = typeof entityData === common.DATA_TYPE_NUMBER ? entityData : unidecode(entityData)
+		let normalizedValue =
+			typeof entityData === common.DATA_TYPE_NUMBER ? entityData.toString() : unidecode(entityData)
 		if (Array.isArray(entityType.validations.regex)) {
 			for (let pattern of entityType.validations.regex) {
 				let regex = new RegExp(pattern)
@@ -429,7 +430,7 @@ const checkRegexPattern = (entityType, entityData) => {
 		} else {
 			// Handle the case where the regex validation is not an array
 			let regex = new RegExp(entityType.validations.regex)
-			return !regex.test(normalizedValue)
+			return regex.test(normalizedValue)
 		}
 	} catch (error) {
 		return error
@@ -492,11 +493,6 @@ const convertToInteger = (value) => {
 	return isNaN(value) ? false : parseInt(value, 10)
 }
 
-const compareLength = (value1, value2) => {
-	const returnValue = value1 === value2 ? 0 : value1 > value2 ? -1 : 1
-	return returnValue
-}
-
 const isLabelValuePair = (item) => {
 	return Array.isArray(item)
 		? item.every((subItem) => subItem && typeof subItem === 'object' && 'label' in subItem && 'value' in subItem)
@@ -536,7 +532,6 @@ module.exports = {
 	checkEntities,
 	validateRoleAccess,
 	convertToString,
-	compareLength,
 	isLabelValuePair,
 	convertToInteger,
 	validateTitle,

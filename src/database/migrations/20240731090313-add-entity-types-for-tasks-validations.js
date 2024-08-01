@@ -38,12 +38,12 @@ module.exports = {
 				validation: { required: true, regex: '^-?\\d+$' },
 				model: ['tasks', 'subTasks'],
 			},
-			// {
-			// 	entityType: 'min_no_of_evidences',
-			// 	has_entities: false,
-			// 	validation: { required: false, regex: '^(?:1[1-9]|[2-9]\\d|\\d{3,})$' },
-			// 	model: ['tasks'],
-			// },
+			{
+				entityType: 'min_no_of_evidences',
+				has_entities: false,
+				validation: { required: false, regex: '^([1-9]|10)$' },
+				model: ['tasks'],
+			},
 		]
 
 		//add entity type details
