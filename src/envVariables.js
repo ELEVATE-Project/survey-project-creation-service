@@ -154,7 +154,7 @@ let enviromentVariables = {
 	},
 	MAX_RESOURCE_NOTE_LENGTH: {
 		message: 'Resource note max length is required',
-		optional: false,
+		optional: true,
 		default: 256, //256 characters
 	},
 }

@@ -27,17 +27,17 @@ module.exports = class Projects {
 				} else {
 					project = await projectService.update(
 						req.params.id,
-						req.decodedToken.organization_id,
+						req.body,
 						req.decodedToken.id,
-						req.body
+						req.decodedToken.organization_id
 					)
 				}
 				return project
 			} else {
 				const project = await projectService.create(
-					req.decodedToken.organization_id,
+					req.body,
 					req.decodedToken.id,
-					req.body
+					req.decodedToken.organization_id
 				)
 				return project
 			}
@@ -75,6 +75,7 @@ module.exports = class Projects {
 	async reviewerList(req) {
 		try {
 			const reviewerList = await projectService.reviewerList(
+				req.decodedToken.id,
 				req.decodedToken.organization_id,
 				req.pageNo,
 				req.pageSize

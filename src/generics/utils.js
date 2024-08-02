@@ -412,14 +412,26 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 	return Array.from(certificateMap.values())
 }
 
-const errorObject = (params, filed) => {
-	return [{ location: params, param: filed, msg: filed + ' field is empty' }]
+const errorObject = (params, filed, msg) => {
+	return [{ location: params, param: filed, msg }]
 }
 const checkRegexPattern = (entityType, entityData) => {
 	try {
-		let normalizedValue = unidecode(entityData)
-		let regex = new RegExp(entityType.validations.regex)
-		return regex.test(normalizedValue)
+		let normalizedValue =
+			typeof entityData === common.DATA_TYPE_NUMBER ? entityData.toString() : unidecode(entityData)
+		if (Array.isArray(entityType.validations.regex)) {
+			for (let pattern of entityType.validations.regex) {
+				let regex = new RegExp(pattern)
+				if (regex.test(normalizedValue)) {
+					return true
+				}
+			}
+			return false
+		} else {
+			// Handle the case where the regex validation is not an array
+			let regex = new RegExp(entityType.validations.regex)
+			return regex.test(normalizedValue)
+		}
 	} catch (error) {
 		return error
 	}
@@ -427,11 +439,14 @@ const checkRegexPattern = (entityType, entityData) => {
 
 const checkRequired = (entityType, entityData) => {
 	try {
-		if (
-			entityType.validations.required &&
-			(!entityData || (Array.isArray(entityData) && entityData.length === 0))
-		) {
-			return false
+		if (entityType.validations.required) {
+			//validate entityData is boolean
+			if (typeof entityData === common.DATA_TYPE_BOOLEAN) {
+				return true
+			}
+			if (!entityData || (Array.isArray(entityData) && entityData.length === 0)) {
+				return false
+			}
 		}
 		return true
 	} catch (error) {
@@ -442,14 +457,21 @@ const checkRequired = (entityType, entityData) => {
 const checkEntities = (entityType, entityData) => {
 	try {
 		if (entityType.has_entities) {
-			if (!Array.isArray(entityData) && entityData !== null) {
-				entityData = [entityData]
+			if (!Array.isArray(entityData)) {
+				entityData = entityData ? [entityData] : []
 			}
-			const validEntities = entityType.entities.map((e) => e.value)
-			const invalidEntities = entityData.filter((entities) => !validEntities.includes(entities.value))
 
+			entityData = entityData.map((item) => {
+				return typeof item === 'string' ? { value: item } : item
+			})
+
+			const validEntities = entityType.entities.map((e) => e.value)
+			const invalidEntities = entityData.filter((entity) => !validEntities.includes(entity.value))
 			if (invalidEntities.length > 0) {
-				return { message: `${entityType.value} contains invalid entities`, status: false }
+				return {
+					message: entityType.validations.message || `${entityType.value} is invalid`,
+					status: false,
+				}
 			}
 		}
 		return { status: true }
@@ -483,6 +505,12 @@ const isLabelValuePair = (item) => {
 		: typeof item === 'object' && 'label' in item && 'value' in item
 }
 
+const validateTitle = (title) => {
+	// Regex to match titles longer than 256 characters
+	const regex = /^.{257,}$/
+	return regex.test(title)
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -512,4 +540,5 @@ module.exports = {
 	convertToString,
 	isLabelValuePair,
 	convertToInteger,
+	validateTitle,
 }
