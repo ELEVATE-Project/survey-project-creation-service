@@ -35,6 +35,10 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 				primaryKey: true,
 			},
+			notes: {
+				allowNull: true,
+				type: DataTypes.STRING,
+			},
 		},
 		{
 			modelName: 'Review',
@@ -44,7 +48,7 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['resource_id', 'reviewer_id'],
+					fields: ['resource_id', 'reviewer_id', 'organization_id'],
 					name: 'unique_resource_reviewer',
 				},
 			],

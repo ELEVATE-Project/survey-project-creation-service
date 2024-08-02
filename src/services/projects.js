@@ -169,7 +169,7 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const countReviews = await reviewsQueries.countDistinct({
+			const countReviews = await reviewsQueries.distinctResources({
 				id: resourceId,
 				status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
 				organization_id: orgId,
