@@ -439,11 +439,14 @@ const checkRegexPattern = (entityType, entityData) => {
 
 const checkRequired = (entityType, entityData) => {
 	try {
-		if (
-			entityType.validations.required &&
-			(!entityData || (Array.isArray(entityData) && entityData.length === 0))
-		) {
-			return false
+		if (entityType.validations.required) {
+			//validate entityData is boolean
+			if (typeof entityData === common.DATA_TYPE_BOOLEAN) {
+				return true
+			}
+			if (!entityData || (Array.isArray(entityData) && entityData.length === 0)) {
+				return false
+			}
 		}
 		return true
 	} catch (error) {
