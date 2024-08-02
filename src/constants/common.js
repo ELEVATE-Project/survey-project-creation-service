@@ -124,4 +124,5 @@ module.exports = {
 	SUB_TASK: 'subtask',
 	MIN_NO_OF_EVIDENCES: 'min_no_of_evidences',
 	NAME: 'name',
+	DATA_TYPE_BOOLEAN: 'boolean',
 }
