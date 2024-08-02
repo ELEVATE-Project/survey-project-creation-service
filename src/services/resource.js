@@ -27,19 +27,18 @@ module.exports = class resourceHelper {
 	 * List up for submittedForReview
 	 * Description : This is a creator centric API which will return the list of all the resources which are submitted for review.
 	 * @method GET
-	 * @name submittedForReviewList
+	 * @name listAllSubmittedResources
 	 * @params type (optional) - <string> Type of the resource. Ex : Projects , Observations etc...
-	 * 		   search (optional) - <string> Partial search of the resource with title.
-	 * 		   status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
-	 * 		   sort_by (optional) - <string> Column name where we should apply sort. By default it will be created_at
-	 * 		   sort_order (optional) - <string> Order of the sort operation asc / desc . by default desc
-	 * 		   page (optional) - <integer> Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
-	 * 		   limit (optional) - <integer> Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
-	 *
+	 * @params search (optional) - <string> Partial search of the resource with title.
+	 * @params status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
+	 * @params sort_by (optional) - <string> Column name where we should apply sort. By default it will be created_at
+	 * @params sort_order (optional) - <string> Order of the sort operation asc / desc . by default desc
+	 * @params page (optional) - <integer> Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * @params limit (optional) - <integer> Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {JSON} - List of up for review resources
 	 */
 
-	static async submittedForReviewList(loggedInUserId, queryParams, searchText = '', page, limit) {
+	static async listAllSubmittedResources(loggedInUserId, queryParams, searchText = '', page, limit) {
 		let result = {
 			data: [],
 			count: 0,
@@ -204,26 +203,26 @@ module.exports = class resourceHelper {
 		})
 	}
 	/**
-	 * List up for submittedForReview
-	 * Description : This is a creator centric API which will return the list of all the resources which are deaft status.
+	 * List of all draft resources
+	 * Description : This is a creator centric API which will return the list of all the resources which are draft status.
 	 * @method GET
-	 * @name draftsList
+	 * @name listAllDrafts
 	 * @params type (optional) - <string> Type of the resource. Ex : Projects , Observations etc...
-	 * 		   search (optional) - <string> Partial search of the resource with title.
-	 * 		   status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
-	 * 		   sort_by (optional) - <string> Column name where we should apply sort. By default it will be created_at
-	 * 		   sort_order (optional) - <string> Order of the sort operation asc / desc . by default desc
-	 * 		   page (optional) - <integer> Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
-	 * 		   limit (optional) - <integer> Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
-	 *
-	 * @returns {JSON} - List of up for review resources
+	 * @params search (optional) - <string> Partial search of the resource with title.
+	 * @params status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
+	 * @params sort_by (optional) - <string> Column name where we should apply sort. By default it will be created_at
+	 * @params sort_order (optional) - <string> Order of the sort operation asc / desc . by default desc
+	 * @params page (optional) - <integer> Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * @params limit (optional) - <integer> Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
+	 * @returns {JSON} - List of drafts resources
 	 */
 
-	static async draftsList(loggedInUserId, queryParams, searchText = '', page, limit) {
+	static async listAllDrafts(loggedInUserId, queryParams, searchText = '', page, limit) {
 		let result = {
 			data: [],
 			count: 0,
 		}
+
 		const resourcesCreatedByMe = await this.resourcesCreatedByUser(loggedInUserId)
 		if (resourcesCreatedByMe.length <= 0) {
 			return responses.successResponse({
@@ -345,7 +344,12 @@ module.exports = class resourceHelper {
 		return commentMapping
 	}
 
-	// constructor sort paramenters
+	/**
+	 * Generate sort filter
+	 * @name constructSortOptions
+	 * @param {Object} queryParams -  queryParams contain sort details like sort_by, sort_order
+	 * @returns {JSON} - Response contain sort filter
+	 */
 	static async constructSortOptions(queryParams) {
 		let sort = {}
 		if (
@@ -363,14 +367,19 @@ module.exports = class resourceHelper {
 		return sort
 	}
 
+	/**
+	 * Get all resources of User
+	 * @name resourcesCreatedByUser
+	 * @param {String} loggedInUserId -  loggedInUserId.
+	 * @returns {Array} - Response contain array of resources
+	 */
 	static async resourcesCreatedByUser(loggedInUserId) {
 		// fetch the details of resource and organization from resource creator mapping table by the user
-		const resource_creator_mapping_data = await resourceCreatorMappingQueries.findAll(
-			{ creator_id: loggedInUserId },
-			['resource_id', 'organization_id']
-		)
-
-		return resource_creator_mapping_data
+		const resourceData = await resourceCreatorMappingQueries.findAll({ creator_id: loggedInUserId }, [
+			'resource_id',
+			'organization_id',
+		])
+		return resourceData
 	}
 
 	/**
@@ -381,12 +390,12 @@ module.exports = class resourceHelper {
 	 * @method GET
 	 * @name upForReview
 	 * @params type (optional) - <string> Type of the resource. Ex : Projects , Observations etc...
-	 * 		   search (optional) - <string> Partial search of the resource with title.
-	 * 		   status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
-	 * 		   sort_by (optional) - <string> Column name where we should apply sort. By default it will be created_at
-	 * 		   sort_order (optional) - <string> Order of the sort operation asc / desc . by default desc
-	 * 		   page (optional) - <integer> Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
-	 * 		   limit (optional) - <integer> Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
+	 * @params search (optional) - <string> Partial search of the resource with title.
+	 * @params status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
+	 * @params sort_by (optional) - <string> Column name where we should apply sort. By default it will be created_at
+	 * @params sort_order (optional) - <string> Order of the sort operation asc / desc . by default desc
+	 * @params page (optional) - <integer> Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * @params limit (optional) - <integer> Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 *
 	 * @returns {JSON} - List of up for review resources
 	 */

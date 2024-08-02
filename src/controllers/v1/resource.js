@@ -20,9 +20,9 @@ module.exports = class Resource {
 
 	async list(req) {
 		try {
-			let project = {}
+			let resourceList = {}
 			if (req.query[common.PAGE_STATUS] === common.PAGE_STATUS_DRAFTS) {
-				project = await resourceService.draftsList(
+				resourceList = await resourceService.listAllDrafts(
 					req.decodedToken.id,
 					req.query,
 					req.searchText,
@@ -30,7 +30,7 @@ module.exports = class Resource {
 					req.pageSize
 				)
 			} else if (req.query[common.PAGE_STATUS] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW) {
-				project = await resourceService.submittedForReviewList(
+				resourceList = await resourceService.listAllSubmittedResources(
 					req.decodedToken.id,
 					req.query,
 					req.searchText,
@@ -46,7 +46,7 @@ module.exports = class Resource {
 			// 	req.pageNo,
 			// 	req.pageSize
 			// )
-			return project
+			return resourceList
 		} catch (error) {
 			return error
 		}
