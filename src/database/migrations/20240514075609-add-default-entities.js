@@ -9,6 +9,13 @@ module.exports = {
 
 		const entitiesArray = [
 			{
+				entityType: 'title',
+				entities: '',
+				has_entities: false,
+				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
+				model: 'projects',
+			},
+			{
 				entityType: 'categories',
 				entities: [
 					{ value: 'teachers', label: 'Teachers' },
@@ -21,6 +28,20 @@ module.exports = {
 				],
 				has_entities: true,
 				validation: { required: true },
+				model: 'projects',
+			},
+			{
+				entityType: 'objective',
+				entities: '',
+				has_entities: false,
+				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
+				model: 'projects',
+			},
+			{
+				entityType: 'keywords',
+				entities: '',
+				has_entities: false,
+				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: false },
 				model: 'projects',
 			},
 			{
@@ -57,27 +78,6 @@ module.exports = {
 				],
 				has_entities: true,
 				validation: { required: true },
-				model: 'projects',
-			},
-			{
-				entityType: 'title',
-				entities: '',
-				has_entities: false,
-				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
-				model: 'projects',
-			},
-			{
-				entityType: 'objective',
-				entities: '',
-				has_entities: false,
-				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
-				model: 'projects',
-			},
-			{
-				entityType: 'keywords',
-				entities: '',
-				has_entities: false,
-				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
 				model: 'projects',
 			},
 			{
