@@ -697,11 +697,7 @@ module.exports = class ProjectsHelper {
 			let fieldData = entityData[entityType.value]
 			if (model == common.TASKS && entityData.allow_evidences == common.TRUE) {
 				// Check if file types are selected
-				if (
-					!entityData?.evidence_details ||
-					!entityData.evidence_details.file_types ||
-					!entityData.evidence_details.file_types.length
-				) {
+				if (!entityData?.evidence_details?.file_types.length) {
 					return {
 						hasError: true,
 						error: utils.errorObject(common.BODY, common.FILE_TYPE, 'File type not selected'),
