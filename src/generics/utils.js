@@ -468,7 +468,10 @@ const checkEntities = (entityType, entityData) => {
 			const validEntities = entityType.entities.map((e) => e.value)
 			const invalidEntities = entityData.filter((entity) => !validEntities.includes(entity.value))
 			if (invalidEntities.length > 0) {
-				return { message: `${entityType.value} is invalid`, status: false }
+				return {
+					message: entityType.validations.message || `${entityType.value} is invalid`,
+					status: false,
+				}
 			}
 		}
 		return { status: true }

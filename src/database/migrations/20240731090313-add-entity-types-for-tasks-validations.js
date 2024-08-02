@@ -27,6 +27,12 @@ module.exports = {
 				model: ['tasks'],
 			},
 			{
+				entityType: 'allow_evidences',
+				has_entities: false,
+				validation: { required: true },
+				model: ['tasks'],
+			},
+			{
 				entityType: 'parent_id',
 				has_entities: false,
 				validation: { required: true },

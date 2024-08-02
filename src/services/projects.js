@@ -577,41 +577,50 @@ module.exports = class ProjectsHelper {
 			)
 
 			// validate task
-			for (let task of projectData.tasks) {
-				for (let taskEntityType of taskEntityTypes) {
-					let validationResult = await this.validateEntityData(
-						task,
-						taskEntityType,
-						common.TASKS,
-						common.BODY,
-						taskEntityTypesMapping
-					)
-					if (validationResult.hasError) {
-						throw {
-							error: validationResult.error,
-						}
-					}
-				}
-
-				//check child task validations
-				if (task.children && task.children.length > 0) {
-					for (let childTask of task.children) {
-						for (let subTaskEntityType of subTaskEntityTypes) {
+			await Promise.all(
+				projectData.tasks.map(async (task) => {
+					// Validate task entities
+					await Promise.all(
+						taskEntityTypes.map(async (taskEntityType) => {
 							let validationResult = await this.validateEntityData(
-								childTask,
-								subTaskEntityType,
-								common.SUB_TASK,
-								common.BODY
+								task,
+								taskEntityType,
+								common.TASKS,
+								common.BODY,
+								taskEntityTypesMapping
 							)
 							if (validationResult.hasError) {
 								throw {
 									error: validationResult.error,
 								}
 							}
-						}
+						})
+					)
+
+					// Validate child tasks if they exist
+					if (task.children && task.children.length > 0) {
+						await Promise.all(
+							task.children.map(async (childTask) => {
+								await Promise.all(
+									subTaskEntityTypes.map(async (subTaskEntityType) => {
+										let validationResult = await this.validateEntityData(
+											childTask,
+											subTaskEntityType,
+											common.SUB_TASK,
+											common.BODY
+										)
+										if (validationResult.hasError) {
+											throw {
+												error: validationResult.error,
+											}
+										}
+									})
+								)
+							})
+						)
 					}
-				}
-			}
+				})
+			)
 
 			// Check that the note character limit does not exceed the maximum limit
 			if (projectData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
@@ -686,9 +695,13 @@ module.exports = class ProjectsHelper {
 	static async validateEntityData(entityData, entityType, model, sourceType, entityMapping) {
 		try {
 			let fieldData = entityData[entityType.value]
-			if (model === common.TASKS && entityData.allow_evidences == common.TRUE) {
+			if (model == common.TASKS && entityData.allow_evidences == common.TRUE) {
 				// Check if file types are selected
-				if (!entityData?.evidence_details?.file_types.length) {
+				if (
+					!entityData?.evidence_details ||
+					!entityData.evidence_details.file_types ||
+					!entityData.evidence_details.file_types.length
+				) {
 					return {
 						hasError: true,
 						error: utils.errorObject(common.BODY, common.FILE_TYPE, 'File type not selected'),
@@ -709,7 +722,7 @@ module.exports = class ProjectsHelper {
 						error: utils.errorObject(
 							sourceType,
 							entityType.value,
-							`${model} ${entityType.value} is required`
+							entityType.validations.message || `${model} ${entityType.value} is required`
 						),
 					}
 				}
@@ -738,7 +751,8 @@ module.exports = class ProjectsHelper {
 								error: utils.errorObject(
 									sourceType,
 									common.LEARNING_RESOURCE,
-									`Required learning resource name and url in ${model}`
+									entityType.validations.message ||
+										`Required learning resource name and url in ${model}`
 								),
 							}
 						}
@@ -750,7 +764,7 @@ module.exports = class ProjectsHelper {
 								error: utils.errorObject(
 									sourceType,
 									common.LEARNING_RESOURCE,
-									`Invalid learning resource name in ${model}`
+									entityType.validations.message || `Invalid learning resource name in ${model}`
 								),
 							}
 						}
@@ -765,7 +779,7 @@ module.exports = class ProjectsHelper {
 								error: utils.errorObject(
 									sourceType,
 									common.LEARNING_RESOURCE,
-									`Invalid learning resource URL in ${model}`
+									entityType.validations.message || `Invalid learning resource URL in ${model}`
 								),
 							}
 						}
@@ -778,7 +792,8 @@ module.exports = class ProjectsHelper {
 							error: utils.errorObject(
 								sourceType,
 								entityType.value,
-								`${model} ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
+								entityType.validations.message ||
+									`${model} ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
 							),
 						}
 					}
