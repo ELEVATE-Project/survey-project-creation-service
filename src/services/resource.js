@@ -276,7 +276,7 @@ module.exports = class resourceHelper {
 			utils.getUniqueElements(response.result.map((item) => item.organization_id))
 		)
 		result = await this.responseBuilder(response, userDetails, orgDetails, {})
-		result.changes_requested_count = distinctInreviewResourceIds.count
+
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
 			message: 'RESOURCE_LISTED_SUCCESSFULLY',
