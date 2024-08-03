@@ -118,6 +118,7 @@ module.exports = class resourceHelper {
 				'submitted_on',
 				'published_on',
 				'last_reviewed_on',
+				'meta',
 			],
 			sort,
 			page,
@@ -150,10 +151,11 @@ module.exports = class resourceHelper {
 						common.REVIEW_STATUS_REJECTED,
 						common.REVIEW_STATUS_REJECTED_AND_REPORTED,
 						common.REVIEW_STATUS_INPROGRESS,
+						common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 					],
 				},
 			},
-			['resource_id', 'reviewer_id', 'updated_at', 'status', 'notes']
+			['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes']
 		)
 		let reviewerIds = []
 
@@ -161,6 +163,7 @@ module.exports = class resourceHelper {
 			acc[item.resource_id] = {
 				reviewer_id: item.reviewer_id,
 				updated_at: item.updated_at,
+				created_at: item.created_at,
 				status: item.status,
 				reviewer_notes: item.notes,
 			}
@@ -174,18 +177,24 @@ module.exports = class resourceHelper {
 		const additionalResourceInformation = response.result.reduce((acc, item) => {
 			let additionalData = {}
 			if (reviewDetailsMapping[item.id]) {
-				if (
-					reviewDetailsMapping[item.id].status === common.REVIEW_STATUS_REJECTED ||
-					reviewDetailsMapping[item.id].status === common.REVIEW_STATUS_REJECTED_AND_REPORTED
-				) {
-					;(additionalData.reviewed_by = reviewDetailsMapping[item.id].reviewer_id
+				if (reviewDetailsMapping[item.id].status !== common.REVIEW_STATUS_NOT_STARTED) {
+					additionalData.reviewed_by = reviewDetailsMapping[item.id].reviewer_id
 						? userDetails[reviewDetailsMapping[item.id].reviewer_id]?.name
-						: null),
-						(additionalData.rejected_at = reviewDetailsMapping[item.id].updated_at
+						: null
+					additionalData.reviewed_started_on = reviewDetailsMapping[item.id].created_at
+						? reviewDetailsMapping[item.id].created_at
+						: null
+					if (
+						reviewDetailsMapping[item.id].status === common.REVIEW_STATUS_REJECTED ||
+						reviewDetailsMapping[item.id].status === common.REVIEW_STATUS_REJECTED_AND_REPORTED
+					) {
+						additionalData.rejected_at = reviewDetailsMapping[item.id].updated_at
 							? reviewDetailsMapping[item.id].updated_at
-							: null)
+							: null
+					}
 				}
 				additionalData.review_status = reviewDetailsMapping[item.id].status
+				additionalData.review_status_updated = reviewDetailsMapping[item.id].updated_at
 				additionalData.is_comments = commentMapping[item.id] ? commentMapping[item.id] : false
 				additionalData.reviewer_notes = reviewDetailsMapping[item.id].reviewer_notes
 			}
@@ -292,6 +301,7 @@ module.exports = class resourceHelper {
 		result.data = resourceDetails.result.map((res) => {
 			res.organization = orgDetails[res.organization_id] ? orgDetails[res.organization_id] : {}
 			res.creator = userDetails[res.user_id] && userDetails[res.user_id].name ? userDetails[res.user_id].name : ''
+			res.notes = res.meta.notes ? res.meta.notes : ''
 
 			if (additionalResourceInformation[res.id]) {
 				res = {
@@ -301,6 +311,7 @@ module.exports = class resourceHelper {
 			}
 			delete res.user_id
 			delete res.organization_id
+			delete res.meta
 			return res
 		})
 
