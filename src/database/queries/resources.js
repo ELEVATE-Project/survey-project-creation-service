@@ -57,7 +57,13 @@ exports.findAll = async (filter, attributes = {}) => {
 		return error
 	}
 }
-exports.resourceList = async (filter, attributes = {}, sort, page = null, limit = null) => {
+exports.resourceList = async (
+	filter,
+	attributes = {},
+	sort = { sort_by: common.CREATED_AT, order: common.SORT_DESC },
+	page = 1,
+	limit = common.LIMIT
+) => {
 	try {
 		let order =
 			sort.sort_by === common.RESOURCE_TITLE

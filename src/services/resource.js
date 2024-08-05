@@ -24,28 +24,26 @@ const { Op, fn, col } = require('sequelize')
 
 module.exports = class resourceHelper {
 	/**
-	 * List up for submittedForReview
+	 * List up for listAllSubmittedResources
 	 * This is a creator centric API which will return the list of all the resources which are submitted for review.
 	 * @method GET
 	 * @name listAllSubmittedResources
-	 * @param {String} type (optional) - Type of the resource. Ex : Projects , Observations etc...
-	 * @param {String} search (optional) - Partial search of the resource with title.
-	 * @param {String} status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
-	 * @param {String} sort_by (optional) -  Column name where we should apply sort. By default it will be created_at
-	 * @param {String} sort_order (optional) -  Order of the sort operation asc / desc . by default desc
-	 * @param {Integer} page (optional) -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
-	 * @param {Integer} limit (optional) -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
+	 * @param {String} userId - user id of the logged in user fetched from the token
+	 * @param {String} queryParams - Additional filters can be passed , like type , status etc...
+	 * @param {String} search - Partial search of the resource with title.
+	 * @param {Integer} page -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * @param {Integer} limit -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {JSON} - List of up for review resources
 	 */
-
-	static async listAllSubmittedResources(loggedInUserId, queryParams, searchText = '', page, limit) {
+	static async listAllSubmittedResources(userId, queryParams, searchText = '', page, limit) {
 		let result = {
 			data: [],
 			count: 0,
 		}
-		let defaultFilter = {}
+		let primaryFilter = {}
 		let filter = {}
-		const resourcesCreatedByMe = await this.resourcesCreatedByUser(loggedInUserId)
+		// fetch all resource ids created by the logged in user
+		const resourcesCreatedByMe = await this.resourcesCreatedByUser(userId, ['resource_id', 'organization_id'])
 		if (resourcesCreatedByMe.length <= 0) {
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -53,10 +51,13 @@ module.exports = class resourceHelper {
 				result,
 			})
 		}
+
 		let uniqueResourceIds = resourcesCreatedByMe.map((item) => item.resource_id)
 
 		// get the unique organization ids from resource creator mapping table by the user
 		const OrganizationIds = utils.getUniqueElements(resourcesCreatedByMe.map((item) => item.organization_id))
+
+		// get all the resources which are status requested for changes by the reviewerIds.
 		const distinctInreviewResourceIds = await reviewsQueries.distinctResources(
 			{
 				organization_id: {
@@ -78,32 +79,35 @@ module.exports = class resourceHelper {
 				id: {
 					[Op.in]: distinctInreviewResourceIds.resource_ids,
 				},
-				user_id: loggedInUserId,
+				user_id: userId,
 			}
 		} else {
-			defaultFilter = {
+			// add primary filters
+			primaryFilter = {
 				organization_id: {
 					[Op.in]: OrganizationIds,
 				},
 				id: {
 					[Op.in]: uniqueResourceIds,
 				},
-				user_id: loggedInUserId,
 				status: {
 					[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_SUBMITTED_FOR_REVIEW],
 				},
 			}
 
 			if (queryParams[common.STATUS]) {
-				defaultFilter.status = {
+				primaryFilter.status = {
 					[Op.in]: queryParams[common.STATUS].split(','),
 				}
 			}
-
-			filter = await this.constructCustomFilter(defaultFilter, queryParams, searchText)
+			// create the final filter by combining primary filters , query params and search text
+			filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
 		}
 
-		const sort = await this.constructSortOptions(queryParams)
+		// return a sort object with sorting parameters. if no params are provided returns {}
+		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
+
+		// fetches data from resource table with the passed filters
 		const response = await resourceQueries.resourceList(
 			filter,
 			[
@@ -131,13 +135,15 @@ module.exports = class resourceHelper {
 				result,
 			})
 		}
-
+		// fetch the organization details from user service
 		const orgDetails = await this.fetchOrganizationDetails(
 			utils.getUniqueElements(response.result.map((item) => item.organization_id))
 		)
-		const commentMapping = await this.fetchOpenComments(
-			utils.getUniqueElements(distinctInreviewResourceIds.resource_ids)
-		)
+
+		// fetch all open comments for the resources which are in review
+		const commentMapping = await this.fetchOpenComments(distinctInreviewResourceIds.resource_ids)
+
+		// fetch the relevant details from reviews table for additional data in the response
 		const reviewDetails = await reviewsQueries.findAll(
 			{
 				organization_id: {
@@ -171,10 +177,13 @@ module.exports = class resourceHelper {
 			reviewerIds.push(item.reviewer_id)
 			return acc
 		}, {})
+
+		// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
 		const userDetails = await this.fetchUserDetails(
 			utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds])
 		)
 
+		// fetch additional information about resource
 		const additionalResourceInformation = response.result.reduce((acc, resource) => {
 			let additionalData = {}
 			if (reviewDetailsMapping[resource.id]) {
@@ -204,7 +213,9 @@ module.exports = class resourceHelper {
 			return acc
 		}, {})
 
+		// generic function to merge all the collected data about the resource
 		result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
+		// count of requested for changes resources
 		result.changes_requested_count = distinctInreviewResourceIds.count
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
@@ -217,23 +228,22 @@ module.exports = class resourceHelper {
 	 * Description : This is a creator centric API which will return the list of all the resources which are draft status.
 	 * @method GET
 	 * @name listAllDrafts
-	 * @param {String} type (optional) -  Type of the resource. Ex : Projects , Observations etc...
-	 * @param {String} search (optional) -  Partial search of the resource with title.
-	 * @param {String} status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
-	 * @param {String} sort_by (optional) -  Column name where we should apply sort. By default it will be created_at
-	 * @param {String} sort_order (optional) -  Order of the sort operation asc / desc . by default desc
-	 * @param {Integer} page (optional) -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
-	 * @param {Integer} limit (optional) -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
+	 * @param {String} userId - user id of the logged in user fetched from the token
+	 * @param {String} queryParams - Additional filters can be passed , like type , status etc...
+	 * @param {String} search - Partial search of the resource with title.
+	 * @param {Integer} page -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * @param {Integer} limit -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {JSON} - List of drafts resources
 	 */
 
-	static async listAllDrafts(loggedInUserId, queryParams, searchText = '', page, limit) {
+	static async listAllDrafts(userId, queryParams, searchText = '', page, limit) {
 		let result = {
 			data: [],
 			count: 0,
 		}
+		// fetch all resource ids created by the logged in user
+		const resourcesCreatedByMe = await this.resourcesCreatedByUser(userId, ['resource_id', 'organization_id'])
 
-		const resourcesCreatedByMe = await this.resourcesCreatedByUser(loggedInUserId)
 		if (resourcesCreatedByMe.length <= 0) {
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -241,6 +251,7 @@ module.exports = class resourceHelper {
 				result,
 			})
 		}
+
 		const uniqueResourceIds = resourcesCreatedByMe.map((item) => item.resource_id)
 
 		// get the unique organization ids from resource creator mapping table by the user
@@ -254,7 +265,6 @@ module.exports = class resourceHelper {
 				id: {
 					[Op.in]: uniqueResourceIds,
 				},
-				user_id: loggedInUserId,
 				status: {
 					[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_DRAFTS],
 				},
@@ -262,8 +272,10 @@ module.exports = class resourceHelper {
 			queryParams,
 			searchText
 		)
+		// return a sort object with sorting parameters. if no params are provided returns {}
+		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
 
-		const sort = await this.constructSortOptions(queryParams)
+		// fetches data from resource table with the passed filters
 		const response = await resourceQueries.resourceList(
 			filter,
 			['id', 'title', 'organization_id', 'type', 'status', 'user_id', 'created_at', 'updated_at'],
@@ -279,12 +291,11 @@ module.exports = class resourceHelper {
 			})
 		}
 
-		const userDetails = await this.fetchUserDetails(
-			utils.getUniqueElements(response.result.map((item) => item.user_id))
-		)
-		const orgDetails = await this.fetchOrganizationDetails(
-			utils.getUniqueElements(response.result.map((item) => item.organization_id))
-		)
+		// fetch the user details from user service
+		const userDetails = await this.fetchUserDetails([userId])
+
+		// fetch the org details from user service
+		const orgDetails = await this.fetchOrganizationDetails(OrganizationIds)
 		result = await this.responseBuilder(response, userDetails, orgDetails, {})
 
 		return responses.successResponse({
@@ -298,10 +309,10 @@ module.exports = class resourceHelper {
 	 * Build response struct
 	 * Description : This is the method used by the main functions to build the final output response.
 	 * @name responseBuilder
-	 * @param {Object} resourceDetails (mandatory) - Query response from resource table.
-	 * @param {Object} userDetails (mandatory) - Key pair value of user details, fetched from user service. This object will be used by the service to fetch the user details using user id
-	 * @param {Object} orgDetails  (mandatory) - Key pair value of org details, fetched from user service. This object will be used by the service to fetch org user details using org id
-	 * @param {Object} additionalResourceInformation (mandatory) - If the response needs any additional information as per the products request , which is to be fetched from other tables , like reviews etc...
+	 * @param {Object} resourceDetails - Query response from resource table.
+	 * @param {Object} userDetails - Key pair value of user details, fetched from user service. This object will be used by the service to fetch the user details using user id
+	 * @param {Object} orgDetails  - Key pair value of org details, fetched from user service. This object will be used by the service to fetch org user details using org id
+	 * @param {Object} additionalResourceInformation - If the response needs any additional information as per the products request , which is to be fetched from other tables , like reviews etc...
 	 * @returns {JSON} - List of resources
 	 */
 	static async responseBuilder(resourceDetails, userDetails, orgDetails, additionalResourceInformation) {
@@ -332,9 +343,9 @@ module.exports = class resourceHelper {
 	 * Construct custom filter
 	 * Description : This is the method used by the main functions to build a custom filter. Checking the query params and appending valid queries.
 	 * @name constructCustomFilter
-	 * @param {Object} filter (mandatory) - <object> Existing filters
-	 * @param {Object} queryParams (mandatory) - <object> queryParams passed in the API
-	 * @param {String} searchText  (optional) - <string> Search string passed to the api
+	 * @param {Object} filter - Existing filters
+	 * @param {Object} queryParams -  queryParams passed in the API
+	 * @param {String} searchText -  Search string passed to the api
 	 * @returns {Object} - Object of filter
 	 */
 	static async constructCustomFilter(filter, queryParams, searchText = '') {
@@ -360,7 +371,7 @@ module.exports = class resourceHelper {
 	 * Fetch all open comments
 	 * Description : This is the method used by the main functions to fetch the list of open comments in the list of resources
 	 * @name fetchOpenComments
-	 * @param {Array} resourceIds (mandatory) - List of resources
+	 * @param {Array} resourceIds - List of resources
 	 * @returns {Object} - Object of resource ids which has comments and true value.
 	 */
 	static async fetchOpenComments(resourceIds) {
@@ -388,19 +399,11 @@ module.exports = class resourceHelper {
 	 * @param {Object} queryParams -  queryParams contain sort details like sort_by, sort_order
 	 * @returns {JSON} - Response contain sort filter
 	 */
-	static async constructSortOptions(queryParams) {
+	static async constructSortOptions(sort_by, sort_order) {
 		let sort = {}
-		if (
-			common.SORT_BY in queryParams &&
-			common.SORT_ORDER in queryParams &&
-			queryParams.sort_by.length > 0 &&
-			queryParams.sort_order.length > 0
-		) {
-			sort.sort_by = queryParams.sort_by
-			sort.order =
-				queryParams.sort_order.toUpperCase() == common.SORT_DESC.toUpperCase()
-					? common.SORT_DESC
-					: common.SORT_ASC
+		if (sort_by && sort_order) {
+			sort.sort_by = sort_by
+			sort.order = sort_order.toUpperCase() == common.SORT_DESC.toUpperCase() ? common.SORT_DESC : common.SORT_ASC
 		}
 		return sort
 	}
@@ -411,12 +414,12 @@ module.exports = class resourceHelper {
 	 * @param {String} loggedInUserId -  loggedInUserId.
 	 * @returns {Array} - Response contain array of resources
 	 */
-	static async resourcesCreatedByUser(loggedInUserId) {
-		// fetch the details of resource and organization from resource creator mapping table by the user
-		const resourceData = await resourceCreatorMappingQueries.findAll({ creator_id: loggedInUserId }, [
-			'resource_id',
-			'organization_id',
-		])
+	static async resourcesCreatedByUser(loggedInUserId, attributes = ['resource_id']) {
+		resourceData = {}
+		if (loggedInUserId) {
+			// fetch the details of resource and organization from resource creator mapping table by the user
+			resourceData = await resourceCreatorMappingQueries.findAll({ creator_id: loggedInUserId }, attributes)
+		}
 		return resourceData
 	}
 
@@ -558,6 +561,7 @@ module.exports = class resourceHelper {
 				resourceFilter.type = queryParams[common.TYPE].split(',')
 			}
 
+			// fetches data from resource table with the passed filters
 			const response = await resourceQueries.resourceList(
 				resourceFilter,
 				[

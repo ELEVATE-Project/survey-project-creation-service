@@ -66,7 +66,7 @@ module.exports = {
 	SORT_ORDER: 'sort_order',
 	URL: 'url',
 	FILE_PATH: 'filePath',
-	PAGE_STATUS: 'page_status',
+	LISTING: 'listing',
 	PAGE_STATUS_VALUES: {
 		drafts: ['DRAFT'],
 		submitted_for_review: ['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'],

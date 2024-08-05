@@ -15,13 +15,13 @@ module.exports = class Resource {
 	 * @method
 	 * @name list
 	 * @param {Object} req - request data.
-	 * @returns {JSON} - project details
+	 * @returns {JSON} - resource list
 	 */
 
 	async list(req) {
 		try {
 			let resourceList = {}
-			if (req.query[common.PAGE_STATUS] === common.PAGE_STATUS_DRAFTS) {
+			if (req.query[common.LISTING] === common.PAGE_STATUS_DRAFTS) {
 				resourceList = await resourceService.listAllDrafts(
 					req.decodedToken.id,
 					req.query,
@@ -29,7 +29,7 @@ module.exports = class Resource {
 					req.pageNo,
 					req.pageSize
 				)
-			} else if (req.query[common.PAGE_STATUS] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW) {
+			} else if (req.query[common.LISTING] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW) {
 				resourceList = await resourceService.listAllSubmittedResources(
 					req.decodedToken.id,
 					req.query,
@@ -43,6 +43,14 @@ module.exports = class Resource {
 			return error
 		}
 	}
+
+	/**
+	 * get up for review resource list
+	 * @method
+	 * @name upForReview
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - resource list
+	 */
 	async upForReview(req) {
 		try {
 			const resource = await resourceService.upForReview(
