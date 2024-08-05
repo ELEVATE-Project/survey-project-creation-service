@@ -38,14 +38,6 @@ module.exports = class Resource {
 					req.pageSize
 				)
 			}
-			// const project = await resourceService.list(
-			// 	req.decodedToken.id,
-			// 	req.decodedToken.organization_id,
-			// 	req.query,
-			// 	req.searchText,
-			// 	req.pageNo,
-			// 	req.pageSize
-			// )
 			return resourceList
 		} catch (error) {
 			return error

@@ -16,25 +16,25 @@ const common = require('@constants/common')
 const userRequests = require('@requests/user')
 const configs = require('@services/config')
 const _ = require('lodash')
-const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const axios = require('axios')
 const filesService = require('@services/files')
 const commentQueries = require('@database/queries/comment')
+const { Op, fn, col } = require('sequelize')
 
 module.exports = class resourceHelper {
 	/**
 	 * List up for submittedForReview
-	 * Description : This is a creator centric API which will return the list of all the resources which are submitted for review.
+	 * This is a creator centric API which will return the list of all the resources which are submitted for review.
 	 * @method GET
 	 * @name listAllSubmittedResources
-	 * @params type (optional) - <string> Type of the resource. Ex : Projects , Observations etc...
-	 * @params search (optional) - <string> Partial search of the resource with title.
-	 * @params status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
-	 * @params sort_by (optional) - <string> Column name where we should apply sort. By default it will be created_at
-	 * @params sort_order (optional) - <string> Order of the sort operation asc / desc . by default desc
-	 * @params page (optional) - <integer> Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
-	 * @params limit (optional) - <integer> Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
+	 * @param {String} type (optional) - Type of the resource. Ex : Projects , Observations etc...
+	 * @param {String} search (optional) - Partial search of the resource with title.
+	 * @param {String} status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
+	 * @param {String} sort_by (optional) -  Column name where we should apply sort. By default it will be created_at
+	 * @param {String} sort_order (optional) -  Order of the sort operation asc / desc . by default desc
+	 * @param {Integer} page (optional) -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * @param {Integer} limit (optional) -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {JSON} - List of up for review resources
 	 */
 
@@ -72,23 +72,23 @@ module.exports = class resourceHelper {
 
 		if (queryParams[common.STATUS] === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
 			filter = {
-				user_id: loggedInUserId,
 				organization_id: {
 					[Op.in]: OrganizationIds,
 				},
 				id: {
 					[Op.in]: distinctInreviewResourceIds.resource_ids,
 				},
+				user_id: loggedInUserId,
 			}
 		} else {
 			defaultFilter = {
-				user_id: loggedInUserId,
 				organization_id: {
 					[Op.in]: OrganizationIds,
 				},
 				id: {
 					[Op.in]: uniqueResourceIds,
 				},
+				user_id: loggedInUserId,
 				status: {
 					[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_SUBMITTED_FOR_REVIEW],
 				},
@@ -159,6 +159,7 @@ module.exports = class resourceHelper {
 		)
 		let reviewerIds = []
 
+		// create a mapping object for resourceId and review details to fetch the review details like reviewerId , status etc... using resource id
 		const reviewDetailsMapping = reviewDetails.reduce((acc, item) => {
 			acc[item.resource_id] = {
 				reviewer_id: item.reviewer_id,
@@ -174,31 +175,31 @@ module.exports = class resourceHelper {
 			utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds])
 		)
 
-		const additionalResourceInformation = response.result.reduce((acc, item) => {
+		const additionalResourceInformation = response.result.reduce((acc, resource) => {
 			let additionalData = {}
-			if (reviewDetailsMapping[item.id]) {
-				if (reviewDetailsMapping[item.id].status !== common.REVIEW_STATUS_NOT_STARTED) {
-					additionalData.reviewed_by = reviewDetailsMapping[item.id].reviewer_id
-						? userDetails[reviewDetailsMapping[item.id].reviewer_id]?.name
+			if (reviewDetailsMapping[resource.id]) {
+				if (reviewDetailsMapping[resource.id].status !== common.REVIEW_STATUS_NOT_STARTED) {
+					additionalData.reviewed_by = reviewDetailsMapping[resource.id].reviewer_id
+						? userDetails[reviewDetailsMapping[resource.id].reviewer_id]?.name
 						: null
-					additionalData.reviewed_started_on = reviewDetailsMapping[item.id].created_at
-						? reviewDetailsMapping[item.id].created_at
+					additionalData.reviewed_started_on = reviewDetailsMapping[resource.id].created_at
+						? reviewDetailsMapping[resource.id].created_at
 						: null
 					if (
-						reviewDetailsMapping[item.id].status === common.REVIEW_STATUS_REJECTED ||
-						reviewDetailsMapping[item.id].status === common.REVIEW_STATUS_REJECTED_AND_REPORTED
+						reviewDetailsMapping[resource.id].status === common.REVIEW_STATUS_REJECTED ||
+						reviewDetailsMapping[resource.id].status === common.REVIEW_STATUS_REJECTED_AND_REPORTED
 					) {
-						additionalData.rejected_at = reviewDetailsMapping[item.id].updated_at
-							? reviewDetailsMapping[item.id].updated_at
+						additionalData.rejected_at = reviewDetailsMapping[resource.id].updated_at
+							? reviewDetailsMapping[resource.id].updated_at
 							: null
 					}
 				}
-				additionalData.review_status = reviewDetailsMapping[item.id].status
-				additionalData.review_status_updated = reviewDetailsMapping[item.id].updated_at
-				additionalData.is_comments = commentMapping[item.id] ? commentMapping[item.id] : false
-				additionalData.reviewer_notes = reviewDetailsMapping[item.id].reviewer_notes
+				additionalData.review_status = reviewDetailsMapping[resource.id].status
+				additionalData.review_status_updated = reviewDetailsMapping[resource.id].updated_at
+				additionalData.is_comments = commentMapping[resource.id] ? commentMapping[resource.id] : false
+				additionalData.reviewer_notes = reviewDetailsMapping[resource.id].reviewer_notes
 			}
-			acc[item.id] = additionalData
+			acc[resource.id] = additionalData
 
 			return acc
 		}, {})
@@ -216,13 +217,13 @@ module.exports = class resourceHelper {
 	 * Description : This is a creator centric API which will return the list of all the resources which are draft status.
 	 * @method GET
 	 * @name listAllDrafts
-	 * @params type (optional) - <string> Type of the resource. Ex : Projects , Observations etc...
-	 * @params search (optional) - <string> Partial search of the resource with title.
-	 * @params status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
-	 * @params sort_by (optional) - <string> Column name where we should apply sort. By default it will be created_at
-	 * @params sort_order (optional) - <string> Order of the sort operation asc / desc . by default desc
-	 * @params page (optional) - <integer> Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
-	 * @params limit (optional) - <integer> Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
+	 * @param {String} type (optional) -  Type of the resource. Ex : Projects , Observations etc...
+	 * @param {String} search (optional) -  Partial search of the resource with title.
+	 * @param {String} status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
+	 * @param {String} sort_by (optional) -  Column name where we should apply sort. By default it will be created_at
+	 * @param {String} sort_order (optional) -  Order of the sort operation asc / desc . by default desc
+	 * @param {Integer} page (optional) -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * @param {Integer} limit (optional) -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {JSON} - List of drafts resources
 	 */
 
@@ -247,13 +248,13 @@ module.exports = class resourceHelper {
 
 		const filter = await this.constructCustomFilter(
 			{
-				user_id: loggedInUserId,
 				organization_id: {
 					[Op.in]: OrganizationIds,
 				},
 				id: {
 					[Op.in]: uniqueResourceIds,
 				},
+				user_id: loggedInUserId,
 				status: {
 					[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_DRAFTS],
 				},
@@ -293,8 +294,16 @@ module.exports = class resourceHelper {
 		})
 	}
 
-	// build common response for the functions.
-	// it accepts the resource details , user details obj , org details obj , and additional details based on business logic
+	/**
+	 * Build response struct
+	 * Description : This is the method used by the main functions to build the final output response.
+	 * @name responseBuilder
+	 * @param {Object} resourceDetails (mandatory) - Query response from resource table.
+	 * @param {Object} userDetails (mandatory) - Key pair value of user details, fetched from user service. This object will be used by the service to fetch the user details using user id
+	 * @param {Object} orgDetails  (mandatory) - Key pair value of org details, fetched from user service. This object will be used by the service to fetch org user details using org id
+	 * @param {Object} additionalResourceInformation (mandatory) - If the response needs any additional information as per the products request , which is to be fetched from other tables , like reviews etc...
+	 * @returns {JSON} - List of resources
+	 */
 	static async responseBuilder(resourceDetails, userDetails, orgDetails, additionalResourceInformation) {
 		let result = {}
 
@@ -319,12 +328,20 @@ module.exports = class resourceHelper {
 		return result
 	}
 
-	// custom construction of filter from all the given params
-	static async constructCustomFilter(filter, queryParams, searchText) {
+	/**
+	 * Construct custom filter
+	 * Description : This is the method used by the main functions to build a custom filter. Checking the query params and appending valid queries.
+	 * @name constructCustomFilter
+	 * @param {Object} filter (mandatory) - <object> Existing filters
+	 * @param {Object} queryParams (mandatory) - <object> queryParams passed in the API
+	 * @param {String} searchText  (optional) - <string> Search string passed to the api
+	 * @returns {Object} - Object of filter
+	 */
+	static async constructCustomFilter(filter, queryParams, searchText = '') {
 		let returnFilter = {
 			...filter,
 		}
-		if (searchText.length > 0) {
+		if (searchText != '') {
 			returnFilter.title = {
 				[Op.iLike]: '%' + searchText + '%',
 			}
@@ -339,17 +356,27 @@ module.exports = class resourceHelper {
 		return returnFilter
 	}
 
-	// fetch all the open comments for a specific list of resource ids
+	/**
+	 * Fetch all open comments
+	 * Description : This is the method used by the main functions to fetch the list of open comments in the list of resources
+	 * @name fetchOpenComments
+	 * @param {Array} resourceIds (mandatory) - List of resources
+	 * @returns {Object} - Object of resource ids which has comments and true value.
+	 */
 	static async fetchOpenComments(resourceIds) {
-		let comments = await commentQueries.findAll({
-			resource_id: {
-				[Op.in]: resourceIds,
+		let comments = await commentQueries.findAll(
+			{
+				resource_id: {
+					[Op.in]: resourceIds,
+				},
+				status: common.COMMENT_STATUS_OPEN,
 			},
-			status: common.COMMENT_STATUS_OPEN,
-		})
+			['resource_id', [fn('COUNT', col('id')), 'comment_count']],
+			{ group: ['resource_id'] }
+		)
 
 		const commentMapping = await comments.rows.reduce((acc, item) => {
-			acc[item.id] = true
+			acc[item.resource_id] = parseInt(item.comment_count, 10) > 0 ? true : false
 			return acc
 		}, {})
 		return commentMapping
@@ -400,13 +427,13 @@ module.exports = class resourceHelper {
 	 * 				 sequential resources which are open to all and matching to the reviewers role level and open to all parallel review resources.
 	 * @method GET
 	 * @name upForReview
-	 * @params type (optional) - <string> Type of the resource. Ex : Projects , Observations etc...
-	 * @params search (optional) - <string> Partial search of the resource with title.
-	 * @params status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
-	 * @params sort_by (optional) - <string> Column name where we should apply sort. By default it will be created_at
-	 * @params sort_order (optional) - <string> Order of the sort operation asc / desc . by default desc
-	 * @params page (optional) - <integer> Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
-	 * @params limit (optional) - <integer> Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
+	 * @param {String} type (optional) -  Type of the resource. Ex : Projects , Observations etc...
+	 * @param {String} search (optional) -  Partial search of the resource with title.
+	 * @param {String} status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
+	 * @param {String} sort_by (optional) -  Column name where we should apply sort. By default it will be created_at
+	 * @param {String} sort_order (optional) -  Order of the sort operation asc / desc . by default desc
+	 * @param {Integer} page (optional) -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * @param {Integer} limit (optional) -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 *
 	 * @returns {JSON} - List of up for review resources
 	 */
@@ -516,8 +543,8 @@ module.exports = class resourceHelper {
 			}
 
 			const resourceFilter = {
-				id: { [Op.in]: finalResourceIds },
 				organization_id: { [Op.in]: uniqueOrganizationIds },
+				id: { [Op.in]: finalResourceIds },
 				user_id: {
 					[Op.notIn]: [user_id],
 				},
@@ -594,6 +621,15 @@ module.exports = class resourceHelper {
 		}
 	}
 
+	/**
+	 * Get all sequential resources from an organization based on the roles of the user.
+	 * @name findSequentialResources
+	 * @param {String} organization_id -  organization_id.
+	 * @param {Array} roles -  roles of the logged in user.
+	 * @param {Array} resourceTypes -  resourceTypes which are in sequential review in the org.
+	 * @returns {Array} - Response contain array of resource ids
+	 */
+
 	static async findSequentialResources(organization_id, roles, resourceTypes = []) {
 		// get unique user roles
 		const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
@@ -609,8 +645,8 @@ module.exports = class resourceHelper {
 			}
 		})
 		const resourceFilter = {
-			[Op.or]: resourceTypeStagesConfig,
 			organization_id,
+			[Op.or]: resourceTypeStagesConfig,
 			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
 		}
 		const resourcesDetails = await resourceQueries.findAll(resourceFilter, ['id'])
@@ -623,12 +659,19 @@ module.exports = class resourceHelper {
 		return resoureId
 	}
 
+	/**
+	 * Get all parallel resources from an organization.
+	 * @name findParallelResources
+	 * @param {String} organization_id -  organization_id.
+	 * @param {Array} resourceTypes -  resourceTypes which are in parallel review in the org.
+	 * @returns {Array} - Response contain array of resource ids
+	 */
 	static async findParallelResources(organization_id, resourceTypes = []) {
 		const resourceFilter = {
+			organization_id,
 			type: {
 				[Op.in]: resourceTypes,
 			},
-			organization_id,
 			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
 		}
 		let resoureId = []
@@ -640,8 +683,13 @@ module.exports = class resourceHelper {
 		}
 		return resoureId
 	}
-	// fetch all the resource ids from reviews table which is assigned to the reviewer
-	//  and already started reviewer
+	/**
+	 * Get all resources assigned to the reviewer
+	 * @name findResourcesAssignedToReviewer
+	 * @param {Array} organization_ids -  list of organization_ids.
+	 * @param {String} logged_in_user_id -  user id of the logged in user
+	 * @returns {Array} - Response contain array of resource ids
+	 */
 	static async findResourcesAssignedToReviewer(organization_ids, logged_in_user_id) {
 		const reviewsFilter = {
 			organization_id: { [Op.in]: organization_ids },
@@ -652,14 +700,18 @@ module.exports = class resourceHelper {
 		let res = []
 
 		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
-		if (reviewsResponse.length > 0) {
-			res = reviewsResponse.map((item) => {
-				return item.resource_id
-			})
-		}
+		res = reviewsResponse.map((item) => {
+			return item.resource_id
+		})
 		return res
 	}
-
+	/**
+	 * Get all resources assigned to the reviewer and already picked up by other reviewer
+	 * @name findResourcesPickedUpByAnotherReviewer
+	 * @param {String} loggedInUserId -  user id of the logged in user.
+	 * @param {Array} openToAllResourcesMatchingMyLevel -  list of resources matching to reviewer's level.
+	 * @returns {Array} - Response contain array of resource ids to be removed from the main response
+	 */
 	static async findResourcesPickedUpByAnotherReviewer(loggedInUserId, openToAllResourcesMatchingMyLevel) {
 		// remove all the resouces in sequential review picked up by another reviewer
 		const reviewsFilter = {
@@ -684,13 +736,18 @@ module.exports = class resourceHelper {
 		return resourceIdsToBeRemoved
 	}
 
-	// this function fetches review levels from the reviews table for
-	// an organization, roles and resouce type and returns this as an object
-	// Ex : this function returns
-	// {
-	// 	project : 1,
-	// 	observation : 4
-	// }
+	/**
+	 * Get all review levels from the reviews table
+	 * @name fetchResourceReviewLevel
+	 * @param {String} organization_id - organization_id of the logged in user.
+	 * @param {Array} userRoleTitles -  list of user role titles.
+	 * @param {Array} resourceTypeList -  list of resource types.
+	 * @returns {Object} - Response contain object , Ex
+	 * {
+	 * 	project : 1,
+	 * 	observation : 4
+	 * }
+	 */
 	static async fetchResourceReviewLevel(organization_id, userRoleTitles, resourceTypeList) {
 		// fetch review levels according to roles in the organization
 		const reviewLevelDetails = await reviewStagesQueries.findAll(
@@ -717,7 +774,13 @@ module.exports = class resourceHelper {
 		}
 		return resourceWiseLevels
 	}
-	// fetch the resources types of an organization
+
+	/**
+	 * Get all the resources types of an organization
+	 * @name fetchResourceReviewTypes
+	 * @param {String} organization_id - organization_id of the logged in user.
+	 * @returns {Object} - Response contain object , with list of sequential and parallel resource types
+	 */
 	static async fetchResourceReviewTypes(organization_id) {
 		try {
 			// Fetch organization-based configurations for resources
@@ -747,22 +810,37 @@ module.exports = class resourceHelper {
 			throw error
 		}
 	}
-
+	/**
+	 * Get all the resources which are review in progress
+	 * @name fetchReviewersInprogressResources
+	 * @param {String} user_id - user_id of the logged in user.
+	 * @param {Array} uniqueOrganizationIds - uniqueOrganizationIds of the logged in user.
+	 * @returns {Object} - Response contain object of resources
+	 */
 	static async fetchReviewersInprogressResources(user_id, uniqueOrganizationIds) {
 		// fetch resources under user id from the org which are review inProgress and changes updated by creator
 		const filter = {
-			reviewer_id: user_id,
 			organization_id: { [Op.in]: uniqueOrganizationIds },
+			reviewer_id: user_id,
 			status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS, common.REVIEW_STATUS_CHANGES_UPDATED] },
 		}
 		let result = await reviewsQueries.findAll(filter, ['resource_id', 'organization_id'])
 		return result
 	}
 
+	/**
+	 * Get all the reviewer notes for the resources
+	 * @name fetchReviewerNotesForResources
+	 * @param {String} reviewer_id - user_id of the logged in user.
+	 * @param {Array} resource_ids - array of resource_ids.
+	 * @param {Array} organization_ids - list of organization_ids.
+	 * @returns {Object} - Response contain object of resources ids and notes
+	 */
+
 	static async fetchReviewerNotesForResources(reviewer_id = null, resource_ids, organization_ids) {
 		let filter = {
-			resource_id: { [Op.in]: resource_ids },
 			organization_id: { [Op.in]: organization_ids },
+			resource_id: { [Op.in]: resource_ids },
 		}
 		let notes = {}
 		reviewer_id ? (filter.reviewer_id = reviewer_id) : ''
@@ -776,6 +854,12 @@ module.exports = class resourceHelper {
 		return notes
 	}
 
+	/**
+	 * Get all details of users from the user service.
+	 * @name fetchUserDetails
+	 * @param {Array} userIds - array of userIds.
+	 * @returns {Object} - Response contain object of user details
+	 */
 	static async fetchUserDetails(userIds) {
 		const userDetailsResponse = await userRequests.list(common.FILTER_ALL.toLowerCase(), '', '', '', '', {
 			user_ids: userIds,
@@ -787,6 +871,12 @@ module.exports = class resourceHelper {
 		return userDetails
 	}
 
+	/**
+	 * Get all details of org from the user service.
+	 * @name fetchOrganizationDetails
+	 * @param {Array} organization_ids - array of organization_ids.
+	 * @returns {Object} - Response contain object of org details
+	 */
 	static async fetchOrganizationDetails(organization_ids) {
 		const orgDetailsResponse = await userRequests.listOrganization(organization_ids)
 		let orgDetails = {}

@@ -84,7 +84,6 @@ module.exports = {
 	STATUS_RESOLVED: 'RESOLVED',
 	ALL_USER_ROLES: 'all',
 	LIMIT: 100,
-	PAGE: 1,
 	CONTENT: 'content',
 	REVIEW_STATUS_NOT_STARTED: 'NOT_STARTED',
 	TRUE: true,
