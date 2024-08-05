@@ -27,4 +27,10 @@ module.exports = {
 			.isNumeric()
 			.withMessage('level is invalid, must be an integer')
 	},
+
+	list: (req) => {
+		req.checkQuery('resource_type').optional().notEmpty().withMessage('resource_type is empty')
+
+		req.checkQuery('organization_id').optional().notEmpty().withMessage('organization_id is empty')
+	},
 }

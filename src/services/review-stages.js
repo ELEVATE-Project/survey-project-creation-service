@@ -57,6 +57,8 @@ module.exports = class reviewStagesHelper {
 	 * list review stages
 	 * @method
 	 * @name list
+	 * @param {String} resource_type - resource type
+	 * @param {String} organization_id - organization id
 	 * @returns {JSON} - list of review stages.
 	 */
 
@@ -79,7 +81,7 @@ module.exports = class reviewStagesHelper {
 			if (reviewStages.rows == 0 || reviewStages.count == 0) {
 				return responses.successResponse({
 					message: 'REVIEW_STAGES_FETCHED_SUCCESSFULLY',
-					statusCode: httpStatusCode.bad_request,
+					statusCode: httpStatusCode.ok,
 					result,
 				})
 			} else {

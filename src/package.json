@@ -38,6 +38,7 @@
 		"fn-args": "^4.0.0",
 		"form-data": "^4.0.0",
 		"fs-extra": "^9.0.1",
+		"i18n": "^0.15.0",
 		"i18next": "^21.8.13",
 		"i18next-fs-backend": "^1.1.4",
 		"i18next-http-middleware": "^3.2.1",

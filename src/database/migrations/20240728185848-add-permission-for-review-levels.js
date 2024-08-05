@@ -38,7 +38,7 @@ module.exports = {
 				code: 'review_stages_permissions',
 				module: 'review-stages',
 				request_type: ['PUT', 'GET'],
-				api_path: '/scp/v1/review-stages/update',
+				api_path: '/scp/v1/review-stages/update*',
 				status: 'ACTIVE',
 				created_at: new Date(),
 				updated_at: new Date(),
