@@ -13,7 +13,6 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const entityTypeQueries = require('@database/queries/entityType')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
-const kafkaCommunication = require('@generics/kafka-communication')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -678,28 +677,22 @@ module.exports = class ProjectsHelper {
 				resourceStatus = common.RESOURCE_STATUS_IN_REVIEW
 			}
 
-			let updateObj = {}
-
-			//if review is not required direct publish
-			const isResourcePublished = await resourceService.checkAndPublishResource(
-				projectData,
+			//check review is required or not
+			const isReviewMandatory = await resourceService.isReviewMandatory(
+				projectData.type,
 				userDetails.organization_id
 			)
-			//update published resource
-			if (isResourcePublished) {
-				updateObj.status = common.PUBLISHED
-				updateObj.published_on = new Date()
-
-				await resourceQueries.updateOne({ id: projectData.id }, updateObj)
-				return responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: 'RESOURCE_PUBLISHED',
-				})
+			if (!isReviewMandatory) {
+				const publishResource = await resourceService.publishResource(resourceId, userDetails.id)
+				return publishResource
 			}
 
-			//update non published resource
-			updateObj.status = resourceStatus
-			updateObj.submitted_on = new Date()
+			//update resource
+			let updateObj = {
+				status: resourceStatus,
+				submitted_on: new Date(),
+			}
+
 			await resourceQueries.updateOne({ id: projectData.id }, updateObj)
 
 			return responses.successResponse({

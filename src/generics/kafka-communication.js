@@ -4,6 +4,8 @@
  * Date : 29 - April - 2024
  * Description : Kafka producer methods
  */
+const kafkaCommunicationsOnOff =
+	!process.env.KAFKA_COMMUNICATIONS_ON_OFF || process.env.KAFKA_COMMUNICATIONS_ON_OFF != 'OFF' ? 'ON' : 'OFF'
 const common = require('@constants/common')
 
 const pushEmailToKafka = async (message) => {
@@ -30,6 +32,15 @@ const clearInternalCache = async (key) => {
 
 const pushPayloadToKafka = async (payload) => {
 	try {
+		if (kafkaCommunicationsOnOff != 'ON') {
+			throw 'Kafka configuration is not done'
+		}
+
+		console.log('-------Kafka producer log starts here------------------')
+		console.log('Topic Name: ', payload[0].topic)
+		console.log('Message: ', JSON.stringify(payload))
+		console.log('-------Kafka producer log ends here------------------')
+
 		let response = await kafkaProducer.send(payload)
 		return response
 	} catch (error) {

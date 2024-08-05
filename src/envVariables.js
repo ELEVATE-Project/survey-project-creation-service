@@ -3,7 +3,7 @@ const common = require('@constants/common')
 
 let tableData = new table()
 
-let enviromentVariables = {
+let environmentVariables = {
 	APPLICATION_PORT: {
 		message: 'Required port no',
 		optional: false,
@@ -24,9 +24,18 @@ let enviromentVariables = {
 		message: 'Required access token secret',
 		optional: false,
 	},
+	KAFKA_COMMUNICATIONS_ON_OFF: {
+		message: 'Enable/Disable kafka communications',
+		optional: false,
+	},
 	KAFKA_URL: {
 		message: 'Required kafka connectivity url',
-		optional: false,
+		optional: true,
+		requiredIf: {
+			key: 'KAFKA_COMMUNICATIONS_ON_OFF',
+			operator: 'EQUALS',
+			value: 'ON',
+		},
 	},
 	KAFKA_GROUP_ID: {
 		message: 'Required kafka group id',
@@ -149,8 +158,13 @@ let enviromentVariables = {
 		optional: false,
 	},
 	PROJECT_PUBLISH_KAFKA_TOPIC: {
-		message: 'Required publish kafka topic',
-		optional: false,
+		message: 'Required project publish kafka topic',
+		optional: true,
+		requiredIf: {
+			key: 'PUBLISH_METHOD',
+			operator: 'EQUALS',
+			value: 'kafka',
+		},
 	},
 	MAX_BODY_LENGTH_FOR_UPLOAD: {
 		message: 'Maximum body length for file upload is required',
@@ -172,38 +186,39 @@ let enviromentVariables = {
 let success = true
 
 module.exports = function () {
-	Object.keys(enviromentVariables).forEach((eachEnvironmentVariable) => {
+	Object.keys(environmentVariables).forEach((eachEnvironmentVariable) => {
 		let tableObj = {
 			[eachEnvironmentVariable]: 'PASSED',
 		}
 
 		let keyCheckPass = true
+		let validRequiredIfOperators = ['EQUALS', 'NOT_EQUALS']
 
 		if (
-			enviromentVariables[eachEnvironmentVariable].optional === true &&
-			enviromentVariables[eachEnvironmentVariable].requiredIf &&
-			enviromentVariables[eachEnvironmentVariable].requiredIf.key &&
-			enviromentVariables[eachEnvironmentVariable].requiredIf.key != '' &&
-			enviromentVariables[eachEnvironmentVariable].requiredIf.operator &&
-			validRequiredIfOperators.includes(enviromentVariables[eachEnvironmentVariable].requiredIf.operator) &&
-			enviromentVariables[eachEnvironmentVariable].requiredIf.value &&
-			enviromentVariables[eachEnvironmentVariable].requiredIf.value != ''
+			environmentVariables[eachEnvironmentVariable].optional === true &&
+			environmentVariables[eachEnvironmentVariable].requiredIf &&
+			environmentVariables[eachEnvironmentVariable].requiredIf.key &&
+			environmentVariables[eachEnvironmentVariable].requiredIf.key != '' &&
+			environmentVariables[eachEnvironmentVariable].requiredIf.operator &&
+			validRequiredIfOperators.includes(environmentVariables[eachEnvironmentVariable].requiredIf.operator) &&
+			environmentVariables[eachEnvironmentVariable].requiredIf.value &&
+			environmentVariables[eachEnvironmentVariable].requiredIf.value != ''
 		) {
-			switch (enviromentVariables[eachEnvironmentVariable].requiredIf.operator) {
+			switch (environmentVariables[eachEnvironmentVariable].requiredIf.operator) {
 				case 'EQUALS':
 					if (
-						process.env[enviromentVariables[eachEnvironmentVariable].requiredIf.key] ===
-						enviromentVariables[eachEnvironmentVariable].requiredIf.value
+						process.env[environmentVariables[eachEnvironmentVariable].requiredIf.key] ===
+						environmentVariables[eachEnvironmentVariable].requiredIf.value
 					) {
-						enviromentVariables[eachEnvironmentVariable].optional = false
+						environmentVariables[eachEnvironmentVariable].optional = false
 					}
 					break
 				case 'NOT_EQUALS':
 					if (
-						process.env[enviromentVariables[eachEnvironmentVariable].requiredIf.key] !=
-						enviromentVariables[eachEnvironmentVariable].requiredIf.value
+						process.env[environmentVariables[eachEnvironmentVariable].requiredIf.key] !=
+						environmentVariables[eachEnvironmentVariable].requiredIf.value
 					) {
-						enviromentVariables[eachEnvironmentVariable].optional = false
+						environmentVariables[eachEnvironmentVariable].optional = false
 					}
 					break
 				default:
@@ -211,23 +226,23 @@ module.exports = function () {
 			}
 		}
 
-		if (enviromentVariables[eachEnvironmentVariable].optional === false) {
+		if (environmentVariables[eachEnvironmentVariable].optional === false) {
 			if (!process.env[eachEnvironmentVariable] || process.env[eachEnvironmentVariable] == '') {
 				success = false
 				keyCheckPass = false
 			} else if (
-				enviromentVariables[eachEnvironmentVariable].possibleValues &&
-				Array.isArray(enviromentVariables[eachEnvironmentVariable].possibleValues) &&
-				enviromentVariables[eachEnvironmentVariable].possibleValues.length > 0
+				environmentVariables[eachEnvironmentVariable].possibleValues &&
+				Array.isArray(environmentVariables[eachEnvironmentVariable].possibleValues) &&
+				environmentVariables[eachEnvironmentVariable].possibleValues.length > 0
 			) {
 				if (
-					!enviromentVariables[eachEnvironmentVariable].possibleValues.includes(
+					!environmentVariables[eachEnvironmentVariable].possibleValues.includes(
 						process.env[eachEnvironmentVariable]
 					)
 				) {
 					success = false
 					keyCheckPass = false
-					enviromentVariables[eachEnvironmentVariable].message += ` Valid values - ${enviromentVariables[
+					environmentVariables[eachEnvironmentVariable].message += ` Valid values - ${environmentVariables[
 						eachEnvironmentVariable
 					].possibleValues.join(', ')}`
 				}
@@ -236,15 +251,15 @@ module.exports = function () {
 
 		if (
 			(!process.env[eachEnvironmentVariable] || process.env[eachEnvironmentVariable] == '') &&
-			enviromentVariables[eachEnvironmentVariable].default &&
-			enviromentVariables[eachEnvironmentVariable].default != ''
+			environmentVariables[eachEnvironmentVariable].default &&
+			environmentVariables[eachEnvironmentVariable].default != ''
 		) {
-			process.env[eachEnvironmentVariable] = enviromentVariables[eachEnvironmentVariable].default
+			process.env[eachEnvironmentVariable] = environmentVariables[eachEnvironmentVariable].default
 		}
 
 		if (!keyCheckPass) {
-			if (enviromentVariables[eachEnvironmentVariable].message !== '') {
-				tableObj[eachEnvironmentVariable] = enviromentVariables[eachEnvironmentVariable].message
+			if (environmentVariables[eachEnvironmentVariable].message !== '') {
+				tableObj[eachEnvironmentVariable] = environmentVariables[eachEnvironmentVariable].message
 			} else {
 				tableObj[eachEnvironmentVariable] = `FAILED - ${eachEnvironmentVariable} is required`
 			}

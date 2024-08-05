@@ -17,6 +17,8 @@ const { Op } = require('sequelize')
 const axios = require('axios')
 const utils = require('@generics/utils')
 const filesService = require('@services/files')
+const configService = require('@services/config')
+const projectService = require('@services/projects')
 
 module.exports = class resourceHelper {
 	/**
@@ -343,31 +345,55 @@ module.exports = class resourceHelper {
 	}
 
 	/**
-	 * Check and Publish Resource
+	 * Check for direct publish without review
 	 * @method
-	 * @name validateReviewConfigAndPublish
-	 * @returns {Boolean} - True if resource is published
+	 * @name isReviewMandatory
+	 * @returns {Boolean} - Review required or not
 	 */
-	static async validateReviewConfigAndPublish(resourceData, organization_id) {
+	static async isReviewMandatory(resourceType, organizationId) {
+		const orgConfig = await configService.list(organizationId)
+		const orgConfigList = _.reduce(
+			orgConfig.result.resource,
+			(acc, item) => {
+				acc[item.resource_type] = item.review_required
+				return acc
+			},
+			{}
+		)
+
+		return orgConfigList[resourceType]
+	}
+
+	/**
+	 * Publish Resource
+	 * @method
+	 * @name publishResource
+	 * @returns {JSON} - Publish Response
+	 */
+	static async publishResource(resourceId, userId) {
 		try {
-			let isPublished = false
+			const resource = await resourceCreatorMappingQueries.findAll({ creator_id: userId }, ['organization_id'])
 
-			//get configuration for review
-			const orgConfig = await configService.list(userDetails.organization_id)
-			const orgConfigList = _.reduce(
-				orgConfig.result,
-				(acc, item) => {
-					acc[item.resource_type] = item.review_required
-					return acc
-				},
-				{}
-			)
-
-			if (!orgConfigList[common.PROJECT]) {
-				isPublished = true
+			if (!resource?.id) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
-			//publish the resource in consumption side
+			resourceData = await resourceQueries.findOne({
+				id: resourceId,
+				organization_id: resource.organization_id,
+			})
+
+			let resourceDetails
+			if (resourceData.type === common.PROJECT) {
+				resourceDetails = await projectService.details(resourceId, resource.organization_id, userId)
+			}
+
+			let resourceData = resourceDetails.result
+
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
 				if (process.env.PUBLISH_METHOD === common.PUBLISH_METHOD_KAFKA) {
 					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
@@ -376,7 +402,19 @@ module.exports = class resourceHelper {
 				}
 			}
 
-			return isPublished
+			//update resource table
+			await resourceQueries.updateOne(
+				{ id: resourceId, organization_id: resource.organization_id },
+				{
+					status: common.PUBLISHED,
+					published_on: new Date(),
+				}
+			)
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCE_PUBLISHED',
+			})
 		} catch (error) {
 			throw error
 		}

@@ -231,19 +231,8 @@ module.exports = class reviewsHelper {
 
 			// Publish resource if applicable
 			if (isPublishResource) {
-				//call api or kafka
-				if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-					if (process.env.PUBLISH_METHOD === common.PUBLISH_METHOD_KAFKA) {
-						await kafkaCommunication.pushResourceToKafka(resource, resource.type)
-					} else {
-						//api need to implement
-					}
-				}
-
-				return responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: 'RESOURCE_PUBLISHED',
-				})
+				const publishResource = await resourceService.publishResource(resourceId, resourceDetails.user_id)
+				return publishResource
 			}
 
 			return responses.successResponse({
