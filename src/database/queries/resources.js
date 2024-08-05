@@ -13,7 +13,7 @@ exports.create = async (data) => {
 			const messages = error.errors.map((err) => `${err.path} cannot be null.`)
 			throw new Error(messages.join(' '))
 		} else {
-			throw new Error(error.message)
+			throw new Error(error)
 		}
 	}
 }
@@ -40,7 +40,7 @@ exports.updateOne = async (filter, update, options = {}) => {
 
 		return res
 	} catch (error) {
-		return error
+		throw error
 	}
 }
 

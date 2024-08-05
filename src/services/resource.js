@@ -15,6 +15,7 @@ const userRequests = require('@requests/user')
 const _ = require('lodash')
 const { Op } = require('sequelize')
 const axios = require('axios')
+const utils = require('@generics/utils')
 const filesService = require('@services/files')
 
 module.exports = class resourceHelper {
@@ -323,7 +324,7 @@ module.exports = class resourceHelper {
 
 			let config = {
 				method: 'put',
-				maxBodyLength: parseInt(process.env.MAX_BODY_LENGTH_FOR_UPLOAD),
+				maxBodyLength: utils.convertToInteger(process.env.MAX_BODY_LENGTH_FOR_UPLOAD),
 				url: url,
 				headers: {
 					'Content-Type': 'multipart/form-data',
@@ -336,6 +337,46 @@ module.exports = class resourceHelper {
 				blob_path: blobPath,
 				result: resourceUploadStatus,
 			}
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Check and Publish Resource
+	 * @method
+	 * @name validateReviewConfigAndPublish
+	 * @returns {Boolean} - True if resource is published
+	 */
+	static async validateReviewConfigAndPublish(resourceData, organization_id) {
+		try {
+			let isPublished = false
+
+			//get configuration for review
+			const orgConfig = await configService.list(userDetails.organization_id)
+			const orgConfigList = _.reduce(
+				orgConfig.result,
+				(acc, item) => {
+					acc[item.resource_type] = item.review_required
+					return acc
+				},
+				{}
+			)
+
+			if (!orgConfigList[common.PROJECT]) {
+				isPublished = true
+			}
+
+			//publish the resource in consumption side
+			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
+				if (process.env.PUBLISH_METHOD === common.PUBLISH_METHOD_KAFKA) {
+					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
+				} else {
+					//api need to implement
+				}
+			}
+
+			return isPublished
 		} catch (error) {
 			throw error
 		}

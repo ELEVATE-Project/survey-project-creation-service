@@ -9,4 +9,5 @@ module.exports = {
 	USER_PROFILE_DETAILS: process.env.USER_PROFILE_DETAILS_ENDPOINT
 		? process.env.USER_PROFILE_DETAILS_ENDPOINT
 		: 'v1/user/read',
+	VALIDATE_SESSIONS: 'v1/account/validateUserSession',
 }

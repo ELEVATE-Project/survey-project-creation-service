@@ -10,6 +10,7 @@ const _ = require('lodash')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
+const entityTypeQueries = require('@database/queries/entityType')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const kafkaCommunication = require('@generics/kafka-communication')
@@ -22,12 +23,22 @@ module.exports = class ProjectsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - project id
 	 */
-	static async create(orgId, loggedInUserId, bodyData) {
+	static async create(bodyData, loggedInUserId, orgId) {
 		try {
+			//validate the title length
+			const isTitleInvalid = utils.validateTitle(bodyData.title)
+			if (isTitleInvalid) {
+				return responses.failureResponse({
+					message: 'CHARACTER_LIMIT_EXCEED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
 			const orgConfig = await configService.list(orgId)
 
 			const orgConfigList = _.reduce(
-				orgConfig.result,
+				orgConfig.result.resource,
 				(acc, item) => {
 					acc[item.resource_type] = item.review_type
 					return acc
@@ -124,8 +135,18 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - project update response.
 	 */
 
-	static async update(resourceId, orgId, loggedInUserId, bodyData) {
+	static async update(resourceId, bodyData, loggedInUserId, orgId) {
 		try {
+			//validate the title length
+			const isTitleInvalid = utils.validateTitle(bodyData.title)
+			if (isTitleInvalid) {
+				return responses.failureResponse({
+					message: 'CHARACTER_LIMIT_EXCEED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
 			const forbidden_resource_statuses = [
 				common.RESOURCE_STATUS_PUBLISHED,
 				common.RESOURCE_STATUS_REJECTED,
@@ -189,6 +210,9 @@ module.exports = class ProjectsHelper {
 				let updateData = {
 					updated_by: loggedInUserId,
 					blob_path: projectUploadStatus.blob_path,
+				}
+				if (bodyData['title'] != '') {
+					updateData.title = bodyData['title']
 				}
 
 				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {
@@ -335,16 +359,17 @@ module.exports = class ProjectsHelper {
 					)
 
 					if (entityTypes.length > 0) {
+						//create label value pair map
 						const entityTypeMap = entityTypes.reduce((map, type) => {
-							if (type.has_entities && type.entities) {
+							if (type.has_entities && Array.isArray(type.entities) && type.entities.length > 0) {
 								map[type.value] = type.entities
-									.filter((entity) => entity.status === common.ACTIVE)
+									.filter((entity) => entity.status === common.STATUS_ACTIVE)
 									.map((entity) => ({ label: entity.label, value: entity.value.toLowerCase() }))
 							}
 							return map
 						}, {})
 
-						for (const entityType of entityTypes) {
+						for (let entityType of entityTypes) {
 							const key = entityType.value
 							// Skip the entity type if entities are not available
 							if (
@@ -409,31 +434,54 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - List of reviewers from the org
 	 */
 
-	static async reviewerList(organization_id, pageNo, limit) {
+	static async reviewerList(user_id, organization_id, pageNo, limit) {
 		try {
-			const reviewers = await userRequests.list(common.REVIEWER, pageNo, limit, '', organization_id)
-			if (reviewers.success) {
+			let result = {
+				data: [],
+				count: 0,
+			}
+
+			let reviewers = await userRequests.list(common.REVIEWER, pageNo, limit, '', organization_id, {
+				excluded_user_ids: [user_id],
+			})
+
+			let userList = []
+
+			if (!reviewers.success) {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'REVIEWER_LIST_FETCHED_SUCCESSFULLY',
-					result: reviewers.data.result,
-				})
-			} else {
-				return responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: 'REVIEWER_LIST_FETCHED_SUCCESSFULLY',
-					result: [],
+					result,
 				})
 			}
+
+			//written as a beckup will remove once the user service PR merged
+			if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
+				userList = reviewers.data.result.data.filter((user) => user.id !== user_id)
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'REVIEWER_LIST_FETCHED_SUCCESSFULLY',
+				result: {
+					data: userList,
+					count: userList.length,
+				},
+			})
 		} catch (error) {
 			throw error
 		}
 	}
 
+	/**
+	 * Submit the project for review
+	 * @method
+	 * @name submitForReview
+	 * @returns {JSON} - Response status of the submission
+	 */
 	static async submitForReview(resourceId, bodyData, userDetails) {
 		try {
 			let projectDetails = await this.details(resourceId, userDetails.organization_id, userDetails.id)
-
 			if (projectDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROJECT_ACCESS',
@@ -444,6 +492,7 @@ module.exports = class ProjectsHelper {
 
 			let projectData = projectDetails.result
 
+			//check the creator is valid
 			if (projectData.user_id !== userDetails.id) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROJECT_ACCESS',
@@ -452,223 +501,154 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
+			//Restrict the user to submit it again
+			if (projectData.status === common.RESOURCE_STATUS_SUBMITTED) {
+				return responses.failureResponse({
+					message: 'RESOURCE_ALREADY_SUBMITTED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			//get all entity type validations for project
 			let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 				{
 					model: common.PROJECT,
 					status: common.STATUS_ACTIVE,
 				},
-				userDetails.organization_id,
+				projectData.organization_id,
 				['id', 'value', 'has_entities', 'validations']
 			)
 
-			// Using forEach instead of for loop for entity type validations
-
-			entityTypes.forEach((entityType) => {
-				const fieldData = projectData[entityType.value]
-
-				if (entityType.validations.required) {
-					let required = utils.checkRequired(entityType, fieldData)
-					if (!required) {
-						throw responses.failureResponse({
-							message: `${entityType.value} not added`,
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
-							error: utils.errorObject(common.BODY, entityType.value),
-						})
-					}
-				}
-
-				if (entityType.has_entities) {
-					let checkEntities = utils.checkEntities(entityType, fieldData)
-					if (!checkEntities.status) {
-						throw responses.failureResponse({
-							message: checkEntities.message,
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
-							error: utils.errorObject(common.BODY, entityType.value),
-						})
-					}
-				}
-
-				if (entityType.validations.regex) {
-					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
-					if (checkRegex) {
-						throw responses.failureResponse({
-							message: `Special characters not allowed in ${entityType.value}`,
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
-							error: utils.errorObject(common.BODY, entityType.value),
-						})
-					}
-				}
-			})
-
-			if (projectData.tasks.length < 1) {
-				throw responses.failureResponse({
-					message: 'TASK_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-					error: utils.errorObject(common.BODY, common.TASKS),
-				})
-			} else if (projectData.tasks.length > process.env.MAX_PROJECT_TASK_COUNT) {
-				throw responses.failureResponse({
-					message: 'EXCEEDED_PROJECT_TASK_COUNT',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-					error: utils.errorObject(common.BODY, common.TASKS),
-				})
-			}
-
+			//fetch task entityType validations
 			let taskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 				{
 					model: common.TASKS,
 					status: common.STATUS_ACTIVE,
 				},
-				userDetails.organization_id,
+				projectData.organization_id,
+				['id', 'value', 'validations', 'has_entities']
+			)
+
+			const taskEntityTypesMapping = taskEntityTypes.reduce((acc, item) => {
+				acc[item.value] = item
+				return acc
+			}, {})
+
+			//validate project data
+			const projectValidationPromises = entityTypes.map((entityType) =>
+				this.validateEntityData(projectData, entityType, common.PROJECT, common.BODY, taskEntityTypesMapping)
+			)
+			const projectValidationResults = await Promise.all(projectValidationPromises)
+			for (const validationResult of projectValidationResults) {
+				if (validationResult.hasError) {
+					throw {
+						error: validationResult.error,
+					}
+				}
+			}
+
+			//validate number of task
+			if (projectData.tasks?.length > parseInt(process.env.MAX_PROJECT_TASK_COUNT, 10)) {
+				throw {
+					error: utils.errorObject(
+						common.BODY,
+						common.TASKS,
+						'Project task count has exceeded the maximum allowed limit'
+					),
+				}
+			}
+
+			//get all entity type validations for task
+			const subTaskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+				{
+					model: common.SUBTASKS,
+					status: common.STATUS_ACTIVE,
+				},
+				projectData.organization_id,
 				['value', 'validations']
 			)
-			//TODO: This dont have code for each type of validation please make sure that in future when adding new validadtion include code for that
-			// Using forEach for iterating through tasks and taskEntityTypes
-			projectData.tasks.forEach(async (task) => {
-				taskEntityTypes.forEach(async (taskEntityType) => {
-					const fieldData = task[taskEntityType.value]
-					if (taskEntityType.validations.required) {
-						let required = await utils.checkRequired(taskEntityType, fieldData)
-						if (!required) {
-							return new responses.failureResponse({
-								message: `task.${taskEntityType.value} not added`,
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.TASKS, taskEntityType.value),
-							})
-						}
-					}
 
-					if (taskEntityType.has_entities) {
-						let checkEntities = utils.checkEntities(taskEntityType, fieldData)
-						if (!checkEntities.status) {
-							throw responses.failureResponse({
-								message: checkEntities.message,
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.TASKS, taskEntityType.value),
-							})
-						}
-					}
+			// validate task
+			await Promise.all(
+				projectData.tasks.map(async (task) => {
+					// Validate task entities
+					await Promise.all(
+						taskEntityTypes.map(async (taskEntityType) => {
+							let validationResult = await this.validateEntityData(
+								task,
+								taskEntityType,
+								common.TASKS,
+								common.BODY,
+								taskEntityTypesMapping
+							)
+							if (validationResult.hasError) {
+								throw {
+									error: validationResult.error,
+								}
+							}
+						})
+					)
 
-					if (taskEntityType.validations.regex) {
-						let checkRegex = utils.checkRegexPattern(taskEntityType, fieldData)
-						if (checkRegex) {
-							throw responses.failureResponse({
-								message: `Special characters not allowed in ${taskEntityType.value}`,
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.TASKS, taskEntityType.value),
+					// Validate child tasks if they exist
+					if (task.children && task.children.length > 0) {
+						await Promise.all(
+							task.children.map(async (childTask) => {
+								await Promise.all(
+									subTaskEntityTypes.map(async (subTaskEntityType) => {
+										let validationResult = await this.validateEntityData(
+											childTask,
+											subTaskEntityType,
+											common.SUB_TASK,
+											common.BODY
+										)
+										if (validationResult.hasError) {
+											throw {
+												error: validationResult.error,
+											}
+										}
+									})
+								)
 							})
-						}
+						)
 					}
 				})
-				// TODO: Get file types from products teams and add validation for them
-				if (task.allow_evidences == common.TRUE && task.evidence_details.file_types.length < 1) {
-					throw responses.failureResponse({
-						message: 'FILE_TYPE_NOT_SELECTED',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-						error: utils.errorObject(common.BODY, common.FILE_TYPE),
-					})
-				}
-
-				if (task.learning_resources && task.learning_resources.length > 0) {
-					let subTaskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
-						{
-							model: common.SUBTASKS,
-							status: common.STATUS_ACTIVE,
-						},
-						userDetails.organization_id,
-						['value', 'validations']
-					)
-					task.learning_resources.forEach((learningResource) => {
-						let validateURL = utils.checkRegexPattern(subTaskEntityTypes[0], learningResource.url)
-						if (validateURL) {
-							throw responses.failureResponse({
-								message: 'INCORRECT_LEARNING_RESOURCE',
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-								error: utils.errorObject(common.BODY, common.CHILDREN),
-							})
-						}
-					})
-				}
-			})
-
-			//update the reviews and resource status
-			// if resource status is draft update to submitted no review changes
-			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
-			if (projectData.status === common.RESOURCE_STATUS_DRAFT) {
-				resourceStatus = common.RESOURCE_STATUS_SUBMITTED
-			} else if (
-				projectData.status === common.RESOURCE_STATUS_IN_REVIEW ||
-				projectData.status === common.RESOURCE_STATUS_SUBMITTED
-			) {
-				//update the reviews table status
-				await reviewsQueries.update(
-					{
-						resource_id: projectData.id,
-						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
-						organization_id: projectData.organization_id,
-					},
-					{
-						status: common.REVIEW_STATUS_CHANGES_UPDATED,
-					}
-				)
-
-				resourceStatus = common.RESOURCE_STATUS_IN_REVIEW
-			}
-
-			//if review is not required direct publish
-			const orgConfig = await configService.list(userDetails.organization_id)
-			const orgConfigList = _.reduce(
-				orgConfig.result,
-				(acc, item) => {
-					acc[item.resource_type] = item.review_required
-					return acc
-				},
-				{}
 			)
 
-			let updateObj = {}
-
-			if (!orgConfigList[common.PROJECT]) {
-				updateObj.status = common.PUBLISHED
-				updateObj.published_on = new Date()
-
-				//update resource with published_on and status
-				await resourceQueries.updateOne({ id: projectData.id }, updateObj)
-
-				//publish the resource in consumption side
-				if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-					if (process.env.PUBLISH_METHOD === common.PUBLISH_METHOD_KAFKA) {
-						await kafkaCommunication.pushResourceToKafka(projectData, projectData.type)
-					} else {
-						//api need to implement
-					}
-				}
-
-				return responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: 'RESOURCE_PUBLISHED',
+			// Check that the note character limit does not exceed the maximum limit
+			if (projectData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOTE_LENGTH_EXCEEDED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
 				})
-			} else {
-				updateObj.status = resourceStatus
-				updateObj.submitted_on = new Date()
 			}
 
-			//update resource with submitted_on and status
-			await resourceQueries.updateOne({ id: projectData.id }, updateObj)
-			//TODO: For review flow this has to be changed we might need to add further conditions
-			// and Validate those reviewer as well
-			if (bodyData.hasOwnProperty('reviewer_ids') && bodyData.reviewer_ids.length > 0) {
-				let reviewsData = bodyData.reviewer_ids.map((reviewer_id) => ({
+			//validate the reviewer
+			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
+				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
+					user_ids: bodyData.reviewer_ids,
+					excluded_user_ids: [userDetails.id],
+				})
+
+				//return error message if the reviewer is invalid or not found
+				if (reviewers.length <= 0 || bodyData.reviewer_ids > reviewers.length) {
+					return responses.failureResponse({
+						message: 'REVIEWER_IDS_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				let reviewerIds = []
+
+				//written as a backup will remove once the user service PR merged
+				if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
+					reviewerIds = reviewers.data.result.data.map((item) => item.id)
+				}
+
+				//create entry in reviews table
+				let reviewsData = reviewerIds.map((reviewer_id) => ({
 					resource_id: projectData.id,
 					reviewer_id,
 					status: common.REVIEW_STATUS_NOT_STARTED,
@@ -678,11 +658,184 @@ module.exports = class ProjectsHelper {
 				await reviewsQueries.bulkCreate(reviewsData)
 			}
 
+			//update the reviews and resource status
+			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
+			if (
+				projectData.status === common.RESOURCE_STATUS_IN_REVIEW ||
+				projectData.status === common.RESOURCE_STATUS_SUBMITTED
+			) {
+				//Update the review status if the resource has been submitted before
+				await reviewsQueries.update(
+					{
+						organization_id: projectData.organization_id,
+						resource_id: projectData.id,
+						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+					},
+					{
+						status: common.REVIEW_STATUS_CHANGES_UPDATED,
+					}
+				)
+				resourceStatus = common.RESOURCE_STATUS_IN_REVIEW
+			}
+
+			let updateObj = {}
+
+			//if review is not required direct publish
+			const isResourcePublished = await resourceService.checkAndPublishResource(
+				projectData,
+				userDetails.organization_id
+			)
+			//update published resource
+			if (isResourcePublished) {
+				updateObj.status = common.PUBLISHED
+				updateObj.published_on = new Date()
+
+				await resourceQueries.updateOne({ id: projectData.id }, updateObj)
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'RESOURCE_PUBLISHED',
+				})
+			}
+
+			//update non published resource
+			updateObj.status = resourceStatus
+			updateObj.submitted_on = new Date()
+			await resourceQueries.updateOne({ id: projectData.id }, updateObj)
+
 			return responses.successResponse({
-				statusCode: httpStatusCode.created,
+				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_SUBMITTED_SUCCESSFULLY',
 				result: { id: projectData.id },
 			})
+		} catch (error) {
+			return responses.failureResponse({
+				message: 'RESOURCE_VALIDATION_FAILED',
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+				result: error.error || [],
+			})
+		}
+	}
+
+	/**
+	 * Validates the given project data
+	 * @method
+	 * @name validateEntityData
+	 * @param {Object} entityData - Data which needs to validate
+	 * @param {Object} entityType - Each entityType which have models
+	 * @param {string} model - The model needs to validate ex: projects, tasks, subTasks
+	 * @param {string} sourceType - Specifies the source of the input, which can be 'body', 'param', or 'query'.
+	 * @returns {JSON} - Response containing error details, if any.
+	 */
+	static async validateEntityData(entityData, entityType, model, sourceType, entityMapping) {
+		try {
+			let fieldData = entityData[entityType.value]
+			if (model == common.TASKS && entityData.allow_evidences == common.TRUE) {
+				// Check if file types are selected
+				if (!entityData?.evidence_details?.file_types.length) {
+					return {
+						hasError: true,
+						error: utils.errorObject(common.BODY, common.FILE_TYPE, 'File type not selected'),
+					}
+				}
+
+				if (entityType.value === common.FILE_TYPE || entityType.value === common.MIN_NO_OF_EVIDENCES) {
+					fieldData = entityData.evidence_details[entityType.value]
+				}
+			}
+
+			// Check if the field is required
+			if (entityType.validations.required) {
+				let required = utils.checkRequired(entityType, fieldData)
+				if (!required) {
+					return {
+						hasError: true,
+						error: utils.errorObject(
+							sourceType,
+							entityType.value,
+							entityType.validations.message || `${model} ${entityType.value} is required`
+						),
+					}
+				}
+			}
+
+			// Check if the entity has sub-entities
+			if (entityType.has_entities) {
+				let checkEntities = utils.checkEntities(entityType, fieldData)
+				if (!checkEntities.status) {
+					return {
+						hasError: true,
+						error: utils.errorObject(sourceType, entityType.value, checkEntities.message),
+					}
+				}
+			}
+
+			// Check regex pattern will check max length and special characters
+			if (entityType.validations.regex && fieldData) {
+				//validate learning resource validation
+				if (entityType.value === common.LEARNING_RESOURCE) {
+					for (let eachResource of fieldData) {
+						//validate the name and url is there
+						if (!eachResource.name || !eachResource.url) {
+							return {
+								hasError: true,
+								error: utils.errorObject(
+									sourceType,
+									common.LEARNING_RESOURCE,
+									entityType.validations.message ||
+										`Required learning resource name and url in ${model}`
+								),
+							}
+						}
+						//validate the name
+						let validateName = utils.checkRegexPattern(entityMapping[common.NAME], eachResource.name)
+						if (!validateName) {
+							return {
+								hasError: true,
+								error: utils.errorObject(
+									sourceType,
+									common.LEARNING_RESOURCE,
+									entityType.validations.message || `Invalid learning resource name in ${model}`
+								),
+							}
+						}
+						//validate the url
+						let validateURL = utils.checkRegexPattern(
+							entityMapping[common.LEARNING_RESOURCE],
+							eachResource.url
+						)
+						if (validateURL) {
+							return {
+								hasError: true,
+								error: utils.errorObject(
+									sourceType,
+									common.LEARNING_RESOURCE,
+									entityType.validations.message || `Invalid learning resource URL in ${model}`
+								),
+							}
+						}
+					}
+				} else {
+					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
+					if (!checkRegex) {
+						return {
+							hasError: true,
+							error: utils.errorObject(
+								sourceType,
+								entityType.value,
+								entityType.validations.message ||
+									`${model} ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
+							),
+						}
+					}
+				}
+			}
+
+			// No errors, return null
+			return {
+				hasError: false,
+				error: [],
+			}
 		} catch (error) {
 			return error
 		}

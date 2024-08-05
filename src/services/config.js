@@ -3,6 +3,7 @@ const organizationExtensionsQueries = require('@database/queries/organizationExt
 const _ = require('lodash')
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
+const utils = require('@generics/utils')
 module.exports = class configsHelper {
 	/**
 	 * List Configs.
@@ -17,6 +18,13 @@ module.exports = class configsHelper {
 			// define filter
 			const filter = {
 				organization_id,
+			}
+			let result = {
+				resource: [],
+				instance: {
+					auto_save_interval: utils.convertToInteger(process.env.RESOURCE_AUTO_SAVE_TIMER),
+					note_length: utils.convertToInteger(process.env.MAX_RESOURCE_NOTE_LENGTH),
+				},
 			}
 			// attributes to fetch from organisation Extenstion
 			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
@@ -74,14 +82,16 @@ module.exports = class configsHelper {
 
 			_.forEach(configData, (item) => {
 				if (item.resource_type === common.PROJECT) {
-					item.max_task_count = parseInt(process.env.MAX_PROJECT_TASK_COUNT, 10)
+					item.max_task_count = utils.convertToInteger(process.env.MAX_PROJECT_TASK_COUNT)
 				}
 			})
+
+			result.resource = configData
 			// return success message
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'CONFIGS_FETCHED_SUCCESSFULLY',
-				result: configData,
+				result,
 			})
 		} catch (error) {
 			// return error message

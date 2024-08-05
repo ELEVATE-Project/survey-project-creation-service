@@ -24,6 +24,7 @@ module.exports = class EntityTypeHelper {
 			bodyData.created_by = loggedInUserId
 			bodyData.updated_by = loggedInUserId
 			bodyData.organization_id = orgId
+			bodyData.value = bodyData.value.toLowerCase()
 			let entityType = await entityTypeQueries.createEntityType(bodyData)
 
 			if (entityType) {
@@ -66,6 +67,7 @@ module.exports = class EntityTypeHelper {
 	static async update(id, bodyData, loggedInUserId, orgId) {
 		try {
 			bodyData.updated_by = loggedInUserId
+			if (bodyData.value) bodyData.value = bodyData.value.toLowerCase()
 			const [updateCount, updatedEntityType] = await entityTypeQueries.updateOneEntityType(id, orgId, bodyData, {
 				returning: true,
 				raw: true,
@@ -139,7 +141,7 @@ module.exports = class EntityTypeHelper {
 
 			const filter = {
 				value: body.value,
-				status: 'ACTIVE',
+				status: common.STATUS_ACTIVE,
 				organization_id: {
 					[Op.in]: [orgId, defaultOrgId],
 				},
@@ -210,7 +212,7 @@ module.exports = class EntityTypeHelper {
 			}
 
 			const filter = {
-				status: 'ACTIVE',
+				status: common.STATUS_ACTIVE,
 				has_entities: true,
 				organization_id: {
 					[Op.in]: orgIds,
@@ -233,11 +235,13 @@ module.exports = class EntityTypeHelper {
 				const orgIdToSearch = [element[orgIdKey], defaultOrgId]
 
 				// Filter entity types based on orgIds and remove parent entity types
-				let entitTypeData = entityTypesWithEntities.filter((obj) => orgIdToSearch.includes(obj.organization_id))
-				entitTypeData = utils.removeParentEntityTypes(entitTypeData)
+				let entityTypeData = entityTypesWithEntities.filter((obj) =>
+					orgIdToSearch.includes(obj.organization_id)
+				)
+				entityTypeData = utils.removeParentEntityTypes(entityTypeData)
 
 				// Process the data asynchronously to add value labels
-				const processDbResponse = await utils.processDbResponse(element, entitTypeData)
+				const processDbResponse = await utils.processDbResponse(element, entityTypeData)
 
 				// Return the processed result
 				return processDbResponse

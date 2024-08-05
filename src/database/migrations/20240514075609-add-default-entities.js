@@ -9,18 +9,39 @@ module.exports = {
 
 		const entitiesArray = [
 			{
+				entityType: 'title',
+				entities: '',
+				has_entities: false,
+				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
+				model: 'projects',
+			},
+			{
 				entityType: 'categories',
 				entities: [
 					{ value: 'teachers', label: 'Teachers' },
 					{ value: 'students', label: 'Students' },
 					{ value: 'community', label: 'Community' },
-					{ value: 'schoolProcess', label: 'School Process' },
+					{ value: 'school_process', label: 'School Process' },
 					{ value: 'infrastructure', label: 'Infrastructure' },
-					{ value: 'educationLeader', label: 'Education Leader' },
+					{ value: 'education_leader', label: 'Education Leader' },
 					{ value: 'other', label: 'Other' },
 				],
 				has_entities: true,
 				validation: { required: true },
+				model: 'projects',
+			},
+			{
+				entityType: 'objective',
+				entities: '',
+				has_entities: false,
+				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
+				model: 'projects',
+			},
+			{
+				entityType: 'keywords',
+				entities: '',
+				has_entities: false,
+				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: false },
 				model: 'projects',
 			},
 			{
@@ -29,7 +50,7 @@ module.exports = {
 					{ value: 'hm', label: 'HM' },
 					{ value: 'ht', label: 'HT' },
 					{ value: 'teachers', label: 'Teachers' },
-					{ value: 'educationLeader', label: 'Education Leader' },
+					{ value: 'education_leader', label: 'Education Leader' },
 				],
 				has_entities: true,
 				validation: { required: true },
@@ -57,27 +78,6 @@ module.exports = {
 				],
 				has_entities: true,
 				validation: { required: true },
-				model: 'projects',
-			},
-			{
-				entityType: 'title',
-				entities: '',
-				has_entities: false,
-				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
-				model: 'projects',
-			},
-			{
-				entityType: 'objective',
-				entities: '',
-				has_entities: false,
-				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
-				model: 'projects',
-			},
-			{
-				entityType: 'keywords',
-				entities: '',
-				has_entities: false,
-				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
 				model: 'projects',
 			},
 			{
