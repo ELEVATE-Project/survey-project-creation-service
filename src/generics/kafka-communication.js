@@ -8,15 +8,6 @@ const kafkaCommunicationsOnOff =
 	!process.env.KAFKA_COMMUNICATIONS_ON_OFF || process.env.KAFKA_COMMUNICATIONS_ON_OFF != 'OFF' ? 'ON' : 'OFF'
 const common = require('@constants/common')
 
-const pushEmailToKafka = async (message) => {
-	try {
-		const payload = { topic: process.env.NOTIFICATION_KAFKA_TOPIC, messages: [{ value: JSON.stringify(message) }] }
-		return await pushPayloadToKafka(payload)
-	} catch (error) {
-		throw error
-	}
-}
-
 const clearInternalCache = async (key) => {
 	try {
 		const payload = {
@@ -69,7 +60,6 @@ const pushResourceToKafka = async (message, resourceType) => {
 }
 
 module.exports = {
-	pushEmailToKafka,
 	clearInternalCache,
 	pushResourceToKafka,
 }

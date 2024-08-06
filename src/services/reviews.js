@@ -1,4 +1,9 @@
-/* eslint-disable no-useless-catch */
+/**
+ * name : services/reviews.js
+ * author : Priyanka Pradeep
+ * Date : 11-July-2024
+ * Description : Review Stage Service
+ */
 // Dependencies
 const httpStatusCode = require('@generics/http-status')
 const common = require('@constants/common')
@@ -24,7 +29,6 @@ module.exports = class reviewsHelper {
 	 */
 
 	static async update(resourceId, bodyData, loggedInUserId, orgId) {
-		// eslint-disable-next-line no-useless-catch
 		try {
 			//get resource details
 			let resourceDetails = await resourceService.getDetails(resourceId)

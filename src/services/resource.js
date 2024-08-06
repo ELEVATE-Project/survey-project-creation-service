@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-catch */
 /**
  * name : services/resource.js
  * author : Adithya Dinesh
@@ -26,6 +25,7 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const commentQueries = require('@database/queries/comment')
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
+const kafkaCommunication = require('@generics/kafka-communication')
 
 module.exports = class resourceHelper {
 	/**

@@ -85,4 +85,19 @@ module.exports = class CommentData {
 			throw error
 		}
 	}
+
+	static async findAndCountAll(filter, attributes, options = {}) {
+		try {
+			const { rows, count } = await Comment.findAndCountAll({
+				where: filter,
+				attributes,
+				...options,
+				raw: true,
+			})
+
+			return { rows, count }
+		} catch (error) {
+			throw error
+		}
+	}
 }

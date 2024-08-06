@@ -13,7 +13,7 @@ module.exports = class reviews {
 	async update(req) {
 		try {
 			const updateReview = await reviewService.update(
-				req.params.id,
+				req.params.id, //resource id
 				req.body,
 				req.decodedToken.id,
 				req.decodedToken.organization_id

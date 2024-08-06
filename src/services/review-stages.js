@@ -1,3 +1,9 @@
+/**
+ * name : services/review-stages.js
+ * author : Priyanka Pradeep
+ * Date : 29-July-2024
+ * Description : Review Stage Service
+ */
 // Dependencies
 const httpStatusCode = require('@generics/http-status')
 const reviewStageQueries = require('@database/queries/reviewStage')

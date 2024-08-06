@@ -41,10 +41,6 @@ let environmentVariables = {
 		message: 'Required kafka group id',
 		optional: false,
 	},
-	NOTIFICATION_KAFKA_TOPIC: {
-		message: 'Required notification kafka topic',
-		optional: false,
-	},
 	USER_SERVICE_HOST: {
 		message: 'Required user service host',
 		optional: false,

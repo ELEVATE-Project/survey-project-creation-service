@@ -687,16 +687,16 @@ module.exports = class ProjectsHelper {
 			}
 
 			//update resource
-			let updateObj = {
+			let resourcesUpdate = {
 				status: resourceStatus,
 				submitted_on: new Date(),
 			}
 
 			if (bodyData?.notes) {
-				updateObj.meta.notes = bodyData?.notes
+				resourcesUpdate.meta.notes = bodyData?.notes
 			}
 
-			await resourceQueries.updateOne({ id: projectData.id }, updateObj)
+			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,

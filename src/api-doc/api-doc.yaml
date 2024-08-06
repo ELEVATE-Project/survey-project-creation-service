@@ -4067,14 +4067,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
 
-  /scp/v1/review/update/{resourceId}:
+  /scp/v1/reviews/update/{resourceId}:
     post:
       summary: Review Update
       tags:
         - Review
       description: |-
         You can use this API to update review status
-         - The API Endpoint for update review status is `/scp/v1/review/update` 
+         - The API Endpoint for update review status is `/scp/v1/reviews/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:

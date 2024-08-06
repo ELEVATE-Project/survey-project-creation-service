@@ -1,3 +1,9 @@
+/**
+ * name : services/comments.js
+ * author : Priyanka Pradeep
+ * Date : 11-July-2024
+ * Description : Review Stage Service
+ */
 const httpStatusCode = require('@generics/http-status')
 const commentQueries = require('@database/queries/comments')
 const responses = require('@helpers/responses')
@@ -99,14 +105,14 @@ module.exports = class ProjectsHelper {
 			}
 
 			//get commenter and resolver details
-			const uniqueUserIds = _.uniq(
+			const userIds = _.uniq(
 				_.flatMap(comments.rows, (row) =>
 					row.resolved_by !== null ? [row.resolved_by, row.user_id] : [row.user_id]
 				)
 			)
 
 			const users = await userRequests.list(common.ALL_USER_ROLES, '', '', '', organization_id, {
-				user_ids: uniqueUserIds,
+				user_ids: userIds,
 			})
 
 			let commented_by = []
