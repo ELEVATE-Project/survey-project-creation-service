@@ -21,6 +21,7 @@ const axios = require('axios')
 const filesService = require('@services/files')
 const commentQueries = require('@database/queries/comment')
 const { Op, fn, col } = require('sequelize')
+const orgExtension = require('@services/organization-extension')
 
 module.exports = class resourceHelper {
 	/**
@@ -136,7 +137,7 @@ module.exports = class resourceHelper {
 			})
 		}
 		// fetch the organization details from user service
-		const orgDetails = await this.fetchOrganizationDetails(
+		const orgDetails = await orgExtension.fetchOrganizationDetails(
 			utils.getUniqueElements(response.result.map((item) => item.organization_id))
 		)
 
@@ -295,7 +296,7 @@ module.exports = class resourceHelper {
 		const userDetails = await this.fetchUserDetails([userId])
 
 		// fetch the org details from user service
-		const orgDetails = await this.fetchOrganizationDetails(OrganizationIds)
+		const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds)
 		result = await this.responseBuilder(response, userDetails, orgDetails, {})
 
 		return responses.successResponse({
@@ -321,7 +322,7 @@ module.exports = class resourceHelper {
 		result.data = resourceDetails.result.map((res) => {
 			res.organization = orgDetails[res.organization_id] ? orgDetails[res.organization_id] : {}
 			res.creator = userDetails[res.user_id] && userDetails[res.user_id].name ? userDetails[res.user_id].name : ''
-			res.notes = res.meta.notes ? res.meta.notes : ''
+			res.notes = res?.meta?.notes ? res.meta.notes : ''
 
 			if (additionalResourceInformation[res.id]) {
 				res = {
@@ -415,7 +416,7 @@ module.exports = class resourceHelper {
 	 * @returns {Array} - Response contain array of resources
 	 */
 	static async resourcesCreatedByUser(loggedInUserId, attributes = ['resource_id']) {
-		resourceData = {}
+		let resourceData = {}
 		if (loggedInUserId) {
 			// fetch the details of resource and organization from resource creator mapping table by the user
 			resourceData = await resourceCreatorMappingQueries.findAll({ creator_id: loggedInUserId }, attributes)
@@ -596,7 +597,7 @@ module.exports = class resourceHelper {
 			)
 
 			const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
-			const orgDetails = await this.fetchOrganizationDetails(uniqueOrganizationIds)
+			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds)
 
 			result.data = response.result.map((item) => {
 				let returnValue = item
@@ -639,7 +640,7 @@ module.exports = class resourceHelper {
 		const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
 
 		// fetch the resource wise review levels
-		const resourceWiseLevels = await this.fetchResourceReviewLevel(organization_id, userRoleTitles, resourceTypes)
+		const resourceWiseLevels = await this.fetchReviewLevels(organization_id, userRoleTitles, resourceTypes)
 		let resourceTypeStagesConfig = []
 		resourceTypes.filter((type) => {
 			if (resourceWiseLevels[type]) {
@@ -742,7 +743,7 @@ module.exports = class resourceHelper {
 
 	/**
 	 * Get all review levels from the reviews table
-	 * @name fetchResourceReviewLevel
+	 * @name fetchReviewLevels
 	 * @param {String} organization_id - organization_id of the logged in user.
 	 * @param {Array} userRoleTitles -  list of user role titles.
 	 * @param {Array} resourceTypeList -  list of resource types.
@@ -752,7 +753,7 @@ module.exports = class resourceHelper {
 	 * 	observation : 4
 	 * }
 	 */
-	static async fetchResourceReviewLevel(organization_id, userRoleTitles, resourceTypeList) {
+	static async fetchReviewLevels(organization_id, userRoleTitles, resourceTypeList) {
 		// fetch review levels according to roles in the organization
 		const reviewLevelDetails = await reviewStagesQueries.findAll(
 			{
@@ -788,10 +789,10 @@ module.exports = class resourceHelper {
 	static async fetchResourceReviewTypes(organization_id) {
 		try {
 			// Fetch organization-based configurations for resources
-			const configList = await configs.list(organization_id)
+			const orgConfig = await configs.list(organization_id)
 
 			// Map resource types to their review types
-			const resourceWiseReviewType = configList.result.resource.reduce((acc, item) => {
+			const resourceWiseReviewType = orgConfig.result.resource.reduce((acc, item) => {
 				acc[item.resource_type] = item.review_type
 				return acc
 			}, {})
@@ -814,49 +815,6 @@ module.exports = class resourceHelper {
 			throw error
 		}
 	}
-	/**
-	 * Get all the resources which are review in progress
-	 * @name fetchReviewersInprogressResources
-	 * @param {String} user_id - user_id of the logged in user.
-	 * @param {Array} uniqueOrganizationIds - uniqueOrganizationIds of the logged in user.
-	 * @returns {Object} - Response contain object of resources
-	 */
-	static async fetchReviewersInprogressResources(user_id, uniqueOrganizationIds) {
-		// fetch resources under user id from the org which are review inProgress and changes updated by creator
-		const filter = {
-			organization_id: { [Op.in]: uniqueOrganizationIds },
-			reviewer_id: user_id,
-			status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS, common.REVIEW_STATUS_CHANGES_UPDATED] },
-		}
-		let result = await reviewsQueries.findAll(filter, ['resource_id', 'organization_id'])
-		return result
-	}
-
-	/**
-	 * Get all the reviewer notes for the resources
-	 * @name fetchReviewerNotesForResources
-	 * @param {String} reviewer_id - user_id of the logged in user.
-	 * @param {Array} resource_ids - array of resource_ids.
-	 * @param {Array} organization_ids - list of organization_ids.
-	 * @returns {Object} - Response contain object of resources ids and notes
-	 */
-
-	static async fetchReviewerNotesForResources(reviewer_id = null, resource_ids, organization_ids) {
-		let filter = {
-			organization_id: { [Op.in]: organization_ids },
-			resource_id: { [Op.in]: resource_ids },
-		}
-		let notes = {}
-		reviewer_id ? (filter.reviewer_id = reviewer_id) : ''
-		const review_notes = await reviewsQueries.findAll(filter, ['resource_id', 'notes'])
-		if (review_notes) {
-			notes = review_notes.reduce((acc, item) => {
-				acc[item.resource_id] = item.notes
-				return acc
-			}, {})
-		}
-		return notes
-	}
 
 	/**
 	 * Get all details of users from the user service.
@@ -873,21 +831,6 @@ module.exports = class resourceHelper {
 			userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
 		}
 		return userDetails
-	}
-
-	/**
-	 * Get all details of org from the user service.
-	 * @name fetchOrganizationDetails
-	 * @param {Array} organization_ids - array of organization_ids.
-	 * @returns {Object} - Response contain object of org details
-	 */
-	static async fetchOrganizationDetails(organization_ids) {
-		const orgDetailsResponse = await userRequests.listOrganization(organization_ids)
-		let orgDetails = {}
-		if (orgDetailsResponse.success && orgDetailsResponse.data?.result?.length > 0) {
-			orgDetails = _.keyBy(orgDetailsResponse.data.result, 'id')
-		}
-		return orgDetails
 	}
 
 	/**
