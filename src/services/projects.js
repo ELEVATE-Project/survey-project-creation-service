@@ -10,7 +10,6 @@ const _ = require('lodash')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
-const entityTypeQueries = require('@database/queries/entityType')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 

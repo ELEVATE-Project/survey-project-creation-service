@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 // Dependencies
 const httpStatusCode = require('@generics/http-status')
 const common = require('@constants/common')
@@ -8,8 +9,8 @@ const responses = require('@helpers/responses')
 const configService = require('@services/config')
 const commentQueries = require('@database/queries/comments')
 const _ = require('lodash')
-const kafkaCommunication = require('@generics/kafka-communication')
 const resourceService = require('@services/resource')
+const { Op } = require('sequelize')
 
 module.exports = class reviewsHelper {
 	/**
@@ -23,6 +24,7 @@ module.exports = class reviewsHelper {
 	 */
 
 	static async update(resourceId, bodyData, loggedInUserId, orgId) {
+		// eslint-disable-next-line no-useless-catch
 		try {
 			//get resource details
 			let resourceDetails = await resourceService.getDetails(resourceId)
@@ -47,26 +49,27 @@ module.exports = class reviewsHelper {
 
 			// Fetch organization configuration
 			const orgConfig = await configService.list(orgId)
-			const orgConfigList = orgConfig.result.reduce((acc, item) => {
-				acc[item.resource_type] = {
-					review_type: item.review_type,
-					min_approval: item.min_approval,
-				}
-				return acc
-			}, {})
-
-			let createReview = false
-			let isPublishResource = false
-			let updateNextLevel = false
+			const orgConfigList =
+				orgConfig.result.resource.reduce((acc, item) => {
+					acc[item.resource_type] = {
+						review_type: item.review_type,
+						min_approval: item.min_approval,
+					}
+					return acc
+				}, {})[resource.type] || {}
 
 			// Extract review type and minimum approval for the resource type
-			const { review_type: reviewType, min_approval: minApproval } = orgConfigList[resource.type] || {}
+			const { review_type: reviewType, min_approval: minApproval } = orgConfigList[resource.type]
 
 			//Check if the logged-in user started the review
 			const reviewResource = await reviewResourceQueries.findOne({
 				reviewer_id: loggedInUserId,
 				resource_id: resourceId,
 			})
+
+			let createReview = false
+			let isPublishResource = false
+			let updateNextLevel = false
 
 			let review
 
@@ -78,7 +81,7 @@ module.exports = class reviewsHelper {
 					resource_id: resourceId,
 					reviewer_id: loggedInUserId,
 				})
-
+				//return error if review is not there and reviewResource there
 				if (!review || !review.id) {
 					return responses.failureResponse({
 						message: 'REVIEW_NOT_FOUND',
@@ -95,7 +98,7 @@ module.exports = class reviewsHelper {
 					const existingReview = await reviewsQueries.findOne({
 						organization_id: resource.organization_id,
 						resource_id: resourceId,
-						status: _notAllowedReviewStatus,
+						status: { [Op.in]: _notAllowedReviewStatus },
 					})
 
 					if (existingReview?.id) {
@@ -172,7 +175,7 @@ module.exports = class reviewsHelper {
 					const existingReview = await reviewsQueries.findOne({
 						organization_id: resource.organization_id,
 						resource_id: resourceId,
-						status: _notAllowedReviewStatus,
+						status: { [Op.in]: _notAllowedReviewStatus },
 					})
 
 					if (existingReview?.id) {
@@ -190,6 +193,7 @@ module.exports = class reviewsHelper {
 						bodyData.status
 					)
 				) {
+					//report or reject the resource
 					const rejection = await this.handleRejectionOrReport(
 						review.id,
 						bodyData,
@@ -206,7 +210,7 @@ module.exports = class reviewsHelper {
 						bodyData.status
 					)
 				) {
-					//update the reviews table
+					//update the progress of review
 					const updateReview = await this.handleUpdateReview(
 						review.id,
 						bodyData,
@@ -217,6 +221,7 @@ module.exports = class reviewsHelper {
 					)
 					return updateReview
 				} else if (bodyData.status === common.RESOURCE_STATUS_APPROVED) {
+					//approve the resource
 					isPublishResource = await this.handleApproval(
 						review.id,
 						resourceId,

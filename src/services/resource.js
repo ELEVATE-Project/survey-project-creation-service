@@ -1,5 +1,6 @@
+/* eslint-disable no-useless-catch */
 /**
- * name : validators/v1/resource.js
+ * name : services/resource.js
  * author : Adithya Dinesh
  * Date : 04-June-2024
  * Description : Resource Service
@@ -19,6 +20,7 @@ const utils = require('@generics/utils')
 const filesService = require('@services/files')
 const configService = require('@services/config')
 const projectService = require('@services/projects')
+const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 
 module.exports = class resourceHelper {
 	/**
@@ -243,7 +245,66 @@ module.exports = class resourceHelper {
 					response.result &&
 					Object.keys(response.result).length > 0
 				) {
-					result = { ...result, ...response.result }
+					//modify the response as label value pair
+					let resultData = response.result
+
+					//get all entity types with entities
+					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+						{
+							model: resource.type,
+							status: common.STATUS_ACTIVE,
+						},
+						resource.organization_id,
+						['id', 'value', 'label', 'has_entities']
+					)
+
+					if (entityTypes.length > 0) {
+						//create label value pair map
+						const entityTypeMap = entityTypes.reduce((map, type) => {
+							if (type.has_entities && Array.isArray(type.entities) && type.entities.length > 0) {
+								map[type.value] = type.entities
+									.filter((entity) => entity.status === common.STATUS_ACTIVE)
+									.map((entity) => ({ label: entity.label, value: entity.value.toLowerCase() }))
+							}
+							return map
+						}, {})
+
+						for (let entityType of entityTypes) {
+							const key = entityType.value
+							// Skip the entity type if entities are not available
+							if (
+								entityType.has_entities &&
+								entityType.entities &&
+								entityType.entities.length > 0 &&
+								resultData.hasOwnProperty(key)
+							) {
+								const value = resultData[key]
+								// If the value is already in label-value pair format, skip processing
+								if (utils.isLabelValuePair(value) || value === '') {
+									continue
+								}
+
+								// get the entities
+								const validEntities = entityTypeMap[key] || []
+
+								if (Array.isArray(value)) {
+									// Map each item in the array to a label-value pair, if it exists in validEntities
+									resultData[key] = value.map((item) => {
+										const match = validEntities.find(
+											(entity) => entity.value === item.toLowerCase()
+										)
+										return match || { label: item, value: item.toLowerCase() }
+									})
+								} else {
+									// If the value is a single item, find it in validEntities
+									const match = validEntities.find((entity) => entity.value === value.toLowerCase())
+									resultData[key] = match || { label: value, value: value.toLowerCase() }
+								}
+							}
+						}
+
+						result = { ...result, ...resultData }
+					}
 				}
 			}
 
