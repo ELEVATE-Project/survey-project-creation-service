@@ -6,6 +6,7 @@ const reviewStageQueries = require('@database/queries/reviewStage')
 const { UniqueConstraintError } = require('sequelize')
 const responses = require('@helpers/responses')
 const _ = require('lodash')
+const userRequests = require('@requests/user')
 module.exports = class orgExtensionsHelper {
 	/**
 	 * Create Organization Config.
@@ -200,5 +201,20 @@ module.exports = class orgExtensionsHelper {
 		} catch (error) {
 			throw error
 		}
+	}
+
+	/**
+	 * Get all details of org from the user service.
+	 * @name fetchOrganizationDetails
+	 * @param {Array} organization_ids - array of organization_ids.
+	 * @returns {Object} - Response contain object of org details
+	 */
+	static async fetchOrganizationDetails(organization_ids) {
+		const orgDetailsResponse = await userRequests.listOrganization(organization_ids)
+		let orgDetails = {}
+		if (orgDetailsResponse.success && orgDetailsResponse.data?.result?.length > 0) {
+			orgDetails = _.keyBy(orgDetailsResponse.data.result, 'id')
+		}
+		return orgDetails
 	}
 }

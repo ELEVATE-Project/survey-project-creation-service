@@ -1,11 +1,13 @@
 'use strict'
 const Review = require('../models/index').Review
+const { fn, col } = require('sequelize')
 
-exports.findAll = async (filter, attributes = {}) => {
+exports.findAll = async (filter, attributes = {}, options = {}) => {
 	try {
 		const res = await Review.findAll({
 			where: filter,
 			attributes,
+			...options,
 			raw: true,
 		})
 
@@ -14,19 +16,24 @@ exports.findAll = async (filter, attributes = {}) => {
 		return error
 	}
 }
-exports.countDistinct = async (filter, attributes = {}) => {
+
+exports.distinctResources = async (filter, attributes) => {
 	try {
-		const res = await Review.count({
+		const res = await Review.findAll({
 			where: filter,
-			distinct: true,
+			attributes: [[fn('COUNT', fn('DISTINCT', col('status'))), 'distinctCount'], ...attributes],
+			group: ['resource_id'],
+			raw: true,
 		})
 
-		return res
+		return {
+			count: res.length,
+			resource_ids: res.map((row) => row.resource_id),
+		}
 	} catch (error) {
 		return error
 	}
 }
-
 exports.bulkCreate = async (data) => {
 	try {
 		const res = await Review.bulkCreate(data)

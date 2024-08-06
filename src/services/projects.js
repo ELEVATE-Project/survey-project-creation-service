@@ -168,7 +168,7 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const countReviews = await reviewsQueries.countDistinct({
+			const countReviews = await reviewsQueries.distinctResources({
 				id: resourceId,
 				status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
 				organization_id: orgId,
@@ -614,7 +614,7 @@ module.exports = class ProjectsHelper {
 			)
 
 			// Check that the note character limit does not exceed the maximum limit
-			if (projectData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
+			if (bodyData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
 				return responses.failureResponse({
 					message: 'RESOURCE_NOTE_LENGTH_EXCEEDED',
 					statusCode: httpStatusCode.bad_request,
@@ -690,6 +690,10 @@ module.exports = class ProjectsHelper {
 			let updateObj = {
 				status: resourceStatus,
 				submitted_on: new Date(),
+			}
+
+			if (bodyData?.notes) {
+				updateObj.meta.notes = bodyData?.notes
 			}
 
 			await resourceQueries.updateOne({ id: projectData.id }, updateObj)
