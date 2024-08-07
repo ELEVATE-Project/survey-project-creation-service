@@ -5,7 +5,7 @@
  * Description : Controller for instance level configs.
  */
 
-const configsService = require('@services/config')
+const orgExtensionService = require('@services/organization-extension')
 module.exports = class configs {
 	/**
 	 * List Configs.
@@ -15,7 +15,7 @@ module.exports = class configs {
 	 */
 	async list(req) {
 		try {
-			const configList = await configsService.list(req.decodedToken.organization_id)
+			const configList = await orgExtensionService.list(req.decodedToken.organization_id)
 
 			return configList
 		} catch (error) {

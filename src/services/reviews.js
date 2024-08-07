@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 /**
  * name : services/reviews.js
  * author : Priyanka Pradeep
@@ -11,7 +12,7 @@ const reviewsQueries = require('@database/queries/reviews')
 const reviewResourceQueries = require('@database/queries/reviewResources')
 const resourceQueries = require('@database/queries/resources')
 const responses = require('@helpers/responses')
-const configService = require('@services/config')
+const orgExtensionService = require('@services/organization-extension')
 const commentQueries = require('@database/queries/comments')
 const _ = require('lodash')
 const resourceService = require('@services/resource')
@@ -52,7 +53,7 @@ module.exports = class reviewsHelper {
 			}
 
 			// Fetch organization configuration
-			const orgConfig = await configService.list(orgId)
+			const orgConfig = await orgExtensionService.list(orgId)
 			const orgConfigList =
 				orgConfig.result.resource.reduce((acc, item) => {
 					acc[item.resource_type] = {
@@ -388,7 +389,7 @@ module.exports = class reviewsHelper {
 			}
 
 			// Check if the number of approved reviews meets or exceeds the minimum required approvals
-			const reviewsApproved = await reviewsQueries.countDistinct({
+			const reviewsApproved = await reviewsQueries.reviewsCount({
 				resource_id: resourceId,
 				status: common.REVIEW_STATUS_APPROVED,
 			})

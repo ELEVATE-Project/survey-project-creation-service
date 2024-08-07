@@ -80,3 +80,15 @@ exports.update = async (filter, update, options = {}) => {
 		return error
 	}
 }
+
+exports.reviewsCount = async (filter) => {
+	try {
+		const count = await Review.count({
+			where: filter,
+		})
+
+		return count
+	} catch (error) {
+		return error
+	}
+}

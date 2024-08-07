@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 /**
  * name : services/resource.js
  * author : Adithya Dinesh
@@ -19,10 +20,10 @@ const _ = require('lodash')
 const utils = require('@generics/utils')
 const axios = require('axios')
 const filesService = require('@services/files')
-const configService = require('@services/config')
+const orgExtensionService = require('@services/organization-extension')
 const projectService = require('@services/projects')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
-const commentQueries = require('@database/queries/comment')
+const commentQueries = require('@database/queries/comments')
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
 const kafkaCommunication = require('@generics/kafka-communication')
@@ -685,39 +686,43 @@ module.exports = class resourceHelper {
 							return map
 						}, {})
 
-						for (let entityType of entityTypes) {
-							const key = entityType.value
-							// Skip the entity type if entities are not available
-							if (
-								entityType.has_entities &&
-								entityType.entities &&
-								entityType.entities.length > 0 &&
-								resultData.hasOwnProperty(key)
-							) {
-								const value = resultData[key]
-								// If the value is already in label-value pair format, skip processing
-								if (utils.isLabelValuePair(value) || value === '') {
-									continue
-								}
+						await Promise.all(
+							entityTypes.map(async (entityType) => {
+								const key = entityType.value
+								// Skip the entity type if entities are not available
+								if (
+									entityType.has_entities &&
+									entityType.entities &&
+									entityType.entities.length > 0 &&
+									resultData.hasOwnProperty(key)
+								) {
+									const value = resultData[key]
+									// If the value is already in label-value pair format, skip processing
+									if (utils.isLabelValuePair(value) || value === '') {
+										return
+									}
 
-								// get the entities
-								const validEntities = entityTypeMap[key] || []
+									// Get the entities
+									const validEntities = entityTypeMap[key] || []
 
-								if (Array.isArray(value)) {
-									// Map each item in the array to a label-value pair, if it exists in validEntities
-									resultData[key] = value.map((item) => {
+									if (Array.isArray(value)) {
+										// Map each item in the array to a label-value pair, if it exists in validEntities
+										resultData[key] = value.map((item) => {
+											const match = validEntities.find(
+												(entity) => entity.value === item.toLowerCase()
+											)
+											return match || { label: item, value: item.toLowerCase() }
+										})
+									} else {
+										// If the value is a single item, find it in validEntities
 										const match = validEntities.find(
-											(entity) => entity.value === item.toLowerCase()
+											(entity) => entity.value === value.toLowerCase()
 										)
-										return match || { label: item, value: item.toLowerCase() }
-									})
-								} else {
-									// If the value is a single item, find it in validEntities
-									const match = validEntities.find((entity) => entity.value === value.toLowerCase())
-									resultData[key] = match || { label: value, value: value.toLowerCase() }
+										resultData[key] = match || { label: value, value: value.toLowerCase() }
+									}
 								}
-							}
-						}
+							})
+						)
 
 						result = { ...result, ...resultData }
 					}
@@ -725,7 +730,7 @@ module.exports = class resourceHelper {
 			}
 
 			//get organization details
-			let organizationDetails = await userRequests.fetchDefaultOrgDetails(resource.organization_id)
+			let organizationDetails = await userRequests.fetchOrg(resource.organization_id)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
 			}
@@ -1037,7 +1042,7 @@ module.exports = class resourceHelper {
 	 * @returns {Boolean} - Review required or not
 	 */
 	static async isReviewMandatory(resourceType, organizationId) {
-		const orgConfig = await configService.list(organizationId)
+		const orgConfig = await orgExtensionService.list(organizationId)
 		const orgConfigList = _.reduce(
 			orgConfig.result.resource,
 			(acc, item) => {
@@ -1080,12 +1085,12 @@ module.exports = class resourceHelper {
 
 			let resourceData = resourceDetails.result
 
+			//publish the resource
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-				if (process.env.PUBLISH_METHOD === common.PUBLISH_METHOD_KAFKA) {
+				if (process.env.KAFKA_COMMUNICATIONS_ON_OFF == common.KAFKA_ON) {
 					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
-				} else {
-					//api need to implement
 				}
+				// api need to implement
 			}
 
 			//update resource table

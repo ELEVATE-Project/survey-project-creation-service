@@ -16,15 +16,18 @@ module.exports = class ProjectsHelper {
 	 * Comment Create or Update
 	 * @method
 	 * @name update
-	 * @param {Object} req - request data.
+	 * @param {Integer} commentId - Comment ID
+	 * @param {Integer} resourceId - Resource ID
+	 * @param {Object} bodyData - Request Body
+	 * @param {String} userId - User ID
 	 * @returns {JSON} - comment id
 	 */
-	static async update(comment_id = '', resource_id, bodyData, loggedInUserId) {
+	static async update(commentId = '', resourceId, bodyData, userId) {
 		try {
 			//create the comment
-			if (!comment_id) {
-				bodyData.user_id = loggedInUserId
-				bodyData.resource_id = resource_id
+			if (!commentId) {
+				bodyData.user_id = userId
+				bodyData.resource_id = resourceId
 				let commentCreate = await commentQueries.create(bodyData)
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
@@ -34,15 +37,14 @@ module.exports = class ProjectsHelper {
 			}
 
 			//update the comment
-			if (bodyData.status === common.STATUS_RESOLVED || !bodyData.resolved_by) {
-				bodyData.resolved_by = loggedInUserId
+			if (bodyData.status === common.STATUS_RESOLVED) {
+				bodyData.resolved_by = userId
 				bodyData.resolved_at = new Date()
-				bodyData.status = common.STATUS_RESOLVED
 			}
 
 			const filter = {
-				id: comment_id,
-				resource_id: resource_id,
+				resource_id: resourceId,
+				id: commentId,
 			}
 
 			const [updateCount, updatedComment] = await commentQueries.updateOne(filter, bodyData, {
@@ -81,20 +83,24 @@ module.exports = class ProjectsHelper {
 	 * Comment list
 	 * @method
 	 * @name list
-	 * @param {Object} req - request data.
+	 * @param {Integer} resourceId - Resource ID
+	 * @param {String} pageValue - Page number or name
+	 * @param {String} userId - User ID
+	 * @param {String} orgId - Organization ID
+	 * @param {String} context - Context page or tag
 	 * @returns {JSON} - comment list
 	 */
-	static async list(resource_id, page_value = '', context = '', loggedInUserId, organization_id) {
+	static async list(resourceId, pageValue = '', context = '', userId, orgId) {
 		try {
 			let result = {
-				resource_id: resource_id,
+				resource_id: resourceId,
 				commented_by: [],
 				comments: [],
 				count: 0,
 			}
 
 			//get all comments
-			const comments = await commentQueries.commentList(resource_id, loggedInUserId, page_value, context)
+			const comments = await commentQueries.commentList(resourceId, userId, pageValue, context)
 
 			if (comments.count <= 0) {
 				return responses.successResponse({
@@ -111,7 +117,7 @@ module.exports = class ProjectsHelper {
 				)
 			)
 
-			const users = await userRequests.list(common.ALL_USER_ROLES, '', '', '', organization_id, {
+			const users = await userRequests.list(common.ALL_USER_ROLES, '', '', '', orgId, {
 				user_ids: userIds,
 			})
 

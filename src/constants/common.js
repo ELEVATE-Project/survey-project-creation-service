@@ -19,10 +19,7 @@ module.exports = {
 		JWT_ONLY: 'jwt_only',
 		USER_SERVICE: 'user_service_authenticated',
 	},
-	internalAccessUrls: [
-		process.env.APPLICATION_BASE_URL + 'v1/cloud-services/file/fetchJsonFromCloud',
-		process.env.APPLICATION_BASE_URL + 'v1/resource/publishCallback',
-	],
+	internalAccessUrls: [process.env.APPLICATION_BASE_URL + 'v1/resource/publishCallback'],
 	SCP_SERVICE: 'scp',
 	WRITE_ACCESS: 'w',
 	READ_ACCESS: 'r',
@@ -120,7 +117,6 @@ module.exports = {
 	REQUEST_METHOD_DELETE: 'DELETE',
 	FILE_TYPE: 'file_types',
 	CHILDREN: 'children',
-	PUBLISH_METHOD_KAFKA: 'kafka',
 	SELF: 'self',
 	RESOURCE_TYPE_PROGRAM: 'programs',
 	COMMENT_STATUS_DRAFT: 'DRAFT',
@@ -141,4 +137,5 @@ module.exports = {
 	MIN_NO_OF_EVIDENCES: 'min_no_of_evidences',
 	NAME: 'name',
 	DATA_TYPE_BOOLEAN: 'boolean',
+	KAFKA_ON: 'ON',
 }

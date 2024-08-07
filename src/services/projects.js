@@ -5,7 +5,7 @@ const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const filesService = require('@services/files')
 const userRequests = require('@requests/user')
-const configService = require('@services/config')
+const orgExtensionService = require('@services/organization-extension')
 const _ = require('lodash')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
@@ -33,7 +33,7 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const orgConfig = await configService.list(orgId)
+			const orgConfig = await orgExtensionService.list(orgId)
 
 			const orgConfigList = _.reduce(
 				orgConfig.result.resource,
@@ -407,7 +407,7 @@ module.exports = class ProjectsHelper {
 			}
 
 			//get organization details
-			let organizationDetails = await userRequests.fetchDefaultOrgDetails(project.organization_id)
+			let organizationDetails = await userRequests.fetchOrg(project.organization_id)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				project.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
 			}

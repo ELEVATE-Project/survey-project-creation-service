@@ -149,17 +149,13 @@ let environmentVariables = {
 		message: 'Consumption service is required',
 		optional: false,
 	},
-	PUBLISH_METHOD: {
-		message: 'Publish method is required',
-		optional: false,
-	},
 	PROJECT_PUBLISH_KAFKA_TOPIC: {
 		message: 'Required project publish kafka topic',
 		optional: true,
 		requiredIf: {
-			key: 'PUBLISH_METHOD',
+			key: 'KAFKA_COMMUNICATIONS_ON_OFF',
 			operator: 'EQUALS',
-			value: 'kafka',
+			value: 'ON',
 		},
 	},
 	MAX_BODY_LENGTH_FOR_UPLOAD: {

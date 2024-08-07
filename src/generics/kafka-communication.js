@@ -42,11 +42,13 @@ const pushPayloadToKafka = async (payload) => {
 const pushResourceToKafka = async (message, resourceType) => {
 	try {
 		let topic
-
 		if (resourceType === common.PROJECT) {
 			topic = process.env.PROJECT_PUBLISH_KAFKA_TOPIC
-		} else {
-			console.log('Publishing project only implemented')
+		}
+
+		if (!topic) {
+			console.log('Publishing for this resource type is not implemented.')
+			return
 		}
 
 		const payload = {

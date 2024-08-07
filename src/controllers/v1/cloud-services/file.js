@@ -45,19 +45,4 @@ module.exports = class File {
 			return error
 		}
 	}
-
-	/**
-	 * Get Json from cloud
-	 * @method
-	 * @name fetchJsonFromCloud
-	 * @param {JSON} req  request body.
-	 * @returns {JSON} Response with status message and result.
-	 */
-	async fetchJsonFromCloud(req) {
-		try {
-			return await filesService.fetchJsonFromCloud(req.body.filePath)
-		} catch (error) {
-			return error
-		}
-	}
 }

@@ -1,5 +1,10 @@
+/**
+ * name : reviews.js
+ * author : Priyanka Pradeep
+ * created-date : 11-July-2024
+ * Description : Controller for reviews
+ */
 const reviewService = require('@services/reviews')
-
 module.exports = class reviews {
 	/**
 	 * Update review status

@@ -11,6 +11,9 @@ module.exports = class configs {
 	 * List Comments.
 	 * @method
 	 * @name list
+	 * @param {Integer} resource_id  Resource id.
+	 * @param {String} page_value  page number or name
+	 * @param {String} context  page or tag
 	 * @returns {JSON} - List of comments as response.
 	 */
 	async list(req) {
@@ -32,6 +35,9 @@ module.exports = class configs {
 	 * Create or Update Comment.
 	 * @method
 	 * @name update
+	 * @param {Integer} id  comment id.
+	 * @param {Integer} resource_id  Resource id.
+	 * @param {Object} body  Comment data
 	 * @returns {JSON} - Detail of comments as response.
 	 */
 	async update(req) {
