@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-catch */
 /**
  * name : services/resource.js
  * author : Adithya Dinesh

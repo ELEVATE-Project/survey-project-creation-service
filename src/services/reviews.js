@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-catch */
 /**
  * name : services/reviews.js
  * author : Priyanka Pradeep
