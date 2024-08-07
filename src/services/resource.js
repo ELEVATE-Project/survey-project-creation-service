@@ -14,7 +14,6 @@ const reviewStagesQueries = require('@database/queries/reviewStage')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const userRequests = require('@requests/user')
-const configs = require('@services/config')
 const _ = require('lodash')
 const utils = require('@generics/utils')
 const axios = require('axios')
@@ -912,7 +911,7 @@ module.exports = class resourceHelper {
 	static async fetchResourceReviewTypes(organization_id) {
 		try {
 			// Fetch organization-based configurations for resources
-			const orgConfig = await configs.list(organization_id)
+			const orgConfig = await orgExtensionService.list(organization_id)
 
 			// Map resource types to their review types
 			const resourceWiseReviewType = orgConfig.result.resource.reduce((acc, item) => {

@@ -53,14 +53,13 @@ module.exports = class reviewsHelper {
 
 			// Fetch organization configuration
 			const orgConfig = await orgExtensionService.list(orgId)
-			const orgConfigList =
-				orgConfig.result.resource.reduce((acc, item) => {
-					acc[item.resource_type] = {
-						review_type: item.review_type,
-						min_approval: item.min_approval,
-					}
-					return acc
-				}, {})[resource.type] || {}
+			const orgConfigList = orgConfig.result.resource.reduce((acc, item) => {
+				acc[item.resource_type] = {
+					review_type: item.review_type,
+					min_approval: item.min_approval,
+				}
+				return acc
+			}, {})
 
 			// Extract review type and minimum approval for the resource type
 			const { review_type: reviewType, min_approval: minApproval } = orgConfigList[resource.type]
@@ -120,7 +119,7 @@ module.exports = class reviewsHelper {
 				const reviewData = {
 					resource_id: resourceId,
 					reviewer_id: loggedInUserId,
-					status: bodyData.status,
+					status: bodyData.status || common.REVIEW_STATUS_STARTED,
 					organization_id: orgId,
 				}
 
