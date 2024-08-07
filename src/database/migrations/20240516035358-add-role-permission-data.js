@@ -422,13 +422,13 @@ module.exports = {
 				{
 					role_title: common.ADMIN_ROLE,
 					permission_id: await getPermissionId(
-						'certificates',
+						'certificate',
 						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-						'/scp/v1/certificates/*'
+						'/scp/v1/certificate/*'
 					),
-					module: 'certificates',
+					module: 'certificate',
 					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-					api_path: '/scp/v1/certificates/*',
+					api_path: '/scp/v1/certificate/*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
@@ -436,33 +436,33 @@ module.exports = {
 				{
 					role_title: common.ORG_ADMIN_ROLE,
 					permission_id: await getPermissionId(
-						'certificates',
+						'certificate',
 						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-						'/scp/v1/certificates/*'
+						'/scp/v1/certificate/*'
 					),
-					module: 'certificates',
+					module: 'certificate',
 					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-					api_path: '/scp/v1/certificates/*',
+					api_path: '/scp/v1/certificate/*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
 				},
 				{
 					role_title: common.CONTENT_CREATOR,
-					permission_id: await getPermissionId('certificates', ['GET'], '/scp/v1/certificates/list'),
-					module: 'certificates',
+					permission_id: await getPermissionId('certificate', ['GET'], '/scp/v1/certificate/list'),
+					module: 'certificate',
 					request_type: ['GET'],
-					api_path: '/scp/v1/certificates/list',
+					api_path: '/scp/v1/certificate/list',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
 				},
 				{
 					role_title: common.REVIEWER,
-					permission_id: await getPermissionId('certificates', ['GET'], '/scp/v1/certificates/list'),
-					module: 'certificates',
+					permission_id: await getPermissionId('certificate', ['GET'], '/scp/v1/certificate/list'),
+					module: 'certificate',
 					request_type: ['GET'],
-					api_path: '/scp/v1/certificates/list',
+					api_path: '/scp/v1/certificate/list',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,

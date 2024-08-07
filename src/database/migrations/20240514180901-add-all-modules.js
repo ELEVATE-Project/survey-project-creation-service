@@ -19,7 +19,7 @@ module.exports = {
 			{ code: 'comments', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'projects', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'role-permission-mapping', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
-			{ code: 'certificates', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
+			{ code: 'certificate', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'reviews', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'observations', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
 			{ code: 'users', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
