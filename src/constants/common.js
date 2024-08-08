@@ -138,4 +138,7 @@ module.exports = {
 	NAME: 'name',
 	DATA_TYPE_BOOLEAN: 'boolean',
 	KAFKA_ON: 'ON',
+	ENTITY_TYPE_MODELS: {
+		projects: ['projects', 'tasks', 'subTasks'],
+	},
 }

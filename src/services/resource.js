@@ -666,7 +666,7 @@ module.exports = class resourceHelper {
 					//get all entity types with entities
 					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 						{
-							model: resource.type,
+							model: common.ENTITY_TYPE_MODELS[resource.type],
 							status: common.STATUS_ACTIVE,
 						},
 						resource.organization_id,

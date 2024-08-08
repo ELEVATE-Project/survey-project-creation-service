@@ -100,4 +100,12 @@ module.exports = class CommentData {
 			throw error
 		}
 	}
+
+	static async bulkCreate(data) {
+		try {
+			return await Comment.bulkCreate(data)
+		} catch (error) {
+			throw error
+		}
+	}
 }

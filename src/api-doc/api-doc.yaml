@@ -4069,14 +4069,17 @@ paths:
 
   /scp/v1/reviews/update/{resourceId}:
     post:
-      summary: Review Update
+      summary: Create or Update Review
       tags:
         - Review
       description: |-
-        You can use this API to update review status
-         - The API Endpoint for update review status is `/scp/v1/reviews/update` 
+        You can use this API to create or request for changes
+         - The API Endpoint is `/scp/v1/reviews/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - comment can be array or array of object. 
+         - Pass the id of the comment in comment object if the current status of the comment is DRAFT. And pass the comment status as OPEN.
+         - While reviewing the resource reviewer can create the comment with draft status. That will be available to the creator if reviewer is doing action either approve, reject, report or changes requested
       parameters:
         - name: X-auth-token
           in: header
@@ -4099,17 +4102,12 @@ paths:
               $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
-                status:
-                  type: string
-                  description: The new status for the project review (e.g., "REQUEST_FOR_CHANGES").
-
                 comment:
                   description: Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.
 
             examples:
               example1:
                 value:
-                  status: REQUEST_FOR_CHANGES / STARTED / INPROGRESS / APPROVED / REJECTED / REJECTED_AND_REPORTED
                   comment:
                     comment: 'Check spelling'
                     context: page
@@ -4150,6 +4148,177 @@ paths:
                   value:
                     responseCode: OK
                     message: project review updated successfully
+                    result: {}
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+  /scp/v1/reviews/approve/{resourceId}:
+    post:
+      summary: Approve Resource
+      tags:
+        - Review
+      description: |-
+        You can use this API to approve the resource
+         - The API Endpoint for update review status is `/scp/v1/reviews/approve` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: resourceId
+          description: Please append a valid resource Id to the Request URL.
+          schema:
+            type: number
+          required: true
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                comment:
+                  description: Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.
+
+            examples:
+              example1:
+                value:
+                  comment:
+                    comment: 'Check spelling'
+                    context: page
+                    page: 1
+      responses:
+        '200':
+          description: You have successfully published the resource
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: You have successfully published the resource
+                    result: {}
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+  /scp/v1/reviews/rejectOrReport/{resourceId}:
+    post:
+      summary: Reject or Report Resource
+      tags:
+        - Review
+      description: |-
+        You can use this API to reject or report the resource
+         - The API Endpoint is `/scp/v1/reviews/rejectOrReport` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: resourceId
+          description: Please append a valid resource Id to the Request URL.
+          schema:
+            type: number
+          required: true
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                notes:
+                  description: Reviewer can add the note if he is reporting the resource
+                comment:
+                  description: Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.
+
+            examples:
+              example1:
+                value:
+                  notes: 'invalid project'
+                  comment:
+                    comment: 'Check spelling'
+                    context: page
+                    page: 1
+      responses:
+        '200':
+          description: This resource has been rejected and reported
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: This resource has been rejected and reported
                     result: {}
                     meta:
                       formsVersion:

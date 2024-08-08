@@ -11,7 +11,7 @@ const common = require('@constants/common')
 const userRequests = require('@requests/user')
 const _ = require('lodash')
 
-module.exports = class ProjectsHelper {
+module.exports = class CommentsHelper {
 	/**
 	 * Comment Create or Update
 	 * @method

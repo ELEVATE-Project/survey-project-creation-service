@@ -6,7 +6,7 @@
  */
 
 const commentService = require('@services/comments')
-module.exports = class configs {
+module.exports = class comments {
 	/**
 	 * List Comments.
 	 * @method

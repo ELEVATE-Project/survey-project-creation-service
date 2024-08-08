@@ -81,7 +81,7 @@ exports.update = async (filter, update, options = {}) => {
 	}
 }
 
-exports.reviewsCount = async (filter) => {
+exports.count = async (filter) => {
 	try {
 		const count = await Review.count({
 			where: filter,

@@ -3,7 +3,7 @@ const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
 const certificateQueries = require('@database/queries/certificateBaseTemplate')
 const { UniqueConstraintError } = require('sequelize')
-const { getDefaultOrgId } = require('@helpers/getDefaultOrgId')
+const defaultOrgId = process.env.DEFAULT_ORG_ID
 const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const filesService = require('@services/files')
@@ -21,8 +21,6 @@ module.exports = class certificatesHelper {
 				data: [],
 				count: 0,
 			}
-
-			const defaultOrgId = await getDefaultOrgId()
 
 			let filter = {
 				organization_id: {

@@ -14,4 +14,20 @@ module.exports = {
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
 	},
+	approve: (req) => {
+		req.checkParams('id')
+			.trim()
+			.notEmpty()
+			.withMessage('id param is empty, please append a valid resource id')
+			.isNumeric()
+			.withMessage('id param is invalid, must be an integer')
+	},
+	rejectOrReport: (req) => {
+		req.checkParams('id')
+			.trim()
+			.notEmpty()
+			.withMessage('id param is empty, please append a valid resource id')
+			.isNumeric()
+			.withMessage('id param is invalid, must be an integer')
+	},
 }

@@ -312,7 +312,7 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - Project data.
 	 */
 
-	static async details(projectId, orgId, loggedInUserId) {
+	static async details(projectId, orgId) {
 		try {
 			let result = {
 				organization: {},
@@ -349,7 +349,7 @@ module.exports = class ProjectsHelper {
 					//get all entity types with entities
 					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 						{
-							model: common.PROJECT,
+							model: common.ENTITY_TYPE_MODELS[common.PROJECT],
 							status: common.STATUS_ACTIVE,
 						},
 						orgId,
@@ -367,39 +367,43 @@ module.exports = class ProjectsHelper {
 							return map
 						}, {})
 
-						for (let entityType of entityTypes) {
-							const key = entityType.value
-							// Skip the entity type if entities are not available
-							if (
-								entityType.has_entities &&
-								entityType.entities &&
-								entityType.entities.length > 0 &&
-								resultData.hasOwnProperty(key)
-							) {
-								const value = resultData[key]
-								// If the value is already in label-value pair format, skip processing
-								if (utils.isLabelValuePair(value) || value === '') {
-									continue
-								}
+						await Promise.all(
+							entityTypes.map(async (entityType) => {
+								const key = entityType.value
+								// Skip the entity type if entities are not available
+								if (
+									entityType.has_entities &&
+									entityType.entities &&
+									entityType.entities.length > 0 &&
+									resultData.hasOwnProperty(key)
+								) {
+									const value = resultData[key]
+									// If the value is already in label-value pair format, skip processing
+									if (utils.isLabelValuePair(value) || value === '') {
+										return
+									}
 
-								// get the entities
-								const validEntities = entityTypeMap[key] || []
+									// Get the entities
+									const validEntities = entityTypeMap[key] || []
 
-								if (Array.isArray(value)) {
-									// Map each item in the array to a label-value pair, if it exists in validEntities
-									resultData[key] = value.map((item) => {
+									if (Array.isArray(value)) {
+										// Map each item in the array to a label-value pair, if it exists in validEntities
+										resultData[key] = value.map((item) => {
+											const match = validEntities.find(
+												(entity) => entity.value === item.toLowerCase()
+											)
+											return match || { label: item, value: item.toLowerCase() }
+										})
+									} else {
+										// If the value is a single item, find it in validEntities
 										const match = validEntities.find(
-											(entity) => entity.value === item.toLowerCase()
+											(entity) => entity.value === value.toLowerCase()
 										)
-										return match || { label: item, value: item.toLowerCase() }
-									})
-								} else {
-									// If the value is a single item, find it in validEntities
-									const match = validEntities.find((entity) => entity.value === value.toLowerCase())
-									resultData[key] = match || { label: value, value: value.toLowerCase() }
+										resultData[key] = match || { label: value, value: value.toLowerCase() }
+									}
 								}
-							}
-						}
+							})
+						)
 
 						result = { ...result, ...resultData }
 					}
