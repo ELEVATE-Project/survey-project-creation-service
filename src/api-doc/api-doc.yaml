@@ -1524,14 +1524,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/entity-type/updateUserEntity400Response'
 
-  /scp/v1/entity/create:
+  /scp/v1/entities/create:
     post:
       summary: Create Entity
       tags:
         - Entity
       description: |-
         You can use this API to create a user entity  
-         - The API Endpoint for creating a user entity is `/scp/v1/entity/create` 
+         - The API Endpoint for creating a user entity is `/scp/v1/entities/create` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - This is an Admin API which will be used by admins.
@@ -1648,14 +1648,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/entity/createEntity400Response'
-  /scp/v1/entity/update/{id}:
+  /scp/v1/entities/update/{id}:
     patch:
       summary: Update Entity
       tags:
         - Entity
       description: |-
         Use this API to update a entity.   
-         - The API Endpoint to update a user entity is `/scp/v1/entity/update` 
+         - The API Endpoint to update a user entity is `/scp/v1/entities/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - This is an Admin API which will be used by admins.
@@ -1770,14 +1770,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/entity/updateUserEntity400Response'
-  /scp/v1/entity/read/{id}:
+  /scp/v1/entities/read/{id}:
     get:
       summary: Get entity details
       tags:
         - Entity
       description: |-
         Use this API to read the details of a user entity.   
-         - The API Endpoint for reading the details of the user entity is `/scp/v1/entity/read` 
+         - The API Endpoint for reading the details of the user entity is `/scp/v1/entities/read` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - This is an Admin API which will be used by admins.
@@ -1862,14 +1862,14 @@ paths:
                     meta:
                       formsVersion: []
     parameters: []
-  /scp/v1/entity/delete/{id}:
+  /scp/v1/entities/delete/{id}:
     delete:
       summary: Delete entity
       tags:
         - Entity
       description: |-
         You can use this API to delete a user entity.   
-         - The API Endpoint for deleting a user entity is `/scp/v1/entity/delete` 
+         - The API Endpoint for deleting a user entity is `/scp/v1/entities/delete` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null
          - This is an Admin API which will be used by admins.
@@ -1930,7 +1930,105 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/entity/updateUserEntity400Response'
+  /scp/v1/entities/list:
+    post:
+      operationId: entitylist
+      summary: Get entity list with pagination and search
+      tags:
+        - Entity
+      description: |-
+        Use this API to get the list of a mentoring entities.   
+         - The API Endpoint for reading the list of the entities is `/scp/v1/entities/list` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token, which is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: page
+          description: Please add page number
+          schema:
+            type: number
+          example: 1
+        - in: path
+          name: limit
+          description: Number of records to limit
+          schema:
+            type: number
+          example: 10
+        - in: path
+          name: search
+          description: search text
+          schema:
+            type: string
+          example: teacher
+        - in: path
+          name: entity_type_id
+          description: entity_type_id
+          required: true
+          schema:
+            type: number
+          example: teacher
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      entity_type_id:
+                        type: number
+                      value:
+                        type: string
+                      label:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                      created_by:
+                        type: number
+                      created_at:
+                        type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Entity fetched successfully
+                    result:
+                      data:
+                        - id: 1
+                          entity_type_id: 1
+                          value: english
+                          label: English
+                          status: ACTIVE
+                          type: SYSTEM
+                          created_by: 0
+                          created_at: '2023-07-21T21:46:41.392Z'
+                      count: 1
 
+                    meta:
+                      formsVersion: []
+                      correlation: 0d392602-cb68-4690-8f38-3d3de9f94198
+                      meeting_platform: BBB
+                    parameters: []
   /scp/v1/cloud-services/getSignedUrl:
     post:
       summary: Cloud services get signed url
