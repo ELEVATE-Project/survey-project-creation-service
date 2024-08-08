@@ -167,6 +167,8 @@ module.exports = class resourceHelper {
 		let reviewerIds = []
 
 		// create a mapping object for resourceId and review details to fetch the review details like reviewerId , status etc... using resource id
+		// TODO for the time being we are fetching only one reviewer in the parallel review , we need to update the code to have multiple reviewers
+		// Update the reviewed_by and reviewer_notes for multiple review.
 		const reviewDetailsMapping = reviewDetails.reduce((acc, item) => {
 			acc[item.resource_id] = {
 				reviewer_id: item.reviewer_id,
@@ -470,7 +472,7 @@ module.exports = class resourceHelper {
 				},
 				['organization_id']
 			)
-			if (fetchReviewResourceDetails) {
+			if (fetchReviewResourceDetails.length > 0) {
 				uniqueOrganizationIds = utils.getUniqueElements(
 					fetchReviewResourceDetails.map((item) => item.organization_id)
 				)
@@ -497,8 +499,18 @@ module.exports = class resourceHelper {
 					await this.fetchResourceReviewTypes(organization_id)
 
 				if (common.TYPE in queryParams && queryParams[common.TYPE]) {
-					resourceTypesInSequentialReview = queryParams[common.TYPE].split(',')
-					resourceTypesInParallelReview = queryParams[common.TYPE].split(',')
+					let typePassedInParams = queryParams[common.TYPE].split(',')
+					// check if the type passed in the query param belongs to sequential or not.
+					// if present in sequential remove all other types and add only the type passed
+					resourceTypesInSequentialReview = _.filter(resourceTypesInSequentialReview, (value) =>
+						_.includes(typePassedInParams, value)
+					)
+
+					// check if the type passed in the query param belongs to parallel or not.
+					// if present in sequential remove all other types and add only the type passed
+					resourceTypesInParallelReview = _.filter(resourceTypesInParallelReview, (value) =>
+						_.includes(typePassedInParams, value)
+					)
 				}
 				// if the organization have any resource type in sequential review type
 				if (resourceTypesInSequentialReview.length > 0) {
@@ -546,11 +558,18 @@ module.exports = class resourceHelper {
 				})
 			}
 
-			const resourceFilter = {
+			let resourceFilter = {
 				organization_id: { [Op.in]: uniqueOrganizationIds },
 				id: { [Op.in]: finalResourceIds },
 				user_id: {
 					[Op.notIn]: [user_id],
+				},
+				status: {
+					[Op.notIn]: [
+						common.RESOURCE_STATUS_PUBLISHED,
+						common.RESOURCE_STATUS_REJECTED,
+						common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+					],
 				},
 			}
 			if (searchText != '')
@@ -649,11 +668,12 @@ module.exports = class resourceHelper {
 				})
 			}
 		})
-		const resourceFilter = {
+		let resourceFilter = {
 			organization_id,
-			[Op.or]: resourceTypeStagesConfig,
+			// [Op.or]: resourceTypeStagesConfig,
 			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
 		}
+
 		const resourcesDetails = await resourceQueries.findAll(resourceFilter, ['id'])
 		let resoureId = []
 		if (resourcesDetails) {
