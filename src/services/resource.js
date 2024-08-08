@@ -1061,6 +1061,7 @@ module.exports = class resourceHelper {
 	 */
 	static async publishResource(resourceId, userId) {
 		try {
+			// Fetch the resource creator mapping
 			const resource = await resourceCreatorMappingQueries.findOne(
 				{ creator_id: userId, resource_id: resourceId },
 				['id', 'organization_id']
@@ -1074,6 +1075,7 @@ module.exports = class resourceHelper {
 				})
 			}
 
+			// Fetch resource data
 			let resourceData = await resourceQueries.findOne({
 				id: resourceId,
 				organization_id: resource.organization_id,
@@ -1081,7 +1083,7 @@ module.exports = class resourceHelper {
 
 			let resourceDetails
 			if (resourceData.type === common.PROJECT) {
-				resourceDetails = await projectService.details(resourceId, resource.organization_id, userId)
+				resourceDetails = await projectService.details(resourceId, resourceData.organization_id, userId)
 			}
 
 			resourceData = resourceDetails.result

@@ -32,16 +32,20 @@ module.exports = class reviewsHelper {
 	static async update(resourceId, bodyData, userId, orgId) {
 		try {
 			//get resource details
-			let resourceDetails = await resourceService.getDetails(resourceId)
-			if (resourceDetails.statusCode !== httpStatusCode.ok) {
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+				},
+				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_level'] }
+			)
+
+			if (!resource?.id) {
 				return responses.failureResponse({
 					message: 'RESOURCE_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-
-			const resource = resourceDetails.result
 
 			//validate resource status
 			if (_nonReviewableResourceStatuses.includes(resource.status)) {
@@ -70,117 +74,59 @@ module.exports = class reviewsHelper {
 				resource_id: resourceId,
 			})
 
-			let createReview = false
-			let updateNextLevel = false
-
-			let review
-
 			if (!reviewResource || !reviewResource.id) {
-				createReview = true
-			} else {
-				review = await reviewsQueries.findOne({
-					organization_id: reviewResource.organization_id,
-					resource_id: resourceId,
-					reviewer_id: userId,
+				return await this.createReview(resourceId, reviewType, userId, resource.organization_id, orgId)
+			}
+
+			// Fetch review details if reviewResource exists
+			const review = await reviewsQueries.findOne({
+				organization_id: reviewResource.organization_id,
+				resource_id: resourceId,
+				reviewer_id: userId,
+			})
+
+			if (!review || !review.id) {
+				return responses.failureResponse({
+					message: 'REVIEW_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
 				})
-				//return error if review is not there and reviewResource there
-				if (!review || !review.id) {
-					return responses.failureResponse({
-						message: 'REVIEW_NOT_FOUND',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
+			}
+
+			//validate resource status
+			const validateResourceStatus = await this.validateResourceStatus(resourceStatus)
+			if (validateResourceStatus.statusCode !== httpStatusCode.ok) {
+				return validateResourceStatus
+			}
+
+			// Check if the review is already started by someone else
+			if (review.status === common.REVIEW_STATUS_NOT_STARTED) {
+				const reviewCheck = this.validateNoActiveReviewByOthers(resourceId, userId, orgId)
+				if (reviewCheck.statusCode !== httpStatusCode.ok) {
+					return reviewCheck
 				}
 			}
 
-			//handle the review creation
-			if (createReview) {
-				//Check review type is parallel and already another person reviewing the resource
-				if (reviewType === common.REVIEW_TYPE_SEQUENTIAL) {
-					const existingReview = await reviewsQueries.findOne({
-						organization_id: resource.organization_id,
-						resource_id: resourceId,
-						reviewer_id: { [Op.notIn]: [userId] },
-						status: { [Op.in]: _restrictedReviewStatuses },
-					})
-
-					if (existingReview?.id) {
-						return responses.failureResponse({
-							message: 'REVIEW_INPROGRESS',
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
-						})
-					}
-
-					updateNextLevel = true
-				}
-
-				//create a new entry in reviews and review_resources table
-				const reviewData = {
-					resource_id: resourceId,
-					reviewer_id: userId,
-					status: common.REVIEW_STATUS_STARTED,
-					organization_id: orgId,
-				}
-
-				const createReview = await reviewsQueries.create(reviewData)
-				if (!createReview?.id) {
-					return responses.failureResponse({
-						message: 'FAILED_TO_START_REVIEW',
-						statusCode: httpStatusCode.internal_server_error,
-						responseCode: 'CLIENT_ERROR',
-					})
-				}
-
-				await reviewResourceQueries.create(_.omit(reviewData, [common.STATUS]))
-
-				// Update resource table data
-				let updateData = {
-					status: common.RESOURCE_STATUS_IN_REVIEW,
-					last_reviewed_on: new Date(),
-				}
-
-				if (updateNextLevel) {
-					updateData.next_level = resource.next_level + 1
-				}
-
-				await resourceQueries.updateOne(
-					{ organization_id: resource.organization_id, id: resourceId },
-					updateData
-				)
-
-				return responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: 'REVIEW_CREATED',
-				})
-			} else {
-				//update existing review
-				let validateReview = await this.validateReview(resourceId, userId, orgId)
-				if (validateReview.statusCode !== httpStatusCode.ok) {
-					return validateReview
-				}
-
-				validateReview = validateReview.result
-				// Add or update comments
-				if (bodyData.comment) {
-					await handleComments(bodyData.comment, resourceId, userId)
-				}
-
-				await reviewsQueries.update(
-					{ id: validateReview.review.id, organization_id: validateReview.review.organization_id },
-					{ status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES }
-				)
-
-				await resourceQueries.updateOne(
-					{ organization_id: resource.organization_id, id: resourceId },
-					{ last_reviewed_on: new Date() }
-				)
-
-				return responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: 'REVIEW_CHANGES_REQUESTED',
-				})
+			// Add or update comments
+			if (bodyData.comment) {
+				await handleComments(bodyData.comment, resourceId, userId)
 			}
+
+			//update resource and review table
+			await reviewsQueries.update(
+				{ id: review.id, organization_id: review.organization_id },
+				{ status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES }
+			)
+
+			await resourceQueries.updateOne(
+				{ organization_id: resource.organization_id, id: resourceId },
+				{ last_reviewed_on: new Date() }
+			)
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'REVIEW_CHANGES_REQUESTED',
+			})
 		} catch (error) {
 			throw error
 		}
@@ -199,20 +145,31 @@ module.exports = class reviewsHelper {
 
 	static async approveResource(resourceId, bodyData, userId, orgId) {
 		try {
-			let isPublishResource = false
+			// Retrieve and validate resource
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+				},
+				{ attributes: ['id', 'status', 'organization_id', 'type', 'user_id'] }
+			)
+
+			if (!resource?.id) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
 			//validate resource
-			let validateReview = await this.validateReview(resourceId, userId, orgId)
+			let validateReview = await this.validateReview(resourceId, userId, resource.status, orgId)
 			if (validateReview.statusCode !== httpStatusCode.ok) {
 				return validateReview
 			}
 
-			validateReview = validateReview.result
-			// validating if the resource is already approved or requested for changes
-			if (
-				[common.REVIEW_STATUS_APPROVED, common.REVIEW_STATUS_REQUESTED_FOR_CHANGES].includes(
-					validateReview.review.status
-				)
-			) {
+			const review = validateReview.result
+			// Check if resource is already approved or requested for changes
+			if ([common.REVIEW_STATUS_APPROVED, common.REVIEW_STATUS_REQUESTED_FOR_CHANGES].includes(review.status)) {
 				return responses.failureResponse({
 					message: 'RESOURCE_APPROVAL_FAILED',
 					statusCode: httpStatusCode.bad_request,
@@ -220,7 +177,7 @@ module.exports = class reviewsHelper {
 				})
 			}
 
-			// Fetch organization configuration
+			// Fetch organization configuration and determine review type and minimum approval
 			const orgConfig = await orgExtensionService.list(orgId)
 			const orgConfigList = orgConfig.result.resource.reduce((acc, item) => {
 				acc[item.resource_type] = {
@@ -231,29 +188,26 @@ module.exports = class reviewsHelper {
 			}, {})
 
 			// Extract review type and minimum approval for the resource type
-			const { min_approval: minApproval } = orgConfigList[validateReview.resource.type]
+			const { min_approval: minApproval } = orgConfigList[resource.type]
 
-			//approve the resource
-			isPublishResource = await this.handleApproval(
-				validateReview.review.id,
+			// Handle approval and check if resource should be published
+			let isPublishResource = await this.handleApproval(
+				review.id,
 				resourceId,
 				userId,
 				bodyData.comment,
 				minApproval,
-				validateReview.review.organization_id
+				review.organization_id
 			)
 
 			// Publish resource if applicable
 			if (isPublishResource) {
-				const publishResource = await resourceService.publishResource(
-					resourceId,
-					validateReview.resource.user_id
-				)
+				const publishResource = await resourceService.publishResource(resourceId, resource.user_id)
 				return publishResource
 			}
 			// updating the resource last reviewed at
 			await resourceQueries.updateOne(
-				{ organization_id: validateReview.resource.organization_id, id: resourceId },
+				{ organization_id: resource.organization_id, id: resourceId },
 				{ last_reviewed_on: new Date() }
 			)
 
@@ -275,21 +229,37 @@ module.exports = class reviewsHelper {
 	 * @param {Boolean} isReported - Indicate the resource is reported or not
 	 * @param {String} userId - logged in user id.
 	 * @param {String} orgId - organization id.
-	 * @returns {JSON} - review approved response.
+	 * @returns {JSON} - review rejected/reported response.
 	 */
 
 	static async rejectOrReportResource(resourceId, isReported, bodyData, userId, orgId) {
 		try {
+			// Retrieve and validate resource
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+				},
+				{ attributes: ['id', 'status', 'organization_id', 'type'] }
+			)
+
+			if (!resource?.id) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
 			//validate resource
-			let validateReview = await this.validateReview(resourceId, userId, orgId)
+			let validateReview = await this.validateReview(resourceId, userId, resource.status, orgId)
 			if (validateReview.statusCode !== httpStatusCode.ok) {
 				return validateReview
 			}
 
-			validateReview = validateReview.result
+			const review = validateReview.result
 
 			//program cannot reject or report
-			if (validateReview.resource.type === common.RESOURCE_TYPE_PROGRAM) {
+			if (resource.type === common.RESOURCE_TYPE_PROGRAM) {
 				return responses.failureResponse({
 					message: 'PROGRAM_REJECTION_NOT_ALLOWED',
 					statusCode: httpStatusCode.bad_request,
@@ -297,38 +267,30 @@ module.exports = class reviewsHelper {
 				})
 			}
 
-			// Add or update comments
+			// Handle comments if provided
 			if (bodyData.comment) {
 				await handleComments(bodyData.comment, resourceId, userId)
 			}
 
 			let updateObj = {
 				status: isReported ? common.REVIEW_STATUS_REJECTED_AND_REPORTED : common.REVIEW_STATUS_REJECTED,
-			}
-
-			if (bodyData.notes) {
-				updateObj.notes = bodyData.notes
+				...(bodyData.notes && { notes: bodyData.notes }),
 			}
 
 			//update reviews
-			await reviewsQueries.update(
-				{ id: validateReview.review.id, organization_id: validateReview.review.organization_id },
-				updateObj
-			)
+			await reviewsQueries.update({ id: review.id, organization_id: review.organization_id }, updateObj)
 
 			updateObj.last_reviewed_on = new Date()
 
-			//update the resource
+			// Update the resource (excluding notes)
 			await resourceQueries.updateOne(
-				{ id: resourceId, organization_id: validateReview.resource.organization_id },
+				{ id: resourceId, organization_id: resource.organization_id },
 				_.omit(updateObj, ['notes'])
 			)
 
-			const message = isReported ? 'REVIEW_REJECTED_AND_REPORTED' : 'REVIEW_REJECTED'
-
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
-				message,
+				message: isReported ? 'REVIEW_REJECTED_AND_REPORTED' : 'REVIEW_REJECTED',
 			})
 		} catch (error) {
 			throw error
@@ -342,38 +304,100 @@ module.exports = class reviewsHelper {
 	 * @param {Integer} reviewId - review id.
 	 * @param {Object} bodyData - review body data.
 	 * @param {Integer} resourceId - resource id.
-	 * @param {String} loggedInUserId - logged in user id.
+	 * @param {String} userId - logged in user id.
 	 * @param {Array} comments - comments.
 	 * @param {String} minApproval - min approval
 	 * @param {String} reviewOrgId - review org id.
-	 * @returns {JSON} - review updated response.
+	 * @returns {JSON} - review approval response.
 	 */
-	static async handleApproval(reviewId, resourceId, loggedInUserId, comments = [], minApproval, reviewOrgId) {
+	static async handleApproval(reviewId, resourceId, userId, comments = [], minApproval, reviewOrgId) {
 		try {
-			// handle approval of a review
-			let publishResource = false
-
 			// Add or update comments
 			if (comments) {
-				await handleComments(comments, resourceId, loggedInUserId)
+				await handleComments(comments, resourceId, userId)
 			}
 
+			// Update the review status to approved
 			await reviewsQueries.update(
 				{ id: reviewId, organization_id: reviewOrgId },
 				{ status: common.RESOURCE_STATUS_APPROVED }
 			)
 
-			// Check if the number of approved reviews meets or exceeds the minimum required approvals
+			// Count the number of approved reviews for the resource
 			const reviewsApproved = await reviewsQueries.count({
 				resource_id: resourceId,
 				status: common.REVIEW_STATUS_APPROVED,
 			})
 
-			if (minApproval <= reviewsApproved) {
-				publishResource = true
+			// Determine if the resource should be published
+			const publishResource = reviewsApproved >= minApproval
+			return publishResource
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Create Review
+	 * @method
+	 * @name createReview
+	 * @param {Integer} resourceId - resource id.
+	 * @param {Boolean} reviewType - Review type
+	 * @param {String} userId - logged in user id.
+	 * @param {String} userOrgId - logged in user org id.
+	 * @param {String} resourceOrgId - organization id.
+	 * @returns {JSON} - review creation response.
+	 */
+
+	static async createReview(resourceId, reviewType, userId, resourceOrgId, userOrgId) {
+		try {
+			let updateNextLevel = false
+			//Check review type is parallel and already another person reviewing the resource
+			if (reviewType === common.REVIEW_TYPE_SEQUENTIAL) {
+				const activeReviewValidation = await this.validateNoActiveReviewByOthers(
+					resourceId,
+					userId,
+					resourceOrgId
+				)
+				if (activeReviewValidation.statusCode !== httpStatusCode.ok) {
+					return activeReviewValidation
+				}
+
+				updateNextLevel = true
 			}
 
-			return publishResource
+			//create a new entry in reviews and review_resources table
+			const reviewData = {
+				resource_id: resourceId,
+				reviewer_id: userId,
+				status: common.REVIEW_STATUS_STARTED,
+				organization_id: userOrgId,
+			}
+
+			const newReview = await reviewsQueries.create(reviewData)
+			if (!newReview?.id) {
+				return responses.failureResponse({
+					message: 'FAILED_TO_START_REVIEW',
+					statusCode: httpStatusCode.internal_server_error,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			await reviewResourceQueries.create(_.omit(reviewData, [common.STATUS]))
+
+			// Update resource table data
+			let updateData = {
+				status: common.RESOURCE_STATUS_IN_REVIEW,
+				last_reviewed_on: new Date(),
+				...(updateNextLevel && { next_level: resource.next_level + 1 }),
+			}
+
+			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'REVIEW_CREATED',
+			})
 		} catch (error) {
 			throw error
 		}
@@ -385,56 +409,39 @@ module.exports = class reviewsHelper {
 	 * @name validateReview
 	 * @param {Integer} resourceId - resource id.
 	 * @param {String} userId - logged in user id.
-	 * @returns {JSON} - review updated response.
+	 * @param {String} resourceStatus - resource status
+	 * @param {String} orgId - organization Id
+	 * @returns {JSON} - review validation response.
 	 */
 
-	static async validateReview(resourceId, userId) {
+	static async validateReview(resourceId, userId, resourceStatus, orgId) {
 		try {
-			//get resource details
-			let resourceDetails = await resourceService.getDetails(resourceId)
-			if (resourceDetails.statusCode !== httpStatusCode.ok) {
-				return responses.failureResponse({
-					message: 'RESOURCE_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
-			const resource = resourceDetails.result
-
 			//validate resource status
-			const validateResourceStatus = await this.validateResourceStatus(resource.status)
+			const validateResourceStatus = await this.validateResourceStatus(resourceStatus)
 			if (validateResourceStatus.statusCode !== httpStatusCode.ok) {
 				return validateResourceStatus
 			}
 
-			//validate review
-			const validateReviewInfo = await this.verifyAndFetchReview(userId, resourceId)
-			if (validateReviewInfo.statusCode !== httpStatusCode.ok) {
-				return validateReviewInfo
+			// Validate review existence and fetch review details
+			const reviewValidation = await this.verifyAndFetchReview(userId, resourceId)
+			if (reviewValidation.statusCode !== httpStatusCode.ok) {
+				return reviewValidation
 			}
 
-			const review = validateReviewInfo.result
+			const review = reviewValidation.result
 
-			//check already someone started review
+			// Check if another reviewer has already started the review
 			if (review.status === common.REVIEW_STATUS_NOT_STARTED) {
-				const isReviewIsAlreadyStarted = this.validateNoActiveReviewByOthers(
-					resourceId,
-					userId,
-					resource.organization_id
-				)
-				if (isReviewIsAlreadyStarted.statusCode !== httpStatusCode.ok) {
-					return isReviewIsAlreadyStarted
+				const activeReviewCheck = this.validateNoActiveReviewByOthers(resourceId, userId, orgId)
+				if (activeReviewCheck.statusCode !== httpStatusCode.ok) {
+					return activeReviewCheck
 				}
 			}
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'VALIDATION_PASSED',
-				result: {
-					resource,
-					review,
-				},
+				result: review,
 			})
 		} catch (error) {
 			throw error
@@ -450,7 +457,7 @@ module.exports = class reviewsHelper {
 	 */
 
 	static async validateResourceStatus(status) {
-		//validate resource status
+		// Check if the resource status is non-reviewable
 		if (_nonReviewableResourceStatuses.includes(status)) {
 			return responses.failureResponse({
 				message: `Resource is already ${status}. You can't review it`,
@@ -458,7 +465,7 @@ module.exports = class reviewsHelper {
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
-
+		// Return success response if the status is reviewable
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
 		})
@@ -480,7 +487,7 @@ module.exports = class reviewsHelper {
 			resource_id: resourceId,
 		})
 
-		//check review is exist
+		// If the review resource is not found, return an error response
 		if (!reviewResource || !reviewResource.id) {
 			return responses.failureResponse({
 				message: 'REVIEW_NOT_FOUND',
@@ -489,12 +496,14 @@ module.exports = class reviewsHelper {
 			})
 		}
 
+		// Fetch the review
 		const review = await reviewsQueries.findOne({
 			organization_id: reviewResource.organization_id,
 			resource_id: resourceId,
 			reviewer_id: userId,
 		})
 
+		// If the review is not found, return an error response
 		if (!review || !review.id) {
 			return responses.failureResponse({
 				message: 'REVIEW_NOT_FOUND',
@@ -520,13 +529,15 @@ module.exports = class reviewsHelper {
 	 */
 
 	static async validateNoActiveReviewByOthers(resourceId, userId, orgId) {
+		// Check if there's an existing active review by another user
 		const existingReview = await reviewsQueries.findOne({
 			organization_id: orgId,
 			resource_id: resourceId,
-			reviewer_id: { [Op.notIn]: [userId] },
+			reviewer_id: { [Op.not]: userId },
 			status: { [Op.in]: _restrictedReviewStatuses },
 		})
 
+		// If an active review exists by another user, return an error response
 		if (existingReview?.id) {
 			return responses.failureResponse({
 				message: 'REVIEW_INPROGRESS',
@@ -535,6 +546,7 @@ module.exports = class reviewsHelper {
 			})
 		}
 
+		// If no active review is found, return a success response
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
 		})
