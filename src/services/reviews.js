@@ -171,6 +171,11 @@ module.exports = class reviewsHelper {
 					{ status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES }
 				)
 
+				await resourceQueries.updateOne(
+					{ organization_id: resource.organization_id, id: resourceId },
+					{ last_reviewed_on: new Date() }
+				)
+
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'REVIEW_CHANGES_REQUESTED',
@@ -246,6 +251,11 @@ module.exports = class reviewsHelper {
 				)
 				return publishResource
 			}
+			// updating the resource last reviewed at
+			await resourceQueries.updateOne(
+				{ organization_id: validateReview.resource.organization_id, id: resourceId },
+				{ last_reviewed_on: new Date() }
+			)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -305,6 +315,8 @@ module.exports = class reviewsHelper {
 				{ id: validateReview.review.id, organization_id: validateReview.review.organization_id },
 				updateObj
 			)
+
+			updateObj.last_reviewed_on = new Date()
 
 			//update the resource
 			await resourceQueries.updateOne(
