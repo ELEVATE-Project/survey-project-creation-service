@@ -10,7 +10,9 @@ const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const userRequests = require('@requests/user')
 const _ = require('lodash')
-
+const reviewsQueries = require('@database/queries/reviews')
+const reviewResourceQueries = require('@database/queries/reviewResources')
+const { Op } = require('sequelize')
 module.exports = class CommentsHelper {
 	/**
 	 * Comment Create or Update
@@ -29,6 +31,25 @@ module.exports = class CommentsHelper {
 				bodyData.user_id = userId
 				bodyData.resource_id = resourceId
 				let commentCreate = await commentQueries.create(bodyData)
+
+				//update the review as inprogress if its already started
+				const reviewResource = await reviewResourceQueries.findOne({
+					reviewer_id: userId,
+					resource_id: resourceId,
+				})
+
+				if (reviewResource?.id) {
+					await reviewsQueries.update(
+						{
+							organization_id: reviewResource.organization_id,
+							resource_id: resourceId,
+							reviewer_id: userId,
+							status: { [Op.in]: [common.REVIEW_STATUS_STARTED] },
+						},
+						{ status: common.REVIEW_STATUS_INPROGRESS }
+					)
+				}
+
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'COMMENT_UPDATED_SUCCESSFULLY',
