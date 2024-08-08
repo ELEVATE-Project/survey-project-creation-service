@@ -100,6 +100,7 @@ module.exports = class reviewsHelper {
 					const existingReview = await reviewsQueries.findOne({
 						organization_id: resource.organization_id,
 						resource_id: resourceId,
+						reviewer_id: { [Op.notIn]: [userId] },
 						status: { [Op.in]: _notAllowedReviewStatus },
 					})
 
@@ -201,6 +202,18 @@ module.exports = class reviewsHelper {
 			}
 
 			validateReview = validateReview.result
+			// validating if the resource is already approved or requested for changes
+			if (
+				[common.REVIEW_STATUS_APPROVED, common.REVIEW_STATUS_REQUESTED_FOR_CHANGES].includes(
+					validateReview.review.status
+				)
+			) {
+				return responses.failureResponse({
+					message: 'RESOURCE_APPROVAL_FAILED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 
 			// Fetch organization configuration
 			const orgConfig = await orgExtensionService.list(orgId)
@@ -222,13 +235,15 @@ module.exports = class reviewsHelper {
 				userId,
 				bodyData.comment,
 				minApproval,
-				validateReview.resource.organization_id,
 				validateReview.review.organization_id
 			)
 
 			// Publish resource if applicable
 			if (isPublishResource) {
-				const publishResource = await resourceService.publishResource(resourceId, userId)
+				const publishResource = await resourceService.publishResource(
+					resourceId,
+					validateReview.resource.user_id
+				)
 				return publishResource
 			}
 
@@ -361,15 +376,6 @@ module.exports = class reviewsHelper {
 				reviewer_id: userId,
 			})
 
-			//validate resource status
-			if (_notAllowedStatusForReview.includes(resource.status)) {
-				return responses.failureResponse({
-					message: `Resource is already ${resource.status}. You can't review it`,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
 			if (!review || !review.id) {
 				return responses.failureResponse({
 					message: 'REVIEW_NOT_FOUND',
@@ -383,6 +389,7 @@ module.exports = class reviewsHelper {
 				const existingReview = await reviewsQueries.findOne({
 					organization_id: resource.organization_id,
 					resource_id: resourceId,
+					reviewer_id: { [Op.notIn]: [userId] },
 					status: { [Op.in]: _notAllowedReviewStatus },
 				})
 
@@ -418,19 +425,10 @@ module.exports = class reviewsHelper {
 	 * @param {String} loggedInUserId - logged in user id.
 	 * @param {Array} comments - comments.
 	 * @param {String} minApproval - min approval
-	 * @param {String} resourceOrgId - resource org id.
 	 * @param {String} reviewOrgId - review org id.
 	 * @returns {JSON} - review updated response.
 	 */
-	static async handleApproval(
-		reviewId,
-		resourceId,
-		loggedInUserId,
-		comments = [],
-		minApproval,
-		resourceOrgId,
-		reviewOrgId
-	) {
+	static async handleApproval(reviewId, resourceId, loggedInUserId, comments = [], minApproval, reviewOrgId) {
 		try {
 			// handle approval of a review
 			let publishResource = false
@@ -452,10 +450,6 @@ module.exports = class reviewsHelper {
 			})
 
 			if (minApproval <= reviewsApproved) {
-				await resourceQueries.updateOne(
-					{ id: resourceId, organization_id: resourceOrgId },
-					{ status: common.RESOURCE_STATUS_PUBLISHED, published_on: new Date() }
-				)
 				publishResource = true
 			}
 

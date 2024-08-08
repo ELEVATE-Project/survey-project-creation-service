@@ -1061,7 +1061,10 @@ module.exports = class resourceHelper {
 	 */
 	static async publishResource(resourceId, userId) {
 		try {
-			const resource = await resourceCreatorMappingQueries.findAll({ creator_id: userId }, ['organization_id'])
+			const resource = await resourceCreatorMappingQueries.findOne(
+				{ creator_id: userId, resource_id: resourceId },
+				['id', 'organization_id']
+			)
 
 			if (!resource?.id) {
 				return responses.failureResponse({
@@ -1071,7 +1074,7 @@ module.exports = class resourceHelper {
 				})
 			}
 
-			resourceData = await resourceQueries.findOne({
+			let resourceData = await resourceQueries.findOne({
 				id: resourceId,
 				organization_id: resource.organization_id,
 			})
@@ -1081,7 +1084,7 @@ module.exports = class resourceHelper {
 				resourceDetails = await projectService.details(resourceId, resource.organization_id, userId)
 			}
 
-			let resourceData = resourceDetails.result
+			resourceData = resourceDetails.result
 
 			//publish the resource
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
@@ -1093,9 +1096,9 @@ module.exports = class resourceHelper {
 
 			//update resource table
 			await resourceQueries.updateOne(
-				{ id: resourceId, organization_id: resource.organization_id },
+				{ id: resourceId, organization_id: resourceData.organization_id },
 				{
-					status: common.PUBLISHED,
+					status: common.RESOURCE_STATUS_PUBLISHED,
 					published_on: new Date(),
 				}
 			)
