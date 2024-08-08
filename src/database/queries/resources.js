@@ -57,17 +57,13 @@ exports.findAll = async (filter, attributes = {}) => {
 		return error
 	}
 }
-exports.resourceList = async (
-	filter,
-	attributes = {},
-	sort = { sort_by: common.CREATED_AT, order: common.SORT_DESC },
-	page = 1,
-	limit = common.LIMIT
-) => {
+exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = common.LIMIT) => {
 	try {
 		let order =
 			sort.sort_by === common.RESOURCE_TITLE
 				? [[Sequelize.fn('LOWER', Sequelize.col(sort.sort_by)), sort.order]]
+				: !sort.sort_by || !sort.order
+				? [common.CREATED_AT, common.SORT_DESC]
 				: [[sort.sort_by, sort.order]]
 
 		let resourceFilter = {
@@ -77,7 +73,7 @@ exports.resourceList = async (
 		}
 		if (limit) resourceFilter.limit = limit
 		if (page) resourceFilter.offset = limit * (page - 1)
-		if (sort) resourceFilter.order = order
+		if (sort) resourceFilter.order = [order]
 
 		const res = await Resource.findAndCountAll(resourceFilter)
 
