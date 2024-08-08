@@ -465,7 +465,7 @@ module.exports = class ProjectsHelper {
 
 			//written as a beckup will remove once the user service PR merged
 			if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
-				userList = reviewers.data.result.data.filter((user) => user.id !== user_id)
+				userList = reviewers.data.result.data.filter((user) => user.id != user_id)
 			}
 
 			return responses.successResponse({
