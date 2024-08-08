@@ -14,3 +14,13 @@ exports.findAll = async (filter, attributes = {}) => {
 		return error
 	}
 }
+
+exports.bulkCreate = async (data) => {
+	try {
+		const res = await ReviewResource.bulkCreate(data)
+
+		return res
+	} catch (error) {
+		return error
+	}
+}
