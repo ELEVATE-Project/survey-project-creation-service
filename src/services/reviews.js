@@ -309,9 +309,9 @@ module.exports = class reviewsHelper {
 	}
 
 	/**
-	 * Update the review
+	 * Validating the Resource for review creation or update
 	 * @method
-	 * @name handleUpdateReview
+	 * @name validateReview
 	 * @param {Integer} resourceId - resource id.
 	 * @param {String} userId - logged in user id.
 	 * @returns {JSON} - review updated response.

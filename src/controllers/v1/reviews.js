@@ -11,6 +11,7 @@ module.exports = class reviews {
 	 * @method
 	 * @name update
 	 * @param {Integer} id - resource id
+	 * @param {Object} req - review body data.
 	 * @returns {JSON} - Review creation or update details
 	 */
 
@@ -57,6 +58,7 @@ module.exports = class reviews {
 	 * @name rejectOrReport
 	 * @param {Object} req - request data.
 	 * @param {Integer} id - resource id
+	 * @param {Boolean} isReported - indicate the resource is reported or not
 	 * @returns {JSON} - Review details
 	 */
 

@@ -57,13 +57,13 @@ module.exports = class CommentData {
 		}
 	}
 
-	static async commentList(resourceId, loggedInUserId, page_value, context) {
+	static async commentList(resourceId, userId, page_value, context) {
 		try {
 			let filterQuery = {
 				resource_id: resourceId,
 				[Op.or]: [
 					{ status: { [Op.ne]: common.COMMENT_STATUS_DRAFT } },
-					{ status: common.COMMENT_STATUS_DRAFT, user_id: loggedInUserId },
+					{ status: common.COMMENT_STATUS_DRAFT, user_id: userId },
 				],
 			}
 
