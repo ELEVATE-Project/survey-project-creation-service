@@ -57,7 +57,7 @@ module.exports = class CommentData {
 		}
 	}
 
-	static async commentList(resourceId, userId, page_value, context) {
+	static async list(resourceId, userId, page_value, context) {
 		try {
 			let filterQuery = {
 				resource_id: resourceId,

@@ -44,7 +44,7 @@ module.exports = class reviewsHelper {
 			const resource = resourceDetails.result
 
 			//validate resource status
-			if (_notAllowedStatusForReview.includes(resource.status)) {
+			if (_nonReviewableResourceStatuses.includes(resource.status)) {
 				return responses.failureResponse({
 					message: `Resource is already ${resource.status}. You can't review it`,
 					statusCode: httpStatusCode.bad_request,
@@ -101,7 +101,7 @@ module.exports = class reviewsHelper {
 						organization_id: resource.organization_id,
 						resource_id: resourceId,
 						reviewer_id: { [Op.notIn]: [userId] },
-						status: { [Op.in]: _notAllowedReviewStatus },
+						status: { [Op.in]: _restrictedReviewStatuses },
 					})
 
 					if (existingReview?.id) {
@@ -359,7 +359,7 @@ module.exports = class reviewsHelper {
 			const resource = resourceDetails.result
 
 			//validate resource status
-			if (_notAllowedStatusForReview.includes(resource.status)) {
+			if (_nonReviewableResourceStatuses.includes(resource.status)) {
 				return responses.failureResponse({
 					message: `Resource is already ${resource.status}. You can't review it`,
 					statusCode: httpStatusCode.bad_request,
@@ -402,7 +402,7 @@ module.exports = class reviewsHelper {
 					organization_id: resource.organization_id,
 					resource_id: resourceId,
 					reviewer_id: { [Op.notIn]: [userId] },
-					status: { [Op.in]: _notAllowedReviewStatus },
+					status: { [Op.in]: _restrictedReviewStatuses },
 				})
 
 				if (existingReview?.id) {
@@ -472,13 +472,15 @@ module.exports = class reviewsHelper {
 	}
 }
 
-const _notAllowedStatusForReview = [
+// If a resource has any of these statuses, the reviewer is not allowed to review it.
+const _nonReviewableResourceStatuses = [
 	common.RESOURCE_STATUS_REJECTED,
 	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 	common.RESOURCE_STATUS_PUBLISHED,
 ]
 
-const _notAllowedReviewStatus = [
+// If a review is in any of these statuses, the reviewer is not allowed to review it.
+const _restrictedReviewStatuses = [
 	common.REVIEW_STATUS_STARTED,
 	common.RESOURCE_STATUS_REJECTED,
 	common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,

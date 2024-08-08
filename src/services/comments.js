@@ -121,7 +121,7 @@ module.exports = class CommentsHelper {
 			}
 
 			//get all comments
-			const comments = await commentQueries.commentList(resourceId, userId, pageValue, context)
+			const comments = await commentQueries.list(resourceId, userId, pageValue, context)
 
 			if (comments.count <= 0) {
 				return responses.successResponse({
