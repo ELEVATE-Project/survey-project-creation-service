@@ -336,98 +336,6 @@ module.exports = class reviewsHelper {
 	}
 
 	/**
-	 * Validating the Resource for review creation or update
-	 * @method
-	 * @name validateReview
-	 * @param {Integer} resourceId - resource id.
-	 * @param {String} userId - logged in user id.
-	 * @returns {JSON} - review updated response.
-	 */
-
-	static async validateReview(resourceId, userId) {
-		try {
-			//get resource details
-			let resourceDetails = await resourceService.getDetails(resourceId)
-			if (resourceDetails.statusCode !== httpStatusCode.ok) {
-				return responses.failureResponse({
-					message: 'RESOURCE_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
-			const resource = resourceDetails.result
-
-			//validate resource status
-			if (_nonReviewableResourceStatuses.includes(resource.status)) {
-				return responses.failureResponse({
-					message: `Resource is already ${resource.status}. You can't review it`,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
-			//Check if the logged-in user started the review
-			const reviewResource = await reviewResourceQueries.findOne({
-				reviewer_id: userId,
-				resource_id: resourceId,
-			})
-
-			//check review is exist
-			if (!reviewResource || !reviewResource.id) {
-				return responses.failureResponse({
-					message: 'REVIEW_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
-			const review = await reviewsQueries.findOne({
-				organization_id: reviewResource.organization_id,
-				resource_id: resourceId,
-				reviewer_id: userId,
-			})
-
-			if (!review || !review.id) {
-				return responses.failureResponse({
-					message: 'REVIEW_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
-			//check already someone started review
-			if (review.status === common.REVIEW_STATUS_NOT_STARTED) {
-				const existingReview = await reviewsQueries.findOne({
-					organization_id: resource.organization_id,
-					resource_id: resourceId,
-					reviewer_id: { [Op.notIn]: [userId] },
-					status: { [Op.in]: _restrictedReviewStatuses },
-				})
-
-				if (existingReview?.id) {
-					return responses.failureResponse({
-						message: 'REVIEW_INPROGRESS',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
-				}
-			}
-
-			return responses.successResponse({
-				statusCode: httpStatusCode.ok,
-				message: 'VALIDATION_PASSED',
-				result: {
-					resource,
-					review,
-				},
-			})
-		} catch (error) {
-			throw error
-		}
-	}
-
-	/**
 	 * Approve the review
 	 * @method
 	 * @name handleApproval
@@ -469,6 +377,167 @@ module.exports = class reviewsHelper {
 		} catch (error) {
 			throw error
 		}
+	}
+
+	/**
+	 * Validating the Resource for review creation or update
+	 * @method
+	 * @name validateReview
+	 * @param {Integer} resourceId - resource id.
+	 * @param {String} userId - logged in user id.
+	 * @returns {JSON} - review updated response.
+	 */
+
+	static async validateReview(resourceId, userId) {
+		try {
+			//get resource details
+			let resourceDetails = await resourceService.getDetails(resourceId)
+			if (resourceDetails.statusCode !== httpStatusCode.ok) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			const resource = resourceDetails.result
+
+			//validate resource status
+			const validateResourceStatus = await this.validateResourceStatus(resource.status)
+			if (validateResourceStatus.statusCode !== httpStatusCode.ok) {
+				return validateResourceStatus
+			}
+
+			//validate review
+			const validateReviewInfo = await this.verifyAndFetchReview(userId, resourceId)
+			if (validateReviewInfo.statusCode !== httpStatusCode.ok) {
+				return validateReviewInfo
+			}
+
+			const review = validateReviewInfo.result
+
+			//check already someone started review
+			if (review.status === common.REVIEW_STATUS_NOT_STARTED) {
+				const isReviewIsAlreadyStarted = this.validateNoActiveReviewByOthers(
+					resourceId,
+					userId,
+					resource.organization_id
+				)
+				if (isReviewIsAlreadyStarted.statusCode !== httpStatusCode.ok) {
+					return isReviewIsAlreadyStarted
+				}
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'VALIDATION_PASSED',
+				result: {
+					resource,
+					review,
+				},
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Validating the Resource status
+	 * @method
+	 * @name validateResourceStatus
+	 * @param {String} status - resource status
+	 * @returns {JSON} - return error if any
+	 */
+
+	static async validateResourceStatus(status) {
+		//validate resource status
+		if (_nonReviewableResourceStatuses.includes(status)) {
+			return responses.failureResponse({
+				message: `Resource is already ${status}. You can't review it`,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
+		}
+
+		return responses.successResponse({
+			statusCode: httpStatusCode.ok,
+		})
+	}
+
+	/**
+	 * Validating the review
+	 * @method
+	 * @name verifyAndFetchReview
+	 * @param {String} userId - user id
+	 * @param {Integer} resourceId - resource id
+	 * @returns {JSON} - return error if any
+	 */
+
+	static async verifyAndFetchReview(userId, resourceId) {
+		//Check if the logged-in user started the review
+		const reviewResource = await reviewResourceQueries.findOne({
+			reviewer_id: userId,
+			resource_id: resourceId,
+		})
+
+		//check review is exist
+		if (!reviewResource || !reviewResource.id) {
+			return responses.failureResponse({
+				message: 'REVIEW_NOT_FOUND',
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
+		}
+
+		const review = await reviewsQueries.findOne({
+			organization_id: reviewResource.organization_id,
+			resource_id: resourceId,
+			reviewer_id: userId,
+		})
+
+		if (!review || !review.id) {
+			return responses.failureResponse({
+				message: 'REVIEW_NOT_FOUND',
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
+		}
+
+		return responses.successResponse({
+			statusCode: httpStatusCode.ok,
+			result: review,
+		})
+	}
+
+	/**
+	 * Check the review is already started by someone
+	 * @method
+	 * @name validateNoActiveReviewByOthers
+	 * @param {String} userId - user Id
+	 * @param {Integer} resourceId - resource Id
+	 * @param {String} orgId - organization Id
+	 * @returns {JSON} - return error if any
+	 */
+
+	static async validateNoActiveReviewByOthers(resourceId, userId, orgId) {
+		const existingReview = await reviewsQueries.findOne({
+			organization_id: orgId,
+			resource_id: resourceId,
+			reviewer_id: { [Op.notIn]: [userId] },
+			status: { [Op.in]: _restrictedReviewStatuses },
+		})
+
+		if (existingReview?.id) {
+			return responses.failureResponse({
+				message: 'REVIEW_INPROGRESS',
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
+		}
+
+		return responses.successResponse({
+			statusCode: httpStatusCode.ok,
+		})
 	}
 }
 
