@@ -30,12 +30,11 @@ let environmentVariables = {
 	},
 	KAFKA_URL: {
 		message: 'Required kafka connectivity url',
-		optional: true,
-		requiredIf: {
-			key: 'KAFKA_COMMUNICATIONS_ON_OFF',
-			operator: 'EQUALS',
-			value: 'ON',
-		},
+		optional: false,
+	},
+	RESOURCE_KAFKA_PUSH_ON_OFF: {
+		message: 'Required kafka connectivity url',
+		optional: false,
 	},
 	KAFKA_GROUP_ID: {
 		message: 'Required kafka group id',
@@ -153,7 +152,7 @@ let environmentVariables = {
 		message: 'Required project publish kafka topic',
 		optional: true,
 		requiredIf: {
-			key: 'KAFKA_COMMUNICATIONS_ON_OFF',
+			key: 'RESOURCE_KAFKA_PUSH_ON_OFF',
 			operator: 'EQUALS',
 			value: 'ON',
 		},

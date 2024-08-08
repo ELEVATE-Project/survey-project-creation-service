@@ -1085,7 +1085,7 @@ module.exports = class resourceHelper {
 
 			//publish the resource
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-				if (process.env.KAFKA_COMMUNICATIONS_ON_OFF == common.KAFKA_ON) {
+				if (process.env.RESOURCE_KAFKA_PUSH_ON_OFF == common.KAFKA_ON) {
 					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 				}
 				// api need to implement
