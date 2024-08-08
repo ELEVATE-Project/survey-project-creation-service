@@ -9,6 +9,7 @@ const configService = require('@services/config')
 const _ = require('lodash')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
+const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const entityTypeQueries = require('@database/queries/entityType')
 const utils = require('@generics/utils')
@@ -663,6 +664,8 @@ module.exports = class ProjectsHelper {
 				}))
 
 				await reviewsQueries.bulkCreate(reviewsData)
+				delete reviewsData.status
+				await reviewsResourcesQueries.bulkCreate(reviewsData)
 			}
 
 			let resourcesUpdate = {
