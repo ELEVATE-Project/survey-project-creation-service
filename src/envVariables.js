@@ -157,6 +157,11 @@ let enviromentVariables = {
 		optional: true,
 		default: 256, //256 characters
 	},
+	DEFAULT_REVIEWER_ROLE: {
+		message: 'Default reviewer role is required',
+		optional: true,
+		default: 'reviewer',
+	},
 }
 
 let success = true

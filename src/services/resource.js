@@ -664,13 +664,13 @@ module.exports = class resourceHelper {
 		resourceTypes.filter((type) => {
 			if (resourceWiseLevels[type]) {
 				resourceTypeStagesConfig.push({
-					[Op.and]: [{ type: type }, { next_stage: resourceWiseLevels[type] }],
+					[Op.and]: [{ type: type }, { next_stage: { [Op.in]: resourceWiseLevels[type] } }],
 				})
 			}
 		})
 		let resourceFilter = {
 			organization_id,
-			// [Op.or]: resourceTypeStagesConfig,
+			[Op.or]: resourceTypeStagesConfig,
 			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
 		}
 
@@ -774,10 +774,16 @@ module.exports = class resourceHelper {
 	 * }
 	 */
 	static async fetchReviewLevels(organization_id, userRoleTitles, resourceTypeList) {
-		// fetch review levels according to roles in the organization
+		// list of organizations to search in review stages
+		const orgList =
+			organization_id == process.env.DEFAULT_ORG_ID
+				? [organization_id]
+				: [organization_id, process.env.DEFAULT_ORG_ID]
+
+		// fetch review levels according to roles and resource type in the organization
 		const reviewLevelDetails = await reviewStagesQueries.findAll(
 			{
-				organization_id,
+				organization_id: { [Op.in]: orgList },
 				role: {
 					[Op.in]: userRoleTitles,
 				},
@@ -785,18 +791,38 @@ module.exports = class resourceHelper {
 					[Op.in]: resourceTypeList,
 				},
 			},
-			{ attributes: ['resource_type', 'level'], order: [['level', 'ASC']] }
+			{ attributes: ['organization_id', 'resource_type', 'level'], order: [['level', 'ASC']] }
 		)
+
 		let resourceWiseLevels = {}
 
 		if (reviewLevelDetails) {
-			// arrange it as a key-value pair for ease of use
-			resourceWiseLevels = reviewLevelDetails.reduce((acc, item) => {
-				acc[item.resource_type] = item.level
+			let defaultOrgLevels = {}
+			let loggedInUserOrgLevels = {}
 
-				return acc
-			}, {})
+			// seggregate review levels into default org and logged user in org
+			reviewLevelDetails.map((reviewStage) => {
+				if (reviewStage.organization_id == process.env.DEFAULT_ORG_ID) {
+					if (!defaultOrgLevels[reviewStage.resource_type]) defaultOrgLevels[reviewStage.resource_type] = []
+					// get the list of all the review stage level for a particular resource type in default organization
+					defaultOrgLevels[reviewStage.resource_type].push(reviewStage.level)
+				} else if (organization_id != process.env.DEFAULT_ORG_ID) {
+					if (!loggedInUserOrgLevels[reviewStage.resource_type])
+						loggedInUserOrgLevels[reviewStage.resource_type] = []
+
+					// get the list of all the review stage level for a particular resource type in user organization
+					loggedInUserOrgLevels[reviewStage.resource_type].push(reviewStage.level)
+				}
+			})
+			// iterated through given resource types and pass its stages
+			// if user org has stage for given resource , return that value else return from default org
+			resourceTypeList.map((resourceType) => {
+				resourceWiseLevels[resourceType] = loggedInUserOrgLevels[resourceType]
+					? loggedInUserOrgLevels[resourceType]
+					: defaultOrgLevels[resourceType]
+			})
 		}
+
 		return resourceWiseLevels
 	}
 
