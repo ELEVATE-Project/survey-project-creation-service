@@ -36,7 +36,7 @@ module.exports = class reviewsHelper {
 				{
 					id: resourceId,
 				},
-				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_level'] }
+				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_stage'] }
 			)
 
 			if (!resource?.id) {
@@ -75,7 +75,14 @@ module.exports = class reviewsHelper {
 			})
 
 			if (!reviewResource || !reviewResource.id) {
-				return await this.createReview(resourceId, reviewType, userId, resource.organization_id, orgId)
+				return await this.createReview(
+					resourceId,
+					reviewType,
+					userId,
+					resource.organization_id,
+					orgId,
+					resource.next_stage
+				)
 			}
 
 			// Fetch review details if reviewResource exists
@@ -94,7 +101,7 @@ module.exports = class reviewsHelper {
 			}
 
 			//validate resource status
-			const validateResourceStatus = await this.validateResourceStatus(resourceStatus)
+			const validateResourceStatus = await this.validateResourceStatus(resource.status)
 			if (validateResourceStatus.statusCode !== httpStatusCode.ok) {
 				return validateResourceStatus
 			}
@@ -213,7 +220,7 @@ module.exports = class reviewsHelper {
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
-				message: 'REVIEW_UPDATED',
+				message: 'REVIEW_APPROVED',
 			})
 		} catch (error) {
 			throw error
@@ -349,7 +356,7 @@ module.exports = class reviewsHelper {
 	 * @returns {JSON} - review creation response.
 	 */
 
-	static async createReview(resourceId, reviewType, userId, resourceOrgId, userOrgId) {
+	static async createReview(resourceId, reviewType, userId, resourceOrgId, userOrgId, nextStage = null) {
 		try {
 			let updateNextLevel = false
 			//Check review type is parallel and already another person reviewing the resource
@@ -389,7 +396,7 @@ module.exports = class reviewsHelper {
 			let updateData = {
 				status: common.RESOURCE_STATUS_IN_REVIEW,
 				last_reviewed_on: new Date(),
-				...(updateNextLevel && { next_level: resource.next_level + 1 }),
+				...(updateNextLevel && { next_stage: nextStage + 1 }),
 			}
 
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
@@ -558,6 +565,7 @@ const _nonReviewableResourceStatuses = [
 	common.RESOURCE_STATUS_REJECTED,
 	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 	common.RESOURCE_STATUS_PUBLISHED,
+	common.RESOURCE_STATUS_DRAFT,
 ]
 
 // If a review is in any of these statuses, the reviewer is not allowed to review it.
