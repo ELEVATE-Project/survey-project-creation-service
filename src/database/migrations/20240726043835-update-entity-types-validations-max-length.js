@@ -9,7 +9,7 @@ module.exports = {
 			description: { required: true, regex: '^[a-zA-Z0-9 <>_&-]{1,2000}$' },
 			objective: { required: true, regex: '^[a-zA-Z0-9 <>_&-]{1,2000}$' },
 			name: { required: true, regex: '^[a-zA-Z0-9 <>_&-]{1,256}$' },
-			keywords: { required: false, regex: '^[a-zA-Z0-9 <>_&-]{1,256}$' },
+			keywords: { required: false, regex: '^[a-zA-Z0-9 <>_&-,]{1,256}$' },
 			learning_resources: { required: false, regex: ['^(?!-)[A-Za-z0-9-]+([-.]{1}[a-z0-9]+)*.[A-Za-z]{2,6}$'] },
 		}
 

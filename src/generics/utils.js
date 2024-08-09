@@ -494,6 +494,10 @@ const convertToString = (value) => {
 	return value.toString()
 }
 
+const getUniqueElements = (array) => {
+	return [...new Set([...array])]
+}
+
 const convertToInteger = (value) => {
 	value = value.replace(/['"]/g, '')
 	return isNaN(value) ? false : parseInt(value, 10)
@@ -538,6 +542,7 @@ module.exports = {
 	checkEntities,
 	validateRoleAccess,
 	convertToString,
+	getUniqueElements,
 	isLabelValuePair,
 	convertToInteger,
 	validateTitle,

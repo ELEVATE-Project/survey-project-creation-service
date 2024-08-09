@@ -30,8 +30,8 @@ module.exports = {
 			},
 			status: {
 				allowNull: false,
-				type: Sequelize.ENUM('OPEN', 'RESOLVED'),
-				defaultValue: 'OPEN',
+				type: Sequelize.ENUM('OPEN', 'RESOLVED', 'DRAFT'),
+				defaultValue: 'DRAFT',
 			},
 			resolved_by: {
 				type: Sequelize.STRING,

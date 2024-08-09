@@ -3,7 +3,7 @@ const httpStatusCode = require('@generics/http-status')
 const { UniqueConstraintError } = require('sequelize')
 const { Op } = require('sequelize')
 const { removeDefaultOrgEntityTypes } = require('@generics/utils')
-const { getDefaultOrgId } = require('@helpers/getDefaultOrgId')
+const defaultOrgId = process.env.DEFAULT_ORG_ID
 const utils = require('@generics/utils')
 const responses = require('@helpers/responses')
 const entityTypeQueries = require('@database/queries/entityType')
@@ -102,7 +102,6 @@ module.exports = class EntityTypeHelper {
 		try {
 			const attributes = ['value', 'label', 'id']
 
-			const defaultOrgId = await getDefaultOrgId()
 			if (!defaultOrgId)
 				return responses.failureResponse({
 					message: 'DEFAULT_ORG_ID_NOT_SET',
@@ -131,7 +130,6 @@ module.exports = class EntityTypeHelper {
 
 	static async readUserEntityTypes(body, userId, orgId) {
 		try {
-			const defaultOrgId = await getDefaultOrgId()
 			if (!defaultOrgId)
 				return responses.failureResponse({
 					message: 'DEFAULT_ORG_ID_NOT_SET',
@@ -199,7 +197,6 @@ module.exports = class EntityTypeHelper {
 	 */
 	static async processEntityTypesToAddValueLabels(responseData, orgIds, modelName, orgIdKey) {
 		try {
-			const defaultOrgId = await getDefaultOrgId()
 			if (!defaultOrgId)
 				return responses.failureResponse({
 					message: 'DEFAULT_ORG_ID_NOT_SET',

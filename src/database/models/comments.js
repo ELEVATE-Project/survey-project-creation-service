@@ -28,8 +28,8 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			status: {
 				allowNull: false,
-				type: DataTypes.ENUM('OPEN', 'RESOLVED'),
-				defaultValue: 'OPEN',
+				type: DataTypes.ENUM('OPEN', 'RESOLVED', 'DRAFT'),
+				defaultValue: 'DRAFT',
 			},
 			resolved_by: {
 				type: DataTypes.STRING,
@@ -44,7 +44,7 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			page: {
 				allowNull: false,
-				type: DataTypes.INTEGER,
+				type: DataTypes.STRING,
 			},
 			is_read: {
 				allowNull: false,

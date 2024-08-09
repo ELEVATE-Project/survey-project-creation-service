@@ -44,3 +44,23 @@ exports.findOne = async (filter, options = {}) => {
 		return error
 	}
 }
+
+exports.create = async (data) => {
+	try {
+		return await ReviewStage.create(data, { returning: true })
+	} catch (error) {
+		return error
+	}
+}
+
+exports.findAllReviewStages = async (filter, attributes, options = {}) => {
+	try {
+		return await ReviewStage.findAndCountAll({
+			where: filter,
+			attributes,
+			...options,
+		})
+	} catch (error) {
+		return error
+	}
+}

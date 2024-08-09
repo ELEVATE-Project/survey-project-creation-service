@@ -91,4 +91,13 @@ module.exports = {
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
 	},
+
+	list: (req) => {
+		req.checkQuery('entity_type_id')
+			.trim()
+			.notEmpty()
+			.withMessage('entity_type_id param is empty')
+			.isNumeric()
+			.withMessage('entity_type_id param is invalid, must be an integer')
+	},
 }
