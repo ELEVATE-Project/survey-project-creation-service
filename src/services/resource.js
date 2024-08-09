@@ -19,14 +19,11 @@ const utils = require('@generics/utils')
 const axios = require('axios')
 const filesService = require('@services/files')
 const orgExtensionService = require('@services/organization-extension')
-const projectService = require('@services/projects')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const commentQueries = require('@database/queries/comments')
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
 const defaultOrgId = process.env.DEFAULT_ORG_ID
-const kafkaCommunication = require('@generics/kafka-communication')
-
 module.exports = class resourceHelper {
 	/**
 	 * List up for listAllSubmittedResources
@@ -393,7 +390,7 @@ module.exports = class resourceHelper {
 			{ group: ['resource_id'] }
 		)
 
-		const commentMapping = await comments.rows.reduce((acc, item) => {
+		const commentMapping = await comments.reduce((acc, item) => {
 			acc[item.resource_id] = parseInt(item.comment_count, 10) > 0 ? true : false
 			return acc
 		}, {})
@@ -1097,67 +1094,6 @@ module.exports = class resourceHelper {
 		)
 
 		return orgConfigList[resourceType]
-	}
-
-	/**
-	 * Publish Resource
-	 * @method
-	 * @name publishResource
-	 * @returns {JSON} - Publish Response
-	 */
-	static async publishResource(resourceId, userId) {
-		try {
-			// Fetch the resource creator mapping
-			const resource = await resourceCreatorMappingQueries.findOne(
-				{ creator_id: userId, resource_id: resourceId },
-				['id', 'organization_id']
-			)
-
-			if (!resource?.id) {
-				return responses.failureResponse({
-					message: 'RESOURCE_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
-			// Fetch resource data
-			let resourceData = await resourceQueries.findOne({
-				id: resourceId,
-				organization_id: resource.organization_id,
-			})
-
-			let resourceDetails
-			if (resourceData.type === common.PROJECT) {
-				resourceDetails = await projectService.details(resourceId, resourceData.organization_id, userId)
-			}
-
-			resourceData = resourceDetails.result
-
-			//publish the resource
-			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-				if (process.env.RESOURCE_KAFKA_PUSH_ON_OFF == common.KAFKA_ON) {
-					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
-				}
-				// api need to implement
-			}
-
-			//update resource table
-			await resourceQueries.updateOne(
-				{ id: resourceId, organization_id: resourceData.organization_id },
-				{
-					status: common.RESOURCE_STATUS_PUBLISHED,
-					published_on: new Date(),
-				}
-			)
-
-			return responses.successResponse({
-				statusCode: httpStatusCode.ok,
-				message: 'RESOURCE_PUBLISHED',
-			})
-		} catch (error) {
-			throw error
-		}
 	}
 
 	/**
