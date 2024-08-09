@@ -14,6 +14,10 @@ module.exports = {
 			.withMessage(common.LISTING + ' param is empty')
 			.isIn(page_status)
 			.withMessage(common.LISTING + ' value should be from : ' + page_status)
+		req.checkQuery('status')
+			.optional()
+			.isIn(common.PAGE_STATUS_VALUES[common.LISTING])
+			.withMessage('Status ' + req.query.status + ' invalid ')
 	},
 	publishCallback: (req) => {
 		req.checkQuery('resource_id').trim().notEmpty().withMessage('resource_id field is empty')
