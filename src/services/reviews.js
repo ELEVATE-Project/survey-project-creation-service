@@ -381,7 +381,8 @@ module.exports = class reviewsHelper {
 				if (activeReviewValidation.statusCode !== httpStatusCode.ok) {
 					return activeReviewValidation
 				}
-				// (roles, userOrgId, resourceType , currentLevel)
+
+				//validate the next stage
 				const validateNextLevel = await this.validateNextLevel(userRoles, userOrgId, resourceType, nextStage)
 				if (validateNextLevel.statusCode !== httpStatusCode.ok) {
 					return validateNextLevel
@@ -576,9 +577,20 @@ module.exports = class reviewsHelper {
 		})
 	}
 
+	/**
+	 * Validate the reviewer level matches the resource level
+	 * @method
+	 * @name validateNextLevel
+	 * @param {Array<Object>} roles - user roles
+	 * @param {String} userOrgId - organization Id
+	 * @param {String} resourceType - Resource type
+	 * @param {Integer} currentLevel - current stage of resource
+	 * @returns {JSON} - return error if any
+	 */
 	static async validateNextLevel(roles, userOrgId, resourceType, currentLevel) {
+		//get the roles
 		const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
-
+		//validate the level
 		const resourceWiseLevels = await resourceService.fetchReviewLevels(userOrgId, userRoleTitles, [resourceType])
 		if (resourceWiseLevels[resourceType] != currentLevel) {
 			return responses.failureResponse({
@@ -588,7 +600,7 @@ module.exports = class reviewsHelper {
 			})
 		}
 
-		// If no active review is found, return a success response
+		// If level is valid, return a success response
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
 		})
