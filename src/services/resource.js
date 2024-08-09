@@ -1116,7 +1116,7 @@ module.exports = class resourceHelper {
 
 	/**
 	 * Get all review levels from the reviews table
-	 * @name fetchReviewLevels
+	 * @name getReviewLevelsForResource
 	 * @param {String} organization_id - organization_id of the logged in user.
 	 * @param {Array} userRoleTitles -  list of user role titles.
 	 * @param {Array} resourceTypeList -  list of resource types.
@@ -1126,7 +1126,7 @@ module.exports = class resourceHelper {
 	 * 	observation : 4
 	 * }
 	 */
-	static async fetchReviewLevels(organization_id, userRoleTitles, resourceTypeList) {
+	static async getReviewLevelsForResource(organization_id, userRoleTitles, resourceTypeList) {
 		// fetch review levels according to roles in the organization
 		const reviewLevelDetails = await reviewStagesQueries.findAll(
 			{
