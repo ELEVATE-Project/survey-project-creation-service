@@ -1524,14 +1524,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/entity-type/updateUserEntity400Response'
 
-  /scp/v1/entity/create:
+  /scp/v1/entities/create:
     post:
       summary: Create Entity
       tags:
         - Entity
       description: |-
         You can use this API to create a user entity  
-         - The API Endpoint for creating a user entity is `/scp/v1/entity/create` 
+         - The API Endpoint for creating a user entity is `/scp/v1/entities/create` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - This is an Admin API which will be used by admins.
@@ -1648,14 +1648,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/entity/createEntity400Response'
-  /scp/v1/entity/update/{id}:
+  /scp/v1/entities/update/{id}:
     patch:
       summary: Update Entity
       tags:
         - Entity
       description: |-
         Use this API to update a entity.   
-         - The API Endpoint to update a user entity is `/scp/v1/entity/update` 
+         - The API Endpoint to update a user entity is `/scp/v1/entities/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - This is an Admin API which will be used by admins.
@@ -1770,14 +1770,14 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/entity/updateUserEntity400Response'
-  /scp/v1/entity/read/{id}:
+  /scp/v1/entities/read/{id}:
     get:
       summary: Get entity details
       tags:
         - Entity
       description: |-
         Use this API to read the details of a user entity.   
-         - The API Endpoint for reading the details of the user entity is `/scp/v1/entity/read` 
+         - The API Endpoint for reading the details of the user entity is `/scp/v1/entities/read` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - This is an Admin API which will be used by admins.
@@ -1862,14 +1862,14 @@ paths:
                     meta:
                       formsVersion: []
     parameters: []
-  /scp/v1/entity/delete/{id}:
+  /scp/v1/entities/delete/{id}:
     delete:
       summary: Delete entity
       tags:
         - Entity
       description: |-
         You can use this API to delete a user entity.   
-         - The API Endpoint for deleting a user entity is `/scp/v1/entity/delete` 
+         - The API Endpoint for deleting a user entity is `/scp/v1/entities/delete` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null
          - This is an Admin API which will be used by admins.
@@ -1930,7 +1930,105 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/entity/updateUserEntity400Response'
+  /scp/v1/entities/list:
+    post:
+      operationId: entitylist
+      summary: Get entity list with pagination and search
+      tags:
+        - Entity
+      description: |-
+        Use this API to get the list of a mentoring entities.   
+         - The API Endpoint for reading the list of the entities is `/scp/v1/entities/list` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token, which is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: page
+          description: Please add page number
+          schema:
+            type: number
+          example: 1
+        - in: path
+          name: limit
+          description: Number of records to limit
+          schema:
+            type: number
+          example: 10
+        - in: path
+          name: search
+          description: search text
+          schema:
+            type: string
+          example: teacher
+        - in: path
+          name: entity_type_id
+          description: entity_type_id
+          required: true
+          schema:
+            type: number
+          example: teacher
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      entity_type_id:
+                        type: number
+                      value:
+                        type: string
+                      label:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                      created_by:
+                        type: number
+                      created_at:
+                        type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Entity fetched successfully
+                    result:
+                      data:
+                        - id: 1
+                          entity_type_id: 1
+                          value: english
+                          label: English
+                          status: ACTIVE
+                          type: SYSTEM
+                          created_by: 0
+                          created_at: '2023-07-21T21:46:41.392Z'
+                      count: 1
 
+                    meta:
+                      formsVersion: []
+                      correlation: 0d392602-cb68-4690-8f38-3d3de9f94198
+                      meeting_platform: BBB
+                    parameters: []
   /scp/v1/cloud-services/getSignedUrl:
     post:
       summary: Cloud services get signed url
@@ -3511,7 +3609,80 @@ paths:
                         - id: 3
                           type: projecsuccessfullytCreation
                           version: 3
+  /scp/v1/resource/publishCallback:
+    post:
+      summary: Callback URL for Update Published Resource
+      tags:
+        - Resource
+      description: |-
+        You can use this API to update the resource details after publishing the resource in consumption portal
+         - The API Endpoint : `/scp/v1/resource/publishCallback` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: resource_id
+          in: query
+          description: Resource id
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: published_id
+          in: query
+          description: Consumption side resource id
+          required: false
+          schema:
+            type: string
+          example: 10
 
+      responses:
+        '200':
+          description: Resource updated successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Resource updated successfully
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projecsuccessfullytCreation
+                          version: 3
   /scp/v1/projects/details/{projectId}:
     post:
       summary: Project Details
@@ -3994,16 +4165,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
 
-  /scp/v1/review/update/{resourceId}:
+  /scp/v1/reviews/update/{resourceId}:
     post:
-      summary: Review Update
+      summary: Create or Update Review
       tags:
         - Review
       description: |-
-        You can use this API to update review status
-         - The API Endpoint for update review status is `/scp/v1/review/update` 
+        You can use this API to create or request for changes
+         - The API Endpoint is `/scp/v1/reviews/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - comment can be array or array of object. 
+         - Pass the id of the comment in comment object if the current status of the comment is DRAFT. And pass the comment status as OPEN.
+         - While reviewing the resource reviewer can create the comment with draft status. That will be available to the creator if reviewer is doing action either approve, reject, report or changes requested
       parameters:
         - name: X-auth-token
           in: header
@@ -4026,17 +4200,12 @@ paths:
               $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
-                status:
-                  type: string
-                  description: The new status for the project review (e.g., "REQUEST_FOR_CHANGES").
-
                 comment:
                   description: Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.
 
             examples:
               example1:
                 value:
-                  status: REQUEST_FOR_CHANGES / STARTED / INPROGRESS / APPROVED / REJECTED / REJECTED_AND_REPORTED
                   comment:
                     comment: 'Check spelling'
                     context: page
@@ -4077,6 +4246,177 @@ paths:
                   value:
                     responseCode: OK
                     message: project review updated successfully
+                    result: {}
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+  /scp/v1/reviews/approve/{resourceId}:
+    post:
+      summary: Approve Resource
+      tags:
+        - Review
+      description: |-
+        You can use this API to approve the resource
+         - The API Endpoint for update review status is `/scp/v1/reviews/approve` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: resourceId
+          description: Please append a valid resource Id to the Request URL.
+          schema:
+            type: number
+          required: true
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                comment:
+                  description: Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.
+
+            examples:
+              example1:
+                value:
+                  comment:
+                    comment: 'Check spelling'
+                    context: page
+                    page: 1
+      responses:
+        '200':
+          description: You have successfully published the resource
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: You have successfully published the resource
+                    result: {}
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+  /scp/v1/reviews/rejectOrReport/{resourceId}:
+    post:
+      summary: Reject or Report Resource
+      tags:
+        - Review
+      description: |-
+        You can use this API to reject or report the resource
+         - The API Endpoint is `/scp/v1/reviews/rejectOrReport` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: resourceId
+          description: Please append a valid resource Id to the Request URL.
+          schema:
+            type: number
+          required: true
+      requestBody:
+        content:
+          application.json:
+            schema:
+              $schema: http://json-schema.org/draft-04/schema#
+              type: object
+              properties:
+                notes:
+                  description: Reviewer can add the note if he is reporting the resource
+                comment:
+                  description: Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.
+
+            examples:
+              example1:
+                value:
+                  notes: 'invalid project'
+                  comment:
+                    comment: 'Check spelling'
+                    context: page
+                    page: 1
+      responses:
+        '200':
+          description: This resource has been rejected and reported
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: This resource has been rejected and reported
                     result: {}
                     meta:
                       formsVersion:
@@ -4225,7 +4565,7 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
+        - in: query
           name: resource_id
           description: Please append a valid resource Id to the Request URL.
           schema:

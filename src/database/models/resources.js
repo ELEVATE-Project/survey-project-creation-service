@@ -69,6 +69,15 @@ module.exports = (sequelize, DataTypes) => {
 			updated_by: {
 				type: DataTypes.STRING,
 			},
+			submitted_on: {
+				type: DataTypes.DATE,
+			},
+			published_on: {
+				type: DataTypes.DATE,
+			},
+			last_reviewed_on: {
+				type: DataTypes.DATE,
+			},
 		},
 		{
 			modelName: 'Resource',

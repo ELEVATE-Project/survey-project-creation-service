@@ -65,4 +65,20 @@ module.exports = class Resource {
 			return error
 		}
 	}
+
+	/**
+	 * Callback URL for Update Published Resource
+	 * @method
+	 * @name publishCallback
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - details of resource
+	 */
+	async publishCallback(req) {
+		try {
+			const resource = await resourceService.publishCallback(req.query.resource_id, req.query.published_id)
+			return resource
+		} catch (error) {
+			throw error
+		}
+	}
 }

@@ -5,17 +5,26 @@
  * Description : Controller for comments
  */
 
-const commentService = require('@services/comment')
-module.exports = class configs {
+const commentService = require('@services/comments')
+module.exports = class comments {
 	/**
 	 * List Comments.
 	 * @method
 	 * @name list
+	 * @param {Integer} resource_id  Resource id.
+	 * @param {String} page_value  page number or name
+	 * @param {String} context  page or tag
 	 * @returns {JSON} - List of comments as response.
 	 */
 	async list(req) {
 		try {
-			const comments = await commentService.list(req.query.resource_id, req.decodedToken.organization_id)
+			const comments = await commentService.list(
+				req.query.resource_id,
+				req.query.page_value ? req.query.page_value : '',
+				req.query.context ? req.query.context : '',
+				req.decodedToken.id,
+				req.decodedToken.organization_id
+			)
 			return comments
 		} catch (error) {
 			return error
@@ -26,6 +35,9 @@ module.exports = class configs {
 	 * Create or Update Comment.
 	 * @method
 	 * @name update
+	 * @param {Integer} id  comment id.
+	 * @param {Integer} resource_id  Resource id.
+	 * @param {Object} body  Comment data
 	 * @returns {JSON} - Detail of comments as response.
 	 */
 	async update(req) {
