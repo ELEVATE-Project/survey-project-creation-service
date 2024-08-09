@@ -16,6 +16,7 @@ const commentQueries = require('@database/queries/comments')
 const _ = require('lodash')
 const resourceService = require('@services/resource')
 const { Op } = require('sequelize')
+const utils = require('@generics/utils')
 
 module.exports = class reviewsHelper {
 	/**
@@ -29,7 +30,7 @@ module.exports = class reviewsHelper {
 	 * @returns {JSON} - review updated response.
 	 */
 
-	static async update(resourceId, bodyData, userId, orgId) {
+	static async update(resourceId, bodyData, userId, orgId, userRoles) {
 		try {
 			//get resource details
 			const resource = await resourceQueries.findOne(
@@ -81,7 +82,9 @@ module.exports = class reviewsHelper {
 					userId,
 					resource.organization_id,
 					orgId,
-					resource.next_stage
+					resource.next_stage,
+					userRoles,
+					resource.type
 				)
 			}
 
@@ -356,7 +359,16 @@ module.exports = class reviewsHelper {
 	 * @returns {JSON} - review creation response.
 	 */
 
-	static async createReview(resourceId, reviewType, userId, resourceOrgId, userOrgId, nextStage = null) {
+	static async createReview(
+		resourceId,
+		reviewType,
+		userId,
+		resourceOrgId,
+		userOrgId,
+		nextStage = null,
+		userRoles,
+		resourceType
+	) {
 		try {
 			let updateNextLevel = false
 			//Check review type is parallel and already another person reviewing the resource
@@ -368,6 +380,11 @@ module.exports = class reviewsHelper {
 				)
 				if (activeReviewValidation.statusCode !== httpStatusCode.ok) {
 					return activeReviewValidation
+				}
+				// (roles, userOrgId, resourceType , currentLevel)
+				const validateNextLevel = await this.validateNextLevel(userRoles, userOrgId, resourceType, nextStage)
+				if (validateNextLevel.statusCode !== httpStatusCode.ok) {
+					return validateNextLevel
 				}
 
 				updateNextLevel = true
@@ -548,6 +565,24 @@ module.exports = class reviewsHelper {
 		if (existingReview?.id) {
 			return responses.failureResponse({
 				message: 'REVIEW_INPROGRESS',
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
+		}
+
+		// If no active review is found, return a success response
+		return responses.successResponse({
+			statusCode: httpStatusCode.ok,
+		})
+	}
+
+	static async validateNextLevel(roles, userOrgId, resourceType, currentLevel) {
+		const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
+
+		const resourceWiseLevels = await resourceService.fetchReviewLevels(userOrgId, userRoleTitles, [resourceType])
+		if (resourceWiseLevels[resourceType] != currentLevel) {
+			return responses.failureResponse({
+				message: 'FAILED_TO_START_REVIEW',
 				statusCode: httpStatusCode.bad_request,
 				responseCode: 'CLIENT_ERROR',
 			})
