@@ -24,6 +24,7 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const commentQueries = require('@database/queries/comments')
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
+const defaultOrgId = process.env.DEFAULT_ORG_ID
 const kafkaCommunication = require('@generics/kafka-communication')
 
 module.exports = class resourceHelper {
@@ -170,6 +171,8 @@ module.exports = class resourceHelper {
 		let reviewerIds = []
 
 		// create a mapping object for resourceId and review details to fetch the review details like reviewerId , status etc... using resource id
+		// TODO for the time being we are fetching only one reviewer in the parallel review , we need to update the code to have multiple reviewers
+		// Update the reviewed_by and reviewer_notes for multiple review.
 		const reviewDetailsMapping = reviewDetails.reduce((acc, item) => {
 			acc[item.resource_id] = {
 				reviewer_id: item.reviewer_id,
@@ -473,7 +476,7 @@ module.exports = class resourceHelper {
 				},
 				['organization_id']
 			)
-			if (fetchReviewResourceDetails) {
+			if (fetchReviewResourceDetails.length > 0) {
 				uniqueOrganizationIds = utils.getUniqueElements(
 					fetchReviewResourceDetails.map((item) => item.organization_id)
 				)
@@ -500,8 +503,18 @@ module.exports = class resourceHelper {
 					await this.fetchResourceReviewTypes(organization_id)
 
 				if (common.TYPE in queryParams && queryParams[common.TYPE]) {
-					resourceTypesInSequentialReview = queryParams[common.TYPE].split(',')
-					resourceTypesInParallelReview = queryParams[common.TYPE].split(',')
+					let filterResourceTypes = queryParams[common.TYPE].split(',')
+					// check if the type passed in the query param belongs to sequential or not.
+					// if present in sequential remove all other types and add only the type passed which belongs to sequential
+					resourceTypesInSequentialReview = _.filter(resourceTypesInSequentialReview, (value) =>
+						_.includes(filterResourceTypes, value)
+					)
+
+					// check if the type passed in the query param belongs to parallel or not.
+					// if present in parallel remove all other types and add only the type passed which belongs to parallel
+					resourceTypesInParallelReview = _.filter(resourceTypesInParallelReview, (value) =>
+						_.includes(filterResourceTypes, value)
+					)
 				}
 				// if the organization have any resource type in sequential review type
 				if (resourceTypesInSequentialReview.length > 0) {
@@ -549,11 +562,19 @@ module.exports = class resourceHelper {
 				})
 			}
 
-			const resourceFilter = {
+			let resourceFilter = {
 				organization_id: { [Op.in]: uniqueOrganizationIds },
 				id: { [Op.in]: finalResourceIds },
 				user_id: {
 					[Op.notIn]: [user_id],
+				},
+				status: {
+					[Op.notIn]: [
+						common.RESOURCE_STATUS_PUBLISHED,
+						common.RESOURCE_STATUS_REJECTED,
+						common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+						common.RESOURCE_STATUS_DRAFT,
+					],
 				},
 			}
 			if (searchText != '')
@@ -765,15 +786,16 @@ module.exports = class resourceHelper {
 		resourceTypes.filter((type) => {
 			if (resourceWiseLevels[type]) {
 				resourceTypeStagesConfig.push({
-					[Op.and]: [{ type: type }, { next_stage: resourceWiseLevels[type] }],
+					[Op.and]: [{ type: type }, { next_stage: { [Op.in]: resourceWiseLevels[type] } }],
 				})
 			}
 		})
-		const resourceFilter = {
+		let resourceFilter = {
 			organization_id,
 			[Op.or]: resourceTypeStagesConfig,
 			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
 		}
+
 		const resourcesDetails = await resourceQueries.findAll(resourceFilter, ['id'])
 		let resoureId = []
 		if (resourcesDetails) {
@@ -876,10 +898,13 @@ module.exports = class resourceHelper {
 	 * }
 	 */
 	static async fetchReviewLevels(organization_id, userRoleTitles, resourceTypeList) {
-		// fetch review levels according to roles in the organization
+		// list of organizations to search in review stages
+		const orgIds = organization_id == defaultOrgId ? [organization_id] : [organization_id, defaultOrgId]
+
+		// fetch review levels according to roles and resource type in the organization
 		const reviewLevelDetails = await reviewStagesQueries.findAll(
 			{
-				organization_id,
+				organization_id: { [Op.in]: orgIds },
 				role: {
 					[Op.in]: userRoleTitles,
 				},
@@ -887,18 +912,39 @@ module.exports = class resourceHelper {
 					[Op.in]: resourceTypeList,
 				},
 			},
-			{ attributes: ['resource_type', 'level'], order: [['level', 'ASC']] }
+			{ attributes: ['organization_id', 'resource_type', 'level'], order: [['level', 'ASC']] }
 		)
+
 		let resourceWiseLevels = {}
 
 		if (reviewLevelDetails) {
-			// arrange it as a key-value pair for ease of use
-			resourceWiseLevels = reviewLevelDetails.reduce((acc, item) => {
-				acc[item.resource_type] = item.level
+			let defaultOrgLevels = {}
+			let loggedInUserOrgLevels = {}
 
-				return acc
-			}, {})
+			// seggregate review levels into default org and logged user in org
+			reviewLevelDetails.map((reviewStage) => {
+				if (reviewStage.organization_id == defaultOrgId) {
+					if (!defaultOrgLevels[reviewStage.resource_type]) defaultOrgLevels[reviewStage.resource_type] = []
+					// get the list of all the review stage level for a particular resource type in default organization
+					defaultOrgLevels[reviewStage.resource_type].push(reviewStage.level)
+				} else if (organization_id != defaultOrgId) {
+					if (!loggedInUserOrgLevels[reviewStage.resource_type])
+						loggedInUserOrgLevels[reviewStage.resource_type] = []
+
+					// get the list of all the review stage level for a particular resource type in user organization
+					loggedInUserOrgLevels[reviewStage.resource_type].push(reviewStage.level)
+				}
+			})
+			// iterated through given resource types and pass its stages
+			// if user org has stage for given resource , return that value else return from default org
+			resourceTypeList.map((resourceType) => {
+				resourceWiseLevels[resourceType] =
+					loggedInUserOrgLevels[resourceType] && loggedInUserOrgLevels[resourceType].length > 0
+						? loggedInUserOrgLevels[resourceType]
+						: defaultOrgLevels[resourceType]
+			})
 		}
+
 		return resourceWiseLevels
 	}
 
