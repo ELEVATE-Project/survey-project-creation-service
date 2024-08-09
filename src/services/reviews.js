@@ -59,7 +59,7 @@ module.exports = class reviewsHelper {
 			}
 
 			// Fetch the configuration settings for the organization based on the provided orgId.
-			const orgConfig = await orgExtensionService.list(orgId)
+			const orgConfig = await orgExtensionService.getConfig(orgId)
 			const orgConfigList = orgConfig.result.resource.reduce((acc, item) => {
 				acc[item.resource_type] = {
 					review_type: item.review_type,
@@ -182,7 +182,7 @@ module.exports = class reviewsHelper {
 			}
 
 			// Fetch organization configuration and determine review type and minimum approval
-			const orgConfig = await orgExtensionService.list(orgId)
+			const orgConfig = await orgExtensionService.getConfig(orgId)
 			const orgConfigList = orgConfig.result.resource.reduce((acc, item) => {
 				acc[item.resource_type] = {
 					review_type: item.review_type,

@@ -221,12 +221,12 @@ module.exports = class orgExtensionsHelper {
 	}
 
 	/**
-	 * List Configs.
+	 * Get Organization and instance level Configs.
 	 * @method
-	 * @name list
+	 * @name getConfig
 	 * @returns {JSON} - List of configs based on orgId of user as response.
 	 */
-	static async list(organization_id) {
+	static async getConfig(organization_id) {
 		try {
 			let orgExtenstionData = {}
 			let configData = []

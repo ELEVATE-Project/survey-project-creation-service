@@ -911,7 +911,7 @@ module.exports = class resourceHelper {
 	static async fetchResourceReviewTypes(organization_id) {
 		try {
 			// Fetch organization-based configurations for resources
-			const orgConfig = await orgExtensionService.list(organization_id)
+			const orgConfig = await orgExtensionService.getConfig(organization_id)
 
 			// Map resource types to their review types
 			const resourceWiseReviewType = orgConfig.result.resource.reduce((acc, item) => {
@@ -1040,7 +1040,7 @@ module.exports = class resourceHelper {
 	 * @returns {Boolean} - Review required or not
 	 */
 	static async isReviewMandatory(resourceType, organizationId) {
-		const orgConfig = await orgExtensionService.list(organizationId)
+		const orgConfig = await orgExtensionService.getConfig(organizationId)
 		const orgConfigList = _.reduce(
 			orgConfig.result.resource,
 			(acc, item) => {

@@ -15,7 +15,7 @@ module.exports = class configs {
 	 */
 	async list(req) {
 		try {
-			const configList = await orgExtensionService.list(req.decodedToken.organization_id)
+			const configList = await orgExtensionService.getConfig(req.decodedToken.organization_id)
 
 			return configList
 		} catch (error) {
