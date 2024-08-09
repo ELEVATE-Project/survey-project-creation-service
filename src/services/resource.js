@@ -390,7 +390,7 @@ module.exports = class resourceHelper {
 			{ group: ['resource_id'] }
 		)
 
-		const commentMapping = await comments.rows.reduce((acc, item) => {
+		const commentMapping = await comments.reduce((acc, item) => {
 			acc[item.resource_id] = parseInt(item.comment_count, 10) > 0 ? true : false
 			return acc
 		}, {})
