@@ -5,13 +5,12 @@ const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const filesService = require('@services/files')
 const userRequests = require('@requests/user')
-const configService = require('@services/config')
+const orgExtensionService = require('@services/organization-extension')
 const _ = require('lodash')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
-const entityTypeQueries = require('@database/queries/entityType')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 
@@ -35,7 +34,7 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const orgConfig = await configService.list(orgId)
+			const orgConfig = await orgExtensionService.getConfig(orgId)
 
 			const orgConfigList = _.reduce(
 				orgConfig.result.resource,
@@ -49,7 +48,7 @@ module.exports = class ProjectsHelper {
 			let projectData = {
 				title: bodyData.title,
 				type: common.PROJECT,
-				status: common.STATUS_DRAFT,
+				status: common.RESOURCE_STATUS_DRAFT,
 				user_id: loggedInUserId,
 				review_type: orgConfigList[common.PROJECT],
 				organization_id: orgId,
@@ -314,7 +313,7 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - Project data.
 	 */
 
-	static async details(projectId, orgId, loggedInUserId) {
+	static async details(projectId, orgId) {
 		try {
 			let result = {
 				organization: {},
@@ -337,14 +336,6 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			if (project.status == common.STATUS_DRAFT && project.user_id !== loggedInUserId) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_VISIBLE',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
 			//get the data from storage
 			if (project.blob_path) {
 				const response = await filesService.fetchJsonFromCloud(project.blob_path)
@@ -359,7 +350,7 @@ module.exports = class ProjectsHelper {
 					//get all entity types with entities
 					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 						{
-							model: common.PROJECT,
+							model: common.ENTITY_TYPE_MODELS[common.PROJECT],
 							status: common.STATUS_ACTIVE,
 						},
 						orgId,
@@ -377,39 +368,43 @@ module.exports = class ProjectsHelper {
 							return map
 						}, {})
 
-						for (let entityType of entityTypes) {
-							const key = entityType.value
-							// Skip the entity type if entities are not available
-							if (
-								entityType.has_entities &&
-								entityType.entities &&
-								entityType.entities.length > 0 &&
-								resultData.hasOwnProperty(key)
-							) {
-								const value = resultData[key]
-								// If the value is already in label-value pair format, skip processing
-								if (utils.isLabelValuePair(value) || value === '') {
-									continue
-								}
+						await Promise.all(
+							entityTypes.map(async (entityType) => {
+								const key = entityType.value
+								// Skip the entity type if entities are not available
+								if (
+									entityType.has_entities &&
+									entityType.entities &&
+									entityType.entities.length > 0 &&
+									resultData.hasOwnProperty(key)
+								) {
+									const value = resultData[key]
+									// If the value is already in label-value pair format, skip processing
+									if (utils.isLabelValuePair(value) || value === '') {
+										return
+									}
 
-								// get the entities
-								const validEntities = entityTypeMap[key] || []
+									// Get the entities
+									const validEntities = entityTypeMap[key] || []
 
-								if (Array.isArray(value)) {
-									// Map each item in the array to a label-value pair, if it exists in validEntities
-									resultData[key] = value.map((item) => {
+									if (Array.isArray(value)) {
+										// Map each item in the array to a label-value pair, if it exists in validEntities
+										resultData[key] = value.map((item) => {
+											const match = validEntities.find(
+												(entity) => entity.value === item.toLowerCase()
+											)
+											return match || { label: item, value: item.toLowerCase() }
+										})
+									} else {
+										// If the value is a single item, find it in validEntities
 										const match = validEntities.find(
-											(entity) => entity.value === item.toLowerCase()
+											(entity) => entity.value === value.toLowerCase()
 										)
-										return match || { label: item, value: item.toLowerCase() }
-									})
-								} else {
-									// If the value is a single item, find it in validEntities
-									const match = validEntities.find((entity) => entity.value === value.toLowerCase())
-									resultData[key] = match || { label: value, value: value.toLowerCase() }
+										resultData[key] = match || { label: value, value: value.toLowerCase() }
+									}
 								}
-							}
-						}
+							})
+						)
 
 						result = { ...result, ...resultData }
 					}
@@ -417,7 +412,7 @@ module.exports = class ProjectsHelper {
 			}
 
 			//get organization details
-			let organizationDetails = await userRequests.fetchDefaultOrgDetails(project.organization_id)
+			let organizationDetails = await userRequests.fetchOrg(project.organization_id)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				project.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
 			}
@@ -668,15 +663,48 @@ module.exports = class ProjectsHelper {
 				await reviewsResourcesQueries.bulkCreate(reviewsData)
 			}
 
-			let resourcesUpdate = {
-				status: common.RESOURCE_STATUS_SUBMITTED,
+			//update the reviews and resource status
+			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
+			if (
+				projectData.status === common.RESOURCE_STATUS_IN_REVIEW ||
+				projectData.status === common.RESOURCE_STATUS_SUBMITTED
+			) {
+				//Update the review status if the resource has been submitted before
+				await reviewsQueries.update(
+					{
+						organization_id: projectData.organization_id,
+						resource_id: projectData.id,
+						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+					},
+					{
+						status: common.REVIEW_STATUS_CHANGES_UPDATED,
+					}
+				)
+				resourceStatus = common.RESOURCE_STATUS_IN_REVIEW
 			}
+
+			//check review is required or not
+			const isReviewMandatory = await resourceService.isReviewMandatory(
+				projectData.type,
+				userDetails.organization_id
+			)
+			if (!isReviewMandatory) {
+				const publishResource = await resourceService.publishResource(resourceId, userDetails.id)
+				return publishResource
+			}
+
+			//update resource
+			let resourcesUpdate = {
+				status: resourceStatus,
+				submitted_on: new Date(),
+			}
+
 			if (bodyData?.notes) {
 				resourcesUpdate.meta.notes = bodyData?.notes
 			}
 
-			//update the resource status to submitted
 			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_SUBMITTED_SUCCESSFULLY',

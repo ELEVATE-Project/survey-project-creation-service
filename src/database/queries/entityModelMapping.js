@@ -3,8 +3,7 @@
 const EntityModelMapping = require('../models/index').EntityModelMapping
 const EntityType = require('../models/index').EntityType
 const common = require('@constants/common')
-const entityTypeQueries = require('@database/queries/entityType')
-const { getDefaultOrgId } = require('@helpers/getDefaultOrgId')
+const defaultOrgId = process.env.DEFAULT_ORG_ID
 const { removeDefaultOrgEntityTypes } = require('@generics/utils')
 const responses = require('@helpers/responses')
 const httpStatusCode = require('@generics/http-status')
@@ -21,7 +20,6 @@ exports.create = async (data) => {
 
 exports.findEntityTypesAndEntities = async (filter, organization_id, attributes = {}) => {
 	try {
-		const defaultOrgId = await getDefaultOrgId()
 		if (!defaultOrgId)
 			return responses.failureResponse({
 				message: 'DEFAULT_ORG_ID_NOT_SET',

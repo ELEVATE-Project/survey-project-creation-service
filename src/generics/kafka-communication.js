@@ -4,15 +4,9 @@
  * Date : 29 - April - 2024
  * Description : Kafka producer methods
  */
-
-const pushEmailToKafka = async (message) => {
-	try {
-		const payload = { topic: process.env.NOTIFICATION_KAFKA_TOPIC, messages: [{ value: JSON.stringify(message) }] }
-		return await pushPayloadToKafka(payload)
-	} catch (error) {
-		throw error
-	}
-}
+const kafkaCommunicationsOnOff =
+	!process.env.KAFKA_COMMUNICATIONS_ON_OFF || process.env.KAFKA_COMMUNICATIONS_ON_OFF != 'OFF' ? 'ON' : 'OFF'
+const common = require('@constants/common')
 
 const clearInternalCache = async (key) => {
 	try {
@@ -29,6 +23,15 @@ const clearInternalCache = async (key) => {
 
 const pushPayloadToKafka = async (payload) => {
 	try {
+		if (kafkaCommunicationsOnOff != 'ON') {
+			throw 'Kafka configuration is not done'
+		}
+
+		console.log('-------Kafka producer log starts here------------------')
+		console.log('Topic Name: ', payload[0].topic)
+		console.log('Message: ', JSON.stringify(payload))
+		console.log('-------Kafka producer log ends here------------------')
+
 		let response = await kafkaProducer.send(payload)
 		return response
 	} catch (error) {
@@ -36,7 +39,29 @@ const pushPayloadToKafka = async (payload) => {
 	}
 }
 
+const pushResourceToKafka = async (message, resourceType) => {
+	try {
+		let topic
+		if (resourceType === common.PROJECT) {
+			topic = process.env.PROJECT_PUBLISH_KAFKA_TOPIC
+		}
+
+		if (!topic) {
+			console.log('Publishing for this resource type is not implemented.')
+			return
+		}
+
+		const payload = {
+			topic,
+			messages: [{ value: JSON.stringify(message) }],
+		}
+		return await pushPayloadToKafka(payload)
+	} catch (error) {
+		throw error
+	}
+}
+
 module.exports = {
-	pushEmailToKafka,
 	clearInternalCache,
+	pushResourceToKafka,
 }

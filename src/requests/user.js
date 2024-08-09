@@ -10,8 +10,6 @@ const userBaseUrl = process.env.USER_SERVICE_HOST + process.env.USER_SERVICE_BAS
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 const request = require('request')
-const httpStatusCode = require('@generics/http-status')
-const responses = require('@helpers/responses')
 
 /**
  * Fetches the default organization details for a given organization code/id.
@@ -19,7 +17,7 @@ const responses = require('@helpers/responses')
  * @returns {Promise} A promise that resolves with the organization details or rejects with an error.
  */
 
-const fetchDefaultOrgDetails = function (organisationIdentifier) {
+const fetchOrg = function (organisationIdentifier) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let orgReadUrl
@@ -250,7 +248,7 @@ const listOrganization = function (organizationIds = []) {
 }
 
 module.exports = {
-	fetchDefaultOrgDetails,
+	fetchOrg,
 	details,
 	list,
 	listWithoutLimit,

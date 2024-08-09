@@ -1,30 +1,55 @@
+/**
+ * name : services/comments.js
+ * author : Priyanka Pradeep
+ * Date : 11-July-2024
+ * Description : Review Stage Service
+ */
 const httpStatusCode = require('@generics/http-status')
-const commentQueries = require('@database/queries/comment')
+const commentQueries = require('@database/queries/comments')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const userRequests = require('@requests/user')
 const _ = require('lodash')
-
-module.exports = class ProjectsHelper {
+const reviewsQueries = require('@database/queries/reviews')
+const reviewResourceQueries = require('@database/queries/reviewResources')
+const { Op } = require('sequelize')
+module.exports = class CommentsHelper {
 	/**
-	 *  comment update
+	 * Comment Create or Update
 	 * @method
 	 * @name update
-	 * @param {Object} req - request data.
+	 * @param {Integer} commentId - Comment ID
+	 * @param {Integer} resourceId - Resource ID
+	 * @param {Object} bodyData - Request Body
+	 * @param {String} userId - User ID
 	 * @returns {JSON} - comment id
 	 */
-	static async update(comment_id = '', resource_id, bodyData, loggedInUserId) {
+	static async update(commentId = '', resourceId, bodyData, userId) {
 		try {
-			if (bodyData.status === common.STATUS_RESOLVED || !bodyData.resolved_by) {
-				bodyData.resolved_by = loggedInUserId
-				bodyData.resolved_at = new Date()
-				bodyData.status = common.STATUS_RESOLVED
-			}
-
-			if (!comment_id) {
-				bodyData.user_id = loggedInUserId
-				bodyData.resource_id = resource_id
+			//create the comment
+			if (!commentId) {
+				bodyData.user_id = userId
+				bodyData.resource_id = resourceId
 				let commentCreate = await commentQueries.create(bodyData)
+
+				//update the review as inprogress if its already started
+				const reviewResource = await reviewResourceQueries.findOne({
+					reviewer_id: userId,
+					resource_id: resourceId,
+				})
+
+				if (reviewResource?.id) {
+					await reviewsQueries.update(
+						{
+							organization_id: reviewResource.organization_id,
+							resource_id: resourceId,
+							reviewer_id: userId,
+							status: { [Op.in]: [common.REVIEW_STATUS_STARTED] },
+						},
+						{ status: common.REVIEW_STATUS_INPROGRESS }
+					)
+				}
+
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'COMMENT_UPDATED_SUCCESSFULLY',
@@ -32,9 +57,15 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
+			//update the comment
+			if (bodyData.status === common.STATUS_RESOLVED) {
+				bodyData.resolved_by = userId
+				bodyData.resolved_at = new Date()
+			}
+
 			const filter = {
-				id: comment_id,
-				resource_id: resource_id,
+				resource_id: resourceId,
+				id: commentId,
 			}
 
 			const [updateCount, updatedComment] = await commentQueries.updateOne(filter, bodyData, {
@@ -52,11 +83,11 @@ module.exports = class ProjectsHelper {
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
-				message: 'COMMENT_UPDATED_SUCCESSFULLY',
+				message:
+					bodyData.status === common.STATUS_RESOLVED ? 'COMMENT_RESOLVED' : 'COMMENT_UPDATED_SUCCESSFULLY',
 				result: updatedComment,
 			})
 		} catch (error) {
-			console.log(error, 'error')
 			if (error.name === 'SequelizeDatabaseError' && error.original.code === '22P02') {
 				return responses.failureResponse({
 					message: 'STATUS_INVALID',
@@ -70,23 +101,27 @@ module.exports = class ProjectsHelper {
 	}
 
 	/**
-	 *  comment list
+	 * Comment list
 	 * @method
 	 * @name list
-	 * @param {Object} req - request data.
+	 * @param {Integer} resourceId - Resource ID
+	 * @param {String} pageValue - Page number or name
+	 * @param {String} userId - User ID
+	 * @param {String} orgId - Organization ID
+	 * @param {String} context - Context page or tag
 	 * @returns {JSON} - comment list
 	 */
-	static async list(resource_id, organization_id) {
+	static async list(resourceId, pageValue = '', context = '', userId, orgId) {
 		try {
 			let result = {
-				resource_id: resource_id,
+				resource_id: resourceId,
+				commented_by: [],
 				comments: [],
 				count: 0,
 			}
 
-			const comments = await commentQueries.findAll({
-				resource_id: resource_id,
-			})
+			//get all comments
+			const comments = await commentQueries.list(resourceId, userId, pageValue, context)
 
 			if (comments.count <= 0) {
 				return responses.successResponse({
@@ -97,23 +132,34 @@ module.exports = class ProjectsHelper {
 			}
 
 			//get commenter and resolver details
-			const user_ids = _.uniq(
+			const userIds = _.uniq(
 				_.flatMap(comments.rows, (row) =>
 					row.resolved_by !== null ? [row.resolved_by, row.user_id] : [row.user_id]
 				)
 			)
 
-			const users = await userRequests.list(common.ALL_USER_ROLES, '', '', '', organization_id)
+			const users = await userRequests.list(common.ALL_USER_ROLES, '', '', '', orgId, {
+				user_ids: userIds,
+			})
+
+			let commented_by = []
 
 			if (users.success && users.data?.result?.length > 0) {
 				const user_map = _.keyBy(users.data.result, 'id')
 				comments.rows = _.map(comments.rows, (comment) => {
+					//add commenter and resolver details
 					const commenter = user_map[comment.user_id] ? _.pick(user_map[comment.user_id], ['id', 'name']) : {}
 					const resolver = comment.resolved_by
 						? user_map[comment.resolved_by]
 							? _.pick(user_map[comment.resolved_by], ['id', 'name'])
 							: {}
 						: {}
+
+					// Add the commenter's name to the commented_by array if the name exists
+					if (commenter.name) {
+						commented_by.push(commenter.name)
+					}
+
 					return {
 						...comment,
 						commenter: commenter,
@@ -123,11 +169,12 @@ module.exports = class ProjectsHelper {
 			}
 
 			result.comments = comments.rows
+			result.commented_by = commented_by
 			result.count = comments.count
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
-				message: 'COMMENT_UPDATED_SUCCESSFULLY',
+				message: 'COMMENT_FETCHED',
 				result: result,
 			})
 		} catch (error) {

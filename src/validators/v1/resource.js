@@ -15,4 +15,8 @@ module.exports = {
 			.isIn(page_status)
 			.withMessage(common.LISTING + ' value should be from : ' + page_status)
 	},
+	publishCallback: (req) => {
+		req.checkQuery('resource_id').trim().notEmpty().withMessage('resource_id field is empty')
+		req.checkQuery('published_id').trim().notEmpty().withMessage('published_id field is empty')
+	},
 }

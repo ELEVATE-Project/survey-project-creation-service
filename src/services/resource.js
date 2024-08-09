@@ -1,5 +1,5 @@
 /**
- * name : validators/v1/resource.js
+ * name : services/resource.js
  * author : Adithya Dinesh
  * Date : 04-June-2024
  * Description : Resource Service
@@ -14,14 +14,17 @@ const reviewStagesQueries = require('@database/queries/reviewStage')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const userRequests = require('@requests/user')
-const configs = require('@services/config')
 const _ = require('lodash')
 const utils = require('@generics/utils')
 const axios = require('axios')
 const filesService = require('@services/files')
-const commentQueries = require('@database/queries/comment')
+const orgExtensionService = require('@services/organization-extension')
+const projectService = require('@services/projects')
+const entityModelMappingQuery = require('@database/queries/entityModelMapping')
+const commentQueries = require('@database/queries/comments')
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
+const kafkaCommunication = require('@generics/kafka-communication')
 
 module.exports = class resourceHelper {
 	/**
@@ -627,6 +630,123 @@ module.exports = class resourceHelper {
 	}
 
 	/**
+	 * Resource Details
+	 * @method
+	 * @name getDetails
+	 * @returns {JSON} - details of resource
+	 */
+	static async getDetails(resourceId) {
+		try {
+			let result = {
+				organization: {},
+			}
+
+			const resource = await resourceQueries.findOne({
+				id: resourceId,
+			})
+
+			if (!resource?.id) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			if (resource.blob_path) {
+				const response = await filesService.fetchJsonFromCloud(resource.blob_path)
+				if (
+					response.statusCode === httpStatusCode.ok &&
+					response.result &&
+					Object.keys(response.result).length > 0
+				) {
+					//modify the response as label value pair
+					let resultData = response.result
+
+					//get all entity types with entities
+					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+						{
+							model: common.ENTITY_TYPE_MODELS[resource.type],
+							status: common.STATUS_ACTIVE,
+						},
+						resource.organization_id,
+						['id', 'value', 'label', 'has_entities']
+					)
+
+					if (entityTypes.length > 0) {
+						//create label value pair map
+						const entityTypeMap = entityTypes.reduce((map, type) => {
+							if (type.has_entities && Array.isArray(type.entities) && type.entities.length > 0) {
+								map[type.value] = type.entities
+									.filter((entity) => entity.status === common.STATUS_ACTIVE)
+									.map((entity) => ({ label: entity.label, value: entity.value.toLowerCase() }))
+							}
+							return map
+						}, {})
+
+						await Promise.all(
+							entityTypes.map(async (entityType) => {
+								const key = entityType.value
+								// Skip the entity type if entities are not available
+								if (
+									entityType.has_entities &&
+									entityType.entities &&
+									entityType.entities.length > 0 &&
+									resultData.hasOwnProperty(key)
+								) {
+									const value = resultData[key]
+									// If the value is already in label-value pair format, skip processing
+									if (utils.isLabelValuePair(value) || value === '') {
+										return
+									}
+
+									// Get the entities
+									const validEntities = entityTypeMap[key] || []
+
+									if (Array.isArray(value)) {
+										// Map each item in the array to a label-value pair, if it exists in validEntities
+										resultData[key] = value.map((item) => {
+											const match = validEntities.find(
+												(entity) => entity.value === item.toLowerCase()
+											)
+											return match || { label: item, value: item.toLowerCase() }
+										})
+									} else {
+										// If the value is a single item, find it in validEntities
+										const match = validEntities.find(
+											(entity) => entity.value === value.toLowerCase()
+										)
+										resultData[key] = match || { label: value, value: value.toLowerCase() }
+									}
+								}
+							})
+						)
+
+						result = { ...result, ...resultData }
+					}
+				}
+			}
+
+			//get organization details
+			let organizationDetails = await userRequests.fetchOrg(resource.organization_id)
+			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
+				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
+			}
+
+			delete resource.blob_path
+			result = { ...result, ...resource }
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCE_FETCHED',
+				result: result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
 	 * Get all sequential resources from an organization based on the roles of the user.
 	 * @name findSequentialResources
 	 * @param {String} organization_id -  organization_id.
@@ -688,6 +808,7 @@ module.exports = class resourceHelper {
 		}
 		return resoureId
 	}
+
 	/**
 	 * Get all resources assigned to the reviewer
 	 * @name findResourcesAssignedToReviewer
@@ -710,6 +831,7 @@ module.exports = class resourceHelper {
 		})
 		return res
 	}
+
 	/**
 	 * Get all resources assigned to the reviewer and already picked up by other reviewer
 	 * @name findResourcesPickedUpByAnotherReviewer
@@ -789,7 +911,7 @@ module.exports = class resourceHelper {
 	static async fetchResourceReviewTypes(organization_id) {
 		try {
 			// Fetch organization-based configurations for resources
-			const orgConfig = await configs.list(organization_id)
+			const orgConfig = await orgExtensionService.getConfig(organization_id)
 
 			// Map resource types to their review types
 			const resourceWiseReviewType = orgConfig.result.resource.reduce((acc, item) => {
@@ -811,6 +933,39 @@ module.exports = class resourceHelper {
 				sequential: resourceTypesInSequentialReview,
 				parallel: resourceTypesInParallelReview,
 			}
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Callback URL for Update Published Resource
+	 * @method
+	 * @name publishCallback
+	 * @returns {JSON} - details of resource
+	 */
+	static async publishCallback(resourceId, publishedId) {
+		try {
+			let resource = await resourceQueries.updateOne(
+				{
+					id: resourceId,
+				},
+				{
+					published_id: publishedId,
+				}
+			)
+
+			if (resource === 0) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'RESOURCE_UPDATED_SUCCESSFULLY',
+			})
 		} catch (error) {
 			throw error
 		}
@@ -876,5 +1031,125 @@ module.exports = class resourceHelper {
 		} catch (error) {
 			throw error
 		}
+	}
+
+	/**
+	 * Check for direct publish without review
+	 * @method
+	 * @name isReviewMandatory
+	 * @returns {Boolean} - Review required or not
+	 */
+	static async isReviewMandatory(resourceType, organizationId) {
+		const orgConfig = await orgExtensionService.getConfig(organizationId)
+		const orgConfigList = _.reduce(
+			orgConfig.result.resource,
+			(acc, item) => {
+				acc[item.resource_type] = item.review_required
+				return acc
+			},
+			{}
+		)
+
+		return orgConfigList[resourceType]
+	}
+
+	/**
+	 * Publish Resource
+	 * @method
+	 * @name publishResource
+	 * @returns {JSON} - Publish Response
+	 */
+	static async publishResource(resourceId, userId) {
+		try {
+			// Fetch the resource creator mapping
+			const resource = await resourceCreatorMappingQueries.findOne(
+				{ creator_id: userId, resource_id: resourceId },
+				['id', 'organization_id']
+			)
+
+			if (!resource?.id) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			// Fetch resource data
+			let resourceData = await resourceQueries.findOne({
+				id: resourceId,
+				organization_id: resource.organization_id,
+			})
+
+			let resourceDetails
+			if (resourceData.type === common.PROJECT) {
+				resourceDetails = await projectService.details(resourceId, resourceData.organization_id, userId)
+			}
+
+			resourceData = resourceDetails.result
+
+			//publish the resource
+			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
+				if (process.env.RESOURCE_KAFKA_PUSH_ON_OFF == common.KAFKA_ON) {
+					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
+				}
+				// api need to implement
+			}
+
+			//update resource table
+			await resourceQueries.updateOne(
+				{ id: resourceId, organization_id: resourceData.organization_id },
+				{
+					status: common.RESOURCE_STATUS_PUBLISHED,
+					published_on: new Date(),
+				}
+			)
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCE_PUBLISHED',
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Get all review levels from the reviews table
+	 * @name getReviewLevelsForResource
+	 * @param {String} organization_id - organization_id of the logged in user.
+	 * @param {Array} userRoleTitles -  list of user role titles.
+	 * @param {Array} resourceTypeList -  list of resource types.
+	 * @returns {Object} - Response contain object , Ex
+	 * {
+	 * 	project : 1,
+	 * 	observation : 4
+	 * }
+	 */
+	static async getReviewLevelsForResource(organization_id, userRoleTitles, resourceTypeList) {
+		// fetch review levels according to roles in the organization
+		const reviewLevelDetails = await reviewStagesQueries.findAll(
+			{
+				organization_id,
+				role: {
+					[Op.in]: userRoleTitles,
+				},
+				resource_type: {
+					[Op.in]: resourceTypeList,
+				},
+			},
+			{ attributes: ['resource_type', 'level'], order: [['level', 'ASC']] }
+		)
+		let resourceWiseLevels = {}
+
+		if (reviewLevelDetails) {
+			// arrange it as a key-value pair for ease of use
+			resourceWiseLevels = reviewLevelDetails.reduce((acc, item) => {
+				acc[item.resource_type] = item.level
+
+				return acc
+			}, {})
+		}
+		return resourceWiseLevels
 	}
 }
