@@ -514,6 +514,29 @@ const validateTitle = (title) => {
 	const regex = /^.{257,}$/
 	return regex.test(title)
 }
+const validateComment = (comments) => {
+	// Helper function to check if an object has the required keys
+	// const isValidCommentObject = (obj) => (
+	//   obj && typeof obj === 'object' &&
+	//   common.MANDATORY_COMMENT_KEYS.every(key => key in obj)
+	// );
+	// const abcddd = comments.every(isValidCommentObject)
+	// // Validate each object if comments is an array, otherwise check if it's a valid object
+	// return Array.isArray(comments) ? comments.every(isValidCommentObject) : true;
+
+	const isValidComment =
+		Array.isArray(comments) &&
+		comments.length > 0 &&
+		comments.every(
+			(eachComment) =>
+				eachComment &&
+				typeof eachComment === 'object' &&
+				eachComment.hasOwnProperty('comment') &&
+				eachComment.hasOwnProperty('context') &&
+				eachComment.hasOwnProperty('page')
+		)
+	return isValidComment
+}
 
 module.exports = {
 	composeEmailBody,
@@ -546,4 +569,5 @@ module.exports = {
 	isLabelValuePair,
 	convertToInteger,
 	validateTitle,
+	validateComment,
 }
