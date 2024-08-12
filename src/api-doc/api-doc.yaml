@@ -3232,59 +3232,66 @@ paths:
 
   /scp/v1/projects/submitForReview/{projectId}:
     post:
-      summary: Submit for review
+      summary: Submit Project for Review
       tags:
         - Projects
       description: |-
-        You can use this API to submit the project for review
-        - The API Endpoint for submit the project for review is `/scp/v1/projects/submitForReview` 
-        - It is mandatory to provide values for parameters which are marked as `required` 
-        - This is a mandatory parameter and cannot be empty or null.
+        Use this API to submit a project for review.
+        - The API endpoint for submitting the project for review is `/scp/v1/projects/submitForReview/{projectId}`.
+        - It is mandatory to provide values for parameters marked as `required`.
+        - The `projectId` parameter is mandatory and cannot be empty or null.
       parameters:
         - name: X-auth-token
           in: header
           description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+            The `X-auth-token` is required to use this API. It is available in
+            the login API response.
           required: true
           schema:
             type: string
         - in: path
           name: projectId
-          description: Please append a valid project Id to the Request URL.
+          description: A valid project ID must be appended to the request URL.
           schema:
-            type: number
+            type: integer
           required: true
           example: 1
       requestBody:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
-                reviewer_id:
+                reviewer_ids:
                   description: The IDs of the reviewers assigned to review the project.
                   type: array
                   items:
                     type: string
+                notes:
+                  description: Additional notes for the reviewer.
+                  type: string
             examples:
               example1:
-                summary: Example when user selects reviewers
-                description: When user selects any reviewers, The reviewer user ids are send as an array and the resource will be assigned to those specific reviewers.
+                summary: Example when specific reviewers are selected
+                description: >-
+                  When specific reviewers are selected, their user IDs are sent
+                  as an array, and the project is assigned to those reviewers.
                 value:
                   reviewer_ids: [23, 25]
+                  notes: 'Note to the reviewer'
               example2:
-                summary: Example when user selects to send to all reviewers
-                description: When user selects to send the resource to all reviewers, API is not expecting any body parameter and the resource will be available for all the reviewers according to other factors to review it.
+                summary: Example when sending to all reviewers
+                description: >-
+                  When the project is sent to all reviewers, the API does not
+                  expect any body parameters, and the project will be available
+                  for all reviewers according to other factors.
                 value: {}
       responses:
         '201':
-          description: Project submitted for review successfully
+          description: Project submitted for review successfully.
           content:
             application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -3300,17 +3307,16 @@ paths:
                           type: object
                           properties:
                             id:
-                              type: number
+                              type: integer
                             type:
                               type: string
                             version:
-                              type: number
+                              type: integer
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Project submitted for review successfully
-                    result: {}
                     meta:
                       formsVersion:
                         - id: 3
