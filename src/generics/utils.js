@@ -515,15 +515,8 @@ const validateTitle = (title) => {
 	return regex.test(title)
 }
 const validateComment = (comments) => {
-	// Helper function to check if an object has the required keys
-	// const isValidCommentObject = (obj) => (
-	//   obj && typeof obj === 'object' &&
-	//   common.MANDATORY_COMMENT_KEYS.every(key => key in obj)
-	// );
-	// const abcddd = comments.every(isValidCommentObject)
-	// // Validate each object if comments is an array, otherwise check if it's a valid object
-	// return Array.isArray(comments) ? comments.every(isValidCommentObject) : true;
-
+	// check if the comment passed to the resource is valid or not
+	// check if comment is an array or not and the keys are valid and filled
 	const isValidComment =
 		Array.isArray(comments) &&
 		comments.length > 0 &&

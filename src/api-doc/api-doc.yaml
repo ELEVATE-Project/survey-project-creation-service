@@ -4193,6 +4193,7 @@ paths:
               example1:
                 value:
                   comment:
+                    id: 10
                     comment: 'Check spelling'
                     context: page
                     page: 1
@@ -4277,6 +4278,7 @@ paths:
               example1:
                 value:
                   comment:
+                    id: 10
                     comment: 'Check spelling'
                     context: page
                     page: 1
@@ -4347,6 +4349,15 @@ paths:
           schema:
             type: number
           required: true
+          example: 5
+        - in: query
+          name: isReported
+          description: If the resource is reported, pass this as true else false or omit this key.
+
+          schema:
+            type: boolean
+          required: true
+          example: true
       requestBody:
         content:
           application.json:
@@ -4364,6 +4375,7 @@ paths:
                 value:
                   notes: 'invalid project'
                   comment:
+                    id: 10
                     comment: 'Check spelling'
                     context: page
                     page: 1
@@ -4458,10 +4470,10 @@ paths:
                   description: Context of the comment (e.g., "page" or any tag)
                 page:
                   type: string
-                  description: Page number associated with the comment
+                  description: Page number associated with the comment.(e.g. "project_details")
                 status:
                   type: string
-                  description: Status of the comment (e.g., "OPEN").
+                  description: Status of the comment (e.g., "OPEN" / "DRAFT" , "RESOLVED").
                 parent_id:
                   type: string
                   description: ID of the parent comment, if applicable
@@ -4472,7 +4484,7 @@ paths:
                   comment: 'Check spelling'
                   context: page
                   page: 1
-                  status: OPEN
+                  status: OPEN / DRAFT / RESOLVED
                   parent_id: 2
 
       responses:
@@ -4591,6 +4603,10 @@ paths:
                     properties:
                       resource_id:
                         type: string
+                      commented_by:
+                        type: array
+                        items:
+                          type: string
                       comments:
                         type: array
                         items:
@@ -4620,6 +4636,7 @@ paths:
                     message: Comment fetched successfully
                     result:
                       resource_id: 1
+                      commented_by: ['Adithya']
                       comments:
                         - id: 2
                           comment: 'Check spelling'
