@@ -97,6 +97,7 @@ module.exports = {
 	TRUE: true,
 	FALSE: false,
 	TASKS: 'tasks',
+	COMMENT: 'comment',
 	SUBTASKS: 'subTasks',
 	OBJECT: 'object',
 	roleValidationPaths: [
