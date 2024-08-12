@@ -3371,14 +3371,14 @@ paths:
           example: projects
         - name: status
           in: query
-          description: The status of the resource
+          description: The status of the resource (Ex - ['DRAFT'] - If `listing` is `drafts` and ['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review` )
           required: false
           schema:
             type: string
           example: DRAFT
-        - name: page_status
+        - name: listing
           in: query
-          description: To identify the page from frontend. Values can be ['drafts','up_for_review','submitted_for_review']
+          description: To identify the page from frontend. Values can be ['drafts','submitted_for_review']
           required: true
           schema:
             type: string
@@ -3508,7 +3508,7 @@ paths:
           example: projects
         - name: status
           in: query
-          description: Pass status INPROGRESS to get the resources which are review in progress.
+          description: Pass status =  'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED' to get the resources with curresponding statuses.
           required: false
           schema:
             type: string
