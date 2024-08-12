@@ -13,6 +13,7 @@ module.exports = {
 			.withMessage('id param is empty, please append a valid resource id')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+		req.checkBody('comment').optional()
 	},
 	approve: (req) => {
 		req.checkParams('id')

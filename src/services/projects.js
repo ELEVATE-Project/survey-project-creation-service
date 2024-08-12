@@ -699,8 +699,10 @@ module.exports = class ProjectsHelper {
 				submitted_on: new Date(),
 			}
 
-			if (bodyData?.notes) {
-				resourcesUpdate.meta.notes = bodyData?.notes
+			if (bodyData.notes) {
+				resourcesUpdate.meta = {
+					notes: bodyData.notes,
+				}
 			}
 
 			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)

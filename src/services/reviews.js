@@ -136,7 +136,12 @@ module.exports = class reviewsHelper {
 				message: 'REVIEW_CHANGES_REQUESTED',
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: 'REVIEW_SUBMIT_FAILED',
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+				result: error.error || [],
+			})
 		}
 	}
 
@@ -221,7 +226,12 @@ module.exports = class reviewsHelper {
 				message: 'REVIEW_APPROVED',
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: 'REVIEW_SUBMIT_FAILED',
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+				result: error.error || [],
+			})
 		}
 	}
 
@@ -297,7 +307,12 @@ module.exports = class reviewsHelper {
 				message: isReported ? 'REVIEW_REJECTED_AND_REPORTED' : 'REVIEW_REJECTED',
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: 'REVIEW_SUBMIT_FAILED',
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+				result: error.error || [],
+			})
 		}
 	}
 
@@ -610,9 +625,7 @@ module.exports = class reviewsHelper {
 		// Extract unique role titles from the roles array.
 		const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
 		// Fetch the review levels for the resource based on the user's organization ID, role titles, and resource type.
-		const resourceWiseLevels = await resourceService.getReviewLevelsForResource(userOrgId, userRoleTitles, [
-			resourceType,
-		])
+		const resourceWiseLevels = await resourceService.fetchReviewLevels(userOrgId, userRoleTitles, [resourceType])
 		/**
 		 * sample response
 			{
@@ -730,6 +743,18 @@ async function handleComments(comments, resourceId, userId) {
 			comments = [comments]
 		}
 
+		if (comments) {
+			const isValidComment = utils.validateComment(comments)
+			if (!isValidComment) {
+				throw {
+					error: utils.errorObject(
+						common.BODY,
+						common.COMMENT,
+						'Comment Body should have context , page , comment.'
+					),
+				}
+			}
+		}
 		// Separate comments into ones that need to be updated and ones that need to be created
 		const commentsToUpdate = []
 		const commentsToCreate = []
@@ -757,6 +782,6 @@ async function handleComments(comments, resourceId, userId) {
 		await Promise.all([...updatePromises, createPromise])
 		return { success: true }
 	} catch (error) {
-		return error
+		throw error
 	}
 }

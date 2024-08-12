@@ -514,6 +514,22 @@ const validateTitle = (title) => {
 	const regex = /^.{257,}$/
 	return regex.test(title)
 }
+const validateComment = (comments) => {
+	// check if the comment passed to the resource is valid or not
+	// check if comment is an array or not and the keys are valid and filled
+	const isValidComment =
+		Array.isArray(comments) &&
+		comments.length > 0 &&
+		comments.every(
+			(eachComment) =>
+				eachComment &&
+				typeof eachComment === 'object' &&
+				eachComment.hasOwnProperty('comment') &&
+				eachComment.hasOwnProperty('context') &&
+				eachComment.hasOwnProperty('page')
+		)
+	return isValidComment
+}
 
 module.exports = {
 	composeEmailBody,
@@ -546,4 +562,5 @@ module.exports = {
 	isLabelValuePair,
 	convertToInteger,
 	validateTitle,
+	validateComment,
 }

@@ -100,6 +100,7 @@
 	"PROGRAM_REJECTION_NOT_ALLOWED": "The program cannot be rejected or reported",
 	"RESOURCE_UPDATED_SUCCESSFULLY": "Resource updated successfully",
 	"REVIEW_NOT_FOUND": "Error fetching review details",
+	"REVIEW_SUBMIT_FAILED": "Comment Update Failed.",
 	"PROJECT_SUBMITTED_SUCCESSFULLY": "Your resource has been sent for review",
 	"FILE_UPLOADED_FAILED": "Failed to upload file",
 	"REVIEW_STAGE_NOT_FOUND": "Review stages not found",
