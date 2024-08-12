@@ -610,9 +610,7 @@ module.exports = class reviewsHelper {
 		// Extract unique role titles from the roles array.
 		const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
 		// Fetch the review levels for the resource based on the user's organization ID, role titles, and resource type.
-		const resourceWiseLevels = await resourceService.getReviewLevelsForResource(userOrgId, userRoleTitles, [
-			resourceType,
-		])
+		const resourceWiseLevels = await resourceService.fetchReviewLevels(userOrgId, userRoleTitles, [resourceType])
 		/**
 		 * sample response
 			{

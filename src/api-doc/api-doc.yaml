@@ -65,7 +65,7 @@ paths:
                     message: Module created successfully
                     result:
                       id: 6
-                      code: project
+                      code: projects
                       status: ACTIVE
         '400':
           description: Bad request. module already exists
@@ -112,7 +112,7 @@ paths:
             examples:
               example1:
                 value:
-                  code: project
+                  code: projects
     parameters: []
   /scp/v1/modules/update/{id}:
     post:
@@ -157,7 +157,7 @@ paths:
             examples:
               example1:
                 value:
-                  code: project
+                  code: projects
                   status: INACTIVE
       responses:
         '201':
@@ -193,7 +193,7 @@ paths:
                     message: Module updated successfully
                     result:
                       id: 6
-                      code: project
+                      code: projects
                       status: INACTIVE
                     meta:
                       correlation: dea5b252-75d2-40ed-a5a7-f8dec087467e
@@ -240,7 +240,7 @@ paths:
           description: Please search for information such as 'code'.
           schema:
             type: string
-          example: project
+          example: projects
       responses:
         '200':
           description: ok
@@ -287,7 +287,7 @@ paths:
                     result:
                       data:
                         - id: 6
-                          code: project
+                          code: projects
                           status: ACTIVE
                         - id: 2
                           code: observation
@@ -425,10 +425,10 @@ paths:
                     result:
                       id: 18
                       code: create_project
-                      module: project
+                      module: projects
                       request_type:
                         - POST
-                      api_path: /scp/v1/project/create
+                      api_path: /scp/v1/projects/create
                       status: ACTIVE
         '400':
           description: Bad request. Permission already exists
@@ -493,10 +493,10 @@ paths:
               example1:
                 value:
                   code: create_project
-                  module: project
+                  module: projects
                   request_type:
                     - POST
-                  api_path: /scp/v1/project/create
+                  api_path: /scp/v1/projects/create
                   status: ACTIVE
     parameters: []
   /scp/v1/permissions/update/{id}:
@@ -552,7 +552,7 @@ paths:
               example1:
                 value:
                   code: create_project
-                  module: project
+                  module: projects
                   actions: WRITE
                   status: ACTIVE
       responses:
@@ -590,10 +590,10 @@ paths:
                       id: 18
                       code: create_project
                       status: ACTIVE
-                      module: project
+                      module: projects
                       request_type:
                         - POST
-                      api_path: /scp/v1/project/create
+                      api_path: /scp/v1/projects/create
 
         '400':
           description: Bad Request. Permission not found
@@ -641,7 +641,7 @@ paths:
           required: false
           schema:
             type: string
-          example: project
+          example: projects
       responses:
         '200':
           description: ok
@@ -688,11 +688,11 @@ paths:
                       data:
                         - id: 18
                           code: create_project
-                          module: project
+                          module: projects
                           request_type:
                             - POST
                           status: ACTIVE
-                          api_path: '/scp/v1/project/create'
+                          api_path: '/scp/v1/projects/create'
                       count: 1
   /scp/v1/permissions/list:
     get:
@@ -890,7 +890,7 @@ paths:
                     result:
                       role_title: CONTENT_CREATOR
                       permissionId: 1
-                      module: project
+                      module: projects
                       request_type:
                         - POST
 
@@ -2209,7 +2209,7 @@ paths:
             examples:
               example1:
                 value:
-                  type: project
+                  type: projects
                   sub_type: createProject
                   data:
                     template_name: defaultTemplate
@@ -2331,7 +2331,7 @@ paths:
                     message: Form created successfully
                     result:
                       id: 16
-                      type: project
+                      type: projects
                       sub_type: createProject
                       data:
                         template_name: defaultTemplate
@@ -2460,7 +2460,7 @@ paths:
             examples:
               example1:
                 value:
-                  type: project
+                  type: projects
                   sub_type: createProject
                   data:
                     template_name: Test
@@ -2525,7 +2525,7 @@ paths:
                     meta:
                       formsVersion:
                         - id: 16
-                          type: project
+                          type: projects
 
         '400':
           description: Bad Request. Form not found
@@ -2575,7 +2575,7 @@ paths:
             examples:
               example1:
                 value:
-                  type: project
+                  type: projects
                   sub_type: createProject
       responses:
         '200':
@@ -2676,7 +2676,7 @@ paths:
                     message: Form fetched successfully
                     result:
                       id: 16
-                      type: project
+                      type: projects
                       sub_type: createProject
                       data:
                         template_name: defaultTemplate
@@ -2708,7 +2708,7 @@ paths:
                     meta:
                       formsVersion:
                         - id: 16
-                          type: project
+                          type: projects
 
         '400':
           description: Bad Request.Form not found
@@ -3162,7 +3162,7 @@ paths:
         - Projects
       description: |-
         You can use this API to delete a project 
-         - The API Endpoint for deleting project is `/scp/v1/project/update` 
+         - The API Endpoint for deleting project is `/scp/v1/projects/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -3368,7 +3368,7 @@ paths:
           required: false
           schema:
             type: string
-          example: project
+          example: projects
         - name: status
           in: query
           description: The status of the resource
@@ -3446,7 +3446,7 @@ paths:
                       data:
                         - id: 4
                           title: sample project
-                          type: project
+                          type: projects
                           organization:
                             id: 24
                             name: Shikshalokam
@@ -3505,7 +3505,7 @@ paths:
           required: false
           schema:
             type: string
-          example: project
+          example: projects
         - name: status
           in: query
           description: Pass status INPROGRESS to get the resources which are review in progress.
@@ -3576,7 +3576,7 @@ paths:
                       data:
                         - id: 4
                           title: sample project
-                          type: project
+                          type: projects
                           organization:
                             id: 24
                             name: Shikshalokam
@@ -3670,7 +3670,7 @@ paths:
         - Projects
       description: |-
         You can use this API to get project details
-         - The API Endpoint for get project details is `/scp/v1/project/details` 
+         - The API Endpoint for get project details is `/scp/v1/projects/details` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4695,13 +4695,13 @@ paths:
                 value:
                   show_reviewer_list: true
                   min_approval: 2
-                  resource_type: project
+                  resource_type: projects
                   review_type: PARALLEL
               review type sequential:
                 value:
                   show_reviewer_list: true
                   min_approval: 2
-                  resource_type: project
+                  resource_type: projects
                   review_type: SEQUENTIAL
                   review_stages:
                     - role: reviewer_level_1
@@ -4752,7 +4752,7 @@ paths:
                       organization_id: 3
                       show_reviewer_list: true
                       min_approval: 2
-                      resource_type: project
+                      resource_type: s
 
                     meta:
                       formsVersion:
@@ -4797,7 +4797,7 @@ paths:
           schema:
             type: string
           required: true
-          example: project
+          example: projects
       requestBody:
         content:
           application.json:
@@ -4859,7 +4859,7 @@ paths:
                       organization_id: 3
                       show_reviewer_list: true
                       min_approval: 2
-                      resource_type: project
+                      resource_type: projects
 
                     meta:
                       formsVersion:
@@ -4896,7 +4896,7 @@ paths:
         '201':
           description: Config fetched successfully
           content:
-            application.json:
+            application/json:
               schema:
                 $schema: http://json-schema.org/draft-04/schema#
                 type: object
@@ -4908,43 +4908,83 @@ paths:
                   result:
                     type: object
                     properties:
-                      data:
-                        type: array
-                        items:
-                          type: object
-
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
+                      resource:
                         type: array
                         items:
                           type: object
                           properties:
-                            id:
-                              type: number
-                            type:
+                            review_required:
+                              type: boolean
+                            show_reviewer_list:
+                              type: boolean
+                            min_approval:
+                              type: integer
+                            review_type:
                               type: string
-                            version:
-                              type: number
+                            resource_type:
+                              type: string
+                            max_task_count:
+                              type: integer
+                              nullable: true
+                      instance:
+                        type: object
+                        properties:
+                          auto_save_interval:
+                            type: integer
+                          note_length:
+                            type: integer
 
               examples:
                 example1:
                   value:
-                    responseCode: OK
-                    message: Config fetched successfully
+                    responseCode: 'OK'
+                    message: 'Config fetched successfully'
                     result:
-                      data:
-                        - show_reviewer_list: true
+                      resource:
+                        - review_required: true
+                          show_reviewer_list: true
                           min_approval: 1
-                          resource_type: project
-                      count: 1
-
+                          review_type: 'SEQUENTIAL'
+                          resource_type: 'projects'
+                          max_task_count: 10
+                        - review_required: true
+                          show_reviewer_list: true
+                          min_approval: 1
+                          review_type: 'SEQUENTIAL'
+                          resource_type: 'observations'
+                        - review_required: true
+                          show_reviewer_list: true
+                          min_approval: 1
+                          review_type: 'SEQUENTIAL'
+                          resource_type: 'observation_with_rubrics'
+                        - review_required: true
+                          show_reviewer_list: true
+                          min_approval: 1
+                          review_type: 'SEQUENTIAL'
+                          resource_type: 'surveys'
+                        - review_required: true
+                          show_reviewer_list: true
+                          min_approval: 1
+                          review_type: 'SEQUENTIAL'
+                          resource_type: 'programs'
+                      instance:
+                        auto_save_interval: 30000
+                        note_length: 200
                     meta:
                       formsVersion:
+                        - id: 2
+                          type: 'sidenavData'
+                          version: 23
                         - id: 3
-                          type: projectCreation
-                          version: 3
+                          type: 'solutionlist'
+                          version: 20
+                        - id: 4
+                          type: 'tasksDetails'
+                          version: 20
+                        - id: 1
+                          type: 'projectDetails'
+                          version: 49
+                      correlation: 'c1f40d2c-a883-4f51-a17d-7b0730ccd433'
 
   /scp/v1/certificate/update:
     post:
@@ -4989,7 +5029,7 @@ paths:
                 value:
                   code: two-logo-two-sign
                   name: Two Logo Two Signature
-                  resource_type: project
+                  resource_type: projects
                   url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                   meta:
                     logos:
@@ -5049,7 +5089,7 @@ paths:
                       id: 2
                       code: one-logo-one-sign
                       name: One Logo One Signature
-                      resource_type: project
+                      resource_type: projects
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
                         logos:
@@ -5162,7 +5202,7 @@ paths:
                       id: 2
                       code: two-logo-two-sign
                       name: Two Logo Two Signature
-                      resource_type: project
+                      resource_type: projects
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
                         logos:
@@ -5308,7 +5348,7 @@ paths:
           description: Please add the resource type
           schema:
             type: string
-          example: project
+          example: projects
         - in: query
           name: page
           description: Please add page number
@@ -5377,7 +5417,7 @@ paths:
                         - id: 2
                           code: two-logo-two-sign
                           name: Two Logo Two Signature
-                          resource_type: project
+                          resource_type: projects
                           url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                           meta:
                             logos:

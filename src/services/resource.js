@@ -1095,43 +1095,4 @@ module.exports = class resourceHelper {
 
 		return orgConfigList[resourceType]
 	}
-
-	/**
-	 * Get all review levels from the reviews table
-	 * @name getReviewLevelsForResource
-	 * @param {String} organization_id - organization_id of the logged in user.
-	 * @param {Array} userRoleTitles -  list of user role titles.
-	 * @param {Array} resourceTypeList -  list of resource types.
-	 * @returns {Object} - Response contain object , Ex
-	 * {
-	 * 	project : 1,
-	 * 	observation : 4
-	 * }
-	 */
-	static async getReviewLevelsForResource(organization_id, userRoleTitles, resourceTypeList) {
-		// fetch review levels according to roles in the organization
-		const reviewLevelDetails = await reviewStagesQueries.findAll(
-			{
-				organization_id,
-				role: {
-					[Op.in]: userRoleTitles,
-				},
-				resource_type: {
-					[Op.in]: resourceTypeList,
-				},
-			},
-			{ attributes: ['resource_type', 'level'], order: [['level', 'ASC']] }
-		)
-		let resourceWiseLevels = {}
-
-		if (reviewLevelDetails) {
-			// arrange it as a key-value pair for ease of use
-			resourceWiseLevels = reviewLevelDetails.reduce((acc, item) => {
-				acc[item.resource_type] = item.level
-
-				return acc
-			}, {})
-		}
-		return resourceWiseLevels
-	}
 }
