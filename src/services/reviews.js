@@ -122,10 +122,7 @@ module.exports = class reviewsHelper {
 			}
 
 			// update the status if review assigned then update status as STARTED else CHANGES_REQUESTED
-			let status = common.REVIEW_STATUS_REQUESTED_FOR_CHANGES
-			if (startReview) {
-				status = common.REVIEW_STATUS_STARTED
-			}
+			const status = startReview ? common.REVIEW_STATUS_STARTED : common.REVIEW_STATUS_REQUESTED_FOR_CHANGES
 
 			// Update the status in the reviews table
 			await reviewsQueries.update({ id: review.id, organization_id: review.organization_id }, { status: status })
