@@ -44,7 +44,7 @@ module.exports = (sequelize, DataTypes) => {
 			modelName: 'Review',
 			tableName: 'reviews',
 			freezeTableName: true,
-			paranoid: false,
+			paranoid: true,
 			indexes: [
 				{
 					unique: true,

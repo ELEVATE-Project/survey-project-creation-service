@@ -110,5 +110,8 @@
 	"RESOURCE_ALREADY_SUBMITTED": "This resource is already submitted.",
 	"RESOURCE_NOTE_LENGTH_EXCEEDED": "This resource note length exceeded.",
 	"CHARACTER_LIMIT_EXCEED": "Value exceeds the allowed length for the field title",
-	"RESOURCE_APPROVAL_FAILED": "Resource approval failed or already approved."
+	"RESOURCE_APPROVAL_FAILED": "Resource approval either failed or has already been approved.",
+	"REVIEW_ALREADY_STARTED": "Review already started",
+	"COMMENT_INVALID": "Comment should have context, page and comment.",
+	"CHANGES_ALREADY_REQUESTED": "Changes have already been requested for review."
 }

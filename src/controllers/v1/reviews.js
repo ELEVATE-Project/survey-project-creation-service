@@ -7,24 +7,43 @@
 const reviewService = require('@services/reviews')
 module.exports = class reviews {
 	/**
-	 * Create or Changes requested in review
+	 * Start review
 	 * @method
 	 * @name update
 	 * @param {Integer} id - resource id
-	 * @param {Boolean} startReview - To identity the status of the review while updating
-	 * @param {Object} req - review body data.
 	 * @returns {JSON} - Review creation or update details
+	 */
+
+	async start(req) {
+		try {
+			const startReview = await reviewService.start(
+				req.params.id,
+				req.decodedToken.id,
+				req.decodedToken.organization_id,
+				req.decodedToken.roles
+			)
+			return startReview
+		} catch (error) {
+			return error
+		}
+	}
+
+	/**
+	 * Request for changes in review
+	 * @method
+	 * @name update
+	 * @param {Integer} id - resource id
+	 * @param {Object} req - review body data.
+	 * @returns {JSON} - Review update response
 	 */
 
 	async update(req) {
 		try {
 			const updateReview = await reviewService.update(
-				req.params.id, //resource id
-				req.query.startReview ? req.query.startReview : false,
+				req.params.id,
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_id,
-				req.decodedToken.roles
+				req.decodedToken.organization_id
 			)
 			return updateReview
 		} catch (error) {
@@ -44,7 +63,7 @@ module.exports = class reviews {
 	async approve(req) {
 		try {
 			const updateReview = await reviewService.approveResource(
-				req.params.id, //resource id
+				req.params.id,
 				req.body,
 				req.decodedToken.id,
 				req.decodedToken.organization_id
@@ -68,7 +87,7 @@ module.exports = class reviews {
 	async rejectOrReport(req) {
 		try {
 			const updateReview = await reviewService.rejectOrReportResource(
-				req.params.id, //resource id
+				req.params.id,
 				req.query.isReported ? req.query.isReported : false,
 				req.body,
 				req.decodedToken.id,
