@@ -9,9 +9,9 @@ module.exports = class reviews {
 	/**
 	 * Start review
 	 * @method
-	 * @name update
+	 * @name start
 	 * @param {Integer} id - resource id
-	 * @returns {JSON} - Review creation or update details
+	 * @returns {JSON} - Review creation details
 	 */
 
 	async start(req) {
