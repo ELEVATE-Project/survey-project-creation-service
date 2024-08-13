@@ -27,13 +27,14 @@ module.exports = class reviewsHelper {
 	 * @method
 	 * @name update
 	 * @param {Object} bodyData - review body data.
+	 * @param {Boolean} startReview - To identity the status of review
 	 * @param {Integer} resourceId - resource id.
 	 * @param {String} userId - logged in user id.
 	 * @param {String} orgId - organization id
 	 * @returns {JSON} - review updated response.
 	 */
 
-	static async update(resourceId, bodyData, userId, orgId, userRoles) {
+	static async update(resourceId, startReview, bodyData, userId, orgId, userRoles) {
 		try {
 			// Retrieve resource details based on the provided resourceId.
 			const resource = await resourceQueries.findOne(
@@ -109,7 +110,7 @@ module.exports = class reviewsHelper {
 
 			// If the review status is 'NOT_STARTED', validate that no active review is being conducted by others.
 			if (review.status === common.REVIEW_STATUS_NOT_STARTED) {
-				const reviewCheck = this.validateNoActiveReviewByOthers(resourceId, userId, orgId)
+				const reviewCheck = await this.validateNoActiveReviewByOthers(resourceId, userId, orgId)
 				if (reviewCheck.statusCode !== httpStatusCode.ok) {
 					return reviewCheck
 				}
@@ -120,11 +121,14 @@ module.exports = class reviewsHelper {
 				await handleComments(bodyData.comment, resourceId, userId)
 			}
 
+			// update the status if review assigned then update status as STARTED else CHANGES_REQUESTED
+			let status = common.REVIEW_STATUS_REQUESTED_FOR_CHANGES
+			if (startReview) {
+				status = common.REVIEW_STATUS_STARTED
+			}
+
 			// Update the status in the reviews table
-			await reviewsQueries.update(
-				{ id: review.id, organization_id: review.organization_id },
-				{ status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES }
-			)
+			await reviewsQueries.update({ id: review.id, organization_id: review.organization_id }, { status: status })
 			// Update the 'last_reviewed_on' field in the resources table
 			await resourceQueries.updateOne(
 				{ organization_id: resource.organization_id, id: resourceId },
@@ -634,7 +638,7 @@ module.exports = class reviewsHelper {
 		*/
 		// Check if the current level is included in the valid levels for the given resource type
 		// If the level is not valid, return false.
-		if (!resourceWiseLevels[resourceType].includes(currentLevel)) {
+		if (!resourceWiseLevels?.[resourceType]?.includes(currentLevel)) {
 			return false
 		}
 		// If the level is valid, return true.

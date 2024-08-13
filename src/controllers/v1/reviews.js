@@ -11,6 +11,7 @@ module.exports = class reviews {
 	 * @method
 	 * @name update
 	 * @param {Integer} id - resource id
+	 * @param {Boolean} startReview - To identity the status of the review while updating
 	 * @param {Object} req - review body data.
 	 * @returns {JSON} - Review creation or update details
 	 */
@@ -19,6 +20,7 @@ module.exports = class reviews {
 		try {
 			const updateReview = await reviewService.update(
 				req.params.id, //resource id
+				req.query.startReview ? req.query.startReview : false,
 				req.body,
 				req.decodedToken.id,
 				req.decodedToken.organization_id,

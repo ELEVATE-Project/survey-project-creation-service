@@ -4179,6 +4179,12 @@ paths:
           schema:
             type: number
           required: true
+        - in: query
+          name: startReview
+          description: Please append startReview = true if the to start the review, hence this same api is used for changes requested also.
+          schema:
+            type: boolean
+          required: false
       requestBody:
         content:
           application.json:
