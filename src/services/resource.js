@@ -914,7 +914,7 @@ module.exports = class resourceHelper {
 
 		let resourceWiseLevels = {}
 
-		if (reviewLevelDetails) {
+		if (reviewLevelDetails.length > 0) {
 			let defaultOrgLevels = {}
 			let loggedInUserOrgLevels = {}
 
