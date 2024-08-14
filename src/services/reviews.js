@@ -163,7 +163,7 @@ module.exports = class reviewsHelper {
 			if (!review?.id) throw new Error('REVIEW_NOT_FOUND')
 
 			//check the review is already started
-			if (review.status === common.RESOURCE_STATUS_STARTED) throw new Error('REVIEW_ALREADY_STARTED')
+			if (review.status === common.REVIEW_STATUS_STARTED) throw new Error('REVIEW_ALREADY_STARTED')
 
 			// If the review status is 'NOT_STARTED', validate that no active review is being conducted by others.
 			if (review.status === common.REVIEW_STATUS_NOT_STARTED) {
@@ -737,7 +737,7 @@ const _nonReviewableResourceStatuses = [
  */
 const _restrictedReviewStatuses = [
 	common.REVIEW_STATUS_STARTED,
-	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 	common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 	common.REVIEW_STATUS_CHANGES_UPDATED,
 	common.REVIEW_STATUS_INPROGRESS,
