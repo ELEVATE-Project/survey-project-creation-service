@@ -630,8 +630,9 @@ module.exports = class ProjectsHelper {
 
 			//validate the reviewer
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
+				const uniqueReviewerIds = [...new Set(bodyData.reviewer_ids)]
 				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
-					user_ids: bodyData.reviewer_ids,
+					user_ids: uniqueReviewerIds,
 					excluded_user_ids: [userDetails.id],
 				})
 
@@ -648,8 +649,9 @@ module.exports = class ProjectsHelper {
 				}
 
 				//return error message if the reviewer is invalid or not found
-				if (bodyData.reviewer_ids.length >= reviewers.data.result.data.length)
+				if (uniqueReviewerIds.length >= reviewers.data.result.data.length) {
 					throw new Error('REVIEWER_IDS_NOT_FOUND')
+				}
 
 				//create entry in reviews table
 				let reviewsData = reviewerIds.map((reviewer_id) => ({
