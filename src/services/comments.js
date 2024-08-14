@@ -88,15 +88,7 @@ module.exports = class CommentsHelper {
 				result: updatedComment,
 			})
 		} catch (error) {
-			if (error.name === 'SequelizeDatabaseError' && error.original.code === '22P02') {
-				return responses.failureResponse({
-					message: 'STATUS_INVALID',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			} else {
-				throw error
-			}
+			throw error
 		}
 	}
 
