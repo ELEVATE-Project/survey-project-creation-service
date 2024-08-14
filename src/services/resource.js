@@ -1095,4 +1095,6 @@ module.exports = class resourceHelper {
 
 		return orgConfigList[resourceType]
 	}
+
+	static async browseExistingList(organization_id, query, searchText, pageNo, pageSize) {}
 }
