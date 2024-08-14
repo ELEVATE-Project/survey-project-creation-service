@@ -630,7 +630,7 @@ module.exports = class ProjectsHelper {
 
 			//validate the reviewer
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
-				const uniqueReviewerIds = [...new Set(bodyData.reviewer_ids)]
+				const uniqueReviewerIds = utils.getUniqueElements(bodyData.reviewer_ids)
 				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
 					user_ids: uniqueReviewerIds,
 					excluded_user_ids: [userDetails.id],
