@@ -26,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
 			modelName: 'ReviewResource',
 			tableName: 'review_resources',
 			freezeTableName: true,
-			paranoid: false,
+			paranoid: true,
 		}
 	)
 
