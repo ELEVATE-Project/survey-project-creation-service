@@ -207,7 +207,7 @@ module.exports = class CommentsHelper {
 }
 
 /**
- * List of resource statuses that prevent for add comments.
+ * List of Statuses Restricting Comment Addition
  * @constant
  * @type {Array<String>}
  */

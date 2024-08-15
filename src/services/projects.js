@@ -264,7 +264,7 @@ module.exports = class ProjectsHelper {
 
 	static async delete(resourceId, loggedInUserId, orgId) {
 		try {
-			const fetchOrgId = await resourceCreatorMappingQueries.findOne(
+			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
 				{
 					resource_id: resourceId,
 					creator_id: loggedInUserId,
@@ -272,44 +272,36 @@ module.exports = class ProjectsHelper {
 				['id', 'organization_id']
 			)
 
-			let fetchResourceId = null
-
-			if (fetchOrgId) {
-				fetchResourceId = await resourceQueries.findOne(
-					{
-						id: resourceId,
-						organization_id: fetchOrgId.organization_id,
-						status: common.STATUS_DRAFT,
-					},
-					{ attributes: ['id', 'type'] }
-				)
+			if (resourceCreatorMapping?.id) {
+				throw new Error('PROJECT_NOT_FOUND')
 			}
 
-			if (!fetchOrgId || !fetchResourceId) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+					organization_id: resourceCreatorMapping.organization_id,
+					status: common.STATUS_DRAFT,
+				},
+				{ attributes: ['id', 'type', 'organization_id'] }
+			)
+
+			if (!resource?.id) {
+				throw new Error('PROJECT_NOT_FOUND')
 			}
 
-			let updatedProject = await resourceQueries.deleteOne(resourceId, fetchOrgId.organization_id)
+			let updatedProject = await resourceQueries.deleteOne(resourceId, resource.organization_id)
 			let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
-				fetchOrgId.id,
+				resourceCreatorMapping.id,
 				loggedInUserId
 			)
 
 			if (updatedProject === 0 && updatedProjectCreatorMapping === 0) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				throw new Error('PROJECT_NOT_FOUND')
 			}
 
 			//add user action
 			await activityService.addUserAction(
-				common.USER_ACTIONS[fetchResourceId.type].RESOURCE_DELETED,
+				common.USER_ACTIONS[resource.type].RESOURCE_DELETED,
 				loggedInUserId,
 				resourceId,
 				common.MODEL_NAMES.RESOURCE,
@@ -322,7 +314,11 @@ module.exports = class ProjectsHelper {
 				result: {},
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**

@@ -33,9 +33,9 @@ module.exports = {
 
 		req.checkBody('status')
 			.optional()
-			.isIn(['ACTIVE', 'INACTIVE'])
-			.withMessage('Status ' + req.body.status + ' invalid ')
 			.notEmpty()
 			.withMessage('Status field must be a non-empty string when provided')
+			.isIn(['ACTIVE', 'INACTIVE'])
+			.withMessage('Status ' + req.body.status + ' invalid ')
 	},
 }
