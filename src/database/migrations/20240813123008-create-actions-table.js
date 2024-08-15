@@ -10,13 +10,18 @@ module.exports = {
 				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
-			name: {
+			code: {
 				allowNull: false,
 				unique: true,
 				type: Sequelize.STRING,
 			},
 			description: {
 				type: Sequelize.STRING,
+			},
+			status: {
+				allowNull: false,
+				type: Sequelize.ENUM('ACTIVE', 'INACTIVE'),
+				defaultValue: 'ACTIVE',
 			},
 			created_at: {
 				allowNull: false,

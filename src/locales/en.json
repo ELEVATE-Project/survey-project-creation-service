@@ -113,5 +113,12 @@
 	"RESOURCE_APPROVAL_FAILED": "Resource approval either failed or has already been approved.",
 	"REVIEW_ALREADY_STARTED": "Review already started",
 	"COMMENT_INVALID": "Comment should have context, page and comment.",
-	"CHANGES_ALREADY_REQUESTED": "Changes have already been requested for review."
+	"CHANGES_ALREADY_REQUESTED": "Changes have already been requested for review.",
+	"ACTION_CREATED": "Action created successfully",
+	"ACTION_ALREADY_EXISTS": "Action already exists",
+	"ACTION_CREATION_FAILED": "Failed to create action",
+	"ACTION_NOT_FOUND": "Action not found.",
+	"ACTION_UPDATED": "Action updated successfully",
+	"ACTIVITY_CREATION_FAILED": "Failed to create user action",
+	"ACTIVITY_CREATED": "User action added successfully"
 }

@@ -2,7 +2,7 @@
  * name : services/comments.js
  * author : Priyanka Pradeep
  * Date : 11-July-2024
- * Description : Review Stage Service
+ * Description : Comment Service
  */
 const httpStatusCode = require('@generics/http-status')
 const commentQueries = require('@database/queries/comments')
@@ -13,6 +13,8 @@ const _ = require('lodash')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewResourceQueries = require('@database/queries/reviewResources')
 const { Op } = require('sequelize')
+const activityService = require('@services/activities')
+const resourceQueries = require('@database/queries/resources')
 module.exports = class CommentsHelper {
 	/**
 	 * Comment Create or Update
@@ -22,10 +24,28 @@ module.exports = class CommentsHelper {
 	 * @param {Integer} resourceId - Resource ID
 	 * @param {Object} bodyData - Request Body
 	 * @param {String} userId - User ID
+	 * @param {String} orgId - Organization ID
 	 * @returns {JSON} - comment id
 	 */
-	static async update(commentId = '', resourceId, bodyData, userId) {
+	static async update(commentId = '', resourceId, bodyData, userId, orgId) {
 		try {
+			//validate resource
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+				},
+				{ attributes: ['id', 'type', 'status'] }
+			)
+
+			if (!resource?.id) {
+				throw new Error('RESOURCE_NOT_FOUND')
+			}
+
+			//validate resource status
+			if (_commentRestrictedStatuses.includes(resource.status)) {
+				throw new Error(`Resource is already ${resource.status}. You can't add comment`)
+			}
+
 			//create the comment
 			if (!commentId) {
 				bodyData.user_id = userId
@@ -39,7 +59,7 @@ module.exports = class CommentsHelper {
 				})
 
 				if (reviewResource?.id) {
-					await reviewsQueries.update(
+					const updatedCount = await reviewsQueries.update(
 						{
 							organization_id: reviewResource.organization_id,
 							resource_id: resourceId,
@@ -48,6 +68,17 @@ module.exports = class CommentsHelper {
 						},
 						{ status: common.REVIEW_STATUS_INPROGRESS }
 					)
+
+					if (updatedCount > 0) {
+						//add user action
+						await activityService.addUserAction(
+							common.USER_ACTIONS[resource.type].REVIEW_INPROGRESS,
+							userId,
+							resourceId,
+							common.MODEL_NAMES.RESOURCE,
+							orgId
+						)
+					}
 				}
 
 				return responses.successResponse({
@@ -74,11 +105,7 @@ module.exports = class CommentsHelper {
 			})
 
 			if (updateCount === 0) {
-				return responses.failureResponse({
-					message: 'COMMENT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				throw new Error('COMMENT_NOT_FOUND')
 			}
 
 			return responses.successResponse({
@@ -88,7 +115,11 @@ module.exports = class CommentsHelper {
 				result: updatedComment,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -174,3 +205,15 @@ module.exports = class CommentsHelper {
 		}
 	}
 }
+
+/**
+ * List of resource statuses that prevent for add comments.
+ * @constant
+ * @type {Array<String>}
+ */
+const _commentRestrictedStatuses = [
+	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+	common.RESOURCE_STATUS_PUBLISHED,
+	common.RESOURCE_STATUS_DRAFT,
+]

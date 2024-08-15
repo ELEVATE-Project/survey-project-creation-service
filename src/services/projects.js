@@ -14,6 +14,7 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
+const activityService = require('@services/activities')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -117,6 +118,15 @@ module.exports = class ProjectsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
+			//add user action
+			await activityService.addUserAction(
+				common.USER_ACTIONS[projectCreate.type].RESOURCE_CREATED,
+				loggedInUserId,
+				projectCreate.id,
+				common.MODEL_NAMES.RESOURCE,
+				orgId
+			)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -252,7 +262,7 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - project delete response.
 	 */
 
-	static async delete(resourceId, loggedInUserId) {
+	static async delete(resourceId, loggedInUserId, orgId) {
 		try {
 			const fetchOrgId = await resourceCreatorMappingQueries.findOne(
 				{
@@ -271,7 +281,7 @@ module.exports = class ProjectsHelper {
 						organization_id: fetchOrgId.organization_id,
 						status: common.STATUS_DRAFT,
 					},
-					{ attributes: ['id'] }
+					{ attributes: ['id', 'type'] }
 				)
 			}
 
@@ -296,6 +306,16 @@ module.exports = class ProjectsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
+			//add user action
+			await activityService.addUserAction(
+				common.USER_ACTIONS[fetchResourceId.type].RESOURCE_DELETED,
+				loggedInUserId,
+				resourceId,
+				common.MODEL_NAMES.RESOURCE,
+				orgId
+			)
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
 				message: 'PROJECT_DELETED_SUCCESSFUL',
@@ -692,7 +712,11 @@ module.exports = class ProjectsHelper {
 				userDetails.organization_id
 			)
 			if (!isReviewMandatory) {
-				const publishResource = await reviewService.publishResource(resourceId, userDetails.id)
+				const publishResource = await reviewService.publishResource(
+					resourceId,
+					userDetails.id,
+					userDetails.organization_id
+				)
 				return publishResource
 			}
 
@@ -709,7 +733,14 @@ module.exports = class ProjectsHelper {
 			}
 
 			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
-
+			//add user action
+			await activityService.addUserAction(
+				common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
+				userDetails.id,
+				resourceId,
+				common.MODEL_NAMES.RESOURCE,
+				userDetails.organization_id
+			)
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_SUBMITTED_SUCCESSFULLY',

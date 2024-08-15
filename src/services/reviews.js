@@ -21,6 +21,7 @@ const utils = require('@generics/utils')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const projectService = require('@services/projects')
 const kafkaCommunication = require('@generics/kafka-communication')
+const activityService = require('@services/activities')
 
 module.exports = class reviewsHelper {
 	/**
@@ -76,6 +77,15 @@ module.exports = class reviewsHelper {
 					{ last_reviewed_on: new Date() }
 				),
 			])
+
+			//add user action
+			await activityService.addUserAction(
+				common.USER_ACTIONS[resource.type].REVIEW_CHANGES_REQUESTED,
+				userId,
+				resourceId,
+				common.MODEL_NAMES.RESOURCE,
+				orgId
+			)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -186,6 +196,15 @@ module.exports = class reviewsHelper {
 				),
 			])
 
+			//add user action
+			await activityService.addUserAction(
+				common.USER_ACTIONS[resource.type].REVIEW_STARTED,
+				userId,
+				resourceId,
+				common.MODEL_NAMES.RESOURCE,
+				orgId
+			)
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'REVIEW_CREATED',
@@ -256,12 +275,14 @@ module.exports = class reviewsHelper {
 				review.organization_id,
 				reviewType,
 				resource.organization_id,
-				resource.next_stage
+				resource.next_stage,
+				orgId,
+				resource.type
 			)
 
 			// Publish resource if isPublishResource is true
 			if (isPublishResource) {
-				const publishResource = await this.publishResource(resourceId, resource.user_id)
+				const publishResource = await this.publishResource(resourceId, resource.user_id, orgId)
 				return publishResource
 			}
 
@@ -336,6 +357,17 @@ module.exports = class reviewsHelper {
 				),
 			])
 
+			//add user action
+			await activityService.addUserAction(
+				isReported
+					? common.USER_ACTIONS[resource.type].RESOURCE_REPORTED
+					: common.USER_ACTIONS[resource.type].RESOURCE_REJECTED,
+				userId,
+				resourceId,
+				common.MODEL_NAMES.RESOURCE,
+				orgId
+			)
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: isReported ? 'REVIEW_REJECTED_AND_REPORTED' : 'REVIEW_REJECTED',
@@ -363,6 +395,7 @@ module.exports = class reviewsHelper {
 	 * @param {String} reviewType - The type of review (e.g., sequential or parallel).
 	 * @param {String} resourceOrgId - The ID of the organization that owns the resource.
 	 * @param {String} currentReviewStage - The current stage of the resource's review process.
+	 * @param {String} orgId - The ID of the organization user belongs to.
 	 * @returns {JSON} - The response indicating the result of the review approval process.
 	 */
 	static async handleApproval(
@@ -374,7 +407,9 @@ module.exports = class reviewsHelper {
 		reviewOrgId,
 		reviewType,
 		resourceOrgId,
-		currentReviewStage
+		currentReviewStage,
+		orgId,
+		resourceType
 	) {
 		try {
 			let updateNextLevel = false
@@ -407,6 +442,15 @@ module.exports = class reviewsHelper {
 
 			// Update the resource with the last review date and next_stage (if applicable).
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
+
+			//add user action
+			await activityService.addUserAction(
+				common.USER_ACTIONS[resourceType].REVIEW_APPROVED,
+				userId,
+				resourceId,
+				common.MODEL_NAMES.RESOURCE,
+				orgId
+			)
 
 			// Determine if the resource should be published based on the number of approved reviews and minimum approval requirements.
 			const publishResource = reviewsApproved >= minApproval
@@ -663,9 +707,12 @@ module.exports = class reviewsHelper {
 	 * Publish Resource
 	 * @method
 	 * @name publishResource
+	 * @param {Integer} resourceId - resource Id
+	 * @param {String} userId - The ID of the user
+	 * @param {String} orgId - The ID of the organization
 	 * @returns {JSON} - Publish Response
 	 */
-	static async publishResource(resourceId, userId) {
+	static async publishResource(resourceId, userId, orgId) {
 		try {
 			// Fetch the resource creator mapping
 			const resource = await resourceCreatorMappingQueries.findOne(
@@ -707,6 +754,15 @@ module.exports = class reviewsHelper {
 					status: common.RESOURCE_STATUS_PUBLISHED,
 					published_on: new Date(),
 				}
+			)
+
+			//add user action
+			await activityService.addUserAction(
+				common.USER_ACTIONS[resourceData.type].RESOURCE_PUBLISHED,
+				userId,
+				resourceId,
+				common.MODEL_NAMES.RESOURCE,
+				orgId
 			)
 
 			return responses.successResponse({

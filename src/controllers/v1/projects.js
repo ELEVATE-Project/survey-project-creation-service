@@ -8,7 +8,6 @@
 // Dependencies
 const common = require('@constants/common')
 const projectService = require('@services/projects')
-
 module.exports = class Projects {
 	/**
 	 * create or update project details
@@ -23,7 +22,11 @@ module.exports = class Projects {
 			if (req.params.id) {
 				let project = {}
 				if (req.method === common.REQUEST_METHOD_DELETE) {
-					project = await projectService.delete(req.params.id, req.decodedToken.id)
+					project = await projectService.delete(
+						req.params.id,
+						req.decodedToken.id,
+						req.decodedToken.organization_id
+					)
 				} else {
 					project = await projectService.update(
 						req.params.id,
