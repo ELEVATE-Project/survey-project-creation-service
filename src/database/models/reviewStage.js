@@ -31,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
 			modelName: 'ReviewStage',
 			tableName: 'review_stages',
 			freezeTableName: true,
-			paranoid: false,
+			paranoid: true,
 		}
 	)
 
