@@ -653,22 +653,18 @@ module.exports = class resourceHelper {
 	 * @name getDetails
 	 * @returns {JSON} - details of resource
 	 */
-	static async getDetails(resourceId) {
+	static async getDetails(resourceId, orgId) {
 		try {
 			let result = {
 				organization: {},
 			}
-
 			const resource = await resourceQueries.findOne({
 				id: resourceId,
+				organization_id: orgId,
 			})
 
 			if (!resource?.id) {
-				return responses.failureResponse({
-					message: 'RESOURCE_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				throw new Error('RESOURCE_NOT_FOUND')
 			}
 
 			if (resource.blob_path) {
@@ -760,7 +756,11 @@ module.exports = class resourceHelper {
 				result: result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
