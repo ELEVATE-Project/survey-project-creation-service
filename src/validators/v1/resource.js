@@ -16,7 +16,7 @@ module.exports = {
 			.isIn(page_status)
 			.withMessage(common.LISTING + ' value should be from : ' + page_status)
 		req.checkQuery('status')
-			.optional()
+			.optional({ checkFalsy: true })
 			.isIn(common.PAGE_STATUS_VALUES[listingPage])
 			.withMessage('Status ' + req.query.status + ' invalid ')
 	},

@@ -19,7 +19,6 @@ const resourceService = require('@services/resource')
 const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
-const projectService = require('@services/projects')
 const kafkaCommunication = require('@generics/kafka-communication')
 const activityService = require('@services/activities')
 
@@ -192,7 +191,7 @@ module.exports = class reviewsHelper {
 				),
 				resourceQueries.updateOne(
 					{ organization_id: resource.organization_id, id: resourceId },
-					{ last_reviewed_on: new Date() }
+					{ status: common.RESOURCE_STATUS_IN_REVIEW, last_reviewed_on: new Date() }
 				),
 			])
 
@@ -728,11 +727,7 @@ module.exports = class reviewsHelper {
 				organization_id: resource.organization_id,
 			})
 
-			let resourceDetails
-			if (resourceData.type === common.PROJECT) {
-				resourceDetails = await projectService.details(resourceId, resourceData.organization_id, userId)
-			}
-
+			let resourceDetails = await resourceService.getDetails(resourceId, resourceData.organization_id)
 			if (resourceDetails.statusCode !== httpStatusCode.ok) {
 				return resourceDetails
 			}

@@ -665,7 +665,7 @@ module.exports = class ProjectsHelper {
 				}
 
 				//return error message if the reviewer is invalid or not found
-				if (uniqueReviewerIds.length >= reviewers.data.result.data.length) {
+				if (uniqueReviewerIds.length > reviewers.data.result.data.length) {
 					throw new Error('REVIEWER_IDS_NOT_FOUND')
 				}
 
