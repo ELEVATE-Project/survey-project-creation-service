@@ -14,8 +14,7 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
-const activityService = require('@services/activities')
-
+const { eventBroadcaster } = require('@helpers/eventBroadcaster')
 module.exports = class ProjectsHelper {
 	/**
 	 *  project create
@@ -70,7 +69,7 @@ module.exports = class ProjectsHelper {
 				}
 				await resourceCreatorMappingQueries.create(mappingData)
 
-				//upload to blob
+				// upload to blob
 				const resourceId = projectCreate.id
 				const fileName = `${loggedInUserId}${resourceId}project.json`
 
@@ -120,13 +119,15 @@ module.exports = class ProjectsHelper {
 			}
 
 			//add user action
-			await activityService.addUserAction(
-				common.USER_ACTIONS[projectCreate.type].RESOURCE_CREATED,
-				loggedInUserId,
-				projectCreate.id,
-				common.MODEL_NAMES.RESOURCE,
-				orgId
-			)
+			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+				requestBody: {
+					action_name: common.USER_ACTIONS[projectCreate.type].RESOURCE_CREATED,
+					user_id: loggedInUserId,
+					object_id: projectCreate.id,
+					object_type: common.MODEL_NAMES.RESOURCE,
+					organization_id: orgId,
+				},
+			})
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -300,13 +301,15 @@ module.exports = class ProjectsHelper {
 			}
 
 			//add user action
-			await activityService.addUserAction(
-				common.USER_ACTIONS[resource.type].RESOURCE_DELETED,
-				loggedInUserId,
-				resourceId,
-				common.MODEL_NAMES.RESOURCE,
-				orgId
-			)
+			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+				requestBody: {
+					action_name: common.USER_ACTIONS[resource.type].RESOURCE_CREATED,
+					user_id: loggedInUserId,
+					object_id: resourceId,
+					object_type: common.MODEL_NAMES.RESOURCE,
+					organization_id: orgId,
+				},
+			})
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
@@ -730,13 +733,15 @@ module.exports = class ProjectsHelper {
 
 			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
 			//add user action
-			await activityService.addUserAction(
-				common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
-				userDetails.id,
-				resourceId,
-				common.MODEL_NAMES.RESOURCE,
-				userDetails.organization_id
-			)
+			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+				requestBody: {
+					action_name: common.USER_ACTIONS[projectData.type].RESOURCE_CREATED,
+					user_id: userDetails.id,
+					object_id: resourceId,
+					object_type: common.MODEL_NAMES.RESOURCE,
+					organization_id: userDetails.organization_id,
+				},
+			})
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_SUBMITTED_SUCCESSFULLY',

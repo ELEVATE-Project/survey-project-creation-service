@@ -33,4 +33,52 @@ module.exports = class ActionData {
 			throw error
 		}
 	}
+
+	static async findAllActions(filter, attributes, options = {}) {
+		try {
+			const { rows, count } = await Action.findAndCountAll({
+				where: filter,
+				attributes,
+				...options,
+				raw: true,
+			})
+			return { rows, count }
+		} catch (error) {
+			throw error
+		}
+	}
+
+	static async deleteAction(id) {
+		try {
+			const deletedRows = await Action.destroy({
+				where: { id: id },
+				individualHooks: true,
+			})
+			return deletedRows
+		} catch (error) {
+			throw error
+		}
+	}
+
+	static async findById(id) {
+		try {
+			return await Action.findByPk(id)
+		} catch (error) {
+			throw error
+		}
+	}
+
+	static async findAll(filter, attributes, options = {}) {
+		try {
+			const actions = await Action.findAll({
+				where: filter,
+				attributes,
+				...options,
+				raw: true,
+			})
+			return actions
+		} catch (error) {
+			throw error
+		}
+	}
 }

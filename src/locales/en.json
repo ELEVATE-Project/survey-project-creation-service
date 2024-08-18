@@ -120,5 +120,9 @@
 	"ACTION_NOT_FOUND": "Action not found.",
 	"ACTION_UPDATED": "Action updated successfully",
 	"ACTIVITY_CREATION_FAILED": "Failed to create user action",
-	"ACTIVITY_CREATED": "User action added successfully"
+	"ACTIVITY_CREATED": "User action added successfully",
+	"ACTIONS_FETCHED": "Actions fetched successfully",
+	"ACTION_NOT_DELETED": "Failed to delete action",
+	"ACTION_DELETED_SUCCESSFULLY": "Action deleted successfully",
+	"ACTIVITIES_FETCHED": "Activities fetched successfully"
 }

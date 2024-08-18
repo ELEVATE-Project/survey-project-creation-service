@@ -8,7 +8,7 @@ module.exports = {
 		const actionsData = [
 			{
 				code: 'CREATE_PROJECT',
-				description: 'Create project',
+				description: 'Project created',
 			},
 			{
 				code: 'SUBMIT_PROJECT',
@@ -16,11 +16,11 @@ module.exports = {
 			},
 			{
 				code: 'DELETE_PROJECT',
-				description: 'Delete project',
+				description: 'Project deleted',
 			},
 			{
 				code: 'PROJECT_REJECTED',
-				description: 'Review rejected',
+				description: 'Project rejected',
 			},
 			{
 				code: 'PROJECT_REPORTED',
@@ -32,11 +32,11 @@ module.exports = {
 			},
 			{
 				code: 'PROJECT_REVIEW_INPROGRESS',
-				description: 'Project Review on progress',
+				description: 'Project Review in progress',
 			},
 			{
 				code: 'PROJECT_REVIEW_CHANGES_REQUESTED',
-				description: 'Project Review changes requested',
+				description: 'Project review changes requested',
 			},
 			{
 				code: 'PROJECT_APPROVED',

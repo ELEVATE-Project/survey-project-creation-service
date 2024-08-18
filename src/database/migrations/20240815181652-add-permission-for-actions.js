@@ -24,7 +24,10 @@ module.exports = {
 	up: async (queryInterface, Sequelize) => {
 		try {
 			//create module
-			const modulesData = [{ code: 'actions', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() }]
+			const modulesData = [
+				{ code: 'actions', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
+				{ code: 'activities', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
+			]
 
 			// Insert the data into the 'modules' table
 			await queryInterface.bulkInsert('modules', modulesData)
@@ -34,8 +37,17 @@ module.exports = {
 				{
 					code: 'action_permissions',
 					module: 'actions',
-					request_type: ['POST', 'GET'],
+					request_type: ['POST', 'GET', 'DELETE'],
 					api_path: '/scp/v1/actions/*',
+					status: 'ACTIVE',
+					created_at: new Date(),
+					updated_at: new Date(),
+				},
+				{
+					code: 'read_activities_permissions',
+					module: 'activities',
+					request_type: ['GET'],
+					api_path: '/scp/v1/activities/list*',
 					status: 'ACTIVE',
 					created_at: new Date(),
 					updated_at: new Date(),
@@ -48,9 +60,9 @@ module.exports = {
 			const rolePermissionsData = [
 				{
 					role_title: common.ADMIN_ROLE,
-					permission_id: await getPermissionId('actions', ['POST', 'GET'], '/scp/v1/actions/*'),
+					permission_id: await getPermissionId('actions', ['POST', 'GET', 'DELETE'], '/scp/v1/actions/*'),
 					module: 'actions',
-					request_type: ['POST', 'GET'],
+					request_type: ['POST', 'GET', 'DELETE'],
 					api_path: '/scp/v1/actions/*',
 					created_at: new Date(),
 					updated_at: new Date(),
@@ -58,10 +70,50 @@ module.exports = {
 				},
 				{
 					role_title: common.ORG_ADMIN_ROLE,
-					permission_id: await getPermissionId('actions', ['POST', 'GET'], '/scp/v1/actions/*'),
+					permission_id: await getPermissionId('actions', ['POST', 'GET', 'DELETE'], '/scp/v1/actions/*'),
 					module: 'actions',
-					request_type: ['POST', 'GET'],
+					request_type: ['POST', 'GET', 'DELETE'],
 					api_path: '/scp/v1/actions/*',
+					created_at: new Date(),
+					updated_at: new Date(),
+					created_by: 0,
+				},
+				{
+					role_title: common.ADMIN_ROLE,
+					permission_id: await getPermissionId('activities', ['GET'], '/scp/v1/activities/list*'),
+					module: 'activities',
+					request_type: ['GET'],
+					api_path: '/scp/v1/activities/list*',
+					created_at: new Date(),
+					updated_at: new Date(),
+					created_by: 0,
+				},
+				{
+					role_title: common.ORG_ADMIN_ROLE,
+					permission_id: await getPermissionId('activities', ['GET'], '/scp/v1/activities/list*'),
+					module: 'activities',
+					request_type: ['GET'],
+					api_path: '/scp/v1/activities/list*',
+					created_at: new Date(),
+					updated_at: new Date(),
+					created_by: 0,
+				},
+				{
+					role_title: common.CONTENT_CREATOR,
+					permission_id: await getPermissionId('activities', ['GET'], '/scp/v1/activities/list*'),
+					module: 'activities',
+					request_type: ['GET'],
+					api_path: '/scp/v1/activities/list*',
+					created_at: new Date(),
+					updated_at: new Date(),
+					created_by: 0,
+				},
+				{
+					role_title: common.REVIEWER,
+					permission_id: await getPermissionId('activities', ['GET'], '/scp/v1/activities/list*'),
+					module: 'activities',
+					request_type: ['GET'],
+					api_path: '/scp/v1/activities/list*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,

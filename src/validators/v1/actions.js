@@ -38,4 +38,12 @@ module.exports = {
 			.isIn(['ACTIVE', 'INACTIVE'])
 			.withMessage('Status ' + req.body.status + ' invalid ')
 	},
+
+	delete: (req) => {
+		req.checkParams('id')
+			.notEmpty()
+			.withMessage('id param is empty')
+			.isNumeric()
+			.withMessage('id param is invalid, must be an integer')
+	},
 }

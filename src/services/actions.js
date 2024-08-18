@@ -8,6 +8,8 @@ const httpStatusCode = require('@generics/http-status')
 const actionQueries = require('@database/queries/actions')
 const responses = require('@helpers/responses')
 const { UniqueConstraintError } = require('sequelize')
+const common = require('@constants/common')
+const { Op } = require('sequelize')
 module.exports = class ActionsHelper {
 	/**
 	 * Create Action
@@ -88,6 +90,85 @@ module.exports = class ActionsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+		}
+	}
+
+	/**
+	 * list actions.
+	 * @method
+	 * @name list
+	 * @param {String} id -  id.
+	 * @returns {JSON} - actions list response.
+	 */
+
+	static async list(page, limit, search) {
+		try {
+			let result = {
+				data: [],
+				count: 0,
+			}
+			const offset = common.getPaginationOffset(page, limit)
+
+			const filter = {
+				code: { [Op.iLike]: `%${search}%` },
+			}
+			const options = {
+				offset,
+				limit,
+			}
+			const attributes = ['id', 'code', 'status']
+			const actions = await actionQueries.findAllActions(filter, attributes, options)
+
+			if (actions.count <= 0) {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'ACTIONS_FETCHED',
+					result: result,
+				})
+			}
+
+			result.data = actions.rows
+			result.count = actions.count
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'ACTIONS_FETCHED',
+				result: result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Delete actions.
+	 * @method
+	 * @name delete
+	 * @param {String} id - action id.
+	 * @returns {JSON} - action deleted response.
+	 */
+
+	static async delete(id) {
+		try {
+			const action = await actionQueries.findById(id)
+			if (!action) {
+				throw new Error('ACTION_NOT_FOUND')
+			} else {
+				const deleteAction = await actionQueries.deleteAction(id)
+				if (!deleteAction) {
+					throw new Error('ACTION_NOT_DELETED')
+				}
+				return responses.successResponse({
+					statusCode: httpStatusCode.accepted,
+					message: 'ACTION_DELETED_SUCCESSFULLY',
+				})
+			}
+		} catch (error) {
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 }

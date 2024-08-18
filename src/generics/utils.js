@@ -531,6 +531,11 @@ const validateComment = (comments) => {
 	return isValidComment
 }
 
+const isEmpty = (obj) => {
+	for (let i in obj) return false
+	return true
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -563,4 +568,5 @@ module.exports = {
 	convertToInteger,
 	validateTitle,
 	validateComment,
+	isEmpty,
 }

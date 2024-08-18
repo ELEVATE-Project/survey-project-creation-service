@@ -99,6 +99,7 @@
 		"@validators": "validators",
 		"@database": "database",
 		"@requests": "requests",
-		"@helpers": "helpers"
+		"@helpers": "helpers",
+		"@dtos": "dtos"
 	}
 }

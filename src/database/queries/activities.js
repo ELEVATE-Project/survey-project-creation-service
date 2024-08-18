@@ -8,4 +8,18 @@ module.exports = class ActivityData {
 			throw error
 		}
 	}
+
+	static async findAllActivities(filter, attributes, options = {}) {
+		try {
+			const { rows, count } = await Activity.findAndCountAll({
+				where: filter,
+				attributes,
+				...options,
+				raw: true,
+			})
+			return { rows, count }
+		} catch (error) {
+			throw error
+		}
+	}
 }

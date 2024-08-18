@@ -8,6 +8,8 @@ const httpStatusCode = require('@generics/http-status')
 const activitiesQueries = require('@database/queries/activities')
 const actionQueries = require('@database/queries/actions')
 const responses = require('@helpers/responses')
+const { activityDTO } = require('@dtos/activity')
+const common = require('@constants/common')
 module.exports = class ActivityHelper {
 	/**
 	 * Add activity of user
@@ -44,6 +46,55 @@ module.exports = class ActivityHelper {
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'ACTIVITY_CREATED',
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * list activities.
+	 * @method
+	 * @name list
+	 * @param {String} id -  id.
+	 * @returns {JSON} - activities list response.
+	 */
+
+	static async list(userId, orgId, page, limit) {
+		try {
+			let result = {
+				data: [],
+				count: 0,
+			}
+			const offset = common.getPaginationOffset(page, limit)
+			const options = {
+				offset,
+				limit,
+			}
+
+			let filter = {
+				user_id: userId.toString(),
+				organization_id: orgId.toString(),
+			}
+			const attributes = ['id', 'action_id', 'user_id', 'created_at']
+			const activities = await activitiesQueries.findAllActivities(filter, attributes, options)
+			if (activities.count <= 0) {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'ACTIVITIES_FETCHED',
+					result: result,
+				})
+			}
+
+			const formatActivities = await activityDTO(activities.rows, orgId)
+
+			result.data = formatActivities
+			result.count = activities.count
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'ACTIVITIES_FETCHED',
+				result: result,
 			})
 		} catch (error) {
 			throw error

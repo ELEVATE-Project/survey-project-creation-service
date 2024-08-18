@@ -13,7 +13,7 @@ const _ = require('lodash')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewResourceQueries = require('@database/queries/reviewResources')
 const { Op } = require('sequelize')
-const activityService = require('@services/activities')
+const { eventBroadcaster } = require('@helpers/eventBroadcaster')
 const resourceQueries = require('@database/queries/resources')
 module.exports = class CommentsHelper {
 	/**
@@ -71,13 +71,15 @@ module.exports = class CommentsHelper {
 
 					if (updatedCount > 0) {
 						//add user action
-						await activityService.addUserAction(
-							common.USER_ACTIONS[resource.type].REVIEW_INPROGRESS,
-							userId,
-							resourceId,
-							common.MODEL_NAMES.RESOURCE,
-							orgId
-						)
+						eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+							requestBody: {
+								action_name: common.USER_ACTIONS[resource.type].REVIEW_INPROGRESS,
+								user_id: userId,
+								object_id: resourceId,
+								object_type: common.MODEL_NAMES.RESOURCE,
+								organization_id: orgId,
+							},
+						})
 					}
 				}
 
