@@ -8,43 +8,43 @@ module.exports = {
 		const actionsData = [
 			{
 				code: 'CREATE_PROJECT',
-				description: 'Project created',
+				description: 'created the project with',
 			},
 			{
-				code: 'SUBMIT_PROJECT',
-				description: 'Project submitted',
+				code: 'PROJECT_SUBMITTED',
+				description: 'submitted the project with',
 			},
 			{
 				code: 'DELETE_PROJECT',
-				description: 'Project deleted',
+				description: 'deleted the project with',
 			},
 			{
 				code: 'PROJECT_REJECTED',
-				description: 'Project rejected',
+				description: 'rejected the project with',
 			},
 			{
-				code: 'PROJECT_REPORTED',
-				description: 'Project reported',
+				code: 'PROJECT_REJECTED_AND_REPORTED',
+				description: 'rejected and reported the project with',
 			},
 			{
 				code: 'PROJECT_REVIEW_STARTED',
-				description: 'Project Review started',
+				description: 'started review for project',
 			},
 			{
 				code: 'PROJECT_REVIEW_INPROGRESS',
-				description: 'Project Review in progress',
+				description: 'review is in progress for project',
 			},
 			{
 				code: 'PROJECT_REVIEW_CHANGES_REQUESTED',
-				description: 'Project review changes requested',
+				description: 'requested changes in project',
 			},
 			{
 				code: 'PROJECT_APPROVED',
-				description: 'Project approved',
+				description: 'approved the project with',
 			},
 			{
 				code: 'PROJECT_PUBLISHED',
-				description: 'Project published',
+				description: 'published the project with',
 			},
 		]
 

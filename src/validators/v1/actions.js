@@ -16,16 +16,12 @@ module.exports = {
 			.withMessage('id param is invalid, must be an integer')
 
 		req.checkBody('code')
-			.optional()
-			.trim()
 			.notEmpty()
 			.withMessage('code field is empty')
 			.matches(/^[a-zA-Z_-]+$/)
 			.withMessage('code is invalid, must not contain spaces')
 
 		req.checkBody('description')
-			.optional()
-			.trim()
 			.notEmpty()
 			.withMessage('description field is empty')
 			.isLength({ max: 255 })

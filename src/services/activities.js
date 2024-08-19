@@ -73,10 +73,9 @@ module.exports = class ActivityHelper {
 			}
 
 			let filter = {
-				user_id: userId.toString(),
 				organization_id: orgId.toString(),
 			}
-			const attributes = ['id', 'action_id', 'user_id', 'created_at']
+			const attributes = ['id', 'action_id', 'user_id', 'object_id', 'object_type', 'created_at']
 			const activities = await activitiesQueries.findAllActivities(filter, attributes, options)
 			if (activities.count <= 0) {
 				return responses.successResponse({
@@ -87,9 +86,10 @@ module.exports = class ActivityHelper {
 			}
 
 			const formatActivities = await activityDTO(activities.rows, orgId)
-
-			result.data = formatActivities
-			result.count = activities.count
+			if (formatActivities.success) {
+				result.data = formatActivities
+				result.count = activities.count
+			}
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,

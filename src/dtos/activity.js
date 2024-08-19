@@ -8,30 +8,26 @@ const { Op } = require('sequelize')
 
 exports.activityDTO = async (activities = [], organization_id) => {
 	try {
-		let userIds = []
-		let actionIds = []
-		activities.map((activity) => {
-			userIds.push(activity.user_id)
-			actionIds.push(activity.action_id)
-		})
+		//get userId and actionIds
+		const userIds = utils.getUniqueElements(activities.map((activity) => activity.user_id))
+		const actionIds = utils.getUniqueElements(activities.map((activity) => activity.action_id))
 
-		const uniqueUserIds = utils.getUniqueElements(userIds)
-		const uniqueActionIds = utils.getUniqueElements(actionIds)
+		// Fetch users and actions
+		const [usersResponse, actions] = await Promise.all([
+			userRequests.list(common.ALL_USER_ROLES, '', '', '', organization_id, { user_ids: userIds }),
+			actionQueries.findAll({ id: { [Op.in]: actionIds } }),
+		])
 
-		let users = await userRequests.list(common.ALL_USER_ROLES, '', '', '', organization_id, {
-			user_ids: uniqueUserIds,
-		})
-		if (!users.success) {
+		if (!usersResponse.success) {
 			throw new Error('Failed to fetch users')
 		}
 
-		if (!Array.isArray(users?.data?.result?.data) && !users.data.result.data.length > 0) {
+		if (!Array.isArray(usersResponse?.data?.result?.data) && !usersResponse.data.result.data.length > 0) {
 			throw new Error('No users found')
 		}
 
-		const userIdMap = _.keyBy(users.data.result.data, 'id')
+		const userIdMap = _.keyBy(usersResponse.data.result.data, 'id')
 
-		let actions = await actionQueries.findAll({ id: { [Op.in]: uniqueActionIds } })
 		if (!actions.length > 0) {
 			throw new Error('No actions found')
 		}
@@ -48,7 +44,7 @@ exports.activityDTO = async (activities = [], organization_id) => {
 
 			return {
 				id: activity.id,
-				action: `${actionDescription} by ${user.name} on ${date}`,
+				action: `${user.name} ${actionDescription} id ${activity.object_id} on ${date}`,
 			}
 		})
 
@@ -57,7 +53,7 @@ exports.activityDTO = async (activities = [], organization_id) => {
 			success: true,
 		}
 	} catch (error) {
-		console.log(error, 'error')
+		console.error('Error in activityDTO:', error)
 		return {
 			data: [],
 			success: false,

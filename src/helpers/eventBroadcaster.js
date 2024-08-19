@@ -28,6 +28,6 @@ exports.eventBroadcaster = async (
 			})
 		)
 	} catch (err) {
-		console.log(err)
+		console.error('EventBroadcaster Error:', err)
 	}
 }

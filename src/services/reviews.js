@@ -78,13 +78,13 @@ module.exports = class reviewsHelper {
 
 			//add user action
 			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: {
-					action_name: common.USER_ACTIONS[resource.type].REVIEW_CHANGES_REQUESTED,
-					user_id: userId,
-					object_id: resourceId,
-					object_type: common.MODEL_NAMES.RESOURCE,
-					organization_id: orgId,
-				},
+				requestBody: utils.constructAddUserActionBody(
+					common.USER_ACTIONS[resource.type].REVIEW_CHANGES_REQUESTED,
+					userId,
+					resourceId,
+					common.MODEL_NAMES.RESOURCE,
+					orgId
+				),
 			})
 
 			return responses.successResponse({
@@ -198,13 +198,13 @@ module.exports = class reviewsHelper {
 
 			//add user action
 			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: {
-					action_name: common.USER_ACTIONS[resource.type].REVIEW_STARTED,
-					user_id: userId,
-					object_id: resourceId,
-					object_type: common.MODEL_NAMES.RESOURCE,
-					organization_id: orgId,
-				},
+				requestBody: utils.constructAddUserActionBody(
+					common.USER_ACTIONS[resource.type].REVIEW_STARTED,
+					userId,
+					resourceId,
+					common.MODEL_NAMES.RESOURCE,
+					orgId
+				),
 			})
 
 			return responses.successResponse({
@@ -361,15 +361,15 @@ module.exports = class reviewsHelper {
 
 			//add user action
 			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: {
-					action_name: isReported
+				requestBody: utils.constructAddUserActionBody(
+					isReported
 						? common.USER_ACTIONS[resource.type].RESOURCE_REPORTED
 						: common.USER_ACTIONS[resource.type].RESOURCE_REJECTED,
-					user_id: userId,
-					object_id: resourceId,
-					object_type: common.MODEL_NAMES.RESOURCE,
-					organization_id: orgId,
-				},
+					userId,
+					resourceId,
+					common.MODEL_NAMES.RESOURCE,
+					orgId
+				),
 			})
 
 			return responses.successResponse({
@@ -449,13 +449,13 @@ module.exports = class reviewsHelper {
 
 			//add user action
 			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: {
-					action_name: common.USER_ACTIONS[resourceType].REVIEW_APPROVED,
-					user_id: userId,
-					object_id: resourceId,
-					object_type: common.MODEL_NAMES.RESOURCE,
-					organization_id: orgId,
-				},
+				requestBody: utils.constructAddUserActionBody(
+					common.USER_ACTIONS[resourceType].REVIEW_APPROVED,
+					userId,
+					resourceId,
+					common.MODEL_NAMES.RESOURCE,
+					orgId
+				),
 			})
 
 			// Determine if the resource should be published based on the number of approved reviews and minimum approval requirements.
@@ -479,7 +479,6 @@ module.exports = class reviewsHelper {
 	 * @param {String} resourceType - The type of the the resource.
 	 * @returns {JSON} - Returns a response indicating the result of the review creation.
 	 */
-
 	static async createReview(
 		resourceId,
 		reviewType,
@@ -537,6 +536,16 @@ module.exports = class reviewsHelper {
 			// Update the resource table to reflect the review status and last_reviewed_on
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
 
+			//add user action
+			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+				requestBody: utils.constructAddUserActionBody(
+					common.USER_ACTIONS[resourceType].REVIEW_STARTED,
+					userId,
+					resourceId,
+					common.MODEL_NAMES.RESOURCE,
+					userOrgId
+				),
+			})
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'REVIEW_CREATED',
@@ -760,13 +769,13 @@ module.exports = class reviewsHelper {
 
 			//add user action
 			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: {
-					action_name: common.USER_ACTIONS[resourceData.type].RESOURCE_PUBLISHED,
-					user_id: userId,
-					object_id: resourceId,
-					object_type: common.MODEL_NAMES.RESOURCE,
-					organization_id: orgId,
-				},
+				requestBody: utils.constructAddUserActionBody(
+					common.USER_ACTIONS[resourceData.type].RESOURCE_PUBLISHED,
+					userId,
+					resourceId,
+					common.MODEL_NAMES.RESOURCE,
+					orgId
+				),
 			})
 
 			return responses.successResponse({

@@ -120,13 +120,13 @@ module.exports = class ProjectsHelper {
 
 			//add user action
 			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: {
-					action_name: common.USER_ACTIONS[projectCreate.type].RESOURCE_CREATED,
-					user_id: loggedInUserId,
-					object_id: projectCreate.id,
-					object_type: common.MODEL_NAMES.RESOURCE,
-					organization_id: orgId,
-				},
+				requestBody: utils.constructAddUserActionBody(
+					common.USER_ACTIONS[projectCreate.type].RESOURCE_CREATED,
+					loggedInUserId,
+					projectCreate.id,
+					common.MODEL_NAMES.RESOURCE,
+					orgId
+				),
 			})
 
 			return responses.successResponse({
@@ -273,7 +273,7 @@ module.exports = class ProjectsHelper {
 				['id', 'organization_id']
 			)
 
-			if (resourceCreatorMapping?.id) {
+			if (!resourceCreatorMapping?.id) {
 				throw new Error('PROJECT_NOT_FOUND')
 			}
 
@@ -281,7 +281,7 @@ module.exports = class ProjectsHelper {
 				{
 					id: resourceId,
 					organization_id: resourceCreatorMapping.organization_id,
-					status: common.STATUS_DRAFT,
+					status: common.RESOURCE_STATUS_DRAFT,
 				},
 				{ attributes: ['id', 'type', 'organization_id'] }
 			)
@@ -302,13 +302,13 @@ module.exports = class ProjectsHelper {
 
 			//add user action
 			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: {
-					action_name: common.USER_ACTIONS[resource.type].RESOURCE_CREATED,
-					user_id: loggedInUserId,
-					object_id: resourceId,
-					object_type: common.MODEL_NAMES.RESOURCE,
-					organization_id: orgId,
-				},
+				requestBody: utils.constructAddUserActionBody(
+					common.USER_ACTIONS[resource.type].RESOURCE_DELETED,
+					loggedInUserId,
+					resourceId,
+					common.MODEL_NAMES.RESOURCE,
+					orgId
+				),
 			})
 
 			return responses.successResponse({
@@ -524,13 +524,9 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			//Restrict the user to submit it again
-			if (projectData.status === common.RESOURCE_STATUS_SUBMITTED) {
-				return responses.failureResponse({
-					message: 'RESOURCE_ALREADY_SUBMITTED',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+			//Restrict the user to submit the project
+			if (_nonReviewableResourceStatuses.includes(projectData.status)) {
+				throw new Error(`Resource is already ${projectData.status}. You can't submit it`)
 			}
 
 			//get all entity type validations for project
@@ -734,14 +730,15 @@ module.exports = class ProjectsHelper {
 			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
 			//add user action
 			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: {
-					action_name: common.USER_ACTIONS[projectData.type].RESOURCE_CREATED,
-					user_id: userDetails.id,
-					object_id: resourceId,
-					object_type: common.MODEL_NAMES.RESOURCE,
-					organization_id: userDetails.organization_id,
-				},
+				requestBody: utils.constructAddUserActionBody(
+					common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
+					userDetails.id,
+					resourceId,
+					common.MODEL_NAMES.RESOURCE,
+					userDetails.organization_id
+				),
 			})
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_SUBMITTED_SUCCESSFULLY',
@@ -881,3 +878,15 @@ module.exports = class ProjectsHelper {
 		}
 	}
 }
+
+/**
+ * List of resource statuses that prevent a reviewer from starting a review.
+ * @constant
+ * @type {Array<String>}
+ */
+const _nonReviewableResourceStatuses = [
+	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+	common.RESOURCE_STATUS_PUBLISHED,
+	common.RESOURCE_STATUS_SUBMITTED,
+]

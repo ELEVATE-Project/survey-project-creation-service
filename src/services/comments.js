@@ -15,6 +15,7 @@ const reviewResourceQueries = require('@database/queries/reviewResources')
 const { Op } = require('sequelize')
 const { eventBroadcaster } = require('@helpers/eventBroadcaster')
 const resourceQueries = require('@database/queries/resources')
+const utils = require('@generics/utils')
 module.exports = class CommentsHelper {
 	/**
 	 * Comment Create or Update
@@ -72,13 +73,13 @@ module.exports = class CommentsHelper {
 					if (updatedCount > 0) {
 						//add user action
 						eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-							requestBody: {
-								action_name: common.USER_ACTIONS[resource.type].REVIEW_INPROGRESS,
-								user_id: userId,
-								object_id: resourceId,
-								object_type: common.MODEL_NAMES.RESOURCE,
-								organization_id: orgId,
-							},
+							requestBody: utils.constructAddUserActionBody(
+								common.USER_ACTIONS[resource.type].REVIEW_INPROGRESS,
+								userId,
+								resourceId,
+								common.MODEL_NAMES.RESOURCE,
+								orgId
+							),
 						})
 					}
 				}
@@ -169,8 +170,8 @@ module.exports = class CommentsHelper {
 
 			let commented_by = []
 
-			if (users.success && users.data?.result?.length > 0) {
-				const user_map = _.keyBy(users.data.result, 'id')
+			if (users.success && users.data?.result?.data?.length > 0) {
+				const user_map = _.keyBy(users.data.result.data, 'id')
 				comments.rows = _.map(comments.rows, (comment) => {
 					//add commenter and resolver details
 					const commenter = user_map[comment.user_id] ? _.pick(user_map[comment.user_id], ['id', 'name']) : {}

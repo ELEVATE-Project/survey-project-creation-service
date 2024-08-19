@@ -98,26 +98,6 @@ module.exports = {
 					updated_at: new Date(),
 					created_by: 0,
 				},
-				{
-					role_title: common.CONTENT_CREATOR,
-					permission_id: await getPermissionId('activities', ['GET'], '/scp/v1/activities/list*'),
-					module: 'activities',
-					request_type: ['GET'],
-					api_path: '/scp/v1/activities/list*',
-					created_at: new Date(),
-					updated_at: new Date(),
-					created_by: 0,
-				},
-				{
-					role_title: common.REVIEWER,
-					permission_id: await getPermissionId('activities', ['GET'], '/scp/v1/activities/list*'),
-					module: 'activities',
-					request_type: ['GET'],
-					api_path: '/scp/v1/activities/list*',
-					created_at: new Date(),
-					updated_at: new Date(),
-					created_by: 0,
-				},
 			]
 
 			await queryInterface.bulkInsert('role_permission_mapping', rolePermissionsData)
