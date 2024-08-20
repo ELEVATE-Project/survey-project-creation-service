@@ -541,14 +541,16 @@ module.exports = class resourceHelper {
 					finalResourceIds = [...finalResourceIds, ...parallelResourcesIds]
 				}
 
+				const resourceReviewersDetails = await this.findResourceReviewersDetails(user_id, finalResourceIds)
+
 				// from the parallel and sequential open to all resources , remove which are directly assigned to other reviewers
 				finalResourceIds = _.difference(
 					finalResourceIds,
-					await this.findResourcesAssignedToOtherReviewers(user_id, finalResourceIds) //remove resources directly assigned to other reviewers
+					resourceReviewersDetails.assignedToOthers //remove resources directly assigned to other reviewers
 				)
 
 				// fetch resources directly assigned to me
-				const assignedToMe = await this.findResourcesAssignedToReviewer(uniqueOrganizationIds, user_id)
+				const assignedToMe = resourceReviewersDetails.assignedToMe
 
 				finalResourceIds = [...finalResourceIds, ...assignedToMe]
 
@@ -871,29 +873,6 @@ module.exports = class resourceHelper {
 	}
 
 	/**
-	 * Get all resources assigned to the reviewer
-	 * @name findResourcesAssignedToReviewer
-	 * @param {Array} organization_ids -  list of organization_ids.
-	 * @param {String} logged_in_user_id -  user id of the logged in user
-	 * @returns {Array} - Response contain array of resource ids
-	 */
-	static async findResourcesAssignedToReviewer(organization_ids, logged_in_user_id) {
-		const reviewsFilter = {
-			organization_id: { [Op.in]: organization_ids },
-			reviewer_id: logged_in_user_id,
-			status: { [Op.in]: common.REVIEW_STATUS_UP_FOR_REVIEW },
-		}
-
-		let res = []
-
-		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
-		res = reviewsResponse.map((item) => {
-			return item.resource_id
-		})
-		return res
-	}
-
-	/**
 	 * Get all resources assigned to the reviewer and already picked up by other reviewer
 	 * @name findResourcesPickedUpByAnotherReviewer
 	 * @param {String} loggedInUserId -  user id of the logged in user.
@@ -949,31 +928,41 @@ module.exports = class resourceHelper {
 		}
 		return resourceIdsToBeRemoved
 	}
-
 	/**
-	 * Get all resources directly assigned to other reviewers
-	 * @name findResourcesAssignedToOtherReviewers
+	 * Get review details of list of resources and seggregte if its assigned to logged in user or other users.
+	 * @name findResourceReviewersDetails
 	 * @param {String} loggedInUserId -  user id of the logged in user.
 	 * @param {Array} finalResourceIds -  list of all resources fetched to list.
 	 * @returns {Array} - Response contain array of resource ids to be removed from the main response
 	 */
-	static async findResourcesAssignedToOtherReviewers(loggedInUserId, finalResourceIds) {
+	static async findResourceReviewersDetails(loggedInUserId, finalResourceIds) {
 		// remove all the resouces in sequential review picked up by another reviewer
 		const reviewsFilter = {
 			resource_id: { [Op.in]: finalResourceIds },
 			status: {
-				[Op.in]: [common.REVIEW_STATUS_NOT_STARTED],
+				[Op.in]: common.REVIEW_STATUS_UP_FOR_REVIEW,
 			},
-			reviewer_id: { [Op.notIn]: [loggedInUserId] },
 		}
-		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
-		let resourceIdsToBeRemoved = []
+		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id', 'status', 'reviewer_id'])
+		let resourcesAssignedToOtherUsers = []
+		let resourcesAssignedToLoggedInUser = []
+
 		if (reviewsResponse.length > 0) {
-			// push resource ids to resourceIdsToBeRemoved array
-			resourceIdsToBeRemoved = reviewsResponse.map((item) => item.resource_id)
-			return resourceIdsToBeRemoved
+			reviewsResponse.reduce((_, item) => {
+				if (common.REVIEW_STATUS_UP_FOR_REVIEW.includes(item.status) && item.reviewer_id !== loggedInUserId) {
+					resourcesAssignedToOtherUsers.push(item.resource_id)
+				} else if (
+					common.REVIEW_STATUS_UP_FOR_REVIEW.includes(item.status) &&
+					item.reviewer_id === loggedInUserId
+				) {
+					resourcesAssignedToLoggedInUser.push(item.resource_id)
+				}
+			}, null)
 		}
-		return utils.getUniqueElements(resourceIdsToBeRemoved)
+		return {
+			assignedToMe: utils.getUniqueElements(resourcesAssignedToLoggedInUser),
+			assignedToOthers: utils.getUniqueElements(resourcesAssignedToOtherUsers),
+		}
 	}
 
 	/**
