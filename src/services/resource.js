@@ -553,7 +553,10 @@ module.exports = class resourceHelper {
 				finalResourceIds = [...finalResourceIds, ...assignedToMe]
 
 				// resources reviewer have approved , rejected or requested for change should be removed from main list
-				const resouecesCompletedMyReview = await this.findResourcesCompletedMyReview(user_id, finalResourceIds)
+				const resouecesCompletedMyReview = await this.getUserApprovedOrChangesRequestedResources(
+					user_id,
+					finalResourceIds
+				)
 
 				resourceIdsToBeRemoved = [...resourceIdsToBeRemoved, ...resouecesCompletedMyReview]
 				finalResourceIds = _.difference(
@@ -922,44 +925,13 @@ module.exports = class resourceHelper {
 	}
 
 	/**
-	 * Get all resources assigned to the reviewer and already picked up by other reviewer
-	 * @name findResourcesPickedUpByAnotherReviewer
-	 * @param {String} loggedInUserId -  user id of the logged in user.
-	 * @param {Array} finalResourceIds -  list of resources matching to reviewer's level.
-	 * @returns {Array} - Response contain array of resource ids to be removed from the main response
-	 */
-	static async findResourcesSpecificallyAssignedToOtherReviewers(loggedInUserId, finalResourceIds) {
-		// remove all the resouces in sequential review picked up by another reviewer
-		const reviewsFilter = {
-			resource_id: { [Op.in]: finalResourceIds },
-			status: {
-				[Op.in]: [
-					common.REVIEW_STATUS_INPROGRESS,
-					common.REVIEW_STATUS_CHANGES_UPDATED,
-					common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
-					common.RESOURCE_STATUS_STARTED,
-				],
-			},
-			reviewer_id: { [Op.notIn]: [loggedInUserId] },
-		}
-		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
-		let resourceIdsToBeRemoved = []
-		if (reviewsResponse) {
-			// push resource ids to resourceIdsToBeRemoved array
-			resourceIdsToBeRemoved = reviewsResponse.map((item) => item.resource_id)
-			return resourceIdsToBeRemoved
-		}
-		return resourceIdsToBeRemoved
-	}
-
-	/**
 	 * Get all resources which reviewer approved and requested for changes
-	 * @name findResourcesCompletedMyReview
+	 * @name getUserApprovedOrChangesRequestedResources
 	 * @param {String} loggedInUserId -  user id of the logged in user.
 	 * @param {Array} finalResourceIds -  list of all resources fetched to list.
 	 * @returns {Array} - Response contain array of resource ids to be removed from the main response
 	 */
-	static async findResourcesCompletedMyReview(loggedInUserId, finalResourceIds) {
+	static async getUserApprovedOrChangesRequestedResources(loggedInUserId, finalResourceIds) {
 		// remove all the resouces from list which reviewer approved and requested for changes
 		const reviewsFilter = {
 			resource_id: { [Op.in]: finalResourceIds },
@@ -970,7 +942,7 @@ module.exports = class resourceHelper {
 		}
 		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
 		let resourceIdsToBeRemoved = []
-		if (reviewsResponse) {
+		if (reviewsResponse.length > 0) {
 			// push resource ids to resourceIdsToBeRemoved array
 			resourceIdsToBeRemoved = reviewsResponse.map((item) => item.resource_id)
 			return resourceIdsToBeRemoved
@@ -996,12 +968,12 @@ module.exports = class resourceHelper {
 		}
 		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
 		let resourceIdsToBeRemoved = []
-		if (reviewsResponse) {
+		if (reviewsResponse.length > 0) {
 			// push resource ids to resourceIdsToBeRemoved array
 			resourceIdsToBeRemoved = reviewsResponse.map((item) => item.resource_id)
 			return resourceIdsToBeRemoved
 		}
-		return resourceIdsToBeRemoved
+		return utils.getUniqueElements(resourceIdsToBeRemoved)
 	}
 
 	/**
