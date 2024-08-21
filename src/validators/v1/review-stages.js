@@ -4,10 +4,15 @@
  * Date : 29-July-2024
  * Description : Validations of Review Stage controller
  */
+const filterRequestBody = require('../common')
+const { reviewStages } = require('@constants/blacklistConfig')
+const allowedResourceTypes = process.env.RESOURCE_TYPES.split(',')
 
 module.exports = {
 	update: (req) => {
+		req.body = filterRequestBody(req.body, reviewStages.update)
 		req.checkParams('id')
+			.trim()
 			.notEmpty()
 			.withMessage('id param is empty')
 			.isNumeric()
@@ -29,8 +34,16 @@ module.exports = {
 	},
 
 	list: (req) => {
-		req.checkQuery('resource_type').optional().notEmpty().withMessage('resource_type is empty')
+		req.checkQuery('resource_type')
+			.optional({ checkFalsy: true })
+			.notEmpty()
+			.withMessage('resource_type is empty')
+			.isIn(allowedResourceTypes)
+			.withMessage(`resource_type is invalid, must be one of: ${allowedResourceTypes.join(', ')}`)
 
-		req.checkQuery('organization_id').optional().notEmpty().withMessage('organization_id is empty')
+		req.checkQuery('organization_id')
+			.optional({ checkFalsy: true })
+			.notEmpty()
+			.withMessage('organization_id is empty')
 	},
 }

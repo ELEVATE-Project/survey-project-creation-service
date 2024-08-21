@@ -4,12 +4,12 @@
  * Date : 24-May-2024
  * Description : Validations of forms controller
  */
-// const filterRequestBody = require('../common')
-// const { form } = require('@constants/blacklistConfig')
+const filterRequestBody = require('../common')
+const { form } = require('@constants/blacklistConfig')
 
 module.exports = {
 	create: (req) => {
-		// req.body = filterRequestBody(req.body, form.create)
+		req.body = filterRequestBody(req.body, form.create)
 		req.checkBody('type')
 			.trim()
 			.notEmpty()
@@ -37,7 +37,14 @@ module.exports = {
 	},
 
 	update: (req) => {
-		// req.body = filterRequestBody(req.body, form.update)
+		req.body = filterRequestBody(req.body, form.update)
+		req.checkParams('id')
+			.trim()
+			.notEmpty()
+			.withMessage('id param is empty')
+			.isNumeric()
+			.withMessage('id param is invalid, must be an integer')
+
 		req.checkBody('type')
 			.notEmpty()
 			.withMessage('type field is empty')
@@ -76,7 +83,12 @@ module.exports = {
 	read: (req) => {
 		if (req.params.id || Object.keys(req.body).length !== 0) {
 			if (req.params.id) {
-				req.checkParams('id').notEmpty().withMessage('id param is empty')
+				req.checkParams('id')
+					.trim()
+					.notEmpty()
+					.withMessage('id param is empty')
+					.isNumeric()
+					.withMessage('id param is invalid, must be an integer')
 			} else {
 				req.checkBody('type')
 					.trim()

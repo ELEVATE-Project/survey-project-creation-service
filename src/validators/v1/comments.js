@@ -5,8 +5,12 @@
  * Description : Validations of comment controller
  */
 const allowedStatuses = ['DRAFT', 'OPEN', 'RESOLVED']
+const filterRequestBody = require('../common')
+const { comments } = require('@constants/blacklistConfig')
+
 module.exports = {
 	update: (req) => {
+		req.body = filterRequestBody(req.body, comments.update)
 		req.checkQuery('resource_id')
 			.notEmpty()
 			.withMessage('Resource id is empty')
@@ -16,7 +20,7 @@ module.exports = {
 		req.checkBody('comment').optional().notEmpty().withMessage('comment param is empty')
 
 		req.checkBody('parent_id')
-			.optional()
+			.optional({ checkFalsy: true })
 			.notEmpty()
 			.withMessage('id param is empty')
 			.isNumeric()
@@ -28,6 +32,7 @@ module.exports = {
 	},
 	list: (req) => {
 		req.checkQuery('resource_id')
+			.trim()
 			.notEmpty()
 			.withMessage('Resource id is empty')
 			.isInt()

@@ -21,7 +21,12 @@ module.exports = {
 			.withMessage('Status ' + req.query.status + ' invalid ')
 	},
 	publishCallback: (req) => {
-		req.checkQuery('resource_id').trim().notEmpty().withMessage('resource_id field is empty')
+		req.checkQuery('resource_id')
+			.trim()
+			.notEmpty()
+			.withMessage('resource_id field is empty')
+			.isNumeric()
+			.withMessage('resource_id is invalid, must be an integer')
 		req.checkQuery('published_id').trim().notEmpty().withMessage('published_id field is empty')
 	},
 }

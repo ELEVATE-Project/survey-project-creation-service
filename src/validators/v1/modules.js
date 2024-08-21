@@ -1,5 +1,9 @@
+const filterRequestBody = require('../common')
+const { modules } = require('@constants/blacklistConfig')
+const allowedModuleStatus = ['ACTIVE', 'INACTIVE']
 module.exports = {
 	create: (req) => {
+		req.body = filterRequestBody(req.body, modules.create)
 		req.checkBody('code')
 			.trim()
 			.notEmpty()
@@ -13,9 +17,12 @@ module.exports = {
 			.withMessage('status is invalid, must not contain spaces')
 			.optional({ checkFalsy: true })
 			.withMessage('status field must be a non-empty string when provided')
+			.isIn(allowedModuleStatus)
+			.withMessage(`status is invalid, must be one of: ${allowedModuleStatus.join(', ')}`)
 	},
 
 	update: (req) => {
+		req.body = filterRequestBody(req.body, modules.update)
 		req.checkParams('id')
 			.notEmpty()
 			.withMessage('id param is empty')
@@ -36,6 +43,8 @@ module.exports = {
 			.optional({ checkFalsy: true })
 			.notEmpty()
 			.withMessage('status field must be a non-empty string when provided')
+			.isIn(allowedModuleStatus)
+			.withMessage(`status is invalid, must be one of: ${allowedModuleStatus.join(', ')}`)
 	},
 
 	delete: (req) => {
