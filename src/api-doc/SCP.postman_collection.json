@@ -1,0 +1,2225 @@
+{
+	"info": {
+		"_postman_id": "f11e5645-7931-497d-aa56-e1fe3043340a",
+		"name": "Self Creation Portal",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "6350183",
+		"_collection_link": "https://cloudy-eclipse-8615.postman.co/workspace/MentorED~099846e5-b1d5-4043-84b9-1e9ac3fc1e4f/collection/6350183-f11e5645-7931-497d-aa56-e1fe3043340a?action=share&source=collection_link&creator=6350183"
+	},
+	"item": [
+		{
+			"name": "Assign Permissions to Role",
+			"item": [
+				{
+					"name": "Create Role Permission",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"permission_id\" : 1,\n    \"role_title\": \"CONTENT_CREATOR\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/role-permission-mapping/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "role-permission-mapping", "create"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Role Permission",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"permission_id\" : 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/role-permission-mapping/delete/:role_id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "role-permission-mapping", "delete", ":role_id"],
+							"variable": [
+								{
+									"key": "role_id",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Role Permission",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/role-permission-mapping/list",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "role-permission-mapping", "list"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Permissions",
+			"item": [
+				{
+					"name": "Create Permission",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\"code\": \"delete_entity_permissions\", \n\"module\": \"manage_user\", \n\"request_type\": [\"POST\"],\n\"api_path\" : \"/mentoring/v1/entity/delete\",\n\"status\": \"ACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/permissions/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "permissions", "create"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Permission",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\": \"read_activities\",\n    \"module\": \"activities\",\n    \"request_type\": [\n        \"GET\"\n    ],\n    \"api_path\": \"/acp/v1/activities/list*\",\n    \"status\": \"ACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/permissions/update/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "permissions", "update", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "28",
+									"description": "update id"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Permission",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/permissions/delete/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "permissions", "delete", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "28",
+									"description": "Delete id"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Permissions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/permissions/list?page=1&limit=10",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "permissions", "list"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "search",
+									"value": "s",
+									"disabled": true
+								},
+								{
+									"key": "actions",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Module",
+			"item": [
+				{
+					"name": "Create Module",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\" : \"activities\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/modules/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "modules", "create"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Module",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\" : \"activities\",\n    \"status\": \"ACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/modules/update/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "modules", "update", ":id"],
+							"query": [
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "update Id"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Module",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/modules/delete/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "modules", "delete", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Delete Id"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Modules",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/modules/list?page=1&limit=10&search=cw==",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "modules", "list"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "search",
+									"value": "cw=="
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Actions",
+			"item": [
+				{
+					"name": "Create Action",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\" : \"CREATE_OBSERVATION\",\n    \"description\": \"Create observation\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/actions/update",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "actions", "update"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Action",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\": \"CREATE_OBSERVATION\",\n    \"description\": \"Create observation\",\n    \"status\": \"ACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/actions/update/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "actions", "update", ":id"],
+							"query": [
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "update Id"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Action",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/actions/delete/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "actions", "delete", ":id"],
+							"query": [
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Actions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/actions/list?page=2&limit=3",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "actions", "list"],
+							"query": [
+								{
+									"key": "page",
+									"value": "2"
+								},
+								{
+									"key": "limit",
+									"value": "3"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Activities",
+			"item": [
+				{
+					"name": "List Activities",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/activities/list?page=1&limit=3",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "activities", "list"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "3"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Form",
+			"item": [
+				{
+					"name": "Create Form",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"projectDetails\",\n    \"sub_type\": \"projectDetailsForm\",\n    \"data\": {\n        \"template_name\": \"defaultTemplate\",\n        \"fields\": {\n            \"controls\": [\n                {\n                    \"name\": \"title\",\n                    \"label\": \"Project title\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"text\",\n                    \"placeHolder\": \"Enter project title\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Enter valid project title\",\n                        \"pattern\": \"Project title can only include alphanumeric characters with spaces, -, _, /, <>\",\n                        \"maxLength\": \"Project title must not exceed 256 characters\"\n                    },\n                    \"validators\": {\n                        \"required\": true,\n                        \"maxLength\": 255,\n                        \"pattern\": \"^(?! )(?!.* {3})[\\\\p{L}a-zA-Z0-9\\\\-/_ <>&]+$\"\n                    }\n                },\n                {\n                    \"name\": \"categories\",\n                    \"label\": \"Category\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"select\",\n                    \"isMultiSelect\": \"false\",\n                    \"placeHolder\": \"Add project category\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Add project category\"\n                    },\n                    \"validators\": {\n                        \"required\": true\n                    },\n                    \"options\": [],\n                    \"meta\": {\n                        \"entityType\": \"categories\"\n                    }\n                },\n                {\n                    \"name\": \"objective\",\n                    \"label\": \"Objective\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"textarea\",\n                    \"placeHolder\": \"Summarize the goal of the project\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Summarize the goal of the project\",\n                        \"maxLength\": \"Objective must not exceed 2000 characters\",\n                        \"pattern\": \"Objective can only include alphanumeric characters with spaces, -, _, /, <>\"\n                    },\n                    \"validators\": {\n                        \"required\": true,\n                        \"maxLength\": 2000,\n                        \"pattern\": \"^(?! )(?!.* {3})[\\\\p{L}a-zA-Z0-9\\\\-/_ <>&]+$\"\n                    }\n                },\n                {\n                    \"name\": \"recommended_duration\",\n                    \"label\": \"Recommended duration\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"subFields\",\n                    \"placeHolder\": \"\",\n                    \"subfields\": [\n                        {\n                            \"name\": \"number\",\n                            \"label\": \"Recommended duration\",\n                            \"value\": \"\",\n                            \"class\": \"\",\n                            \"type\": \"number\",\n                            \"placeHolder\": \"Number\",\n                            \"position\": \"floating\",\n                            \"errorMessage\": {\n                                \"required\": \"Enter duration in numbers\",\n                                \"min\": \"Duration must be at least 1\",\n                                \"max\": \"Duration must not exceed 100,000\"\n                            },\n                            \"validators\": {\n                                \"required\": true,\n                                \"min\": 1,\n                                \"max\": 100000\n                            }\n                        },\n                        {\n                            \"name\": \"duration\",\n                            \"label\": \"\",\n                            \"value\": \"\",\n                            \"class\": \"\",\n                            \"type\": \"select\",\n                            \"isMultiSelect\": \"false\",\n                            \"placeHolder\": \"Weeks\",\n                            \"position\": \"floating\",\n                            \"errorMessage\": {\n                                \"required\": \"Enter duration\"\n                            },\n                            \"validators\": {\n                                \"required\": true\n                            },\n                            \"options\": [],\n                            \"meta\": {\n                                \"entityType\": \"duration\"\n                            }\n                        }\n                    ],\n                    \"position\": \"floating\",\n                    \"validators\": {\n                        \"required\": true\n                    }\n                },\n                {\n                    \"name\": \"keywords\",\n                    \"label\": \"Add keywords\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"text\",\n                    \"placeHolder\": \"Add a tag\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Add a tag\",\n                        \"maxLength\": \"Keyword must not exceed 256 characters\",\n                        \"pattern\": \"Keyword can only include alphanumeric characters with spaces, -, _, /, <>\"\n                    },\n                    \"validators\": {\n                        \"required\": false,\n                        \"maxLength\": 255,\n                        \"pattern\": \"^(?! )(?!.* {3})[\\\\p{L}a-zA-Z0-9\\\\-/_ <>&]+$\"\n                    }\n                },\n                {\n                    \"name\": \"recommended_for\",\n                    \"label\": \"Recommended for\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"select\",\n                    \"isMultiSelect\": \"true\",\n                    \"placeHolder\": \"Select role\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Select role\"\n                    },\n                    \"validators\": {\n                        \"required\": true\n                    },\n                    \"options\": [],\n                    \"meta\": {\n                        \"entityType\": \"recommended_for\"\n                    }\n                },\n                {\n                    \"name\": \"languages\",\n                    \"label\": \"Language\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"select\",\n                    \"isMultiSelect\": \"true\",\n                    \"placeHolder\": \"Select language\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Select language\"\n                    },\n                    \"validators\": {\n                        \"required\": true\n                    },\n                    \"options\": [],\n                    \"meta\": {\n                        \"entityType\": \"languages\"\n                    }\n                },\n                {\n                    \"name\": \"learning_resources\",\n                    \"label\": \"Project resource (You can add learning resource(s) as a project level)\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"icon\": \"add_circle\",\n                    \"type\": \"addResource\",\n                    \"textForLink\": \"Add learning resource(s)\",\n                    \"placeHolder\": \"\",\n                    \"position\": \"floating\",\n                    \"listIcon\": \"videocam_off\",\n                    \"listLabel\": \"Video information\",\n                    \"dialogData\": {\n                        \"header\": \"Add learning resource(s)\",\n                        \"headerCss\": \"flex flex-row justify-between items-center bg-[#0a4f9d] h-10\",\n                        \"resource\": [\n                            [\n                                {\n                                    \"name\": \"name\",\n                                    \"label\": \"Name of the resource\",\n                                    \"value\": \"\",\n                                    \"class\": \"\",\n                                    \"type\": \"text\",\n                                    \"placeHolder\": \"Name\",\n                                    \"position\": \"floating\",\n                                    \"errorMessage\": {\n                                        \"required\": \"Enter Name of the resource\",\n                                        \"maxLength\": \"Name must not exceed 256 characters\",\n                                        \"pattern\": \"Name can only include alphanumeric characters with spaces, -, _, /, <>\"\n                                    },\n                                    \"validators\": {\n                                        \"required\": true,\n                                        \"maxLength\": 255,\n                                        \"pattern\": \"^(?! )(?!.* {3})[\\\\p{L}a-zA-Z0-9\\\\-/_ <>&]+$\"\n                                    }\n                                },\n                                {\n                                    \"name\": \"url\",\n                                    \"label\": \"Link to the resource\",\n                                    \"value\": \"\",\n                                    \"class\": \"\",\n                                    \"type\": \"text\",\n                                    \"placeHolder\": \"Link\",\n                                    \"position\": \"floating\",\n                                    \"errorMessage\": {\n                                        \"required\": \"Enter link to the resource\",\n                                        \"pattern\": \"Please add a valid link to resource\",\n                                        \"maxLength\": \"Url must not exceed 256 characters\"\n                                    },\n                                    \"validators\": {\n                                        \"required\": true,\n                                        \"pattern\": \"^https://[:.a-zA-Z0-9/?=&_#-]+$\",\n                                        \"maxLength\": 255\n                                    }\n                                }\n                            ]\n                        ],\n                        \"confirmButton\": \"Save\",\n                        \"cancelButton\": \"Cancel\",\n                        \"addButton\": \"Add learning resource(s)\"\n                    },\n                    \"errorMessage\": {\n                        \"required\": \"Enter project title\"\n                    },\n                    \"validators\": {\n                        \"required\": false,\n                        \"maxLength\": 255\n                    }\n                },\n                {\n                    \"name\": \"licenses\",\n                    \"label\": \"License\",\n                    \"value\": \"cc_by_4.0\",\n                    \"class\": \"\",\n                    \"type\": \"select\",\n                    \"isMultiSelect\": \"false\",\n                    \"placeHolder\": \"Select license\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Select license\"\n                    },\n                    \"validators\": {\n                        \"required\": true\n                    },\n                    \"options\": [],\n                    \"meta\": {\n                        \"entityType\": \"licenses\"\n                    }\n                }\n            ]\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/form/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "form", "create"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Form",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"projectDetails\",\n    \"sub_type\": \"projectDetailsForm\",\n    \"data\": {\n        \"template_name\": \"defaultTemplate\",\n        \"fields\": {\n            \"controls\": [\n                {\n                    \"name\": \"title\",\n                    \"label\": \"Project title\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"text\",\n                    \"placeHolder\": \"Enter project title\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Enter valid project title\",\n                        \"pattern\": \"Project title can only include alphanumeric characters with spaces, -, _, /, <>\",\n                        \"maxLength\": \"Project title must not exceed 256 characters\"\n                    },\n                    \"validators\": {\n                        \"required\": true,\n                        \"maxLength\": 255,\n                        \"pattern\": \"^(?! )(?!.* {3})[\\\\p{L}a-zA-Z0-9\\\\-/_ <>&]+$\"\n                    }\n                },\n                {\n                    \"name\": \"categories\",\n                    \"label\": \"Category\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"select\",\n                    \"isMultiSelect\": \"false\",\n                    \"placeHolder\": \"Add project category\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Add project category\"\n                    },\n                    \"validators\": {\n                        \"required\": true\n                    },\n                    \"options\": [],\n                    \"meta\": {\n                        \"entityType\": \"categories\"\n                    }\n                },\n                {\n                    \"name\": \"objective\",\n                    \"label\": \"Objective\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"textarea\",\n                    \"placeHolder\": \"Summarize the goal of the project\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Summarize the goal of the project\",\n                        \"maxLength\": \"Objective must not exceed 2000 characters\",\n                        \"pattern\": \"Objective can only include alphanumeric characters with spaces, -, _, /, <>\"\n                    },\n                    \"validators\": {\n                        \"required\": true,\n                        \"maxLength\": 2000,\n                        \"pattern\": \"^(?! )(?!.* {3})[\\\\p{L}a-zA-Z0-9\\\\-/_ <>&]+$\"\n                    }\n                },\n                {\n                    \"name\": \"recommended_duration\",\n                    \"label\": \"Recommended duration\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"subFields\",\n                    \"placeHolder\": \"\",\n                    \"subfields\": [\n                        {\n                            \"name\": \"number\",\n                            \"label\": \"Recommended duration\",\n                            \"value\": \"\",\n                            \"class\": \"\",\n                            \"type\": \"number\",\n                            \"placeHolder\": \"Number\",\n                            \"position\": \"floating\",\n                            \"errorMessage\": {\n                                \"required\": \"Enter duration in numbers\",\n                                \"min\": \"Duration must be at least 1\",\n                                \"max\": \"Duration must not exceed 100,000\"\n                            },\n                            \"validators\": {\n                                \"required\": true,\n                                \"min\": 1,\n                                \"max\": 100000\n                            }\n                        },\n                        {\n                            \"name\": \"duration\",\n                            \"label\": \"\",\n                            \"value\": \"\",\n                            \"class\": \"\",\n                            \"type\": \"select\",\n                            \"isMultiSelect\": \"false\",\n                            \"placeHolder\": \"Weeks\",\n                            \"position\": \"floating\",\n                            \"errorMessage\": {\n                                \"required\": \"Enter duration\"\n                            },\n                            \"validators\": {\n                                \"required\": true\n                            },\n                            \"options\": [],\n                            \"meta\": {\n                                \"entityType\": \"duration\"\n                            }\n                        }\n                    ],\n                    \"position\": \"floating\",\n                    \"validators\": {\n                        \"required\": true\n                    }\n                },\n                {\n                    \"name\": \"keywords\",\n                    \"label\": \"Add keywords\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"text\",\n                    \"placeHolder\": \"Add a tag\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Add a tag\",\n                        \"maxLength\": \"Keyword must not exceed 256 characters\",\n                        \"pattern\": \"Keyword can only include alphanumeric characters with spaces, -, _, /, <>\"\n                    },\n                    \"validators\": {\n                        \"required\": false,\n                        \"maxLength\": 255,\n                        \"pattern\": \"^(?! )(?!.* {3})[\\\\p{L}a-zA-Z0-9\\\\-/_ <>&]+$\"\n                    }\n                },\n                {\n                    \"name\": \"recommended_for\",\n                    \"label\": \"Recommended for\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"select\",\n                    \"isMultiSelect\": \"true\",\n                    \"placeHolder\": \"Select role\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Select role\"\n                    },\n                    \"validators\": {\n                        \"required\": true\n                    },\n                    \"options\": [],\n                    \"meta\": {\n                        \"entityType\": \"recommended_for\"\n                    }\n                },\n                {\n                    \"name\": \"languages\",\n                    \"label\": \"Language\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"type\": \"select\",\n                    \"isMultiSelect\": \"true\",\n                    \"placeHolder\": \"Select language\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Select language\"\n                    },\n                    \"validators\": {\n                        \"required\": true\n                    },\n                    \"options\": [],\n                    \"meta\": {\n                        \"entityType\": \"languages\"\n                    }\n                },\n                {\n                    \"name\": \"learning_resources\",\n                    \"label\": \"Project resource (You can add learning resource(s) as a project level)\",\n                    \"value\": \"\",\n                    \"class\": \"\",\n                    \"icon\": \"add_circle\",\n                    \"type\": \"addResource\",\n                    \"textForLink\": \"Add learning resource(s)\",\n                    \"placeHolder\": \"\",\n                    \"position\": \"floating\",\n                    \"listIcon\": \"videocam_off\",\n                    \"listLabel\": \"Video information\",\n                    \"dialogData\": {\n                        \"header\": \"Add learning resource(s)\",\n                        \"headerCss\": \"flex flex-row justify-between items-center bg-[#0a4f9d] h-10\",\n                        \"resource\": [\n                            [\n                                {\n                                    \"name\": \"name\",\n                                    \"label\": \"Name of the resource\",\n                                    \"value\": \"\",\n                                    \"class\": \"\",\n                                    \"type\": \"text\",\n                                    \"placeHolder\": \"Name\",\n                                    \"position\": \"floating\",\n                                    \"errorMessage\": {\n                                        \"required\": \"Enter Name of the resource\",\n                                        \"maxLength\": \"Name must not exceed 256 characters\",\n                                        \"pattern\": \"Name can only include alphanumeric characters with spaces, -, _, /, <>\"\n                                    },\n                                    \"validators\": {\n                                        \"required\": true,\n                                        \"maxLength\": 255,\n                                        \"pattern\": \"^(?! )(?!.* {3})[\\\\p{L}a-zA-Z0-9\\\\-/_ <>&]+$\"\n                                    }\n                                },\n                                {\n                                    \"name\": \"url\",\n                                    \"label\": \"Link to the resource\",\n                                    \"value\": \"\",\n                                    \"class\": \"\",\n                                    \"type\": \"text\",\n                                    \"placeHolder\": \"Link\",\n                                    \"position\": \"floating\",\n                                    \"errorMessage\": {\n                                        \"required\": \"Enter link to the resource\",\n                                        \"pattern\": \"Please add a valid link to resource\",\n                                        \"maxLength\": \"Url must not exceed 256 characters\"\n                                    },\n                                    \"validators\": {\n                                        \"required\": true,\n                                        \"pattern\": \"^https://[:.a-zA-Z0-9/?=&_#-]+$\",\n                                        \"maxLength\": 255\n                                    }\n                                }\n                            ]\n                        ],\n                        \"confirmButton\": \"Save\",\n                        \"cancelButton\": \"Cancel\",\n                        \"addButton\": \"Add learning resource(s)\"\n                    },\n                    \"errorMessage\": {\n                        \"required\": \"Enter project title\"\n                    },\n                    \"validators\": {\n                        \"required\": false,\n                        \"maxLength\": 255\n                    }\n                },\n                {\n                    \"name\": \"licenses\",\n                    \"label\": \"License\",\n                    \"value\": \"cc_by_4.0\",\n                    \"class\": \"\",\n                    \"type\": \"select\",\n                    \"isMultiSelect\": \"false\",\n                    \"placeHolder\": \"Select license\",\n                    \"position\": \"floating\",\n                    \"errorMessage\": {\n                        \"required\": \"Select license\"\n                    },\n                    \"validators\": {\n                        \"required\": true\n                    },\n                    \"options\": [],\n                    \"meta\": {\n                        \"entityType\": \"licenses\"\n                    }\n                }\n            ]\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/form/update/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "form", "update", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "NOTE: Id is required in params and that should be objectId"
+					},
+					"response": []
+				},
+				{
+					"name": "Read Form",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"sidenavData\",\n    \"sub_type\": \"sidenavDataForm\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/form/read",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "form", "read"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Read Form using Id",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/form/read/:form_id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "form", "read", ":form_id"],
+							"variable": [
+								{
+									"key": "form_id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Entities",
+			"item": [
+				{
+					"name": "Create Entity",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"ml\",\n    \"label\": \"Malayalam\",\n    \"status\": \"ACTIVE\",\n    \"type\": \"SYSTEM\",\n    \"entity_type_id\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entities/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entities", "create"]
+						},
+						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Entity",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"ml\",\n    \"label\": \"Malayalam\",\n    \"status\": \"ACTIVE\",\n    \"type\": \"SYSTEM\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entities/update/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entities", "update", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "NOET: All body req parameters are optional to update."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Entity",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entities/delete/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entities", "delete", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Read All System Entities",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entities/read",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entities", "read"]
+						},
+						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
+					},
+					"response": []
+				},
+				{
+					"name": "Read Entity Using Id",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entities/read?id=1",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entities", "read"],
+							"query": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
+					},
+					"response": []
+				},
+				{
+					"name": "Read Entity Using Value",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entities/read?value=ml",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entities", "read"],
+							"query": [
+								{
+									"key": "value",
+									"value": "ml",
+									"description": "User value or id"
+								}
+							]
+						},
+						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Entity Type",
+			"item": [
+				{
+					"name": "Create Entity Type",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"languages\",\n    \"label\": \"Languages\",\n    \"status\": \"ACTIVE\",\n    \"type\": \"SYSTEM\",\n    \"data_type\": \"STRING\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entity-types/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entity-types", "create"]
+						},
+						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Entity Type",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"language\",\n    \"label\": \"language\",\n    \"status\": \"ACTIVE\",\n    \"type\": \"SYSTEM\",\n    \"data_type\": \"STRING\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entity-types/update/1",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entity-types", "update", "1"]
+						},
+						"description": "NOET: All body req parameters are optional to update."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Entity Type",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entity-types/delete/1",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entity-types", "delete", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Read All System Entity Type",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entity-types/read",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entity-types", "read"]
+						},
+						"description": "NOTE: Query Parmas\n1). type is mandatory\n2). deleted is optional\n3). status is optional"
+					},
+					"response": []
+				},
+				{
+					"name": "Read Entity Types Using Value",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": [\"languages\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entity-types/read",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entity-types", "read"],
+							"query": [
+								{
+									"key": "value",
+									"value": "role_one",
+									"disabled": true
+								},
+								{
+									"key": "deleted",
+									"value": "false",
+									"disabled": true
+								},
+								{
+									"key": "status",
+									"value": "ACTIVE",
+									"disabled": true
+								}
+							]
+						},
+						"description": "NOTE: Query Parmas\n1). type is mandatory\n2). deleted is optional\n3). status is optional"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Config",
+			"item": [
+				{
+					"name": "list",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/config/list",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "config", "list"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Organization Extension",
+			"item": [
+				{
+					"name": "Create Organization Config",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"show_reviewer_list\": true,\n    \"min_approval\": 2,\n    \"resource_type\": \"projects\",\n    \"review_type\": \"SEQUENTIAL\",\n    \"organization_id\":2,\n    \"review_stages\": [\n        {\n            \"role\": \"content_creator\",\n            \"level\": 1\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/organization-extensions/createConfig",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "organization-extensions", "createConfig"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Organization Config",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"min_approval\": 2,\n    \"review_type\": \"PARALLEL\",\n    \"organization_id\":2\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/organization-extensions/updateConfig/16?resource_type=projects",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "organization-extensions", "updateConfig", "16"],
+							"query": [
+								{
+									"key": "resource_type",
+									"value": "projects"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Projects",
+			"item": [
+				{
+					"name": "Create Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Improvement\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/update",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "projects", "update"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Improvement\",\n    \"objective\": \"In the vibrant city of Metropolis\",\n    \"recommended_for\": [\n        \"teachers\",\n        \"ht\"\n    ],\n    \"languages\": \"en\",\n    \"categories\": \"school_process\",\n    \"licenses\": [\n        \"cc_by_4.0\"\n    ],\n    \"learning_resources\": [\n        {\n            \"name\": \"sample doc\",\n            \"url\": \"http://test.com\"\n        }\n    ],\n    \"tasks\": [\n        {\n            \"id\": \"7a8b13fb-c9e1-4296-8abd-8b64b357a128\",\n            \"name\": \"task without children\",\n            \"type\": \"content\",\n            \"is_mandatory\": true,\n            \"sequence_no\": 1,\n            \"allow_evidences\": false,\n            \"learning_resources\": [\n                {\n                    \"name\": \"sample doc\",\n                    \"url\": \"http://test.com\"\n                }\n            ],\n            \"children\": [\n                {\n                    \"name\": \"hhhhhhhh\",\n                    \"type\": \"simple\",\n                    \"id\": \"7a8b13fb-c9e1-4296\",\n                    \"parent_id\": \"8f63493a-42aa-4137-aa37-d95f58b1bf1a\",\n                    \"sequence_no\": 1\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/update/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "projects", "update", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Project",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/details/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "projects", "details", ":id"],
+							"query": [
+								{
+									"key": "search",
+									"value": "s",
+									"disabled": true
+								},
+								{
+									"key": "actions",
+									"value": "",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Project Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/details/47",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "projects", "details", "47"],
+							"query": [
+								{
+									"key": "search",
+									"value": "s",
+									"disabled": true
+								},
+								{
+									"key": "actions",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Project For Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reviewer_ids\": [\"228\",\"228\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/submitForReview/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "projects", "submitForReview", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Reviewer List",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/reviewerList?page=1&limit=20",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "projects", "reviewerList"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Resources",
+			"item": [
+				{
+					"name": "Draft List",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/resource/list?listing=drafts&limit=100&sort_by=title&sort_order=asc&page=1&type=projects",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "resource", "list"],
+							"query": [
+								{
+									"key": "listing",
+									"value": "drafts"
+								},
+								{
+									"key": "limit",
+									"value": "100"
+								},
+								{
+									"key": "sort_by",
+									"value": "title"
+								},
+								{
+									"key": "sort_order",
+									"value": "asc"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "type",
+									"value": "projects"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submitted Listing",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/resource/list?listing=submitted_for_review&limit=100&sort_by=title&sort_order=asc&page=1&type=projects",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "resource", "list"],
+							"query": [
+								{
+									"key": "listing",
+									"value": "submitted_for_review"
+								},
+								{
+									"key": "limit",
+									"value": "100"
+								},
+								{
+									"key": "sort_by",
+									"value": "title"
+								},
+								{
+									"key": "sort_order",
+									"value": "asc"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "type",
+									"value": "projects"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Up For Review Listing",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/resource/upForReview?limit=100&sort_by=title&sort_order=asc&page=1&type=projects",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "resource", "upForReview"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100"
+								},
+								{
+									"key": "sort_by",
+									"value": "title"
+								},
+								{
+									"key": "sort_order",
+									"value": "asc"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "type",
+									"value": "projects"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Callback URL for Update Published Resource",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reviewer_ids\": [\"228\",\"228\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/publishCallback?resource_id=1&published_id=507f1f77bcf86cd799439011",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "projects", "publishCallback"],
+							"query": [
+								{
+									"key": "resource_id",
+									"value": "1"
+								},
+								{
+									"key": "published_id",
+									"value": "507f1f77bcf86cd799439011"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Certificates",
+			"item": [
+				{
+					"name": "List Certificates",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/certificates/list",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "certificates", "list"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Certificate",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\": \"one-logo-one-sign\",\n    \"name\": \"One Logo One Signature\",\n    \"resource_type\": \"project\",\n    \"url\": \"certfile_BASE_TEMPLATE/system/cert/38c75193-f86c-49a8-a9e2-ca1a4fa96b72/one-logo-one-sign.svg\",\n    \"meta\": {\n        \"logos\": {\n            \"no_of_logos\": 1,\n            \"stateLogo1\": null\n        },\n        \"signature\": {\n            \"no_of_signature\": 1,\n            \"signatureImg1\": null\n        },\n        \"signatureTitleName1\": \"Name\",\n        \"signatureTitleDesignation1\": \"Designation\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/certificate/update",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "certificate", "update"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Certificate",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\": \"one-logo-one-sign\",\n    \"name\": \"One Logo One Signature\",\n    \"resource_type\": \"project\",\n    \"url\": \"certfile_BASE_TEMPLATE/system/cert/38c75193-f86c-49a8-a9e2-ca1a4fa96b72/one-logo-one-sign.svg\",\n    \"meta\": {\n        \"logos\": {\n            \"no_of_logos\": 1,\n            \"stateLogo1\": null\n        },\n        \"signature\": {\n            \"no_of_signature\": 1,\n            \"signatureImg1\": null\n        },\n        \"signatureTitleName1\": \"Name\",\n        \"signatureTitleDesignation1\": \"Designation\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/certificate/update:/id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "certificate", "update:", "id"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User",
+			"item": [
+				{
+					"name": "Create Account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonBody = JSON.parse(responseBody);",
+									"pm.environment.set(\"token\", jsonBody.result.access_token);",
+									"pm.environment.set(\"refresh_token\", jsonBody.result.refresh_token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "device-info",
+								"value": "{\"browserName\":\"Chrome\",\"browserVersion\":\"122.0.0.0\",\"osName\":\"Linux\",\"platformType\":\"desktop\",\"type\":\"\"}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"priyanka\",\n    \"email\": \"priyanka@tunerlabs.com\",\n    \"password\": \"Welcome@123\",\n    \"has_accepted_terms_and_conditions\": true,\n    \"organization_id\":1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{UserBaseURL}}user/v1/account/create",
+							"host": ["{{UserBaseURL}}user"],
+							"path": ["v1", "account", "create"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonBody = JSON.parse(responseBody);",
+									"pm.environment.set(\"token\", jsonBody.result.access_token);",
+									"pm.environment.set(\"refresh_token\", jsonBody.result.refresh_token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "device-info",
+								"value": "{\"type\": \"\", \"osName\": \"Linux\", \"browserName\": \"Chrome\", \"platformType\": \"desktop\", \"browserVersion\": \"122.0.0.0\"}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "email",
+									"value": "mathan@test.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "testing",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "email",
+									"value": "priyanka@tunerlabs.com",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "password",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "password",
+									"value": "Bhavana@111",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{UserBaseURL}}user/v1/account/login",
+							"host": ["{{UserBaseURL}}user"],
+							"path": ["v1", "account", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search user",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "internal_access_token",
+								"value": "081302ec98c784007e739ed66cdedf26",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_ids\" : [7]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{UserBaseURL}}user/v1/account/search?type=all&organization_id=1",
+							"host": ["{{UserBaseURL}}user"],
+							"path": ["v1", "account", "search"],
+							"query": [
+								{
+									"key": "type",
+									"value": "all"
+								},
+								{
+									"key": "organization_id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Cloud APIs",
+			"item": [
+				{
+					"name": "Get Downloable Url",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"filePaths\": [\"project/207/1/c7b1a540-af55-4e8f-b7d8-07a4f2782a95/data3.json\"] \n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/cloud-services/file/getDownloadableUrl",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "cloud-services", "file", "getDownloadableUrl"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": " Get Signed Url",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "multipart/form-data",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"request\": {\n    \"1\": {\n      \"files\": [\n        \"stateLogo1.png\"\n      ]\n    }\n  },\n  \"ref\": \"certificate\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/cloud-services/file/getSignedUrl",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "cloud-services", "file", "getSignedUrl"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Organization",
+			"item": [
+				{
+					"name": "Create Organization",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Tunerlabs\",\n    \"code\": \"tl\",\n    \"description\": \"tunerlabs org\",\n    \"domains\": [\n        \"tunerlabs.com\",\n        \"tl.com\",\n        \"tunerlabs.in\"\n    ],\n    \"admin_email\": \"priyanka@tunerlabs.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{UserBaseURL}}user/v1/organization/create",
+							"host": ["{{UserBaseURL}}user"],
+							"path": ["v1", "organization", "create"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Organization",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"TunerLabs\",\n    \"description\": \"TunerLabs software\",\n    \"domains\": [\n        \"tunerlabs.com\",\n        \"tl.com\",\n        \"tunerlabs.in\",\n        \"tunerlab.com\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{UserBaseURL}}user/v1/organization/update/3",
+							"host": ["{{UserBaseURL}}user"],
+							"path": ["v1", "organization", "update", "3"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Organization",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "internal_access_token",
+								"value": "{{internal_access_token}}",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organizationIds\": [1,2]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{UserBaseURL}}user/v1/organization/list?page=1&limit=10",
+							"host": ["{{UserBaseURL}}user"],
+							"path": ["v1", "organization", "list"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Read Organization",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "internal_access_token",
+								"value": "081302ec98c784007e739ed66cdedf26",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{UserBaseURL}}user/v1/organization/read?organisation_id=1",
+							"host": ["{{UserBaseURL}}user"],
+							"path": ["v1", "organization", "read"],
+							"query": [
+								{
+									"key": "organisation_id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Comments",
+			"item": [
+				{
+					"name": "Create Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"comment\": \"<h1>Check spelling</h1>\",\n    \"context\": \"page\",\n    \"page\": \"projectDetail\",\n    \"status\": \"OPEN\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/comments/update?resource_id=1",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "comments", "update"],
+							"query": [
+								{
+									"key": "search",
+									"value": "s",
+									"disabled": true
+								},
+								{
+									"key": "actions",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "resource_id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"comment\": \"<h1>Check spelling</h1>\",\n    \"context\": \"page\",\n    \"page\": \"projectDetail\",\n    \"status\": \"RESOLVED\"\n\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/comments/update/:id?resource_id=1",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "comments", "update", ":id"],
+							"query": [
+								{
+									"key": "resource_id",
+									"value": "1"
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Comment listing",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/comments/list?context=page&page_value=1&resource_id=2407",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "comments", "list"],
+							"query": [
+								{
+									"key": "context",
+									"value": "page"
+								},
+								{
+									"key": "page_value",
+									"value": "1"
+								},
+								{
+									"key": "resource_id",
+									"value": "2407"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Reviews",
+			"item": [
+				{
+					"name": "Start Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/reviews/start/2417",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "reviews", "start", "2417"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Request For Changes",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"comment\": {\n        \"id\": 5,\n        \"comment\": \"<h1>test Comment</h1>\",\n        \"context\": \"page\",\n        \"page\": \"projectDetail\",\n        \"status\": \"OPEN\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/reviews/update/2406",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "reviews", "update", "2406"],
+							"query": [
+								{
+									"key": "search",
+									"value": "s",
+									"disabled": true
+								},
+								{
+									"key": "actions",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Approve Resource",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/reviews/approve/2406",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "reviews", "approve", "2406"],
+							"query": [
+								{
+									"key": "search",
+									"value": "s",
+									"disabled": true
+								},
+								{
+									"key": "actions",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Resource",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"comment\": [\n        {\n            \"id\": 5,\n            \"comment\": \"<h1>Check uuuuuuuuuuuuuuuuuuuu</h1>\",\n            \"context\": \"page\",\n            \"page\": \"projectDetail\",\n            \"status\": \"OPEN\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/reviews/rejectOrReport/2406",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "reviews", "rejectOrReport", "2406"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reject and Report Resource",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"comment\": [{\n        \"comment\": \"<h1>Check uuuuuuuuuuuuuuuuuuuu</h1>\",\n        \"context\": \"page\",\n        \"page\": \"projectDetail\",\n        \"status\": \"OPEN\"\n    }],\n    \"notes\": \"Invalid project\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/reviews/rejectOrReport/2406?isReported=true",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "reviews", "rejectOrReport", "2406"],
+							"query": [
+								{
+									"key": "isReported",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Reviews Stages",
+			"item": [
+				{
+					"name": "Update Review Stage",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"content_creator\",\n    \"level\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/review-stages/update/2?organization_id=1",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "review-stages", "update", "2"],
+							"query": [
+								{
+									"key": "organization_id",
+									"value": "1",
+									"description": "Optional parameter"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Review Stages",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/review-stages/list?resource_type=projects",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "review-stages", "list"],
+							"query": [
+								{
+									"key": "resource_type",
+									"value": "projects"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

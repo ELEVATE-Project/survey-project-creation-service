@@ -56,7 +56,7 @@ module.exports = (sequelize, DataTypes) => {
 			modelName: 'Comment',
 			tableName: 'comments',
 			freezeTableName: true,
-			paranoid: false,
+			paranoid: true,
 		}
 	)
 

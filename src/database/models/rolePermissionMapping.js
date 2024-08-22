@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
 			modelName: 'RolePermission',
 			tableName: 'role_permission_mapping',
 			freezeTableName: true,
-			paranoid: false,
+			paranoid: true,
 		}
 	)
 
