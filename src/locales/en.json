@@ -110,5 +110,7 @@
 	"RESOURCE_ALREADY_SUBMITTED": "This resource is already submitted.",
 	"RESOURCE_NOTE_LENGTH_EXCEEDED": "This resource note length exceeded.",
 	"CHARACTER_LIMIT_EXCEED": "Value exceeds the allowed length for the field title",
-	"RESOURCE_APPROVAL_FAILED": "Resource approval failed or already approved."
+	"RESOURCE_APPROVAL_FAILED": "Resource approval failed or already approved.",
+	"RESOURCES_FETCHED": "Resources fetched Successfully.",
+	"BROWSE_EXISTING_LIST_FETCHING_FAILED": "Unable to the requested resource at the moment."
 }

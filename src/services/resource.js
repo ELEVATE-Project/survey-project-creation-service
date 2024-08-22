@@ -14,6 +14,7 @@ const reviewStagesQueries = require('@database/queries/reviewStage')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const userRequests = require('@requests/user')
+const interfaceRequests = require('@requests/interface')
 const _ = require('lodash')
 const utils = require('@generics/utils')
 const axios = require('axios')
@@ -404,7 +405,10 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - Response contain sort filter
 	 */
 	static async constructSortOptions(sort_by, sort_order) {
-		let sort = {}
+		let sort = {
+			sort_by: common.CREATED_AT,
+			order: common.SORT_DESC,
+		}
 		if (sort_by && sort_order) {
 			sort.sort_by = sort_by
 			sort.order = sort_order.toUpperCase() == common.SORT_DESC.toUpperCase() ? common.SORT_DESC : common.SORT_ASC
@@ -1096,5 +1100,49 @@ module.exports = class resourceHelper {
 		return orgConfigList[resourceType]
 	}
 
-	static async browseExistingList(organization_id, query, searchText, pageNo, pageSize) {}
+	/**
+	 * Get resources from consumption service
+	 * @name browseExistingList
+	 * @param {string} organization_id - Org Id of the user
+	 * @param {string} token - Token of the user
+	 * @param {Object} query - Query object passed by user
+	 * @param {string} searchText - Title to search
+	 * @param {Integer} pageNo -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * @param {Integer} pageSize -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
+	 * @returns {Object} - Response contain object of user details
+	 */
+	static async browseExistingList(organization_id, token, query, searchText = '', pageNo, pageSize) {
+		try {
+			let result = {
+				data: [],
+				count: 0,
+			}
+			const type = query[common.TYPE] ? query[common.TYPE] : ''
+			const search = searchText != '' ? searchText : ''
+			const resources = await interfaceRequests.browseExistingList(type, organization_id, token, search)
+
+			if (resources?.data?.result?.data?.length > 0) {
+				// construct sort object
+				const sort = await this.constructSortOptions(query.sort_by, query.sort_order)
+				// sort the array
+				const sortedData = utils.arraySort(resources.data.result.data, sort)
+				result = {
+					data: utils.arrayPaginator(sortedData, pageNo, pageSize),
+					count: resources.data.result.data.length,
+				}
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCES_FETCHED',
+				result,
+			})
+		} catch (error) {
+			return responses.failureResponse({
+				message: 'BROWSE_EXISTING_LIST_FETCHING_FAILED',
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
+		}
+	}
 }

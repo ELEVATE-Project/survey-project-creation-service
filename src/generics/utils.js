@@ -530,6 +530,24 @@ const validateComment = (comments) => {
 		)
 	return isValidComment
 }
+// apply common.pagination to an array
+const arrayPaginator = (data, page, size) => {
+	// find the start index from page and size
+	const startIndex = (page - 1) * size
+	// slice the array and return a new array with from starting index to ending index
+	return data.slice(startIndex, startIndex + size)
+}
+
+// apply sort to any array of objects. Sort by can be any key in the object and default sort orders can be applied
+const arraySort = (data, sort) => {
+	const { sort_by, order } = sort
+
+	return data.sort((a, b) => {
+		if (a[sort_by] < b[sort_by]) return order.toUpperCase() === common.SORT_ASC.toUpperCase() ? -1 : 1
+		if (a[sort_by] > b[sort_by]) return order.toUpperCase() === common.SORT_ASC.toUpperCase() ? 1 : -1
+		return 0
+	})
+}
 
 module.exports = {
 	composeEmailBody,
@@ -563,4 +581,6 @@ module.exports = {
 	convertToInteger,
 	validateTitle,
 	validateComment,
+	arrayPaginator,
+	arraySort,
 }
