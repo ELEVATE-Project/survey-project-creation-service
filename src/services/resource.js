@@ -1126,8 +1126,27 @@ module.exports = class resourceHelper {
 				const sort = await this.constructSortOptions(query.sort_by, query.sort_order)
 				// sort the array
 				const sortedData = utils.arraySort(resources.data.result.data, sort)
+				// data after applying pagenation
+				const paginatedDated = utils.arrayPaginator(sortedData, pageNo, pageSize)
+				// get the unique creator ids to fetch the user details
+				const uniqueCreatorIds = _.difference(
+					utils.getUniqueElements(paginatedDated.map((resource) => resource.created_by)),
+					[null, undefined]
+				)
+				// fetch the user details from user service with creatorId
+				const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
+
+				let finalResponse = []
+
+				paginatedDated.filter((resource) => {
+					resource.created_by = userDetails[resource.created_by]?.name
+						? userDetails[resource.created_by]?.name
+						: ''
+					finalResponse.push(resource)
+				})
+
 				result = {
-					data: utils.arrayPaginator(sortedData, pageNo, pageSize),
+					data: finalResponse,
 					count: resources.data.result.data.length,
 				}
 			}
