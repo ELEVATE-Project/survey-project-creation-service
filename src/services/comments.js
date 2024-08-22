@@ -88,15 +88,7 @@ module.exports = class CommentsHelper {
 				result: updatedComment,
 			})
 		} catch (error) {
-			if (error.name === 'SequelizeDatabaseError' && error.original.code === '22P02') {
-				return responses.failureResponse({
-					message: 'STATUS_INVALID',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			} else {
-				throw error
-			}
+			throw error
 		}
 	}
 
@@ -144,8 +136,8 @@ module.exports = class CommentsHelper {
 
 			let commented_by = []
 
-			if (users.success && users.data?.result?.length > 0) {
-				const user_map = _.keyBy(users.data.result, 'id')
+			if (users.success && users.data?.result?.data?.length > 0) {
+				const user_map = _.keyBy(users.data.result.data, 'id')
 				comments.rows = _.map(comments.rows, (comment) => {
 					//add commenter and resolver details
 					const commenter = user_map[comment.user_id] ? _.pick(user_map[comment.user_id], ['id', 'name']) : {}

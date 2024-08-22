@@ -13,6 +13,7 @@ const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
+const reviewService = require('@services/reviews')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -629,25 +630,27 @@ module.exports = class ProjectsHelper {
 
 			//validate the reviewer
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
+				const uniqueReviewerIds = utils.getUniqueElements(bodyData.reviewer_ids)
 				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
-					user_ids: bodyData.reviewer_ids,
+					user_ids: uniqueReviewerIds,
 					excluded_user_ids: [userDetails.id],
 				})
 
-				//return error message if the reviewer is invalid or not found
-				if (reviewers.length <= 0 || bodyData.reviewer_ids > reviewers.length) {
-					return responses.failureResponse({
-						message: 'REVIEWER_IDS_NOT_FOUND',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
-				}
+				if (!reviewers.success) throw new Error('REVIEWER_IDS_NOT_FOUND')
 
 				let reviewerIds = []
 
 				//written as a backup will remove once the user service PR merged
 				if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
 					reviewerIds = reviewers.data.result.data.map((item) => item.id)
+				} else {
+					// If no valid reviewers data is found, return an error response
+					throw new Error('REVIEWER_IDS_NOT_FOUND')
+				}
+
+				//return error message if the reviewer is invalid or not found
+				if (uniqueReviewerIds.length > reviewers.data.result.data.length) {
+					throw new Error('REVIEWER_IDS_NOT_FOUND')
 				}
 
 				//create entry in reviews table
@@ -689,7 +692,7 @@ module.exports = class ProjectsHelper {
 				userDetails.organization_id
 			)
 			if (!isReviewMandatory) {
-				const publishResource = await resourceService.publishResource(resourceId, userDetails.id)
+				const publishResource = await reviewService.publishResource(resourceId, userDetails.id)
 				return publishResource
 			}
 
@@ -714,7 +717,7 @@ module.exports = class ProjectsHelper {
 			})
 		} catch (error) {
 			return responses.failureResponse({
-				message: 'RESOURCE_VALIDATION_FAILED',
+				message: error.message || 'RESOURCE_VALIDATION_FAILED',
 				statusCode: httpStatusCode.bad_request,
 				responseCode: 'CLIENT_ERROR',
 				result: error.error || [],

@@ -10,10 +10,12 @@ info:
   contact:
     email: tech-infra@shikshalokam.org
 servers:
-  - url: http://localhost:3006
-    description: local server. NB :- port may vary according to the local setup.
-  - url: https://dev.elevate-apis.shikshalokam.org/
-    description: dev server
+  - url: http://localhost:6001
+    description: Local server. NB :- port may vary according to the local setup.
+  - url: https://scp-dev.elevate-apis.shikshalokam.org/
+    description: DEV server
+  - url: https://scp-qa.elevate-apis.shikshalokam.org/
+    description: QA server
 
 paths:
   /scp/v1/modules/create:
@@ -2009,6 +2011,7 @@ paths:
                       correlation: 0d392602-cb68-4690-8f38-3d3de9f94198
                       meeting_platform: BBB
                     parameters: []
+
   /scp/v1/cloud-services/getSignedUrl:
     post:
       summary: Cloud services get signed url
@@ -3229,7 +3232,6 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
-
   /scp/v1/projects/submitForReview/{projectId}:
     post:
       summary: Submit Project for Review
@@ -3328,347 +3330,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/project/deleteProject400Response'
-
-  /scp/v1/resource/list:
-    get:
-      summary: Resource List
-      tags:
-        - Resource
-      description: |-
-        You can use this API to list resources like project
-         - The API Endpoint for listing resources is `/scp/v1/resource/list` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
-          required: true
-          schema:
-            type: string
-        - name: page
-          in: query
-          description: The page number for pagination.
-          required: false
-          schema:
-            type: integer
-          example: 1
-        - name: limit
-          in: query
-          description: The limit of projects per page.
-          required: false
-          schema:
-            type: integer
-          example: 10
-        - name: search
-          in: query
-          description: The search value to filter projects based on title.
-          required: false
-          schema:
-            type: string
-        - name: type
-          in: query
-          description: Type of the resource
-          required: false
-          schema:
-            type: string
-          example: projects
-        - name: status
-          in: query
-          description: The status of the resource (Ex - ['DRAFT'] - If `listing` is `drafts` and ['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review` )
-          required: false
-          schema:
-            type: string
-          example: DRAFT
-        - name: listing
-          in: query
-          description: To identify the page from frontend. Values can be ['drafts','submitted_for_review']
-          required: true
-          schema:
-            type: string
-          example: DRAFT
-        - name: sort_by
-          in: query
-          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
-          required: false
-          schema:
-            type: string
-          example: status
-        - name: sort_order
-          in: query
-          description: Sort order (ascending or descending).
-          required: false
-          schema:
-            type: string
-            enum: ['asc', 'desc']
-          example: asc
-
-      responses:
-        '200':
-          description: project listed successfully
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          type: object
-                      count:
-                        type: number
-
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
-
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: project listed successfully
-                    result:
-                      data:
-                        - id: 4
-                          title: sample project
-                          type: projects
-                          organization:
-                            id: 24
-                            name: Shikshalokam
-                            code: sl
-                          status: DRAFT
-                      count: 1
-
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projecsuccessfullytCreation
-                          version: 3
-
-  /scp/v1/resource/upForReview:
-    get:
-      summary: Up For Review Resource List
-      tags:
-        - Resource
-      description: |-
-        You can use this API to list resources which are up for review for the reviewers
-         - The API Endpoint : `/scp/v1/resource/upForReview` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
-          required: true
-          schema:
-            type: string
-        - name: page
-          in: query
-          description: The page number for pagination.
-          required: false
-          schema:
-            type: integer
-          example: 1
-        - name: limit
-          in: query
-          description: The limit of projects per page.
-          required: false
-          schema:
-            type: integer
-          example: 10
-        - name: search
-          in: query
-          description: The search value to filter projects based on title.
-          required: false
-          schema:
-            type: string
-        - name: type
-          in: query
-          description: Type of the resource
-          required: false
-          schema:
-            type: string
-          example: projects
-        - name: status
-          in: query
-          description: Pass status =  'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED' to get the resources with curresponding statuses.
-          required: false
-          schema:
-            type: string
-          example: INPROGRESS
-        - name: sort_by
-          in: query
-          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
-          required: false
-          schema:
-            type: string
-          example: status
-        - name: sort_order
-          in: query
-          description: Sort order (ascending or descending).
-          required: false
-          schema:
-            type: string
-            enum: ['asc', 'desc']
-          example: asc
-
-      responses:
-        '200':
-          description: project listed successfully
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          type: object
-                      count:
-                        type: number
-
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
-
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: Resource listed successfully
-                    result:
-                      data:
-                        - id: 4
-                          title: sample project
-                          type: projects
-                          organization:
-                            id: 24
-                            name: Shikshalokam
-                            code: sl
-                          status: INPROGRESS
-                      count: 1
-
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projecsuccessfullytCreation
-                          version: 3
-  /scp/v1/resource/publishCallback:
-    post:
-      summary: Callback URL for Update Published Resource
-      tags:
-        - Resource
-      description: |-
-        You can use this API to update the resource details after publishing the resource in consumption portal
-         - The API Endpoint : `/scp/v1/resource/publishCallback` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
-          required: true
-          schema:
-            type: string
-        - name: resource_id
-          in: query
-          description: Resource id
-          required: false
-          schema:
-            type: integer
-          example: 1
-        - name: published_id
-          in: query
-          description: Consumption side resource id
-          required: false
-          schema:
-            type: string
-          example: 10
-
-      responses:
-        '200':
-          description: Resource updated successfully
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
-
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: Resource updated successfully
-
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projecsuccessfullytCreation
-                          version: 3
   /scp/v1/projects/details/{projectId}:
     post:
       summary: Project Details
@@ -4077,14 +3738,15 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-  /scp/v1/projects/publish/{projectId}:
+
+  /scp/v1/resource/list:
     get:
-      summary: Project Publish
+      summary: Resource List
       tags:
-        - Projects
+        - Resource
       description: |-
-        You can use this API to publish the project
-         - The API Endpoint for publish project is `/scp/v1/projects/publish` 
+        You can use this API to list resources like project
+         - The API Endpoint for listing resources is `/scp/v1/resource/list` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -4096,16 +3758,289 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
-          name: projectId
-          description: Please append a valid project Id to the Request URL.
+        - name: page
+          in: query
+          description: The page number for pagination.
+          required: false
           schema:
-            type: number
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: The limit of projects per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
+        - name: search
+          in: query
+          description: The search value to filter projects based on title.
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Type of the resource
+          required: false
+          schema:
+            type: string
+          example: projects
+        - name: status
+          in: query
+          description: The status of the resource (Ex - ['DRAFT'] - If `listing` is `drafts` and ['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review` )
+          required: false
+          schema:
+            type: string
+          example: DRAFT
+        - name: listing
+          in: query
+          description: To identify the page from frontend. Values can be ['drafts','submitted_for_review']
           required: true
+          schema:
+            type: string
+          example: DRAFT
+        - name: sort_by
+          in: query
+          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          required: false
+          schema:
+            type: string
+          example: status
+        - name: sort_order
+          in: query
+          description: Sort order (ascending or descending).
+          required: false
+          schema:
+            type: string
+            enum: ['asc', 'desc']
+          example: asc
 
       responses:
         '200':
-          description: project published successfully
+          description: project listed successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: number
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: project listed successfully
+                    result:
+                      data:
+                        - id: 4
+                          title: sample project
+                          type: projects
+                          organization:
+                            id: 24
+                            name: Shikshalokam
+                            code: sl
+                          status: DRAFT
+                      count: 1
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projecsuccessfullytCreation
+                          version: 3
+  /scp/v1/resource/upForReview:
+    get:
+      summary: Up For Review Resource List
+      tags:
+        - Resource
+      description: |-
+        You can use this API to list resources which are up for review for the reviewers
+         - The API Endpoint : `/scp/v1/resource/upForReview` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: The page number for pagination.
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: The limit of projects per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
+        - name: search
+          in: query
+          description: The search value to filter projects based on title.
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Type of the resource
+          required: false
+          schema:
+            type: string
+          example: projects
+        - name: status
+          in: query
+          description: Pass status =  'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED' to get the resources with curresponding statuses.
+          required: false
+          schema:
+            type: string
+          example: INPROGRESS
+        - name: sort_by
+          in: query
+          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          required: false
+          schema:
+            type: string
+          example: status
+        - name: sort_order
+          in: query
+          description: Sort order (ascending or descending).
+          required: false
+          schema:
+            type: string
+            enum: ['asc', 'desc']
+          example: asc
+
+      responses:
+        '200':
+          description: project listed successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: number
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Resource listed successfully
+                    result:
+                      data:
+                        - id: 4
+                          title: sample project
+                          type: projects
+                          organization:
+                            id: 24
+                            name: Shikshalokam
+                            code: sl
+                          status: INPROGRESS
+                      count: 1
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projecsuccessfullytCreation
+                          version: 3
+  /scp/v1/resource/publishCallback:
+    post:
+      summary: Callback URL for Update Published Resource
+      tags:
+        - Resource
+      description: |-
+        You can use this API to update the resource details after publishing the resource in consumption portal
+         - The API Endpoint : `/scp/v1/resource/publishCallback` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: resource_id
+          in: query
+          description: Resource id
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: published_id
+          in: query
+          description: Consumption side resource id
+          required: false
+          schema:
+            type: string
+          example: 10
+
+      responses:
+        '200':
+          description: Resource updated successfully
           content:
             application.json:
               schema:
@@ -4136,24 +4071,85 @@ paths:
                 example1:
                   value:
                     responseCode: OK
-                    message: project published successfully
-                    result:
-                      id: 3
+                    message: Resource updated successfully
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projecsuccessfullytCreation
+                          version: 3
+
+  /scp/v1/reviews/start/{resourceId}:
+    post:
+      summary: Start Review
+      tags:
+        - Review
+      description: |-
+        You can use this API to start the review
+         - The API Endpoint is `/scp/v1/reviews/start` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: resourceId
+          description: Please append a valid resource Id to the Request URL.
+          schema:
+            type: number
+          required: true
+
+      responses:
+        '200':
+          description: Review started successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Review started successfully
+                    result: {}
                     meta:
                       formsVersion:
                         - id: 3
                           type: projectCreation
                           version: 3
-        '400':
-          description: Bad Request.
-          content:
-            application.json:
-              schema:
-                $ref: '#/components/schemas/project/deleteProject400Response'
-
   /scp/v1/reviews/update/{resourceId}:
     post:
-      summary: Create or Update Review
+      summary: Request for changes
       tags:
         - Review
       description: |-
@@ -4232,7 +4228,7 @@ paths:
                 example1:
                   value:
                     responseCode: OK
-                    message: project review updated successfully
+                    message: Changes requested successfully
                     result: {}
                     meta:
                       formsVersion:
@@ -4264,24 +4260,7 @@ paths:
           schema:
             type: number
           required: true
-      requestBody:
-        content:
-          application.json:
-            schema:
-              $schema: http://json-schema.org/draft-04/schema#
-              type: object
-              properties:
-                comment:
-                  description: Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.
 
-            examples:
-              example1:
-                value:
-                  comment:
-                    id: 10
-                    comment: 'Check spelling'
-                    context: page
-                    page: 1
       responses:
         '200':
           description: You have successfully published the resource
@@ -4543,7 +4522,6 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/comment/updateComment400Response'
-
   /scp/v1/comments/list?resource_id={resource_id}:
     get:
       summary: Comment List
@@ -4895,6 +4873,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/organization/updateConfig400Response'
+
   /scp/v1/config/list:
     get:
       summary: List configurations
@@ -5009,6 +4988,117 @@ paths:
                           version: 49
                       correlation: 'c1f40d2c-a883-4f51-a17d-7b0730ccd433'
 
+  /scp/v1/certificate/list:
+    get:
+      summary: List Certificate Templates
+      tags:
+        - Certificate
+      description: |-
+        You can use this API to list certificate templates
+         - The API Endpoint for list certificate templates is `/scp/v1/certificate/list` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: resource_type
+          description: Please add the resource type
+          schema:
+            type: string
+          example: projects
+        - in: query
+          name: page
+          description: Please add page number
+          schema:
+            type: number
+          example: 1
+        - in: query
+          name: limit
+          description: Number of records to limit
+          schema:
+            type: number
+          example: 2
+        - in: query
+          name: search
+          description: Please search for information such as names
+          schema:
+            type: string
+          example: one logo
+
+      responses:
+        '201':
+          description: Certificate template listed successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Certificate template listed successfully
+                    result:
+                      data:
+                        - id: 2
+                          code: two-logo-two-sign
+                          name: Two Logo Two Signature
+                          resource_type: projects
+                          url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                          meta:
+                            logos:
+                              no_of_logos: 2
+                              stateLogo1:
+                              stateLogo2:
+                            signature:
+                              no_of_signature: 2
+                              signatureImg1:
+                              signatureImg2:
+                      count: 1
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
   /scp/v1/certificate/update:
     post:
       summary: Create certificate base template
@@ -5347,55 +5437,50 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-  /scp/v1/certificate/list:
-    get:
-      summary: List Certificate Templates
+
+  /review-stages/update/{id}:
+    post:
+      summary: Update Review Stage
       tags:
-        - Certificate
-      description: |-
-        You can use this API to list certificate templates
-         - The API Endpoint for list certificate templates is `/scp/v1/certificate/list` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        - Review Stages
+      description: |
+        Use this API to update the review stages within an organization. Review stages define the hierarchy of roles and their respective levels. The resource will be listed on the "up for review" page based on these levels.
+
+        - Endpoint: `/review-stages/update`
+        - Provide values for parameters marked as `required`.
+        - The X-auth-token is mandatory and cannot be empty or null.
       parameters:
-        - name: X-auth-token
-          in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+        - in: query
+          name: organization_id
+          schema:
+            type: string
+          description: Optional parameter
+          example: 1
+        - in: path
+          name: id
           required: true
           schema:
             type: string
-        - in: query
-          name: resource_type
-          description: Please add the resource type
-          schema:
-            type: string
-          example: projects
-        - in: query
-          name: page
-          description: Please add page number
-          schema:
-            type: number
-          example: 1
-        - in: query
-          name: limit
-          description: Number of records to limit
-          schema:
-            type: number
-          example: 2
-        - in: query
-          name: search
-          description: Please search for information such as names
-          schema:
-            type: string
-          example: one logo
-
+          description: ID of the review stage to update
+          example: 10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  example: content_creator
+                level:
+                  type: integer
+                  example: 1
       responses:
-        '201':
-          description: Certificate template listed successfully
+        '200':
+          description: Review stages updated successfully
           content:
-            application.json:
+            application/json:
               schema:
                 $schema: http://json-schema.org/draft-04/schema#
                 type: object
@@ -5407,59 +5492,115 @@ paths:
                   result:
                     type: object
                     properties:
-                      data:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            url:
-                              type: string
-
+                      role:
+                        type: string
+                      resource_type:
+                        type: number
+                      level:
+                        type: number
+                      id:
+                        type: number
+                      organization_id:
+                        type: number
                   meta:
                     type: object
                     properties:
                       formsVersion:
                         type: array
                         items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
-
+                          type: string
+                      correlation:
+                        type: string
               examples:
                 example1:
                   value:
                     responseCode: OK
-                    message: Certificate template listed successfully
+                    message: Review stages updated successfully
+                    result:
+                      id: 10
+                      role: CONTENT_CREATOR
+                      level: 1
+                      organization_id: 1
+                      resource_type: projects
+                    meta:
+                      formsVersion: []
+        '400':
+          description: Bad Request.
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/reviewStage/updateReviewStage400Response'
+  /review-stages/list:
+    get:
+      summary: List Review Stages
+      tags:
+        - Review Stages
+      description: |
+        Use this API to list the review stages within an organization. Review stages define the hierarchy of roles and their respective levels. The resource will be listed on the "up for review" page based on these levels.
+
+        - Endpoint: `/review-stages/list`
+        - Provide values for parameters marked as `required`.
+        - The X-auth-token is mandatory and cannot be empty or null.
+      parameters:
+        - in: query
+          name: resource_type
+          schema:
+            type: string
+            example: projects
+          required: true
+          description: The type of resource to list review stages for
+      responses:
+        '200':
+          description: Review stages fetched successfully
+          content:
+            application/json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                      resource_type:
+                        type: number
+                      level:
+                        type: number
+                      id:
+                        type: number
+                      organization_id:
+                        type: number
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: string
+                      correlation:
+                        type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Review stages fetched successfully
                     result:
                       data:
-                        - id: 2
-                          code: two-logo-two-sign
-                          name: Two Logo Two Signature
-                          resource_type: projects
-                          url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
-                          meta:
-                            logos:
-                              no_of_logos: 2
-                              stateLogo1:
-                              stateLogo2:
-                            signature:
-                              no_of_signature: 2
-                              signatureImg1:
-                              signatureImg2:
+                        id: 10
+                        role: CONTENT_CREATOR
+                        level: 1
+                        organization_id: 1
+                        resource_type: projects
                       count: 1
-
                     meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                      formsVersion: []
 
-  /elevate-user/v1/user-role/create:
+  /user/v1/user-role/create:
     post:
       summary: Create User Roles
       tags:
@@ -5467,7 +5608,7 @@ paths:
       description: |
         Use this API to create an user Role.
 
-        - Endpoint: `/elevate-user/v1/user-role/create`
+        - Endpoint: `/user/v1/user-role/create`
         - Provide values for parameters marked as `required`.
         - The X-auth-token is mandatory and cannot be empty or null.
       requestBody:
@@ -5554,7 +5695,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/user/createRole400Response'
-  /elevate-user/v1/user-role/update/{id}:
+  /user/v1/user-role/update/{id}:
     post:
       summary: Update User Roles
       tags:
@@ -5562,7 +5703,7 @@ paths:
       description: |
         Use this API to update an user Role.
 
-        - Endpoint: `/elevate-user/v1/user-role/update/{id}`
+        - Endpoint: `/user/v1/user-role/update/{id}`
         - Provide values for parameters marked as `required`.
         - The X-auth-token is mandatory and cannot be empty or null.
       parameters:
@@ -5662,7 +5803,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/user/updateRole400Response'
-  /elevate-user/user/v1/org-admin/updateUser/{id}:
+  /user/user/v1/org-admin/updateUser/{id}:
     post:
       summary: Update User Role and Organization
       tags:
@@ -5670,7 +5811,7 @@ paths:
       description: |
         Use this API to update an user.
 
-        - Endpoint: `/elevate-user/user/v1/org-admin/updateUser/{id}`
+        - Endpoint: `/user/user/v1/org-admin/updateUser/{id}`
         - Provide values for parameters marked as `required`.
         - The X-auth-token is mandatory and cannot be empty or null.
       parameters:
@@ -5845,6 +5986,21 @@ paths:
                           version: 3
 components:
   schemas:
+    reviewStage:
+      updateReviewStage400Response:
+        type: object
+        properties:
+          responseCode:
+            type: string
+            example: CLIENT_ERROR
+          message:
+            type: string
+            example: Review stages not found
+          error:
+            type: array
+            items:
+              type: string
+            example: []
     module:
       updateModule400Response:
         type: object
