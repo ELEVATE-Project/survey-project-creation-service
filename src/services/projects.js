@@ -14,6 +14,7 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
+const commentQueries = require('@database/queries/comments')
 
 module.exports = class ProjectsHelper {
 	/**
@@ -509,6 +510,25 @@ module.exports = class ProjectsHelper {
 			if (projectData.status === common.RESOURCE_STATUS_SUBMITTED) {
 				return responses.failureResponse({
 					message: 'RESOURCE_ALREADY_SUBMITTED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			//from comments table take all the comments which are from this org and userId != loggedin user and resourceId = current resourceId and status = open
+			// if count greated than 0 throw error ""
+
+			const comments = await commentQueries.findAndCountAll({
+				user_id: {
+					[Op.notIn]: [userDetails.id],
+				},
+				resource_id: resourceId,
+				status: common.COMMENT_STATUS_OPEN,
+			})
+
+			if (comments.count > 0) {
+				return responses.failureResponse({
+					message: '"ALL_COMMENTS_NOT_RESOLVED"',
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
