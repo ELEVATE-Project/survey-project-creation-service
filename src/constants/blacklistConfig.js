@@ -19,7 +19,7 @@ const entityType = {
 	update: ['id', 'created_by', 'updated_by', 'allow_filtering', 'organization_id', 'parent_id'],
 }
 
-const entity = {
+const entities = {
 	create: ['id', 'status', 'created_by', 'updated_by', 'created_at', 'updated_at'],
 	update: ['id', 'entity_type_id', 'created_by', 'updated_by', 'created_at', 'updated_at'],
 }
@@ -103,7 +103,7 @@ const certificates = {
 
 module.exports = {
 	entityType,
-	entity,
+	entities,
 	form,
 	modules,
 	permissions,
