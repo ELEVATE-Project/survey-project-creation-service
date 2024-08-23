@@ -160,6 +160,7 @@ module.exports = class resourceHelper {
 						common.REVIEW_STATUS_REJECTED_AND_REPORTED,
 						common.REVIEW_STATUS_INPROGRESS,
 						common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+						common.REVIEW_STATUS_CHANGES_UPDATED,
 					],
 				},
 			},
@@ -660,19 +661,16 @@ module.exports = class resourceHelper {
 				let returnValue = item
 
 				if (item.meta?.notes) returnValue.notes = item.meta.notes
-				// add review_status
-				if (inProgressResources.includes(item.id)) {
-					// if its in progress add review status inprogress
-					returnValue.review_status = common.REVIEW_STATUS_INPROGRESS
-				} else {
-					// add corresponding review status. If there is no review status add not started .
-					// cases when there won't be any review status will be the resources open to all in the org
-					returnValue.review_status = reviewDetailsMapping[item.id]
-						? reviewDetailsMapping[item.id].status
-						: common.REVIEW_STATUS_NOT_STARTED
-				}
+
+				// add corresponding review status. If there is no review status add not started .
+				// cases when there won't be any review status will be the resources open to all in the org
+				returnValue.review_status = reviewDetailsMapping[item.id]
+					? reviewDetailsMapping[item.id].status
+					: common.REVIEW_STATUS_NOT_STARTED
+
 				returnValue.creator =
 					userDetails[item.user_id] && userDetails[item.user_id].name ? userDetails[item.user_id].name : ''
+
 				returnValue.organization = orgDetails[item.organization_id]
 				delete item.user_id
 				delete item.organization_id
