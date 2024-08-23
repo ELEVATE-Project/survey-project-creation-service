@@ -2,6 +2,7 @@
 const axios = require('axios')
 const utils = require('@generics/utils')
 const { compile } = require('path-to-regexp')
+const common = require('@constants/common')
 
 const post = async (baseURL, route = '', headers = {}, body = {}, queryParams = {}) => {
 	try {
@@ -11,7 +12,7 @@ const post = async (baseURL, route = '', headers = {}, body = {}, queryParams = 
 		console.log('URL: ', url)
 		console.log('HEADERS: ', JSON.stringify(headers, null, 2))
 		console.log('BODY: ', JSON.stringify(body, null, 2))
-		const response = await axios.post(url, body, { headers, timeout: 3000 })
+		const response = await axios.post(url, body, { headers, timeout: common.REQUEST_TIMEOUT_MS })
 		console.log('RESPONSE: ', JSON.stringify(response.data, null, 2))
 		return response.data
 	} catch (err) {
