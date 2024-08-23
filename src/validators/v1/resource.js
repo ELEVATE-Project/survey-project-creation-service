@@ -9,7 +9,10 @@ const common = require('@constants/common')
 module.exports = {
 	list: (req) => {
 		const page_status = Object.keys(common.PAGE_STATUS_VALUES)
-		const listingPage = req.query[common.LISTING]
+		const check_values =
+			req.query[common.LISTING] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW
+				? [...common.PAGE_STATUS_VALUES[req.query[common.LISTING]], common.REVIEW_STATUS_REQUESTED_FOR_CHANGES]
+				: common.PAGE_STATUS_VALUES[req.query[common.LISTING]]
 		req.checkQuery(common.LISTING)
 			.notEmpty()
 			.withMessage(common.LISTING + ' param is empty')
@@ -17,7 +20,7 @@ module.exports = {
 			.withMessage(common.LISTING + ' value should be from : ' + page_status)
 		req.checkQuery('status')
 			.optional({ checkFalsy: true })
-			.isIn(common.PAGE_STATUS_VALUES[listingPage])
+			.isIn(check_values)
 			.withMessage('Status ' + req.query.status + ' invalid ')
 	},
 	publishCallback: (req) => {

@@ -160,6 +160,7 @@ module.exports = class resourceHelper {
 						common.REVIEW_STATUS_REJECTED_AND_REPORTED,
 						common.REVIEW_STATUS_INPROGRESS,
 						common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+						common.REVIEW_STATUS_CHANGES_UPDATED,
 					],
 				},
 			},
@@ -541,10 +542,26 @@ module.exports = class resourceHelper {
 					finalResourceIds = [...finalResourceIds, ...parallelResourcesIds]
 				}
 
-				const assignedToMe = await this.findResourcesAssignedToReviewer(uniqueOrganizationIds, user_id)
+				const resourceReviewersDetails = await this.findResourceReviewersDetails(user_id, finalResourceIds)
+
+				// from the parallel and sequential open to all resources , remove which are directly assigned to other reviewers
+				finalResourceIds = _.difference(
+					finalResourceIds,
+					resourceReviewersDetails.assignedToOthers //remove resources directly assigned to other reviewers
+				)
+
+				// fetch resources directly assigned to me
+				const assignedToMe = resourceReviewersDetails.assignedToMe
 
 				finalResourceIds = [...finalResourceIds, ...assignedToMe]
 
+				// resources reviewer have approved , rejected or requested for change should be removed from main list
+				const resouecesCompletedMyReview = await this.getUserApprovedOrChangesRequestedResources(
+					user_id,
+					finalResourceIds
+				)
+
+				resourceIdsToBeRemoved = [...resourceIdsToBeRemoved, ...resouecesCompletedMyReview]
 				finalResourceIds = _.difference(
 					utils.getUniqueElements(finalResourceIds),
 					utils.getUniqueElements(resourceIdsToBeRemoved)
@@ -619,16 +636,41 @@ module.exports = class resourceHelper {
 
 			const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
 			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds)
+			const reviewDetails = await reviewsQueries.findAll(
+				{
+					organization_id: {
+						[Op.in]: uniqueOrganizationIds,
+					},
+					resource_id: {
+						[Op.in]: finalResourceIds,
+					},
+					reviewer_id: user_id,
+				},
+				['resource_id', 'status']
+			)
+
+			// create a mapping object for resourceId and review status
+			const reviewDetailsMapping = reviewDetails.reduce((acc, item) => {
+				acc[item.resource_id] = {
+					status: item.status,
+				}
+				return acc
+			}, {})
 
 			result.data = response.result.map((item) => {
 				let returnValue = item
 
 				if (item.meta?.notes) returnValue.notes = item.meta.notes
-				if (inProgressResources.includes(item.id)) {
-					returnValue.reviewer_status = common.REVIEW_STATUS_INPROGRESS
-				}
+
+				// add corresponding review status. If there is no review status add not started .
+				// cases when there won't be any review status will be the resources open to all in the org
+				returnValue.review_status = reviewDetailsMapping[item.id]
+					? reviewDetailsMapping[item.id].status
+					: common.REVIEW_STATUS_NOT_STARTED
+
 				returnValue.creator =
 					userDetails[item.user_id] && userDetails[item.user_id].name ? userDetails[item.user_id].name : ''
+
 				returnValue.organization = orgDetails[item.organization_id]
 				delete item.user_id
 				delete item.organization_id
@@ -829,29 +871,6 @@ module.exports = class resourceHelper {
 	}
 
 	/**
-	 * Get all resources assigned to the reviewer
-	 * @name findResourcesAssignedToReviewer
-	 * @param {Array} organization_ids -  list of organization_ids.
-	 * @param {String} logged_in_user_id -  user id of the logged in user
-	 * @returns {Array} - Response contain array of resource ids
-	 */
-	static async findResourcesAssignedToReviewer(organization_ids, logged_in_user_id) {
-		const reviewsFilter = {
-			organization_id: { [Op.in]: organization_ids },
-			reviewer_id: logged_in_user_id,
-			status: { [Op.in]: common.REVIEW_STATUS_UP_FOR_REVIEW },
-		}
-
-		let res = []
-
-		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
-		res = reviewsResponse.map((item) => {
-			return item.resource_id
-		})
-		return res
-	}
-
-	/**
 	 * Get all resources assigned to the reviewer and already picked up by other reviewer
 	 * @name findResourcesPickedUpByAnotherReviewer
 	 * @param {String} loggedInUserId -  user id of the logged in user.
@@ -880,6 +899,68 @@ module.exports = class resourceHelper {
 			return resourceIdsToBeRemoved
 		}
 		return resourceIdsToBeRemoved
+	}
+
+	/**
+	 * Get all resources which reviewer approved and requested for changes
+	 * @name getUserApprovedOrChangesRequestedResources
+	 * @param {String} loggedInUserId -  user id of the logged in user.
+	 * @param {Array} finalResourceIds -  list of all resources fetched to list.
+	 * @returns {Array} - Response contain array of resource ids to be removed from the main response
+	 */
+	static async getUserApprovedOrChangesRequestedResources(loggedInUserId, finalResourceIds) {
+		// remove all the resouces from list which reviewer approved and requested for changes
+		const reviewsFilter = {
+			resource_id: { [Op.in]: finalResourceIds },
+			status: {
+				[Op.in]: [common.REVIEW_STATUS_APPROVED, common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
+			},
+			reviewer_id: loggedInUserId,
+		}
+		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
+		let resourceIdsToBeRemoved = []
+		if (reviewsResponse.length > 0) {
+			// push resource ids to resourceIdsToBeRemoved array
+			resourceIdsToBeRemoved = reviewsResponse.map((item) => item.resource_id)
+			return resourceIdsToBeRemoved
+		}
+		return resourceIdsToBeRemoved
+	}
+	/**
+	 * Get review details of list of resources and seggregte if its assigned to logged in user or other users.
+	 * @name findResourceReviewersDetails
+	 * @param {String} loggedInUserId -  user id of the logged in user.
+	 * @param {Array} finalResourceIds -  list of all resources fetched to list.
+	 * @returns {Array} - Response contain array of resource ids to be removed from the main response
+	 */
+	static async findResourceReviewersDetails(loggedInUserId, finalResourceIds) {
+		// remove all the resouces in sequential review picked up by another reviewer
+		const reviewsFilter = {
+			resource_id: { [Op.in]: finalResourceIds },
+			status: {
+				[Op.in]: common.REVIEW_STATUS_UP_FOR_REVIEW,
+			},
+		}
+		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id', 'status', 'reviewer_id'])
+		let resourcesAssignedToOtherUsers = []
+		let resourcesAssignedToLoggedInUser = []
+
+		if (reviewsResponse.length > 0) {
+			reviewsResponse.reduce((_, item) => {
+				if (common.REVIEW_STATUS_UP_FOR_REVIEW.includes(item.status) && item.reviewer_id !== loggedInUserId) {
+					resourcesAssignedToOtherUsers.push(item.resource_id)
+				} else if (
+					common.REVIEW_STATUS_UP_FOR_REVIEW.includes(item.status) &&
+					item.reviewer_id === loggedInUserId
+				) {
+					resourcesAssignedToLoggedInUser.push(item.resource_id)
+				}
+			}, null)
+		}
+		return {
+			assignedToMe: utils.getUniqueElements(resourcesAssignedToLoggedInUser),
+			assignedToOthers: utils.getUniqueElements(resourcesAssignedToOtherUsers),
+		}
 	}
 
 	/**

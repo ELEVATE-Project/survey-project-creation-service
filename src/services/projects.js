@@ -15,6 +15,7 @@ const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
 const { eventBroadcaster } = require('@helpers/eventBroadcaster')
+const commentQueries = require('@database/queries/comments')
 module.exports = class ProjectsHelper {
 	/**
 	 *  project create
@@ -527,6 +528,25 @@ module.exports = class ProjectsHelper {
 			//Restrict the user to submit the project
 			if (_nonReviewableResourceStatuses.includes(projectData.status)) {
 				throw new Error(`Resource is already ${projectData.status}. You can't submit it`)
+			}
+
+			//from comments table take all the comments which are from this org and userId != loggedin user and resourceId = current resourceId and status = open
+			// if count greated than 0 throw error ""
+
+			const comments = await commentQueries.findAndCountAll({
+				user_id: {
+					[Op.notIn]: [userDetails.id],
+				},
+				resource_id: resourceId,
+				status: common.COMMENT_STATUS_OPEN,
+			})
+
+			if (comments.count > 0) {
+				return responses.failureResponse({
+					message: '"ALL_COMMENTS_NOT_RESOLVED"',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
 			//get all entity type validations for project

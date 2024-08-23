@@ -188,7 +188,7 @@ module.exports = class reviewsHelper {
 			await Promise.all([
 				reviewsQueries.update(
 					{ id: review.id, organization_id: review.organization_id },
-					{ status: common.REVIEW_STATUS_STARTED }
+					{ status: common.REVIEW_STATUS_INPROGRESS }
 				),
 				resourceQueries.updateOne(
 					{ organization_id: resource.organization_id, id: resourceId },

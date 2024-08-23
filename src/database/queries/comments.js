@@ -78,6 +78,7 @@ module.exports = class CommentData {
 			const { rows, count } = await Comment.findAndCountAll({
 				where: filterQuery,
 				order: [[common.CREATED_AT, common.SORT_ASC]],
+				raw: true,
 			})
 
 			return { rows, count }
