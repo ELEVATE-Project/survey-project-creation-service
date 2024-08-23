@@ -27,4 +27,23 @@ module.exports = {
 		req.checkQuery('resource_id').trim().notEmpty().withMessage('resource_id field is empty')
 		req.checkQuery('published_id').trim().notEmpty().withMessage('published_id field is empty')
 	},
+	browseExisting: (req) => {
+		const resourceTypes = process.env.RESOURCE_TYPES.split(',')
+		req.checkQuery('type')
+			.optional({ checkFalsy: true })
+			.custom((value) => {
+				// Split the 'type' query parameter by commas to handle multiple values
+				const types = value.split(',')
+
+				// Check if every type is valid
+				const isValid = types.every((type) => resourceTypes.includes(type.trim()))
+
+				if (!isValid) {
+					// Throw an error if any type is invalid
+					throw new Error('Invalid resource type provided.')
+				}
+
+				return true // Return true if all types are valid
+			})
+	},
 }
