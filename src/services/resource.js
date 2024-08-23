@@ -1208,13 +1208,13 @@ module.exports = class resourceHelper {
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
 				resources = await interfaceRequests.browseExistingList(type, organization_id, token, search)
 			}
-			let selfResourceFilter = {
+			let filterQiuery = {
 				organization_id,
 				status: common.RESOURCE_STATUS_PUBLISHED,
 				published_id: null,
 			}
-			if (type) selfResourceFilter.type = type
-			const selfResources = await resourceQueries.findAll(selfResourceFilter, [
+			if (type) filterQiuery.type = type
+			const selfResources = await resourceQueries.findAll(filterQiuery, [
 				'id',
 				'title',
 				'type',
@@ -1233,11 +1233,11 @@ module.exports = class resourceHelper {
 				// sort the array
 				const sortedData = utils.sort(combinedData, sort)
 				// data after applying pagenation
-				const paginatedDated = utils.paginate(sortedData, pageNo, pageSize)
+				const paginatedDate = utils.paginate(sortedData, pageNo, pageSize)
 				// get the unique creator ids to fetch the user details
 				const uniqueCreatorIds = _.difference(
 					utils.getUniqueElements(
-						paginatedDated.map((resource) => {
+						paginatedDate.map((resource) => {
 							const createdBy = resource.created_by
 							return !isNaN(createdBy) && !isNaN(parseFloat(createdBy)) ? +createdBy : createdBy
 						})
@@ -1249,7 +1249,7 @@ module.exports = class resourceHelper {
 
 				let finalResponse = []
 
-				paginatedDated.filter((resource) => {
+				paginatedDate.filter((resource) => {
 					resource.created_by = userDetails[resource.created_by]?.name
 						? userDetails[resource.created_by]?.name
 						: ''
