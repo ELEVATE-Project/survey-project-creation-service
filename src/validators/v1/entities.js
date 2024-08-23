@@ -5,8 +5,11 @@
  * Description : Validations of entities controller
  */
 const allowedStatuses = ['ACTIVE', 'INACTIVE']
+const filterRequestBody = require('../common')
+const { entities } = require('@constants/blacklistConfig')
 module.exports = {
 	create: (req) => {
+		req.body = filterRequestBody(req.body, entities.create)
 		req.checkBody('value')
 			.trim()
 			.notEmpty()
@@ -39,7 +42,9 @@ module.exports = {
 	},
 
 	update: (req) => {
+		req.body = filterRequestBody(req.body, entities.update)
 		req.checkParams('id')
+			.trim()
 			.notEmpty()
 			.withMessage('id param is empty')
 			.isNumeric()
@@ -86,6 +91,7 @@ module.exports = {
 
 	delete: (req) => {
 		req.checkParams('id')
+			.trim()
 			.notEmpty()
 			.withMessage('id param is empty')
 			.isNumeric()
