@@ -1203,6 +1203,8 @@ module.exports = class resourceHelper {
 			const type = query[common.TYPE] ? query[common.TYPE] : ''
 			const search = searchText != '' ? searchText : ''
 			let resources = {}
+			// consumption side if set to self , only resources published with in SCP will be showed
+			// If it has any value other than self , the result will be combination of resources from the coupled service and from SCP
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
 				resources = await interfaceRequests.browseExistingList(type, organization_id, token, search)
 			}
@@ -1212,7 +1214,7 @@ module.exports = class resourceHelper {
 				published_id: null,
 			}
 			if (type) selfResourceFilter.type = type
-			const selfReources = await resourceQueries.findAll(selfResourceFilter, [
+			const selfResources = await resourceQueries.findAll(selfResourceFilter, [
 				'id',
 				'title',
 				'type',
@@ -1220,11 +1222,10 @@ module.exports = class resourceHelper {
 				'created_at',
 			])
 
-			let combinedData =
-				resources?.success && resources?.data?.result?.data?.length > 0
-					? [...resources?.data?.result?.data]
-					: []
-			combinedData = selfReources.length > 0 ? [...combinedData, ...selfReources] : [...combinedData]
+			const combinedData = [
+				...(resources?.success && resources?.data?.result?.data?.length ? resources.data.result.data : []),
+				...(selfResources.length ? selfResources : []),
+			]
 
 			if (combinedData.length > 0) {
 				// construct sort object
@@ -1270,7 +1271,10 @@ module.exports = class resourceHelper {
 			return responses.failureResponse({
 				message: 'RESOURCES_FETCHED',
 				statusCode: httpStatusCode.ok,
-				result: [],
+				result: {
+					data: [],
+					count: 0,
+				},
 			})
 		}
 	}
