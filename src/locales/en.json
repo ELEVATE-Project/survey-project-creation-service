@@ -111,7 +111,6 @@
 	"RESOURCE_NOTE_LENGTH_EXCEEDED": "This resource note length exceeded.",
 	"CHARACTER_LIMIT_EXCEED": "Value exceeds the allowed length for the field title",
 	"RESOURCES_FETCHED": "Resources fetched Successfully.",
-	"BROWSE_EXISTING_LIST_FETCHING_FAILED": "Unable to the requested resource at the moment."
 	"RESOURCE_APPROVAL_FAILED": "Resource approval either failed or has already been approved.",
 	"REVIEW_ALREADY_STARTED": "Review already started",
 	"COMMENT_INVALID": "Comment should have context, page and comment.",

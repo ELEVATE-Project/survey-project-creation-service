@@ -188,7 +188,12 @@ let environmentVariables = {
 	},
 	BROWSE_EXISTING_END_POINT: {
 		message: 'Browse Existing list end point',
-		optional: false,
+		optional: true,
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
 	},
 }
 

@@ -12,5 +12,5 @@ module.exports = {
 	VALIDATE_SESSIONS: 'v1/account/validateUserSession',
 	BROWSE_EXISTING_END_POINT: process.env.BROWSE_EXISTING_END_POINT
 		? process.env.BROWSE_EXISTING_END_POINT
-		: 'v1/internal/fetchResources',
+		: 'v1/internal/getAllPublishedResources',
 }

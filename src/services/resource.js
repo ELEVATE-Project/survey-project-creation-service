@@ -1186,10 +1186,10 @@ module.exports = class resourceHelper {
 	/**
 	 * Get resources from consumption service
 	 * @name browseExistingList
-	 * @param {string} organization_id - Org Id of the user
-	 * @param {string} token - Token of the user
+	 * @param {String} organization_id - Org Id of the user
+	 * @param {String} token - Token of the user
 	 * @param {Object} query - Query object passed by user
-	 * @param {string} searchText - Title to search
+	 * @param {String} searchText - Title to search
 	 * @param {Integer} pageNo -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
 	 * @param {Integer} pageSize -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {Object} - Response contain object of user details
@@ -1202,19 +1202,46 @@ module.exports = class resourceHelper {
 			}
 			const type = query[common.TYPE] ? query[common.TYPE] : ''
 			const search = searchText != '' ? searchText : ''
-			const resources = await interfaceRequests.browseExistingList(type, organization_id, token, search)
+			let resources = {}
+			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
+				resources = await interfaceRequests.browseExistingList(type, organization_id, token, search)
+			}
+			let selfResourceFilter = {
+				organization_id,
+				status: common.RESOURCE_STATUS_PUBLISHED,
+				published_id: null,
+			}
+			if (type) selfResourceFilter.type = type
+			const selfReources = await resourceQueries.findAll(selfResourceFilter, [
+				'id',
+				'title',
+				'type',
+				'created_by',
+				'created_at',
+			])
 
-			if (resources?.data?.result?.data?.length > 0) {
+			let combinedData =
+				resources?.success && resources?.data?.result?.data?.length > 0
+					? [...resources?.data?.result?.data]
+					: []
+			combinedData = selfReources.length > 0 ? [...combinedData, ...selfReources] : [...combinedData]
+
+			if (combinedData.length > 0) {
 				// construct sort object
 				const sort = await this.constructSortOptions(query.sort_by, query.sort_order)
 				// sort the array
-				const sortedData = utils.arraySort(resources.data.result.data, sort)
+				const sortedData = utils.sort(combinedData, sort)
 				// data after applying pagenation
-				const paginatedDated = utils.arrayPaginator(sortedData, pageNo, pageSize)
+				const paginatedDated = utils.paginate(sortedData, pageNo, pageSize)
 				// get the unique creator ids to fetch the user details
 				const uniqueCreatorIds = _.difference(
-					utils.getUniqueElements(paginatedDated.map((resource) => resource.created_by)),
-					[null, undefined]
+					utils.getUniqueElements(
+						paginatedDated.map((resource) => {
+							const createdBy = resource.created_by
+							return !isNaN(createdBy) && !isNaN(parseFloat(createdBy)) ? +createdBy : createdBy
+						})
+					),
+					[null, undefined, '']
 				)
 				// fetch the user details from user service with creatorId
 				const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
@@ -1230,7 +1257,7 @@ module.exports = class resourceHelper {
 
 				result = {
 					data: finalResponse,
-					count: resources.data.result.data.length,
+					count: combinedData.length,
 				}
 			}
 
@@ -1241,9 +1268,9 @@ module.exports = class resourceHelper {
 			})
 		} catch (error) {
 			return responses.failureResponse({
-				message: 'BROWSE_EXISTING_LIST_FETCHING_FAILED',
-				statusCode: httpStatusCode.bad_request,
-				responseCode: 'CLIENT_ERROR',
+				message: 'RESOURCES_FETCHED',
+				statusCode: httpStatusCode.ok,
+				result: [],
 			})
 		}
 	}
