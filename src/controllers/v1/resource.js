@@ -37,6 +37,15 @@ module.exports = class Resource {
 					req.pageNo,
 					req.pageSize
 				)
+			} else if (req.query[common.LISTING] === common.PAGE_STATUS_BROWSE_EXISTING) {
+				resourceList = await resourceService.browseExistingList(
+					req.decodedToken.organization_id,
+					req.decodedToken.token,
+					req.query,
+					req.searchText,
+					req.pageNo,
+					req.pageSize
+				)
 			}
 			return resourceList
 		} catch (error) {
@@ -76,34 +85,6 @@ module.exports = class Resource {
 	async publishCallback(req) {
 		try {
 			const resource = await resourceService.publishCallback(req.query.resource_id, req.query.published_id)
-			return resource
-		} catch (error) {
-			throw error
-		}
-	}
-
-	/**
-	 * Get list of Published resources from consumption side
-	 * @method
-	 * @name browseExisting
-	 * @param {String} req.decodedToken.organization_id - User organization id.
-	 * @param {String} req.decodedToken.token - user bearer auth token
-	 * @param {Object} req.query - Query object passed
-	 * @param {String} req.searchText - Search text passed
-	 * @param {Integer} pageNo -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
-	 * @param {Integer} pageSize -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
-	 * @returns {JSON} - List of resources
-	 */
-	async browseExisting(req) {
-		try {
-			const resource = await resourceService.browseExistingList(
-				req.decodedToken.organization_id,
-				req.decodedToken.token,
-				req.query,
-				req.searchText,
-				req.pageNo,
-				req.pageSize
-			)
 			return resource
 		} catch (error) {
 			throw error
