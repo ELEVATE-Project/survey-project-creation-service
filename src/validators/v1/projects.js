@@ -5,6 +5,8 @@
  * Description : Validations of projects controller
  */
 const common = require('@constants/common')
+const filterRequestBody = require('../common')
+const { projects } = require('@constants/blacklistConfig')
 module.exports = {
 	details: (req) => {
 		req.checkParams('id')
@@ -15,24 +17,36 @@ module.exports = {
 			.withMessage('id param is invalid, must be an integer')
 	},
 	update: (req) => {
+		req.body = filterRequestBody(req.body, projects.update)
+
 		if (req.method != common.REQUEST_METHOD_DELETE) {
-			req.checkBody('title').notEmpty().withMessage('title is required')
+			req.checkBody('title').trim().notEmpty().withMessage('title is required')
 		}
 
 		req.checkParams('id')
 			.trim()
-			.optional()
+			.optional({ checkFalsy: true })
 			.notEmpty()
 			.withMessage('id param is empty')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
 	},
 	submitForReview: (req) => {
+		req.body = filterRequestBody(req.body, projects.submitForReview)
 		req.checkParams('id')
 			.trim()
 			.notEmpty()
 			.withMessage('id param is empty')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+
+		req.checkBody('notes').optional({ checkFalsy: true }).notEmpty().withMessage('notes is empty')
+
+		req.checkBody('reviewer_ids')
+			.optional({ checkFalsy: true })
+			.isArray({ min: 1 })
+			.withMessage('reviewer_ids must be a non-empty array')
+			.notEmpty()
+			.withMessage('reviewer_ids is empty')
 	},
 }

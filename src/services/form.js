@@ -4,6 +4,7 @@ const utils = require('@generics/utils')
 const KafkaProducer = require('@generics/kafka-communication')
 const form = require('@generics/form')
 const responses = require('@helpers/responses')
+const { UniqueConstraintError } = require('sequelize')
 module.exports = class FormsHelper {
 	/**
 	 * Create Form.
@@ -17,11 +18,7 @@ module.exports = class FormsHelper {
 		try {
 			const form = await formQueries.findOne({ type: bodyData.type, organization_id: orgId })
 			if (form) {
-				return responses.failureResponse({
-					message: 'FORM_ALREADY_EXISTS',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				throw new Error('FORM_ALREADY_EXISTS')
 			}
 			bodyData['organization_id'] = orgId
 			await formQueries.create(bodyData)
@@ -32,7 +29,19 @@ module.exports = class FormsHelper {
 				message: 'FORM_CREATED_SUCCESSFULLY',
 			})
 		} catch (error) {
-			throw error
+			if (error instanceof UniqueConstraintError) {
+				return responses.failureResponse({
+					message: 'FORM_ALREADY_EXISTS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 

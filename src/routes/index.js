@@ -118,7 +118,7 @@ module.exports = (app) => {
 
 		if (validationError && validationError.length) {
 			const error = new Error('Validation failed, Entered data is incorrect!')
-			error.statusCode = 422
+			error.statusCode = 400
 			error.responseCode = 'CLIENT_ERROR'
 			error.data = validationError
 			return next(error)
