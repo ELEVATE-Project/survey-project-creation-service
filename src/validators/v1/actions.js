@@ -7,6 +7,13 @@
 
 module.exports = {
 	update: (req) => {
+		const codeValidator = req.checkBody('code')
+		const descriptionValidator = req.checkBody('description')
+		if (req.param.id) {
+			codeValidator.optional() // Make code optional when id is present
+			descriptionValidator.optional() // Make description optional when id is present
+		}
+
 		req.checkParams('id')
 			.trim()
 			.optional()
@@ -15,13 +22,13 @@ module.exports = {
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
 
-		req.checkBody('code')
+		codeValidator
 			.notEmpty()
 			.withMessage('code field is empty')
 			.matches(/^[a-zA-Z_-]+$/)
 			.withMessage('code is invalid, must not contain spaces')
 
-		req.checkBody('description')
+		descriptionValidator
 			.notEmpty()
 			.withMessage('description field is empty')
 			.isLength({ max: 255 })

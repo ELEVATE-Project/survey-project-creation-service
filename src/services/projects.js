@@ -264,7 +264,7 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - project delete response.
 	 */
 
-	static async delete(resourceId, loggedInUserId, orgId) {
+	static async delete(resourceId, loggedInUserId) {
 		try {
 			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
 				{
@@ -308,7 +308,7 @@ module.exports = class ProjectsHelper {
 					loggedInUserId,
 					resourceId,
 					common.MODEL_NAMES.RESOURCE,
-					orgId
+					resourceCreatorMapping.organization_id
 				),
 			})
 

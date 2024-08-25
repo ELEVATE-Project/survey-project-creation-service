@@ -167,4 +167,14 @@ module.exports = {
 	EVENT_TYPE_API: 'API',
 	EVENT_ADD_USER_ACTION: 'addUserAction',
 	REQUEST_TIMEOUT_MS: 3000,
+	CURRENT_USER: 'You',
+	ACTIVITY_DATE_TIME_OPTIONS: {
+		day: 'numeric',
+		month: 'long',
+		year: 'numeric',
+		hour: 'numeric',
+		minute: 'numeric',
+		second: 'numeric',
+		hour12: true, // Use 12-hour clock with AM/PM
+	},
 }

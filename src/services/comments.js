@@ -13,9 +13,7 @@ const _ = require('lodash')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewResourceQueries = require('@database/queries/reviewResources')
 const { Op } = require('sequelize')
-const { eventBroadcaster } = require('@helpers/eventBroadcaster')
 const resourceQueries = require('@database/queries/resources')
-const utils = require('@generics/utils')
 module.exports = class CommentsHelper {
 	/**
 	 * Comment Create or Update
@@ -25,10 +23,9 @@ module.exports = class CommentsHelper {
 	 * @param {Integer} resourceId - Resource ID
 	 * @param {Object} bodyData - Request Body
 	 * @param {String} userId - User ID
-	 * @param {String} orgId - Organization ID
 	 * @returns {JSON} - comment id
 	 */
-	static async update(commentId = '', resourceId, bodyData, userId, orgId) {
+	static async update(commentId = '', resourceId, bodyData, userId) {
 		try {
 			//validate resource
 			const resource = await resourceQueries.findOne(
@@ -60,7 +57,7 @@ module.exports = class CommentsHelper {
 				})
 
 				if (reviewResource?.id) {
-					const updatedCount = await reviewsQueries.update(
+					await reviewsQueries.update(
 						{
 							organization_id: reviewResource.organization_id,
 							resource_id: resourceId,
@@ -69,19 +66,6 @@ module.exports = class CommentsHelper {
 						},
 						{ status: common.REVIEW_STATUS_INPROGRESS }
 					)
-
-					if (updatedCount > 0) {
-						//add user action
-						eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-							requestBody: utils.constructAddUserActionBody(
-								common.USER_ACTIONS[resource.type].REVIEW_INPROGRESS,
-								userId,
-								resourceId,
-								common.MODEL_NAMES.RESOURCE,
-								orgId
-							),
-						})
-					}
 				}
 
 				return responses.successResponse({

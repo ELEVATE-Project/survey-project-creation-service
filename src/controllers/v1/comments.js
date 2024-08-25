@@ -46,8 +46,7 @@ module.exports = class comments {
 				req.params.id ? req.params.id : '',
 				req.query.resource_id,
 				req.body,
-				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.id
 			)
 			return comment
 		} catch (error) {

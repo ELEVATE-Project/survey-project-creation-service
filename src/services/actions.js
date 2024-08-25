@@ -20,11 +20,6 @@ module.exports = class ActionsHelper {
 	 */
 	static async create(bodyData) {
 		try {
-			const action = await actionQueries.findOne({ code: bodyData.code })
-			if (action?.id) {
-				throw new Error('ACTION_ALREADY_EXISTS')
-			}
-
 			const createAction = await actionQueries.create(bodyData)
 			if (!createAction?.id) {
 				throw new Error('ACTION_CREATION_FAILED')

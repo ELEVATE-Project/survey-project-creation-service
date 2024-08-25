@@ -22,15 +22,12 @@ module.exports = class activities {
 
 	async list(req) {
 		try {
-			let userId = req.decodedToken.id
-			let orgId = req.decodedToken.organization_id
-			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-				userId = req.query.user_id ? req.query.user_id : req.decodedToken.id
-				orgId = req.query.organization_id ? req.query.organization_id : req.decodedToken.id
-			} else if (utils.validateRoleAccess(req.decodedToken.roles, common.ORG_ADMIN_ROLE)) {
-				userId = req.query.user_id ? req.query.user_id : req.decodedToken.id
-			}
-			const activities = await activityService.list(userId, orgId, req.pageNo, req.pageSize)
+			const activities = await activityService.list(
+				req.decodedToken.id,
+				req.decodedToken.organization_id,
+				req.pageNo,
+				req.pageSize
+			)
 			return activities
 		} catch (error) {
 			return error

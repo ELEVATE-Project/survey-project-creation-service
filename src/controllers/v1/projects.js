@@ -22,11 +22,7 @@ module.exports = class Projects {
 			if (req.params.id) {
 				let project = {}
 				if (req.method === common.REQUEST_METHOD_DELETE) {
-					project = await projectService.delete(
-						req.params.id,
-						req.decodedToken.id,
-						req.decodedToken.organization_id
-					)
+					project = await projectService.delete(req.params.id, req.decodedToken.id)
 				} else {
 					project = await projectService.update(
 						req.params.id,

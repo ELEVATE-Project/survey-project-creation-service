@@ -85,7 +85,7 @@ module.exports = class ActivityHelper {
 				})
 			}
 
-			const formatActivities = await activityDTO(activities.rows, orgId)
+			const formatActivities = await activityDTO(activities.rows, orgId, userId)
 			if (formatActivities.success) {
 				result.data = formatActivities
 				result.count = activities.count

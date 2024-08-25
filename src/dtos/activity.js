@@ -6,7 +6,7 @@ const _ = require('lodash')
 const actionQueries = require('@database/queries/actions')
 const { Op } = require('sequelize')
 
-exports.activityDTO = async (activities = [], organization_id) => {
+exports.activityDTO = async (activities = [], organization_id, user_id) => {
 	try {
 		//get userId and actionIds
 		const userIds = utils.getUniqueElements(activities.map((activity) => activity.user_id))
@@ -36,15 +36,16 @@ exports.activityDTO = async (activities = [], organization_id) => {
 		let formattedActivities = activities.map((activity) => {
 			const user = userIdMap[activity.user_id]
 			const actionDescription = actionIdMap[activity.action_id].description
-			const date = new Date(activity.created_at).toLocaleDateString('en-US', {
-				day: 'numeric',
-				month: 'long',
-				year: 'numeric',
-			})
+
+			const dateTime = new Date(activity.created_at).toLocaleString('en-IN', common.ACTIVITY_DATE_TIME_OPTIONS)
+
+			if (user_id == user.id) user.name = common.CURRENT_USER
 
 			return {
 				id: activity.id,
-				action: `${user.name} ${actionDescription} id ${activity.object_id} on ${date}`,
+				action: `${capitalizeFirstLetter(user.name)} ${actionDescription} id ${
+					activity.object_id
+				} on ${dateTime}`,
 			}
 		})
 
@@ -59,4 +60,8 @@ exports.activityDTO = async (activities = [], organization_id) => {
 			success: false,
 		}
 	}
+}
+
+const capitalizeFirstLetter = (name) => {
+	return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
 }

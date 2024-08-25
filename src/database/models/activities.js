@@ -40,6 +40,10 @@ module.exports = (sequelize, DataTypes) => {
 					fields: ['organization_id', 'user_id'],
 					name: 'activities_index_org_user',
 				},
+				{
+					fields: ['object_id'],
+					name: 'activities_index_object_id',
+				},
 			],
 		}
 	)
