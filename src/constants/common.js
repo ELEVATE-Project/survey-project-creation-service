@@ -163,8 +163,6 @@ module.exports = {
 	USER_ACTIONS: {
 		projects: createResourceActions('PROJECT'),
 	},
-	EVENT_TYPE_FUNCTION: 'FUNCTION',
-	EVENT_TYPE_API: 'API',
 	EVENT_ADD_USER_ACTION: 'addUserAction',
 	REQUEST_TIMEOUT_MS: 3000,
 	CURRENT_USER: 'You',

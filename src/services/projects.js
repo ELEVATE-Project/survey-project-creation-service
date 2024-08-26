@@ -14,7 +14,7 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
-const { eventBroadcaster } = require('@helpers/eventBroadcaster')
+// const { eventBroadcaster } = require('@configs/events')
 const commentQueries = require('@database/queries/comments')
 module.exports = class ProjectsHelper {
 	/**
@@ -120,15 +120,15 @@ module.exports = class ProjectsHelper {
 			}
 
 			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[projectCreate.type].RESOURCE_CREATED,
-					loggedInUserId,
-					projectCreate.id,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
+			// eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+			// 	requestBody: utils.constructAddUserActionBody(
+			// 		common.USER_ACTIONS[projectCreate.type].RESOURCE_CREATED,
+			// 		loggedInUserId,
+			// 		projectCreate.id,
+			// 		common.MODEL_NAMES.RESOURCE,
+			// 		orgId
+			// 	),
+			// })
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -302,15 +302,15 @@ module.exports = class ProjectsHelper {
 			}
 
 			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resource.type].RESOURCE_DELETED,
-					loggedInUserId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					resourceCreatorMapping.organization_id
-				),
-			})
+			// eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+			// 	requestBody: utils.constructAddUserActionBody(
+			// 		common.USER_ACTIONS[resource.type].RESOURCE_DELETED,
+			// 		loggedInUserId,
+			// 		resourceId,
+			// 		common.MODEL_NAMES.RESOURCE,
+			// 		resourceCreatorMapping.organization_id
+			// 	),
+			// })
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,

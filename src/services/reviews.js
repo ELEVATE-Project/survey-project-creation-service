@@ -20,7 +20,7 @@ const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const kafkaCommunication = require('@generics/kafka-communication')
-const { eventBroadcaster } = require('@helpers/eventBroadcaster')
+// const { eventBroadcaster } = require('@configs/events')
 module.exports = class reviewsHelper {
 	/**
 	 * Update review.
@@ -77,15 +77,15 @@ module.exports = class reviewsHelper {
 			])
 
 			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resource.type].REVIEW_CHANGES_REQUESTED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
+			// eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+			// 	requestBody: utils.constructAddUserActionBody(
+			// 		common.USER_ACTIONS[resource.type].REVIEW_CHANGES_REQUESTED,
+			// 		userId,
+			// 		resourceId,
+			// 		common.MODEL_NAMES.RESOURCE,
+			// 		orgId
+			// 	),
+			// })
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -119,7 +119,7 @@ module.exports = class reviewsHelper {
 				},
 				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_stage'] }
 			)
-
+			console.log(resource, 'resource')
 			// If no resource is found return error
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
 
@@ -197,15 +197,15 @@ module.exports = class reviewsHelper {
 			])
 
 			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resource.type].REVIEW_STARTED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
+			// eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+			// 	requestBody: utils.constructAddUserActionBody(
+			// 		common.USER_ACTIONS[resource.type].REVIEW_STARTED,
+			// 		userId,
+			// 		resourceId,
+			// 		common.MODEL_NAMES.RESOURCE,
+			// 		orgId
+			// 	),
+			// })
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -360,17 +360,17 @@ module.exports = class reviewsHelper {
 			])
 
 			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					isReported
-						? common.USER_ACTIONS[resource.type].RESOURCE_REPORTED
-						: common.USER_ACTIONS[resource.type].RESOURCE_REJECTED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
+			// eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+			// 	requestBody: utils.constructAddUserActionBody(
+			// 		isReported
+			// 			? common.USER_ACTIONS[resource.type].RESOURCE_REPORTED
+			// 			: common.USER_ACTIONS[resource.type].RESOURCE_REJECTED,
+			// 		userId,
+			// 		resourceId,
+			// 		common.MODEL_NAMES.RESOURCE,
+			// 		orgId
+			// 	),
+			// })
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -448,15 +448,15 @@ module.exports = class reviewsHelper {
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
 
 			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resourceType].REVIEW_APPROVED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
+			// eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+			// 	requestBody: utils.constructAddUserActionBody(
+			// 		common.USER_ACTIONS[resourceType].REVIEW_APPROVED,
+			// 		userId,
+			// 		resourceId,
+			// 		common.MODEL_NAMES.RESOURCE,
+			// 		orgId
+			// 	),
+			// })
 
 			// Determine if the resource should be published based on the number of approved reviews and minimum approval requirements.
 			const publishResource = reviewsApproved >= minApproval
@@ -537,15 +537,15 @@ module.exports = class reviewsHelper {
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
 
 			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resourceType].REVIEW_STARTED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					userOrgId
-				),
-			})
+			// eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+			// 	requestBody: utils.constructAddUserActionBody(
+			// 		common.USER_ACTIONS[resourceType].REVIEW_STARTED,
+			// 		userId,
+			// 		resourceId,
+			// 		common.MODEL_NAMES.RESOURCE,
+			// 		userOrgId
+			// 	),
+			// })
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'REVIEW_CREATED',
@@ -768,15 +768,15 @@ module.exports = class reviewsHelper {
 			)
 
 			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resourceData.type].RESOURCE_PUBLISHED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
+			// eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
+			// 	requestBody: utils.constructAddUserActionBody(
+			// 		common.USER_ACTIONS[resourceData.type].RESOURCE_PUBLISHED,
+			// 		userId,
+			// 		resourceId,
+			// 		common.MODEL_NAMES.RESOURCE,
+			// 		orgId
+			// 	),
+			// })
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
