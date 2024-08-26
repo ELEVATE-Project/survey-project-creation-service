@@ -3272,15 +3272,36 @@ paths:
                 notes:
                   description: Additional notes for the reviewer.
                   type: string
+                comment:
+                  description: An array of comment objects, each containing details about the comment.
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      context:
+                        description: The context or part of the project the comment is related to.
+                        type: string
+                      page:
+                        description: The page number where the comment applies (if applicable).
+                        type: integer
+                      status:
+                        description: The status of the comment (e.g., OPEN, CLOSED).
+                        type: string
+                      comment:
+                        description: The text of the comment.
+                        type: string
             examples:
               example1:
                 summary: Example when specific reviewers are selected
                 description: >-
                   When specific reviewers are selected, their user IDs are sent
                   as an array, and the project is assigned to those reviewers.
+                  Notes and comments can also be added for reviewers.
+                  All these fields are non-mandatory.
                 value:
                   reviewer_ids: [23, 25]
                   notes: 'Note to the reviewer'
+                  comment: [{ 'context': 'page', 'page': 1, 'status': 'OPEN', 'comment': 'this is the comment' }]
               example2:
                 summary: Example when sending to all reviewers
                 description: >-
