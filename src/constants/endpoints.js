@@ -10,7 +10,4 @@ module.exports = {
 		? process.env.USER_PROFILE_DETAILS_ENDPOINT
 		: 'v1/user/read',
 	VALIDATE_SESSIONS: 'v1/account/validateUserSession',
-	BROWSE_EXISTING_END_POINT: process.env.BROWSE_EXISTING_END_POINT
-		? process.env.BROWSE_EXISTING_END_POINT
-		: 'v1/internal/getAllPublishedResources',
 }
