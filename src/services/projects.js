@@ -730,6 +730,11 @@ module.exports = class ProjectsHelper {
 
 			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
 
+			// If the bodyData contains a comment Add or update comments
+			if (bodyData.comment) {
+				await reviewService.handleComments(bodyData.comment, resourceId, userDetails.id)
+			}
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROJECT_SUBMITTED_SUCCESSFULLY',
