@@ -5,8 +5,8 @@
  * Description : Activities Service
  */
 const httpStatusCode = require('@generics/http-status')
-const activitiesQueries = require('@database/queries/activities')
 const actionQueries = require('@database/queries/actions')
+const activitiesQueries = require('@database/queries/activities')
 const responses = require('@helpers/responses')
 const { activityDTO } = require('@dtos/activity')
 const common = require('@constants/common')

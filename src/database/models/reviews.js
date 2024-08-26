@@ -60,8 +60,6 @@ module.exports = (sequelize, DataTypes) => {
 
 	Review.addHook('afterSave', async (instance, options) => {
 		try {
-			// 		console.log(instance.resource_id, instance.reviewer_id, instance.organization_id, 'instance')
-
 			//get resource type
 			const resource = await sequelize.models.Resource.findOne(
 				{
@@ -72,7 +70,6 @@ module.exports = (sequelize, DataTypes) => {
 			)
 
 			if (resource?.id) {
-				console.log(resource.id, 'resourceId')
 				const statusActionMap = {
 					[common.REVIEW_STATUS_INPROGRESS]: common.USER_ACTIONS?.[resource?.type]?.REVIEW_STARTED,
 					[common.REVIEW_STATUS_REQUESTED_FOR_CHANGES]:
@@ -84,15 +81,13 @@ module.exports = (sequelize, DataTypes) => {
 				}
 
 				const actionCode = statusActionMap[instance.status]
-				// const actionCode = 'PROJECT_REVIEW_STARTED'
-				// 			console.log(actionCode,"actionCode")
 				if (actionCode) {
 					// After creating an activity, trigger the event
 					eventEmitter.emit('addUserAction', {
 						actionCode,
 						userId: instance.reviewer_id,
 						objectId: instance.resource_id,
-						objectType: 'RESOURCE',
+						objectType: common.MODEL_NAMES.RESOURCE,
 						orgId: instance.organization_id,
 					})
 				}
