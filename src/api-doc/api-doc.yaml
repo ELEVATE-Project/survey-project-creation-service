@@ -3749,9 +3749,6 @@ paths:
          - The API Endpoint for listing resources is `/scp/v1/resource/list` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - Query Param `listing` is mandatory for this API which can have any one value ['drafts','submitted_for_review','browse_existing'].
-         - In case of `drafts` Status key is redundant as it returns resources with status drafts only.
-         - In case of `browse_existing` only type and sort can be passed as filters.
       parameters:
         - name: X-auth-token
           in: header
@@ -3790,14 +3787,14 @@ paths:
           example: projects
         - name: status
           in: query
-          description: The status of the resource (['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review`. This key is redundant in other cases. )
+          description: The status of the resource (Ex - ['DRAFT'] - If `listing` is `drafts` and ['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review` )
           required: false
           schema:
             type: string
           example: DRAFT
         - name: listing
           in: query
-          description: To identify the page from frontend. Values can be ['drafts','submitted_for_review','browse_existing']
+          description: To identify the page from frontend. Values can be ['drafts','submitted_for_review']
           required: true
           schema:
             type: string

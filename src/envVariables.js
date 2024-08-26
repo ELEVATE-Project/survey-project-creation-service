@@ -177,24 +177,6 @@ let environmentVariables = {
 		optional: true,
 		default: 'reviewer',
 	},
-	INTERFACE_SERVICE_HOST: {
-		message: 'Interface Service host address',
-		optional: false,
-	},
-	INTERFACE_BASE_URL: {
-		message: 'Interface Service base url',
-		optional: true,
-		default: '/interface/',
-	},
-	BROWSE_EXISTING_END_POINT: {
-		message: 'Browse Existing list end point',
-		optional: true,
-		requiredIf: {
-			key: 'CONSUMPTION_SERVICE',
-			operator: 'NOT_EQUALS',
-			value: 'self',
-		},
-	},
 }
 
 let success = true
