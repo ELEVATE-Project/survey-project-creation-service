@@ -22,6 +22,26 @@ module.exports = {
 			.optional({ checkFalsy: true })
 			.isIn(check_values)
 			.withMessage('Status ' + req.query.status + ' invalid ')
+		// Additional validation if listing value is 'browse_existing'
+		if (req.query[common.LISTING] === common.PAGE_STATUS_BROWSE_EXISTING) {
+			const resourceTypes = process.env.RESOURCE_TYPES.split(',')
+			req.checkQuery('type')
+				.optional({ checkFalsy: true })
+				.custom((value) => {
+					// Split the 'type' query parameter by commas to handle multiple values
+					const types = value.split(',')
+
+					// Check if every type is valid
+					const isValid = types.every((type) => resourceTypes.includes(type.trim()))
+
+					if (!isValid) {
+						// Throw an error if any type is invalid
+						throw new Error('Invalid resource type provided.')
+					}
+
+					return true // Return true if all types are valid
+				})
+		}
 	},
 	publishCallback: (req) => {
 		req.checkQuery('resource_id')
@@ -31,5 +51,24 @@ module.exports = {
 			.isNumeric()
 			.withMessage('resource_id is invalid, must be an integer')
 		req.checkQuery('published_id').trim().notEmpty().withMessage('published_id field is empty')
+	},
+	browseExisting: (req) => {
+		const resourceTypes = process.env.RESOURCE_TYPES.split(',')
+		req.checkQuery('type')
+			.optional({ checkFalsy: true })
+			.custom((value) => {
+				// Split the 'type' query parameter by commas to handle multiple values
+				const types = value.split(',')
+
+				// Check if every type is valid
+				const isValid = types.every((type) => resourceTypes.includes(type.trim()))
+
+				if (!isValid) {
+					// Throw an error if any type is invalid
+					throw new Error('Invalid resource type provided.')
+				}
+
+				return true // Return true if all types are valid
+			})
 	},
 }
