@@ -788,3 +788,6 @@ async function handleComments(comments, resourceId, userId) {
 		throw error
 	}
 }
+
+// Export the handleComments function
+module.exports.handleComments = handleComments

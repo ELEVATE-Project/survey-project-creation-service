@@ -12,6 +12,7 @@ const userRequests = require('@requests/user')
 const _ = require('lodash')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewResourceQueries = require('@database/queries/reviewResources')
+const reviewsHelper = require('@services/reviews')
 const { Op } = require('sequelize')
 module.exports = class CommentsHelper {
 	/**
@@ -28,9 +29,8 @@ module.exports = class CommentsHelper {
 		try {
 			//create the comment
 			if (!commentId) {
-				bodyData.user_id = userId
-				bodyData.resource_id = resourceId
-				let commentCreate = await commentQueries.create(bodyData)
+				// handle comments
+				await reviewsHelper.handleComments(bodyData.comment, resourceId, userId)
 
 				//update the review as inprogress if its already started
 				const reviewResource = await reviewResourceQueries.findOne({
@@ -53,7 +53,7 @@ module.exports = class CommentsHelper {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'COMMENT_UPDATED_SUCCESSFULLY',
-					result: commentCreate,
+					result: {},
 				})
 			}
 
