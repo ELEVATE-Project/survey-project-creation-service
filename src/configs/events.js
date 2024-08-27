@@ -17,8 +17,7 @@ module.exports = async () => {
 
 	eventEmitter.on('addUserAction', async ({ actionCode, userId, objectId, objectType, orgId }) => {
 		try {
-			const data = await userActionHelper.addUserAction(actionCode, userId, objectId, objectType, orgId)
-			console.log(data, 'data')
+			await userActionHelper.addUserAction(actionCode, userId, objectId, objectType, orgId)
 			console.log('User action added successfully')
 		} catch (error) {
 			console.error('Failed to add user action:', error)

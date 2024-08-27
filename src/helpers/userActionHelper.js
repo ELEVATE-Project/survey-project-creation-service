@@ -31,6 +31,7 @@ module.exports = class UserActionHelper {
 				organization_id: orgId,
 			}
 
+			//create the activity
 			const createActivity = await activitiesQueries.create(activityData)
 			if (!createActivity?.id) {
 				throw new Error('ACTIVITY_CREATION_FAILED')
@@ -41,7 +42,11 @@ module.exports = class UserActionHelper {
 				message: 'ACTIVITY_CREATED',
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 }

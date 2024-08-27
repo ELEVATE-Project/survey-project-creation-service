@@ -92,7 +92,9 @@ module.exports = class ActionsHelper {
 	 * list actions.
 	 * @method
 	 * @name list
-	 * @param {String} id -  id.
+	 * @param {Integer} page - Page number
+	 * @param {Integer} page - Page size limit
+	 * @param {String} search - Search text.
 	 * @returns {JSON} - actions list response.
 	 */
 
@@ -136,7 +138,7 @@ module.exports = class ActionsHelper {
 	}
 
 	/**
-	 * Delete actions.
+	 * Delete action
 	 * @method
 	 * @name delete
 	 * @param {String} id - action id.

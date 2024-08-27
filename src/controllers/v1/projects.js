@@ -67,7 +67,7 @@ module.exports = class Projects {
 	/**
 	 * List reviewers based on Org Id
 	 * @method
-	 * @name reviwerList
+	 * @name reviewerList
 	 * @returns {JSON} - permissions creation object.
 	 */
 

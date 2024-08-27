@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
 
 	Action.addHook('beforeDestroy', async (instance, options) => {
 		try {
-			// Soft-delete associated Permissions records with matching module
+			// Soft-delete associated Activities records with matching actions
 			await sequelize.models.Activity.update(
 				{ deleted_at: new Date() }, // Set the deleted_at column to the current timestamp
 				{

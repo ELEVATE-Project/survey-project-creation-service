@@ -107,7 +107,7 @@ module.exports = class reviewsHelper {
 				},
 				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_stage'] }
 			)
-			console.log(resource, 'resource')
+
 			// If no resource is found return error
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
 
@@ -254,9 +254,7 @@ module.exports = class reviewsHelper {
 				review.organization_id,
 				reviewType,
 				resource.organization_id,
-				resource.next_stage,
-				orgId,
-				resource.type
+				resource.next_stage
 			)
 
 			// Publish resource if isPublishResource is true
@@ -363,7 +361,6 @@ module.exports = class reviewsHelper {
 	 * @param {String} reviewType - The type of review (e.g., sequential or parallel).
 	 * @param {String} resourceOrgId - The ID of the organization that owns the resource.
 	 * @param {String} currentReviewStage - The current stage of the resource's review process.
-	 * @param {String} orgId - The ID of the organization user belongs to.
 	 * @returns {JSON} - The response indicating the result of the review approval process.
 	 */
 	static async handleApproval(
@@ -375,9 +372,7 @@ module.exports = class reviewsHelper {
 		reviewOrgId,
 		reviewType,
 		resourceOrgId,
-		currentReviewStage,
-		orgId,
-		resourceType
+		currentReviewStage
 	) {
 		try {
 			let updateNextLevel = false

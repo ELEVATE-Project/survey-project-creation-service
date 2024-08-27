@@ -9,7 +9,7 @@ function getPaginationOffset(page, limit) {
 	return (page - 1) * limit
 }
 
-function createResourceActions(resource) {
+function getResourceActions(resource) {
 	return {
 		RESOURCE_CREATED: `CREATE_${resource}`,
 		RESOURCE_DELETED: `DELETE_${resource}`,
@@ -161,7 +161,7 @@ module.exports = {
 		RESOURCE: 'Resource',
 	},
 	USER_ACTIONS: {
-		projects: createResourceActions('PROJECT'),
+		projects: getResourceActions('PROJECT'),
 	},
 	EVENT_ADD_USER_ACTION: 'addUserAction',
 	REQUEST_TIMEOUT_MS: 3000,

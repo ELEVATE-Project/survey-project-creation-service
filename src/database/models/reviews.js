@@ -62,8 +62,8 @@ module.exports = (sequelize, DataTypes) => {
 			//get resource type
 			const resource = await sequelize.models.Resource.findOne(
 				{
-					where: { id: instance.resource_id }, // Ensure you're querying the resource by its ID
-					attributes: ['id', 'organization_id', 'type'], // Fetch necessary attributes
+					where: { id: instance.resource_id },
+					attributes: ['id', 'organization_id', 'type'],
 				},
 				{ raw: true }
 			)

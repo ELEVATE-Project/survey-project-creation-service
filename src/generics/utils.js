@@ -536,16 +536,6 @@ const isEmpty = (obj) => {
 	return true
 }
 
-const constructAddUserActionBody = (actionName, userId, objectId, objectType, orgId) => {
-	return {
-		action_name: actionName,
-		user_id: userId,
-		object_id: objectId,
-		object_type: objectType,
-		organization_id: orgId,
-	}
-}
-
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -579,5 +569,4 @@ module.exports = {
 	validateTitle,
 	validateComment,
 	isEmpty,
-	constructAddUserActionBody,
 }

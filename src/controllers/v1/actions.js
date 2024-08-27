@@ -50,7 +50,7 @@ module.exports = class actions {
 	}
 
 	/**
-	 * deletes actions
+	 * Delete action
 	 * @method
 	 * @name delete
 	 * @param {Object} req - request data.
