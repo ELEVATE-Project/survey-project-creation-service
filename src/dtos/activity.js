@@ -1,9 +1,10 @@
 'use strict'
+const actionQueries = require('@database/queries/actions')
 const utils = require('@generics/utils')
 const userRequests = require('@requests/user')
 const common = require('@constants/common')
 const _ = require('lodash')
-const actionQueries = require('@database/queries/actions')
+
 const { Op } = require('sequelize')
 
 exports.activityDTO = async (activities = [], organization_id, user_id) => {

@@ -14,7 +14,6 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
-const { eventBroadcaster } = require('@helpers/eventBroadcaster')
 const commentQueries = require('@database/queries/comments')
 module.exports = class ProjectsHelper {
 	/**
@@ -118,17 +117,6 @@ module.exports = class ProjectsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-
-			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[projectCreate.type].RESOURCE_CREATED,
-					loggedInUserId,
-					projectCreate.id,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -300,17 +288,6 @@ module.exports = class ProjectsHelper {
 			if (updatedProject === 0 && updatedProjectCreatorMapping === 0) {
 				throw new Error('PROJECT_NOT_FOUND')
 			}
-
-			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resource.type].RESOURCE_DELETED,
-					loggedInUserId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					resourceCreatorMapping.organization_id
-				),
-			})
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
@@ -749,14 +726,12 @@ module.exports = class ProjectsHelper {
 
 			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
 			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
-					userDetails.id,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					userDetails.organization_id
-				),
+			eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
+				actionCode: common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
+				userId: userDetails.id,
+				objectId: resourceId,
+				objectType: common.MODEL_NAMES.RESOURCE,
+				orgId: userDetails.organization_id,
 			})
 
 			return responses.successResponse({

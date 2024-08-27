@@ -20,7 +20,6 @@ const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const kafkaCommunication = require('@generics/kafka-communication')
-const { eventBroadcaster } = require('@helpers/eventBroadcaster')
 module.exports = class reviewsHelper {
 	/**
 	 * Update review.
@@ -76,17 +75,6 @@ module.exports = class reviewsHelper {
 				),
 			])
 
-			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resource.type].REVIEW_CHANGES_REQUESTED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
-
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'REVIEW_CHANGES_REQUESTED',
@@ -119,7 +107,7 @@ module.exports = class reviewsHelper {
 				},
 				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_stage'] }
 			)
-
+			console.log(resource, 'resource')
 			// If no resource is found return error
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
 
@@ -195,17 +183,6 @@ module.exports = class reviewsHelper {
 					{ status: common.RESOURCE_STATUS_IN_REVIEW, last_reviewed_on: new Date() }
 				),
 			])
-
-			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resource.type].REVIEW_STARTED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -359,19 +336,6 @@ module.exports = class reviewsHelper {
 				),
 			])
 
-			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					isReported
-						? common.USER_ACTIONS[resource.type].RESOURCE_REPORTED
-						: common.USER_ACTIONS[resource.type].RESOURCE_REJECTED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
-
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: isReported ? 'REVIEW_REJECTED_AND_REPORTED' : 'REVIEW_REJECTED',
@@ -446,17 +410,6 @@ module.exports = class reviewsHelper {
 
 			// Update the resource with the last review date and next_stage (if applicable).
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
-
-			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resourceType].REVIEW_APPROVED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
 
 			// Determine if the resource should be published based on the number of approved reviews and minimum approval requirements.
 			const publishResource = reviewsApproved >= minApproval
@@ -536,16 +489,6 @@ module.exports = class reviewsHelper {
 			// Update the resource table to reflect the review status and last_reviewed_on
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
 
-			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resourceType].REVIEW_STARTED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					userOrgId
-				),
-			})
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'REVIEW_CREATED',
@@ -766,17 +709,6 @@ module.exports = class reviewsHelper {
 					published_on: new Date(),
 				}
 			)
-
-			//add user action
-			eventBroadcaster(common.EVENT_ADD_USER_ACTION, {
-				requestBody: utils.constructAddUserActionBody(
-					common.USER_ACTIONS[resourceData.type].RESOURCE_PUBLISHED,
-					userId,
-					resourceId,
-					common.MODEL_NAMES.RESOURCE,
-					orgId
-				),
-			})
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,

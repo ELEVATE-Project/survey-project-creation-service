@@ -6,8 +6,6 @@
  */
 
 const activityService = require('@services/activities')
-const common = require('@constants/common')
-const utils = require('@generics/utils')
 
 module.exports = class activities {
 	/**
