@@ -29,6 +29,18 @@ module.exports = {
 			.optional()
 			.isIn(allowedStatuses)
 			.withMessage(`status is invalid, must be one of: ${allowedStatuses.join(', ')}`)
+		// Validate the id parameter in the URL, but it's not mandatory
+		req.checkParams('id').optional().trim().isNumeric().withMessage('id param is invalid, must be an integer')
+
+		// Custom validation: if `id` is present, ensure `comment` is an object
+		if (req.params.id) {
+			req.checkBody('comment', 'comment must be an object, not an array').custom((value) => {
+				if (Array.isArray(value)) {
+					throw new Error('comment must be an object, not an array')
+				}
+				return true
+			})
+		}
 	},
 	list: (req) => {
 		req.checkQuery('resource_id')

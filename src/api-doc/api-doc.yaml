@@ -4411,6 +4411,8 @@ paths:
          - The API Endpoint for adding or updating a comment is `/scp/v1/comments/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - In case of bulk comment update , pass the body with `comment` as an array of objects with mandatory fields.
+         - In case of single comment update , pass the comment id and body with `comment` as an object with mandatory fields.
       parameters:
         - name: X-auth-token
           in: header

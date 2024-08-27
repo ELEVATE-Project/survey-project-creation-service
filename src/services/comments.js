@@ -58,9 +58,9 @@ module.exports = class CommentsHelper {
 			}
 
 			//update the comment
-			if (bodyData.status === common.STATUS_RESOLVED) {
-				bodyData.resolved_by = userId
-				bodyData.resolved_at = new Date()
+			if (bodyData.comment.status === common.STATUS_RESOLVED) {
+				bodyData.comment.resolved_by = userId
+				bodyData.comment.resolved_at = new Date()
 			}
 
 			const filter = {
@@ -68,7 +68,7 @@ module.exports = class CommentsHelper {
 				id: commentId,
 			}
 
-			const [updateCount, updatedComment] = await commentQueries.updateOne(filter, bodyData, {
+			const [updateCount, updatedComment] = await commentQueries.updateOne(filter, bodyData.comment, {
 				returning: true,
 				raw: true,
 			})
