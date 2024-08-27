@@ -1,5 +1,4 @@
-const common = require('../../constants/common')
-const eventEmitter = require('../../configs/events')
+const common = require('@constants/common')
 
 module.exports = (sequelize, DataTypes) => {
 	const Review = sequelize.define(
@@ -82,7 +81,7 @@ module.exports = (sequelize, DataTypes) => {
 
 				const actionCode = statusActionMap[instance.status]
 				if (actionCode) {
-					// After creating an activity, trigger the event
+					// After updating the reviews, trigger the event
 					eventEmitter.emit('addUserAction', {
 						actionCode,
 						userId: instance.reviewer_id,

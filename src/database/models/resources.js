@@ -1,5 +1,4 @@
-const common = require('../../constants/common')
-const eventEmitter = require('../../configs/events')
+const common = require('@constants/common')
 
 module.exports = (sequelize, DataTypes) => {
 	const Resource = sequelize.define(

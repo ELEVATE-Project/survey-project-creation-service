@@ -14,7 +14,6 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
-const eventEmitter = require('@configs/events')
 const commentQueries = require('@database/queries/comments')
 module.exports = class ProjectsHelper {
 	/**
