@@ -4436,92 +4436,256 @@ paths:
           example: 1
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
               $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 comment:
-                  type: string
-                  description: The actual content of the comment
-                context:
-                  type: string
-                  description: Context of the comment (e.g., "page" or any tag)
-                page:
-                  type: string
-                  description: Page number associated with the comment.(e.g. "project_details")
-                status:
-                  type: string
-                  description: Status of the comment (e.g., "OPEN" / "DRAFT" , "RESOLVED").
-                parent_id:
-                  type: string
-                  description: ID of the parent comment, if applicable
-
-            examples:
-              example1:
-                value:
-                  comment: 'Check spelling'
-                  context: page
-                  page: 1
-                  status: OPEN / DRAFT / RESOLVED
-                  parent_id: 2
-
-      responses:
-        '201':
-          description: Comment updated successfully
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: object
-
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
+                  oneOf:
+                    - type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: ID of the comment
+                        resource_id:
+                          type: integer
+                          description: ID of the resource associated with the comment
+                        comment:
+                          type: string
+                          description: The actual content of the comment
+                        user_id:
+                          type: string
+                          description: ID of the user who made the comment
+                        parent_id:
+                          type: integer
+                          description: ID of the parent comment, if applicable
+                        status:
+                          type: string
+                          description: Status of the comment (e.g., "OPEN", "DRAFT", "RESOLVED")
+                        resolved_by:
+                          type: string
+                          description: ID of the user who resolved the comment, if applicable
+                        resolved_at:
+                          type: string
+                          format: date-time
+                          description: Timestamp when the comment was resolved
+                        context:
+                          type: string
+                          description: Context of the comment (e.g., "page" or any tag)
+                        page:
+                          type: string
+                          description: Page number associated with the comment (e.g., "1")
+                        is_read:
+                          type: boolean
+                          description: Whether the comment has been read
+                        created_at:
+                          type: string
+                          format: date-time
+                          description: Timestamp when the comment was created
+                        updated_at:
+                          type: string
+                          format: date-time
+                          description: Timestamp when the comment was last updated
+                        deleted_at:
+                          type: string
+                          format: date-time
+                          description: Timestamp when the comment was deleted, if applicable
+                        commenter:
                           type: object
                           properties:
                             id:
-                              type: number
-                            type:
+                              type: integer
+                              description: ID of the commenter
+                            name:
                               type: string
-                            version:
-                              type: number
+                              description: Name of the commenter
+                        resolver:
+                          type: object
+                          description: Details of the user who resolved the comment, if applicable
+                    - type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            description: ID of the comment
+                          resource_id:
+                            type: integer
+                            description: ID of the resource associated with the comment
+                          comment:
+                            type: string
+                            description: The actual content of the comment
+                          user_id:
+                            type: string
+                            description: ID of the user who made the comment
+                          parent_id:
+                            type: integer
+                            description: ID of the parent comment, if applicable
+                          status:
+                            type: string
+                            description: Status of the comment (e.g., "OPEN", "DRAFT", "RESOLVED")
+                          resolved_by:
+                            type: string
+                            description: ID of the user who resolved the comment, if applicable
+                          resolved_at:
+                            type: string
+                            format: date-time
+                            description: Timestamp when the comment was resolved
+                          context:
+                            type: string
+                            description: Context of the comment (e.g., "page" or any tag)
+                          page:
+                            type: string
+                            description: Page number associated with the comment (e.g., "1")
+                          is_read:
+                            type: boolean
+                            description: Whether the comment has been read
+                          created_at:
+                            type: string
+                            format: date-time
+                            description: Timestamp when the comment was created
+                          updated_at:
+                            type: string
+                            format: date-time
+                            description: Timestamp when the comment was last updated
+                          deleted_at:
+                            type: string
+                            format: date-time
+                            description: Timestamp when the comment was deleted, if applicable
+                          commenter:
+                            type: object
+                            properties:
+                              id:
+                                type: integer
+                                description: ID of the commenter
+                              name:
+                                type: string
+                                description: Name of the commenter
+                          resolver:
+                            type: object
+                            description: Details of the user who resolved the comment, if applicable
+            examples:
+              array_of_comments:
+                value:
+                  comment:
+                    [
+                      {
+                        id: 26,
+                        resource_id: 371,
+                        comment: 'Check spelling',
+                        user_id: '102',
+                        parent_id: 0,
+                        status: 'RESOLVED',
+                        resolved_by: null,
+                        resolved_at: null,
+                        context: 'page',
+                        page: '1',
+                        is_read: false,
+                        created_at: '2024-08-27T13:25:02.752Z',
+                        updated_at: '2024-08-27T13:25:02.752Z',
+                        deleted_at: null,
+                        commenter: { id: 102, name: 'Default Org Admin Two' },
+                        resolver: {},
+                      },
+                      {
+                        id: 27,
+                        resource_id: 371,
+                        comment: 'Check spelling',
+                        user_id: '102',
+                        parent_id: 0,
+                        status: 'RESOLVED',
+                        resolved_by: null,
+                        resolved_at: null,
+                        context: 'page',
+                        page: '1',
+                        is_read: false,
+                        created_at: '2024-08-27T13:26:13.716Z',
+                        updated_at: '2024-08-27T13:26:13.716Z',
+                        deleted_at: null,
+                        commenter: { id: 102, name: 'Default Org Admin Two' },
+                        resolver: {},
+                      },
+                    ]
+              one_comment:
+                value:
+                  comment:
+                    {
+                      id: 26,
+                      resource_id: 371,
+                      comment: 'Check spelling',
+                      user_id: '102',
+                      parent_id: 0,
+                      status: 'RESOLVED',
+                      resolved_by: null,
+                      resolved_at: null,
+                      context: 'page',
+                      page: '1',
+                      is_read: false,
+                      created_at: '2024-08-27T13:25:02.752Z',
+                      updated_at: '2024-08-27T13:25:02.752Z',
+                      deleted_at: null,
+                      commenter: { id: 102, name: 'Default Org Admin Two' },
+                      resolver: {},
+                    }
 
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: Comment updated successfully
-                    result:
-                      id: 3
-                      resource_id: 1
-                      comment: 'Check spelling'
-                      context: page
-                      page: 1
-                      status: OPEN
-                      parent_id: 2
-                      is_read: false
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
-        '400':
-          description: Bad Request. Resource not found
-          content:
-            application.json:
-              schema:
-                $ref: '#/components/schemas/comment/updateComment400Response'
+            responses:
+              '201':
+                description: Comment updated successfully
+                content:
+                  application.json:
+                    schema:
+                      $schema: http://json-schema.org/draft-04/schema#
+                      type: object
+                      properties:
+                        responseCode:
+                          type: string
+                        message:
+                          type: string
+                        result:
+                          type: object
+
+                        meta:
+                          type: object
+                          properties:
+                            formsVersion:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  id:
+                                    type: number
+                                  type:
+                                    type: string
+                                  version:
+                                    type: number
+
+                    examples:
+                      example1:
+                        value:
+                          responseCode: OK
+                          message: Comment updated successfully
+                          result:
+                            id: 3
+                            resource_id: 1
+                            comment: 'Check spelling'
+                            context: page
+                            page: 1
+                            status: OPEN
+                            parent_id: 2
+                            is_read: false
+                          meta:
+                            formsVersion:
+                              - id: 3
+                                type: projectCreation
+                                version: 3
+              '400':
+                description: Bad Request. Resource not found
+                content:
+                  application.json:
+                    schema:
+                      $ref: '#/components/schemas/comment/updateComment400Response'
+
   /scp/v1/comments/list?resource_id={resource_id}:
     get:
       summary: Comment List
