@@ -4988,14 +4988,14 @@ paths:
                           version: 49
                       correlation: 'c1f40d2c-a883-4f51-a17d-7b0730ccd433'
 
-  /scp/v1/certificate/list:
+  /scp/v1/certificates/list:
     get:
       summary: List Certificate Templates
       tags:
         - Certificate
       description: |-
         You can use this API to list certificate templates
-         - The API Endpoint for list certificate templates is `/scp/v1/certificate/list` 
+         - The API Endpoint for list certificate templates is `/scp/v1/certificates/list` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -5079,7 +5079,7 @@ paths:
                     result:
                       data:
                         - id: 2
-                          code: two-logo-two-sign
+                          code: two_logo_two_sign
                           name: Two Logo Two Signature
                           resource_type: projects
                           url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -5099,14 +5099,14 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-  /scp/v1/certificate/update:
+  /scp/v1/certificates/update:
     post:
       summary: Create certificate base template
       tags:
         - Certificate
       description: |-
         You can use this API to create certificate base template 
-         - The API Endpoint for create certificate base template  is `/scp/v1/certificate/update` 
+         - The API Endpoint for create certificate base template  is `/scp/v1/certificates/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -5140,7 +5140,7 @@ paths:
             examples:
               example1:
                 value:
-                  code: two-logo-two-sign
+                  code: two_logo_two_sign
                   name: Two Logo Two Signature
                   resource_type: projects
                   url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -5200,7 +5200,7 @@ paths:
                     message: Template created successfully
                     result:
                       id: 2
-                      code: one-logo-one-sign
+                      code: one_logo_one_sign
                       name: One Logo One Signature
                       resource_type: projects
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -5224,15 +5224,15 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/certificate/createCertificate400Response'
-  /scp/v1/certificate/update/{id}:
+                $ref: '#/components/schemas/certificates/createCertificate400Response'
+  /scp/v1/certificates/update/{id}:
     post:
       summary: Update certificate base template
       tags:
         - Certificate
       description: |-
         You can use this API to update certificate base template 
-         - The API Endpoint for update certificate base template  is `/scp/v1/certificate/update` 
+         - The API Endpoint for update certificate base template  is `/scp/v1/certificates/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -5313,7 +5313,7 @@ paths:
                     message: Template updated successfully
                     result:
                       id: 2
-                      code: two-logo-two-sign
+                      code: two_logo_two_sign
                       name: Two Logo Two Signature
                       resource_type: projects
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -5337,15 +5337,15 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/certificate/updateCertificate400Response'
-  /scp/v1/certificate/createSVG:
+                $ref: '#/components/schemas/certificates/updateCertificate400Response'
+  /scp/v1/certificates/createSVG:
     post:
       summary: Edit Certificate SVG
       tags:
         - Certificate
       description: |-
         You can use this API to edit certificate svg 
-         - The API Endpoint for edit certificate svg is `/scp/v1/certificate/createSVG` 
+         - The API Endpoint for edit certificate svg is `/scp/v1/certificates/createSVG` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
