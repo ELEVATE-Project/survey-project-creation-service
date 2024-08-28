@@ -1204,7 +1204,7 @@ module.exports = class resourceHelper {
 			const search = searchText != '' ? searchText : ''
 			let resources = {}
 			// consumption side if set to self , only resources published with in SCP will be showed
-			// If it has any value other than self , the result will be combination of resources from the coupled service and from SCP
+			// If it has any value other than self , the result will be combination of resources from the coupled service and from SCP.
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
 				resources = await interfaceRequests.browseExistingList(type, organization_id, token, search)
 			}
