@@ -761,13 +761,13 @@ async function handleComments(comments, resourceId, userId) {
 		// Separate comments into ones that need to be updated and ones that need to be created
 		const commentsToUpdate = []
 		const commentsToCreate = []
-		// parant id = null --> parent
-		// parant id = 123 --> child
-
+		let parentCommentCheckFilter = []
 		for (let comment of comments) {
 			if (comment?.parent_id) {
-				const isCommentValid = await isParantCommentValid(comment.parent_id, resourceId)
-				if (!isCommentValid) throw new Error('COMMENT_PARENT_INVALID')
+				parentCommentCheckFilter.push({
+					id: comment.parent_id,
+					resource_id: resourceId,
+				})
 			}
 
 			if (comment.id) {
@@ -786,6 +786,9 @@ async function handleComments(comments, resourceId, userId) {
 			}
 		}
 
+		const isCommentValid = await isParantCommentValid(parentCommentCheckFilter)
+		if (!isCommentValid) throw new Error('COMMENT_PARENT_INVALID')
+
 		// Handle updating comments
 		const updatePromises = commentsToUpdate.map((comment) =>
 			commentQueries.updateOne({ id: comment.id, resource_id: resourceId }, _.omit(comment, ['id']))
@@ -802,9 +805,20 @@ async function handleComments(comments, resourceId, userId) {
 	}
 }
 
-async function isParantCommentValid(parent_id, resourceId) {
-	const comment = await commentQueries.findOne({ id: parent_id, resource_id: resourceId })
-	return comment ? true : false
+async function isParantCommentValid(filter) {
+	const commentsFromDB = await commentQueries.findAll(filter, [id, resource_id])
+
+	// Create a Set of unique strings combining 'id' and 'resource_id' from the DB results
+	const dbSet = new Set(commentsFromDB.map((comment) => `${comment.id}-${comment.resource_id}`))
+
+	// Loop through the filter array and check if each combination exists in the Set
+	for (const item of filter) {
+		const key = `${item.id}-${item.resource_id}`
+		if (!dbSet.has(key)) {
+			return false // Return false if any combination is missing
+		}
+	}
+	return true // Return true if all combinations are found
 }
 
 // Export the handleComments function
