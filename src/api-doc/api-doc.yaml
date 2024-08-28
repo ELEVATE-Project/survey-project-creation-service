@@ -4190,7 +4190,7 @@ paths:
                 value:
                   comment:
                     id: 10
-                    comment: 'Check spelling'
+                    text: 'Check spelling'
                     context: page
                     page: 1
       responses:
@@ -4355,7 +4355,7 @@ paths:
                   notes: 'invalid project'
                   comment:
                     id: 10
-                    comment: 'Check spelling'
+                    text: 'Check spelling'
                     context: page
                     page: 1
       responses:
@@ -4454,7 +4454,7 @@ paths:
                         resource_id:
                           type: integer
                           description: ID of the resource associated with the comment
-                        comment:
+                        text:
                           type: string
                           description: The actual content of the comment
                         parent_id:
@@ -4482,7 +4482,7 @@ paths:
                           resource_id:
                             type: integer
                             description: ID of the resource associated with the comment
-                          comment:
+                          text:
                             type: string
                             description: The actual content of the comment
                           user_id:
@@ -4542,7 +4542,7 @@ paths:
                       {
                         id: 26,
                         resource_id: 371,
-                        comment: 'Check spelling',
+                        text: 'Check spelling',
                         user_id: '102',
                         parent_id: 0,
                         status: 'RESOLVED',
@@ -4554,7 +4554,7 @@ paths:
                       },
                       {
                         resource_id: 371,
-                        comment: 'Check spelling',
+                        text: 'Check spelling',
                         user_id: '102',
                         parent_id: 0,
                         status: 'OPEN',
@@ -4571,7 +4571,7 @@ paths:
                     {
                       id: 26,
                       resource_id: 371,
-                      comment: 'Check spelling',
+                      text: 'Check spelling',
                       user_id: '102',
                       parent_id: 0,
                       status: 'RESOLVED',
