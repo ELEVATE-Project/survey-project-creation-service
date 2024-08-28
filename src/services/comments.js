@@ -79,14 +79,11 @@ module.exports = class CommentsHelper {
 				result: updatedComment,
 			})
 		} catch (error) {
-			if (error.message == 'COMMENT_INVALID' || error.message == 'COMMENT_PARENT_INVALID') {
-				return responses.failureResponse({
-					message: error.message,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
