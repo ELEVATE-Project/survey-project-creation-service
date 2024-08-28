@@ -763,6 +763,8 @@ async function handleComments(comments, resourceId, userId) {
 		const commentsToCreate = []
 		let parentCommentIds = []
 		for (let comment of comments) {
+			comment.comment = comment.text
+			delete comment.text
 			if (comment?.parent_id) {
 				parentCommentIds.push(comment.parent_id)
 			}

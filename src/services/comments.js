@@ -48,6 +48,10 @@ module.exports = class CommentsHelper {
 				})
 			}
 
+			// convert comment.text to comment.comment as per DB schema
+			bodyData.comment.comment = bodyData.comment.text
+			delete bodyData.comment.text
+
 			//update the comment
 			if (bodyData.comment.status === common.STATUS_RESOLVED) {
 				bodyData.comment.resolved_by = userId
