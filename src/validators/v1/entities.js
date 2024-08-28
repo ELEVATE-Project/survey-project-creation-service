@@ -14,7 +14,7 @@ module.exports = {
 			.trim()
 			.notEmpty()
 			.withMessage('value field is empty')
-			.matches(/^[A-Za-z]+$/)
+			.matches(/^[A-Za-z_]+$/)
 			.withMessage('value is invalid, must not contain spaces')
 
 		req.checkBody('label')
@@ -52,7 +52,7 @@ module.exports = {
 
 		req.checkBody('value')
 			.optional()
-			.matches(/^[A-Za-z]+$/)
+			.matches(/^[A-Za-z_]+$/)
 			.withMessage('value is invalid, must not contain spaces')
 
 		req.checkBody('label')
@@ -85,7 +85,7 @@ module.exports = {
 			.optional()
 			.notEmpty()
 			.withMessage('value field is empty')
-			.matches(/^[A-Za-z0-9 ]+$/)
+			.matches(/^[A-Za-z_]+$/)
 			.withMessage('value is invalid, must not contain spaces')
 	},
 
