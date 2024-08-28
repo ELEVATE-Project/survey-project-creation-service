@@ -30,7 +30,7 @@ module.exports = class CommentsHelper {
 			//create the comment
 			if (!commentId) {
 				// handle comments
-				await reviewsHelper.handleComments(bodyData.comment, resourceId, userId)
+				await reviewsHelper.handleComments(bodyData.comment, parseInt(resourceId, 10), userId)
 
 				// convert body data to array if its not
 				if (!Array.isArray(bodyData.comment)) {

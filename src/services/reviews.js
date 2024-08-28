@@ -761,13 +761,10 @@ async function handleComments(comments, resourceId, userId) {
 		// Separate comments into ones that need to be updated and ones that need to be created
 		const commentsToUpdate = []
 		const commentsToCreate = []
-		let parentCommentCheckFilter = []
+		let parentCommentIds = []
 		for (let comment of comments) {
 			if (comment?.parent_id) {
-				parentCommentCheckFilter.push({
-					id: comment.parent_id,
-					resource_id: resourceId,
-				})
+				parentCommentIds.push(comment.parent_id)
 			}
 
 			if (comment.id) {
@@ -786,7 +783,7 @@ async function handleComments(comments, resourceId, userId) {
 			}
 		}
 
-		const isCommentValid = await isParantCommentValid(parentCommentCheckFilter)
+		const isCommentValid = await isParantCommentValid(parentCommentIds, resourceId)
 		if (!isCommentValid) throw new Error('COMMENT_PARENT_INVALID')
 
 		// Handle updating comments
@@ -804,21 +801,36 @@ async function handleComments(comments, resourceId, userId) {
 		throw error
 	}
 }
-
-async function isParantCommentValid(filter) {
-	const commentsFromDB = await commentQueries.findAll(filter, [id, resource_id])
-
-	// Create a Set of unique strings combining 'id' and 'resource_id' from the DB results
-	const dbSet = new Set(commentsFromDB.map((comment) => `${comment.id}-${comment.resource_id}`))
-
-	// Loop through the filter array and check if each combination exists in the Set
-	for (const item of filter) {
-		const key = `${item.id}-${item.resource_id}`
-		if (!dbSet.has(key)) {
-			return false // Return false if any combination is missing
+/**
+ * Check if the given parent ids are valid or not for the resource
+ * @method
+ * @name isParantCommentValid
+ * @param {Array} parentIds - List of parent ids of the comments
+ * @param {Integer} resourceId - Resource Id
+ * @returns {Boolean} - Returns a true / false indicating if the parent id is a valid id for the resource.
+ */
+async function isParantCommentValid(parentIds, resourceId) {
+	try {
+		const filter = {
+			id: { [Op.in]: parentIds },
+			resource_id: resourceId,
 		}
+		const comments = await commentQueries.findAll(filter, ['id', 'resource_id'])
+
+		// Create a Set of unique strings combining 'id' and 'resource_id' from the DB results
+		const commentResourceMap = new Set(comments.map((comment) => `${comment.id}-${comment.resource_id}`))
+
+		// Loop through the filter array and check if each combination exists in the Set
+		for (const parentId of parentIds) {
+			const key = `${parentId}-${resourceId}`
+			if (!commentResourceMap.has(key)) {
+				return false // Return false if any combination is missing
+			}
+		}
+		return true // Return true if all combinations are found
+	} catch (error) {
+		throw error
 	}
-	return true // Return true if all combinations are found
 }
 
 // Export the handleComments function
