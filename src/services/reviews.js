@@ -761,9 +761,22 @@ async function handleComments(comments, resourceId, userId) {
 		// Separate comments into ones that need to be updated and ones that need to be created
 		const commentsToUpdate = []
 		const commentsToCreate = []
+		// parant id = null --> parent
+		// parant id = 123 --> child
 
 		for (let comment of comments) {
+			if (comment?.parent_id) {
+				const isCommentValid = await isParantCommentValid(comment.parent_id, resourceId)
+				if (!isCommentValid) throw new Error('COMMENT_PARENT_INVALID')
+			}
+
 			if (comment.id) {
+				if (comment.status === common.STATUS_RESOLVED) {
+					comment.resolved_by = userId
+					comment.resolved_at = new Date()
+				} else {
+					comment.status = common.COMMENT_STATUS_OPEN
+				}
 				commentsToUpdate.push(comment)
 			} else {
 				comment.user_id = userId
@@ -787,6 +800,11 @@ async function handleComments(comments, resourceId, userId) {
 	} catch (error) {
 		throw error
 	}
+}
+
+async function isParantCommentValid(parent_id, resourceId) {
+	const comment = await commentQueries.findOne({ id: parent_id, resource_id: resourceId })
+	return comment ? true : false
 }
 
 // Export the handleComments function

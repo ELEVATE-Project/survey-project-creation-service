@@ -113,6 +113,7 @@
 	"RESOURCE_APPROVAL_FAILED": "Resource approval either failed or has already been approved.",
 	"REVIEW_ALREADY_STARTED": "Review already started",
 	"COMMENT_INVALID": "Comment should have context, page and comment.",
+	"COMMENT_PARENT_INVALID": "Invalid comment parent.",
 	"CHANGES_ALREADY_REQUESTED": "Changes have already been requested for review.",
 	"ALL_COMMENTS_NOT_RESOLVED": "Resolve all comments before sending for review."
 }

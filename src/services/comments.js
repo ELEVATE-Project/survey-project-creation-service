@@ -32,28 +32,9 @@ module.exports = class CommentsHelper {
 				// handle comments
 				await reviewsHelper.handleComments(bodyData.comment, resourceId, userId)
 
-				//update the review as inprogress if its already started
-				const reviewResource = await reviewResourceQueries.findOne({
-					reviewer_id: userId,
-					resource_id: resourceId,
-				})
-
-				if (reviewResource?.id) {
-					await reviewsQueries.update(
-						{
-							organization_id: reviewResource.organization_id,
-							resource_id: resourceId,
-							reviewer_id: userId,
-							status: { [Op.in]: [common.REVIEW_STATUS_STARTED] },
-						},
-						{ status: common.REVIEW_STATUS_INPROGRESS }
-					)
-				}
-
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'COMMENT_UPDATED_SUCCESSFULLY',
-					result: {},
 				})
 			}
 
@@ -88,6 +69,13 @@ module.exports = class CommentsHelper {
 				result: updatedComment,
 			})
 		} catch (error) {
+			if (error.message == 'COMMENT_INVALID' || error.message == 'COMMENT_PARENT_INVALID') {
+				return responses.failureResponse({
+					message: error.message,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 			throw error
 		}
 	}
