@@ -4457,9 +4457,6 @@ paths:
                         comment:
                           type: string
                           description: The actual content of the comment
-                        user_id:
-                          type: string
-                          description: ID of the user who made the comment
                         parent_id:
                           type: integer
                           description: ID of the parent comment, if applicable
@@ -4603,9 +4600,6 @@ paths:
                           type: string
                         message:
                           type: string
-                        result:
-                          type: object
-
                         meta:
                           type: object
                           properties:
