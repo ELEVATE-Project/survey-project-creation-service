@@ -790,7 +790,10 @@ async function handleComments(comments, resourceId, userId) {
 
 		// Handle updating comments
 		const updatePromises = commentsToUpdate.map((comment) =>
-			commentQueries.updateOne({ id: comment.id, resource_id: resourceId }, _.omit(comment, ['id']))
+			commentQueries.updateOne(
+				{ id: comment.id, parent_id: comment.parent_id, resource_id: resourceId },
+				_.omit(comment, ['id'])
+			)
 		)
 
 		// Handle creating comments in bulk
