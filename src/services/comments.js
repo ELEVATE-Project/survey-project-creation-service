@@ -32,9 +32,19 @@ module.exports = class CommentsHelper {
 				// handle comments
 				await reviewsHelper.handleComments(bodyData.comment, resourceId, userId)
 
+				// convert body data to array if its not
+				if (!Array.isArray(bodyData.comment)) {
+					bodyData.comment = [bodyData.comment]
+				}
+				// check if any one comment is resolved or not
+				const hasResolvedStatus = bodyData.comment.some((comment) => comment.status == common.STATUS_RESOLVED)
+
+				// customize the return message , if comment is resolved or comment is updated
+				const message = hasResolvedStatus ? 'COMMENT_RESOLVED' : 'COMMENT_UPDATED_SUCCESSFULLY'
+
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
-					message: 'COMMENT_UPDATED_SUCCESSFULLY',
+					message,
 				})
 			}
 

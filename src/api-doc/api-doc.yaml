@@ -4413,6 +4413,7 @@ paths:
          - This is a mandatory parameter and cannot be empty or null.
          - In case of bulk comment update , pass the body with `comment` as an array of objects with mandatory fields.
          - In case of single comment update , pass the comment id and body with `comment` as an object with mandatory fields.
+         - If you are creating a comment for the first time. Its status can be DRAFT/OPEN not RESOLVED for the first time. It is handled in backend.
       parameters:
         - name: X-auth-token
           in: header
@@ -4465,13 +4466,6 @@ paths:
                         status:
                           type: string
                           description: Status of the comment (e.g., "OPEN", "DRAFT", "RESOLVED")
-                        resolved_by:
-                          type: string
-                          description: ID of the user who resolved the comment, if applicable
-                        resolved_at:
-                          type: string
-                          format: date-time
-                          description: Timestamp when the comment was resolved
                         context:
                           type: string
                           description: Context of the comment (e.g., "page" or any tag)
@@ -4481,30 +4475,6 @@ paths:
                         is_read:
                           type: boolean
                           description: Whether the comment has been read
-                        created_at:
-                          type: string
-                          format: date-time
-                          description: Timestamp when the comment was created
-                        updated_at:
-                          type: string
-                          format: date-time
-                          description: Timestamp when the comment was last updated
-                        deleted_at:
-                          type: string
-                          format: date-time
-                          description: Timestamp when the comment was deleted, if applicable
-                        commenter:
-                          type: object
-                          properties:
-                            id:
-                              type: integer
-                              description: ID of the commenter
-                            name:
-                              type: string
-                              description: Name of the commenter
-                        resolver:
-                          type: object
-                          description: Details of the user who resolved the comment, if applicable
                     - type: array
                       items:
                         type: object
@@ -4584,29 +4554,18 @@ paths:
                         context: 'page',
                         page: '1',
                         is_read: false,
-                        created_at: '2024-08-27T13:25:02.752Z',
-                        updated_at: '2024-08-27T13:25:02.752Z',
-                        deleted_at: null,
-                        commenter: { id: 102, name: 'Default Org Admin Two' },
-                        resolver: {},
                       },
                       {
-                        id: 27,
                         resource_id: 371,
                         comment: 'Check spelling',
                         user_id: '102',
                         parent_id: 0,
-                        status: 'RESOLVED',
+                        status: 'OPEN',
                         resolved_by: null,
                         resolved_at: null,
                         context: 'page',
                         page: '1',
                         is_read: false,
-                        created_at: '2024-08-27T13:26:13.716Z',
-                        updated_at: '2024-08-27T13:26:13.716Z',
-                        deleted_at: null,
-                        commenter: { id: 102, name: 'Default Org Admin Two' },
-                        resolver: {},
                       },
                     ]
               one_comment:
@@ -4667,15 +4626,6 @@ paths:
                         value:
                           responseCode: OK
                           message: Comment updated successfully
-                          result:
-                            id: 3
-                            resource_id: 1
-                            comment: 'Check spelling'
-                            context: page
-                            page: 1
-                            status: OPEN
-                            parent_id: 2
-                            is_read: false
                           meta:
                             formsVersion:
                               - id: 3
