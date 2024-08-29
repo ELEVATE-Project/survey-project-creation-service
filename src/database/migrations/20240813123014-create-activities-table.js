@@ -20,6 +20,7 @@ module.exports = {
 			},
 			object_id: {
 				allowNull: false,
+				primaryKey: true,
 				type: Sequelize.STRING,
 			},
 			object_type: {
