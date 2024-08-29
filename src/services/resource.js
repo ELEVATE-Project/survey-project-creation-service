@@ -23,6 +23,7 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const commentQueries = require('@database/queries/comments')
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
+const interfaceRequests = require('@requests/interface')
 const defaultOrgId = process.env.DEFAULT_ORG_ID
 module.exports = class resourceHelper {
 	/**
@@ -1208,6 +1209,10 @@ module.exports = class resourceHelper {
 				published_id: null,
 			}
 			if (type) filterQiuery.type = type
+			if (search)
+				filterQiuery.title = {
+					[Op.iLike]: `%${search}%`,
+				}
 			const selfResources = await resourceQueries.findAll(filterQiuery, [
 				'id',
 				'title',
