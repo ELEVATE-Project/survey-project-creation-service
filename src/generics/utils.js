@@ -524,7 +524,7 @@ const validateComment = (comments) => {
 			(eachComment) =>
 				eachComment &&
 				typeof eachComment === 'object' &&
-				eachComment.hasOwnProperty('comment') &&
+				eachComment.hasOwnProperty('text') &&
 				eachComment.hasOwnProperty('context') &&
 				eachComment.hasOwnProperty('page')
 		)

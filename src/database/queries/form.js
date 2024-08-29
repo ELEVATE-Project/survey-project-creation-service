@@ -5,7 +5,7 @@ exports.create = async (data) => {
 	try {
 		return await Form.create(data)
 	} catch (error) {
-		return error
+		throw error
 	}
 }
 

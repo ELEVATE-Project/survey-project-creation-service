@@ -1,4 +1,7 @@
+const filterRequestBody = require('../common')
+const { permissions } = require('@constants/blacklistConfig')
 const Permission = require('@database/models/index').Permission
+const allowedPermissionStatus = ['ACTIVE', 'INACTIVE']
 
 async function isUniqueCode(value) {
 	const existingRecord = await Permission.findOne({ where: { code: value } })
@@ -10,6 +13,7 @@ async function isUniqueCode(value) {
 
 module.exports = {
 	create: (req) => {
+		req.body = filterRequestBody(req.body, permissions.create)
 		req.checkBody('code')
 			.trim()
 			.notEmpty()
@@ -45,10 +49,17 @@ module.exports = {
 			.optional({ checkFalsy: true })
 			.notEmpty()
 			.withMessage('Status field must be a non-empty string when provided')
+			.isIn(allowedPermissionStatus)
+			.withMessage(`status is invalid, must be one of: ${allowedPermissionStatus.join(', ')}`)
 	},
 
 	update: (req) => {
-		req.checkParams('id').notEmpty().withMessage('id param is empty')
+		req.body = filterRequestBody(req.body, permissions.update)
+		req.checkParams('id')
+			.notEmpty()
+			.withMessage('id param is empty')
+			.isNumeric()
+			.withMessage('id param is invalid, must be an integer')
 
 		req.checkBody('code')
 			.trim()
@@ -84,9 +95,16 @@ module.exports = {
 			.optional({ checkFalsy: true })
 			.notEmpty()
 			.withMessage('Status field must be a non-empty string when provided')
+			.isIn(allowedPermissionStatus)
+			.withMessage(`status is invalid, must be one of: ${allowedPermissionStatus.join(', ')}`)
 	},
 
 	delete: (req) => {
-		req.checkParams('id').notEmpty().withMessage('id param is empty')
+		req.checkParams('id')
+			.trim()
+			.notEmpty()
+			.withMessage('id param is empty')
+			.isNumeric()
+			.withMessage('id param is invalid, must be an integer')
 	},
 }

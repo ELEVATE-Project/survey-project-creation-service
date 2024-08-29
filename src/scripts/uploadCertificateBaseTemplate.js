@@ -18,7 +18,7 @@ const utils = require('../generics/utils')
 	try {
 		const certificatesArray = [
 			{
-				code: 'one-logo-one-sign',
+				code: 'one_logo_one_sign',
 				name: 'One Logo One Signature',
 				meta: {
 					logos: {
@@ -34,7 +34,7 @@ const utils = require('../generics/utils')
 				},
 			},
 			{
-				code: 'one-logo-two-sign',
+				code: 'one_logo_two_sign',
 				name: 'One Logo Two Signature',
 				meta: {
 					logos: {
@@ -53,7 +53,7 @@ const utils = require('../generics/utils')
 				},
 			},
 			{
-				code: 'two-logo-one-sign',
+				code: 'two_logo_one_sign',
 				name: 'Two Logo One Signature',
 				meta: {
 					logos: {
@@ -70,7 +70,7 @@ const utils = require('../generics/utils')
 				},
 			},
 			{
-				code: 'two-logo-two-sign',
+				code: 'two_logo_two_sign',
 				name: 'Two Logo Two Signature',
 				meta: {
 					logos: {
