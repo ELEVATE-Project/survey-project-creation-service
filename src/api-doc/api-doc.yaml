@@ -6377,7 +6377,7 @@ components:
               type: string
             example: []
 
-    certificate:
+    certificates:
       createCertificate400Response:
         type: object
         properties:
