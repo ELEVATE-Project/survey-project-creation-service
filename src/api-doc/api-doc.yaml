@@ -4190,7 +4190,7 @@ paths:
                 value:
                   comment:
                     id: 10
-                    comment: 'Check spelling'
+                    text: 'Check spelling'
                     context: page
                     page: 1
       responses:
@@ -4355,7 +4355,7 @@ paths:
                   notes: 'invalid project'
                   comment:
                     id: 10
-                    comment: 'Check spelling'
+                    text: 'Check spelling'
                     context: page
                     page: 1
       responses:
@@ -4411,6 +4411,9 @@ paths:
          - The API Endpoint for adding or updating a comment is `/scp/v1/comments/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - In case of bulk comment update , pass the body with `comment` as an array of objects with mandatory fields.
+         - In case of single comment update , pass the comment id and body with `comment` as an object with mandatory fields.
+         - If you are creating a comment for the first time. Its status can be DRAFT/OPEN not RESOLVED for the first time. It is handled in backend.
       parameters:
         - name: X-auth-token
           in: header
@@ -4436,92 +4439,199 @@ paths:
           example: 1
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
               $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 comment:
-                  type: string
-                  description: The actual content of the comment
-                context:
-                  type: string
-                  description: Context of the comment (e.g., "page" or any tag)
-                page:
-                  type: string
-                  description: Page number associated with the comment.(e.g. "project_details")
-                status:
-                  type: string
-                  description: Status of the comment (e.g., "OPEN" / "DRAFT" , "RESOLVED").
-                parent_id:
-                  type: string
-                  description: ID of the parent comment, if applicable
-
+                  oneOf:
+                    - type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: ID of the comment
+                        resource_id:
+                          type: integer
+                          description: ID of the resource associated with the comment
+                        text:
+                          type: string
+                          description: The actual content of the comment
+                        parent_id:
+                          type: integer
+                          description: ID of the parent comment, if applicable
+                        status:
+                          type: string
+                          description: Status of the comment (e.g., "OPEN", "DRAFT", "RESOLVED")
+                        context:
+                          type: string
+                          description: Context of the comment (e.g., "page" or any tag)
+                        page:
+                          type: string
+                          description: Page number associated with the comment (e.g., "1")
+                        is_read:
+                          type: boolean
+                          description: Whether the comment has been read
+                    - type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            description: ID of the comment
+                          resource_id:
+                            type: integer
+                            description: ID of the resource associated with the comment
+                          text:
+                            type: string
+                            description: The actual content of the comment
+                          user_id:
+                            type: string
+                            description: ID of the user who made the comment
+                          parent_id:
+                            type: integer
+                            description: ID of the parent comment, if applicable
+                          status:
+                            type: string
+                            description: Status of the comment (e.g., "OPEN", "DRAFT", "RESOLVED")
+                          resolved_by:
+                            type: string
+                            description: ID of the user who resolved the comment, if applicable
+                          resolved_at:
+                            type: string
+                            format: date-time
+                            description: Timestamp when the comment was resolved
+                          context:
+                            type: string
+                            description: Context of the comment (e.g., "page" or any tag)
+                          page:
+                            type: string
+                            description: Page number associated with the comment (e.g., "1")
+                          is_read:
+                            type: boolean
+                            description: Whether the comment has been read
+                          created_at:
+                            type: string
+                            format: date-time
+                            description: Timestamp when the comment was created
+                          updated_at:
+                            type: string
+                            format: date-time
+                            description: Timestamp when the comment was last updated
+                          deleted_at:
+                            type: string
+                            format: date-time
+                            description: Timestamp when the comment was deleted, if applicable
+                          commenter:
+                            type: object
+                            properties:
+                              id:
+                                type: integer
+                                description: ID of the commenter
+                              name:
+                                type: string
+                                description: Name of the commenter
+                          resolver:
+                            type: object
+                            description: Details of the user who resolved the comment, if applicable
             examples:
-              example1:
+              array_of_comments:
                 value:
-                  comment: 'Check spelling'
-                  context: page
-                  page: 1
-                  status: OPEN / DRAFT / RESOLVED
-                  parent_id: 2
+                  comment:
+                    [
+                      {
+                        id: 26,
+                        resource_id: 371,
+                        text: 'Check spelling',
+                        user_id: '102',
+                        parent_id: 0,
+                        status: 'RESOLVED',
+                        resolved_by: null,
+                        resolved_at: null,
+                        context: 'page',
+                        page: '1',
+                        is_read: false,
+                      },
+                      {
+                        resource_id: 371,
+                        text: 'Check spelling',
+                        user_id: '102',
+                        parent_id: 0,
+                        status: 'OPEN',
+                        resolved_by: null,
+                        resolved_at: null,
+                        context: 'page',
+                        page: '1',
+                        is_read: false,
+                      },
+                    ]
+              one_comment:
+                value:
+                  comment:
+                    {
+                      id: 26,
+                      resource_id: 371,
+                      text: 'Check spelling',
+                      user_id: '102',
+                      parent_id: 0,
+                      status: 'RESOLVED',
+                      resolved_by: null,
+                      resolved_at: null,
+                      context: 'page',
+                      page: '1',
+                      is_read: false,
+                      created_at: '2024-08-27T13:25:02.752Z',
+                      updated_at: '2024-08-27T13:25:02.752Z',
+                      deleted_at: null,
+                      commenter: { id: 102, name: 'Default Org Admin Two' },
+                      resolver: {},
+                    }
 
-      responses:
-        '201':
-          description: Comment updated successfully
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: object
-
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
+            responses:
+              '201':
+                description: Comment updated successfully
+                content:
+                  application.json:
+                    schema:
+                      $schema: http://json-schema.org/draft-04/schema#
+                      type: object
+                      properties:
+                        responseCode:
+                          type: string
+                        message:
+                          type: string
+                        meta:
                           type: object
                           properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
+                            formsVersion:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  id:
+                                    type: number
+                                  type:
+                                    type: string
+                                  version:
+                                    type: number
 
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: Comment updated successfully
-                    result:
-                      id: 3
-                      resource_id: 1
-                      comment: 'Check spelling'
-                      context: page
-                      page: 1
-                      status: OPEN
-                      parent_id: 2
-                      is_read: false
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
-        '400':
-          description: Bad Request. Resource not found
-          content:
-            application.json:
-              schema:
-                $ref: '#/components/schemas/comment/updateComment400Response'
+                    examples:
+                      example1:
+                        value:
+                          responseCode: OK
+                          message: Comment updated successfully
+                          meta:
+                            formsVersion:
+                              - id: 3
+                                type: projectCreation
+                                version: 3
+              '400':
+                description: Bad Request. Resource not found
+                content:
+                  application.json:
+                    schema:
+                      $ref: '#/components/schemas/comment/updateComment400Response'
+
   /scp/v1/comments/list?resource_id={resource_id}:
     get:
       summary: Comment List
@@ -4988,14 +5098,14 @@ paths:
                           version: 49
                       correlation: 'c1f40d2c-a883-4f51-a17d-7b0730ccd433'
 
-  /scp/v1/certificate/list:
+  /scp/v1/certificates/list:
     get:
       summary: List Certificate Templates
       tags:
         - Certificate
       description: |-
         You can use this API to list certificate templates
-         - The API Endpoint for list certificate templates is `/scp/v1/certificate/list` 
+         - The API Endpoint for list certificate templates is `/scp/v1/certificates/list` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -5079,7 +5189,7 @@ paths:
                     result:
                       data:
                         - id: 2
-                          code: two-logo-two-sign
+                          code: two_logo_two_sign
                           name: Two Logo Two Signature
                           resource_type: projects
                           url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -5099,14 +5209,14 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-  /scp/v1/certificate/update:
+  /scp/v1/certificates/update:
     post:
       summary: Create certificate base template
       tags:
         - Certificate
       description: |-
         You can use this API to create certificate base template 
-         - The API Endpoint for create certificate base template  is `/scp/v1/certificate/update` 
+         - The API Endpoint for create certificate base template  is `/scp/v1/certificates/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -5140,7 +5250,7 @@ paths:
             examples:
               example1:
                 value:
-                  code: two-logo-two-sign
+                  code: two_logo_two_sign
                   name: Two Logo Two Signature
                   resource_type: projects
                   url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -5200,7 +5310,7 @@ paths:
                     message: Template created successfully
                     result:
                       id: 2
-                      code: one-logo-one-sign
+                      code: one_logo_one_sign
                       name: One Logo One Signature
                       resource_type: projects
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -5224,15 +5334,15 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/certificate/createCertificate400Response'
-  /scp/v1/certificate/update/{id}:
+                $ref: '#/components/schemas/certificates/createCertificate400Response'
+  /scp/v1/certificates/update/{id}:
     post:
       summary: Update certificate base template
       tags:
         - Certificate
       description: |-
         You can use this API to update certificate base template 
-         - The API Endpoint for update certificate base template  is `/scp/v1/certificate/update` 
+         - The API Endpoint for update certificate base template  is `/scp/v1/certificates/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -5313,7 +5423,7 @@ paths:
                     message: Template updated successfully
                     result:
                       id: 2
-                      code: two-logo-two-sign
+                      code: two_logo_two_sign
                       name: Two Logo Two Signature
                       resource_type: projects
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -5337,15 +5447,15 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/certificate/updateCertificate400Response'
-  /scp/v1/certificate/createSVG:
+                $ref: '#/components/schemas/certificates/updateCertificate400Response'
+  /scp/v1/certificates/createSVG:
     post:
       summary: Edit Certificate SVG
       tags:
         - Certificate
       description: |-
         You can use this API to edit certificate svg 
-         - The API Endpoint for edit certificate svg is `/scp/v1/certificate/createSVG` 
+         - The API Endpoint for edit certificate svg is `/scp/v1/certificates/createSVG` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:

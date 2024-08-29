@@ -48,5 +48,12 @@ module.exports = {
 			.withMessage('resource_type field is empty')
 			.isBoolean()
 			.withMessage('isReported must be a boolean value')
+
+		req.checkBody('notes')
+			.optional()
+			.notEmpty()
+			.withMessage('notes param is empty')
+			.matches(/^[A-Za-z0-9 _&<>-]+$/)
+			.withMessage('notes is invalid')
 	},
 }
