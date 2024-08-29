@@ -12,6 +12,7 @@ const userRequests = require('@requests/user')
 const _ = require('lodash')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewResourceQueries = require('@database/queries/reviewResources')
+const reviewsHelper = require('@services/reviews')
 const { Op } = require('sequelize')
 module.exports = class CommentsHelper {
 	/**
@@ -28,39 +29,33 @@ module.exports = class CommentsHelper {
 		try {
 			//create the comment
 			if (!commentId) {
-				bodyData.user_id = userId
-				bodyData.resource_id = resourceId
-				let commentCreate = await commentQueries.create(bodyData)
+				// handle comments
+				await reviewsHelper.handleComments(bodyData.comment, parseInt(resourceId, 10), userId)
 
-				//update the review as inprogress if its already started
-				const reviewResource = await reviewResourceQueries.findOne({
-					reviewer_id: userId,
-					resource_id: resourceId,
-				})
-
-				if (reviewResource?.id) {
-					await reviewsQueries.update(
-						{
-							organization_id: reviewResource.organization_id,
-							resource_id: resourceId,
-							reviewer_id: userId,
-							status: { [Op.in]: [common.REVIEW_STATUS_STARTED] },
-						},
-						{ status: common.REVIEW_STATUS_INPROGRESS }
-					)
+				// convert body data to array if its not
+				if (!Array.isArray(bodyData.comment)) {
+					bodyData.comment = [bodyData.comment]
 				}
+				// check if any one comment is resolved or not
+				const hasResolvedStatus = bodyData.comment.some((comment) => comment.status == common.STATUS_RESOLVED)
+
+				// customize the return message , if comment is resolved or comment is updated
+				const message = hasResolvedStatus ? 'COMMENT_RESOLVED' : 'COMMENT_UPDATED_SUCCESSFULLY'
 
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
-					message: 'COMMENT_UPDATED_SUCCESSFULLY',
-					result: commentCreate,
+					message,
 				})
 			}
 
+			// convert comment.text to comment.comment as per DB schema
+			bodyData.comment.comment = bodyData.comment.text
+			delete bodyData.comment.text
+
 			//update the comment
-			if (bodyData.status === common.STATUS_RESOLVED) {
-				bodyData.resolved_by = userId
-				bodyData.resolved_at = new Date()
+			if (bodyData.comment.status === common.STATUS_RESOLVED) {
+				bodyData.comment.resolved_by = userId
+				bodyData.comment.resolved_at = new Date()
 			}
 
 			const filter = {
@@ -68,7 +63,7 @@ module.exports = class CommentsHelper {
 				id: commentId,
 			}
 
-			const [updateCount, updatedComment] = await commentQueries.updateOne(filter, bodyData, {
+			const [updateCount, updatedComment] = await commentQueries.updateOne(filter, bodyData.comment, {
 				returning: true,
 				raw: true,
 			})
@@ -88,7 +83,11 @@ module.exports = class CommentsHelper {
 				result: updatedComment,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
