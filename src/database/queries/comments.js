@@ -1,5 +1,5 @@
 const Comment = require('@database/models/index').Comment
-const { Op } = require('sequelize')
+const { Op, Sequelize } = require('sequelize')
 const common = require('@constants/common')
 
 module.exports = class CommentData {
@@ -77,6 +77,12 @@ module.exports = class CommentData {
 
 			const { rows, count } = await Comment.findAndCountAll({
 				where: filterQuery,
+				attributes: {
+					exclude: ['comment'],
+					include: [
+						[Sequelize.col('comment'), 'text'], // Alias 'comment' to 'text'
+					],
+				},
 				order: [[common.CREATED_AT, common.SORT_ASC]],
 				raw: true,
 			})
