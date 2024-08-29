@@ -22,7 +22,7 @@ module.exports = class ActivityHelper {
 	 * @returns {JSON} - activities list response.
 	 */
 
-	static async list(resourceId = '', userId, orgId, page, limit) {
+	static async list(resourceId, userId, orgId, page, limit) {
 		try {
 			let result = {
 				data: [],
@@ -37,10 +37,7 @@ module.exports = class ActivityHelper {
 
 			let filter = {
 				organization_id: orgId.toString(),
-			}
-
-			if (resourceId) {
-				filter.object_id = resourceId
+				object_id: resourceId,
 			}
 
 			const attributes = ['id', 'action_id', 'user_id', 'object_id', 'object_type', 'created_at']

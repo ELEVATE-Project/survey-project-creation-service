@@ -22,7 +22,7 @@ module.exports = class activities {
 	async list(req) {
 		try {
 			const activities = await activityService.list(
-				req.params.id ? req.params.id : '',
+				req.params.id,
 				req.decodedToken.id,
 				req.decodedToken.organization_id,
 				req.pageNo,

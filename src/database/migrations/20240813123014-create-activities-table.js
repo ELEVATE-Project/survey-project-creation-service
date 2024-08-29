@@ -45,8 +45,8 @@ module.exports = {
 			},
 		})
 		//add index
-		await queryInterface.addIndex('activities', ['organization_id', 'user_id'], {
-			name: 'activities_index_org_user',
+		await queryInterface.addIndex('activities', ['object_id'], {
+			name: 'activities_index_object_id',
 		})
 	},
 

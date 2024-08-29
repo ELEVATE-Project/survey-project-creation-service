@@ -9,7 +9,6 @@ module.exports = {
 	list: (req) => {
 		req.checkParams('id')
 			.trim()
-			.optional()
 			.notEmpty()
 			.withMessage('id param is empty')
 			.isNumeric()

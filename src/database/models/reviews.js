@@ -68,28 +68,25 @@ module.exports = (sequelize, DataTypes) => {
 				{ raw: true }
 			)
 
-			if (resource?.id) {
-				const statusActionMap = {
-					[common.REVIEW_STATUS_INPROGRESS]: common.USER_ACTIONS?.[resource?.type]?.REVIEW_STARTED,
-					[common.REVIEW_STATUS_REQUESTED_FOR_CHANGES]:
-						common.USER_ACTIONS?.[resource?.type]?.REVIEW_CHANGES_REQUESTED,
-					[common.REVIEW_STATUS_APPROVED]: common.USER_ACTIONS?.[resource?.type]?.REVIEW_APPROVED,
-					[common.REVIEW_STATUS_REJECTED]: common.USER_ACTIONS?.[resource?.type]?.RESOURCE_REJECTED,
-					[common.REVIEW_STATUS_REJECTED_AND_REPORTED]:
-						common.USER_ACTIONS?.[resource?.type]?.RESOURCE_REPORTED,
-				}
+			const statusActionMap = {
+				[common.REVIEW_STATUS_INPROGRESS]: common.USER_ACTIONS?.[resource?.type]?.REVIEW_STARTED,
+				[common.REVIEW_STATUS_REQUESTED_FOR_CHANGES]:
+					common.USER_ACTIONS?.[resource?.type]?.REVIEW_CHANGES_REQUESTED,
+				[common.REVIEW_STATUS_APPROVED]: common.USER_ACTIONS?.[resource?.type]?.REVIEW_APPROVED,
+				[common.REVIEW_STATUS_REJECTED]: common.USER_ACTIONS?.[resource?.type]?.RESOURCE_REJECTED,
+				[common.REVIEW_STATUS_REJECTED_AND_REPORTED]: common.USER_ACTIONS?.[resource?.type]?.RESOURCE_REPORTED,
+			}
 
-				const actionCode = statusActionMap[instance.status]
-				if (actionCode) {
-					// After updating the reviews, trigger the event
-					eventEmitter.emit('addUserAction', {
-						actionCode,
-						userId: instance.reviewer_id,
-						objectId: instance.resource_id,
-						objectType: common.MODEL_NAMES.RESOURCE,
-						orgId: instance.organization_id,
-					})
-				}
+			const actionCode = statusActionMap[instance.status]
+			if (actionCode) {
+				// After updating the reviews, trigger the event
+				eventEmitter.emit('addUserAction', {
+					actionCode,
+					userId: instance.reviewer_id,
+					objectId: instance.resource_id,
+					objectType: common.MODEL_NAMES.RESOURCE,
+					orgId: instance.organization_id,
+				})
 			}
 		} catch (error) {
 			console.error('Error during afterSave hook:', error)
