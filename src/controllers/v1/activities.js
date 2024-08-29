@@ -12,6 +12,7 @@ module.exports = class activities {
 	 * Get user activities
 	 * @method
 	 * @name list
+	 * @param {Integer} Id - Resource id
 	 * @param {String} req.pageNo - Page No.
 	 * @param {String} req.pageSize - Page size limit.
 	 * @param {String} req.searchText - Search text.
@@ -21,6 +22,7 @@ module.exports = class activities {
 	async list(req) {
 		try {
 			const activities = await activityService.list(
+				req.params.id ? req.params.id : '',
 				req.decodedToken.id,
 				req.decodedToken.organization_id,
 				req.pageNo,

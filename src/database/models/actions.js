@@ -31,22 +31,5 @@ module.exports = (sequelize, DataTypes) => {
 		}
 	)
 
-	Action.addHook('beforeDestroy', async (instance, options) => {
-		try {
-			// Soft-delete associated Activities records with matching actions
-			await sequelize.models.Activity.update(
-				{ deleted_at: new Date() }, // Set the deleted_at column to the current timestamp
-				{
-					where: {
-						action_id: instance.id, // instance.id contains the id of the Action record being deleted
-					},
-				}
-			)
-		} catch (error) {
-			console.error('Error during beforeDestroy hook:', error)
-			throw error
-		}
-	})
-
 	return Action
 }

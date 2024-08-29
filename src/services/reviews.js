@@ -259,7 +259,7 @@ module.exports = class reviewsHelper {
 
 			// Publish resource if isPublishResource is true
 			if (isPublishResource) {
-				const publishResource = await this.publishResource(resourceId, resource.user_id, orgId)
+				const publishResource = await this.publishResource(resourceId, resource.user_id)
 				return publishResource
 			}
 
@@ -662,10 +662,9 @@ module.exports = class reviewsHelper {
 	 * @name publishResource
 	 * @param {Integer} resourceId - resource Id
 	 * @param {String} userId - The ID of the user
-	 * @param {String} orgId - The ID of the organization
 	 * @returns {JSON} - Publish Response
 	 */
-	static async publishResource(resourceId, userId, orgId) {
+	static async publishResource(resourceId, userId) {
 		try {
 			// Fetch the resource creator mapping
 			const resource = await resourceCreatorMappingQueries.findOne(

@@ -18,6 +18,7 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			object_id: {
 				allowNull: false,
+				primaryKey: true,
 				type: DataTypes.STRING,
 			},
 			object_type: {

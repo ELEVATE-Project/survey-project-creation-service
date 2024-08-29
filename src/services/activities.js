@@ -14,6 +14,7 @@ module.exports = class ActivityHelper {
 	 * list activities.
 	 * @method
 	 * @name list
+	 * @param {Integer} resourceId - The ID of the resource for which activities are listed.
 	 * @param {String} userId - Id of the logged in user
 	 * @param {Integer} page - Page number
 	 * @param {Integer} page - Page size limit
@@ -21,12 +22,13 @@ module.exports = class ActivityHelper {
 	 * @returns {JSON} - activities list response.
 	 */
 
-	static async list(userId, orgId, page, limit) {
+	static async list(resourceId = '', userId, orgId, page, limit) {
 		try {
 			let result = {
 				data: [],
 				count: 0,
 			}
+
 			const offset = common.getPaginationOffset(page, limit)
 			const options = {
 				offset,
@@ -36,6 +38,11 @@ module.exports = class ActivityHelper {
 			let filter = {
 				organization_id: orgId.toString(),
 			}
+
+			if (resourceId) {
+				filter.object_id = resourceId
+			}
+
 			const attributes = ['id', 'action_id', 'user_id', 'object_id', 'object_type', 'created_at']
 			//fetch all the activities
 			const activities = await activitiesQueries.findAllActivities(filter, attributes, options)

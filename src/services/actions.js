@@ -10,6 +10,7 @@ const responses = require('@helpers/responses')
 const { UniqueConstraintError } = require('sequelize')
 const common = require('@constants/common')
 const { Op } = require('sequelize')
+const activitiesQueries = require('@database/queries/activities')
 module.exports = class ActionsHelper {
 	/**
 	 * Create Action
@@ -150,16 +151,27 @@ module.exports = class ActionsHelper {
 			const action = await actionQueries.findById(id)
 			if (!action) {
 				throw new Error('ACTION_NOT_FOUND')
-			} else {
-				const deleteAction = await actionQueries.deleteAction(id)
-				if (!deleteAction) {
-					throw new Error('ACTION_NOT_DELETED')
-				}
-				return responses.successResponse({
-					statusCode: httpStatusCode.accepted,
-					message: 'ACTION_DELETED_SUCCESSFULLY',
-				})
 			}
+
+			const activities = await activitiesQueries.findAllActivities(
+				{
+					action_id: id,
+				},
+				['id']
+			)
+
+			if (activities.count > 0) {
+				throw new Error('CANNOT_DELETE_ACTION_DUE_TO_ASSOCIATED_ACTIVITIES')
+			}
+
+			const deleteAction = await actionQueries.deleteAction(id)
+			if (!deleteAction) {
+				throw new Error('ACTION_NOT_DELETED')
+			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'ACTION_DELETED_SUCCESSFULLY',
+			})
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
