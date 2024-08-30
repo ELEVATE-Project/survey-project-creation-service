@@ -6,7 +6,7 @@
  */
 
 // Dependencies
-const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST + process.env.INTERFACE_BASE_URL
+const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 
