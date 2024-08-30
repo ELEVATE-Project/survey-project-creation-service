@@ -18,11 +18,7 @@ module.exports = class FormsHelper {
 		try {
 			const form = await formQueries.findOne({ type: bodyData.type, organization_id: orgId })
 			if (form) {
-				return responses.failureResponse({
-					message: 'FORM_ALREADY_EXISTS',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				throw new Error('FORM_ALREADY_EXISTS')
 			}
 			bodyData['organization_id'] = orgId
 			await formQueries.create(bodyData)
