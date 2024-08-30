@@ -1195,25 +1195,30 @@ module.exports = class resourceHelper {
 				data: [],
 				count: 0,
 			}
-			const type = query[common.TYPE] ? query[common.TYPE] : ''
+			const resourceType = query[common.TYPE] ? query[common.TYPE] : ''
 			const search = searchText != '' ? searchText : ''
-			let resources = {}
+			let externalResources = {}
 			// consumption side if set to self , only resources published with in SCP will be showed
 			// If it has any value other than self , the result will be combination of resources from the coupled service and from SCP.
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-				resources = await interfaceRequests.browseExistingList(type, organization_id, token, search)
+				externalResources = await interfaceRequests.browseExistingList(
+					resourceType,
+					organization_id,
+					token,
+					search
+				)
 			}
-			let filterQiuery = {
+			let filterQuery = {
 				organization_id,
 				status: common.RESOURCE_STATUS_PUBLISHED,
 				published_id: null,
 			}
-			if (type) filterQiuery.type = type
+			if (resourceType) filterQuery.type = resourceType
 			if (search)
-				filterQiuery.title = {
+				filterQuery.title = {
 					[Op.iLike]: `%${search}%`,
 				}
-			const selfResources = await resourceQueries.findAll(filterQiuery, [
+			const internalResources = await resourceQueries.findAll(filterQuery, [
 				'id',
 				'title',
 				'type',
@@ -1221,22 +1226,24 @@ module.exports = class resourceHelper {
 				'created_at',
 			])
 
-			const combinedData = [
-				...(resources?.success && resources?.data?.result?.data?.length ? resources.data.result.data : []),
-				...(selfResources.length ? selfResources : []),
+			const aggregatedResources = [
+				...(externalResources?.success && externalResources?.data?.result?.data?.length
+					? externalResources.data.result.data
+					: []),
+				...(internalResources.length ? internalResources : []),
 			]
 
-			if (combinedData.length > 0) {
+			if (aggregatedResources.length > 0) {
 				// construct sort object
 				const sort = await this.constructSortOptions(query.sort_by, query.sort_order)
 				// sort the array
-				const sortedData = utils.sort(combinedData, sort)
+				const sortedResources = utils.sort(aggregatedResources, sort)
 				// data after applying pagenation
-				const paginatedDate = utils.paginate(sortedData, pageNo, pageSize)
+				const paginatedResources = utils.paginate(sortedResources, pageNo, pageSize)
 				// get the unique creator ids to fetch the user details
 				const uniqueCreatorIds = _.difference(
 					utils.getUniqueElements(
-						paginatedDate.map((resource) => {
+						paginatedResources.map((resource) => {
 							const createdBy = resource.created_by
 							return !isNaN(createdBy) && !isNaN(parseFloat(createdBy)) ? +createdBy : createdBy
 						})
@@ -1246,18 +1253,18 @@ module.exports = class resourceHelper {
 				// fetch the user details from user service with creatorId
 				const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
 
-				let finalResponse = []
+				let finalResources = []
 
-				paginatedDate.filter((resource) => {
+				paginatedResources.filter((resource) => {
 					resource.created_by = userDetails[resource.created_by]?.name
 						? userDetails[resource.created_by]?.name
 						: ''
-					finalResponse.push(resource)
+					finalResources.push(resource)
 				})
 
 				result = {
-					data: finalResponse,
-					count: combinedData.length,
+					data: finalResources,
+					count: aggregatedResources.length,
 				}
 			}
 
