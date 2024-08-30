@@ -3878,6 +3878,129 @@ paths:
                         - id: 3
                           type: projecsuccessfullytCreation
                           version: 3
+  /scp/v1/resource/browseExisting:
+    get:
+      summary: Browse Existing List
+      tags:
+        - Resource
+      description: |-
+        You can use this API to list published resources like project
+         - The API Endpoint for listing resources is `/scp/v1/resource/browseExisting` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+         - Query Param `typw` is a non mandatory field which can have values ['projects','survey','observation','observation_with_rubrics'].
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: The page number for pagination.
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: The limit of projects per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
+        - name: search
+          in: query
+          description: The search value to filter resources based on title.
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Type of the resource
+          required: false
+          schema:
+            type: string
+          example: projects
+        - name: sort_by
+          in: query
+          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          required: false
+          schema:
+            type: string
+          example: status
+        - name: sort_order
+          in: query
+          description: Sort order (ascending or descending).
+          required: false
+          schema:
+            type: string
+            enum: ['asc', 'desc']
+          example: asc
+
+      responses:
+        '200':
+          description: Resources listed successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: number
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Resources listed successfully
+                    result:
+                      data:
+                        - id: 4
+                          title: sample project
+                          type: projects
+                          organization:
+                            id: 24
+                            name: Shikshalokam
+                            code: sl
+                          status: DRAFT
+                      count: 1
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projecsuccessfullytCreation
+                          version: 3
   /scp/v1/resource/upForReview:
     get:
       summary: Up For Review Resource List
