@@ -82,7 +82,7 @@ module.exports = class Resource {
 		}
 	}
 
-	async browseExisting(req) {
+	async getPublishedResources(req) {
 		try {
 			const resourceList = await resourceService.browseExistingList(
 				req.decodedToken.organization_id,

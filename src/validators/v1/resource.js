@@ -32,7 +32,7 @@ module.exports = {
 			.withMessage('resource_id is invalid, must be an integer')
 		req.checkQuery('published_id').trim().notEmpty().withMessage('published_id field is empty')
 	},
-	browseExisting: (req) => {
+	getPublishedResources: (req) => {
 		// Validate type parameter if provided
 		req.checkQuery(common.TYPE)
 			.optional({ checkFalsy: true })
