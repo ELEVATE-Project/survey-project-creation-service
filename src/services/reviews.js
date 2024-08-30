@@ -20,7 +20,6 @@ const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const kafkaCommunication = require('@generics/kafka-communication')
-
 module.exports = class reviewsHelper {
 	/**
 	 * Update review.
@@ -428,7 +427,6 @@ module.exports = class reviewsHelper {
 	 * @param {String} resourceType - The type of the the resource.
 	 * @returns {JSON} - Returns a response indicating the result of the review creation.
 	 */
-
 	static async createReview(
 		resourceId,
 		reviewType,
@@ -662,6 +660,8 @@ module.exports = class reviewsHelper {
 	 * Publish Resource
 	 * @method
 	 * @name publishResource
+	 * @param {Integer} resourceId - resource Id
+	 * @param {String} userId - The ID of the user
 	 * @returns {JSON} - Publish Response
 	 */
 	static async publishResource(resourceId, userId) {
