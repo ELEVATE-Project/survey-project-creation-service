@@ -3878,14 +3878,14 @@ paths:
                         - id: 3
                           type: projecsuccessfullytCreation
                           version: 3
-  /scp/v1/resource/browseExisting:
+  /scp/v1/resource/getPublishedResources:
     get:
       summary: Browse Existing List
       tags:
         - Resource
       description: |-
         You can use this API to list published resources like project
-         - The API Endpoint for listing resources is `/scp/v1/resource/browseExisting` 
+         - The API Endpoint for listing resources is `/scp/v1/resource/getPublishedResources` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
          - Query Param `typw` is a non mandatory field which can have values ['projects','survey','observation','observation_with_rubrics'].

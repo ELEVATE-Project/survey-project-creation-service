@@ -727,10 +727,14 @@ module.exports = {
 				},
 				{
 					role_title: common.CONTENT_CREATOR,
-					permission_id: await getPermissionId('resource', ['GET'], '/scp/v1/resource/browseExisting*'),
+					permission_id: await getPermissionId(
+						'resource',
+						['GET'],
+						'/scp/v1/resource/getPublishedResources*'
+					),
 					module: 'resource',
 					request_type: ['GET'],
-					api_path: '/scp/v1/resource/browseExisting*',
+					api_path: '/scp/v1/resource/getPublishedResources*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,

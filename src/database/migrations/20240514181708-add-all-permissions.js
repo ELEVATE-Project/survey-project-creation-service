@@ -254,7 +254,7 @@ module.exports = {
 					code: 'list_browseExisting_resource_permissions',
 					module: 'resource',
 					request_type: ['GET'],
-					api_path: '/scp/v1/resource/browseExisting*',
+					api_path: '/scp/v1/resource/getPublishedResources*',
 					status: 'ACTIVE',
 					created_at: new Date(),
 					updated_at: new Date(),
