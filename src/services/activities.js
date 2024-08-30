@@ -24,6 +24,13 @@ module.exports = class ActivityHelper {
 
 	static async list(resourceId, userId, orgId, page, limit) {
 		try {
+			if (!resourceId) {
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					message: 'RESOURCE_ID_REQUIRED',
+				})
+			}
+
 			let result = {
 				data: [],
 				count: 0,
