@@ -177,6 +177,10 @@ let environmentVariables = {
 		optional: true,
 		default: 'reviewer',
 	},
+	INTERFACE_SERVICE_HOST: {
+		message: 'Interface Service host address',
+		optional: false,
+	},
 }
 
 let success = true

@@ -3749,6 +3749,9 @@ paths:
          - The API Endpoint for listing resources is `/scp/v1/resource/list` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - Query Param `listing` is mandatory for this API which can have any one value ['drafts','submitted_for_review','browse_existing'].
+         - In case of `drafts` Status key is redundant as it returns resources with status drafts only.
+         - In case of `browse_existing` only type and sort can be passed as filters.
       parameters:
         - name: X-auth-token
           in: header
@@ -3787,14 +3790,14 @@ paths:
           example: projects
         - name: status
           in: query
-          description: The status of the resource (Ex - ['DRAFT'] - If `listing` is `drafts` and ['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review` )
+          description: The status of the resource (['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review`. This key is redundant in other cases. )
           required: false
           schema:
             type: string
           example: DRAFT
         - name: listing
           in: query
-          description: To identify the page from frontend. Values can be ['drafts','submitted_for_review']
+          description: To identify the page from frontend. Values can be ['drafts','submitted_for_review','browse_existing']
           required: true
           schema:
             type: string
@@ -3858,6 +3861,129 @@ paths:
                   value:
                     responseCode: OK
                     message: project listed successfully
+                    result:
+                      data:
+                        - id: 4
+                          title: sample project
+                          type: projects
+                          organization:
+                            id: 24
+                            name: Shikshalokam
+                            code: sl
+                          status: DRAFT
+                      count: 1
+
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projecsuccessfullytCreation
+                          version: 3
+  /scp/v1/resource/browseExisting:
+    get:
+      summary: Browse Existing List
+      tags:
+        - Resource
+      description: |-
+        You can use this API to list published resources like project
+         - The API Endpoint for listing resources is `/scp/v1/resource/browseExisting` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+         - Query Param `typw` is a non mandatory field which can have values ['projects','survey','observation','observation_with_rubrics'].
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: The page number for pagination.
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: The limit of projects per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
+        - name: search
+          in: query
+          description: The search value to filter resources based on title.
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Type of the resource
+          required: false
+          schema:
+            type: string
+          example: projects
+        - name: sort_by
+          in: query
+          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          required: false
+          schema:
+            type: string
+          example: status
+        - name: sort_order
+          in: query
+          description: Sort order (ascending or descending).
+          required: false
+          schema:
+            type: string
+            enum: ['asc', 'desc']
+          example: asc
+
+      responses:
+        '200':
+          description: Resources listed successfully
+          content:
+            application.json:
+              schema:
+                $schema: http://json-schema.org/draft-04/schema#
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: number
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Resources listed successfully
                     result:
                       data:
                         - id: 4
@@ -6374,7 +6500,7 @@ components:
               type: string
             example: []
 
-    certificate:
+    certificates:
       createCertificate400Response:
         type: object
         properties:

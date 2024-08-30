@@ -530,6 +530,30 @@ const validateComment = (comments) => {
 		)
 	return isValidComment
 }
+// apply common.pagination to an array
+const paginate = (data, page, size) => {
+	// find the start index from page and size
+	const startIndex = (page - 1) * size
+	// slice the array and return a new array with from starting index to ending index
+	return data.slice(startIndex, startIndex + size)
+}
+
+/**
+ * apply sort to any array of objects. Sort by can be any key in the object and default sort orders can be applied
+ * @name sort
+ * @param {string} data - Array of objects.
+ * @param {Object} sort - Sort object with keys sort_by and order
+ * @returns {Object} - Response a sorted array of object based on the sort_by and order
+ */
+const sort = (data, sort) => {
+	const { sort_by, order } = sort
+
+	return data.sort((a, b) => {
+		if (a[sort_by] < b[sort_by]) return order.toUpperCase() === common.SORT_ASC.toUpperCase() ? -1 : 1
+		if (a[sort_by] > b[sort_by]) return order.toUpperCase() === common.SORT_ASC.toUpperCase() ? 1 : -1
+		return 0
+	})
+}
 
 const isEmpty = (obj) => {
 	for (let i in obj) return false
@@ -568,5 +592,7 @@ module.exports = {
 	convertToInteger,
 	validateTitle,
 	validateComment,
+	paginate,
+	sort,
 	isEmpty,
 }

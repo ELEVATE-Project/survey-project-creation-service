@@ -81,4 +81,20 @@ module.exports = class Resource {
 			throw error
 		}
 	}
+
+	async browseExisting(req) {
+		try {
+			const resourceList = await resourceService.browseExistingList(
+				req.decodedToken.organization_id,
+				req.decodedToken.token,
+				req.query,
+				req.searchText,
+				req.pageNo,
+				req.pageSize
+			)
+			return resourceList
+		} catch (error) {
+			throw error
+		}
+	}
 }

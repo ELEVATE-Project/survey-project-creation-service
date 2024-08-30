@@ -23,6 +23,7 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const commentQueries = require('@database/queries/comments')
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
+const interfaceRequests = require('@requests/interface')
 const defaultOrgId = process.env.DEFAULT_ORG_ID
 module.exports = class resourceHelper {
 	/**
@@ -1175,5 +1176,112 @@ module.exports = class resourceHelper {
 		)
 
 		return orgConfigList[resourceType]
+	}
+
+	/**
+	 * Get resources from consumption service
+	 * @name browseExistingList
+	 * @param {String} organization_id - Org Id of the user
+	 * @param {String} token - Token of the user
+	 * @param {Object} query - Query object passed by user
+	 * @param {String} searchText - Title to search
+	 * @param {Integer} pageNo -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
+	 * @param {Integer} pageSize -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
+	 * @returns {Object} - Response contain object of user details
+	 */
+	static async browseExistingList(organization_id, token, query, searchText = '', pageNo, pageSize) {
+		try {
+			let result = {
+				data: [],
+				count: 0,
+			}
+			const resourceType = query[common.TYPE] ? query[common.TYPE] : ''
+			const search = searchText != '' ? searchText : ''
+			let externalResources = {}
+			// consumption side if set to self , only resources published with in SCP will be showed
+			// If it has any value other than self , the result will be combination of resources from the coupled service and from SCP.
+			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
+				externalResources = await interfaceRequests.browseExistingList(
+					resourceType,
+					organization_id,
+					token,
+					search
+				)
+			}
+			let filterQuery = {
+				organization_id,
+				status: common.RESOURCE_STATUS_PUBLISHED,
+				published_id: null,
+			}
+			if (resourceType) filterQuery.type = resourceType
+			if (search)
+				filterQuery.title = {
+					[Op.iLike]: `%${search}%`,
+				}
+			const internalResources = await resourceQueries.findAll(filterQuery, [
+				'id',
+				'title',
+				'type',
+				'created_by',
+				'created_at',
+			])
+
+			const aggregatedResources = [
+				...(externalResources?.success && externalResources?.data?.result?.data?.length
+					? externalResources.data.result.data
+					: []),
+				...(internalResources.length ? internalResources : []),
+			]
+
+			if (aggregatedResources.length > 0) {
+				// construct sort object
+				const sort = await this.constructSortOptions(query.sort_by, query.sort_order)
+				// sort the array
+				const sortedResources = utils.sort(aggregatedResources, sort)
+				// data after applying pagenation
+				const paginatedResources = utils.paginate(sortedResources, pageNo, pageSize)
+				// get the unique creator ids to fetch the user details
+				const uniqueCreatorIds = _.difference(
+					utils.getUniqueElements(
+						paginatedResources.map((resource) => {
+							const createdBy = resource.created_by
+							return !isNaN(createdBy) && !isNaN(parseFloat(createdBy)) ? +createdBy : createdBy
+						})
+					),
+					[null, undefined, '']
+				)
+				// fetch the user details from user service with creatorId
+				const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
+
+				let finalResources = []
+
+				paginatedResources.filter((resource) => {
+					resource.created_by = userDetails[resource.created_by]?.name
+						? userDetails[resource.created_by]?.name
+						: ''
+					finalResources.push(resource)
+				})
+
+				result = {
+					data: finalResources,
+					count: aggregatedResources.length,
+				}
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCES_FETCHED',
+				result,
+			})
+		} catch (error) {
+			return responses.failureResponse({
+				message: 'RESOURCES_FETCHED',
+				statusCode: httpStatusCode.ok,
+				result: {
+					data: [],
+					count: 0,
+				},
+			})
+		}
 	}
 }
