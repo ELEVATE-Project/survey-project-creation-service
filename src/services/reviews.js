@@ -775,7 +775,7 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 					comment.resolved_by = userId
 					comment.resolved_at = new Date()
 				} else {
-					comment.status = common.COMMENT_STATUS_OPEN
+					comment.status = setCommentsToOpen ? common.COMMENT_STATUS_OPEN : comment.status
 				}
 				commentsToUpdate.push(comment)
 			} else {
