@@ -745,6 +745,7 @@ const _restrictedReviewStatuses = [
  * @param {Integer} resourceId - The ID of the resource to which comments belong.
  * @param {String} userId - The ID of the logged-in user adding or updating comments.
  * @param {Object|Array<Object>} comments - A single comment object or an array of comment objects.
+ * @param {Boolean} setCommentsToOpen - To indicate the comment status should be set to open. Default value false
  * @returns {Promise<Object>} - Returns a promise that resolves to an object indicating success or an error.
  */
 async function handleComments(comments, resourceId, userId, setCommentsToOpen = false) {
