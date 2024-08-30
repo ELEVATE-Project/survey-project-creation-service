@@ -486,7 +486,7 @@ module.exports = class resourceHelper {
 							[Op.in]: uniqueOrganizationIds,
 						},
 						reviewer_id: user_id,
-						status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS, common.REVIEW_STATUS_CHANGES_UPDATED] },
+						status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
 					},
 					['resource_id']
 				)

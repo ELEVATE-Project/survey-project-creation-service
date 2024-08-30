@@ -60,7 +60,7 @@ module.exports = class reviewsHelper {
 
 			// If the bodyData contains a comment Add or update comments
 			if (bodyData.comment) {
-				await handleComments(bodyData.comment, resourceId, userId)
+				await handleComments(bodyData.comment, resourceId, userId, true)
 			}
 
 			// Update the status in the reviews table
@@ -313,7 +313,7 @@ module.exports = class reviewsHelper {
 
 			// If the bodyData contains a comment Add or update comments
 			if (bodyData.comment) {
-				await handleComments(bodyData.comment, resourceId, userId)
+				await handleComments(bodyData.comment, resourceId, userId, true)
 			}
 
 			let updateObj = {
@@ -379,7 +379,7 @@ module.exports = class reviewsHelper {
 			let updateNextLevel = false
 			// Add or update comments if provided.
 			if (Array.isArray(comments) ? comments.length > 0 : Object.keys(comments).length > 0) {
-				await handleComments(comments, resourceId, userId)
+				await handleComments(comments, resourceId, userId, true)
 			}
 
 			// Update the review status to 'APPROVED' for the given review.
@@ -745,9 +745,10 @@ const _restrictedReviewStatuses = [
  * @param {Integer} resourceId - The ID of the resource to which comments belong.
  * @param {String} userId - The ID of the logged-in user adding or updating comments.
  * @param {Object|Array<Object>} comments - A single comment object or an array of comment objects.
+ * @param {Boolean} setCommentsToOpen - To indicate the comment status should be set to open. Default value false
  * @returns {Promise<Object>} - Returns a promise that resolves to an object indicating success or an error.
  */
-async function handleComments(comments, resourceId, userId) {
+async function handleComments(comments, resourceId, userId, setCommentsToOpen = false) {
 	try {
 		// Normalize comments to an array if it's a single object
 		if (!Array.isArray(comments)) {
@@ -780,7 +781,7 @@ async function handleComments(comments, resourceId, userId) {
 			} else {
 				comment.user_id = userId
 				comment.resource_id = resourceId
-				comment.status = common.COMMENT_STATUS_OPEN
+				comment.status = setCommentsToOpen ? common.COMMENT_STATUS_OPEN : comment.status
 				commentsToCreate.push(comment)
 			}
 		}
