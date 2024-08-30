@@ -528,7 +528,7 @@ module.exports = class ProjectsHelper {
 
 			if (comments.count > 0) {
 				return responses.failureResponse({
-					message: '"ALL_COMMENTS_NOT_RESOLVED"',
+					message: 'ALL_COMMENTS_NOT_RESOLVED',
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
