@@ -555,6 +555,11 @@ const sort = (data, sort) => {
 	})
 }
 
+const isEmpty = (obj) => {
+	for (let i in obj) return false
+	return true
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -589,4 +594,5 @@ module.exports = {
 	validateComment,
 	paginate,
 	sort,
+	isEmpty,
 }

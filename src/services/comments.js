@@ -2,7 +2,7 @@
  * name : services/comments.js
  * author : Priyanka Pradeep
  * Date : 11-July-2024
- * Description : Review Stage Service
+ * Description : Comment Service
  */
 const httpStatusCode = require('@generics/http-status')
 const commentQueries = require('@database/queries/comments')
@@ -14,6 +14,7 @@ const reviewsQueries = require('@database/queries/reviews')
 const reviewResourceQueries = require('@database/queries/reviewResources')
 const reviewsHelper = require('@services/reviews')
 const { Op } = require('sequelize')
+const resourceQueries = require('@database/queries/resources')
 module.exports = class CommentsHelper {
 	/**
 	 * Comment Create or Update
@@ -27,6 +28,23 @@ module.exports = class CommentsHelper {
 	 */
 	static async update(commentId = '', resourceId, bodyData, userId) {
 		try {
+			//validate resource
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+				},
+				{ attributes: ['id', 'type', 'status'] }
+			)
+
+			if (!resource?.id) {
+				throw new Error('RESOURCE_NOT_FOUND')
+			}
+
+			//validate resource status
+			if (_commentRestrictedStatuses.includes(resource.status)) {
+				throw new Error(`Resource is already ${resource.status}. You can't add comment`)
+			}
+
 			//create the comment
 			if (!commentId) {
 				// handle comments
@@ -69,11 +87,7 @@ module.exports = class CommentsHelper {
 			})
 
 			if (updateCount === 0) {
-				return responses.failureResponse({
-					message: 'COMMENT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				throw new Error('COMMENT_NOT_FOUND')
 			}
 
 			return responses.successResponse({
@@ -173,3 +187,15 @@ module.exports = class CommentsHelper {
 		}
 	}
 }
+
+/**
+ * List of Statuses Restricting Comment Addition
+ * @constant
+ * @type {Array<String>}
+ */
+const _commentRestrictedStatuses = [
+	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+	common.RESOURCE_STATUS_PUBLISHED,
+	common.RESOURCE_STATUS_DRAFT,
+]

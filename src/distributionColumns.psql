@@ -10,3 +10,4 @@ SELECT create_distributed_table('resource_creator_mapping', 'creator_id');
 SELECT create_distributed_table('review_resources', 'reviewer_id');
 SELECT create_distributed_table('review_stages', 'organization_id');
 SELECT create_distributed_table('reviews', 'organization_id');
+SELECT create_distributed_table('activities', 'object_id');
