@@ -20,7 +20,6 @@ const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const kafkaCommunication = require('@generics/kafka-communication')
-
 module.exports = class reviewsHelper {
 	/**
 	 * Update review.
@@ -60,7 +59,7 @@ module.exports = class reviewsHelper {
 
 			// If the bodyData contains a comment Add or update comments
 			if (bodyData.comment) {
-				await handleComments(bodyData.comment, resourceId, userId)
+				await handleComments(bodyData.comment, resourceId, userId, true)
 			}
 
 			// Update the status in the reviews table
@@ -177,7 +176,7 @@ module.exports = class reviewsHelper {
 			await Promise.all([
 				reviewsQueries.update(
 					{ id: review.id, organization_id: review.organization_id },
-					{ status: common.REVIEW_STATUS_STARTED }
+					{ status: common.REVIEW_STATUS_INPROGRESS }
 				),
 				resourceQueries.updateOne(
 					{ organization_id: resource.organization_id, id: resourceId },
@@ -313,7 +312,7 @@ module.exports = class reviewsHelper {
 
 			// If the bodyData contains a comment Add or update comments
 			if (bodyData.comment) {
-				await handleComments(bodyData.comment, resourceId, userId)
+				await handleComments(bodyData.comment, resourceId, userId, true)
 			}
 
 			let updateObj = {
@@ -379,7 +378,7 @@ module.exports = class reviewsHelper {
 			let updateNextLevel = false
 			// Add or update comments if provided.
 			if (Array.isArray(comments) ? comments.length > 0 : Object.keys(comments).length > 0) {
-				await handleComments(comments, resourceId, userId)
+				await handleComments(comments, resourceId, userId, true)
 			}
 
 			// Update the review status to 'APPROVED' for the given review.
@@ -428,7 +427,6 @@ module.exports = class reviewsHelper {
 	 * @param {String} resourceType - The type of the the resource.
 	 * @returns {JSON} - Returns a response indicating the result of the review creation.
 	 */
-
 	static async createReview(
 		resourceId,
 		reviewType,
@@ -662,6 +660,8 @@ module.exports = class reviewsHelper {
 	 * Publish Resource
 	 * @method
 	 * @name publishResource
+	 * @param {Integer} resourceId - resource Id
+	 * @param {String} userId - The ID of the user
 	 * @returns {JSON} - Publish Response
 	 */
 	static async publishResource(resourceId, userId) {
@@ -745,9 +745,10 @@ const _restrictedReviewStatuses = [
  * @param {Integer} resourceId - The ID of the resource to which comments belong.
  * @param {String} userId - The ID of the logged-in user adding or updating comments.
  * @param {Object|Array<Object>} comments - A single comment object or an array of comment objects.
+ * @param {Boolean} setCommentsToOpen - To indicate the comment status should be set to open. Default value false
  * @returns {Promise<Object>} - Returns a promise that resolves to an object indicating success or an error.
  */
-async function handleComments(comments, resourceId, userId) {
+async function handleComments(comments, resourceId, userId, setCommentsToOpen = false) {
 	try {
 		// Normalize comments to an array if it's a single object
 		if (!Array.isArray(comments)) {
@@ -761,21 +762,39 @@ async function handleComments(comments, resourceId, userId) {
 		// Separate comments into ones that need to be updated and ones that need to be created
 		const commentsToUpdate = []
 		const commentsToCreate = []
-
+		let parentCommentIds = []
 		for (let comment of comments) {
+			comment.comment = comment.text
+			delete comment.text
+			if (comment?.parent_id) {
+				parentCommentIds.push(comment.parent_id)
+			}
+
 			if (comment.id) {
+				if (comment.status === common.STATUS_RESOLVED) {
+					comment.resolved_by = userId
+					comment.resolved_at = new Date()
+				} else {
+					comment.status = setCommentsToOpen ? common.COMMENT_STATUS_OPEN : comment.status
+				}
 				commentsToUpdate.push(comment)
 			} else {
 				comment.user_id = userId
 				comment.resource_id = resourceId
-				comment.status = common.COMMENT_STATUS_OPEN
+				comment.status = setCommentsToOpen ? common.COMMENT_STATUS_OPEN : comment.status
 				commentsToCreate.push(comment)
 			}
 		}
 
+		const isCommentValid = await isParantCommentValid(parentCommentIds, resourceId)
+		if (!isCommentValid) throw new Error('COMMENT_PARENT_INVALID')
+
 		// Handle updating comments
 		const updatePromises = commentsToUpdate.map((comment) =>
-			commentQueries.updateOne({ id: comment.id, resource_id: resourceId }, _.omit(comment, ['id']))
+			commentQueries.updateOne(
+				{ id: comment.id, parent_id: comment.parent_id, resource_id: resourceId },
+				_.omit(comment, ['id'])
+			)
 		)
 
 		// Handle creating comments in bulk
@@ -788,3 +807,37 @@ async function handleComments(comments, resourceId, userId) {
 		throw error
 	}
 }
+/**
+ * Check if the given parent ids are valid or not for the resource
+ * @method
+ * @name isParantCommentValid
+ * @param {Array} parentIds - List of parent ids of the comments
+ * @param {Integer} resourceId - Resource Id
+ * @returns {Boolean} - Returns a true / false indicating if the parent id is a valid id for the resource.
+ */
+async function isParantCommentValid(parentIds, resourceId) {
+	try {
+		const filter = {
+			id: { [Op.in]: parentIds },
+			resource_id: resourceId,
+		}
+		const comments = await commentQueries.findAll(filter, ['id', 'resource_id'])
+
+		// Create a Set of unique strings combining 'id' and 'resource_id' from the DB results
+		const commentResourceMap = new Set(comments.map((comment) => `${comment.id}-${comment.resource_id}`))
+
+		// Loop through the filter array and check if each combination exists in the Set
+		for (const parentId of parentIds) {
+			const key = `${parentId}-${resourceId}`
+			if (!commentResourceMap.has(key)) {
+				return false // Return false if any combination is missing
+			}
+		}
+		return true // Return true if all combinations are found
+	} catch (error) {
+		throw error
+	}
+}
+
+// Export the handleComments function
+module.exports.handleComments = handleComments

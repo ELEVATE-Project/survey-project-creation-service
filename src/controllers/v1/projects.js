@@ -8,7 +8,6 @@
 // Dependencies
 const common = require('@constants/common')
 const projectService = require('@services/projects')
-
 module.exports = class Projects {
 	/**
 	 * create or update project details
@@ -68,7 +67,7 @@ module.exports = class Projects {
 	/**
 	 * List reviewers based on Org Id
 	 * @method
-	 * @name reviwerList
+	 * @name reviewerList
 	 * @returns {JSON} - permissions creation object.
 	 */
 

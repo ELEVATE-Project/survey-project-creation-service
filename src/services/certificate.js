@@ -87,7 +87,6 @@ module.exports = class certificatesHelper {
 	 */
 	static async update(id, bodyData, loggedInUserId, orgId) {
 		try {
-			console.log(id, loggedInUserId, orgId)
 			bodyData.updated_by = loggedInUserId
 
 			if (id) {

@@ -2,7 +2,7 @@
  * name : services/comments.js
  * author : Priyanka Pradeep
  * Date : 11-July-2024
- * Description : Review Stage Service
+ * Description : Comment Service
  */
 const httpStatusCode = require('@generics/http-status')
 const commentQueries = require('@database/queries/comments')
@@ -12,7 +12,9 @@ const userRequests = require('@requests/user')
 const _ = require('lodash')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewResourceQueries = require('@database/queries/reviewResources')
+const reviewsHelper = require('@services/reviews')
 const { Op } = require('sequelize')
+const resourceQueries = require('@database/queries/resources')
 module.exports = class CommentsHelper {
 	/**
 	 * Comment Create or Update
@@ -26,41 +28,52 @@ module.exports = class CommentsHelper {
 	 */
 	static async update(commentId = '', resourceId, bodyData, userId) {
 		try {
+			//validate resource
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+				},
+				{ attributes: ['id', 'type', 'status'] }
+			)
+
+			if (!resource?.id) {
+				throw new Error('RESOURCE_NOT_FOUND')
+			}
+
+			//validate resource status
+			if (_commentRestrictedStatuses.includes(resource.status)) {
+				throw new Error(`Resource is already ${resource.status}. You can't add comment`)
+			}
+
 			//create the comment
 			if (!commentId) {
-				bodyData.user_id = userId
-				bodyData.resource_id = resourceId
-				let commentCreate = await commentQueries.create(bodyData)
+				// handle comments
+				await reviewsHelper.handleComments(bodyData.comment, parseInt(resourceId, 10), userId)
 
-				//update the review as inprogress if its already started
-				const reviewResource = await reviewResourceQueries.findOne({
-					reviewer_id: userId,
-					resource_id: resourceId,
-				})
-
-				if (reviewResource?.id) {
-					await reviewsQueries.update(
-						{
-							organization_id: reviewResource.organization_id,
-							resource_id: resourceId,
-							reviewer_id: userId,
-							status: { [Op.in]: [common.REVIEW_STATUS_STARTED] },
-						},
-						{ status: common.REVIEW_STATUS_INPROGRESS }
-					)
+				// convert body data to array if its not
+				if (!Array.isArray(bodyData.comment)) {
+					bodyData.comment = [bodyData.comment]
 				}
+				// check if any one comment is resolved or not
+				const hasResolvedStatus = bodyData.comment.some((comment) => comment.status == common.STATUS_RESOLVED)
+
+				// customize the return message , if comment is resolved or comment is updated
+				const message = hasResolvedStatus ? 'COMMENT_RESOLVED' : 'COMMENT_UPDATED_SUCCESSFULLY'
 
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
-					message: 'COMMENT_UPDATED_SUCCESSFULLY',
-					result: commentCreate,
+					message,
 				})
 			}
 
+			// convert comment.text to comment.comment as per DB schema
+			bodyData.comment.comment = bodyData.comment.text
+			delete bodyData.comment.text
+
 			//update the comment
-			if (bodyData.status === common.STATUS_RESOLVED) {
-				bodyData.resolved_by = userId
-				bodyData.resolved_at = new Date()
+			if (bodyData.comment.status === common.STATUS_RESOLVED) {
+				bodyData.comment.resolved_by = userId
+				bodyData.comment.resolved_at = new Date()
 			}
 
 			const filter = {
@@ -68,17 +81,13 @@ module.exports = class CommentsHelper {
 				id: commentId,
 			}
 
-			const [updateCount, updatedComment] = await commentQueries.updateOne(filter, bodyData, {
+			const [updateCount, updatedComment] = await commentQueries.updateOne(filter, bodyData.comment, {
 				returning: true,
 				raw: true,
 			})
 
 			if (updateCount === 0) {
-				return responses.failureResponse({
-					message: 'COMMENT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				throw new Error('COMMENT_NOT_FOUND')
 			}
 
 			return responses.successResponse({
@@ -88,7 +97,11 @@ module.exports = class CommentsHelper {
 				result: updatedComment,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -174,3 +187,15 @@ module.exports = class CommentsHelper {
 		}
 	}
 }
+
+/**
+ * List of Statuses Restricting Comment Addition
+ * @constant
+ * @type {Array<String>}
+ */
+const _commentRestrictedStatuses = [
+	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+	common.RESOURCE_STATUS_PUBLISHED,
+	common.RESOURCE_STATUS_DRAFT,
+]

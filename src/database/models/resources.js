@@ -1,3 +1,5 @@
+const common = require('@constants/common')
+
 module.exports = (sequelize, DataTypes) => {
 	const Resource = sequelize.define(
 		'Resource',
@@ -92,6 +94,38 @@ module.exports = (sequelize, DataTypes) => {
 			],
 		}
 	)
+	// Helper function to emit user actions with dynamic action types
+	const emitUserAction = async (instance, actionType) => {
+		try {
+			if (actionType) {
+				eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
+					actionCode: common.USER_ACTIONS[instance.type][actionType],
+					userId: instance.user_id,
+					objectId: instance.id,
+					objectType: common.MODEL_NAMES.RESOURCE,
+					orgId: instance.organization_id,
+				})
+			}
+		} catch (error) {
+			console.error(`Error during ${actionType} hook:`, error)
+			throw error
+		}
+	}
+
+	Resource.addHook('afterCreate', (instance) => emitUserAction(instance, 'RESOURCE_CREATED'))
+	Resource.addHook('afterDestroy', (instance) => emitUserAction(instance, 'RESOURCE_DELETED'))
+	Resource.addHook('afterUpdate', (instance) => {
+		const statusActionMap = {
+			[common.RESOURCE_STATUS_PUBLISHED]: 'RESOURCE_PUBLISHED',
+			[common.RESOURCE_STATUS_REJECTED_AND_REPORTED]: 'RESOURCE_REPORTED',
+			[common.RESOURCE_STATUS_REJECTED]: 'RESOURCE_REJECTED',
+		}
+
+		const actionKey = statusActionMap[instance.status]
+		if (actionKey) {
+			emitUserAction(instance, actionKey)
+		}
+	})
 
 	return Resource
 }

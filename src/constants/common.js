@@ -9,6 +9,21 @@ function getPaginationOffset(page, limit) {
 	return (page - 1) * limit
 }
 
+function getResourceActions(resource) {
+	return {
+		RESOURCE_CREATED: `CREATE_${resource}`,
+		RESOURCE_DELETED: `DELETE_${resource}`,
+		RESOURCE_SUBMITTED: `${resource}_SUBMITTED`,
+		REVIEW_STARTED: `${resource}_REVIEW_STARTED`,
+		REVIEW_CHANGES_REQUESTED: `${resource}_REVIEW_CHANGES_REQUESTED`,
+		REVIEW_APPROVED: `${resource}_APPROVED`,
+		RESOURCE_PUBLISHED: `${resource}_PUBLISHED`,
+		RESOURCE_REPORTED: `${resource}_REJECTED_AND_REPORTED`,
+		RESOURCE_REJECTED: `${resource}_REJECTED`,
+		REVIEW_INPROGRESS: `${resource}_REVIEW_INPROGRESS`,
+	}
+}
+
 module.exports = {
 	pagination: {
 		DEFAULT_PAGE_NO: 1,
@@ -141,5 +156,23 @@ module.exports = {
 	KAFKA_ON: 'ON',
 	ENTITY_TYPE_MODELS: {
 		projects: ['projects', 'tasks', 'subTasks'],
+	},
+	MODEL_NAMES: {
+		RESOURCE: 'Resource',
+	},
+	USER_ACTIONS: {
+		projects: getResourceActions('PROJECT'),
+	},
+	EVENT_ADD_USER_ACTION: 'addUserAction',
+	REQUEST_TIMEOUT_MS: 3000,
+	CURRENT_USER: 'You',
+	ACTIVITY_DATE_TIME_OPTIONS: {
+		day: 'numeric',
+		month: 'long',
+		year: 'numeric',
+		hour: 'numeric',
+		minute: 'numeric',
+		second: 'numeric',
+		hour12: true, // Use 12-hour clock with AM/PM
 	},
 }

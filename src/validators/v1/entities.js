@@ -5,13 +5,16 @@
  * Description : Validations of entities controller
  */
 const allowedStatuses = ['ACTIVE', 'INACTIVE']
+const filterRequestBody = require('../common')
+const { entities } = require('@constants/blacklistConfig')
 module.exports = {
 	create: (req) => {
+		req.body = filterRequestBody(req.body, entities.create)
 		req.checkBody('value')
 			.trim()
 			.notEmpty()
 			.withMessage('value field is empty')
-			.matches(/^[A-Za-z]+$/)
+			.matches(/^[A-Za-z_]+$/)
 			.withMessage('value is invalid, must not contain spaces')
 
 		req.checkBody('label')
@@ -39,7 +42,9 @@ module.exports = {
 	},
 
 	update: (req) => {
+		req.body = filterRequestBody(req.body, entities.update)
 		req.checkParams('id')
+			.trim()
 			.notEmpty()
 			.withMessage('id param is empty')
 			.isNumeric()
@@ -47,7 +52,7 @@ module.exports = {
 
 		req.checkBody('value')
 			.optional()
-			.matches(/^[A-Za-z]+$/)
+			.matches(/^[A-Za-z_]+$/)
 			.withMessage('value is invalid, must not contain spaces')
 
 		req.checkBody('label')
@@ -80,12 +85,13 @@ module.exports = {
 			.optional()
 			.notEmpty()
 			.withMessage('value field is empty')
-			.matches(/^[A-Za-z0-9 ]+$/)
+			.matches(/^[A-Za-z_]+$/)
 			.withMessage('value is invalid, must not contain spaces')
 	},
 
 	delete: (req) => {
 		req.checkParams('id')
+			.trim()
 			.notEmpty()
 			.withMessage('id param is empty')
 			.isNumeric()
