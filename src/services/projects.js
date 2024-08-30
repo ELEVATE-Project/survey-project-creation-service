@@ -15,7 +15,6 @@ const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
 const commentQueries = require('@database/queries/comments')
-
 module.exports = class ProjectsHelper {
 	/**
 	 *  project create
@@ -70,7 +69,7 @@ module.exports = class ProjectsHelper {
 				}
 				await resourceCreatorMappingQueries.create(mappingData)
 
-				//upload to blob
+				// upload to blob
 				const resourceId = projectCreate.id
 				const fileName = `${loggedInUserId}${resourceId}project.json`
 
@@ -255,7 +254,7 @@ module.exports = class ProjectsHelper {
 
 	static async delete(resourceId, loggedInUserId) {
 		try {
-			const fetchOrgId = await resourceCreatorMappingQueries.findOne(
+			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
 				{
 					resource_id: resourceId,
 					creator_id: loggedInUserId,
@@ -263,47 +262,44 @@ module.exports = class ProjectsHelper {
 				['id', 'organization_id']
 			)
 
-			let fetchResourceId = null
-
-			if (fetchOrgId) {
-				fetchResourceId = await resourceQueries.findOne(
-					{
-						id: resourceId,
-						organization_id: fetchOrgId.organization_id,
-						status: common.STATUS_DRAFT,
-					},
-					{ attributes: ['id'] }
-				)
+			if (!resourceCreatorMapping?.id) {
+				throw new Error('PROJECT_NOT_FOUND')
 			}
 
-			if (!fetchOrgId || !fetchResourceId) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+					organization_id: resourceCreatorMapping.organization_id,
+					status: common.RESOURCE_STATUS_DRAFT,
+				},
+				{ attributes: ['id', 'type', 'organization_id'] }
+			)
+
+			if (!resource?.id) {
+				throw new Error('PROJECT_NOT_FOUND')
 			}
 
-			let updatedProject = await resourceQueries.deleteOne(resourceId, fetchOrgId.organization_id)
+			let updatedProject = await resourceQueries.deleteOne(resourceId, resource.organization_id)
 			let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
-				fetchOrgId.id,
+				resourceCreatorMapping.id,
 				loggedInUserId
 			)
 
 			if (updatedProject === 0 && updatedProjectCreatorMapping === 0) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				throw new Error('PROJECT_NOT_FOUND')
 			}
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
 				message: 'PROJECT_DELETED_SUCCESSFUL',
 				result: {},
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -506,13 +502,9 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			//Restrict the user to submit it again
-			if (projectData.status === common.RESOURCE_STATUS_SUBMITTED) {
-				return responses.failureResponse({
-					message: 'RESOURCE_ALREADY_SUBMITTED',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+			//Restrict the user to submit the project
+			if (_nonReviewableResourceStatuses.includes(projectData.status)) {
+				throw new Error(`Resource is already ${projectData.status}. You can't submit it`)
 			}
 
 			//from comments table take all the comments which are from this org and userId != loggedin user and resourceId = current resourceId and status = open
@@ -712,7 +704,11 @@ module.exports = class ProjectsHelper {
 				userDetails.organization_id
 			)
 			if (!isReviewMandatory) {
-				const publishResource = await reviewService.publishResource(resourceId, userDetails.id)
+				const publishResource = await reviewService.publishResource(
+					resourceId,
+					userDetails.id,
+					userDetails.organization_id
+				)
 				return publishResource
 			}
 
@@ -729,6 +725,14 @@ module.exports = class ProjectsHelper {
 			}
 
 			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
+			//add user action
+			eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
+				actionCode: common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
+				userId: userDetails.id,
+				objectId: resourceId,
+				objectType: common.MODEL_NAMES.RESOURCE,
+				orgId: userDetails.organization_id,
+			})
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -869,3 +873,15 @@ module.exports = class ProjectsHelper {
 		}
 	}
 }
+
+/**
+ * List of resource statuses that prevent a reviewer from starting a review.
+ * @constant
+ * @type {Array<String>}
+ */
+const _nonReviewableResourceStatuses = [
+	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+	common.RESOURCE_STATUS_PUBLISHED,
+	common.RESOURCE_STATUS_SUBMITTED,
+]
