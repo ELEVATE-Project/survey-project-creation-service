@@ -3888,7 +3888,7 @@ paths:
          - The API Endpoint for listing resources is `/scp/v1/resource/getPublishedResources` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - Query Param `typw` is a non mandatory field which can have values ['projects','survey','observation','observation_with_rubrics'].
+         - Query Param `type` is a non mandatory field which can have values [`'projects'`,`'surveys'`,`'observations'`,`'observation_with_rubrics'`].
       parameters:
         - name: X-auth-token
           in: header
@@ -3920,18 +3920,18 @@ paths:
             type: string
         - name: type
           in: query
-          description: Type of the resource
+          description: Type of the resource. Type can be coma separated values for multiple types from the above list.
           required: false
           schema:
             type: string
           example: projects
         - name: sort_by
           in: query
-          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          description: Sort the response by `created_at` or `title` of the resource.
           required: false
           schema:
             type: string
-          example: status
+          example: title
         - name: sort_order
           in: query
           description: Sort order (ascending or descending).
