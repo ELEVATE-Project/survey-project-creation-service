@@ -3072,7 +3072,11 @@ paths:
                     signature:
                       no_of_signature: 2
                       signatureImg1: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                      signatureTitleName1: John Doe
+                      signatureTitleDesignation1: District Education Officer
                       signatureImg2: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                      signatureTitleName2: John Joe
+                      signatureTitleDesignation2: Block Education Officer
                     issuer: SPD
                     criteria:
                       expressions: C1&&C2
@@ -5327,7 +5331,11 @@ paths:
                             signature:
                               no_of_signature: 2
                               signatureImg1:
+                              signatureTitleName1:
+                              signatureTitleDesignation1:
                               signatureImg2:
+                              signatureTitleName2:
+                              signatureTitleDesignation2:
                       count: 1
 
                     meta:
