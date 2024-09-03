@@ -152,7 +152,6 @@ module.exports = class ProjectsHelper {
 				common.RESOURCE_STATUS_REJECTED,
 				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 				common.RESOURCE_STATUS_SUBMITTED,
-				common.RESOURCE_STATUS_APPROVED,
 			]
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
@@ -170,13 +169,16 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const countReviews = await reviewsQueries.distinctResources({
-				id: resourceId,
-				status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
-				organization_id: orgId,
-			})
+			const countReviews = await reviewsQueries.distinctResources(
+				{
+					organization_id: orgId,
+					resource_id: resourceId,
+					status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
+				},
+				['resource_id']
+			)
 
-			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews > 0) {
+			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews.count == 0) {
 				return responses.failureResponse({
 					message: {
 						key: 'FORBIDDEN_RESOURCE_UPDATE',
@@ -230,7 +232,10 @@ module.exports = class ProjectsHelper {
 
 				return responses.successResponse({
 					statusCode: httpStatusCode.accepted,
-					message: 'PROJECT_UPDATED_SUCCESSFUL',
+					message:
+						fetchResource.status == common.RESOURCE_STATUS_IN_REVIEW
+							? 'PROJECT_SAVED_SUCCESSFULLY'
+							: 'PROJECT_UPDATED_SUCCESSFUL',
 					result: updatedProject[0].id,
 				})
 			} else {
