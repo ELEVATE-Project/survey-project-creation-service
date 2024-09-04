@@ -61,7 +61,7 @@
 	"JSON_FETCHED_SUCCESSFULLY": "Data retrieved Successfully.",
 	"CERTIFICATE_FETCH_FAILED": "Error in fetching Certificate",
 	"PROJECT_CREATED_SUCCESSFULLY": "Project created successfully",
-	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully",
+	"PROJECT_UPDATED_SUCCESSFUL": "Your resource has been saved as draft",
 	"PROJECT_DELETED_SUCCESSFUL": "Project deleted successfully",
 	"FORBIDDEN_RESOURCE_UPDATE": "Update Failed! Resource '{{resourceTitle}}' is being reviewed by {{reviewer_count}} Reviewer(s) ",
 	"COMMENT_NOT_FOUND": "Comment not found",
