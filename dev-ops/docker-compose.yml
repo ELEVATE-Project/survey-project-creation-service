@@ -44,6 +44,17 @@ services:
     logging:
       driver: none
 
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"  # Expose MongoDB port
+    restart: 'always'
+    networks:
+      - elevate_net
+
+    logging:
+      driver: none
+
   postgres:
     image: 'postgres:latest'
     ports:
@@ -54,46 +65,67 @@ services:
       - POSTGRES_PASSWORD=postgres
     networks:
       - elevate_net
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
+
     logging:
       driver: none
   
-  user:
-      build: '../../user/'
-      image: elevate/user:1.0
-      ports:
-        - '5001:5001'
-      volumes:
-        - ../../user/src/:/var/src
-      command: >
-        bash -c "echo 'Waiting for PostgreSQL to accept connections...' &&
-        until timeout 1 bash -c '</dev/tcp/postgres/5432' >/dev/null 2>&1; do
-            echo 'Waiting for PostgreSQL to be ready...'
-            sleep 1
-        done &&
-        echo 'Database is ready.' &&
-        if ! psql -U postgres -h postgres -lqt | cut -d \| -f 1 | grep -qw elevate_project_user; then
-            npm run db:init && npm run db:seed:all
-        else
-            echo 'Database already exists. Skipping initialization and seeding.'
-            exit 0  # Exit successfully to prevent the container from stopping
-        fi &&
-        (echo 'Running nodeee' && nodemon app.js &) &&
-        (/bin/bash -c 'cd scripts && echo Running user service scripts && node insertDefaultOrg.js && node viewsScript.js && node -r module-alias/register uploadSampleCSV.js') &&
-        tail -f /dev/null"
+  schedular:
+    build: '../../scheduler/'
+    ports:
+      - '4000:4000'
+    volumes:
+      - ../../scheduler/src/:/var/src
+    command: [ 'node', 'app.js' ]
+    environment:
+      - KAFKA_URL=kafka:9092
+      - MONGODB_URL=mongodb://mongo:27017/tl-cron-rest
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - kafka
+      - redis
+      - mongo
+    networks:
+      - elevate_net
+    env_file:
+      - integration_test.scheduler.env
+    
 
-      depends_on:
-        - kafka
-        - redis
-      environment:
-        - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/elevate_project_user
-        - KAFKA_URL=kafka:9092
-        - REDIS_HOST=redis://redis:6379
-      networks:
-        - elevate_net
-      env_file:
-        - integration_test.user.env
+  user:
+    build: '../../user/'
+    ports:
+      - '5001:5001'
+    volumes:
+      - ../../user/src/:/var/src
+    command: >
+      bash -c "echo 'Waiting for PostgreSQL to accept connections...' &&
+      until timeout 1 bash -c '</dev/tcp/postgres/5432' >/dev/null 2>&1; do
+          echo 'Waiting for PostgreSQL to be ready...'
+          sleep 1
+      done &&
+      echo 'Database is ready.' &&
+      if ! psql -U postgres -h postgres -lqt | cut -d \| -f 1 | grep -qw elevate_project_user; then
+          npm run db:init && npm run db:seed:all
+      else
+          echo 'Database already exists. Skipping initialization and seeding.'
+          exit 0  # Exit successfully to prevent the container from stopping
+      fi &&
+      (echo 'Running nodeee' && nodemon app.js &) &&
+      (/bin/bash -c 'cd scripts && echo Running user service scripts && node insertDefaultOrg.js && node viewsScript.js && node -r module-alias/register uploadSampleCSV.js') &&
+      tail -f /dev/null"
+    depends_on:
+      - kafka
+      - redis
+      - schedular
+    environment:
+      - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/elevate_project_user
+      - KAFKA_URL=kafka:9092
+      - REDIS_HOST=redis://redis:6379
+    networks:
+      - elevate_net
+    env_file:
+      - integration_test.user.env
+
   survey-project-creation-service:
     build: '../../survey-project-creation-service/'
     ports:
@@ -118,7 +150,6 @@ services:
         npm run db:seed:all && 
         echo 'Running Node.js application' &&
         nodemon app.js "
-
     environment:
       - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/dev_elevate_scp
       - KAFKA_URL=kafka:9092
@@ -133,7 +164,6 @@ services:
     env_file:
       - integration_test.self_creation_portal.env
 
-
 networks:
   elevate_net:
     external: false
@@ -141,4 +171,3 @@ networks:
 volumes:
   zookeeper-data:
   kafka-data:
-  postgres-data:
