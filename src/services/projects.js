@@ -512,9 +512,7 @@ module.exports = class ProjectsHelper {
 				throw new Error(`Resource is already ${projectData.status}. You can't submit it`)
 			}
 
-			//from comments table take all the comments which are from this org and userId != loggedin user and resourceId = current resourceId and status = open
-			// if count greated than 0 throw error ""
-
+			//check any open comments are there for this resource
 			const comments = await commentQueries.findAndCountAll({
 				user_id: {
 					[Op.notIn]: [userDetails.id],
