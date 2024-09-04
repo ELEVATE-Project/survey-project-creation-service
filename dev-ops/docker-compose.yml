@@ -44,17 +44,6 @@ services:
     logging:
       driver: none
 
-  mongo:
-    image: mongo:latest
-    ports:
-      - "27017:27017"  # Expose MongoDB port
-    restart: 'always'
-    networks:
-      - elevate_net
-
-    logging:
-      driver: none
-
   postgres:
     image: 'postgres:latest'
     ports:
@@ -78,7 +67,6 @@ services:
     command: [ 'node', 'app.js' ]
     environment:
       - KAFKA_URL=kafka:9092
-      - MONGODB_URL=mongodb://mongo:27017/tl-cron-rest
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
