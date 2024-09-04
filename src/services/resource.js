@@ -1256,9 +1256,10 @@ module.exports = class resourceHelper {
 				let finalResources = []
 
 				paginatedResources.filter((resource) => {
-					resource.created_by = userDetails[resource.created_by]?.name
+					resource.creator = userDetails[resource.created_by]?.name
 						? userDetails[resource.created_by]?.name
 						: ''
+					delete resource.created_by
 					finalResources.push(resource)
 				})
 
