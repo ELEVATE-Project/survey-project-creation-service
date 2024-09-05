@@ -75,7 +75,7 @@ module.exports = class resourceHelper {
 		)
 
 		if (queryParams[common.STATUS] === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
-			filter = {
+			primaryFilter = {
 				organization_id: {
 					[Op.in]: OrganizationIds,
 				},
@@ -103,9 +103,9 @@ module.exports = class resourceHelper {
 					[Op.in]: queryParams[common.STATUS].split(','),
 				}
 			}
-			// create the final filter by combining primary filters , query params and search text
-			filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
 		}
+		// create the final filter by combining primary filters , query params and search text
+		filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
 
 		// return a sort object with sorting parameters. if no params are provided returns {}
 		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
@@ -411,6 +411,9 @@ module.exports = class resourceHelper {
 		if (sort_by && sort_order) {
 			sort.sort_by = sort_by
 			sort.order = sort_order.toUpperCase() == common.SORT_DESC.toUpperCase() ? common.SORT_DESC : common.SORT_ASC
+		} else {
+			sort.sort_by = common.CREATED_AT
+			sort.order = common.SORT_DESC
 		}
 		return sort
 	}
