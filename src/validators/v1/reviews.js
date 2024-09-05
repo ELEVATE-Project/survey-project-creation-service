@@ -43,9 +43,9 @@ module.exports = {
 			.withMessage('id param is invalid, must be an integer')
 
 		req.checkQuery('isReported')
-			.trim()
+			.optional()
 			.notEmpty()
-			.withMessage('resource_type field is empty')
+			.withMessage('isReported field is empty')
 			.isBoolean()
 			.withMessage('isReported must be a boolean value')
 
