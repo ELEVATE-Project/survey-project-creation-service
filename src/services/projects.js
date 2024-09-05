@@ -217,6 +217,11 @@ module.exports = class ProjectsHelper {
 					updateData.title = bodyData['title']
 				}
 
+				//update is_under_edit true if reviewer requested for changes
+				if (countReviews.count > 0) {
+					updateData.is_under_edit = true
+				}
+
 				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {
 					returning: true,
 					raw: true,
@@ -719,6 +724,7 @@ module.exports = class ProjectsHelper {
 			let resourcesUpdate = {
 				status: resourceStatus,
 				submitted_on: new Date(),
+				is_under_edit: false,
 			}
 
 			if (bodyData.notes) {
