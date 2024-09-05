@@ -59,7 +59,7 @@ services:
       driver: none
   
   schedular:
-    build: '../../scheduler/'
+    image: shikshalokamqa/elevate-scheduler:2.2
     ports:
       - '4000:4000'
     volumes:
