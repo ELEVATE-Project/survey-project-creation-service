@@ -6,7 +6,6 @@ module.exports = {
 		//to get to know the is user started editing when the resource status is in_review
 		await queryInterface.addColumn('resources', 'is_under_edit', {
 			type: Sequelize.BOOLEAN,
-			allowNull: true,
 			defaultValue: false,
 		})
 	},
