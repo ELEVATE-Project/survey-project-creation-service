@@ -126,7 +126,7 @@ module.exports = class resourceHelper {
 				'published_on',
 				'last_reviewed_on',
 				'meta',
-				'is_resume_edit',
+				'is_under_edit',
 			],
 			sort,
 			page,
