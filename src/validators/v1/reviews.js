@@ -48,6 +48,7 @@ module.exports = {
 			.withMessage('isReported field is empty')
 			.isBoolean()
 			.withMessage('isReported must be a boolean value')
+			.toBoolean()
 
 		req.checkBody('notes')
 			.optional()
