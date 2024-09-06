@@ -766,7 +766,7 @@ paths:
                     responseCode: OK
                     message: Permissions fetched successfully.
                     result:
-                      - module: projects
+                      - module: project
                         request_type:
                           - POST
                           - GET
@@ -2218,7 +2218,7 @@ paths:
             examples:
               example1:
                 value:
-                  type: projects
+                  type: project
                   sub_type: createProject
                   data:
                     template_name: defaultTemplate
@@ -2341,7 +2341,7 @@ paths:
                     message: Form created successfully
                     result:
                       id: 16
-                      type: projects
+                      type: project
                       sub_type: createProject
                       data:
                         template_name: defaultTemplate
@@ -2470,7 +2470,7 @@ paths:
             examples:
               example1:
                 value:
-                  type: projects
+                  type: project
                   sub_type: createProject
                   data:
                     template_name: Test
@@ -2534,7 +2534,7 @@ paths:
                     meta:
                       formsVersion:
                         - id: 16
-                          type: projects
+                          type: project
 
         '400':
           description: Bad Request. Form not found
@@ -2584,7 +2584,7 @@ paths:
             examples:
               example1:
                 value:
-                  type: projects
+                  type: project
                   sub_type: createProject
       responses:
         '200':
@@ -2686,7 +2686,7 @@ paths:
                     message: Form fetched successfully
                     result:
                       id: 16
-                      type: projects
+                      type: project
                       sub_type: createProject
                       data:
                         template_name: defaultTemplate
@@ -2718,7 +2718,7 @@ paths:
                     meta:
                       formsVersion:
                         - id: 16
-                          type: projects
+                          type: project
 
         '400':
           description: Bad Request.Form not found
@@ -3793,7 +3793,7 @@ paths:
           required: false
           schema:
             type: string
-          example: projects
+          example: project
         - name: status
           in: query
           description: The status of the resource (['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review`. This key is redundant in other cases. )
@@ -3870,7 +3870,7 @@ paths:
                       data:
                         - id: 4
                           title: sample project
-                          type: projects
+                          type: project
                           organization:
                             id: 24
                             name: Shikshalokam
@@ -3893,7 +3893,7 @@ paths:
          - The API Endpoint for listing resources is `/scp/v1/resource/getPublishedResources` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - Query Param `type` is a non mandatory field which can have values [`'projects'`,`'surveys'`,`'observations'`,`'observation_with_rubrics'`].
+         - Query Param `type` is a non mandatory field which can have values [`'project'`,`'survey'`,`'observation'`,`'observation_with_rubric'`].
       parameters:
         - name: X-auth-token
           in: header
@@ -3929,7 +3929,7 @@ paths:
           required: false
           schema:
             type: string
-          example: projects
+          example: project
         - name: sort_by
           in: query
           description: Sort the response by `created_at` or `title` of the resource.
@@ -3992,7 +3992,7 @@ paths:
                       data:
                         - id: 4
                           title: sample project
-                          type: projects
+                          type: project
                           organization:
                             id: 24
                             name: Shikshalokam
@@ -4050,7 +4050,7 @@ paths:
           required: false
           schema:
             type: string
-          example: projects
+          example: project
         - name: status
           in: query
           description: Pass status =  'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED' to get the resources with curresponding statuses.
@@ -4120,7 +4120,7 @@ paths:
                       data:
                         - id: 4
                           title: sample project
-                          type: projects
+                          type: project
                           organization:
                             id: 24
                             name: Shikshalokam
@@ -4926,13 +4926,13 @@ paths:
                 value:
                   show_reviewer_list: true
                   min_approval: 2
-                  resource_type: projects
+                  resource_type: project
                   review_type: PARALLEL
               review type sequential:
                 value:
                   show_reviewer_list: true
                   min_approval: 2
-                  resource_type: projects
+                  resource_type: project
                   review_type: SEQUENTIAL
                   review_stages:
                     - role: reviewer_level_1
@@ -5027,7 +5027,7 @@ paths:
           schema:
             type: string
           required: true
-          example: projects
+          example: project
       requestBody:
         content:
           application/json:
@@ -5087,7 +5087,7 @@ paths:
                       organization_id: 3
                       show_reviewer_list: true
                       min_approval: 2
-                      resource_type: projects
+                      resource_type: project
 
                     meta:
                       formsVersion:
@@ -5173,28 +5173,28 @@ paths:
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: 'SEQUENTIAL'
-                          resource_type: 'projects'
+                          resource_type: 'project'
                           max_task_count: 10
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: 'SEQUENTIAL'
-                          resource_type: 'observations'
+                          resource_type: 'observation'
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: 'SEQUENTIAL'
-                          resource_type: 'observation_with_rubrics'
+                          resource_type: 'observation_with_rubric'
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: 'SEQUENTIAL'
-                          resource_type: 'surveys'
+                          resource_type: 'survey'
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: 'SEQUENTIAL'
-                          resource_type: 'programs'
+                          resource_type: 'program'
                       instance:
                         auto_save_interval: 30000
                         note_length: 200
@@ -5238,7 +5238,7 @@ paths:
           description: Please add the resource type
           schema:
             type: string
-          example: projects
+          example: project
         - in: query
           name: page
           description: Please add page number
@@ -5306,7 +5306,7 @@ paths:
                         - id: 2
                           code: two_logo_two_sign
                           name: Two Logo Two Signature
-                          resource_type: projects
+                          resource_type: project
                           url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                           meta:
                             logos:
@@ -5370,7 +5370,7 @@ paths:
                 value:
                   code: two_logo_two_sign
                   name: Two Logo Two Signature
-                  resource_type: projects
+                  resource_type: project
                   url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                   meta:
                     logos:
@@ -5429,7 +5429,7 @@ paths:
                       id: 2
                       code: one_logo_one_sign
                       name: One Logo One Signature
-                      resource_type: projects
+                      resource_type: project
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
                         logos:
@@ -5540,7 +5540,7 @@ paths:
                       id: 2
                       code: two_logo_two_sign
                       name: Two Logo Two Signature
-                      resource_type: projects
+                      resource_type: project
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
                         logos:
@@ -5743,7 +5743,7 @@ paths:
                       role: CONTENT_CREATOR
                       level: 1
                       organization_id: 1
-                      resource_type: projects
+                      resource_type: project
                     meta:
                       formsVersion: []
         '400':
@@ -5768,7 +5768,7 @@ paths:
           name: resource_type
           schema:
             type: string
-          example: projects
+          example: project
           required: true
           description: The type of resource to list review stages for
       responses:
@@ -5816,7 +5816,7 @@ paths:
                         role: CONTENT_CREATOR
                         level: 1
                         organization_id: 1
-                        resource_type: projects
+                        resource_type: project
                       count: 1
                     meta:
                       formsVersion: []
