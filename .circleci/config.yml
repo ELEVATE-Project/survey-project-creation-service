@@ -28,7 +28,7 @@ jobs:
             docker-compose --version
       - run:
           name: Cloning user service
-          command: cd ../ && git clone https://github.com/ELEVATE-Project/user.git --branch elevate-project --single-branch
+          command: cd ../ && git clone https://github.com/ELEVATE-Project/user.git --branch develop --single-branch
       - restore_cache:
           key: user-dependency-cache-{{ checksum "../user/src/package.json" }}
       - run:
@@ -41,7 +41,7 @@ jobs:
       - run:
           name: Starting the docker containers
           command: |-
-            cd dev-ops/ && docker-compose up
+            cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build
       - run: 
           name: Check docker logs
           command: |-

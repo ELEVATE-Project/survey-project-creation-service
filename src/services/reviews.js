@@ -384,7 +384,7 @@ module.exports = class reviewsHelper {
 			// Update the review status to 'APPROVED' for the given review.
 			await reviewsQueries.update(
 				{ id: reviewId, organization_id: reviewOrgId },
-				{ status: common.RESOURCE_STATUS_APPROVED }
+				{ status: common.REVIEW_STATUS_APPROVED }
 			)
 
 			// Count the number of approved reviews for the resource.
