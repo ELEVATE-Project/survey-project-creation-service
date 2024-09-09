@@ -644,7 +644,7 @@ module.exports = class reviewsHelper {
 		/**
 		 * sample response
 			{
-				projects: [1,2]
+				project: [1,2]
 			} 
 		*/
 		// Check if the current level is included in the valid levels for the given resource type
