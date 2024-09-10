@@ -4,7 +4,7 @@ orbs:
 jobs:
   build:
     machine: #Linux machine instead of docker environment
-      image: ubuntu-2004:202111-01
+      image: ubuntu-2004:202111-01 #ubuntu-2004:latest
       docker_layer_caching: true
     working_directory: ~/survey-project-creation-service # Default working directory
     steps:
@@ -42,11 +42,6 @@ jobs:
           name: Starting the docker containers
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
-      - run:
-          name: Wait for survey-project-creation-service to be ready
-          command: |-
-            timeout 300 bash -c 'until docker-compose -f dev-ops/testing-docker-compose.yml ps | grep "survey-project-creation-service" | grep "healthy"; do sleep 5; done'
-      
       - run: 
           name: Check docker logs
           command: |-
