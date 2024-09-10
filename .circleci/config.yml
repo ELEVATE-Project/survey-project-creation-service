@@ -24,8 +24,9 @@ jobs:
           destination: /coverage/
       - run:
           name: Checking prerequisites
-          command: |-
+          command: |
             docker-compose --version
+            sudo apt-get install netcat
       - run:
           name: Cloning user service
           command: cd ../ && git clone https://github.com/ELEVATE-Project/user.git --branch integrationFixForSCP --single-branch
@@ -42,6 +43,35 @@ jobs:
           name: Starting the docker containers
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
+      - run:
+          name: Wait for PostgreSQL to be Ready
+          command: |
+            echo "Waiting for PostgreSQL to be ready on port 5432..."
+            timeout 60 bash -c "until nc -z postgres 5432; do sleep 1; done"
+            echo "PostgreSQL is up"
+      - run:
+          name: Wait for User Service to be Ready
+          command: |
+            echo "Waiting for User Service to be ready on port 5001..."
+            timeout 60 bash -c "until nc -z user 5001; do sleep 1; done"
+            echo "User Service is up"
+      - run:
+          name: Wait for Survey Project Creation Service to be Ready
+          command: |
+            echo "Waiting for Survey Project Creation Service to be ready on port 6001..."
+            timeout 60 bash -c "until nc -z survey-project-creation-service 6001; do sleep 1; done"
+            echo "Survey Project Creation Service is up"
+      - run:
+          name: Verify User Service Health
+          command: |
+            echo "Verifying User Service health on port 5001..."
+            curl -f http://user:5001/health || exit 1
+
+      - run:
+          name: Verify Survey Project Creation Service Health
+          command: |
+            echo "Verifying Survey Project Creation Service health on port 6001..."
+            curl -f http://survey-project-creation-service:6001/health || exit 1
       - run: 
           name: Check docker logs
           command: |-
