@@ -17,6 +17,7 @@ const crypto = require('crypto')
 const { cloudClient } = require('@configs/cloud-service')
 const { v4: uuidV4 } = require('uuid')
 const unidecode = require('unidecode')
+const _ = require('lodash')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
