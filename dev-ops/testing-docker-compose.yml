@@ -83,7 +83,7 @@ services:
         done &&
         echo 'Database is ready.' &&
         if ! psql -U postgres -h postgres -lqt | cut -d \| -f 1 | grep -qw integration_test_user; then
-            npm run db:init && npm run db:seed:all
+            npm run db:init
         else
             echo 'Database already exists. Skipping initialization and seeding.'
             exit 0  # Exit successfully to prevent the container from stopping
