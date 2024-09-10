@@ -546,13 +546,26 @@ const paginate = (data, page, size) => {
  * @returns {Object} - Response a sorted array of object based on the sort_by and order
  */
 const sort = (data, sort) => {
-	const { sort_by, order } = sort
+	const {
+		sort_by = common.CREATED_AT, // Default sort_by is 'created_at'
+		order = common.SORT_DESC, // Default order is 'desc'
+	} = sort || {}
 
-	return data.sort((a, b) => {
-		if (a[sort_by] < b[sort_by]) return order.toUpperCase() === common.SORT_ASC.toUpperCase() ? -1 : 1
-		if (a[sort_by] > b[sort_by]) return order.toUpperCase() === common.SORT_ASC.toUpperCase() ? 1 : -1
-		return 0
-	})
+	// Determine if sorting should be by date
+	const isDateField = sort_by === common.CREATED_AT || sort_by === common.UPDATED_AT
+
+	// Use _.orderBy with a custom iteratee
+	return _.orderBy(
+		data,
+		[
+			(item) => {
+				// Apply different sorting logic based on the field type
+				const value = item[sort_by]
+				return isDateField ? new Date(value) : _.toLower(value)
+			},
+		],
+		[order.toLowerCase()]
+	)
 }
 
 const isEmpty = (obj) => {
