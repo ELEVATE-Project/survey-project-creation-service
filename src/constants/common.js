@@ -72,6 +72,7 @@ module.exports = {
 	SORT_DESC: 'DESC',
 	SORT_ASC: 'ASC',
 	CREATED_AT: 'created_at',
+	UPDATED_AT: 'updated_at',
 	FILTER: 'filter',
 	TYPE: 'type',
 	STATUS: 'status',
