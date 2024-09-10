@@ -41,16 +41,21 @@ jobs:
       - run:
           name: Starting the docker containers
           command: |-
-            cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build
+            cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
+      - run:
+          name: Wait for services to be ready
+          command: |
+            docker-compose -f testing-docker-compose.yml exec survey-project-creation-service bash -c \
+            "until nc -z user 5001; do sleep 5; done"
       - run: 
           name: Check docker logs
           command: |-
-            docker ps && docker-compose logs --tail=1000 --follow
+            docker ps && docker-compose logs --tail=1000
 
       - run:
           name: Running test cases
           command: |-
-            cd src/ &&  npm run test:integration
+            cd src/ && npm run test:integration
       - store_test_results:
           path: ./dev-ops/report
 workflows:
