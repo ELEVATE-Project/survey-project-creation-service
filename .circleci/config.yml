@@ -47,7 +47,7 @@ jobs:
           name: Wait for PostgreSQL to be Ready
           command: |
             echo "Waiting for PostgreSQL to be ready on port 5432..."
-            timeout 60 bash -c "until nc -z postgres 5432; do sleep 1; done"
+            timeout 60 bash -c "until nc -z localhost 5432; do sleep 1; done"
             echo "PostgreSQL is up"
       - run:
           name: Wait for User Service to be Ready
