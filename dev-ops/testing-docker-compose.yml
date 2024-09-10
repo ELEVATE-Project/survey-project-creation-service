@@ -73,8 +73,8 @@ services:
     build: '../../user/'
     ports:
       - '5001:5001'
-    volumes:
-      - ../../user/src/:/var/src
+    # volumes:
+    #   - ../../user/src/:/var/src
     command: >
       bash -c "echo 'Waiting for PostgreSQL to accept connections...' &&
         until timeout 1 bash -c '</dev/tcp/postgres/5432' >/dev/null 2>&1; do
@@ -83,7 +83,7 @@ services:
         done &&
         echo 'Database is ready.' &&
         if ! psql -U postgres -h postgres -lqt | cut -d \| -f 1 | grep -qw integration_test_user; then
-            npm run db:init
+            npm run db:init && npm run db:seed:all
         else
             echo 'Database already exists. Skipping initialization and seeding.'
             exit 0  # Exit successfully to prevent the container from stopping
@@ -120,11 +120,10 @@ services:
         echo 'User Service is ready.'
 
         npm run db:init &&
-        npm run db:seed:all && 
         echo 'Running SCP' &&
         nodemon app.js "
-    volumes:
-      - ../../survey-project-creation-service/src/:/var/src
+    # volumes:
+    #   - ../../survey-project-creation-service/src/:/var/src
     environment:
       - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/integration_test_scp
       - KAFKA_URL=kafka:9092

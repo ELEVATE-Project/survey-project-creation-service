@@ -25,7 +25,7 @@ function initializeCloudClient() {
 	} catch (error) {
 		// If any error occurs during initialization, log the error and exit the process
 		console.error('Error occurred during cloud client initialization:', error.message)
-		process.exit()
+		// process.exit()
 	}
 }
 
