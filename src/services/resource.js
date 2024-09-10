@@ -440,7 +440,7 @@ module.exports = class resourceHelper {
 	 * 				 sequential resources which are open to all and matching to the reviewers role level and open to all parallel review resources.
 	 * @method GET
 	 * @name upForReview
-	 * @param {String} type (optional) -  Type of the resource. Ex : Projects , Observations etc...
+	 * @param {String} type (optional) -  Type of the resource. Ex : Project , Observation etc...
 	 * @param {String} search (optional) -  Partial search of the resource with title.
 	 * @param {String} status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
 	 * @param {String} sort_by (optional) -  Column name where we should apply sort. By default it will be created_at

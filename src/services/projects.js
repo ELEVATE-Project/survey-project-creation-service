@@ -764,7 +764,7 @@ module.exports = class ProjectsHelper {
 	 * @name validateEntityData
 	 * @param {Object} entityData - Data which needs to validate
 	 * @param {Object} entityType - Each entityType which have models
-	 * @param {string} model - The model needs to validate ex: projects, tasks, subTasks
+	 * @param {string} model - The model needs to validate ex: project, tasks, subTasks
 	 * @param {string} sourceType - Specifies the source of the input, which can be 'body', 'param', or 'query'.
 	 * @returns {JSON} - Response containing error details, if any.
 	 */
