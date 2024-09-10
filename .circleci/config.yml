@@ -43,16 +43,24 @@ jobs:
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
       - run:
-          name: Wait for services to be ready
+          name: Wait for survey-project-creation-service to be ready
           command: |
-            docker-compose -f testing-docker-compose.yml exec survey-project-creation-service bash -c \
-            "until nc -z user 5001; do sleep 5; done"
+            timeout 300 bash -c 'until docker-compose -f testing-docker-compose.yml ps | grep "survey-project-creation-service" | grep "healthy"; do sleep 5; done'
+      - run:
+          name: Create test results directory
+          command: mkdir -p ./dev-ops/report
       - run: 
           name: Check docker logs
           command: |-
             docker ps && docker-compose logs --tail=1000
 
+      - run:- run:
+          name: Wait for survey-project-creation-service to be ready
+          command: |
+            timeout 300 bash -c 'until docker-compose -f testing-docker-compose.yml ps | grep "survey-project-creation-service" | grep "healthy"; do sleep 5; done'
       - run:
+          name: Create test results directory
+          command: mkdir -p ./dev-ops/report
           name: Running test cases
           command: |-
             cd src/ && npm run test:integration
