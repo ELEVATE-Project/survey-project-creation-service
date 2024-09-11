@@ -1,13 +1,13 @@
 const commonHelper = require('@commonTests')
 const schema = require('./responseSchema')
+// let baseURL = 'http://localhost:5001';
+jest.setTimeout(10000)
 
-describe('scp/v1/permissions ', function () {
+describe('scp/v1/permissions', function () {
 	let userDetails
 	beforeAll(async () => {
-		console.log('============>', 1)
 		userDetails = await commonHelper.logIn()
 		console.log('============> 2 : ', userDetails)
-		jest.setTimeout(10000)
 	})
 
 	it('/list', async () => {

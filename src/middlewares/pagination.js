@@ -7,7 +7,7 @@
 const httpStatus = require('@generics/http-status')
 const responses = require('@helpers/responses')
 function containsSpecialChars(str) {
-	const specialChars = /[`!#$%^&*()+\=\[\]{};':"\\|<>\/?~]/
+	const specialChars = /[`!#$%^*()+\=\[\]{};':"\\|\/?~]/
 	return specialChars.test(str)
 }
 

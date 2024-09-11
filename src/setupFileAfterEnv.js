@@ -6,7 +6,7 @@ const pool = new Pool()
 expect.extend(matchers)
 
 //PostgreSQL connection string
-const connectionString = 'postgres://postgres:postgres@localhost:5432/dev_elevate_scp'
+const connectionString = 'postgres://postgres:postgres@localhost:5432/integration_test_scp'
 
 // Connect to the PostgreSQL database using the connection string
 const db = new Client({
