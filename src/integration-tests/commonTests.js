@@ -25,7 +25,7 @@ const logIn = async () => {
 			email: email,
 			password: password,
 		})
-		console.log('============>LOGIN 5 : ', res.body, res.statusCode)
+		// console.log('============>LOGIN 5 : ', res.body, res.statusCode)
 		res = await request.post('/user/v1/account/login').send({
 			email: email,
 			password: password,
