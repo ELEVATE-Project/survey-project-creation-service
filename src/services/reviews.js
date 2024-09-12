@@ -180,7 +180,7 @@ module.exports = class reviewsHelper {
 				),
 				resourceQueries.updateOne(
 					{ organization_id: resource.organization_id, id: resourceId },
-					{ status: common.RESOURCE_STATUS_IN_REVIEW, last_reviewed_on: new Date() }
+					{ status: common.RESOURCE_STATUS_IN_REVIEW }
 				),
 			])
 
@@ -479,9 +479,8 @@ module.exports = class reviewsHelper {
 			// Update resource table data
 			let updateData = {
 				status: common.RESOURCE_STATUS_IN_REVIEW,
-				last_reviewed_on: new Date(),
 			}
-			// Update the resource table to reflect the review status and last_reviewed_on
+			// Update the resource table to reflect the review status
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
 
 			return responses.successResponse({
