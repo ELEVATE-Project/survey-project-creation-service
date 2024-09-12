@@ -832,7 +832,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/updatePermission400Response'
 
-  /scp/v1/role-permission-mapping/create/{role_id}:
+  /scp/v1/role-permission-mapping/create:
     post:
       summary: Creating new role permission mapping
       tags:
@@ -852,14 +852,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: role_id
-          in: path
-          description: >-
-            Pass the `role_id` to add permissions.
-          required: true
-          schema:
-            type: number
-          example: 2
       requestBody:
         content:
           application/json:
@@ -869,12 +861,17 @@ paths:
                 permission_id:
                   type: number
                   description: id of the Permission
+                role_title:
+                  type: string
+                  description: Role
               required:
                 - permission_id
+                - role_title
             examples:
               example1:
                 value:
                   permission_id: 1
+                  role_title: 'reviewer'
       responses:
         '201':
           description: Created
@@ -986,8 +983,6 @@ paths:
                               type: array
                               items:
                                 type: string
-                      count:
-                        type: number
 
               examples:
                 example1:
@@ -1003,7 +998,6 @@ paths:
                             - GET,
                             - PUT,
                             - PATCH
-                      count: 1
   /scp/v1/role-permission-mapping/delete/{role_id}:
     post:
       summary: Delete rolePermissionMapping by id
@@ -2018,7 +2012,6 @@ paths:
                     meta:
                       formsVersion: []
                       correlation: 0d392602-cb68-4690-8f38-3d3de9f94198
-                      meeting_platform: BBB
                     parameters: []
 
   /scp/v1/cloud-services/getSignedUrl:
@@ -2676,8 +2669,6 @@ paths:
                             type:
                               type: string
                       correlation:
-                        type: string
-                      meeting_platform:
                         type: string
               examples:
                 example1:
@@ -6549,8 +6540,6 @@ components:
         result:
           type: object
           properties:
-            meeting_platform:
-              type: string
             reportIssue:
               type: object
               properties:

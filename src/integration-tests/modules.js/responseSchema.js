@@ -510,12 +510,9 @@ const deleteSchema = {
 				},
 				correlation: {
 					type: 'string',
-				},
-				meetingPlatform: {
-					type: 'string',
-				},
+				}
 			},
-			required: ['formsVersion', 'correlation', 'meetingPlatform'],
+			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],

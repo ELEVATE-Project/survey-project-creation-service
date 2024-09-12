@@ -231,8 +231,7 @@ const getPermissionSchema = {
 				}
 			},
 			'required': [
-				'formsVersion',
-				'correlation'
+				'formsVersion'
 			]
 		}
 	},

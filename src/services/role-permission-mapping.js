@@ -135,7 +135,7 @@ module.exports = class modulesHelper {
 			}
 
 			return responses.successResponse({
-				statusCode: httpStatusCode.created,
+				statusCode: httpStatusCode.ok,
 				message: 'FETCHED_ROLE_PERMISSION_SUCCESSFULLY',
 				result: { permissions },
 			})
