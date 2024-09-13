@@ -130,5 +130,6 @@
 	"ALL_COMMENTS_NOT_RESOLVED": "Resolve all comments before sending for review.",
 	"CANNOT_DELETE_ACTION_DUE_TO_ASSOCIATED_ACTIVITIES": "Activities have been added for this action, so it cannot be deleted.",
 	"RESOURCE_ID_REQUIRED": "Resource Id is required",
-	"PROJECT_SAVED_SUCCESSFULLY": "Your changes have been saved"
+	"PROJECT_SAVED_SUCCESSFULLY": "Your changes have been saved",
+	"FAILED_TO_CREATE_CONFIG": "Organization config creation failed"
 }

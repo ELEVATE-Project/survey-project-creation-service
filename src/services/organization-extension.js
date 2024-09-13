@@ -72,9 +72,16 @@ module.exports = class orgExtensionsHelper {
 			}
 
 			const orgExtension = await orgExtensionQueries.create(bodyData)
+			if (!orgExtension?.id) {
+				return responses.failureResponse({
+					message: 'FAILED_TO_CREATE_CONFIG',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 
 			return responses.successResponse({
-				statusCode: httpStatusCode.ok,
+				statusCode: httpStatusCode.created,
 				message: 'CONFIG_ADDED_SUCCESSFULLY',
 				result: orgExtension,
 			})
