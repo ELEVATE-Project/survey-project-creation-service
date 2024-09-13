@@ -464,7 +464,7 @@ module.exports = class reviewsHelper {
 			const reviewData = {
 				resource_id: resourceId,
 				reviewer_id: userId,
-				status: common.REVIEW_STATUS_STARTED,
+				status: common.REVIEW_STATUS_INPROGRESS,
 				organization_id: userOrgId,
 			}
 
