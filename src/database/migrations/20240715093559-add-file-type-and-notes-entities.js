@@ -25,7 +25,7 @@ module.exports = {
 				entities: [],
 				has_entities: false,
 				validation: { required: false, regex: `[^A-Za-z0-9]` },
-				model: 'projects',
+				model: 'project',
 			},
 		]
 

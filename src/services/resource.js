@@ -42,6 +42,7 @@ module.exports = class resourceHelper {
 		let result = {
 			data: [],
 			count: 0,
+			changes_requested_count: 0,
 		}
 		let primaryFilter = {}
 		let filter = {}
@@ -132,7 +133,10 @@ module.exports = class resourceHelper {
 			page,
 			limit
 		)
+
 		if (response.result.length <= 0) {
+			result.changes_requested_count =
+				distinctInreviewResourceIds.count > 0 ? distinctInreviewResourceIds.count : 0
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -223,7 +227,7 @@ module.exports = class resourceHelper {
 		// generic function to merge all the collected data about the resource
 		result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
 		// count of requested for changes resources
-		result.changes_requested_count = distinctInreviewResourceIds.count
+		result.changes_requested_count = distinctInreviewResourceIds.count > 0 ? distinctInreviewResourceIds.count : 0
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
 			message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -440,7 +444,7 @@ module.exports = class resourceHelper {
 	 * 				 sequential resources which are open to all and matching to the reviewers role level and open to all parallel review resources.
 	 * @method GET
 	 * @name upForReview
-	 * @param {String} type (optional) -  Type of the resource. Ex : Projects , Observations etc...
+	 * @param {String} type (optional) -  Type of the resource. Ex : Project , Observation etc...
 	 * @param {String} search (optional) -  Partial search of the resource with title.
 	 * @param {String} status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
 	 * @param {String} sort_by (optional) -  Column name where we should apply sort. By default it will be created_at

@@ -23,7 +23,7 @@ module.exports = {
 		let entity_model_mapping_bulk_insert = [
 			{
 				entity_type_id: entityTypeIdMap['learning_resources'],
-				model: 'projects',
+				model: 'project',
 				status: 'ACTIVE',
 				updated_at: new Date(),
 				created_at: new Date(),
@@ -57,7 +57,7 @@ module.exports = {
 		}
 
 		const entity_model_relation = {
-			learning_resources: 'projects',
+			learning_resources: 'project',
 			name: 'subTasks',
 		}
 

@@ -180,7 +180,7 @@ module.exports = class reviewsHelper {
 				),
 				resourceQueries.updateOne(
 					{ organization_id: resource.organization_id, id: resourceId },
-					{ status: common.RESOURCE_STATUS_IN_REVIEW, last_reviewed_on: new Date() }
+					{ status: common.RESOURCE_STATUS_IN_REVIEW }
 				),
 			])
 
@@ -464,7 +464,7 @@ module.exports = class reviewsHelper {
 			const reviewData = {
 				resource_id: resourceId,
 				reviewer_id: userId,
-				status: common.REVIEW_STATUS_STARTED,
+				status: common.REVIEW_STATUS_INPROGRESS,
 				organization_id: userOrgId,
 			}
 
@@ -479,9 +479,8 @@ module.exports = class reviewsHelper {
 			// Update resource table data
 			let updateData = {
 				status: common.RESOURCE_STATUS_IN_REVIEW,
-				last_reviewed_on: new Date(),
 			}
-			// Update the resource table to reflect the review status and last_reviewed_on
+			// Update the resource table to reflect the review status
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
 
 			return responses.successResponse({
@@ -644,7 +643,7 @@ module.exports = class reviewsHelper {
 		/**
 		 * sample response
 			{
-				projects: [1,2]
+				project: [1,2]
 			} 
 		*/
 		// Check if the current level is included in the valid levels for the given resource type

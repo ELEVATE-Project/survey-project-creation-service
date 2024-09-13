@@ -132,69 +132,32 @@ const listSchema = {
 			type: 'string',
 		},
 		result: {
-			type: 'object',
-			properties: {
-				results: {
+			type: 'array',
+			items: [
+				{
 					type: 'object',
 					properties: {
-						data: {
+						module: {
+							type: 'string',
+						},
+						request_type: {
 							type: 'array',
 							items: [
 								{
-									type: 'object',
-									properties: {
-										id: {
-											type: 'integer',
-										},
-										code: {
-											type: 'string',
-										},
-										module: {
-											type: 'string',
-										},
-										request_type: {
-											type: 'array',
-											items: [
-												{
-													type: 'string',
-												},
-											],
-										},
-										api_path: {
-											type: 'string',
-										},
-										status: {
-											type: 'string',
-										},
-									},
-									required: ['id', 'code', 'module', 'request_type', 'api_path', 'status'],
+									type: 'string',
+								},
+								{
+									type: 'string',
 								},
 							],
 						},
-						count: {
-							type: 'integer',
-						},
 					},
-					required: ['data', 'count'],
+					required: ['module', 'request_type'],
 				},
-			},
-			required: ['results'],
-		},
-		meta: {
-			type: 'object',
-			properties: {
-				formsVersion: {
-					type: 'array',
-					items: {},
-				},
-				correlation: {
-					type: 'string',
-				},
-			},
-			required: ['formsVersion', 'correlation'],
+			],
 		},
 	},
-	required: ['responseCode', 'message', 'result', 'meta'],
+	required: ['responseCode', 'message', 'result'],
 }
 
 module.exports = {
