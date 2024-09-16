@@ -3071,7 +3071,6 @@ paths:
                         min_no_of_evidences: 5
                       sequence_no: 1
                       solution_details:
-                        id: 3
                         name: sample observation
                         min_no_of_submissions_required: 2
                         type: observation
