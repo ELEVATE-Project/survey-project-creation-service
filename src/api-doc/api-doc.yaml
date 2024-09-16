@@ -2753,6 +2753,12 @@ paths:
             type: number
           required: true
           example: 1
+        - in: path
+          name: reference_id
+          description: (Optional) The project solution ID from the consumption side.
+          schema:
+            type: string
+          required: false
       requestBody:
         content:
           application/json:
@@ -2824,6 +2830,9 @@ paths:
                       type: string
                     value:
                       type: string
+                reference_id:
+                  type: string
+                  description: Project solution id from the consumption side.
                 task:
                   type: array
                   items:
@@ -3062,10 +3071,10 @@ paths:
                         min_no_of_evidences: 5
                       sequence_no: 1
                       solution_details:
-                        id: 3
                         name: sample observation
                         min_no_of_submissions_required: 2
                         type: observation
+                        link: https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4
                   certificate:
                     base_template_id: 5
                     base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -3576,6 +3585,7 @@ paths:
                             name: sample observation
                             min_no_of_submissions_required: 2
                             type: observation
+                            link: https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4
                       certificate:
                         base_template_id: 5
                         base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -4888,6 +4898,8 @@ paths:
          - The API Endpoint for add organization configurations is `/scp/v1/organization-extensions/createConfig` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - `observation_link_regex` Add regular expression to validate the observation link.
+         - `open_external_link` Boolean value to indicate if the external link should be opened in the portal or not.
       parameters:
         - name: X-auth-token
           in: header
@@ -5005,6 +5017,9 @@ paths:
          - The API Endpoint for update organization configurations is `/scp/v1/organization-extensions/updateConfig` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - `observation_link_regex` and `open_external_link` are project specific fields. 
+         - `observation_link_regex` Add regular expression to validate the observation link.
+         - `open_external_link` Boolean value to indicate if the external link should be opened in the portal or not.
       parameters:
         - name: X-auth-token
           in: header
@@ -5175,6 +5190,8 @@ paths:
                           review_type: 'SEQUENTIAL'
                           resource_type: 'project'
                           max_task_count: 10
+                          observation_link_regex: ^https?:\/\/[a-zA-Z0-9\-_]+\.[a-zA-Z]{2,}(/[a-zA-Z0-9\-\._~:/?#[\]@!$&\'()*+,;=]*)?$
+                          open_external_link: true
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
