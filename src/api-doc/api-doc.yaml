@@ -4244,7 +4244,6 @@ paths:
             type: number
           required: true
           example: 12
-
       responses:
         '200':
           description: Review started successfully
@@ -4286,6 +4285,7 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
+
   /scp/v1/reviews/update/{resourceId}:
     post:
       summary: Request for changes
@@ -4293,12 +4293,12 @@ paths:
         - Review
       description: |-
         You can use this API to create or request for changes
-        - The API Endpoint is `/scp/v1/reviews/update` 
-        - It is mandatory to provide values for parameters which are marked as `required` 
-        - This is a mandatory parameter and cannot be empty or null.
-        - comment can be array or array of object. 
-        - Pass the id of the comment in comment object if the current status of the comment is DRAFT. And pass the comment status as OPEN.
-        - While reviewing the resource reviewer can create the comment with draft status. That will be available to the creator if reviewer is doing action either approve, reject, report or changes requested
+         - The API Endpoint is `/scp/v1/reviews/update` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+         - comment can be array or array of object. 
+         - Pass the id of the comment in comment object if the current status of the comment is DRAFT. And pass the comment status as OPEN.
+         - While reviewing the resource reviewer can create the comment with draft status. That will be available to the creator if reviewer is doing action either approve, reject, report or changes requested
       parameters:
         - name: X-auth-token
           in: header
@@ -4310,45 +4310,20 @@ paths:
             type: string
         - in: path
           name: resourceId
-          description: Append a valid resource Id to the request URL.
+          description: Please append a valid resource Id to the Request URL.
           schema:
-            type: integer
+            type: number
           required: true
           example: 12
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
                 comment:
-                  description: >-
-                    Comment can be an array or an object. If the reviewer is saving the review as a draft, 
-                    once it is completed, the draft comment needs to be sent in the request body.
-                  oneOf:
-                    - type: array
-                      items:
-                        type: object
-                        properties:
-                          id:
-                            type: integer
-                          text:
-                            type: string
-                          context:
-                            type: string
-                          page:
-                            type: integer
-                    - type: object
-                      properties:
-                        id:
-                          type: integer
-                        text:
-                          type: string
-                        context:
-                          type: string
-                        page:
-                          type: integer
+                  description: Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.
+
             examples:
               example1:
                 value:
@@ -4359,7 +4334,7 @@ paths:
                     page: 1
       responses:
         '200':
-          description: Project review updated
+          description: project review updated
           content:
             application/json:
               schema:
@@ -4371,6 +4346,7 @@ paths:
                     type: string
                   result:
                     type: object
+
                   meta:
                     type: object
                     properties:
@@ -4380,11 +4356,12 @@ paths:
                           type: object
                           properties:
                             id:
-                              type: integer
+                              type: number
                             type:
                               type: string
                             version:
-                              type: integer
+                              type: number
+
               examples:
                 example1:
                   value:
