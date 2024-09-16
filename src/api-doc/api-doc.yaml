@@ -4292,12 +4292,13 @@ paths:
       tags:
         - Review
       description: |-
-        You can use this API to create or request changes.
-        - The API Endpoint is `/scp/v1/reviews/update`
-        - It is mandatory to provide values for parameters that are marked as `required`.
-        - `comment` can be an array or an object.
-        - Pass the ID of the comment in the comment object if the current status of the comment is DRAFT, and set the comment status to OPEN.
-        - While reviewing the resource, the reviewer can create a comment with draft status, which will be available to the creator if the reviewer approves, rejects, reports, or requests changes.
+        You can use this API to create or request for changes
+        - The API Endpoint is `/scp/v1/reviews/update` 
+        - It is mandatory to provide values for parameters which are marked as `required` 
+        - This is a mandatory parameter and cannot be empty or null.
+        - comment can be array or array of object. 
+        - Pass the id of the comment in comment object if the current status of the comment is DRAFT. And pass the comment status as OPEN.
+        - While reviewing the resource reviewer can create the comment with draft status. That will be available to the creator if reviewer is doing action either approve, reject, report or changes requested
       parameters:
         - name: X-auth-token
           in: header
