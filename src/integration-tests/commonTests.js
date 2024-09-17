@@ -2,22 +2,28 @@ var supertest = require('supertest') //require supertest
 var defaults = require('superagent-defaults')
 const crypto = require('crypto')
 let baseURL = 'http://localhost:6001'
+const waitOn = require('wait-on')
 //supertest hits the HTTP server (your app)
 let defaultHeaders
+
+// Utility function to wait for services to be ready
+const waitForService = async (url) => {
+	const opts = {
+		resources: [url],
+		delay: 5000,
+		interval: 2500,
+		timeout: 100000,
+	}
+	await waitOn(opts)
+}
 
 const logIn = async () => {
 	try {
 		console.log('============>LOGIN 1 : ')
 		let request = defaults(supertest('http://localhost:5001'))
-		let waitOn = require('wait-on')
-		let opts = {
-			resources: [baseURL],
-			delay: 5000, // initial delay in ms, default 0
-			interval: 2500, // poll interval in ms, default 250ms
-			timeout: 100000,
-		}
-		await waitOn(opts)
+		await waitForService(baseURL)
 		jest.setTimeout(10000)
+
 		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
 		let password = 'Welcome@123'
 		let res = await request.post('/user/v1/account/create').send({
@@ -58,6 +64,73 @@ const logIn = async () => {
 	}
 }
 
+const createUserRoles = async () => {
+	let request = defaults(supertest('http://localhost:5001'))
+	await waitForService(baseURL)
+	jest.setTimeout(10000)
+
+	let email = 'orgadmin' + crypto.randomBytes(5).toString('hex') + '@shikshalokam.com'
+	let password = 'Welcome@123'
+	let res = await request.post('/user/v1/account/create').send({
+		name: 'orgadmin',
+		email: email,
+		password: password,
+	})
+
+	if (res.body && res.body.result && res.body.result.access_token && res.body.result.user.id) {
+
+		defaultHeaders = {
+			'X-auth-token': 'bearer ' + res.body.result.access_token,
+			Connection: 'keep-alive',
+			'Content-Type': 'application/json',
+		}
+
+		let existingCreatorRole = await request.get('/user/v1/user-role/list')
+			.set(defaultHeaders)
+			.query({
+				title: 'content_creator',
+				organization_id: 1,
+			})
+
+		if (existingCreatorRole.body.result?.data?.length == 0) {
+			let createCreatorRole = await request.post('/user/v1/user-role/create')
+				.set(defaultHeaders)
+				.send({
+					title: 'content_creator',
+					user_type: 0,
+					organization_id: 1,
+					label: 'Content Creator',
+					visibility: 'PUBLIC'
+				})
+
+			if (createCreatorRole.statusCode != 200) {
+				console.log('Role Creation Failed')
+			}
+		}
+
+		let existingReviewerRole = await request.get('/user/v1/user-role/list').query({
+			title: 'reviewer',
+			organization_id: 1,
+		})
+
+		if (existingReviewerRole.body.result?.data?.length == 0) {
+			let createReviewRole = await request.post('/user/v1/user-role/create')
+				.set(defaultHeaders)
+				.send({
+					title: 'reviewer',
+					user_type: 0,
+					organization_id: 1,
+					label: 'Content Creator',
+					visibility: 'PUBLIC'
+				})
+
+			if (createReviewRole.statusCode != 200) {
+				console.log('Role Creation Failed')
+			}
+		}
+	}
+}
+
 function logError(res) {
 	let successCodes = [200, 201, 202]
 	if (!successCodes.includes(res.statusCode)) {
@@ -65,7 +138,9 @@ function logError(res) {
 	}
 }
 
+createUserRoles()
 module.exports = {
 	logIn, //-- export if token is generated
 	logError,
+	createUserRoles,
 }
