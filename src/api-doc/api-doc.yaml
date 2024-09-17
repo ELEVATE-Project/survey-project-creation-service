@@ -5660,7 +5660,7 @@ paths:
       description: |
         Use this API to update the review stages within an organization. Review stages define the hierarchy of roles and their respective levels. The resource will be listed on the "up for review" page based on these levels.
 
-        - Endpoint: `/review-stages/update`
+        - Endpoint: `/scp/v1/review-stages/update`
         - Provide values for parameters marked as `required`.
         - The X-auth-token is mandatory and cannot be empty or null.
       parameters:
@@ -5751,7 +5751,7 @@ paths:
       description: |
         Use this API to list the review stages within an organization. Review stages define the hierarchy of roles and their respective levels. The resource will be listed on the "up for review" page based on these levels.
 
-        - Endpoint: `/review-stages/list`
+        - Endpoint: `/scp/v1/review-stages/list`
         - Provide values for parameters marked as `required`.
         - The X-auth-token is mandatory and cannot be empty or null.
       parameters:
