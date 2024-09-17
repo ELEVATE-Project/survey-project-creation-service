@@ -64,3 +64,16 @@ exports.findAllReviewStages = async (filter, attributes, options = {}) => {
 		return error
 	}
 }
+
+exports.updateOne = async (filter, update, options = {}) => {
+	try {
+		const res = await ReviewStage.update(update, {
+			where: filter,
+			...options,
+			individualHooks: true,
+		})
+		return res
+	} catch (error) {
+		return error
+	}
+}
