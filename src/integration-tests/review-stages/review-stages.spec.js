@@ -10,6 +10,7 @@ describe('Review Stages APIs ', function () {
 
 	it('List Review Stages', async () => {
 		let res = await request.get('/scp/v1/review-stages/list?resource_type=project').query({ page: 1, limit: 10 })
+		console.log(JSON.stringify(res.body, null, 2))
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.listSchema)
 	})
