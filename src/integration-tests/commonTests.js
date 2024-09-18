@@ -108,10 +108,12 @@ const createUserRoles = async () => {
 			}
 		}
 
-		let existingReviewerRole = await request.get('/user/v1/user-role/list').query({
-			title: 'reviewer',
-			organization_id: 1,
-		})
+		let existingReviewerRole = await request.get('/user/v1/user-role/list')
+			.set(defaultHeaders)
+			.query({
+				title: 'reviewer',
+				organization_id: 1,
+			})
 
 		if (existingReviewerRole.body.result?.data?.length == 0) {
 			let createReviewRole = await request.post('/user/v1/user-role/create')

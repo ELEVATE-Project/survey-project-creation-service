@@ -40,6 +40,30 @@ jobs:
           paths:
             - ../user/src/node_modules
       - run:
+          name: Replace Survey Project Creation Service environment variables
+          command: |
+            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ./src/.env
+            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ./src/.env
+            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ./src/.env
+            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ./src/.env
+            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ./src/.env
+            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ./src/.env
+            ls -l ./src/.env # Check that the file is created
+            cat ./src/.env # Verify content for debugging
+
+
+      - run:
+          name: Replace User Service environment variables
+          command: |
+            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ../user/src/.env
+            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ../user/src/.env
+            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ../user/src/.env
+            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ../user/src/.env
+            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ../user/src/.env
+            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ../user/src/.env
+            ls -l ../user/src/.env # Check that the file is created
+            cat ../user/src/.env # Verify content for debugging
+      - run:
           name: Starting the docker containers
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
