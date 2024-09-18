@@ -16,7 +16,7 @@ describe('Project APIs ', function () {
 	})
 
 	it('Delete Project', async () => {
-		const res = await request.delete('/scp/v1/projects/delete/999999')
+		const res = await request.delete('/scp/v1/projects/update/999999')
 		expect(res.statusCode).toBe(400)
 	})
 
@@ -31,7 +31,6 @@ describe('Project APIs ', function () {
 
 	it('Reviewer List', async () => {
 		const res = await request.get('/scp/v1/projects/reviewerList')
-		console.log(JSON.stringify(res.body, null, 2))
 		expect(res.statusCode).toBe(200)
 	})
 
@@ -46,7 +45,6 @@ describe('Project APIs ', function () {
 		} else {
 			expect(res.body).toMatchSchema(schema.emptyListSchema)
 		}
-
 	})
 
 	it('Submit Project for Review', async () => {
