@@ -48,6 +48,8 @@
 		"module-alias": "^2.2.3",
 		"moment": "^2.29.1",
 		"moment-timezone": "^0.5.34",
+		"mongodb": "^3.7.4",
+		"mongoose": "^5.9.4",
 		"oci-sdk": "^2.48.0",
 		"p-each-series": "^2.1.0",
 		"pg": "^8.11.0",
