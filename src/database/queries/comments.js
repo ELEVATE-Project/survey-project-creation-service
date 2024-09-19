@@ -50,16 +50,16 @@ module.exports = class CommentData {
 	 * @name delete
 	 * @param {Integer} id - comment id
 	 * @param {Integer} resourceId - resource id
-	 * @param {String} loggedInUserId - user id
+	 * @param {String} userId - user id
 	 * @returns {JSON} - comment delete response.
 	 */
-	static async deleteOne(id, resourceId, loggedInUserId) {
+	static async deleteOne(id, resourceId, userId) {
 		try {
 			const filter = {
 				where: {
 					id,
 					resource_id: resourceId,
-					user_id: loggedInUserId,
+					user_id: userId,
 					status: common.COMMENT_STATUS_DRAFT,
 				},
 			}
