@@ -4792,6 +4792,13 @@ paths:
             type: number
           required: true
           example: 2
+        - in: query
+          name: resource_id
+          description: Please append a valid resource Id to the Request URL.
+          schema:
+            type: number
+          required: true
+          example: 1
 
       responses:
         '200':
