@@ -104,7 +104,24 @@ module.exports = class CommentsHelper {
 			})
 		}
 	}
+	static async delete(commentId, resourceId, userId) {
+		try {
+			// soft delete comment
+			await commentQueries.deleteOne(commentId, resourceId, userId)
 
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'COMMENT_DELETED',
+				result: {},
+			})
+		} catch (error) {
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
+		}
+	}
 	/**
 	 * Comment list
 	 * @method

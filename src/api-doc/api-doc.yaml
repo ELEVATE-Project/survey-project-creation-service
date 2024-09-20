@@ -2753,6 +2753,13 @@ paths:
             type: number
           required: true
           example: 1
+        - in: query
+          name: reference_id
+          description: (Optional) The project solution ID from the consumption side.
+          schema:
+            type: string
+          required: false
+          example: 3
       requestBody:
         content:
           application/json:
@@ -2824,6 +2831,9 @@ paths:
                       type: string
                     value:
                       type: string
+                reference_id:
+                  type: string
+                  description: Project solution id from the consumption side.
                 task:
                   type: array
                   items:
@@ -3062,10 +3072,10 @@ paths:
                         min_no_of_evidences: 5
                       sequence_no: 1
                       solution_details:
-                        id: 3
                         name: sample observation
                         min_no_of_submissions_required: 2
                         type: observation
+                        link: https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4
                   certificate:
                     base_template_id: 5
                     base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -3576,6 +3586,7 @@ paths:
                             name: sample observation
                             min_no_of_submissions_required: 2
                             type: observation
+                            link: https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4
                       certificate:
                         base_template_id: 5
                         base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -4753,6 +4764,85 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/updateComment400Response'
+  /scp/v1/comments/update/{commentId}:
+    delete:
+      summary: Delete Comment
+      tags:
+        - Comment
+      description: |-
+        You can use this API to delete a comment
+         - The API Endpoint for deleting a comment is `/scp/v1/comments/update` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+         - Only comments in draft status can be deleted.
+         - Only the comment owner is allowed to delete the comment
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: commentId
+          description: Please append a valid comment Id to the Request URL. Id is not mandatory
+          schema:
+            type: number
+          required: true
+          example: 2
+        - in: query
+          name: resource_id
+          description: Please append a valid resource Id to the Request URL.
+          schema:
+            type: number
+          required: true
+          example: 1
+
+      responses:
+        '200':
+          description: Comment deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Comment deleted successfully
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+        '400':
+          description: Bad Request. Resource not found
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/updateComment400Response'
 
   /scp/v1/comments/list:
     get:
@@ -4888,6 +4978,8 @@ paths:
          - The API Endpoint for add organization configurations is `/scp/v1/organization-extensions/createConfig` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - `observation_link_regex` Add regular expression to validate the observation link.
+         - `open_external_link` Boolean value to indicate if the external link should be opened in the portal or not.
       parameters:
         - name: X-auth-token
           in: header
@@ -5005,6 +5097,9 @@ paths:
          - The API Endpoint for update organization configurations is `/scp/v1/organization-extensions/updateConfig` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - `observation_link_regex` and `open_external_link` are project specific fields. 
+         - `observation_link_regex` Add regular expression to validate the observation link.
+         - `open_external_link` Boolean value to indicate if the external link should be opened in the portal or not.
       parameters:
         - name: X-auth-token
           in: header
@@ -5175,6 +5270,8 @@ paths:
                           review_type: 'SEQUENTIAL'
                           resource_type: 'project'
                           max_task_count: 10
+                          observation_link_regex: ^https?:\/\/[a-zA-Z0-9\-_]+\.[a-zA-Z]{2,}(/[a-zA-Z0-9\-\._~:/?#[\]@!$&\'()*+,;=]*)?$
+                          open_external_link: true
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
