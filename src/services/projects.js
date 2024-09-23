@@ -23,8 +23,30 @@ module.exports = class ProjectsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - project id
 	 */
-	static async create(bodyData, loggedInUserId, orgId) {
+	static async create(bodyData, loggedInUserId, orgId, reference_id = null) {
 		try {
+			if (reference_id) {
+				// check if the reference project Id is valid or not
+				const referenceProject = await resourceQueries.findOne(
+					{
+						id: reference_id,
+						status: common.RESOURCE_STATUS_PUBLISHED,
+						published_id: { [Op.not]: null },
+					},
+					{
+						attributes: ['type'],
+					}
+				)
+
+				if (!referenceProject || referenceProject.type != common.PROJECT) {
+					return responses.failureResponse({
+						message: 'PROJECT_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+			}
+
 			//validate the title length
 			const isTitleInvalid = utils.validateTitle(bodyData.title)
 			if (isTitleInvalid) {
@@ -57,6 +79,8 @@ module.exports = class ProjectsHelper {
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 			}
+
+			if (reference_id) projectData.reference_id = reference_id
 
 			let projectCreate
 			try {
