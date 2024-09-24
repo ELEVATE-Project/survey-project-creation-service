@@ -61,12 +61,13 @@
 	"JSON_FETCHED_SUCCESSFULLY": "Data retrieved Successfully.",
 	"CERTIFICATE_FETCH_FAILED": "Error in fetching Certificate",
 	"PROJECT_CREATED_SUCCESSFULLY": "Project created successfully",
-	"PROJECT_UPDATED_SUCCESSFUL": "Project updated successfully",
+	"PROJECT_UPDATED_SUCCESSFUL": "Your resource has been saved as draft",
 	"PROJECT_DELETED_SUCCESSFUL": "Project deleted successfully",
-	"FORBIDDEN_RESOURCE_UPDATE": "Update Failed! Resource '{{resourceTitle}}' is being reviewed by {{reviewer_count}} Reviewer(s) ",
+	"FORBIDDEN_RESOURCE_UPDATE": "Update Failed! Resource already submitted",
 	"COMMENT_NOT_FOUND": "Comment not found",
 	"STATUS_INVALID": "Invalid status value provided. Valid values are OPEN or RESOLVED.",
 	"COMMENT_FETCHED": "Comment fetched successfully",
+	"COMMENT_DELETED": "Comment deleted successfully",
 	"RESOURCE_LISTED_SUCCESSFULLY": "Resource Listed successfully",
 	"INVALID_FILTER": "Invalid Filter Value.",
 	"CERTIFICATE_TEMPLATE_CREATED": "Template created successfully",
@@ -129,5 +130,6 @@
 	"ACTIVITIES_FETCHED": "Activities fetched successfully",
 	"ALL_COMMENTS_NOT_RESOLVED": "Resolve all comments before sending for review.",
 	"CANNOT_DELETE_ACTION_DUE_TO_ASSOCIATED_ACTIVITIES": "Activities have been added for this action, so it cannot be deleted.",
-	"RESOURCE_ID_REQUIRED": "Resource Id is required"
+	"RESOURCE_ID_REQUIRED": "Resource Id is required",
+	"PROJECT_SAVED_SUCCESSFULLY": "Your changes have been saved"
 }

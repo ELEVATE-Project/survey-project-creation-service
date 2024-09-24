@@ -80,6 +80,10 @@ module.exports = (sequelize, DataTypes) => {
 			last_reviewed_on: {
 				type: DataTypes.DATE,
 			},
+			is_under_edit: {
+				type: DataTypes.BOOLEAN,
+				defaultValue: false,
+			},
 		},
 		{
 			modelName: 'Resource',

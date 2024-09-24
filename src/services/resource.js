@@ -42,6 +42,7 @@ module.exports = class resourceHelper {
 		let result = {
 			data: [],
 			count: 0,
+			changes_requested_count: 0,
 		}
 		let primaryFilter = {}
 		let filter = {}
@@ -75,7 +76,7 @@ module.exports = class resourceHelper {
 		)
 
 		if (queryParams[common.STATUS] === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
-			filter = {
+			primaryFilter = {
 				organization_id: {
 					[Op.in]: OrganizationIds,
 				},
@@ -103,9 +104,9 @@ module.exports = class resourceHelper {
 					[Op.in]: queryParams[common.STATUS].split(','),
 				}
 			}
-			// create the final filter by combining primary filters , query params and search text
-			filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
 		}
+		// create the final filter by combining primary filters , query params and search text
+		filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
 
 		// return a sort object with sorting parameters. if no params are provided returns {}
 		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
@@ -126,12 +127,16 @@ module.exports = class resourceHelper {
 				'published_on',
 				'last_reviewed_on',
 				'meta',
+				'is_under_edit',
 			],
 			sort,
 			page,
 			limit
 		)
+
 		if (response.result.length <= 0) {
+			result.changes_requested_count =
+				distinctInreviewResourceIds.count > 0 ? distinctInreviewResourceIds.count : 0
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -222,7 +227,7 @@ module.exports = class resourceHelper {
 		// generic function to merge all the collected data about the resource
 		result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
 		// count of requested for changes resources
-		result.changes_requested_count = distinctInreviewResourceIds.count
+		result.changes_requested_count = distinctInreviewResourceIds.count > 0 ? distinctInreviewResourceIds.count : 0
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
 			message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -410,6 +415,9 @@ module.exports = class resourceHelper {
 		if (sort_by && sort_order) {
 			sort.sort_by = sort_by
 			sort.order = sort_order.toUpperCase() == common.SORT_DESC.toUpperCase() ? common.SORT_DESC : common.SORT_ASC
+		} else {
+			sort.sort_by = common.CREATED_AT
+			sort.order = common.SORT_DESC
 		}
 		return sort
 	}
@@ -436,7 +444,7 @@ module.exports = class resourceHelper {
 	 * 				 sequential resources which are open to all and matching to the reviewers role level and open to all parallel review resources.
 	 * @method GET
 	 * @name upForReview
-	 * @param {String} type (optional) -  Type of the resource. Ex : Projects , Observations etc...
+	 * @param {String} type (optional) -  Type of the resource. Ex : Project , Observation etc...
 	 * @param {String} search (optional) -  Partial search of the resource with title.
 	 * @param {String} status  (optional) - FIltered by statuses - 'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'
 	 * @param {String} sort_by (optional) -  Column name where we should apply sort. By default it will be created_at
@@ -1256,9 +1264,10 @@ module.exports = class resourceHelper {
 				let finalResources = []
 
 				paginatedResources.filter((resource) => {
-					resource.created_by = userDetails[resource.created_by]?.name
+					resource.creator = userDetails[resource.created_by]?.name
 						? userDetails[resource.created_by]?.name
 						: ''
+					delete resource.created_by
 					finalResources.push(resource)
 				})
 

@@ -152,7 +152,6 @@ module.exports = class ProjectsHelper {
 				common.RESOURCE_STATUS_REJECTED,
 				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 				common.RESOURCE_STATUS_SUBMITTED,
-				common.RESOURCE_STATUS_APPROVED,
 			]
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
@@ -170,13 +169,16 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const countReviews = await reviewsQueries.distinctResources({
-				id: resourceId,
-				status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
-				organization_id: orgId,
-			})
+			const countReviews = await reviewsQueries.distinctResources(
+				{
+					organization_id: orgId,
+					resource_id: resourceId,
+					status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
+				},
+				['resource_id']
+			)
 
-			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews > 0) {
+			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews.count == 0) {
 				return responses.failureResponse({
 					message: {
 						key: 'FORBIDDEN_RESOURCE_UPDATE',
@@ -215,6 +217,11 @@ module.exports = class ProjectsHelper {
 					updateData.title = bodyData['title']
 				}
 
+				//update is_under_edit true if reviewer requested for changes
+				if (countReviews.count > 0) {
+					updateData.is_under_edit = true
+				}
+
 				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {
 					returning: true,
 					raw: true,
@@ -230,7 +237,10 @@ module.exports = class ProjectsHelper {
 
 				return responses.successResponse({
 					statusCode: httpStatusCode.accepted,
-					message: 'PROJECT_UPDATED_SUCCESSFUL',
+					message:
+						fetchResource.status == common.RESOURCE_STATUS_IN_REVIEW
+							? 'PROJECT_SAVED_SUCCESSFULLY'
+							: 'PROJECT_UPDATED_SUCCESSFUL',
 					result: updatedProject[0].id,
 				})
 			} else {
@@ -507,9 +517,7 @@ module.exports = class ProjectsHelper {
 				throw new Error(`Resource is already ${projectData.status}. You can't submit it`)
 			}
 
-			//from comments table take all the comments which are from this org and userId != loggedin user and resourceId = current resourceId and status = open
-			// if count greated than 0 throw error ""
-
+			//check any open comments are there for this resource
 			const comments = await commentQueries.findAndCountAll({
 				user_id: {
 					[Op.notIn]: [userDetails.id],
@@ -716,6 +724,7 @@ module.exports = class ProjectsHelper {
 			let resourcesUpdate = {
 				status: resourceStatus,
 				submitted_on: new Date(),
+				is_under_edit: false,
 			}
 
 			if (bodyData.notes) {
@@ -755,7 +764,7 @@ module.exports = class ProjectsHelper {
 	 * @name validateEntityData
 	 * @param {Object} entityData - Data which needs to validate
 	 * @param {Object} entityType - Each entityType which have models
-	 * @param {string} model - The model needs to validate ex: projects, tasks, subTasks
+	 * @param {string} model - The model needs to validate ex: project, tasks, subTasks
 	 * @param {string} sourceType - Specifies the source of the input, which can be 'body', 'param', or 'query'.
 	 * @returns {JSON} - Response containing error details, if any.
 	 */

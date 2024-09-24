@@ -38,13 +38,28 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        description: ''
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: Unique code for modules.
+              required:
+                - code
+            examples:
+              example1:
+                value:
+                  code: projects
       responses:
         '201':
           description: Created
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -72,9 +87,8 @@ paths:
         '400':
           description: Bad request. module already exists
           content:
-            application.json:
+            application/json: # Fix here: changed from "application.json"
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -98,24 +112,6 @@ paths:
                     meta:
                       correlation: 32016da1-8bf1-4157-afad-34508aa609c8
                     message: module already exists
-      requestBody:
-        description: ''
-        content:
-          application/json:
-            schema:
-              $schema: http://json-schema.org/draft-04/schema#
-              type: object
-              properties:
-                code:
-                  type: string
-                  description: Unique code for modules.
-              required:
-                - code
-            examples:
-              example1:
-                value:
-                  code: projects
-    parameters: []
   /scp/v1/modules/update/{id}:
     post:
       summary: Update modules by id
@@ -148,7 +144,6 @@ paths:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 code:
@@ -165,9 +160,8 @@ paths:
         '201':
           description: Created
           content:
-            application.json:
+            application/json: # Corrected from application.json
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -202,9 +196,9 @@ paths:
         '400':
           description: Bad Request. Module not Found.
           content:
-            application.json:
+            application/json: # Corrected from application.json
               schema:
-                $ref: '#/components/schemas/module/updateModule400Response'
+                $ref: '#/components/schemas/updateModule400Response'
   /scp/v1/modules/list:
     get:
       summary: Get list of modules
@@ -247,9 +241,8 @@ paths:
         '200':
           description: ok
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -306,9 +299,9 @@ paths:
         '400':
           description: Bad Request. Module Not Found
           content:
-            application.json:
+            application/json:
               schema:
-                $ref: '#/components/schemas/module/getModuleList400Response'
+                $ref: '#/components/schemas/getModuleList400Response'
   /scp/v1/modules/delete/{id}:
     delete:
       summary: Delete modules by id
@@ -337,12 +330,11 @@ paths:
           schema:
             type: string
       responses:
-        '202':
-          description: Accepted
+        '200':
+          description: ok
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -351,7 +343,24 @@ paths:
                     type: string
                   result:
                     type: object
-                    properties: {}
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            code:
+                              type: string
+                            status:
+                              type: string
+                          required:
+                            - id
+                            - code
+                            - status
+                      count:
+                        type: number
                   meta:
                     type: object
                     properties:
@@ -361,16 +370,30 @@ paths:
                 example1:
                   value:
                     responseCode: OK
-                    message: Module deleted successfully
-                    result: {}
+                    message: Module fetched successfully
+                    result:
+                      data:
+                        - id: 6
+                          code: projects
+                          status: ACTIVE
+                        - id: 2
+                          code: observation
+                          status: ACTIVE
+                        - id: 4
+                          code: program
+                          status: ACTIVE
+                        - id: 5
+                          code: system
+                          status: ACTIVE
+                      count: 4
                     meta:
-                      correlation: 471d834a-4954-4564-ae91-6a1f24bec1e5
+                      correlation: 4cbb42f7-ed92-41a1-b93d-d689121cda08
         '400':
           description: Bad Request. Module not found.
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/module/updateModule400Response'
+                $ref: '#/components/schemas/updateModule400Response'
 
   /scp/v1/permissions/create:
     post:
@@ -392,81 +415,11 @@ paths:
           required: true
           schema:
             type: string
-      responses:
-        '201':
-          description: Created
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: object
-                    properties:
-                      id:
-                        type: number
-                      status:
-                        type: string
-                      module:
-                        type: string
-                      request_type:
-                        type: array
-                        items:
-                          type: string
-
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: Permission created successfully
-                    result:
-                      id: 18
-                      code: create_project
-                      module: projects
-                      request_type:
-                        - POST
-                      api_path: /scp/v1/projects/create
-                      status: ACTIVE
-        '400':
-          description: Bad request. Permission already exists
-          content:
-            application.json:
-              schema:
-                $schema: http://json-schema.org/draft-04/schema#
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  error:
-                    type: array
-                    items:
-                      type: string
-                  meta:
-                    type: object
-                    properties:
-                      correlation:
-                        type: string
-                  message:
-                    type: string
-              examples:
-                example1:
-                  value:
-                    responseCode: CLIENT_ERROR
-                    error: []
-                    meta:
-                      correlation: 32016da1-8bf1-4157-afad-34508aa609c8
-                    message: permission already exists
       requestBody:
         description: 'Request body for create permission'
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 code:
@@ -500,6 +453,73 @@ paths:
                     - POST
                   api_path: /scp/v1/projects/create
                   status: ACTIVE
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      status:
+                        type: string
+                      module:
+                        type: string
+                      request_type:
+                        type: array
+                        items:
+                          type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Permission created successfully
+                    result:
+                      id: 18
+                      code: create_project
+                      module: projects
+                      request_type:
+                        - POST
+                      api_path: /scp/v1/projects/create
+                      status: ACTIVE
+        '400':
+          description: Bad request. Permission already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  error:
+                    type: array
+                    items:
+                      type: string
+                  meta:
+                    type: object
+                    properties:
+                      correlation:
+                        type: string
+                  message:
+                    type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    error: []
+                    meta:
+                      correlation: 32016da1-8bf1-4157-afad-34508aa609c8
+                    message: permission already exists
+
     parameters: []
   /scp/v1/permissions/update/{id}:
     post:
@@ -519,18 +539,19 @@ paths:
             To use this API, you require an X-auth-token. This is available in
             the login API Response.
           required: true
+          schema:
+            type: string
         - name: id
           in: path
           description: Id of the permission to update.
           required: true
           schema:
             type: number
-            example: 2
+          example: 2
       requestBody:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 code:
@@ -555,15 +576,16 @@ paths:
                 value:
                   code: create_project
                   module: projects
-                  actions: WRITE
+                  request_type:
+                    - POST
+                  api_path: /scp/v1/projects/create
                   status: ACTIVE
       responses:
         '201':
           description: Created
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -573,7 +595,7 @@ paths:
                   result:
                     type: object
                     properties:
-                      Id:
+                      id:
                         type: number
                       status:
                         type: string
@@ -596,13 +618,12 @@ paths:
                       request_type:
                         - POST
                       api_path: /scp/v1/projects/create
-
         '400':
           description: Bad Request. Permission not found
           content:
-            application.json:
+            application/json:
               schema:
-                $ref: '#/components/schemas/permissions/updatePermission400Response'
+                $ref: '#/components/schemas/updatePermission400Response'
   /scp/v1/permissions/getPermissions:
     get:
       summary: Get list of all permissions
@@ -648,9 +669,8 @@ paths:
         '200':
           description: ok
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -675,8 +695,8 @@ paths:
                               type: string
                             request_type:
                               type: array
-                            items:
-                              type: string
+                              items:
+                                type: string
                             api_path:
                               type: string
                             status:
@@ -721,9 +741,8 @@ paths:
         '200':
           description: ok
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -747,7 +766,7 @@ paths:
                     responseCode: OK
                     message: Permissions fetched successfully.
                     result:
-                      - module: projects
+                      - module: project
                         request_type:
                           - POST
                           - GET
@@ -777,14 +796,13 @@ paths:
           required: true
           schema:
             type: number
-            example: 2
+          example: 2
       responses:
         '202':
           description: Accepted
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -812,7 +830,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/permissions/updatePermission400Response'
+                $ref: '#/components/schemas/updatePermission400Response'
 
   /scp/v1/role-permission-mapping/create/{role_id}:
     post:
@@ -846,7 +864,6 @@ paths:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 permission_id:
@@ -864,7 +881,6 @@ paths:
           content:
             application.json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -899,9 +915,8 @@ paths:
         '400':
           description: Bad request. Permission for this role already exists
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -949,9 +964,8 @@ paths:
         '200':
           description: ok
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -1022,7 +1036,6 @@ paths:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 permission_id:
@@ -1038,9 +1051,8 @@ paths:
         '202':
           description: Accepted
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -1063,7 +1075,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/role-permission/createMapping400Response'
+                $ref: '#/components/schemas/createMapping400Response'
 
   /scp/v1/entity-types/create:
     post:
@@ -1087,9 +1099,8 @@ paths:
             type: string
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 value:
@@ -1110,7 +1121,6 @@ paths:
                 has_entities:
                   type: boolean
                   description: Indicates whether the entity type has associated entities.
-              required: []
             examples:
               example1:
                 value:
@@ -1124,9 +1134,8 @@ paths:
         '201':
           description: Created
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -1157,7 +1166,9 @@ paths:
                       created_at:
                         type: string
                       deleted_at:
-                        type: 'null'
+                        type: string
+                        format: date-time
+                        nullable: true
                       has_entities:
                         type: boolean
                   field_0:
@@ -1186,7 +1197,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/entity-type/createUserEntity400Response'
+                $ref: '#/components/schemas/createUserEntity400Response'
   /scp/v1/entity-types/update/{id}:
     post:
       summary: Update entity type
@@ -1218,7 +1229,6 @@ paths:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 value:
@@ -1252,9 +1262,8 @@ paths:
         '201':
           description: Created
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -1273,7 +1282,9 @@ paths:
                       status:
                         type: string
                       created_by:
-                        type: 'null'
+                        format: date-time
+                        nullable: true
+                        type: string
                       updated_by:
                         type: number
                       allow_filtering:
@@ -1289,7 +1300,9 @@ paths:
                       updated_at:
                         type: string
                       deleted_at:
-                        type: 'null'
+                        format: date-time
+                        nullable: true
+                        type: string
 
               examples:
                 example1:
@@ -1316,7 +1329,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/entity-type/updateUserEntity400Response'
+                $ref: '#/components/schemas/updateUserEntityType400Response'
   /scp/v1/entity-types/read:
     post:
       summary: Read entity type
@@ -1341,7 +1354,6 @@ paths:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 value:
@@ -1362,9 +1374,8 @@ paths:
         '200':
           description: ok
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -1447,7 +1458,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/entity/updateUserEntity400Response'
+                $ref: '#/components/schemas/updateUserEntity400Response'
   /scp/v1/entity-types/delete/{id}:
     delete:
       summary: Delete entity type
@@ -1479,9 +1490,8 @@ paths:
         '202':
           description: Accepted
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -1504,7 +1514,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/entity-type/updateUserEntity400Response'
+                $ref: '#/components/schemas/updateUserEntityType400Response'
 
   /scp/v1/entities/create:
     post:
@@ -1528,9 +1538,8 @@ paths:
             type: string
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 value:
@@ -1552,9 +1561,8 @@ paths:
         '201':
           description: Created
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -1629,7 +1637,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/entity/createEntity400Response'
+                $ref: '#/components/schemas/createEntity400Response'
   /scp/v1/entities/update/{id}:
     patch:
       summary: Update Entity
@@ -1659,9 +1667,8 @@ paths:
           example: 1
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 value:
@@ -1684,9 +1691,8 @@ paths:
         '202':
           description: Accepted
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -1717,7 +1723,9 @@ paths:
                       created_at:
                         type: string
                       deleted_at:
-                        type: 'null'
+                        format: date-time
+                        nullable: true
+                        type: string
                   meta:
                     type: object
                     properties:
@@ -1751,7 +1759,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/entity/updateUserEntity400Response'
+                $ref: '#/components/schemas/updateUserEntity400Response'
   /scp/v1/entities/read/{id}:
     get:
       summary: Get entity details
@@ -1778,13 +1786,13 @@ paths:
           schema:
             type: string
           example: 1
+          required: true
       responses:
         '200':
           description: ok
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -1815,7 +1823,9 @@ paths:
                       updated_at:
                         type: string
                       deleted_at:
-                        type: 'null'
+                        format: date-time
+                        nullable: true
+                        type: string
                   meta:
                     type: object
                     properties:
@@ -1875,9 +1885,8 @@ paths:
         '202':
           description: Accepted
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -1911,7 +1920,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/entity/updateUserEntity400Response'
+                $ref: '#/components/schemas/updateUserEntity400Response'
   /scp/v1/entities/list:
     post:
       operationId: entitylist
@@ -1932,25 +1941,26 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
+        - in: query
           name: page
           description: Please add page number
           schema:
             type: number
           example: 1
-        - in: path
+          required: false
+        - in: query
           name: limit
           description: Number of records to limit
           schema:
             type: number
           example: 10
-        - in: path
+        - in: query
           name: search
           description: search text
           schema:
             type: string
           example: teacher
-        - in: path
+        - in: query
           name: entity_type_id
           description: entity_type_id
           required: true
@@ -1961,9 +1971,8 @@ paths:
         '200':
           description: Accepted
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -2036,7 +2045,6 @@ paths:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 request:
@@ -2063,9 +2071,8 @@ paths:
         '200':
           description: ok
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -2093,7 +2100,7 @@ paths:
                             payload:
                               sourcePath: 'survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png'
                             cloudStorage: 'AZURE'
-  /scp/v1/cloud-services/getDownloadableUrl?filePath={filePath}:
+  /scp/v1/cloud-services/getDownloadableUrl:
     get:
       summary: Cloud services get download url
       tags:
@@ -2113,7 +2120,7 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
+        - in: query
           name: filePath
           required: true
           description: Please append a valid file path to url which has to be downloaded
@@ -2127,7 +2134,7 @@ paths:
             application.json:
               schema:
                 $ref: >-
-                  #/components/schemas/cloud-services/cloudServicesDownloadResponse200
+                  #/components/schemas/cloudServicesDownloadResponse200
 
   /scp/v1/form/create:
     post:
@@ -2151,9 +2158,8 @@ paths:
             type: string
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 type:
@@ -2212,7 +2218,7 @@ paths:
             examples:
               example1:
                 value:
-                  type: projects
+                  type: project
                   sub_type: createProject
                   data:
                     template_name: defaultTemplate
@@ -2242,9 +2248,8 @@ paths:
         '201':
           description: Created
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -2311,7 +2316,9 @@ paths:
                       created_at:
                         type: string
                       deleted_at:
-                        type: 'null'
+                        format: date-time
+                        nullable: true
+                        type: string
                       organization_id:
                         type: number
                   meta:
@@ -2334,7 +2341,7 @@ paths:
                     message: Form created successfully
                     result:
                       id: 16
-                      type: projects
+                      type: project
                       sub_type: createProject
                       data:
                         template_name: defaultTemplate
@@ -2374,7 +2381,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/form/createForm400Response'
+                $ref: '#/components/schemas/createForm400Response'
   /scp/v1/form/update/{formId}:
     patch:
       operationId: formUpdate
@@ -2401,11 +2408,11 @@ paths:
           schema:
             type: number
           required: true
+          example: 1
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 type:
@@ -2463,7 +2470,7 @@ paths:
             examples:
               example1:
                 value:
-                  type: projects
+                  type: project
                   sub_type: createProject
                   data:
                     template_name: Test
@@ -2493,9 +2500,8 @@ paths:
         '200':
           description: ok
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -2528,15 +2534,15 @@ paths:
                     meta:
                       formsVersion:
                         - id: 16
-                          type: projects
+                          type: project
 
         '400':
           description: Bad Request. Form not found
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/form/updateForm400Response'
-  /scp/v1/form/read/{formId}:
+                $ref: '#/components/schemas/updateForm400Response'
+  /scp/v1/form/read:
     post:
       operationId: formRead
       summary: Get form data
@@ -2556,17 +2562,17 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
+        - in: query
           name: formId
           description: Please append a valid form Id to the Request URL.
           schema:
             type: number
           required: false
+          example: 2
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 type:
@@ -2578,15 +2584,14 @@ paths:
             examples:
               example1:
                 value:
-                  type: projects
+                  type: project
                   sub_type: createProject
       responses:
         '200':
           description: ok
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -2653,7 +2658,9 @@ paths:
                       created_at:
                         type: string
                       deleted_at:
-                        type: 'null'
+                        format: date-time
+                        nullable: true
+                        type: string
                       organization_id:
                         type: number
                   meta:
@@ -2679,7 +2686,7 @@ paths:
                     message: Form fetched successfully
                     result:
                       id: 16
-                      type: projects
+                      type: project
                       sub_type: createProject
                       data:
                         template_name: defaultTemplate
@@ -2711,14 +2718,14 @@ paths:
                     meta:
                       formsVersion:
                         - id: 16
-                          type: projects
+                          type: project
 
         '400':
           description: Bad Request.Form not found
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/form/updateForm400Response'
+                $ref: '#/components/schemas/updateForm400Response'
 
   /scp/v1/projects/update/{projectId}:
     post:
@@ -2740,17 +2747,23 @@ paths:
           schema:
             type: string
         - in: path
-          name: id
+          name: projectId
           description: For creating the project, id is not required. For update please append a valid project Id to the Request URL.
           schema:
             type: number
-          required: false
+          required: true
           example: 1
+        - in: query
+          name: reference_id
+          description: (Optional) The project solution ID from the consumption side.
+          schema:
+            type: string
+          required: false
+          example: 3
       requestBody:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 title:
@@ -2818,6 +2831,9 @@ paths:
                       type: string
                     value:
                       type: string
+                reference_id:
+                  type: string
+                  description: Project solution id from the consumption side.
                 task:
                   type: array
                   items:
@@ -3056,10 +3072,10 @@ paths:
                         min_no_of_evidences: 5
                       sequence_no: 1
                       solution_details:
-                        id: 3
                         name: sample observation
                         min_no_of_submissions_required: 2
                         type: observation
+                        link: https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4
                   certificate:
                     base_template_id: 5
                     base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -3072,7 +3088,11 @@ paths:
                     signature:
                       no_of_signature: 2
                       signatureImg1: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                      signatureTitleName1: John Doe
+                      signatureTitleDesignation1: District Education Officer
                       signatureImg2: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                      signatureTitleName2: John Joe
+                      signatureTitleDesignation2: Block Education Officer
                     issuer: SPD
                     criteria:
                       expressions: C1&&C2
@@ -3110,9 +3130,8 @@ paths:
         '201':
           description: Project updated successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -3157,7 +3176,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/project/createProject400Response'
+                $ref: '#/components/schemas/createProject400Response'
 
     delete:
       summary: Delete Project
@@ -3189,9 +3208,8 @@ paths:
         '202':
           description: Project deleted successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -3231,7 +3249,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/project/deleteProject400Response'
+                $ref: '#/components/schemas/deleteProject400Response'
   /scp/v1/projects/submitForReview/{projectId}:
     post:
       summary: Submit Project for Review
@@ -3329,7 +3347,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/project/deleteProject400Response'
+                $ref: '#/components/schemas/deleteProject400Response'
   /scp/v1/projects/details/{projectId}:
     post:
       summary: Project Details
@@ -3361,9 +3379,8 @@ paths:
         '200':
           description: Project fetched successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -3569,6 +3586,7 @@ paths:
                             name: sample observation
                             min_no_of_submissions_required: 2
                             type: observation
+                            link: https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4
                       certificate:
                         base_template_id: 5
                         base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
@@ -3643,7 +3661,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/project/deleteProject400Response'
+                $ref: '#/components/schemas/deleteProject400Response'
   /scp/v1/projects/reviewerList:
     get:
       summary: Reviewer List
@@ -3668,9 +3686,8 @@ paths:
         '200':
           description: Reviewer list fetched successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -3787,7 +3804,7 @@ paths:
           required: false
           schema:
             type: string
-          example: projects
+          example: project
         - name: status
           in: query
           description: The status of the resource (['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review`. This key is redundant in other cases. )
@@ -3822,9 +3839,8 @@ paths:
         '200':
           description: project listed successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -3865,7 +3881,7 @@ paths:
                       data:
                         - id: 4
                           title: sample project
-                          type: projects
+                          type: project
                           organization:
                             id: 24
                             name: Shikshalokam
@@ -3888,7 +3904,7 @@ paths:
          - The API Endpoint for listing resources is `/scp/v1/resource/getPublishedResources` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - Query Param `type` is a non mandatory field which can have values [`'projects'`,`'surveys'`,`'observations'`,`'observation_with_rubrics'`].
+         - Query Param `type` is a non mandatory field which can have values [`'project'`,`'survey'`,`'observation'`,`'observation_with_rubric'`].
       parameters:
         - name: X-auth-token
           in: header
@@ -3924,7 +3940,7 @@ paths:
           required: false
           schema:
             type: string
-          example: projects
+          example: project
         - name: sort_by
           in: query
           description: Sort the response by `created_at` or `title` of the resource.
@@ -3945,9 +3961,8 @@ paths:
         '200':
           description: Resources listed successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -3988,7 +4003,7 @@ paths:
                       data:
                         - id: 4
                           title: sample project
-                          type: projects
+                          type: project
                           organization:
                             id: 24
                             name: Shikshalokam
@@ -4046,7 +4061,7 @@ paths:
           required: false
           schema:
             type: string
-          example: projects
+          example: project
         - name: status
           in: query
           description: Pass status =  'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED' to get the resources with curresponding statuses.
@@ -4074,9 +4089,8 @@ paths:
         '200':
           description: project listed successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -4117,7 +4131,7 @@ paths:
                       data:
                         - id: 4
                           title: sample project
-                          type: projects
+                          type: project
                           organization:
                             id: 24
                             name: Shikshalokam
@@ -4168,9 +4182,8 @@ paths:
         '200':
           description: Resource updated successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -4230,14 +4243,14 @@ paths:
           schema:
             type: number
           required: true
+          example: 12
 
       responses:
         '200':
           description: Review started successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -4301,11 +4314,11 @@ paths:
           schema:
             type: number
           required: true
+          example: 12
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 comment:
@@ -4323,9 +4336,8 @@ paths:
         '200':
           description: project review updated
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -4386,14 +4398,14 @@ paths:
           schema:
             type: number
           required: true
+          example: 12
 
       responses:
         '200':
           description: You have successfully published the resource
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -4465,9 +4477,8 @@ paths:
           example: true
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 notes:
@@ -4488,9 +4499,8 @@ paths:
         '200':
           description: This resource has been rejected and reported
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -4527,7 +4537,7 @@ paths:
                           type: projectCreation
                           version: 3
 
-  /scp/v1/comments/update/{id}?resource_id={resource_id}:
+  /scp/v1/comments/update/{id}:
     post:
       summary: Add or Update Comment
       tags:
@@ -4551,10 +4561,10 @@ paths:
             type: string
         - in: path
           name: id
-          description: Please append a valid comment Id to the Request URL.
+          description: Please append a valid comment Id to the Request URL. Id is not mandatory
           schema:
             type: number
-          required: false
+          required: true
           example: 2
         - in: query
           name: resource_id
@@ -4567,7 +4577,6 @@ paths:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 comment:
@@ -4712,53 +4721,130 @@ paths:
                       commenter: { id: 102, name: 'Default Org Admin Two' },
                       resolver: {},
                     }
-
-            responses:
-              '201':
-                description: Comment updated successfully
-                content:
-                  application.json:
-                    schema:
-                      $schema: http://json-schema.org/draft-04/schema#
-                      type: object
-                      properties:
-                        responseCode:
-                          type: string
-                        message:
-                          type: string
-                        meta:
+      responses:
+        '201':
+          description: Comment updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
                           type: object
                           properties:
-                            formsVersion:
-                              type: array
-                              items:
-                                type: object
-                                properties:
-                                  id:
-                                    type: number
-                                  type:
-                                    type: string
-                                  version:
-                                    type: number
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
 
-                    examples:
-                      example1:
-                        value:
-                          responseCode: OK
-                          message: Comment updated successfully
-                          meta:
-                            formsVersion:
-                              - id: 3
-                                type: projectCreation
-                                version: 3
-              '400':
-                description: Bad Request. Resource not found
-                content:
-                  application.json:
-                    schema:
-                      $ref: '#/components/schemas/comment/updateComment400Response'
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Comment updated successfully
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+        '400':
+          description: Bad Request. Resource not found
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/updateComment400Response'
+  /scp/v1/comments/update/{commentId}:
+    delete:
+      summary: Delete Comment
+      tags:
+        - Comment
+      description: |-
+        You can use this API to delete a comment
+         - The API Endpoint for deleting a comment is `/scp/v1/comments/update` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+         - Only comments in draft status can be deleted.
+         - Only the comment owner is allowed to delete the comment
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: commentId
+          description: Please append a valid comment Id to the Request URL. Id is not mandatory
+          schema:
+            type: number
+          required: true
+          example: 2
+        - in: query
+          name: resource_id
+          description: Please append a valid resource Id to the Request URL.
+          schema:
+            type: number
+          required: true
+          example: 1
 
-  /scp/v1/comments/list?resource_id={resource_id}:
+      responses:
+        '200':
+          description: Comment deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Comment deleted successfully
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+        '400':
+          description: Bad Request. Resource not found
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/updateComment400Response'
+
+  /scp/v1/comments/list:
     get:
       summary: Comment List
       tags:
@@ -4803,9 +4889,8 @@ paths:
         '200':
           description: Comment fetched successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -4893,6 +4978,8 @@ paths:
          - The API Endpoint for add organization configurations is `/scp/v1/organization-extensions/createConfig` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - `observation_link_regex` Add regular expression to validate the observation link.
+         - `open_external_link` Boolean value to indicate if the external link should be opened in the portal or not.
       parameters:
         - name: X-auth-token
           in: header
@@ -4904,9 +4991,8 @@ paths:
             type: string
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 show_reviewer_list:
@@ -4932,13 +5018,13 @@ paths:
                 value:
                   show_reviewer_list: true
                   min_approval: 2
-                  resource_type: projects
+                  resource_type: project
                   review_type: PARALLEL
               review type sequential:
                 value:
                   show_reviewer_list: true
                   min_approval: 2
-                  resource_type: projects
+                  resource_type: project
                   review_type: SEQUENTIAL
                   review_stages:
                     - role: reviewer_level_1
@@ -4950,9 +5036,8 @@ paths:
         '201':
           description: Config added successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -5001,8 +5086,8 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/organization/createConfig400Response'
-  /scp/v1/organization-extensions/updateConfig/{id}?resource_type={resource_type}:
+                $ref: '#/components/schemas/createConfig400Response'
+  /scp/v1/organization-extensions/updateConfig/{id}:
     post:
       summary: Update the organization configurations
       tags:
@@ -5012,6 +5097,9 @@ paths:
          - The API Endpoint for update organization configurations is `/scp/v1/organization-extensions/updateConfig` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
+         - `observation_link_regex` and `open_external_link` are project specific fields. 
+         - `observation_link_regex` Add regular expression to validate the observation link.
+         - `open_external_link` Boolean value to indicate if the external link should be opened in the portal or not.
       parameters:
         - name: X-auth-token
           in: header
@@ -5034,12 +5122,11 @@ paths:
           schema:
             type: string
           required: true
-          example: projects
+          example: project
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 show_reviewer_list:
@@ -5057,9 +5144,8 @@ paths:
         '201':
           description: Config updated successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -5096,7 +5182,7 @@ paths:
                       organization_id: 3
                       show_reviewer_list: true
                       min_approval: 2
-                      resource_type: projects
+                      resource_type: project
 
                     meta:
                       formsVersion:
@@ -5108,7 +5194,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/organization/updateConfig400Response'
+                $ref: '#/components/schemas/updateConfig400Response'
 
   /scp/v1/config/list:
     get:
@@ -5136,7 +5222,6 @@ paths:
           content:
             application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -5183,28 +5268,30 @@ paths:
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: 'SEQUENTIAL'
-                          resource_type: 'projects'
+                          resource_type: 'project'
                           max_task_count: 10
+                          observation_link_regex: ^https?:\/\/[a-zA-Z0-9\-_]+\.[a-zA-Z]{2,}(/[a-zA-Z0-9\-\._~:/?#[\]@!$&\'()*+,;=]*)?$
+                          open_external_link: true
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: 'SEQUENTIAL'
-                          resource_type: 'observations'
+                          resource_type: 'observation'
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: 'SEQUENTIAL'
-                          resource_type: 'observation_with_rubrics'
+                          resource_type: 'observation_with_rubric'
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: 'SEQUENTIAL'
-                          resource_type: 'surveys'
+                          resource_type: 'survey'
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: 'SEQUENTIAL'
-                          resource_type: 'programs'
+                          resource_type: 'program'
                       instance:
                         auto_save_interval: 30000
                         note_length: 200
@@ -5248,7 +5335,7 @@ paths:
           description: Please add the resource type
           schema:
             type: string
-          example: projects
+          example: project
         - in: query
           name: page
           description: Please add page number
@@ -5272,9 +5359,8 @@ paths:
         '201':
           description: Certificate template listed successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -5317,7 +5403,7 @@ paths:
                         - id: 2
                           code: two_logo_two_sign
                           name: Two Logo Two Signature
-                          resource_type: projects
+                          resource_type: project
                           url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                           meta:
                             logos:
@@ -5327,7 +5413,11 @@ paths:
                             signature:
                               no_of_signature: 2
                               signatureImg1:
+                              signatureTitleName1:
+                              signatureTitleDesignation1:
                               signatureImg2:
+                              signatureTitleName2:
+                              signatureTitleDesignation2:
                       count: 1
 
                     meta:
@@ -5357,9 +5447,8 @@ paths:
 
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 code:
@@ -5378,7 +5467,7 @@ paths:
                 value:
                   code: two_logo_two_sign
                   name: Two Logo Two Signature
-                  resource_type: projects
+                  resource_type: project
                   url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                   meta:
                     logos:
@@ -5394,9 +5483,8 @@ paths:
         '201':
           description: Template created successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -5438,7 +5526,7 @@ paths:
                       id: 2
                       code: one_logo_one_sign
                       name: One Logo One Signature
-                      resource_type: projects
+                      resource_type: project
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
                         logos:
@@ -5460,7 +5548,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/certificates/createCertificate400Response'
+                $ref: '#/components/schemas/createCertificate400Response'
   /scp/v1/certificates/update/{id}:
     post:
       summary: Update certificate base template
@@ -5490,9 +5578,8 @@ paths:
 
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 name:
@@ -5507,9 +5594,8 @@ paths:
         '201':
           description: Template updated successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -5551,7 +5637,7 @@ paths:
                       id: 2
                       code: two_logo_two_sign
                       name: Two Logo Two Signature
-                      resource_type: projects
+                      resource_type: project
                       url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
                       meta:
                         logos:
@@ -5573,7 +5659,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/certificates/updateCertificate400Response'
+                $ref: '#/components/schemas/updateCertificate400Response'
   /scp/v1/certificates/createSVG:
     post:
       summary: Edit Certificate SVG
@@ -5596,9 +5682,8 @@ paths:
 
       requestBody:
         content:
-          application.json:
+          application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 state_logo1:
@@ -5625,9 +5710,8 @@ paths:
         '201':
           description: Template edited successfully
           content:
-            application.json:
+            application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -5718,7 +5802,6 @@ paths:
           content:
             application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -5757,7 +5840,7 @@ paths:
                       role: CONTENT_CREATOR
                       level: 1
                       organization_id: 1
-                      resource_type: projects
+                      resource_type: project
                     meta:
                       formsVersion: []
         '400':
@@ -5765,7 +5848,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/reviewStage/updateReviewStage400Response'
+                $ref: '#/components/schemas/updateReviewStage400Response'
   /review-stages/list:
     get:
       summary: List Review Stages
@@ -5782,7 +5865,7 @@ paths:
           name: resource_type
           schema:
             type: string
-            example: projects
+          example: project
           required: true
           description: The type of resource to list review stages for
       responses:
@@ -5791,7 +5874,6 @@ paths:
           content:
             application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -5831,7 +5913,7 @@ paths:
                         role: CONTENT_CREATOR
                         level: 1
                         organization_id: 1
-                        resource_type: projects
+                        resource_type: project
                       count: 1
                     meta:
                       formsVersion: []
@@ -5851,7 +5933,6 @@ paths:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 title:
@@ -5883,7 +5964,6 @@ paths:
           content:
             application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -5930,7 +6010,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/user/createRole400Response'
+                $ref: '#/components/schemas/createRole400Response'
   /user/v1/user-role/update/{id}:
     post:
       summary: Update User Roles
@@ -5962,7 +6042,6 @@ paths:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 title:
@@ -5991,7 +6070,6 @@ paths:
           content:
             application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -6038,7 +6116,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/user/updateRole400Response'
+                $ref: '#/components/schemas/updateRole400Response'
   /user/user/v1/org-admin/updateUser/{id}:
     post:
       summary: Update User Role and Organization
@@ -6070,7 +6148,6 @@ paths:
         content:
           application/json:
             schema:
-              $schema: http://json-schema.org/draft-04/schema#
               type: object
               properties:
                 name:
@@ -6095,7 +6172,6 @@ paths:
           content:
             application/json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -6123,7 +6199,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/user/updateUser400Response'
+                $ref: '#/components/schemas/updateUser400Response'
 
   /scp/v1/observation/list:
     get:
@@ -6166,7 +6242,6 @@ paths:
           content:
             application.json:
               schema:
-                $schema: http://json-schema.org/draft-04/schema#
                 type: object
                 properties:
                   responseCode:
@@ -6222,363 +6297,346 @@ paths:
                           version: 3
 components:
   schemas:
-    reviewStage:
-      updateReviewStage400Response:
-        type: object
-        properties:
-          responseCode:
+    updateModule400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: module not found
+        error:
+          type: array
+          items:
             type: string
-            example: CLIENT_ERROR
-          message:
+          example: []
+    getModuleList400Response:
+      type: object
+      description: Module not found.
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Module not found.
+        result:
+          type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  moduleId:
+                    type: string
+                    example: 'module123'
+                  moduleName:
+                    type: string
+                    example: 'Sample Module'
+            count:
+              type: integer
+              example: 0
+        error:
+          type: array
+          items:
             type: string
-            example: Review stages not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-    module:
-      updateModule400Response:
-        type: object
-        properties:
-          responseCode:
+          example: []
+    updatePermission400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: permission not found
+        error:
+          type: array
+          items:
             type: string
-            example: CLIENT_ERROR
-          message:
+          example: []
+    createMapping400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Permission for this role is empty
+        error:
+          type: array
+          items:
             type: string
-            example: module not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-      getModuleList400Response:
-        type: object
-        description: Module not found.
-        properties:
-          responseCode:
+          example: []
+    createUserEntity400Response:
+      type: object
+      description: entity type already exist
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Entity type already exists
+        error:
+          type: array
+          items:
             type: string
-            example: CLIENT_ERROR
-          message:
+          example: []
+    updateUserEntityType400Response:
+      type: object
+      description: Entity type not found
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Entity type not found
+        error:
+          type: array
+          items:
             type: string
-            example: Module not found.
-          result:
-            type: object
-            properties:
-              data:
-                type: array
-              count:
-                type: integer
-                example: 0
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-
-    permissions:
-      updatePermission400Response:
-        type: object
-        properties:
-          responseCode:
+          example: []
+    updateUserEntity400Response:
+      type: object
+      description: Entity not found
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Entity not found
+        error:
+          type: array
+          items:
             type: string
-            example: CLIENT_ERROR
-          message:
+          example: []
+    cloudServicesDownloadResponse200:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: OK
+        message:
+          type: string
+          example: Download URL Generated Successfully.
+        result:
+          type: string
+          example: >-
+            https://aws-bucket-storage-name.s3.ap-south-1.amazonaws.com/users/62832531a05cbd57b273aebb-1654149589875-image.jpg
+    createForm400Response:
+      description: Bad Request. Form Already Exist
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Form already exists
+        error:
+          type: array
+          items:
             type: string
-            example: permission not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-
-    role-permission:
-      createMapping400Response:
-        type: object
-        properties:
-          responseCode:
+          example: []
+    updateUser400Response:
+      description: Bad Request. User Not Found
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: User not found
+        error:
+          type: array
+          items:
             type: string
-            example: CLIENT_ERROR
-          message:
+          example: []
+    updateRole400Response:
+      description: Bad Request. Role Not Found
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: User Role not found
+        error:
+          type: array
+          items:
             type: string
-            example: Permission for this role is empty
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-
-    entity-type:
-      createUserEntity400Response:
-        type: object
-        description: entity type already exist
-        properties:
-          responseCode:
+          example: []
+    createRole400Response:
+      description: Bad Request. Role Already Exist
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: User Role already exists
+        error:
+          type: array
+          items:
             type: string
-            example: CLIENT_ERROR
-          message:
+          example: []
+    updateReviewStage400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Review stages not found
+        error:
+          type: array
+          items:
             type: string
-            example: Entity type already exists
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-      updateUserEntity400Response:
-        type: object
-        description: Entity type not found
-        properties:
-          responseCode:
+          example: []
+    updateCertificate400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Template not found
+        error:
+          type: array
+          items:
             type: string
-            example: CLIENT_ERROR
-          message:
+          example: []
+    createCertificate400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: template already exist
+        error:
+          type: array
+          items:
             type: string
-            example: Entity type not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-
-    entity:
-      createEntity400Response:
-        type: object
-        description: entity already exist
-        properties:
-          responseCode:
+          example: []
+    updateConfig400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Configuration not found
+        error:
+          type: array
+          items:
             type: string
-            example: CLIENT_ERROR
-          message:
+          example: []
+    createConfig400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Configuration already exist
+        error:
+          type: array
+          items:
             type: string
-            example: Entity already exists
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-      updateUserEntity400Response:
-        type: object
-        description: Entity not found
-        properties:
-          responseCode:
+          example: []
+    updateComment400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Comment not found
+        error:
+          type: array
+          items:
             type: string
-            example: CLIENT_ERROR
-          message:
+          example: []
+    deleteProject400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: project not found
+        error:
+          type: array
+          items:
             type: string
-            example: Entity not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-
-    cloud-services:
-      cloudServicesDownloadResponse200:
-        type: object
-        properties:
-          responseCode:
+          example: []
+    createProject400Response:
+      type: object
+      description: project creation error.
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        error:
+          type: array
+          items:
             type: string
-            example: OK
-          message:
+          example:
+            - location: body
+              param: title
+              msg: title is invalid
+            - location: body
+              param: categories
+              msg: categories required
+    updateForm400Response:
+      description: Bad Request. Form not found
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Form not found
+        error:
+          type: array
+          items:
             type: string
-            example: Download URL Generated Successfully.
-          result:
+          example: []
+    createEntity400Response:
+      type: object
+      description: entity already exist
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Entity already exists
+        error:
+          type: array
+          items:
             type: string
-            example: >-
-              https://aws-bucket-storage-name.s3.ap-south-1.amazonaws.com/users/62832531a05cbd57b273aebb-1654149589875-image.jpg
-
-    form:
-      createForm400Response:
-        description: Bad Request. Form Already Exist
-        type: object
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          message:
-            type: string
-            example: Form already exists
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-      updateForm400Response:
-        description: Bad Request. Form not found
-        type: object
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          message:
-            type: string
-            example: Form not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-
-    project:
-      createProject400Response:
-        type: object
-        description: project creation error.
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          error:
-            type: array
-            items:
-              type: string
-            example:
-              - location: body
-                param: title
-                msg: title is invalid
-              - location: body
-                param: categories
-                msg: categories required
-      deleteProject400Response:
-        type: object
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          message:
-            type: string
-            example: project not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-
-    organization:
-      createConfig400Response:
-        type: object
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          message:
-            type: string
-            example: Configuration already exist
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-
-      updateConfig400Response:
-        type: object
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          message:
-            type: string
-            example: Configuration not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-
-    comment:
-      updateComment400Response:
-        type: object
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          message:
-            type: string
-            example: Comment not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-
-    certificates:
-      createCertificate400Response:
-        type: object
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          message:
-            type: string
-            example: template already exist
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-      updateCertificate400Response:
-        type: object
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          message:
-            type: string
-            example: Template not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-
-    user:
-      createRole400Response:
-        description: Bad Request. Role Already Exist
-        type: object
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          message:
-            type: string
-            example: User Role already exists
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-      updateRole400Response:
-        description: Bad Request. Role Not Found
-        type: object
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          message:
-            type: string
-            example: User Role not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
-      updateUser400Response:
-        description: Bad Request. User Not Found
-        type: object
-        properties:
-          responseCode:
-            type: string
-            example: CLIENT_ERROR
-          message:
-            type: string
-            example: User not found
-          error:
-            type: array
-            items:
-              type: string
-            example: []
+          example: []
 
     config:
-      $schema: http://json-schema.org/draft-04/schema#
       type: object
       properties:
         responseCode:
