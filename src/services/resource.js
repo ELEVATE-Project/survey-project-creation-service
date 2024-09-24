@@ -1203,25 +1203,32 @@ module.exports = class resourceHelper {
 				data: [],
 				count: 0,
 			}
-			const resourceType = query[common.TYPE] ? query[common.TYPE] : ''
+			const resourceType = query[common.TYPE] ? query[common.TYPE].split(',') : ''
 			const search = searchText != '' ? searchText : ''
+
+			// This section is not needed since migration scripts handle project migrations from the consumption side.
+			/*
 			let externalResources = {}
 			// consumption side if set to self , only resources published with in SCP will be showed
 			// If it has any value other than self , the result will be combination of resources from the coupled service and from SCP.
-			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-				externalResources = await interfaceRequests.browseExistingList(
-					resourceType,
-					organization_id,
-					token,
-					search
-				)
-			}
+			
+			// if (process.env.CONSUMPTION_SERVICE != common.SELF) {
+			// 	externalResources = await interfaceRequests.browseExistingList(
+			// 		resourceType,
+			// 		organization_id,
+			// 		token,
+			// 		search
+			// 	)
+			// }
+			*/
 			let filterQuery = {
 				organization_id,
 				status: common.RESOURCE_STATUS_PUBLISHED,
-				published_id: null,
 			}
-			if (resourceType) filterQuery.type = resourceType
+			if (resourceType)
+				filterQuery.type = {
+					[Op.in]: resourceType,
+				}
 			if (search)
 				filterQuery.title = {
 					[Op.iLike]: `%${search}%`,
