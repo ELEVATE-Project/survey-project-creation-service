@@ -21,7 +21,7 @@ jobs:
             echo "Checking src folder..."
             ls -l ~/survey-project-creation-service/
             echo "Checking dev-ops inside src folder..."
-            ls -l ~/survey-project-creation-service/src/dev-ops/
+            ls -l ~/survey-project-creation-service/dev-ops/
       - run:
           name: Install dependencies
           command: cd src/ && npm install #cd ../src/ && pwd &&
@@ -56,15 +56,15 @@ jobs:
       - run:
           name: Replace Survey Project Creation Service environment variables
           command: |
-            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ~/survey-project-creation-service/src/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ~/survey-project-creation-service/src/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ~/survey-project-creation-service/src/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ~/survey-project-creation-service/src/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ~/survey-project-creation-service/src/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> ~/survey-project-creation-service/src/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ~/survey-project-creation-service/src/dev-ops/integration_test_self_creation_portal_env
-            ls -l ~/survey-project-creation-service/src/dev-ops/integration_test_self_creation_portal_env # Check that the file is created
-            cat ~/survey-project-creation-service/src/dev-ops/integration_test_self_creation_portal_env # Verify content for debugging
+            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
+            ls -l ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env # Check that the file is created
+            cat ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env # Verify content for debugging
       
       - run:
           name: Check generated file
