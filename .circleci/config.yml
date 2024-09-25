@@ -97,12 +97,6 @@ jobs:
           name: Create test results directory
           command: mkdir -p ./dev-ops/report
       - run:
-          name: Print User Environment Variables
-          command: cat ../user/src/.env
-      - run:
-          name: Print SCP Environment Variables
-          command: cat src/.env
-      - run:
           name: Running test cases
           command: |
             cd src/ && npm run test:integration
