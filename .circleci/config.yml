@@ -14,7 +14,7 @@ jobs:
           key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
       - run:
           name: Install dependencies
-          command: cd src/ && npm install #cd ../src/ && pwd &&
+          command: cd src/ && npm install
       - save_cache:
           key: survey-project-creation-service-dependency-cache-{{checksum "src/package.json"}}
           paths:
@@ -34,42 +34,60 @@ jobs:
           key: user-dependency-cache-{{ checksum "../user/src/package.json" }}
       - run:
           name: Install User service dependencies
-          command: cd ../user/src/ && npm install #cd ../src/ && pwd &&
+          command: cd ../user/src/ && npm install
       - save_cache:
           key: user-dependency-cache-{{checksum "../user/src/package.json"}}
           paths:
             - ../user/src/node_modules
       - run:
-          name: Replace Survey Project Creation Service environment variables
+          name: Replace or Append SCP Service environment variables
           command: |
-            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
-            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
-            ls -l ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env # Check that the file is created
-            cat ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env # Verify content for debugging
+            # Define the file path
+            ENV_FILE=~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+
+            # Replace the existing variables or append them if they don't exist
+            grep -q "^CLOUD_STORAGE_PROVIDER=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROVIDER=.*|CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER|" $ENV_FILE || echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" >> $ENV_FILE
+            grep -q "^CLOUD_STORAGE_ACCOUNTNAME=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_ACCOUNTNAME=.*|CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME|" $ENV_FILE || echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> $ENV_FILE
+            grep -q "^CLOUD_STORAGE_SECRET=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_SECRET=.*|CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET|" $ENV_FILE || echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> $ENV_FILE
+            grep -q "^CLOUD_STORAGE_BUCKETNAME=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_BUCKETNAME=.*|CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME|" $ENV_FILE || echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> $ENV_FILE
+            grep -q "^CLOUD_STORAGE_REGION=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_REGION=.*|CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION|" $ENV_FILE || echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> $ENV_FILE
+            grep -q "^CLOUD_STORAGE_PROJECT=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROJECT=.*|CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT|" $ENV_FILE || echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> $ENV_FILE
+            grep -q "^CLOUD_ENDPOINT=" $ENV_FILE && sed -i "s|^CLOUD_ENDPOINT=.*|CLOUD_ENDPOINT=$CLOUD_ENDPOINT|" $ENV_FILE || echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> $ENV_FILE
+
+            # List the file to ensure changes were made
+            ls -l $ENV_FILE
+
+            # Output the file content for verification
+            cat $ENV_FILE
+
+      # - run:
+      #     name: Replace Survey Project Creation Service environment variables
+      #     command: |
+      #       echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+      #       echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+      #       echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+      #       echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+      #       echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+      #       echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> ~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+      #       echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+      #       ls -l ~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env # Check that the file is created
+      #       cat ~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env # Verify content for debugging
       
-      - run:
-          name: Check generated file
-          command: ls -l ~/survey-project-creation-service/dev-ops/integration_test_self_creation_portal_env
-      - run:
-          name: Check current path before replace user 
-          command: pwd
-      - run:
-          name: Replace User Service environment variables
-          command: |
-            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ~/survey-project-creation-service/dev-ops/integration_test_user_env
-            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ~/survey-project-creation-service/dev-ops/integration_test_user_env
-            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ~/survey-project-creation-service/dev-ops/integration_test_user_env
-            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ~/survey-project-creation-service/dev-ops/integration_test_user_env
-            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ~/survey-project-creation-service/dev-ops/integration_test_user_env
-            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> ~/survey-project-creation-service/dev-ops/integration_test_user_env
-            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ~/survey-project-creation-service/dev-ops/integration_test_user_env
-            ls -l ~/survey-project-creation-service/dev-ops/integration_test_user_env # Check that the file is created
-            cat ~/survey-project-creation-service/dev-ops/integration_test_user_env # Verify content for debugging
+      # - run:
+      #     name: Check generated file
+      #     command: ls -l ~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+      # - run:
+      #     name: Replace User Service environment variables
+      #     command: |
+      #       echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ~/survey-project-creation-service/dev-ops/integration_test.user.env
+      #       echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ~/survey-project-creation-service/dev-ops/integration_test.user.env
+      #       echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ~/survey-project-creation-service/dev-ops/integration_test.user.env
+      #       echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ~/survey-project-creation-service/dev-ops/integration_test.user.env
+      #       echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ~/survey-project-creation-service/dev-ops/integration_test.user.env
+      #       echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> ~/survey-project-creation-service/dev-ops/integration_test.user.env
+      #       echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ~/survey-project-creation-service/dev-ops/integration_test.user.env
+      #       ls -l ~/survey-project-creation-service/dev-ops/integration_test.user.env # Check that the file is created
+      #       cat ~/survey-project-creation-service/dev-ops/integration_test.user.env # Verify content for debugging
       
       - run:
           name: Starting the docker containers
