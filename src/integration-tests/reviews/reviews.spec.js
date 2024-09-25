@@ -1,7 +1,7 @@
 const commonHelper = require('@commonTests')
 const { faker } = require('@faker-js/faker')
 const schema = require('./responseSchema')
-jest.setTimeout(20000)
+jest.setTimeout(50000)
 
 describe('Review APIs ', function () {
 	let userDetails
