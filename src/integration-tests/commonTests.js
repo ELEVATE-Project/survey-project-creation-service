@@ -18,6 +18,7 @@ const waitForService = async (url) => {
 }
 
 const createUserRoles = async () => {
+	console.log('============>USER ROLE CHECK : ')
 	let request = defaults(supertest('http://localhost:5001'))
 	await waitForService(baseURL)
 	jest.setTimeout(10000)
@@ -75,10 +76,13 @@ const createUserRoles = async () => {
 			}
 		}
 	}
+	console.log('============>USER ROLE CHECK COMPLETED: ')
 }
 
-createUserRoles()
-
+;(async () => {
+	await createUserRoles()
+})()
+git
 const logIn = async () => {
 	try {
 		console.log('============>ATTEMPTING LOGIN : ')
