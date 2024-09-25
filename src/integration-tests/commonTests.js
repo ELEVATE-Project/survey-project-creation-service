@@ -21,7 +21,7 @@ const verifyUserRole = async () => {
 	console.log('============>USER ROLE CHECK : ')
 	let request = defaults(supertest('http://localhost:5001'))
 	await waitForService(baseURL)
-	jest.setTimeout(10000)
+	jest.setTimeout(20000)
 
 	let email = 'orgadmin' + crypto.randomBytes(5).toString('hex') + '@shikshalokam.com'
 	let password = 'Welcome@123'
@@ -88,7 +88,7 @@ const logIn = async () => {
 		console.log('============>ATTEMPTING LOGIN : ')
 		let request = defaults(supertest('http://localhost:5001'))
 		await waitForService(baseURL)
-		jest.setTimeout(10000)
+		jest.setTimeout(20000)
 
 		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
 		let password = 'Welcome@123'

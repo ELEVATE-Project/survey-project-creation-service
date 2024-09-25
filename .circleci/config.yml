@@ -39,6 +39,9 @@ jobs:
           key: user-dependency-cache-{{checksum "../user/src/package.json"}}
           paths:
             - ../user/src/node_modules
+      - run:
+          name: Check current path before replace scp
+          command: pwd
       
       - run:
           name: Replace Survey Project Creation Service environment variables
@@ -53,7 +56,9 @@ jobs:
             ls -l ./dev-ops/integration_test.self_creation_portal.env # Check that the file is created
             cat ./dev-ops/integration_test.self_creation_portal.env # Verify content for debugging
 
-
+      - run:
+          name: Check current path before replace user 
+          command: pwd
       - run:
           name: Replace User Service environment variables
           command: |
