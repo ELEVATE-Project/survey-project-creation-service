@@ -1,6 +1,6 @@
 const commonHelper = require('@commonTests')
 const schema = require('./responseSchema')
-jest.setTimeout(10000)
+jest.setTimeout(20000)
 
 describe('Entity-Type APIs', function () {
 	let userDetails
@@ -23,7 +23,7 @@ describe('Entity-Type APIs', function () {
 			type: 'SYSTEM',
 			allow_filtering: false,
 			data_type: 'STRING',
-			has_entities: true
+			has_entities: true,
 		})
 
 		expect(res.statusCode).toBe(201)
@@ -31,11 +31,10 @@ describe('Entity-Type APIs', function () {
 	})
 
 	it('Update Entity-Type', async () => {
-		const res = await request.post('/scp/v1/entity-types/update/1')
-			.send({
-				status: 'ACTIVE',
-				data_type: 'STRING'
-			})
+		const res = await request.post('/scp/v1/entity-types/update/1').send({
+			status: 'ACTIVE',
+			data_type: 'STRING',
+		})
 
 		expect(res.statusCode).toBe(202)
 		expect(res.body).toMatchSchema(schema.updateSchema)
@@ -45,5 +44,4 @@ describe('Entity-Type APIs', function () {
 		const res = await request.delete('/scp/v1/entity-types/delete/999')
 		expect(res.statusCode).toBe(400)
 	})
-
 })

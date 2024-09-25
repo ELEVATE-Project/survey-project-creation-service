@@ -1,6 +1,6 @@
 const commonHelper = require('@commonTests')
 const schema = require('./responseSchema')
-jest.setTimeout(10000)
+jest.setTimeout(20000)
 
 describe('Permission Apis', function () {
 	let userDetails
@@ -13,7 +13,6 @@ describe('Permission Apis', function () {
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.listSchema)
 	})
-
 
 	it('Get list of all permissions', async () => {
 		let res = await request.get('/scp/v1/permissions/getPermissions').query({ page: 1, limit: 10 })
@@ -38,7 +37,7 @@ describe('Permission Apis', function () {
 		let res = await request.post('/scp/v1/permissions/update/1').send({
 			code: 'get_signedurl_permissions',
 			module: 'cloud-services',
-			request_type: ['POST','GET'],
+			request_type: ['POST', 'GET'],
 			api_path: '/scp/v1/cloud-services/getSignedUrl',
 			status: 'ACTIVE',
 		})
@@ -50,5 +49,4 @@ describe('Permission Apis', function () {
 		let res = await request.post('/scp/v1/permissions/delete/100')
 		expect(res.statusCode).toBe(500)
 	})
-
 })

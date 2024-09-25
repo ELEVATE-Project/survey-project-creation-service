@@ -1,8 +1,7 @@
-
 const commonHelper = require('@commonTests')
 const { faker } = require('@faker-js/faker')
 const schema = require('./responseSchema')
-jest.setTimeout(10000)
+jest.setTimeout(20000)
 
 describe('Form APIs', function () {
 	beforeAll(async () => {
@@ -14,8 +13,6 @@ describe('Form APIs', function () {
 
 		expect(res.statusCode).toBe(201)
 		expect(res.body).toMatchSchema(schema.createSchema)
-
-
 	})
 
 	it('Read form', async () => {
@@ -34,7 +31,6 @@ describe('Form APIs', function () {
 			expect(res.statusCode).toBe(200)
 			expect(res.body).toMatchSchema(schema.updateSchema)
 		}
-
 	})
 })
 

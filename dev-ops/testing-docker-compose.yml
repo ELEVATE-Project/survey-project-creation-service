@@ -103,7 +103,7 @@ services:
     networks:
       - elevate_net
     env_file:
-      - integration_test_user_env
+      - integration_test.user.env
 
   survey-project-creation-service:
     build: '../../survey-project-creation-service/'
@@ -137,7 +137,7 @@ services:
     networks:
       - elevate_net
     env_file:
-      - integration_test_self_creation_portal_env
+      - integration_test.self_creation_portal.env
 
 networks:
   elevate_net:

@@ -101,7 +101,7 @@ services:
     networks:
       - elevate_net
     env_file:
-      - dev-ops/integration_test_user_env
+      - dev-ops/integration_test.user.env
 
   citus:
     image: citusdata/citus:11.2.0
@@ -144,7 +144,7 @@ services:
     networks:
       - elevate_net
     env_file:
-      - dev-ops/integration_test_self_creation_portal_env
+      - dev-ops/integration_test.self_creation_portal.env
 
 networks:
   elevate_net:

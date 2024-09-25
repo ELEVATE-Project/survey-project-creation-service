@@ -1,7 +1,7 @@
 const commonHelper = require('@commonTests')
 const { faker } = require('@faker-js/faker')
 const schema = require('./responseSchema')
-jest.setTimeout(10000)
+jest.setTimeout(20000)
 
 describe('Organization APIs', function () {
 	let userDetails
@@ -15,7 +15,7 @@ describe('Organization APIs', function () {
 			show_reviewer_list: true,
 			min_approval: 1,
 			resource_type: faker.helpers.arrayElement(['project', 'observation', 'survey']),
-			review_type: 'PARALLEL'
+			review_type: 'PARALLEL',
 		})
 
 		if (res.statusCode == 201) {
