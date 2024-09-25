@@ -42,19 +42,19 @@ jobs:
       - run:
           name: Check current path before replace scp
           command: pwd
-      
+
       - run:
           name: Replace Survey Project Creation Service environment variables
           command: |
-            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > src/dev-ops/integration_test.self_creation_portal.env
-            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> src/dev-ops/dev-ops/integration_test.self_creation_portal.env
-            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> src/dev-ops/integration_test.self_creation_portal.env
-            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> src/dev-ops/integration_test.self_creation_portal.env
-            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> src/dev-ops/integration_test.self_creation_portal.env
-            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> src/dev-ops/integration_test.self_creation_portal.env
-            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> src/dev-ops/integration_test.self_creation_portal.env
-            ls -l src/dev-ops/integration_test.self_creation_portal.env # Check that the file is created
-            cat src/dev-ops/integration_test.self_creation_portal.env # Verify content for debugging
+            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> dev-ops/dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> dev-ops/integration_test_self_creation_portal_env
+            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> dev-ops/integration_test_self_creation_portal_env
+            ls -l dev-ops/integration_test_self_creation_portal_env # Check that the file is created
+            cat dev-ops/integration_test_self_creation_portal_env # Verify content for debugging
 
       - run:
           name: Check current path before replace user 
@@ -62,15 +62,15 @@ jobs:
       - run:
           name: Replace User Service environment variables
           command: |
-            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > src/dev-ops/integration_test.user.env
-            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> src/dev-ops/integration_test.user.env
-            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> src/dev-ops/integration_test.user.env
-            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> src/dev-ops/integration_test.user.env
-            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> src/dev-ops/integration_test.user.env
-            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> ./integration_test.user.env
-            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> src/dev-ops/integration_test.user.env
-            ls -l src/dev-ops/integration_test.user.env # Check that the file is created
-            cat src/dev-ops/integration_test.user.env # Verify content for debugging
+            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > dev-ops/integration_test_user_env
+            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> dev-ops/integration_test_user_env
+            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> dev-ops/integration_test_user_env
+            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> dev-ops/integration_test_user_env
+            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> dev-ops/integration_test_user_env
+            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> dev-ops/integration_test_user_env
+            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> dev-ops/integration_test_user_env
+            ls -l dev-ops/integration_test_user_env # Check that the file is created
+            cat dev-ops/integration_test_user_env # Verify content for debugging
       
       - run:
           name: Starting the docker containers
