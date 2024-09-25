@@ -42,35 +42,30 @@ jobs:
       - run:
           name: Replace Survey Project Creation Service environment variables
           command: |
-            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ./src/.env
-            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ./src/.env
-            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ./src/.env
-            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ./src/.env
-            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ./src/.env
-            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> ./src/.env
-            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ./src/.env
-            ls -l ./src/.env # Check that the file is created
-            cat ./src/.env # Verify content for debugging
+            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ./dev-ops/integration_test.self_creation_portal.env
+            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ./dev-ops/integration_test.self_creation_portal.env
+            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ./dev-ops/integration_test.self_creation_portal.env
+            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ./dev-ops/integration_test.self_creation_portal.env
+            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ./dev-ops/integration_test.self_creation_portal.env
+            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> ./dev-ops/integration_test.self_creation_portal.env
+            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ./dev-ops/integration_test.self_creation_portal.env
+            ls -l ./dev-ops/integration_test.self_creation_portal.env # Check that the file is created
+            cat ./dev-ops/integration_test.self_creation_portal.env # Verify content for debugging
 
 
       - run:
           name: Replace User Service environment variables
           command: |
-            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ../user/src/.env
-            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ../user/src/.env
-            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ../user/src/.env
-            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ../user/src/.env
-            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ../user/src/.env
-            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> ./src/.env
-            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ../user/src/.env
-            ls -l ../user/src/.env # Check that the file is created
-            cat ../user/src/.env # Verify content for debugging
-      - run:
-          name: Print User Environment Variables
-          command: cat cd ../user/src/.env
-      - run:
-          name: Print SCP Environment Variables
-          command: cat cd src/.env
+            echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" > ./dev-ops/integration_test.user.env
+            echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> ./dev-ops/integration_test.user.env
+            echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> ./dev-ops/integration_test.user.env
+            echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> ./dev-ops/integration_test.user.env
+            echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> ./dev-ops/integration_test.user.env
+            echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> ./integration_test.user.env
+            echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> ./dev-ops/integration_test.user.env
+            ls -l ./dev-ops/integration_test.user.env # Check that the file is created
+            cat ./dev-ops/integration_test.user.env # Verify content for debugging
+      
       - run:
           name: Starting the docker containers
           command: |-
@@ -100,6 +95,12 @@ jobs:
       - run:
           name: Create test results directory
           command: mkdir -p ./dev-ops/report
+      - run:
+          name: Print User Environment Variables
+          command: cat cd ../user/src/.env
+      - run:
+          name: Print SCP Environment Variables
+          command: cat cd src/.env
       - run:
           name: Running test cases
           command: |
