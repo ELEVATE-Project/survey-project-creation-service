@@ -6,6 +6,7 @@ jest.setTimeout(10000)
 describe('Review APIs ', function () {
 	let userDetails
 	beforeAll(async () => {
+		await commonHelper.verifyUserRole()
 		userDetails = await commonHelper.logIn()
 	})
 

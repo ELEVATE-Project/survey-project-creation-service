@@ -17,7 +17,7 @@ const waitForService = async (url) => {
 	await waitOn(opts)
 }
 
-const createUserRoles = async () => {
+const verifyUserRole = async () => {
 	console.log('============>USER ROLE CHECK : ')
 	let request = defaults(supertest('http://localhost:5001'))
 	await waitForService(baseURL)
@@ -79,9 +79,9 @@ const createUserRoles = async () => {
 	console.log('============>USER ROLE CHECK COMPLETED: ')
 }
 
-;(async () => {
-	await createUserRoles()
-})()
+// ;(async () => {
+// 	await createUserRoles()
+// })()
 
 const logIn = async () => {
 	try {
@@ -141,5 +141,5 @@ function logError(res) {
 module.exports = {
 	logIn, //-- export if token is generated
 	logError,
-	createUserRoles,
+	verifyUserRole,
 }
