@@ -66,8 +66,11 @@ jobs:
             ls -l ../user/src/.env # Check that the file is created
             cat ../user/src/.env # Verify content for debugging
       - run:
-          name: Print All Environment Variables
-          command: env
+          name: Print User Environment Variables
+          command: cat cd ../user/src/.env
+      - run:
+          name: Print SCP Environment Variables
+          command: cat cd src/.env
       - run:
           name: Starting the docker containers
           command: |-
