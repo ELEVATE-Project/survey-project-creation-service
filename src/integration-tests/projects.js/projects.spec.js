@@ -61,20 +61,15 @@ function insertProjectData() {
 	return {
 		title: faker.random.alpha(5),
 		objective: 'In the vibrant city of Metropolis',
-		recommended_for: [
-			'teachers',
-			'ht'
-		],
+		recommended_for: ['teachers', 'ht'],
 		languages: 'en',
 		categories: 'school_process',
-		licenses: [
-			'cc_by_4.0'
-		],
+		licenses: ['cc_by_4.0'],
 		learning_resources: [
 			{
 				name: 'sample doc',
-				url: 'http://test.com'
-			}
+				url: 'http://test.com',
+			},
 		],
 		tasks: [
 			{
@@ -87,19 +82,19 @@ function insertProjectData() {
 				learning_resources: [
 					{
 						name: 'sample doc',
-						url: 'http://test.com'
-					}
+						url: 'http://test.com',
+					},
 				],
 				children: [
 					{
-						name: 'hhhhhhhh',
+						name: 'child task',
 						type: 'simple',
-						id: '7a8b13fb-c9e1-4296',
+						id: '7a8b13fb-c9e1-4296-aa37-d95f58b1bf1a',
 						parent_id: '8f63493a-42aa-4137-aa37-d95f58b1bf1a',
-						sequence_no: 1
-					}
-				]
-			}
-		]
+						sequence_no: 1,
+					},
+				],
+			},
+		],
 	}
 }

@@ -19,7 +19,7 @@ const waitForService = async (url) => {
 
 const logIn = async () => {
 	try {
-		console.log('============>LOGIN 1 : ')
+		console.log('============>ATTEMPTING LOGIN : ')
 		let request = defaults(supertest('http://localhost:5001'))
 		await waitForService(baseURL)
 		jest.setTimeout(10000)
@@ -31,13 +31,14 @@ const logIn = async () => {
 			email: email,
 			password: password,
 		})
-		// console.log('============>LOGIN 5 : ', res.body, res.statusCode)
+
 		res = await request.post('/user/v1/account/login').send({
 			email: email,
 			password: password,
 		})
-		console.log('============>LOGIN 6 : ')
+
 		if (res.body && res.body.result && res.body.result.access_token && res.body.result.user.id) {
+			console.log('============>LOGIN SUCCESSFUL')
 			defaultHeaders = {
 				'X-auth-token': 'bearer ' + res.body.result.access_token,
 				Connection: 'keep-alive',
@@ -56,7 +57,7 @@ const logIn = async () => {
 				organization_id: res.body.result.user.organization_id,
 			}
 		} else {
-			console.error('Error while getting access token')
+			console.error('LOGIN FAILED')
 			return false
 		}
 	} catch (error) {
@@ -78,56 +79,47 @@ const createUserRoles = async () => {
 	})
 
 	if (res.body && res.body.result && res.body.result.access_token && res.body.result.user.id) {
-
 		defaultHeaders = {
 			'X-auth-token': 'bearer ' + res.body.result.access_token,
 			Connection: 'keep-alive',
 			'Content-Type': 'application/json',
 		}
 
-		let existingCreatorRole = await request.get('/user/v1/user-role/list')
-			.set(defaultHeaders)
-			.query({
+		let existingCreatorRole = await request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+			title: 'content_creator',
+			organization_id: 1,
+		})
+
+		if (existingCreatorRole.statusCode == 400 || existingCreatorRole.body.result?.data?.length == 0) {
+			let createCreatorRole = await request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 				title: 'content_creator',
+				user_type: 0,
 				organization_id: 1,
+				label: 'Content Creator',
+				visibility: 'PUBLIC',
 			})
 
-		if (existingCreatorRole.body.result?.data?.length == 0) {
-			let createCreatorRole = await request.post('/user/v1/user-role/create')
-				.set(defaultHeaders)
-				.send({
-					title: 'content_creator',
-					user_type: 0,
-					organization_id: 1,
-					label: 'Content Creator',
-					visibility: 'PUBLIC'
-				})
-
-			if (createCreatorRole.statusCode != 200) {
-				console.log('Role Creation Failed')
+			if (createCreatorRole.statusCode != 201) {
+				console.log('Content Creator Role Creation Failed')
 			}
 		}
 
-		let existingReviewerRole = await request.get('/user/v1/user-role/list')
-			.set(defaultHeaders)
-			.query({
+		let existingReviewerRole = await request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+			title: 'reviewer',
+			organization_id: 1,
+		})
+
+		if (existingReviewerRole.statusCode == 400 || existingReviewerRole.body.result?.data?.length == 0) {
+			let createReviewRole = await request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 				title: 'reviewer',
+				user_type: 0,
 				organization_id: 1,
+				label: 'Reviewer',
+				visibility: 'PUBLIC',
 			})
 
-		if (existingReviewerRole.body.result?.data?.length == 0) {
-			let createReviewRole = await request.post('/user/v1/user-role/create')
-				.set(defaultHeaders)
-				.send({
-					title: 'reviewer',
-					user_type: 0,
-					organization_id: 1,
-					label: 'Content Creator',
-					visibility: 'PUBLIC'
-				})
-
-			if (createReviewRole.statusCode != 200) {
-				console.log('Role Creation Failed')
+			if (createReviewRole.statusCode != 201) {
+				console.log('Reviewer Role Creation Failed')
 			}
 		}
 	}
