@@ -1207,7 +1207,7 @@ module.exports = class resourceHelper {
 			const search = searchText != '' ? searchText : ''
 
 			let filterQuery = {
-				organization_id: { [Op.in]: [organization_id, process.env.DEFAULT_ORG_ID] },
+				organization_id,
 				status: common.RESOURCE_STATUS_PUBLISHED,
 				published_id: { [Op.not]: null },
 			}
