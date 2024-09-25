@@ -39,6 +39,7 @@ jobs:
           key: user-dependency-cache-{{checksum "../user/src/package.json"}}
           paths:
             - ../user/src/node_modules
+      
       - run:
           name: Replace Survey Project Creation Service environment variables
           command: |
@@ -95,12 +96,12 @@ jobs:
       - run:
           name: Create test results directory
           command: mkdir -p ./dev-ops/report
-      - run:
-          name: Print User Environment Variables
-          command: cat cd ../user/src/.env
+      -run:
+        name: Print User Environment Variables
+        command: cat ../user/src/.env
       - run:
           name: Print SCP Environment Variables
-          command: cat cd src/.env
+          command: cat src/.env
       - run:
           name: Running test cases
           command: |
