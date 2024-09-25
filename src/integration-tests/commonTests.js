@@ -17,54 +17,6 @@ const waitForService = async (url) => {
 	await waitOn(opts)
 }
 
-const logIn = async () => {
-	try {
-		console.log('============>ATTEMPTING LOGIN : ')
-		let request = defaults(supertest('http://localhost:5001'))
-		await waitForService(baseURL)
-		jest.setTimeout(10000)
-
-		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
-		let password = 'Welcome@123'
-		let res = await request.post('/user/v1/account/create').send({
-			name: 'adithya',
-			email: email,
-			password: password,
-		})
-
-		res = await request.post('/user/v1/account/login').send({
-			email: email,
-			password: password,
-		})
-
-		if (res.body && res.body.result && res.body.result.access_token && res.body.result.user.id) {
-			console.log('============>LOGIN SUCCESSFUL')
-			defaultHeaders = {
-				'X-auth-token': 'bearer ' + res.body.result.access_token,
-				Connection: 'keep-alive',
-				'Content-Type': 'application/json',
-			}
-			global.request = defaults(supertest(baseURL))
-			global.request.set(defaultHeaders)
-			global.userId = res.body.result.user.id
-			return {
-				token: res.body.result.access_token,
-				id: res.body.result.user.id,
-				email: email,
-				password: password,
-				name: res.body.result.user.name,
-				roles: res.body.result.user.user_roles,
-				organization_id: res.body.result.user.organization_id,
-			}
-		} else {
-			console.error('LOGIN FAILED')
-			return false
-		}
-	} catch (error) {
-		console.error('ERROR : : :', error)
-	}
-}
-
 const createUserRoles = async () => {
 	let request = defaults(supertest('http://localhost:5001'))
 	await waitForService(baseURL)
@@ -125,6 +77,56 @@ const createUserRoles = async () => {
 	}
 }
 
+createUserRoles()
+
+const logIn = async () => {
+	try {
+		console.log('============>ATTEMPTING LOGIN : ')
+		let request = defaults(supertest('http://localhost:5001'))
+		await waitForService(baseURL)
+		jest.setTimeout(10000)
+
+		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
+		let password = 'Welcome@123'
+		let res = await request.post('/user/v1/account/create').send({
+			name: 'adithya',
+			email: email,
+			password: password,
+		})
+
+		res = await request.post('/user/v1/account/login').send({
+			email: email,
+			password: password,
+		})
+
+		if (res.body && res.body.result && res.body.result.access_token && res.body.result.user.id) {
+			console.log('============>LOGIN SUCCESSFUL')
+			defaultHeaders = {
+				'X-auth-token': 'bearer ' + res.body.result.access_token,
+				Connection: 'keep-alive',
+				'Content-Type': 'application/json',
+			}
+			global.request = defaults(supertest(baseURL))
+			global.request.set(defaultHeaders)
+			global.userId = res.body.result.user.id
+			return {
+				token: res.body.result.access_token,
+				id: res.body.result.user.id,
+				email: email,
+				password: password,
+				name: res.body.result.user.name,
+				roles: res.body.result.user.user_roles,
+				organization_id: res.body.result.user.organization_id,
+			}
+		} else {
+			console.error('LOGIN FAILED')
+			return false
+		}
+	} catch (error) {
+		console.error('ERROR : : :', error)
+	}
+}
+
 function logError(res) {
 	let successCodes = [200, 201, 202]
 	if (!successCodes.includes(res.statusCode)) {
@@ -132,7 +134,6 @@ function logError(res) {
 	}
 }
 
-createUserRoles()
 module.exports = {
 	logIn, //-- export if token is generated
 	logError,

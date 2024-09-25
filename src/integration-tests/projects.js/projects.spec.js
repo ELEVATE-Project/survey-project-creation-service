@@ -11,12 +11,14 @@ describe('Project APIs ', function () {
 
 	it('Create Project', async () => {
 		let res = await request.post('/scp/v1/projects/update').send(insertProjectData())
+		console.log(JSON.stringify(res.body, null, 2), 'Create project Response')
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
 
 	it('Delete Project', async () => {
 		const res = await request.delete('/scp/v1/projects/update/999999')
+		console.log(JSON.stringify(res.body, null, 2), 'Delete project Response')
 		expect(res.statusCode).toBe(400)
 	})
 
@@ -24,13 +26,14 @@ describe('Project APIs ', function () {
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
 		const projectId = createProject.body?.result?.id
 		let res = await request.get('/scp/v1/projects/details/' + projectId)
-
+		console.log(JSON.stringify(res.body, null, 2), 'Delete project Response')
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.detailSchema)
 	})
 
 	it('Reviewer List', async () => {
 		const res = await request.get('/scp/v1/projects/reviewerList')
+		console.log(JSON.stringify(res.body, null, 2), 'Reviewer list Response')
 		expect(res.statusCode).toBe(200)
 	})
 
@@ -38,7 +41,7 @@ describe('Project APIs ', function () {
 		//create project
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
 		const res = await request.get('/scp/v1/resource/list?page=1&limit=5&listing=drafts')
-
+		console.log(JSON.stringify(res.body, null, 2), 'List project Response')
 		expect(res.statusCode).toBe(200)
 		if (createProject.body?.result?.id) {
 			expect(res.body).toMatchSchema(schema.listSchema)
@@ -52,6 +55,7 @@ describe('Project APIs ', function () {
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
 		const projectId = createProject.body?.result?.id
 		const res = await request.post('/scp/v1/projects/submitForReview/' + projectId)
+		console.log(JSON.stringify(res.body, null, 2), 'Submit project Response')
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.submitProjectSchema)
 	})
