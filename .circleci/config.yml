@@ -96,7 +96,7 @@ jobs:
       - run:
           name: Create test results directory
           command: mkdir -p ./dev-ops/report
-      -run:
+      - run:
         name: Print User Environment Variables
         command: cat ../user/src/.env
       - run:
