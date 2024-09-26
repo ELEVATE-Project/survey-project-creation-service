@@ -104,22 +104,22 @@ services:
       - elevate_net
     env_file:
       - integration_test.user.env
-
   survey-project-creation-service:
     build: '../../survey-project-creation-service/'
     ports:
       - '6001:6001'
     command: >
-      bash -c "
-
-        echo 'Waiting for User to accept connections...'
-        until timeout 1 bash -c '</dev/tcp/user/5001' >/dev/null 2>&1; do
-            echo 'Waiting for User to be ready...'
-            sleep 1
+      bash -c '
+        echo "Waiting for User to accept connections...";
+        until timeout 1 bash -c "</dev/tcp/user/5001" >/dev/null 2>&1; do
+            echo "Waiting for User to be ready...";
+            sleep 1;
         done &&
-        echo 'User Service is ready.'
-
-       npm run db:init && (echo 'Running SCP' && nodemon app.js)"
+        echo "User Service is ready.";
+  
+        echo "Initializing database...";
+        npm run db:init && echo "Database initialized successfully." && nodemon app.js'
+      
     volumes:
       - ../../survey-project-creation-service/src/:/var/src
     environment:
