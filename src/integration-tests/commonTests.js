@@ -11,8 +11,8 @@ const waitForService = async (url) => {
 	const opts = {
 		resources: [url],
 		delay: 5000,
-		interval: 1000,
-		timeout: 100000,
+		interval: 500,
+		timeout: 200000,
 	}
 	try {
 		await waitOn(opts)
@@ -25,7 +25,7 @@ const waitForService = async (url) => {
 const verifyUserRole = async () => {
 	console.log('============>USER ROLE CHECK : ')
 	let request = defaults(supertest('http://localhost:5001'))
-	await waitForService(baseURL)
+	// await waitForService(baseURL)
 	jest.setTimeout(10000)
 
 	let email = 'orgadmin' + crypto.randomBytes(5).toString('hex') + '@shikshalokam.com'
@@ -120,9 +120,9 @@ const verifyUserRole = async () => {
 	return true
 }
 
-;(async () => {
-	await verifyUserRole()
-})()
+// ;(async () => {
+// 	await verifyUserRole()
+// })()
 
 const logIn = async () => {
 	try {
@@ -130,8 +130,9 @@ const logIn = async () => {
 		// console.log(checkForRole, 'verifyUserRole')
 		console.log('============>ATTEMPTING LOGIN : ')
 		let request = defaults(supertest('http://localhost:5001'))
-		await waitForService(baseURL)
-		jest.setTimeout(10000)
+
+		// await waitForService(baseURL)
+		// jest.setTimeout(10000)
 
 		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
 		let password = 'Welcome@123'
@@ -158,7 +159,7 @@ const logIn = async () => {
 			global.userId = res.body.result.user.id
 			return {
 				token: res.body.result.access_token,
-				id: res.body.result.user.id,
+				request: defaults(supertest(baseURL)),
 				email: email,
 				password: password,
 				name: res.body.result.user.name,
