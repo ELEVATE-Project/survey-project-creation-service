@@ -80,39 +80,34 @@ const verifyUserRole = async () => {
 		// 	}
 		// }
 
-		if (
-			existingCreatorRole.statusCode === 400 ||
-			existingCreatorRole.body.result?.data?.length === 0 ||
-			reviewerRole.statusCode === 400 ||
-			reviewerRole.body.result?.data?.length === 0
-		) {
-			const roleCreationPromises = []
+		let roleCreationPromises = []
 
-			// Add content_creator role creation promise
-			if (existingCreatorRole.statusCode === 400 || existingCreatorRole.body.result?.data?.length === 0) {
-				const createCreatorRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
-					title: 'content_creator',
-					user_type: 0,
-					organization_id: 1,
-					label: 'Content Creator',
-					visibility: 'PUBLIC',
-				})
-				roleCreationPromises.push(createCreatorRole)
-			}
+		// Add content_creator role creation promise
+		if (existingCreatorRole.statusCode === 400 || existingCreatorRole.body.result?.data?.length === 0) {
+			const createCreatorRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+				title: 'content_creator',
+				user_type: 0,
+				organization_id: 1,
+				label: 'Content Creator',
+				visibility: 'PUBLIC',
+			})
+			roleCreationPromises.push(createCreatorRole)
+		}
 
-			// Add reviewer role creation promise
-			if (existingReviewerRole.statusCode === 400 || existingReviewerRole.body.result?.data?.length === 0) {
-				const createReviewRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
-					title: 'reviewer',
-					user_type: 0,
-					organization_id: 1,
-					label: 'Reviewer',
-					visibility: 'PUBLIC',
-				})
-				roleCreationPromises.push(createReviewRole)
-			}
+		// Add reviewer role creation promise
+		if (existingReviewerRole.statusCode === 400 || existingReviewerRole.body.result?.data?.length === 0) {
+			const createReviewRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+				title: 'reviewer',
+				user_type: 0,
+				organization_id: 1,
+				label: 'Reviewer',
+				visibility: 'PUBLIC',
+			})
+			roleCreationPromises.push(createReviewRole)
+		}
 
-			// Wait for both role creation requests to complete in parallel
+		// Wait for both role creation requests to complete in parallel
+		if (roleCreationPromises.length > 0) {
 			await Promise.all(roleCreationPromises)
 		}
 	}
