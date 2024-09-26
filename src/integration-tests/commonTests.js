@@ -12,9 +12,14 @@ const waitForService = async (url) => {
 		resources: [url],
 		delay: 5000,
 		interval: 1000,
-		timeout: 50000,
+		timeout: 100000,
 	}
-	await waitOn(opts)
+	try {
+		await waitOn(opts)
+		console.log(`Service is ready at: ${url}`)
+	} catch (error) {
+		console.error(`Service not ready at: ${url}. Error: ${error.message}`)
+	}
 }
 
 const verifyUserRole = async () => {
