@@ -1195,7 +1195,7 @@ module.exports = class resourceHelper {
 	 * @param {String} searchText - Title to search
 	 * @param {Integer} pageNo -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
 	 * @param {Integer} pageSize -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
-	 * @returns {Object} - Response contain object of user details
+	 * @returns {Object} - Response contain object of resources
 	 */
 	static async browseExistingList(organization_id, token, query, searchText = '', pageNo, pageSize) {
 		try {
@@ -1203,78 +1203,44 @@ module.exports = class resourceHelper {
 				data: [],
 				count: 0,
 			}
-			const resourceType = query[common.TYPE] ? query[common.TYPE] : ''
+			const resourceType = query[common.TYPE] ? query[common.TYPE].split(',') : ''
 			const search = searchText != '' ? searchText : ''
-			let externalResources = {}
-			// consumption side if set to self , only resources published with in SCP will be showed
-			// If it has any value other than self , the result will be combination of resources from the coupled service and from SCP.
-			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-				externalResources = await interfaceRequests.browseExistingList(
-					resourceType,
-					organization_id,
-					token,
-					search
-				)
-			}
+
 			let filterQuery = {
 				organization_id,
 				status: common.RESOURCE_STATUS_PUBLISHED,
-				published_id: null,
+				published_id: { [Op.not]: null },
 			}
-			if (resourceType) filterQuery.type = resourceType
+			// construct sort object
+			const sort = await this.constructSortOptions(query.sort_by, query.sort_order)
+			if (resourceType)
+				filterQuery.type = {
+					[Op.in]: resourceType,
+				}
 			if (search)
 				filterQuery.title = {
 					[Op.iLike]: `%${search}%`,
 				}
-			const internalResources = await resourceQueries.findAll(filterQuery, [
-				'id',
-				'title',
-				'type',
-				'created_by',
-				'created_at',
-			])
 
-			const aggregatedResources = [
-				...(externalResources?.success && externalResources?.data?.result?.data?.length
-					? externalResources.data.result.data
-					: []),
-				...(internalResources.length ? internalResources : []),
-			]
+			const internalResources = await resourceQueries.resourceList(
+				filterQuery,
+				['id', 'title', 'type', 'created_by', 'created_at'],
+				sort,
+				pageNo,
+				pageSize
+			)
 
-			if (aggregatedResources.length > 0) {
-				// construct sort object
-				const sort = await this.constructSortOptions(query.sort_by, query.sort_order)
-				// sort the array
-				const sortedResources = utils.sort(aggregatedResources, sort)
-				// data after applying pagenation
-				const paginatedResources = utils.paginate(sortedResources, pageNo, pageSize)
-				// get the unique creator ids to fetch the user details
-				const uniqueCreatorIds = _.difference(
-					utils.getUniqueElements(
-						paginatedResources.map((resource) => {
-							const createdBy = resource.created_by
-							return !isNaN(createdBy) && !isNaN(parseFloat(createdBy)) ? +createdBy : createdBy
-						})
-					),
-					[null, undefined, '']
+			if (internalResources.result.length > 0) {
+				// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
+				const userDetails = await this.fetchUserDetails(
+					utils.getUniqueElements([...internalResources.result.map((item) => item.created_by)])
 				)
-				// fetch the user details from user service with creatorId
-				const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
-
-				let finalResources = []
-
-				paginatedResources.filter((resource) => {
-					resource.creator = userDetails[resource.created_by]?.name
-						? userDetails[resource.created_by]?.name
-						: ''
-					delete resource.created_by
-					finalResources.push(resource)
+				result.count = internalResources.count
+				internalResources.result.forEach((resource) => {
+					resource['creator'] = userDetails[resource.created_by].name || ''
+					delete resource.created_at
+					result.data.push(resource)
 				})
-
-				result = {
-					data: finalResources,
-					count: aggregatedResources.length,
-				}
 			}
 
 			return responses.successResponse({
