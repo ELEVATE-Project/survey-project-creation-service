@@ -121,7 +121,7 @@ services:
 
        npm run db:init && (echo 'Running SCP' && nodemon app.js)"
     volumes:
-      # - ../../survey-project-creation-service/src/:/var/src
+      - ../../survey-project-creation-service/src/:/var/src
     environment:
       - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/integration_test_scp
       - KAFKA_URL=kafka:9092
