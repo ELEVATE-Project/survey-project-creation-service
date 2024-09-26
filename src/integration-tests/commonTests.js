@@ -11,8 +11,8 @@ const waitForService = async (url) => {
 	const opts = {
 		resources: [url],
 		delay: 5000,
-		interval: 2500,
-		timeout: 100000,
+		interval: 1000,
+		timeout: 50000,
 	}
 	await waitOn(opts)
 }
@@ -38,49 +38,86 @@ const verifyUserRole = async () => {
 			'Content-Type': 'application/json',
 		}
 
-		let existingCreatorRole = await request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-			title: 'content_creator',
-			organization_id: 1,
-		})
-
-		if (existingCreatorRole.statusCode == 400 || existingCreatorRole.body.result?.data?.length == 0) {
-			let createCreatorRole = await request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+		// Run both role checks concurrently
+		const [existingCreatorRole, existingReviewerRole] = await Promise.all([
+			request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 				title: 'content_creator',
-				user_type: 0,
 				organization_id: 1,
-				label: 'Content Creator',
-				visibility: 'PUBLIC',
-			})
-
-			if (createCreatorRole.statusCode != 201) {
-				console.log('Content Creator Role Creation Failed')
-				return false
-			}
-		}
-
-		let existingReviewerRole = await request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-			title: 'reviewer',
-			organization_id: 1,
-		})
-
-		if (existingReviewerRole.statusCode == 400 || existingReviewerRole.body.result?.data?.length == 0) {
-			let createReviewRole = await request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+			}),
+			request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 				title: 'reviewer',
-				user_type: 0,
 				organization_id: 1,
-				label: 'Reviewer',
-				visibility: 'PUBLIC',
-			})
+			}),
+		])
 
-			if (createReviewRole.statusCode != 201) {
-				console.log('Reviewer Role Creation Failed')
-				return false
+		// if (existingCreatorRole.statusCode == 400 || existingCreatorRole.body.result?.data?.length == 0) {
+		// 	let createCreatorRole = await request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+		// 		title: 'content_creator',
+		// 		user_type: 0,
+		// 		organization_id: 1,
+		// 		label: 'Content Creator',
+		// 		visibility: 'PUBLIC',
+		// 	})
+
+		// 	if (createCreatorRole.statusCode != 201) {
+		// 		console.log('Content Creator Role Creation Failed')
+		// 		return false
+		// 	}
+		// }
+
+		// if (existingReviewerRole.statusCode == 400 || existingReviewerRole.body.result?.data?.length == 0) {
+		// 	let createReviewRole = await request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+		// 		title: 'reviewer',
+		// 		user_type: 0,
+		// 		organization_id: 1,
+		// 		label: 'Reviewer',
+		// 		visibility: 'PUBLIC',
+		// 	})
+
+		// 	if (createReviewRole.statusCode != 201) {
+		// 		console.log('Reviewer Role Creation Failed')
+		// 		return false
+		// 	}
+		// }
+
+		if (
+			existingCreatorRole.statusCode === 400 ||
+			existingCreatorRole.body.result?.data?.length === 0 ||
+			reviewerRole.statusCode === 400 ||
+			reviewerRole.body.result?.data?.length === 0
+		) {
+			const roleCreationPromises = []
+
+			// Add content_creator role creation promise
+			if (existingCreatorRole.statusCode === 400 || existingCreatorRole.body.result?.data?.length === 0) {
+				const createCreatorRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+					title: 'content_creator',
+					user_type: 0,
+					organization_id: 1,
+					label: 'Content Creator',
+					visibility: 'PUBLIC',
+				})
+				roleCreationPromises.push(createCreatorRole)
 			}
 
-			return true
+			// Add reviewer role creation promise
+			if (existingReviewerRole.statusCode === 400 || existingReviewerRole.body.result?.data?.length === 0) {
+				const createReviewRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+					title: 'reviewer',
+					user_type: 0,
+					organization_id: 1,
+					label: 'Reviewer',
+					visibility: 'PUBLIC',
+				})
+				roleCreationPromises.push(createReviewRole)
+			}
+
+			// Wait for both role creation requests to complete in parallel
+			await Promise.all(roleCreationPromises)
 		}
 	}
 	console.log('============>USER ROLE CHECK COMPLETED: ')
+	return true
 }
 
 ;(async () => {
