@@ -1,6 +1,6 @@
 const commonHelper = require('@commonTests')
 const schema = require('./responseSchema')
-jest.setTimeout(200000)
+jest.setTimeout(10000)
 
 describe('Review Stages APIs ', function () {
 	let userDetails

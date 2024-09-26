@@ -83,14 +83,14 @@ const verifyUserRole = async () => {
 	console.log('============>USER ROLE CHECK COMPLETED: ')
 }
 
-// ;(async () => {
-// 	await verifyUserRole()
-// })()
+;(async () => {
+	await verifyUserRole()
+})()
 
 const logIn = async () => {
 	try {
-		let checkForRole = await verifyUserRole()
-		console.log(checkForRole, 'verifyUserRole')
+		// let checkForRole = await verifyUserRole()
+		// console.log(checkForRole, 'verifyUserRole')
 		console.log('============>ATTEMPTING LOGIN : ')
 		let request = defaults(supertest('http://localhost:5001'))
 		await waitForService(baseURL)

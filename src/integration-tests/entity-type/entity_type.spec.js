@@ -1,6 +1,6 @@
 const commonHelper = require('@commonTests')
 const schema = require('./responseSchema')
-jest.setTimeout(20000)
+jest.setTimeout(10000)
 
 describe('Entity-Type APIs', function () {
 	let userDetails
