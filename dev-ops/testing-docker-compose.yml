@@ -119,10 +119,7 @@ services:
         done &&
         echo 'User Service is ready.'
 
-        npm run db:init &&
-        (echo 'Running SCP' && nodemon app.js &) &&
-        (/bin/bash -c 'cd scripts && echo Running scp service scripts && node -r module-alias/register uploadCertificateBaseTemplate.js') &&
-        tail -f /dev/null"
+       npm run db:init && (echo 'Running SCP' && nodemon app.js)"
     volumes:
       - ../../survey-project-creation-service/src/:/var/src
     environment:
