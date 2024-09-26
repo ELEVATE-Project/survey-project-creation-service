@@ -116,10 +116,14 @@ services:
             sleep 1;
         done &&
         echo "User Service is ready.";
-  
+
         echo "Initializing database...";
-        npm run db:init && echo "Database initialized successfully." && nodemon app.js'
-      
+        npm run db:init && 
+        sleep 100 && 
+        echo "Database initialized successfully." && nodemon app.js
+        echo "SCP Started...";
+        '
+
     volumes:
       - ../../survey-project-creation-service/src/:/var/src
     environment:
