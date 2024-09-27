@@ -344,7 +344,7 @@ const updateSchema = {
 				},
 				correlation: {
 					type: 'string',
-				}
+				},
 			},
 			required: ['formsVersion'],
 		},
@@ -510,7 +510,7 @@ const deleteSchema = {
 				},
 				correlation: {
 					type: 'string',
-				}
+				},
 			},
 			required: ['formsVersion'],
 		},
@@ -746,7 +746,7 @@ const listSchema = {
 				},
 				correlation: {
 					type: 'string',
-				}
+				},
 			},
 			required: ['formsVersion'],
 		},

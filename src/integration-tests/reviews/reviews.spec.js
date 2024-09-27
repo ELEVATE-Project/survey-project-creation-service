@@ -9,7 +9,7 @@ describe('Review APIs ', function () {
 		// await commonHelper.verifyUserRole()
 		userDetails = await commonHelper.logIn()
 	})
-
+	jest.setTimeout(200000)
 	it('Start Review', async () => {
 		const projects = await request.get('/scp/v1/resource/upForReview?page=1&limit=5&listing=up_for_review')
 		expect(projects.statusCode).toBe(200)

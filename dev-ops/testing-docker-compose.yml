@@ -119,8 +119,13 @@ services:
 
         echo "Initializing database...";
         npm run db:init && 
-        sleep 100 && 
-        echo "Database initialized successfully." && nodemon app.js
+        echo "Database initialized successfully." &&
+
+        echo "Rebuilding node-expat module...";
+        npm rebuild node-expat && npm rebuild &&
+        
+        echo "Starting the application...";
+        nodemon app.js
         echo "SCP Started...";
         '
 
