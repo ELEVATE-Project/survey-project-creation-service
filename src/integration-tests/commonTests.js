@@ -99,6 +99,7 @@ const verifyUserRole = async () => {
 			if (roleCreationPromises.length > 0) {
 				const resss = await Promise.all(roleCreationPromises)
 				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(resss.body, null, 2))
+				return true
 			}
 		}
 	} catch (error) {
