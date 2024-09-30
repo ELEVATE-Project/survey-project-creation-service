@@ -50,10 +50,6 @@ const verifyUserRole = async () => {
 
 		// Check if the user was created successfully and access_token is available
 		if (res.body?.result?.access_token && res.body.result.user.id) {
-			console.log(
-				'res.body?.result?.access_token  ---------======---------======----> ',
-				res.body?.result?.access_token
-			)
 			defaultHeaders = {
 				'X-auth-token': 'bearer ' + res.body.result.access_token,
 				Connection: 'keep-alive',
@@ -77,11 +73,6 @@ const verifyUserRole = async () => {
 
 			// Add content_creator role creation promise
 			if (existingCreatorRole.statusCode === 400 || !existingCreatorRole.body.result?.data?.length) {
-				console.log(
-					'existingCreatorRole : : : : =====> ',
-					existingCreatorRole.statusCode,
-					existingCreatorRole.body
-				)
 				const createCreatorRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'content_creator',
 					user_type: 0,
@@ -94,11 +85,6 @@ const verifyUserRole = async () => {
 
 			// Add reviewer role creation promise
 			if (existingReviewerRole.statusCode === 400 || !existingReviewerRole.body.result?.data?.length) {
-				console.log(
-					'existingReviewerRole : : : : =====> ',
-					existingReviewerRole.statusCode,
-					existingReviewerRole.body
-				)
 				const createReviewRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'reviewer',
 					user_type: 0,
@@ -109,19 +95,10 @@ const verifyUserRole = async () => {
 				roleCreationPromises.push(createReviewRole)
 			}
 
-			try {
-				// Wait for both role creation requests to complete
-				if (roleCreationPromises.length > 0) {
-					const resss = await Promise.all(roleCreationPromises)
-					console.log('ROLE CREATION : : : : =====> ', JSON.stringify(resss, null, 2))
-					return true // Indicates successful completion
-				} else {
-					console.log('No role creation promises were found.')
-					return false // No promises to resolve
-				}
-			} catch (error) {
-				console.error('Error during role creation: ', error)
-				return false // Return false in case of failure
+			// Wait for both role creation requests to complete
+			if (roleCreationPromises.length > 0) {
+				const resss = await Promise.all(roleCreationPromises)
+				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(resss.body, null, 2))
 			}
 		}
 	} catch (error) {
@@ -133,18 +110,19 @@ const verifyUserRole = async () => {
 	return true
 }
 
+;(async () => {
+	try {
+		console.log('Calling verifyUserRole...')
+		const result = await verifyUserRole()
+		console.log('verifyUserRole result:', result)
+	} catch (error) {
+		console.error('Error while calling verifyUserRole:', error)
+	}
+})()
+
 // Function to log in and generate token
 const logIn = async () => {
 	try {
-		;(async () => {
-			try {
-				console.log('Calling verifyUserRole...')
-				const result = await verifyUserRole()
-				console.log('verifyUserRole result:', result)
-			} catch (error) {
-				console.error('Error while calling verifyUserRole:', error)
-			}
-		})()
 		console.log('============>ATTEMPTING LOGIN : ')
 
 		// Define a separate request instance scoped to this function
@@ -199,15 +177,7 @@ const logIn = async () => {
 		console.error('ERROR : : :', error)
 	}
 }
-;(async () => {
-	try {
-		console.log('Calling logIn...')
-		const result = await logIn()
-		console.log('logIn result :', result)
-	} catch (error) {
-		console.error('Error while calling logIn:', error)
-	}
-})()
+
 // Function to log any errors if they occur
 function logError(res) {
 	let successCodes = [200, 201, 202]
