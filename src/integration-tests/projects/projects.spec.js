@@ -8,6 +8,7 @@ describe('Project APIs ', function () {
 	beforeAll(async () => {
 		// await commonHelper.verifyUserRole()
 		userDetails = await commonHelper.logIn()
+		console.log(userDetails)
 	})
 
 	it('Create Project', async () => {
