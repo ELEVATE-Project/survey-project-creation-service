@@ -13,7 +13,7 @@ const waitForService = async (url) => {
 		resources: [url],
 		delay: 5000, // Initial delay before checking
 		interval: 500, // Interval between checks
-		timeout: 20000, // Max time to wait for service
+		timeout: 10000, // Max time to wait for service
 	}
 	try {
 		await waitOn(opts)
@@ -28,7 +28,8 @@ const waitForService = async (url) => {
 const verifyUserRole = async () => {
 	console.log('============>USER ROLE CHECK : ')
 	let request = defaults(supertest('http://localhost:5001'))
-	jest.setTimeout(10000)
+	await waitForService(baseURL)
+	jest.setTimeout(5000)
 
 	// Create a new user
 	let email = 'orgadmin' + crypto.randomBytes(5).toString('hex') + '@shikshalokam.com'
@@ -109,6 +110,8 @@ const logIn = async () => {
 	try {
 		console.log('============>ATTEMPTING LOGIN : ')
 		let request = defaults(supertest('http://localhost:5001'))
+		await waitForService(baseURL)
+		jest.setTimeout(10000)
 
 		// Generate unique email for testing
 		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
@@ -126,7 +129,6 @@ const logIn = async () => {
 			email: email,
 			password: password,
 		})
-
 		// Check if login was successful and return token details
 		if (res.body?.result?.access_token && res.body.result.user.id) {
 			console.log('============>LOGIN SUCCESSFUL')
