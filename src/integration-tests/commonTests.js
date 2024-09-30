@@ -118,6 +118,7 @@ const waitForService = async (url) => {
 // 	}
 // })();
 
+//test comment
 // Function to log in and generate token
 const logIn = async () => {
 	try {
