@@ -12,6 +12,7 @@ describe('Review APIs ', function () {
 	jest.setTimeout(200000)
 	it('Start Review', async () => {
 		const projects = await request.get('/scp/v1/resource/upForReview?page=1&limit=5&listing=up_for_review')
+		console.log('userDetails =====> ', userDetails)
 		console.log('=-=-=-==-=>>>> ', projects.body)
 		expect(projects.statusCode).toBe(200)
 
