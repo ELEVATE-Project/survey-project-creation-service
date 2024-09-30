@@ -26,104 +26,107 @@ const waitForService = async (url) => {
 }
 
 // Function to verify user roles and create them if necessary
-// const verifyUserRole = async () => {
-// 	console.log('============>USER ROLE CHECK : ');
+const verifyUserRole = async () => {
+	console.log('============>USER ROLE CHECK : ')
 
-// 	let request = defaults(supertest('http://localhost:5001'));
+	// Define a separate request instance scoped to this function
+	let request = defaults(supertest('http://localhost:5001'))
 
-// 	// Wait for the service to be ready
-// 	await waitForService(baseURL);
+	// Wait for the service to be ready
+	await waitForService(baseURL)
 
-// 	jest.setTimeout(5000);
+	jest.setTimeout(5000)
 
-// 	// Create a new user
-// 	let email = 'orgadmin' + crypto.randomBytes(5).toString('hex') + '@shikshalokam.com';
-// 	let password = 'Welcome@123';
+	// Create a new user
+	let email = 'orgadmin' + crypto.randomBytes(5).toString('hex') + '@shikshalokam.com'
+	let password = 'Welcome@123'
 
-// 	try {
-// 		let res = await request.post('/user/v1/account/create').send({
-// 			name: 'orgadmin',
-// 			email: email,
-// 			password: password,
-// 		});
+	try {
+		let res = await request.post('/user/v1/account/create').send({
+			name: 'orgadmin',
+			email: email,
+			password: password,
+		})
 
-// 		// Check if the user was created successfully and access_token is available
-// 		if (res.body?.result?.access_token && res.body.result.user.id) {
-// 			defaultHeaders = {
-// 				'X-auth-token': 'bearer ' + res.body.result.access_token,
-// 				Connection: 'keep-alive',
-// 				'Content-Type': 'application/json',
-// 			};
+		// Check if the user was created successfully and access_token is available
+		if (res.body?.result?.access_token && res.body.result.user.id) {
+			defaultHeaders = {
+				'X-auth-token': 'bearer ' + res.body.result.access_token,
+				Connection: 'keep-alive',
+				'Content-Type': 'application/json',
+			}
 
-// 			// Run role checks concurrently for content_creator and reviewer roles
-// 			const [existingCreatorRole, existingReviewerRole] = await Promise.all([
-// 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-// 					title: 'content_creator',
-// 					organization_id: 1,
-// 				}),
-// 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-// 					title: 'reviewer',
-// 					organization_id: 1,
-// 				}),
-// 			]);
+			// Run role checks concurrently for content_creator and reviewer roles
+			const [existingCreatorRole, existingReviewerRole] = await Promise.all([
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'content_creator',
+					organization_id: 1,
+				}),
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'reviewer',
+					organization_id: 1,
+				}),
+			])
 
-// 			// Create role creation promises
-// 			let roleCreationPromises = [];
+			// Create role creation promises
+			let roleCreationPromises = []
 
-// 			// Add content_creator role creation promise
-// 			if (existingCreatorRole.statusCode === 400 || !existingCreatorRole.body.result?.data?.length) {
-// 				const createCreatorRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
-// 					title: 'content_creator',
-// 					user_type: 0,
-// 					organization_id: 1,
-// 					label: 'Content Creator',
-// 					visibility: 'PUBLIC',
-// 				});
-// 				roleCreationPromises.push(createCreatorRole);
-// 			}
+			// Add content_creator role creation promise
+			if (existingCreatorRole.statusCode === 400 || !existingCreatorRole.body.result?.data?.length) {
+				const createCreatorRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+					title: 'content_creator',
+					user_type: 0,
+					organization_id: 1,
+					label: 'Content Creator',
+					visibility: 'PUBLIC',
+				})
+				roleCreationPromises.push(createCreatorRole)
+			}
 
-// 			// Add reviewer role creation promise
-// 			if (existingReviewerRole.statusCode === 400 || !existingReviewerRole.body.result?.data?.length) {
-// 				const createReviewRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
-// 					title: 'reviewer',
-// 					user_type: 0,
-// 					organization_id: 1,
-// 					label: 'Reviewer',
-// 					visibility: 'PUBLIC',
-// 				});
-// 				roleCreationPromises.push(createReviewRole);
-// 			}
+			// Add reviewer role creation promise
+			if (existingReviewerRole.statusCode === 400 || !existingReviewerRole.body.result?.data?.length) {
+				const createReviewRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+					title: 'reviewer',
+					user_type: 0,
+					organization_id: 1,
+					label: 'Reviewer',
+					visibility: 'PUBLIC',
+				})
+				roleCreationPromises.push(createReviewRole)
+			}
 
-// 			// Wait for both role creation requests to complete
-// 			if (roleCreationPromises.length > 0) {
-// 				await Promise.all(roleCreationPromises);
-// 			}
-// 		}
-// 	} catch (error) {
-// 		console.error('Error in verifyUserRole:', error);
-// 		throw error;
-// 	}
+			// Wait for both role creation requests to complete
+			if (roleCreationPromises.length > 0) {
+				await Promise.all(roleCreationPromises)
+			}
+		}
+	} catch (error) {
+		console.error('Error in verifyUserRole:', error)
+		throw error
+	}
 
-// 	console.log('============>USER ROLE CHECK COMPLETED: ');
-// 	return true;
-// };
+	console.log('============>USER ROLE CHECK COMPLETED: ')
+	return true
+}
 
-// ;(async () => {
-// 	try {
-// 		console.log('Calling verifyUserRole...');
-// 		const result = await verifyUserRole();
-// 		console.log('verifyUserRole result:', result);
-// 	} catch (error) {
-// 		console.error('Error while calling verifyUserRole:', error);
-// 	}
-// })();
+;(async () => {
+	try {
+		console.log('Calling verifyUserRole...')
+		const result = await verifyUserRole()
+		console.log('verifyUserRole result:', result)
+	} catch (error) {
+		console.error('Error while calling verifyUserRole:', error)
+	}
+})()
 
-//test comment
 // Function to log in and generate token
 const logIn = async () => {
 	try {
 		console.log('============>ATTEMPTING LOGIN : ')
+
+		// Define a separate request instance scoped to this function
 		let request = defaults(supertest('http://localhost:5001'))
+
 		await waitForService(baseURL)
 
 		jest.setTimeout(10000)
@@ -185,5 +188,5 @@ function logError(res) {
 module.exports = {
 	logIn, //-- export if token is generated
 	logError,
-	// verifyUserRole,
+	verifyUserRole, // Uncomment if needed externally
 }
