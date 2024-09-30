@@ -49,6 +49,7 @@ describe('Project APIs ', function () {
 	it('Submit Project for Review', async () => {
 		//create project
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
+		console.log(' -=-=-=-=-=-=-=-=-=-=-> ', createProject)
 		const projectId = createProject.body?.result?.id
 		const res = await request.post('/scp/v1/projects/submitForReview/' + projectId)
 		expect(res.statusCode).toBe(200)
