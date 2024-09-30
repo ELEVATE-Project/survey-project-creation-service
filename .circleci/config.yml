@@ -10,8 +10,8 @@ jobs:
     steps:
       - checkout:
           path: ~/survey-project-creation-service/
-      - restore_cache:
-          key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
+      # - restore_cache:
+      #     key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
       - run:
           name: Install dependencies
           command: cd src/ && npm install
@@ -30,8 +30,8 @@ jobs:
       - run:
           name: Cloning user service
           command: cd ../ && git clone https://github.com/ELEVATE-Project/user.git --branch develop --single-branch
-      - restore_cache:
-          key: user-dependency-cache-{{ checksum "../user/src/package.json" }}
+      # - restore_cache:
+      #     key: user-dependency-cache-{{ checksum "../user/src/package.json" }}
       - run:
           name: Install User service dependencies
           command: cd ../user/src/ && npm install
