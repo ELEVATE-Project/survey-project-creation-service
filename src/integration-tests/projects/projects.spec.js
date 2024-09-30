@@ -12,18 +12,21 @@ describe('Project APIs ', function () {
 
 	it('Create Project', async () => {
 		let res = await request.post('/scp/v1/projects/update').send(insertProjectData())
+		console.log(' -=-=-=-=-=-=-=-=-=-=-> ', res.body)
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
 
 	it('Delete Project', async () => {
 		const res = await request.delete('/scp/v1/projects/update/999999')
+		console.log(' -=-=-=-=-=-=-=-=-=-=-> ', res.body)
 		expect(res.statusCode).toBe(400)
 	})
 
 	it('Project Details', async () => {
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
 		const projectId = createProject.body?.result?.id
+		console.log(' -=-=-=-=-=-=-=-=-=-=-> ', createProject.body)
 		let res = await request.get('/scp/v1/projects/details/' + projectId)
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.detailSchema)
@@ -37,6 +40,7 @@ describe('Project APIs ', function () {
 	it('List Project', async () => {
 		//create project
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
+		console.log(' -=-=-=-=-=-=-=-=-=-=-> ', createProject.body)
 		const res = await request.get('/scp/v1/resource/list?page=1&limit=5&listing=drafts')
 		expect(res.statusCode).toBe(200)
 		if (createProject.body?.result?.id) {
