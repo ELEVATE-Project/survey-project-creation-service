@@ -80,7 +80,7 @@ const verifyUserRole = async () => {
 				console.log(
 					'existingCreatorRole : : : : =====> ',
 					existingCreatorRole.statusCode,
-					existingCreatorRole.body.result
+					existingCreatorRole.body
 				)
 				const createCreatorRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'content_creator',
@@ -97,7 +97,7 @@ const verifyUserRole = async () => {
 				console.log(
 					'existingReviewerRole : : : : =====> ',
 					existingReviewerRole.statusCode,
-					existingReviewerRole.body.result?.data
+					existingReviewerRole.body
 				)
 				const createReviewRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'reviewer',
