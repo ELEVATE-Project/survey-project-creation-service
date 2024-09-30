@@ -13,6 +13,7 @@ describe('Review APIs ', function () {
 	it('Start Review', async () => {
 		const projects = await request.get('/scp/v1/resource/upForReview?page=1&limit=5&listing=up_for_review')
 		expect(projects.statusCode).toBe(200)
+		console.log('=-=-=-==-=>>>> ', projects.body)
 
 		if (projects.body?.result?.count > 0) {
 			let projectId = projects.body.result.data[0].id
