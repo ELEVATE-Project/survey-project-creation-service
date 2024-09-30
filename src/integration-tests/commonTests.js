@@ -50,6 +50,10 @@ const verifyUserRole = async () => {
 
 		// Check if the user was created successfully and access_token is available
 		if (res.body?.result?.access_token && res.body.result.user.id) {
+			console.log(
+				'res.body?.result?.access_token  ---------======---------======----> ',
+				res.body?.result?.access_token
+			)
 			defaultHeaders = {
 				'X-auth-token': 'bearer ' + res.body.result.access_token,
 				Connection: 'keep-alive',
