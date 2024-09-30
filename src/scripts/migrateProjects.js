@@ -9,6 +9,7 @@ require('module-alias/register')
 const entityTypeService = require('@services/entity-types')
 const projectService = require('@services/projects')
 const entityService = require('@services/entities')
+const resourceService = require('@services/resource')
 require('dotenv').config({ path: '../.env' })
 const _ = require('lodash')
 const MongoClient = require('mongodb').MongoClient
@@ -313,10 +314,17 @@ function findExistingEntity(entityTypeKey, entityValue, entityTypesWithEntities)
 async function createProject(projectData, userId, orgId) {
 	try {
 		// Logic to create the project
-		const response = await projectService.create(projectData, userId, orgId)
-		return { success: true, project: response }
+		const createProject = await projectService.create(projectData, userId, orgId)
+		if (!createProject?.result?.id) {
+			throw new Error('Failed to create project')
+		}
+		const updateProject = await resourceService.publishCallback(createProject.result.id, projectData.id)
+		if (updateProject.status != 202) {
+			throw new Error('Failed to update project')
+		}
+		return { success: true, project: createProject }
 	} catch (error) {
-		console.log('failed to create project ', projectData.published_id)
+		console.log('Failed to create project ', projectData.published_id)
 		return { success: false, error }
 	}
 }
@@ -393,7 +401,7 @@ async function createProjectAndEntities(templateData, convertedEntities, created
 		process.env.DEFAULT_ORG_ID
 	)
 	if (projectCreationResponse.success) {
-		console.log('Project created successfully:', projectCreationResponse.project)
+		console.log('Project created successfully:', projectCreationResponse.result)
 	} else {
 		console.error('Failed to create project:', projectCreationResponse.error)
 	}

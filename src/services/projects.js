@@ -1,3 +1,4 @@
+require('dotenv').config({ path: '../.env' })
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
@@ -58,7 +59,6 @@ module.exports = class ProjectsHelper {
 			}
 
 			const orgConfig = await orgExtensionService.getConfig(orgId)
-
 			const orgConfigList = _.reduce(
 				orgConfig.result.resource,
 				(acc, item) => {

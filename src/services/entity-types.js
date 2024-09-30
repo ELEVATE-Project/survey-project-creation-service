@@ -1,4 +1,5 @@
 // DependenciesI
+require('dotenv').config({ path: '../.env' })
 const httpStatusCode = require('@generics/http-status')
 const { UniqueConstraintError } = require('sequelize')
 const { Op } = require('sequelize')

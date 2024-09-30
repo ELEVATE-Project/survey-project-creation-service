@@ -1,4 +1,5 @@
 // Dependencies
+require('dotenv').config({ path: '../.env' })
 const httpStatusCode = require('@generics/http-status')
 const entityQueries = require('@database/queries/entities')
 const { UniqueConstraintError, ForeignKeyConstraintError } = require('sequelize')
