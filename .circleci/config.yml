@@ -119,7 +119,7 @@ jobs:
       - run:
           name: Stop the docker containers - Unmap volumes
           command: |-
-            cd ../dev-ops/ && docker-compose -f testing-docker-compose.yml down
+            pwd && cd ../dev-ops/ && docker-compose -f testing-docker-compose.yml down
 workflows:
   build-and-test: # This is the name of the workflow,
     # Inside the workflow, you define the jobs you want to run.

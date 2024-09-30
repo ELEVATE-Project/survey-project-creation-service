@@ -110,19 +110,18 @@ const verifyUserRole = async () => {
 	return true
 }
 
-;(async () => {
-	try {
-		console.log('Calling verifyUserRole...')
-		const result = await verifyUserRole()
-		console.log('verifyUserRole result:', result)
-	} catch (error) {
-		console.error('Error while calling verifyUserRole:', error)
-	}
-})()
-
 // Function to log in and generate token
 const logIn = async () => {
 	try {
+		;(async () => {
+			try {
+				console.log('Calling verifyUserRole...')
+				const result = await verifyUserRole()
+				console.log('verifyUserRole result:', result)
+			} catch (error) {
+				console.error('Error while calling verifyUserRole:', error)
+			}
+		})()
 		console.log('============>ATTEMPTING LOGIN : ')
 
 		// Define a separate request instance scoped to this function
