@@ -6,10 +6,11 @@ jest.setTimeout(200000)
 describe('Review APIs ', function () {
 	let userDetails
 	beforeAll(async () => {
-		// await commonHelper.verifyUserRole()
+		await commonHelper.verifyUserRole()
+		console.log('verifyUserRole function completed....')
 		userDetails = await commonHelper.logIn()
 	})
-	jest.setTimeout(200000)
+	jest.setTimeout(100000)
 	it('Start Review', async () => {
 		const projects = await request.get('/scp/v1/resource/upForReview?page=1&limit=5&listing=up_for_review')
 		console.log('userDetails =====> ', userDetails)
