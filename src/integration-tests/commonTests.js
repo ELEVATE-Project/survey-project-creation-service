@@ -80,7 +80,7 @@ const verifyUserRole = async () => {
 				console.log(
 					'existingCreatorRole : : : : =====> ',
 					existingCreatorRole.statusCode,
-					existingCreatorRole.body.result?.data
+					existingCreatorRole.body.result
 				)
 				const createCreatorRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'content_creator',
