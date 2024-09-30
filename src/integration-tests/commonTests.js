@@ -97,24 +97,8 @@ const verifyUserRole = async () => {
 
 			// Wait for both role creation requests to complete
 			if (roleCreationPromises.length > 0) {
-				await Promise.all(roleCreationPromises)
-				// Run role checks concurrently for content_creator and reviewer roles
-				const [existingCreatorRole, existingReviewerRole] = await Promise.all([
-					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-						title: 'content_creator',
-						organization_id: 1,
-					}),
-					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-						title: 'reviewer',
-						organization_id: 1,
-					}),
-				])
-				console.log(
-					'existingCreatorRole ======> ',
-					existingCreatorRole,
-					'existingReviewerRole ====> ',
-					existingReviewerRole
-				)
+				const resss = await Promise.all(roleCreationPromises)
+				console.log('ROLE CREATION : : : : =====> ', resss)
 			}
 		}
 	} catch (error) {
