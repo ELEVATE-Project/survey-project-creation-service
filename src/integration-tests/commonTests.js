@@ -109,11 +109,19 @@ const verifyUserRole = async () => {
 				roleCreationPromises.push(createReviewRole)
 			}
 
-			// Wait for both role creation requests to complete
-			if (roleCreationPromises.length > 0) {
-				const resss = await Promise.all(roleCreationPromises)
-				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(resss.body, null, 2))
-				return true
+			try {
+				// Wait for both role creation requests to complete
+				if (roleCreationPromises.length > 0) {
+					const resss = await Promise.all(roleCreationPromises)
+					console.log('ROLE CREATION : : : : =====> ', JSON.stringify(resss, null, 2))
+					return true // Indicates successful completion
+				} else {
+					console.log('No role creation promises were found.')
+					return false // No promises to resolve
+				}
+			} catch (error) {
+				console.error('Error during role creation: ', error)
+				return false // Return false in case of failure
 			}
 		}
 	} catch (error) {
@@ -195,7 +203,7 @@ const logIn = async () => {
 	try {
 		console.log('Calling logIn...')
 		const result = await logIn()
-		console.log('logIn result:', result)
+		console.log('logIn result :', result)
 	} catch (error) {
 		console.error('Error while calling logIn:', error)
 	}
