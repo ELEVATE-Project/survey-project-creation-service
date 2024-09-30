@@ -191,7 +191,15 @@ const logIn = async () => {
 		console.error('ERROR : : :', error)
 	}
 }
-
+;(async () => {
+	try {
+		console.log('Calling logIn...')
+		const result = await logIn()
+		console.log('logIn result:', result)
+	} catch (error) {
+		console.error('Error while calling logIn:', error)
+	}
+})()
 // Function to log any errors if they occur
 function logError(res) {
 	let successCodes = [200, 201, 202]
