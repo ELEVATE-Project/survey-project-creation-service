@@ -73,6 +73,11 @@ const verifyUserRole = async () => {
 
 			// Add content_creator role creation promise
 			if (existingCreatorRole.statusCode === 400 || !existingCreatorRole.body.result?.data?.length) {
+				console.log(
+					'existingCreatorRole : : : : =====> ',
+					existingCreatorRole.statusCode,
+					existingCreatorRole.body.result?.data
+				)
 				const createCreatorRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'content_creator',
 					user_type: 0,
@@ -85,6 +90,11 @@ const verifyUserRole = async () => {
 
 			// Add reviewer role creation promise
 			if (existingReviewerRole.statusCode === 400 || !existingReviewerRole.body.result?.data?.length) {
+				console.log(
+					'existingReviewerRole : : : : =====> ',
+					existingReviewerRole.statusCode,
+					existingReviewerRole.body.result?.data
+				)
 				const createReviewRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'reviewer',
 					user_type: 0,
