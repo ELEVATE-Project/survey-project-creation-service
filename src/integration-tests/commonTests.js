@@ -112,6 +112,16 @@ const verifyUserRole = async () => {
 
 ;(async () => {
 	try {
+		console.log(
+			'PROCESS ENV VARIABLES : : ==> ',
+			CLOUD_STORAGE_PROVIDER,
+			CLOUD_STORAGE_ACCOUNTNAME,
+			CLOUD_STORAGE_SECRET,
+			CLOUD_STORAGE_BUCKETNAME,
+			CLOUD_STORAGE_REGION,
+			CLOUD_ENDPOINT
+		)
+
 		console.log('Calling verifyUserRole...')
 		const result = await verifyUserRole()
 		console.log('verifyUserRole result:', result)
