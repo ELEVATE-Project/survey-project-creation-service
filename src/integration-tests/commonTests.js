@@ -114,12 +114,12 @@ const verifyUserRole = async () => {
 	try {
 		console.log(
 			'PROCESS ENV VARIABLES : : ==> ',
-			CLOUD_STORAGE_PROVIDER,
-			CLOUD_STORAGE_ACCOUNTNAME,
-			CLOUD_STORAGE_SECRET,
-			CLOUD_STORAGE_BUCKETNAME,
-			CLOUD_STORAGE_REGION,
-			CLOUD_ENDPOINT
+			process.env.CLOUD_STORAGE_PROVIDER,
+			process.env.CLOUD_STORAGE_ACCOUNTNAME,
+			process.env.CLOUD_STORAGE_SECRET,
+			process.env.CLOUD_STORAGE_BUCKETNAME,
+			process.env.CLOUD_STORAGE_REGION,
+			process.env.CLOUD_ENDPOINT
 		)
 
 		console.log('Calling verifyUserRole...')
