@@ -4,7 +4,6 @@
  * Date : 04-June-2024
  * Description : Resource Service
  */
-require('dotenv').config({ path: '../.env' })
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
@@ -1085,6 +1084,7 @@ module.exports = class resourceHelper {
 				},
 				{
 					published_id: publishedId,
+					published_on: new Date(),
 					status: common.RESOURCE_STATUS_PUBLISHED,
 				}
 			)

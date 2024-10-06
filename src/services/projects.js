@@ -1,4 +1,3 @@
-require('dotenv').config({ path: '../.env' })
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')

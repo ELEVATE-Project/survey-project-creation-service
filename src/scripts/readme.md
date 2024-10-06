@@ -12,5 +12,5 @@
 
 -   Run **migrateProjects.js** only once while setup the project
     ```bash
-    node -r module-alias/register migrateProjects.js
+    node migrateProjects.js
     ```
