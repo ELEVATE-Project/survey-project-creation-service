@@ -502,7 +502,7 @@ async function createProjectAndEntities(
 			process.env.DEFAULT_ORG_ID
 		)
 		if (projectCreationResponse.success) {
-			console.log('Project created successfully:', projectCreationResponse.result)
+			console.log('Project created successfully:', projectCreationResponse.projectId)
 			return {
 				success: true,
 				projectId: projectCreationResponse.projectId,
