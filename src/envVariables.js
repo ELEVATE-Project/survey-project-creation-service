@@ -181,9 +181,18 @@ let environmentVariables = {
 		message: 'Interface Service host address',
 		optional: false,
 	},
+	ENABLE_OBSERVATION_IN_PROJECTS: {
+		message: 'Enable observation in Projects',
+		optional: false,
+	},
 	OBSERVATION_DEEP_LINK_REGEX: {
 		message: 'Observation deep link regex',
 		optional: true,
+		requiredIf: {
+			key: 'ENABLE_OBSERVATION_IN_PROJECTS',
+			operator: 'EQUALS',
+			value: 'true',
+		},
 	},
 }
 

@@ -880,7 +880,11 @@ module.exports = class ProjectsHelper {
 							}
 						}
 					}
-				} else if (entityType.value === common.SOLUTION_DETAILS && fieldData) {
+				} else if (
+					entityType.value === common.SOLUTION_DETAILS &&
+					fieldData &&
+					JSON.parse(process.env.ENABLE_OBSERVATION_IN_PROJECTS)
+				) {
 					//validate the observation name
 					let checkRegex = utils.checkRegexPattern(entityType, fieldData.name)
 					if (!checkRegex) {
