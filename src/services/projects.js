@@ -881,7 +881,7 @@ module.exports = class ProjectsHelper {
 						}
 					}
 				} else if (entityType.value === common.SOLUTION_DETAILS && fieldData) {
-					//validate the name
+					//validate the observation name
 					let checkRegex = utils.checkRegexPattern(entityType, fieldData.name)
 					if (!checkRegex) {
 						return {
@@ -894,7 +894,7 @@ module.exports = class ProjectsHelper {
 							),
 						}
 					}
-					//validate the url
+					//validate the observation url
 					let regex = new RegExp(process.env.OBSERVATION_DEEP_LINK_REGEX)
 					let validateURL = regex.test(fieldData.link)
 					if (!validateURL) {
