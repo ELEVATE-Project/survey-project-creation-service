@@ -880,6 +880,33 @@ module.exports = class ProjectsHelper {
 							}
 						}
 					}
+				} else if (entityType.value === common.SOLUTION_DETAILS && fieldData) {
+					//validate the name
+					let checkRegex = utils.checkRegexPattern(entityType, fieldData.name)
+					if (!checkRegex) {
+						return {
+							hasError: true,
+							error: utils.errorObject(
+								sourceType,
+								entityType.value,
+								entityType.validations.message ||
+									`Solution Details ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
+							),
+						}
+					}
+					//validate the url
+					let regex = new RegExp(process.env.OBSERVATION_DEEP_LINK_REGEX)
+					let validateURL = regex.test(fieldData.link)
+					if (!validateURL) {
+						return {
+							hasError: true,
+							error: utils.errorObject(
+								sourceType,
+								entityType.value,
+								entityType.validations.message || `Invalid observation URL in ${model}`
+							),
+						}
+					}
 				} else {
 					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
 					if (!checkRegex) {

@@ -140,6 +140,7 @@ module.exports = {
 	REVIEW_STATUS: 'review_status',
 	COMMENT_STATUS_OPEN: 'OPEN',
 	LEARNING_RESOURCE: 'learning_resources',
+	SOLUTION_DETAILS: 'solution_details',
 	TASK_ALLOWED_FILE_TYPES: 'file_types',
 	ALLOWED_FILE_TYPES: {
 		images: ['jpg', 'png', 'jpeg', 'bmp', 'gif', 'tiff', 'heif'],

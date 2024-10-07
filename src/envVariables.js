@@ -181,6 +181,10 @@ let environmentVariables = {
 		message: 'Interface Service host address',
 		optional: false,
 	},
+	OBSERVATION_DEEP_LINK_REGEX: {
+		message: 'Observation deep link regex',
+		optional: true,
+	},
 }
 
 let success = true
