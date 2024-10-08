@@ -50,12 +50,6 @@ module.exports = {
 				validation: { required: false, regex: '^([1-9]|10)$' },
 				model: ['tasks'],
 			},
-			{
-				entityType: 'solution_details',
-				has_entities: false,
-				validation: { required: false, regex: '^[a-zA-Z0-9 <>_&-]{1,256}$' },
-				model: ['tasks'],
-			},
 		]
 
 		//add entity type details
