@@ -40,7 +40,7 @@ services:
       driver: none
 
   postgres:
-    image: 'postgres:15'
+    image: 'postgres:latest'
     ports:
       - '5432:5432'
     environment:
