@@ -15,7 +15,7 @@ const db = new Client({
 
 db.connect((err) => {
 	if (err) {
-		console.error('Database connection error:', err)
+		console.error('Database connection error ==> :', err)
 	} else {
 		console.log('Connected to DB')
 	}
