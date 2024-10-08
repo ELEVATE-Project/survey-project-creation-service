@@ -28,19 +28,16 @@ const createSchema = {
 					],
 				},
 			},
-			required: ['Id', 'status', 'module', 'request_type'],
+			required: ['id', 'status', 'module', 'request_type'],
 		},
 		meta: {
 			type: 'object',
 			properties: {
-				correlation: {
-					type: 'string',
-				},
-				meetingPlatform: {
-					type: 'string',
-				},
+				formsVersion: {
+					type: 'array'
+				}
 			},
-			required: ['correlation', 'meetingPlatform'],
+			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
@@ -81,14 +78,11 @@ const updateSchema = {
 		meta: {
 			type: 'object',
 			properties: {
-				correlation: {
-					type: 'string',
-				},
-				meetingPlatform: {
-					type: 'string',
-				},
+				formsVersion: {
+					type: 'array'
+				}
 			},
-			required: ['correlation', 'meetingPlatform'],
+			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
@@ -109,17 +103,14 @@ const deleteSchema = {
 		meta: {
 			type: 'object',
 			properties: {
-				correlation: {
-					type: 'string',
-				},
-				meetingPlatform: {
-					type: 'string',
-				},
+				formsVersion: {
+					type: 'array'
+				}
 			},
-			required: ['correlation', 'meetingPlatform'],
+			required: ['formsVersion'],
 		},
 	},
-	required: ['responseCode', 'message', 'result', 'meta'],
+	required: ['responseCode', 'message', 'result'],
 }
 
 const listSchema = {
@@ -160,9 +151,101 @@ const listSchema = {
 	required: ['responseCode', 'message', 'result'],
 }
 
+const getPermissionSchema = {
+	'type': 'object',
+	'properties': {
+		'responseCode': {
+			'type': 'string'
+		},
+		'message': {
+			'type': 'string'
+		},
+		'result': {
+			'type': 'object',
+			'properties': {
+				'data': {
+					'type': 'array',
+					'items': [
+						{
+							'type': 'object',
+							'properties': {
+								'id': {
+									'type': 'integer'
+								},
+								'code': {
+									'type': 'string'
+								},
+								'module': {
+									'type': 'string'
+								},
+								'request_type': {
+									'type': 'array',
+									'items': [
+										{
+											'type': 'string'
+										},
+										{
+											'type': 'string'
+										},
+										{
+											'type': 'string'
+										}
+									]
+								},
+								'api_path': {
+									'type': 'string'
+								},
+								'status': {
+									'type': 'string'
+								}
+							},
+							'required': [
+								'id',
+								'code',
+								'module',
+								'request_type',
+								'api_path',
+								'status'
+							]
+						}
+					]
+				},
+				'count': {
+					'type': 'integer'
+				}
+			},
+			'required': [
+				'data',
+				'count'
+			]
+		},
+		'meta': {
+			'type': 'object',
+			'properties': {
+				'formsVersion': {
+					'type': 'array',
+					'items': {}
+				},
+				'correlation': {
+					'type': 'string'
+				}
+			},
+			'required': [
+				'formsVersion'
+			]
+		}
+	},
+	'required': [
+		'responseCode',
+		'message',
+		'result',
+		'meta'
+	]
+}
 module.exports = {
 	createSchema,
 	updateSchema,
 	deleteSchema,
 	listSchema,
+	getPermissionSchema
 }
