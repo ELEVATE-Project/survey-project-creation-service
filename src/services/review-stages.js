@@ -52,7 +52,7 @@ module.exports = class reviewStagesHelper {
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'REVIEW_STAGE_UPDATED_SUCCESSFULLY',
-				result: updatedReviewStage,
+				result: updatedReviewStage[0],
 			})
 		} catch (error) {
 			throw error

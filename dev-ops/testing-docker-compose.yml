@@ -71,10 +71,11 @@ services:
 
   user:
     build: '../../user/'
+    image: elevate/user:1.0
     ports:
       - '5001:5001'
-    # volumes:
-    #   - ../../user/src/:/var/src
+    volumes:
+      - ../../user/src/:/var/src
     command: >
       bash -c "echo 'Waiting for PostgreSQL to accept connections...' &&
         until timeout 1 bash -c '</dev/tcp/postgres/5432' >/dev/null 2>&1; do
@@ -104,26 +105,33 @@ services:
       - elevate_net
     env_file:
       - integration_test.user.env
-
   survey-project-creation-service:
     build: '../../survey-project-creation-service/'
     ports:
       - '6001:6001'
     command: >
-      bash -c "
-
-        echo 'Waiting for User to accept connections...'
-        until timeout 1 bash -c '</dev/tcp/user/5001' >/dev/null 2>&1; do
-            echo 'Waiting for User to be ready...'
-            sleep 1
+      bash -c '
+        echo "Waiting for User to accept connections...";
+        until timeout 1 bash -c "</dev/tcp/user/5001" >/dev/null 2>&1; do
+            echo "Waiting for User to be ready...";
+            sleep 1;
         done &&
-        echo 'User Service is ready.'
+        echo "User Service is ready.";
 
-        npm run db:init &&
-        echo 'Running SCP' &&
-        nodemon app.js "
-    # volumes:
-    #   - ../../survey-project-creation-service/src/:/var/src
+        echo "Initializing database...";
+        npm run db:init && 
+        echo "Database initialized successfully." &&
+
+        echo "Rebuilding node-expat module...";
+        npm rebuild node-expat && npm rebuild &&
+        
+        echo "Starting the application...";
+        nodemon app.js
+        echo "SCP Started...";
+        '
+
+    volumes:
+      - ../../survey-project-creation-service/src/:/var/src
     environment:
       - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/integration_test_scp
       - KAFKA_URL=kafka:9092
