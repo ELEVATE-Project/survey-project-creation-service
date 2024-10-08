@@ -79,7 +79,7 @@ function insertProjectData() {
 		tasks: [
 			{
 				id: '7a8b13fb-c9e1-4296-8abd-8b64b357a128',
-				name: 'task without children',
+				name: 'task with child',
 				type: 'content',
 				is_mandatory: true,
 				sequence_no: 1,
@@ -99,6 +99,26 @@ function insertProjectData() {
 						sequence_no: 1,
 					},
 				],
+			},
+			{
+				id: 'db3ecd06-29d6-4d7e-b720-e8a85385e10a',
+				name: 'task without observation solution',
+				type: 'content',
+				is_mandatory: true,
+				sequence_no: 1,
+				allow_evidences: false,
+				learning_resources: [
+					{
+						name: 'sample doc',
+						url: 'http://test.com',
+					},
+				],
+				solution_details: {
+					name: 'sample observation',
+					min_no_of_submissions_required: 2,
+					type: 'observation',
+					link: 'https://dev.elevate-ml.shikshalokam.org/view/observation/beb6e72ad73a097b9d7910e45a613431',
+				},
 			},
 		],
 	}
