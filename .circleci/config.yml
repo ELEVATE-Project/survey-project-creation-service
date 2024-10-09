@@ -35,7 +35,7 @@ jobs:
             - ../user/src/node_modules
       - run:
           name: Replace SCP Service environment variables
-          command: |
+          ccommand: |
             # Define the file path
             ENV_FILE=~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
              # Replace the existing variables or append them if they don't exist
@@ -71,8 +71,8 @@ jobs:
             ls -l $USER_ENV_FILE
              # Output the file content for verification
             cat $USER_ENV_FILE
-            - run:
-          name: Starting the docker containers
+      - run:
+          name: Starting Docker containers
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
 
@@ -105,7 +105,7 @@ jobs:
       - store_test_results:
           path: ./dev-ops/report
       - run:
-          name: Stop the docker containers - Unmap volumes
+          name: Stop the Docker containers - Unmap volumes
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml down
 
