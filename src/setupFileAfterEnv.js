@@ -1,38 +1,35 @@
-const { Client } = require('pg')
-const { matchers } = require('jest-json-schema')
 const { Pool } = require('pg')
-const pool = new Pool()
+const { matchers } = require('jest-json-schema')
 
+// Extend Jest with JSON schema matchers
 expect.extend(matchers)
 
-//PostgreSQL connection string
-const connectionString = 'postgres://postgres:postgres@localhost:5432/integration_test_scp'
-
-// Connect to the PostgreSQL database using the connection string
-const db = new Client({
-	connectionString: connectionString,
+// Create a connection pool to the PostgreSQL database
+const pool = new Pool({
+	connectionString: 'postgres://postgres:postgres@localhost:5432/integration_test_scp',
+	max: 100, // Adjust based on your test load
 })
 
-db.connect((err) => {
-	if (err) {
-		console.error('Database connection error:', err)
-	} else {
-		console.log('Connected to DB')
-	}
-})
-
-global.db = db
+// Set up the global `db` object using the pool
+global.db = pool
 
 beforeAll(async () => {
-	// You can add any setup code you need here
+	try {
+		// Test database connection and any setup code you need here
+		await global.db.query('SELECT 1')
+		console.log('Connected to DB')
+	} catch (err) {
+		console.error('Database connection error:', err)
+	}
 })
 
 afterAll(async () => {
 	try {
-		// Add any cleanup code you need, such as dropping tables, here
+		// Add any cleanup code, such as dropping tables, here
 	} catch (error) {
 		console.error(error)
 	} finally {
-		db.end() // Close the PostgreSQL connection
+		// Close the PostgreSQL connection pool
+		await global.db.end()
 	}
 })
