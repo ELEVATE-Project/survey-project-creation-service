@@ -14,11 +14,29 @@ const sequelize = new Sequelize('postgres://postgres:postgres@localhost:5432/int
 // Set up the global `db` object using Sequelize instance
 global.db = sequelize
 
+// Helper function to wait and retry
+const waitForDatabase = async (retries = 5, delay = 3000) => {
+	for (let i = 0; i < retries; i++) {
+		try {
+			await global.db.authenticate()
+			console.log('Connected to DB')
+			return true
+		} catch (err) {
+			console.error(`Attempt ${i + 1} failed: ${err.message}`)
+			if (i < retries - 1) {
+				await new Promise((resolve) => setTimeout(resolve, delay)) // Wait before retrying
+			}
+		}
+	}
+	throw new Error('Failed to connect to the database after multiple attempts.')
+}
+
 beforeAll(async () => {
 	try {
+		// Retry database connection up to 5 times
+		await waitForDatabase()
 		// Sync all models to the database (force: true will drop tables if they exist and recreate them)
 		await global.db.sync({ force: true })
-		console.log('Database synced and connected')
 	} catch (err) {
 		console.error('Database connection error:', err)
 	}
