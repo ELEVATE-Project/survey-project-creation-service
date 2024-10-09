@@ -25,11 +25,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
 	try {
-		// Add any cleanup code, such as dropping tables, here
+		await global.db.end() // Ensure the pool is properly closed
 	} catch (error) {
-		console.error(error)
-	} finally {
-		// Close the PostgreSQL connection pool
-		await global.db.end()
+		console.error('Error during DB cleanup:', error)
 	}
 })
