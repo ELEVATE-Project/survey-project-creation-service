@@ -1,17 +1,16 @@
 version: 2.1 # CircleCI version
 orbs:
   sonarcloud: sonarsource/sonarcloud@2.0.0
+
 jobs:
   build:
-    machine: #Linux machine instead of docker environment
+    machine: # Linux machine instead of docker environment
       image: ubuntu-2004:2024.05.1
       resource_class: large
     working_directory: ~/survey-project-creation-service # Default working directory
     steps:
       - checkout:
           path: ~/survey-project-creation-service/
-      # - restore_cache:
-      #     key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
       - run:
           name: Install dependencies
           command: cd src/ && npm install
@@ -19,9 +18,6 @@ jobs:
           key: survey-project-creation-service-dependency-cache-{{checksum "src/package.json"}}
           paths:
             - ./src/node_modules
-      - store_artifacts:
-          path: src/coverage/
-          destination: /coverage/
       - run:
           name: Checking prerequisites
           command: |
@@ -30,8 +26,6 @@ jobs:
       - run:
           name: Cloning user service
           command: cd ../ && git clone https://github.com/ELEVATE-Project/user.git --branch develop --single-branch
-      # - restore_cache:
-      #     key: user-dependency-cache-{{ checksum "../user/src/package.json" }}
       - run:
           name: Install User service dependencies
           command: cd ../user/src/ && npm install
@@ -44,8 +38,7 @@ jobs:
           command: |
             # Define the file path
             ENV_FILE=~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
-
-            # Replace the existing variables or append them if they don't exist
+             # Replace the existing variables or append them if they don't exist
             grep -q "^CLOUD_STORAGE_PROVIDER=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROVIDER=.*|CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER|" $ENV_FILE || echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" >> $ENV_FILE
             grep -q "^CLOUD_STORAGE_ACCOUNTNAME=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_ACCOUNTNAME=.*|CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME|" $ENV_FILE || echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> $ENV_FILE
             grep -q "^CLOUD_STORAGE_SECRET=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_SECRET=.*|CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET|" $ENV_FILE || echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> $ENV_FILE
@@ -59,7 +52,6 @@ jobs:
 
             # Output the file content for verification
             cat $ENV_FILE
-
       - run:
           name: Replace User Service environment variables
           command: |
@@ -77,39 +69,35 @@ jobs:
 
             # List the file to ensure changes were made
             ls -l $USER_ENV_FILE
-
-            # Output the file content for verification
+             # Output the file content for verification
             cat $USER_ENV_FILE
-      
-      - run:
+            - run:
           name: Starting the docker containers
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
+
+      # Increase timeout and ensure PostgreSQL and services are ready before running tests
       - run:
           name: Wait for PostgreSQL to be Ready
           command: |
             echo "Waiting for PostgreSQL to be ready on port 5432..."
-            timeout 60 bash -c "until nc -z localhost 5432; do sleep 1; done"
+            timeout 120 bash -c "until nc -z localhost 5432; do sleep 2; done"
             echo "PostgreSQL is up"
+
       - run:
           name: Wait for User Service to be Ready
           command: |
             echo "Waiting for User Service to be ready on port 5001..."
-            timeout 60 bash -c "until nc -z localhost 5001; do sleep 1; done"
+            timeout 120 bash -c "until nc -z localhost 5001; do sleep 2; done"
             echo "User Service is up"
+
       - run:
           name: Wait for Survey Project Creation Service to be Ready
           command: |
             echo "Waiting for Survey Project Creation Service to be ready on port 6001..."
-            timeout 60 bash -c "until nc -z localhost 6001; do sleep 1; done"
+            timeout 120 bash -c "until nc -z localhost 6001; do sleep 2; done"
             echo "Survey Project Creation Service is up"
-      - run: 
-          name: Check docker logs
-          command: |-
-            docker ps && docker-compose logs --tail=1000
-      - run:
-          name: Create test results directory
-          command: mkdir -p ./dev-ops/report
+
       - run:
           name: Running test cases
           command: |
@@ -120,9 +108,9 @@ jobs:
           name: Stop the docker containers - Unmap volumes
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml down
+
 workflows:
-  build-and-test: # This is the name of the workflow,
-    # Inside the workflow, you define the jobs you want to run.
+  build-and-test:
     jobs:
       - build:
           context:
