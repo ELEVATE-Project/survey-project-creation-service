@@ -72,9 +72,16 @@ module.exports = class orgExtensionsHelper {
 			}
 
 			const orgExtension = await orgExtensionQueries.create(bodyData)
+			if (!orgExtension?.id) {
+				return responses.failureResponse({
+					message: 'FAILED_TO_CREATE_CONFIG',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 
 			return responses.successResponse({
-				statusCode: httpStatusCode.ok,
+				statusCode: httpStatusCode.created,
 				message: 'CONFIG_ADDED_SUCCESSFULLY',
 				result: orgExtension,
 			})
@@ -298,6 +305,7 @@ module.exports = class orgExtensionsHelper {
 			_.forEach(configData, (item) => {
 				if (item.resource_type === common.PROJECT) {
 					item.max_task_count = utils.convertToInteger(process.env.MAX_PROJECT_TASK_COUNT)
+					item.observation_link_regex = process.env.OBSERVATION_DEEP_LINK_REGEX
 				}
 			})
 

@@ -18,6 +18,10 @@ module.exports = {
 	},
 	update: (req) => {
 		req.body = filterRequestBody(req.body, projects.update)
+		// Check if reference_id is passed when id is present
+		if (req.params.id && req.query.reference_id) {
+			throw new Error('reference_id is not allowed while updating project')
+		}
 
 		if (req.method != common.REQUEST_METHOD_DELETE) {
 			req.checkBody('title').trim().notEmpty().withMessage('title is required')
@@ -30,6 +34,14 @@ module.exports = {
 			.withMessage('id param is empty')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+
+		req.checkParams('reference_id')
+			.trim()
+			.optional({ checkFalsy: true })
+			.notEmpty()
+			.withMessage('reference_id param is empty')
+			.isNumeric()
+			.withMessage('reference_id param is invalid, must be an integer')
 	},
 	submitForReview: (req) => {
 		req.body = filterRequestBody(req.body, projects.submitForReview)

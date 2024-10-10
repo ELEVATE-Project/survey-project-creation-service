@@ -23,8 +23,30 @@ module.exports = class ProjectsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - project id
 	 */
-	static async create(bodyData, loggedInUserId, orgId) {
+	static async create(bodyData, loggedInUserId, orgId, reference_id = null) {
 		try {
+			if (reference_id) {
+				// check if the reference project Id is valid or not
+				const referenceProject = await resourceQueries.findOne(
+					{
+						id: reference_id,
+						status: common.RESOURCE_STATUS_PUBLISHED,
+						published_id: { [Op.not]: null },
+					},
+					{
+						attributes: ['type'],
+					}
+				)
+
+				if (!referenceProject || referenceProject.type != common.PROJECT) {
+					return responses.failureResponse({
+						message: 'PROJECT_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+			}
+
 			//validate the title length
 			const isTitleInvalid = utils.validateTitle(bodyData.title)
 			if (isTitleInvalid) {
@@ -57,6 +79,8 @@ module.exports = class ProjectsHelper {
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 			}
+
+			if (reference_id) projectData.reference_id = reference_id
 
 			let projectCreate
 			try {
@@ -854,6 +878,37 @@ module.exports = class ProjectsHelper {
 									entityType.validations.message || `Invalid learning resource URL in ${model}`
 								),
 							}
+						}
+					}
+				} else if (
+					entityType.value === common.SOLUTION_DETAILS &&
+					fieldData &&
+					JSON.parse(process.env.ENABLE_OBSERVATION_IN_PROJECTS)
+				) {
+					//validate the observation name
+					let checkRegex = utils.checkRegexPattern(entityType, fieldData.name)
+					if (!checkRegex) {
+						return {
+							hasError: true,
+							error: utils.errorObject(
+								sourceType,
+								entityType.value,
+								entityType.validations.message ||
+									`Solution Details ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
+							),
+						}
+					}
+					//validate the observation url
+					let regex = new RegExp(process.env.OBSERVATION_DEEP_LINK_REGEX)
+					let validateURL = regex.test(fieldData.link)
+					if (!validateURL) {
+						return {
+							hasError: true,
+							error: utils.errorObject(
+								sourceType,
+								entityType.value,
+								entityType.validations.message || `Invalid observation URL in ${model}`
+							),
 						}
 					}
 				} else {
