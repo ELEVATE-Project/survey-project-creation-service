@@ -1,38 +1,52 @@
-const { Client } = require('pg')
+const { Sequelize } = require('sequelize')
 const { matchers } = require('jest-json-schema')
-const { Pool } = require('pg')
-const pool = new Pool()
 
+// Extend Jest with JSON schema matchers
 expect.extend(matchers)
 
-//PostgreSQL connection string
-const connectionString = 'postgres://postgres:postgres@localhost:5432/integration_test_scp'
-
-// Connect to the PostgreSQL database using the connection string
-const db = new Client({
-	connectionString: connectionString,
+// Initialize Sequelize with PostgreSQL connection details
+const sequelize = new Sequelize('postgres://postgres:postgres@localhost:5432/integration_test_scp', {
+	pool: {
+		max: 100, // Adjust based on your test load
+	},
 })
 
-db.connect((err) => {
-	if (err) {
-		console.error('Database connection error:', err)
-	} else {
-		console.log('Connected to DB')
+// Set up the global `db` object using Sequelize instance
+global.db = sequelize
+
+// Helper function to wait and retry
+const waitForDatabase = async (retries = 5, delay = 3000) => {
+	for (let i = 0; i < retries; i++) {
+		try {
+			await global.db.authenticate()
+			console.log('Connected to DB')
+			return true
+		} catch (err) {
+			console.error(`Attempt ${i + 1} failed: ${err.message}`)
+			if (i < retries - 1) {
+				await new Promise((resolve) => setTimeout(resolve, delay)) // Wait before retrying
+			}
+		}
 	}
-})
-
-global.db = db
+	throw new Error('Failed to connect to the database after multiple attempts.')
+}
 
 beforeAll(async () => {
-	// You can add any setup code you need here
+	try {
+		// Retry database connection up to 5 times
+		await waitForDatabase()
+		// Sync all models to the database (force: true will drop tables if they exist and recreate them)
+		await global.db.sync({ force: true })
+	} catch (err) {
+		console.error('Database connection error:', err)
+	}
 })
 
 afterAll(async () => {
 	try {
-		// Add any cleanup code you need, such as dropping tables, here
+		await global.db.close() // Close the Sequelize connection pool
+		console.log('Database connection closed')
 	} catch (error) {
-		console.error(error)
-	} finally {
-		db.end() // Close the PostgreSQL connection
+		console.error('Error during DB cleanup:', error)
 	}
 })
