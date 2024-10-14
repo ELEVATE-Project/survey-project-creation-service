@@ -1237,7 +1237,7 @@ module.exports = class resourceHelper {
 				)
 				result.count = internalResources.count
 				internalResources.result.forEach((resource) => {
-					resource['creator'] = userDetails[resource.created_by].name || ''
+					resource['creator'] = userDetails[resource.created_by]?.name || ''
 					delete resource.created_at
 					result.data.push(resource)
 				})
