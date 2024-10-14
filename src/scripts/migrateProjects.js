@@ -8,7 +8,6 @@
 require('module-alias/register')
 require('dotenv').config({ path: '../.env' })
 require('../configs/events')()
-const fs = require('fs')
 const path = require('path')
 const createCsvWriter = require('csv-writer').createObjectCsvWriter
 const entityTypeService = require('@services/entity-types')
@@ -17,8 +16,8 @@ const entityService = require('@services/entities')
 const resourceService = require('@services/resource')
 const resourceQueries = require('@database/queries/resources')
 const _ = require('lodash')
+const { ObjectId } = require('mongodb')
 const MongoClient = require('mongodb').MongoClient
-// var ObjectId = require('mongodb').ObjectID
 
 //get mongo db url
 const mongoUrl = process.env.MONGODB_URL
@@ -29,7 +28,6 @@ if (!mongoUrl) {
 
 // Path to the CSV file
 const outputPath = path.resolve(__dirname, 'migration_results.csv')
-console.log(outputPath, 'outputPath')
 
 // CSV Writer setup
 const csvWriter = createCsvWriter({
@@ -54,7 +52,7 @@ const dbName = mongoUrl.split('/').pop()
 
 		let csvRecords = []
 		const entityKeys = ['categories', 'recommended_for', 'languages']
-		let convertedEntities = {
+		let entityTypeEntityMap = {
 			categories: { entity_type_id: null, entities: [] },
 			recommended_for: { entity_type_id: null, entities: [] },
 			languages: { entity_type_id: null, entities: [] },
@@ -74,19 +72,13 @@ const dbName = mongoUrl.split('/').pop()
 			throw new Error('Failed to fetch entities')
 		}
 
+		//create entity type and entity map
 		entityTypesWithEntities.forEach((entityType) => {
-			// Check if the value of entityType exists in convertedEntities
-			if (convertedEntities[entityType.value]) {
-				// Assign entity_type_id from the current entityType
-				convertedEntities[entityType.value].entity_type_id = entityType.id
-
-				// Map the entities to get the id and value
-				convertedEntities[entityType.value].entities = entityType.entities.map((entity) => entity.value)
+			if (entityTypeEntityMap[entityType.value]) {
+				entityTypeEntityMap[entityType.value].entity_type_id = entityType.id
+				entityTypeEntityMap[entityType.value].entities = entityType.entities.map((entity) => entity.value)
 			}
 		})
-
-		// console.log(convertedEntities)
-		// process.exit()
 
 		// Get all project templates
 		const projectTemplates = await db
@@ -94,6 +86,7 @@ const dbName = mongoUrl.split('/').pop()
 			.find({
 				status: 'published',
 				isReusable: true,
+				_id: ObjectId('5fd1b2a3e4d17b4af8aa6f4d'),
 			})
 			.project({ _id: 1 })
 			.limit(1)
@@ -106,7 +99,9 @@ const dbName = mongoUrl.split('/').pop()
 		let templateIds
 
 		let createdEntityIds = {}
+		let entitiesToCreate = []
 
+		// process each templates
 		for (const chunk of chunkedTemplates) {
 			templateIds = chunk.map((templateDoc) => templateDoc._id)
 
@@ -129,7 +124,6 @@ const dbName = mongoUrl.split('/').pop()
 							success: 'Project Exist',
 							projectId: isProjectExist.projectId,
 						})
-						return // Skip processing if project exists
 					} else {
 						let taskIdsToRemove = []
 						// Check if template.tasks exist before proceeding
@@ -173,59 +167,56 @@ const dbName = mongoUrl.split('/').pop()
 						convertedTemplate = convertedTemplate.template
 
 						// Find the non-existing entities
-						entityKeys.forEach((key) => {
-							const values = Array.isArray(convertedTemplate[key])
-								? [...new Set(convertedTemplate[key])]
-								: convertedTemplate[key]
-							convertedTemplate[key] = formatValues(values)
-							console.log('-=-=-=-=-=->>>', convertedTemplate)
+						for (const key of entityKeys) {
+							// Check if the value is an array and remove duplicates using Set
+							let values = convertedTemplate[key]
+							console.log(key, values, 'values')
+							if (Array.isArray(values) && values.length > 0) {
+								values = [...new Set(values)]
+								convertedTemplate[key] = formatValues(values)
 
-							const entitiesToCreate = convertEntities(
-								key,
-								typeof values == 'array' ? formatValues(values) : values,
-								convertedEntities
-							)
-						})
+								// Await async function inside the loop
+								await filterNonExistingEntities(
+									key,
+									Array.isArray(values) ? formatValues(values) : values,
+									entityTypeEntityMap,
+									entitiesToCreate
+								)
+							}
+						}
 
-						// Find the non-existing entities
-						// entityKeys.forEach((key) => {
-						// 	const values = key === 'languages' ? [convertedTemplate[key]] : convertedTemplate[key]
-						// 	addEntitiesToConverted(
-						// 		key,
-						// 		formatValues(values),
-						// 		convertedEntities,
-						// 		entityTypesWithEntities
-						// 	)
-						// 	convertedTemplate[key] = convertedEntities[key].entities
-						// })
+						// console.log('-=-=-=-=-=->>>', convertedTemplate)
+
+						console.log(entitiesToCreate, 'entitiesToCreate')
 
 						// Create the project and entities after conversion
-						// let projectCreateResponse = await createProjectAndEntities(
-						// 	templateIdStr,
-						// 	convertedTemplate,
-						// 	convertedEntities,
-						// 	createdEntityIds,
-						// 	entityTypesWithEntities
-						// )
+						let projectCreateResponse = await createProjectAndEntities(
+							templateIdStr,
+							convertedTemplate,
+							// entityTypeEntityMap,
+							entitiesToCreate,
+							createdEntityIds
+						)
 
-						// if (projectCreateResponse.success) {
-						// 	csvRecords.push({
-						// 		templateId: templateIdStr,
-						// 		success: 'Project Created',
-						// 		projectId: projectCreateResponse.projectId,
-						// 	})
-						// } else {
-						// 	csvRecords.push({
-						// 		templateId: templateIdStr,
-						// 		success: projectCreateResponse.message,
-						// 		projectId: null,
-						// 	})
-						// }
+						console.log(projectCreateResponse, 'projectCreateResponse')
+
+						if (projectCreateResponse.success) {
+							csvRecords.push({
+								templateId: templateIdStr,
+								success: 'Project Created',
+								projectId: projectCreateResponse.projectId,
+							})
+						} else {
+							csvRecords.push({
+								templateId: templateIdStr,
+								success: projectCreateResponse.message,
+								projectId: null,
+							})
+						}
 					}
 				})
 			)
 		}
-		process.exit()
 
 		//write data to csv
 		await csvWriter.writeRecords(csvRecords)
@@ -280,13 +271,13 @@ async function convertTemplate(template) {
 			id: task._id,
 			name: task.name,
 			type: task.type,
-			is_mandatory: task.isMandatory,
-			allow_evidences: task.allowEvidences,
+			is_mandatory: task.isDeletable ? false : true,
+			allow_evidences: true,
 			evidence_details: {
 				file_types: task.evidenceDetails?.fileTypes || ['Images', 'Document', 'Videos', 'Audio'],
 				min_no_of_evidences: task.evidenceDetails?.minNoOfEvidences || 1,
 			},
-			learning_resources: convertResources(task.learningResources),
+			learning_resources: Array.isArray(task.learningResources) ? convertResources(task.learningResources) : [],
 			sequence_no: task.sequenceNumber ? Number(task.sequenceNumber) : index + 1,
 			children: task.children ? task.children.map(convertTask) : [],
 		})
@@ -294,19 +285,23 @@ async function convertTemplate(template) {
 		const convertedTemplate = {
 			title: template.title,
 			objective: template.description,
-			categories: template.categories.length > 0 ? template.categories.map(({ name }) => name.toLowerCase()) : [],
+			categories:
+				Array.isArray(template.categories) && template.categories.length > 0
+					? template.categories.map(({ name }) => name.toLowerCase())
+					: [],
 			recommended_duration: convertDuration(template.duration || template.metaInformation.duration),
 			keywords: convertKeywords(template.keywords),
 			recommended_for:
-				template.recommendedFor.length > 0
+				Array.isArray(template.recommendedFor) && template.recommendedFor.length > 0
 					? template.recommendedFor.map(({ audience }) => audience.toLowerCase())
 					: [],
 			languages: 'en',
-			learning_resources: template.learningResources ? convertResources(template.learningResources) : [],
+			learning_resources: Array.isArray(template.learningResources)
+				? convertResources(template.learningResources)
+				: [],
 			licenses: 'cc_by_4.0',
 			created_by: template.createdBy,
 			published_id: template._id,
-			published_on: template.createdAt,
 			tasks: template.taskDetails ? template.taskDetails.map(convertTask) : [],
 		}
 
@@ -343,11 +338,13 @@ function convertDuration(duration) {
 
 	// Map units to types
 	const unitMapping = {
-		W: 'week',
-		D: 'day',
-		M: 'month',
-		Y: 'year',
-		MONTH: 'month',
+		W: 'weeks',
+		D: 'days',
+		M: 'months',
+		MONTH: 'months',
+		WEEKS: 'weeks',
+		WEEK: 'weeks',
+		DAY: 'days',
 	}
 
 	const durationType = unitMapping[durationUnit] || ''
@@ -366,81 +363,35 @@ function convertKeywords(keywords) {
 	return ''
 }
 
+//format the entity values
 function formatValues(arr) {
-	return arr.map(({ label, value }) => ({
-		label,
-		value: value
+	const formatedArray = arr.map((value) => {
+		return value
 			.replace(/\s*\(.*?\)\s*/g, '')
 			.toLowerCase()
-			.replace(/\s+/g, '_'),
-	}))
+			.replace(/\s+/g, '_')
+	})
+
+	return formatedArray
 }
 
-function convertEntities(entityTypeKey, values, convertedEntities) {
-	let entitiesToCreate = []
-
-	// Check if the entityTypeKey exists in convertedEntities
-	if (convertedEntities.hasOwnProperty(entityTypeKey)) {
-		const entityTypeId = convertedEntities[entityTypeKey].entity_type_id
-
-		// Create a Set of existing entity values for faster lookup
-		const existingValuesSet = new Set(convertedEntities[entityTypeKey].entities.map((entity) => entity.value))
-
-		// Filter out values that already exist and return as an array of objects
-		entitiesToCreate = values
-			.filter((value) => !existingValuesSet.has(value))
-			.map((value) => ({
-				entity_type_id: entityTypeId,
-				value: value,
-			}))
+//to get all entities which is not present
+async function filterNonExistingEntities(entityTypeKey, values, entityTypeEntityMap, entitiesToCreate) {
+	if (entityTypeEntityMap.hasOwnProperty(entityTypeKey)) {
+		const entityTypeId = entityTypeEntityMap[entityTypeKey].entity_type_id
+		const existingEntities = new Set(entityTypeEntityMap[entityTypeKey].entities)
+		// Filter and push non-existing values in one step
+		values.forEach((value) => {
+			if (!existingEntities.has(value)) {
+				entitiesToCreate.push({
+					entity_type_id: entityTypeId,
+					value: value,
+				})
+			}
+		})
 	}
 
 	return entitiesToCreate
-}
-
-/*
-function addEntitiesToConverted(entityTypeKey, convertedValues, convertedEntities, entityTypesWithEntities) {
-	const existingEntityType = entityTypesWithEntities.find((entityType) => entityType.value === entityTypeKey)
-	const existingEntities = existingEntityType ? existingEntityType.entities.map((entity) => entity.value) : []
-
-	if (!convertedEntities[entityTypeKey]) {
-		convertedEntities[entityTypeKey] = {
-			entity_type_id: existingEntityType ? existingEntityType.id : null,
-			entities: [],
-		}
-	}
-
-	convertedValues.forEach((entity) => {
-		if (existingEntities.includes(entity.value)) {
-			// If the entity already exists, keep the original format
-			const existingEntity = existingEntityType.entities.find((e) => e.value === entity.value)
-			if (existingEntity) {
-				convertedEntities[entityTypeKey].entities.push({
-					label: existingEntity.label,
-					value: existingEntity.value,
-				})
-			}
-		} else {
-			// If the entity doesn't exist, add it to the convertedEntities
-			if (!convertedEntities[entityTypeKey].entities.some((e) => e.value === entity.value)) {
-				entity.entity_type_id = existingEntityType ? existingEntityType.id : null
-				convertedEntities[entityTypeKey].entities.push(entity)
-			}
-		}
-	})
-}
-*/
-// function to find existing entity
-function findExistingEntity(entityTypeKey, entityValue, entityTypesWithEntities) {
-	const entityType = entityTypesWithEntities.find((type) => type.value === entityTypeKey)
-
-	if (!entityType) return null
-
-	if (Array.isArray(entityType.entities)) {
-		return entityType.entities.find((entity) => entity.value === entityValue) || null
-	}
-
-	return null
 }
 
 // function to create project
@@ -463,79 +414,33 @@ async function createProject(templateId, projectData, userId, orgId) {
 	}
 }
 
-async function createProjectAndEntities(
-	templateId,
-	templateData,
-	convertedEntities,
-	createdEntityIds,
-	entityTypesWithEntities
-) {
+async function createProjectAndEntities(templateId, templateData, entitiesToCreate, createdEntityIds) {
 	try {
-		// Ensure all entity types have a valid entities array
-		for (const entityTypeKey of Object.keys(convertedEntities)) {
-			if (!Array.isArray(convertedEntities[entityTypeKey].entities)) {
-				console.error(
-					`Entities for ${entityTypeKey} is not an array:`,
-					convertedEntities[entityTypeKey].entities
-				)
-				convertedEntities[entityTypeKey].entities = []
-			}
-		}
+		if (entitiesToCreate.length > 0) {
+			for (const entity of entitiesToCreate) {
+				let entityCreationData = {
+					entity_type_id: entity.entity_type_id,
+					value: entity.value,
+					label: entity.label || entity.value,
+					type: 'SYSTEM',
+					status: 'ACTIVE',
+					created_at: new Date(),
+					updated_at: new Date(),
+					created_by: 0,
+					updated_by: 0,
+				}
 
-		// Process each entity type (categories, recommended_for, languages)
-		for (const [entityTypeKey, entityData] of Object.entries(convertedEntities)) {
-			let existingEntities = []
-			let createdEntities = []
-			createdEntityIds[entityTypeKey] = []
-
-			// Ensure entities is iterable
-			if (!Array.isArray(entityData.entities)) {
-				console.error(`Entities for ${entityTypeKey} is not iterable.`, entityData)
-				continue
-			}
-
-			for (const entity of entityData.entities) {
-				const existingEntity = await findExistingEntity(entityTypeKey, entity.value, entityTypesWithEntities)
-
-				// If the entity doesn't exist, create it
-				if (!existingEntity) {
-					console.log(`Entity ${entity.value} not found in ${entityTypeKey}. Creating...`)
-					let entityCreationData = {
-						entity_type_id: entity.entity_type_id,
-						value: entity.value,
-						label: entity.label,
-						type: 'SYSTEM',
-						status: 'ACTIVE',
-						created_at: new Date(),
-						updated_at: new Date(),
-						created_by: 0,
-						updated_by: 0,
+				const createdEntity = await entityService.create(entityCreationData, '0')
+				if (createdEntity?.result?.id) {
+					console.log(`Entity ${entity.value} created successfully.`)
+					if (!createdEntityIds[entity.entity_type_id]) {
+						createdEntityIds[entity.entity_type_id] = [] // Initialize if not already done
 					}
-
-					const createdEntity = await entityService.create(entityCreationData, '0')
-					if (createdEntity?.result?.id) {
-						console.log(`Entity ${entity.value} created successfully.`)
-						createdEntityIds[entityTypeKey].push(createdEntity.result.id)
-						createdEntities.push({ label: entity.label, value: entity.value })
-
-						// Add the new entity to entityTypesWithEntities
-						const entityType = entityTypesWithEntities.find((type) => type.id === entity.entity_type_id)
-						if (entityType) {
-							entityType.entities.push({
-								id: createdEntity.result.id,
-								...entityCreationData,
-							})
-						}
-					} else {
-						console.error(`Failed to create entity: ${entity.value}`, createdEntity.error)
-					}
+					createdEntityIds[entity.entity_type_id].push(createdEntity.result.id)
 				} else {
-					console.log(`Entity ${entity.value} already exists in ${entityTypeKey}.`)
-					existingEntities.push({ label: existingEntity.label, value: existingEntity.value })
+					console.error(`Failed to create entity: ${entity.value}`, createdEntity.error)
 				}
 			}
-
-			templateData[entityTypeKey] = [...existingEntities, ...createdEntities]
 		}
 
 		// Proceed to create the project after entities are processed
@@ -545,6 +450,7 @@ async function createProjectAndEntities(
 			templateData.created_by,
 			process.env.DEFAULT_ORG_ID
 		)
+
 		if (projectCreationResponse.success) {
 			console.log('Project created successfully:', projectCreationResponse.projectId)
 			return {
