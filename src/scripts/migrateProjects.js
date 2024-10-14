@@ -267,7 +267,7 @@ async function convertTemplate(template) {
 			is_mandatory: task.isDeletable ? false : true,
 			allow_evidences: true,
 			evidence_details: {
-				file_types: task.evidenceDetails?.fileTypes || ['Images', 'Document', 'Videos', 'Audio'],
+				file_types: task.evidenceDetails?.fileTypes || ['images', 'document', 'videos', 'audio'],
 				min_no_of_evidences: task.evidenceDetails?.minNoOfEvidences || 1,
 			},
 			learning_resources: Array.isArray(task.learningResources) ? convertResources(task.learningResources) : [],
