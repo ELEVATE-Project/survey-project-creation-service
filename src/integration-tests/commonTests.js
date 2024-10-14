@@ -3,37 +3,40 @@ var supertest = require('supertest')
 var defaults = require('superagent-defaults')
 const crypto = require('crypto')
 const baseURL = 'http://localhost:6001'
+const userServiceURL = 'http://localhost:5001' // Add user service URL
 
 // Global headers for authenticated requests
 let defaultHeaders
 const waitOn = require('wait-on')
+let verifyUserRoleRetries = 0
 
-// Improved waitForService function
-const waitForService = async (url) => {
+// Improved waitForServices function to wait for both services
+const waitForServices = async (urls) => {
 	const opts = {
-		resources: [url],
+		resources: urls,
 		delay: 5000, // Initial delay before checking
 		interval: 1000, // Interval between checks
 		timeout: 30000, // Max time to wait for service
 	}
 	try {
 		await waitOn(opts)
-		console.log(`Service is ready at: ${url}`)
+		console.log(`Services are ready at: ${urls.join(', ')}`)
 	} catch (error) {
-		console.error(`Service not ready at: ${url}. Error: ${error.message}`)
-		throw new Error('Service not available')
+		console.error(`Services not ready at: ${urls.join(', ')}. Error: ${error.message}`)
+		throw new Error('Services not available')
 	}
 }
 
 // Function to verify user roles and create them if necessary
 const verifyUserRole = async () => {
 	console.log('============>USER ROLE CHECK : ')
+	verifyUserRoleRetries++
 
 	// Define a separate request instance scoped to this function
-	let request = defaults(supertest('http://localhost:5001'))
+	let request = defaults(supertest(userServiceURL))
 
-	// Wait for the service to be ready
-	await waitForService(baseURL)
+	// Wait for both the base and user services to be ready
+	await waitForServices([baseURL, userServiceURL])
 
 	jest.setTimeout(5000)
 
@@ -98,6 +101,15 @@ const verifyUserRole = async () => {
 			// Wait for both role creation requests to complete
 			if (roleCreationPromises.length > 0) {
 				const resss = await Promise.all(roleCreationPromises)
+
+				// Check if all the promises were successful
+				results.forEach((res, index) => {
+					if (res.statusCode >= 200 && res.statusCode < 300) {
+						console.log(`Role creation for promise ${index + 1} was successful.`)
+					} else {
+						if (verifyUserRoleRetries <= 3) verifyUserRole()
+					}
+				})
 				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(resss.body, null, 2))
 			}
 		}
@@ -124,7 +136,6 @@ const verifyUserRole = async () => {
 
 		console.log('Calling verifyUserRole...')
 		const result = await verifyUserRole()
-		console.log('verifyUserRole result:', result)
 	} catch (error) {
 		console.error('Error while calling verifyUserRole:', error)
 	}
@@ -136,9 +147,9 @@ const logIn = async () => {
 		console.log('============>ATTEMPTING LOGIN : ')
 
 		// Define a separate request instance scoped to this function
-		let request = defaults(supertest('http://localhost:5001'))
+		let request = defaults(supertest(userServiceURL))
 
-		await waitForService(baseURL)
+		await waitForServices([baseURL, userServiceURL])
 
 		jest.setTimeout(10000)
 
