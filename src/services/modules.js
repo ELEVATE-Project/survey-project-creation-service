@@ -24,7 +24,7 @@ module.exports = class modulesHelper {
 				statusCode: httpStatusCode.created,
 				message: 'MODULES_CREATED_SUCCESSFULLY',
 				result: {
-					Id: modules.id,
+					id: modules.id,
 					code: modules.code,
 					status: modules.status,
 				},
