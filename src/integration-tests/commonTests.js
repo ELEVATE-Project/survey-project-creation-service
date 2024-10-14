@@ -100,10 +100,10 @@ const verifyUserRole = async () => {
 
 			// Wait for both role creation requests to complete
 			if (roleCreationPromises.length > 0) {
-				const resss = await Promise.all(roleCreationPromises)
+				const promiseResult = await Promise.all(roleCreationPromises)
 
 				// Check if all the promises were successful
-				results.forEach((res, index) => {
+				promiseResult.forEach((res, index) => {
 					if (res.statusCode >= 200 && res.statusCode < 300) {
 						console.log(`Role creation for promise ${index + 1} was successful.`)
 					} else {
