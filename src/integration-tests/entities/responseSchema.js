@@ -1,50 +1,50 @@
 const createSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'message': {
-			'type': 'string'
+		message: {
+			type: 'string',
 		},
-		'result': {
-			'type': 'object',
-			'properties': {
-				'status': {
-					'type': 'string'
+		result: {
+			type: 'object',
+			properties: {
+				status: {
+					type: 'string',
 				},
-				'id': {
-					'type': 'integer'
+				id: {
+					type: 'integer',
 				},
-				'value': {
-					'type': 'string'
+				value: {
+					type: 'string',
 				},
-				'label': {
-					'type': 'string'
+				label: {
+					type: 'string',
 				},
-				'type': {
-					'type': 'string'
+				type: {
+					type: 'string',
 				},
-				'entity_type_id': {
-					'type': 'integer'
+				entity_type_id: {
+					type: 'integer',
 				},
-				'created_by': {
-					'type': 'string'
+				created_by: {
+					type: 'string',
 				},
-				'updated_by': {
-					'type': 'string'
+				updated_by: {
+					type: 'string',
 				},
-				'updated_at': {
-					'type': 'string'
+				updated_at: {
+					type: 'string',
 				},
-				'created_at': {
-					'type': 'string'
+				created_at: {
+					type: 'string',
 				},
-				'deleted_at': {
-					'type': 'null'
-				}
+				deleted_at: {
+					type: 'null',
+				},
 			},
-			'required': [
+			required: [
 				'status',
 				'id',
 				'value',
@@ -55,83 +55,76 @@ const createSchema = {
 				'updated_by',
 				'updated_at',
 				'created_at',
-				'deleted_at'
-			]
+				'deleted_at',
+			],
 		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'formsVersion': {
-					'type': 'array',
-					'items': {}
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					type: 'array',
+					items: {},
 				},
-				'correlation': {
-					'type': 'string'
-				}
+				correlation: {
+					type: 'string',
+				},
 			},
-			'required': [
-				'formsVersion'
-			]
-		}
+			required: ['formsVersion'],
+		},
 	},
-	'required': [
-		'responseCode',
-		'message',
-		'result',
-		'meta'
-	]
+	required: ['responseCode', 'message', 'result', 'meta'],
 }
 
 const updateSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'message': {
-			'type': 'string'
+		message: {
+			type: 'string',
 		},
-		'result': {
-			'type': 'array',
-			'items': [
+		result: {
+			type: 'array',
+			items: [
 				{
-					'type': 'object',
-					'properties': {
-						'id': {
-							'type': 'integer'
+					type: 'object',
+					properties: {
+						id: {
+							type: 'integer',
 						},
-						'entity_type_id': {
-							'type': 'integer'
+						entity_type_id: {
+							type: 'integer',
 						},
-						'value': {
-							'type': 'string'
+						value: {
+							type: 'string',
 						},
-						'label': {
-							'type': 'string'
+						label: {
+							type: 'string',
 						},
-						'status': {
-							'type': 'string'
+						status: {
+							type: 'string',
 						},
-						'type': {
-							'type': 'string'
+						type: {
+							type: 'string',
 						},
-						'created_by': {
-							'type': 'string'
+						created_by: {
+							type: 'string',
 						},
-						'updated_by': {
-							'type': 'string'
+						updated_by: {
+							type: 'string',
 						},
-						'created_at': {
-							'type': 'string'
+						created_at: {
+							type: 'string',
 						},
-						'updated_at': {
-							'type': 'string'
+						updated_at: {
+							type: 'string',
 						},
-						'deleted_at': {
-							'type': 'null'
-						}
+						deleted_at: {
+							type: 'null',
+						},
 					},
-					'required': [
+					required: [
 						'id',
 						'entity_type_id',
 						'value',
@@ -142,110 +135,88 @@ const updateSchema = {
 						'updated_by',
 						'created_at',
 						'updated_at',
-						'deleted_at'
-					]
-				}
-			]
-		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'formsVersion': {
-					'type': 'array',
-					'items': {}
+						'deleted_at',
+					],
 				},
-				'correlation': {
-					'type': 'string'
-				}
+			],
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					type: 'array',
+					items: {},
+				},
+				correlation: {
+					type: 'string',
+				},
 			},
-			'required': [
-				'formsVersion'
-			]
-		}
+			required: ['formsVersion'],
+		},
 	},
-	'required': [
-		'responseCode',
-		'message',
-		'result',
-		'meta'
-	]
+	required: ['responseCode', 'message', 'result', 'meta'],
 }
 
 const listSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'message': {
-			'type': 'string'
+		message: {
+			type: 'string',
 		},
-		'result': {
-			'type': 'array',
-			'items': [
+		result: {
+			type: 'array',
+			items: [
 				{
-					'type': 'object',
-					'properties': {
-						'value': {
-							'type': 'string'
+					type: 'object',
+					properties: {
+						value: {
+							type: 'string',
 						},
-						'label': {
-							'type': 'string'
+						label: {
+							type: 'string',
 						},
-						'id': {
-							'type': 'integer'
-						}
+						id: {
+							type: 'integer',
+						},
 					},
-					'required': [
-						'value',
-						'label',
-						'id'
-					]
-				}
-			]
-		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'formsVersion': {
-					'type': 'array',
-					'items': [
-						{
-							'type': 'object',
-							'properties': {
-								'id': {
-									'type': 'integer'
-								},
-								'type': {
-									'type': 'string'
-								},
-								'version': {
-									'type': 'integer'
-								}
-							},
-							'required': [
-								'id',
-								'type',
-								'version'
-							]
-						}
-					]
+					required: ['value', 'label', 'id'],
 				},
-				'correlation': {
-					'type': 'string'
-				}
+			],
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					type: 'array',
+					items: [
+						{
+							type: 'object',
+							properties: {
+								id: {
+									type: 'integer',
+								},
+								type: {
+									type: 'string',
+								},
+								version: {
+									type: 'integer',
+								},
+							},
+							required: ['id', 'type', 'version'],
+						},
+					],
+				},
+				correlation: {
+					type: 'string',
+				},
 			},
-			'required': [
-				'formsVersion'
-			]
-		}
+			required: ['formsVersion'],
+		},
 	},
-	'required': [
-		'responseCode',
-		'message',
-		'result',
-		'meta'
-	]
+	required: ['responseCode', 'message', 'result', 'meta'],
 }
 
 module.exports = {

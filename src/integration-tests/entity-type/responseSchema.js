@@ -1,65 +1,65 @@
 const createSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'message': {
-			'type': 'string'
+		message: {
+			type: 'string',
 		},
-		'result': {
-			'type': 'object',
-			'properties': {
-				'status': {
-					'type': 'string'
+		result: {
+			type: 'object',
+			properties: {
+				status: {
+					type: 'string',
 				},
-				'allow_filtering': {
-					'type': 'boolean'
+				allow_filtering: {
+					type: 'boolean',
 				},
-				'allow_custom_entities': {
-					'type': 'boolean'
+				allow_custom_entities: {
+					type: 'boolean',
 				},
-				'id': {
-					'type': 'integer'
+				id: {
+					type: 'integer',
 				},
-				'value': {
-					'type': 'string'
+				value: {
+					type: 'string',
 				},
-				'label': {
-					'type': 'string'
+				label: {
+					type: 'string',
 				},
-				'data_type': {
-					'type': 'string'
+				data_type: {
+					type: 'string',
 				},
-				'has_entities': {
-					'type': 'boolean'
+				has_entities: {
+					type: 'boolean',
 				},
-				'created_by': {
-					'type': 'string'
+				created_by: {
+					type: 'string',
 				},
-				'updated_by': {
-					'type': 'string'
+				updated_by: {
+					type: 'string',
 				},
-				'organization_id': {
-					'type': 'string'
+				organization_id: {
+					type: 'string',
 				},
-				'updated_at': {
-					'type': 'string'
+				updated_at: {
+					type: 'string',
 				},
-				'created_at': {
-					'type': 'string'
+				created_at: {
+					type: 'string',
 				},
-				'parent_id': {
-					'type': 'null'
+				parent_id: {
+					type: 'null',
 				},
-				'validations': {
-					'type': 'null'
+				validations: {
+					type: 'null',
 				},
-				'deleted_at': {
-					'type': 'null'
-				}
+				deleted_at: {
+					type: 'null',
+				},
 			},
-			'required': [
+			required: [
 				'status',
 				'allow_filtering',
 				'allow_custom_entities',
@@ -75,131 +75,116 @@ const createSchema = {
 				'created_at',
 				'parent_id',
 				'validations',
-				'deleted_at'
-			]
+				'deleted_at',
+			],
 		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'formsVersion': {
-					'type': 'array',
-					'items': [
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					type: 'array',
+					items: [
 						{
-							'type': 'object',
-							'properties': {
-								'id': {
-									'type': 'integer'
+							type: 'object',
+							properties: {
+								id: {
+									type: 'integer',
 								},
-								'type': {
-									'type': 'string'
+								type: {
+									type: 'string',
 								},
-								'version': {
-									'type': 'integer'
-								}
+								version: {
+									type: 'integer',
+								},
 							},
-							'required': [
-								'id',
-								'type',
-								'version'
-							]
-						}
-					]
+							required: ['id', 'type', 'version'],
+						},
+					],
 				},
-				'correlation': {
-					'type': 'string'
-				}
+				correlation: {
+					type: 'string',
+				},
 			},
-			'required': [
-				'formsVersion',
-				'correlation'
-			]
-		}
+			required: ['formsVersion', 'correlation'],
+		},
 	},
-	'required': [
-		'responseCode',
-		'message',
-		'result',
-		'meta'
-	]
+	required: ['responseCode', 'message', 'result', 'meta'],
 }
 
 const updateSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'message': {
-			'type': 'string'
+		message: {
+			type: 'string',
 		},
-		'result': {
-			'type': 'array',
-			'items': [
+		result: {
+			type: 'array',
+			items: [
 				{
-					'type': 'object',
-					'properties': {
-						'id': {
-							'type': 'integer'
+					type: 'object',
+					properties: {
+						id: {
+							type: 'integer',
 						},
-						'value': {
-							'type': 'string'
+						value: {
+							type: 'string',
 						},
-						'label': {
-							'type': 'string'
+						label: {
+							type: 'string',
 						},
-						'status': {
-							'type': 'string'
+						status: {
+							type: 'string',
 						},
-						'allow_filtering': {
-							'type': 'boolean'
+						allow_filtering: {
+							type: 'boolean',
 						},
-						'data_type': {
-							'type': 'string'
+						data_type: {
+							type: 'string',
 						},
-						'organization_id': {
-							'type': 'string'
+						organization_id: {
+							type: 'string',
 						},
-						'parent_id': {
-							'type': 'null'
+						parent_id: {
+							type: 'null',
 						},
-						'allow_custom_entities': {
-							'type': 'boolean'
+						allow_custom_entities: {
+							type: 'boolean',
 						},
-						'has_entities': {
-							'type': 'boolean'
+						has_entities: {
+							type: 'boolean',
 						},
-						'validations': {
-							'type': 'object',
-							'properties': {
-								'regex': {
-									'type': 'string'
+						validations: {
+							type: 'object',
+							properties: {
+								regex: {
+									type: 'string',
 								},
-								'required': {
-									'type': 'boolean'
-								}
+								required: {
+									type: 'boolean',
+								},
 							},
-							'required': [
-								'regex',
-								'required'
-							]
+							required: ['regex', 'required'],
 						},
-						'created_by': {
-							'type': 'string'
+						created_by: {
+							type: 'string',
 						},
-						'updated_by': {
-							'type': 'string'
+						updated_by: {
+							type: 'string',
 						},
-						'created_at': {
-							'type': 'string'
+						created_at: {
+							type: 'string',
 						},
-						'updated_at': {
-							'type': 'string'
+						updated_at: {
+							type: 'string',
 						},
-						'deleted_at': {
-							'type': 'null'
-						}
+						deleted_at: {
+							type: 'null',
+						},
 					},
-					'required': [
+					required: [
 						'id',
 						'value',
 						'label',
@@ -215,130 +200,104 @@ const updateSchema = {
 						'updated_by',
 						'created_at',
 						'updated_at',
-						'deleted_at'
-					]
-				}
-			]
-		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'formsVersion': {
-					'type': 'array',
-					'items': [
-						{
-							'type': 'object',
-							'properties': {
-								'id': {
-									'type': 'integer'
-								},
-								'type': {
-									'type': 'string'
-								},
-								'version': {
-									'type': 'integer'
-								}
-							},
-							'required': [
-								'id',
-								'type',
-								'version'
-							]
-						}
-					]
+						'deleted_at',
+					],
 				},
-				'correlation': {
-					'type': 'string'
-				}
+			],
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					type: 'array',
+					items: [
+						{
+							type: 'object',
+							properties: {
+								id: {
+									type: 'integer',
+								},
+								type: {
+									type: 'string',
+								},
+								version: {
+									type: 'integer',
+								},
+							},
+							required: ['id', 'type', 'version'],
+						},
+					],
+				},
+				correlation: {
+					type: 'string',
+				},
 			},
-			'required': [
-				'formsVersion'
-			]
-		}
+			required: ['formsVersion'],
+		},
 	},
-	'required': [
-		'responseCode',
-		'message',
-		'result',
-		'meta'
-	]
+	required: ['responseCode', 'message', 'result', 'meta'],
 }
 
 const listSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'message': {
-			'type': 'string'
+		message: {
+			type: 'string',
 		},
-		'result': {
-			'type': 'array',
-			'items': [
+		result: {
+			type: 'array',
+			items: [
 				{
-					'type': 'object',
-					'properties': {
-						'value': {
-							'type': 'string'
+					type: 'object',
+					properties: {
+						value: {
+							type: 'string',
 						},
-						'label': {
-							'type': 'string'
+						label: {
+							type: 'string',
 						},
-						'id': {
-							'type': 'integer'
-						}
+						id: {
+							type: 'integer',
+						},
 					},
-					'required': [
-						'value',
-						'label',
-						'id'
-					]
-				}
-			]
-		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'formsVersion': {
-					'type': 'array',
-					'items': [
-						{
-							'type': 'object',
-							'properties': {
-								'id': {
-									'type': 'integer'
-								},
-								'type': {
-									'type': 'string'
-								},
-								'version': {
-									'type': 'integer'
-								}
-							},
-							'required': [
-								'id',
-								'type',
-								'version'
-							]
-						}
-					]
+					required: ['value', 'label', 'id'],
 				},
-				'correlation': {
-					'type': 'string'
-				}
+			],
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					type: 'array',
+					items: [
+						{
+							type: 'object',
+							properties: {
+								id: {
+									type: 'integer',
+								},
+								type: {
+									type: 'string',
+								},
+								version: {
+									type: 'integer',
+								},
+							},
+							required: ['id', 'type', 'version'],
+						},
+					],
+				},
+				correlation: {
+					type: 'string',
+				},
 			},
-			'required': [
-				'formsVersion'
-			]
-		}
+			required: ['formsVersion'],
+		},
 	},
-	'required': [
-		'responseCode',
-		'message',
-		'result',
-		'meta'
-	]
+	required: ['responseCode', 'message', 'result', 'meta'],
 }
 
 module.exports = {
