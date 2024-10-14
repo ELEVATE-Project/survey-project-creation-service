@@ -54,6 +54,11 @@ const dbName = mongoUrl.split('/').pop()
 
 		let csvRecords = []
 		const entityKeys = ['categories', 'recommended_for', 'languages']
+		let convertedEntities = {
+			categories: { entity_type_id: null, entities: [] },
+			recommended_for: { entity_type_id: null, entities: [] },
+			languages: { entity_type_id: null, entities: [] },
+		}
 
 		// Get the entities for the project
 		let entities = await entityTypeService.readUserEntityTypes(
@@ -69,6 +74,20 @@ const dbName = mongoUrl.split('/').pop()
 			throw new Error('Failed to fetch entities')
 		}
 
+		entityTypesWithEntities.forEach((entityType) => {
+			// Check if the value of entityType exists in convertedEntities
+			if (convertedEntities[entityType.value]) {
+				// Assign entity_type_id from the current entityType
+				convertedEntities[entityType.value].entity_type_id = entityType.id
+
+				// Map the entities to get the id and value
+				convertedEntities[entityType.value].entities = entityType.entities.map((entity) => entity.value)
+			}
+		})
+
+		// console.log(convertedEntities)
+		// process.exit()
+
 		// Get all project templates
 		const projectTemplates = await db
 			.collection('projectTemplates')
@@ -77,6 +96,7 @@ const dbName = mongoUrl.split('/').pop()
 				isReusable: true,
 			})
 			.project({ _id: 1 })
+			.limit(1)
 			.toArray()
 
 		console.log(`${projectTemplates.length} project templates found`)
@@ -84,12 +104,6 @@ const dbName = mongoUrl.split('/').pop()
 		// Chunked processing
 		let chunkedTemplates = _.chunk(projectTemplates, 10)
 		let templateIds
-
-		let convertedEntities = {
-			categories: { entity_type_id: null, entities: [] },
-			recommended_for: { entity_type_id: null, entities: [] },
-			languages: { entity_type_id: null, entities: [] },
-		}
 
 		let createdEntityIds = {}
 
@@ -160,42 +174,58 @@ const dbName = mongoUrl.split('/').pop()
 
 						// Find the non-existing entities
 						entityKeys.forEach((key) => {
-							const values = key === 'languages' ? [convertedTemplate[key]] : convertedTemplate[key]
-							addEntitiesToConverted(
+							const values = Array.isArray(convertedTemplate[key])
+								? [...new Set(convertedTemplate[key])]
+								: convertedTemplate[key]
+							convertedTemplate[key] = formatValues(values)
+							console.log('-=-=-=-=-=->>>', convertedTemplate)
+
+							const entitiesToCreate = convertEntities(
 								key,
-								formatValues(values),
-								convertedEntities,
-								entityTypesWithEntities
+								typeof values == 'array' ? formatValues(values) : values,
+								convertedEntities
 							)
-							convertedTemplate[key] = convertedEntities[key].entities
 						})
 
-						// Create the project and entities after conversion
-						let projectCreateResponse = await createProjectAndEntities(
-							templateIdStr,
-							convertedTemplate,
-							convertedEntities,
-							createdEntityIds,
-							entityTypesWithEntities
-						)
+						// Find the non-existing entities
+						// entityKeys.forEach((key) => {
+						// 	const values = key === 'languages' ? [convertedTemplate[key]] : convertedTemplate[key]
+						// 	addEntitiesToConverted(
+						// 		key,
+						// 		formatValues(values),
+						// 		convertedEntities,
+						// 		entityTypesWithEntities
+						// 	)
+						// 	convertedTemplate[key] = convertedEntities[key].entities
+						// })
 
-						if (projectCreateResponse.success) {
-							csvRecords.push({
-								templateId: templateIdStr,
-								success: 'Project Created',
-								projectId: projectCreateResponse.projectId,
-							})
-						} else {
-							csvRecords.push({
-								templateId: templateIdStr,
-								success: projectCreateResponse.message,
-								projectId: null,
-							})
-						}
+						// Create the project and entities after conversion
+						// let projectCreateResponse = await createProjectAndEntities(
+						// 	templateIdStr,
+						// 	convertedTemplate,
+						// 	convertedEntities,
+						// 	createdEntityIds,
+						// 	entityTypesWithEntities
+						// )
+
+						// if (projectCreateResponse.success) {
+						// 	csvRecords.push({
+						// 		templateId: templateIdStr,
+						// 		success: 'Project Created',
+						// 		projectId: projectCreateResponse.projectId,
+						// 	})
+						// } else {
+						// 	csvRecords.push({
+						// 		templateId: templateIdStr,
+						// 		success: projectCreateResponse.message,
+						// 		projectId: null,
+						// 	})
+						// }
 					}
 				})
 			)
 		}
+		process.exit()
 
 		//write data to csv
 		await csvWriter.writeRecords(csvRecords)
@@ -264,25 +294,16 @@ async function convertTemplate(template) {
 		const convertedTemplate = {
 			title: template.title,
 			objective: template.description,
-			categories: template.categories.map(({ name }) => ({
-				label: name,
-				value: name.toLowerCase(),
-			})),
+			categories: template.categories.length > 0 ? template.categories.map(({ name }) => name.toLowerCase()) : [],
 			recommended_duration: convertDuration(template.duration || template.metaInformation.duration),
 			keywords: convertKeywords(template.keywords),
-			recommended_for: template.recommendedFor.map((audience) => ({
-				label: audience,
-				value: audience.toLowerCase(),
-			})),
-			languages: {
-				label: 'English',
-				value: 'en',
-			},
+			recommended_for:
+				template.recommendedFor.length > 0
+					? template.recommendedFor.map(({ audience }) => audience.toLowerCase())
+					: [],
+			languages: 'en',
 			learning_resources: template.learningResources ? convertResources(template.learningResources) : [],
-			licenses: {
-				label: 'CC BY 4.0',
-				value: 'cc_by_4.0',
-			},
+			licenses: 'cc_by_4.0',
 			created_by: template.createdBy,
 			published_id: template._id,
 			published_on: template.createdAt,
@@ -355,6 +376,29 @@ function formatValues(arr) {
 	}))
 }
 
+function convertEntities(entityTypeKey, values, convertedEntities) {
+	let entitiesToCreate = []
+
+	// Check if the entityTypeKey exists in convertedEntities
+	if (convertedEntities.hasOwnProperty(entityTypeKey)) {
+		const entityTypeId = convertedEntities[entityTypeKey].entity_type_id
+
+		// Create a Set of existing entity values for faster lookup
+		const existingValuesSet = new Set(convertedEntities[entityTypeKey].entities.map((entity) => entity.value))
+
+		// Filter out values that already exist and return as an array of objects
+		entitiesToCreate = values
+			.filter((value) => !existingValuesSet.has(value))
+			.map((value) => ({
+				entity_type_id: entityTypeId,
+				value: value,
+			}))
+	}
+
+	return entitiesToCreate
+}
+
+/*
 function addEntitiesToConverted(entityTypeKey, convertedValues, convertedEntities, entityTypesWithEntities) {
 	const existingEntityType = entityTypesWithEntities.find((entityType) => entityType.value === entityTypeKey)
 	const existingEntities = existingEntityType ? existingEntityType.entities.map((entity) => entity.value) : []
@@ -385,7 +429,7 @@ function addEntitiesToConverted(entityTypeKey, convertedValues, convertedEntitie
 		}
 	})
 }
-
+*/
 // function to find existing entity
 function findExistingEntity(entityTypeKey, entityValue, entityTypesWithEntities) {
 	const entityType = entityTypesWithEntities.find((type) => type.value === entityTypeKey)
