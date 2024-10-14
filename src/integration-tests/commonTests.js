@@ -8,6 +8,7 @@ const userServiceURL = 'http://localhost:5001' // Add user service URL
 // Global headers for authenticated requests
 let defaultHeaders
 const waitOn = require('wait-on')
+let verifyUserRoleRetries = 0
 
 // Improved waitForServices function to wait for both services
 const waitForServices = async (urls) => {
@@ -29,6 +30,7 @@ const waitForServices = async (urls) => {
 // Function to verify user roles and create them if necessary
 const verifyUserRole = async () => {
 	console.log('============>USER ROLE CHECK : ')
+	verifyUserRoleRetries++
 
 	// Define a separate request instance scoped to this function
 	let request = defaults(supertest(userServiceURL))
@@ -99,6 +101,15 @@ const verifyUserRole = async () => {
 			// Wait for both role creation requests to complete
 			if (roleCreationPromises.length > 0) {
 				const resss = await Promise.all(roleCreationPromises)
+
+				// Check if all the promises were successful
+				results.forEach((res, index) => {
+					if (res.statusCode >= 200 && res.statusCode < 300) {
+						console.log(`Role creation for promise ${index + 1} was successful.`)
+					} else {
+						if (verifyUserRoleRetries <= 3) verifyUserRole()
+					}
+				})
 				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(resss.body, null, 2))
 			}
 		}
@@ -125,7 +136,6 @@ const verifyUserRole = async () => {
 
 		console.log('Calling verifyUserRole...')
 		const result = await verifyUserRole()
-		console.log('verifyUserRole result:', result)
 	} catch (error) {
 		console.error('Error while calling verifyUserRole:', error)
 	}
