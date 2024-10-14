@@ -16,8 +16,8 @@ const entityService = require('@services/entities')
 const resourceService = require('@services/resource')
 const resourceQueries = require('@database/queries/resources')
 const _ = require('lodash')
-const { ObjectId } = require('mongodb')
 const MongoClient = require('mongodb').MongoClient
+const { v4: uuidv4 } = require('uuid')
 
 //get mongo db url
 const mongoUrl = process.env.MONGODB_URL
@@ -25,19 +25,6 @@ const mongoUrl = process.env.MONGODB_URL
 if (!mongoUrl) {
 	throw new Error('MONGODB_URL is not set in the environment variables.')
 }
-
-// Path to the CSV file
-const outputPath = path.resolve(__dirname, 'migration_results.csv')
-
-// CSV Writer setup
-const csvWriter = createCsvWriter({
-	path: outputPath,
-	header: [
-		{ id: 'templateId', title: 'Template ID' },
-		{ id: 'success', title: 'Success' },
-		{ id: 'projectId', title: 'Project ID' },
-	],
-})
 
 const dbName = mongoUrl.split('/').pop()
 
@@ -50,7 +37,21 @@ const dbName = mongoUrl.split('/').pop()
 		console.log('Connected to MongoDB')
 		const db = connection.db(dbName)
 
+		// Path to the CSV file
+		const outputPath = path.resolve(__dirname, 'migration_results.csv')
+
+		// CSV Writer setup
+		const csvWriter = createCsvWriter({
+			path: outputPath,
+			header: [
+				{ id: 'templateId', title: 'Template ID' },
+				{ id: 'success', title: 'Success' },
+				{ id: 'projectId', title: 'Project ID' },
+			],
+		})
+
 		let csvRecords = []
+
 		const entityKeys = ['categories', 'recommended_for', 'languages']
 		let entityTypeEntityMap = {
 			categories: { entity_type_id: null, entities: [] },
@@ -168,7 +169,6 @@ const dbName = mongoUrl.split('/').pop()
 						for (const key of entityKeys) {
 							// Check if the value is an array and remove duplicates using Set
 							let values = convertedTemplate[key]
-							console.log(key, values, 'values')
 							if (Array.isArray(values) && values.length > 0) {
 								values = [...new Set(values)]
 								convertedTemplate[key] = formatValues(values)
@@ -183,20 +183,13 @@ const dbName = mongoUrl.split('/').pop()
 							}
 						}
 
-						// console.log('-=-=-=-=-=->>>', convertedTemplate)
-
-						console.log(entitiesToCreate, 'entitiesToCreate')
-
 						// Create the project and entities after conversion
 						let projectCreateResponse = await createProjectAndEntities(
 							templateIdStr,
 							convertedTemplate,
-							// entityTypeEntityMap,
 							entitiesToCreate,
 							createdEntityIds
 						)
-
-						console.log(projectCreateResponse, 'projectCreateResponse')
 
 						if (projectCreateResponse.success) {
 							csvRecords.push({
@@ -268,7 +261,7 @@ async function convertTemplate(template) {
 
 		// Helper function to convert tasks and their children
 		const convertTask = (task, index) => ({
-			id: task._id,
+			id: uuidv4(),
 			name: task.name,
 			type: task.type,
 			is_mandatory: task.isDeletable ? false : true,
@@ -422,6 +415,7 @@ async function createProject(templateId, projectData, userId, orgId) {
 	}
 }
 
+// function to create project and entities
 async function createProjectAndEntities(templateId, templateData, entitiesToCreate, createdEntityIds) {
 	try {
 		if (entitiesToCreate.length > 0) {
