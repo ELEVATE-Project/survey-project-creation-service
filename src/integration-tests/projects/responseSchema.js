@@ -319,7 +319,9 @@ const detailSchema = {
 					type: 'array',
 					items: {},
 				},
-				correlation: { type: 'string' },
+				correlation: {
+					type: 'string',
+				},
 			},
 			required: ['formsVersion', 'correlation'],
 		},

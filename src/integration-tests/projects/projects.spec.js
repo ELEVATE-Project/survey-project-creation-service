@@ -65,7 +65,7 @@ describe('Project APIs ', function () {
 function insertProjectData() {
 	return {
 		title: faker.random.alpha(5),
-		objective: 'In the vibrant city of Metropolis.',
+		objective: 'In the vibrant city of Metropolis',
 		recommended_for: ['teachers', 'ht'],
 		languages: 'en',
 		categories: 'school_process',
