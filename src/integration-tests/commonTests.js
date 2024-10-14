@@ -110,7 +110,7 @@ const verifyUserRole = async () => {
 						if (verifyUserRoleRetries <= 3) verifyUserRole()
 					}
 				})
-				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(resss.body, null, 2))
+				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(promiseResult.body, null, 2))
 			}
 		}
 	} catch (error) {
