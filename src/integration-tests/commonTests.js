@@ -10,6 +10,8 @@ let defaultHeaders
 const waitOn = require('wait-on')
 let verifyUserRoleRetries = 0
 
+let orgAdminToken = ''
+
 // Improved waitForServices function to wait for both services
 const waitForServices = async (urls) => {
 	const opts = {
@@ -53,8 +55,9 @@ const verifyUserRole = async () => {
 
 		// Check if the user was created successfully and access_token is available
 		if (res.body?.result?.access_token && res.body.result.user.id) {
+			orgAdminToken = res.body?.result?.access_token
 			defaultHeaders = {
-				'X-auth-token': 'bearer ' + res.body.result.access_token,
+				'X-auth-token': 'bearer ' + orgAdminToken,
 				Connection: 'keep-alive',
 				'Content-Type': 'application/json',
 			}
@@ -106,10 +109,12 @@ const verifyUserRole = async () => {
 				promiseResult.forEach((res, index) => {
 					if (res.statusCode >= 200 && res.statusCode < 300) {
 						console.log(`Role creation for promise ${index + 1} was successful.`)
+						console.log('Role creation response body : ', res.body)
 					} else {
 						if (verifyUserRoleRetries <= 3) verifyUserRole()
 					}
 				})
+
 				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(promiseResult.body, null, 2))
 			}
 		}
@@ -144,6 +149,7 @@ const verifyUserRole = async () => {
 // Function to log in and generate token
 const logIn = async () => {
 	try {
+		await verifyUserRole()
 		console.log('============>ATTEMPTING LOGIN : ')
 
 		// Define a separate request instance scoped to this function
