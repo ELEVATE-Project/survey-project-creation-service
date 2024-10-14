@@ -86,10 +86,8 @@ const dbName = mongoUrl.split('/').pop()
 			.find({
 				status: 'published',
 				isReusable: true,
-				_id: ObjectId('5fd1b2a3e4d17b4af8aa6f4d'),
 			})
 			.project({ _id: 1 })
-			.limit(1)
 			.toArray()
 
 		console.log(`${projectTemplates.length} project templates found`)
@@ -209,7 +207,9 @@ const dbName = mongoUrl.split('/').pop()
 						} else {
 							csvRecords.push({
 								templateId: templateIdStr,
-								success: projectCreateResponse.message,
+								success: projectCreateResponse.error?.message
+									? projectCreateResponse.error?.message
+									: projectCreateResponse.error,
 								projectId: null,
 							})
 						}
@@ -293,7 +293,13 @@ async function convertTemplate(template) {
 			keywords: convertKeywords(template.keywords),
 			recommended_for:
 				Array.isArray(template.recommendedFor) && template.recommendedFor.length > 0
-					? template.recommendedFor.map(({ audience }) => audience.toLowerCase())
+					? template.recommendedFor.map((audience) =>
+							typeof audience === 'string'
+								? audience.toLowerCase()
+								: audience.code
+								? audience.code.toLowerCase()
+								: ''
+					  )
 					: [],
 			languages: 'en',
 			learning_resources: Array.isArray(template.learningResources)
@@ -342,9 +348,11 @@ function convertDuration(duration) {
 		D: 'days',
 		M: 'months',
 		MONTH: 'months',
+		MONTHS: 'months',
 		WEEKS: 'weeks',
 		WEEK: 'weeks',
 		DAY: 'days',
+		DAYS: 'days',
 	}
 
 	const durationType = unitMapping[durationUnit] || ''
