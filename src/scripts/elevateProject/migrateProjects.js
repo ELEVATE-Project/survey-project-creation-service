@@ -397,7 +397,7 @@ function convertDuration(duration) {
 	const durationType = unitMapping[durationUnit] || ''
 
 	return {
-		type: durationType,
+		duration: durationType,
 		number: durationNumber,
 	}
 }
