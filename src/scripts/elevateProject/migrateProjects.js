@@ -6,8 +6,8 @@
  */
 
 require('module-alias/register')
-require('dotenv').config({ path: '../.env' })
-require('../configs/events')()
+require('dotenv').config({ path: '../../.env' })
+require('../../configs/events')()
 const path = require('path')
 const createCsvWriter = require('csv-writer').createObjectCsvWriter
 const entityTypeService = require('@services/entity-types')
@@ -16,8 +16,9 @@ const entityService = require('@services/entities')
 const resourceService = require('@services/resource')
 const resourceQueries = require('@database/queries/resources')
 const _ = require('lodash')
-const { ObjectId } = require('mongodb')
 const MongoClient = require('mongodb').MongoClient
+const { v4: uuidv4 } = require('uuid')
+const userRequest = require('@requests/user')
 
 //get mongo db url
 const mongoUrl = process.env.MONGODB_URL
@@ -25,19 +26,6 @@ const mongoUrl = process.env.MONGODB_URL
 if (!mongoUrl) {
 	throw new Error('MONGODB_URL is not set in the environment variables.')
 }
-
-// Path to the CSV file
-const outputPath = path.resolve(__dirname, 'migration_results.csv')
-
-// CSV Writer setup
-const csvWriter = createCsvWriter({
-	path: outputPath,
-	header: [
-		{ id: 'templateId', title: 'Template ID' },
-		{ id: 'success', title: 'Success' },
-		{ id: 'projectId', title: 'Project ID' },
-	],
-})
 
 const dbName = mongoUrl.split('/').pop()
 
@@ -50,7 +38,21 @@ const dbName = mongoUrl.split('/').pop()
 		console.log('Connected to MongoDB')
 		const db = connection.db(dbName)
 
+		// Path to the CSV file
+		const outputPath = path.resolve(__dirname, 'migration_results.csv')
+
+		// CSV Writer setup
+		const csvWriter = createCsvWriter({
+			path: outputPath,
+			header: [
+				{ id: 'templateId', title: 'Template ID' },
+				{ id: 'success', title: 'Success' },
+				{ id: 'projectId', title: 'Project ID' },
+			],
+		})
+
 		let csvRecords = []
+
 		const entityKeys = ['categories', 'recommended_for', 'languages']
 		let entityTypeEntityMap = {
 			categories: { entity_type_id: null, entities: [] },
@@ -80,6 +82,12 @@ const dbName = mongoUrl.split('/').pop()
 			}
 		})
 
+		//get default userId
+		const DEFAULT_USER_ID = await getDefaultUserId()
+		if (!DEFAULT_USER_ID) {
+			throw new Error('Failed to get default org admin')
+		}
+
 		// Get all project templates
 		const projectTemplates = await db
 			.collection('projectTemplates')
@@ -108,6 +116,10 @@ const dbName = mongoUrl.split('/').pop()
 				.collection('projectTemplates')
 				.find({ _id: { $in: templateIds } })
 				.toArray()
+
+			//Fetch user and org details
+			let userIds = templates.map((template) => template.createdBy)
+			let userOrgMap = await getUserOrgDetails(userIds)
 
 			await Promise.all(
 				templates.map(async (template) => {
@@ -158,7 +170,7 @@ const dbName = mongoUrl.split('/').pop()
 						}
 
 						// Convert template
-						let convertedTemplate = await convertTemplate(template)
+						let convertedTemplate = await convertTemplate(template, userOrgMap, DEFAULT_USER_ID)
 						if (!convertedTemplate.success) {
 							throw new Error(convertedTemplate.error)
 						}
@@ -168,7 +180,6 @@ const dbName = mongoUrl.split('/').pop()
 						for (const key of entityKeys) {
 							// Check if the value is an array and remove duplicates using Set
 							let values = convertedTemplate[key]
-							console.log(key, values, 'values')
 							if (Array.isArray(values) && values.length > 0) {
 								values = [...new Set(values)]
 								convertedTemplate[key] = formatValues(values)
@@ -183,20 +194,13 @@ const dbName = mongoUrl.split('/').pop()
 							}
 						}
 
-						// console.log('-=-=-=-=-=->>>', convertedTemplate)
-
-						console.log(entitiesToCreate, 'entitiesToCreate')
-
 						// Create the project and entities after conversion
 						let projectCreateResponse = await createProjectAndEntities(
 							templateIdStr,
 							convertedTemplate,
-							// entityTypeEntityMap,
 							entitiesToCreate,
 							createdEntityIds
 						)
-
-						console.log(projectCreateResponse, 'projectCreateResponse')
 
 						if (projectCreateResponse.success) {
 							csvRecords.push({
@@ -228,11 +232,38 @@ const dbName = mongoUrl.split('/').pop()
 	}
 })()
 
+//get default org admin
+async function getDefaultUserId() {
+	let defaultUserId = null
+	let orgDetails = await userRequest.fetchOrg(process.env.DEFAULT_ORG_ID)
+	if (
+		orgDetails.success &&
+		Array.isArray(orgDetails?.data?.result?.org_admin) &&
+		orgDetails.data.result.org_admin.length > 0
+	) {
+		defaultUserId = orgDetails.data.result.org_admin[0]
+	}
+	return defaultUserId
+}
+
+//get user org id
+async function getUserOrgDetails(userIds) {
+	let userOrgMap = {}
+	const users = await userRequest.list('all', '', '', '', '', {
+		user_ids: userIds,
+	})
+
+	if (users.success && users.data?.result?.data?.length > 0) {
+		userOrgMap = _.keyBy(users.data.result.data, 'id')
+	}
+
+	return userOrgMap
+}
+
 async function checkProjectExist(templateId) {
 	try {
 		let project = await resourceQueries.findOne(
 			{
-				organization_id: process.env.DEFAULT_ORG_ID,
 				published_id: templateId,
 			},
 			{
@@ -257,8 +288,15 @@ async function checkProjectExist(templateId) {
 	}
 }
 
-async function convertTemplate(template) {
+async function convertTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 	try {
+		let userId = DEFAULT_USER_ID
+		let orgId = process.env.DEFAULT_ORG_ID
+		if (userOrgMap[template.createdBy]) {
+			userId = template.createdBy
+			orgId = userOrgMap[template.createdBy].organization.id
+		}
+
 		// Helper function to convert resources
 		const convertResources = (resources) =>
 			resources.map(({ name, link }) => ({
@@ -268,13 +306,13 @@ async function convertTemplate(template) {
 
 		// Helper function to convert tasks and their children
 		const convertTask = (task, index) => ({
-			id: task._id,
+			id: uuidv4(),
 			name: task.name,
 			type: task.type,
 			is_mandatory: task.isDeletable ? false : true,
 			allow_evidences: true,
 			evidence_details: {
-				file_types: task.evidenceDetails?.fileTypes || ['Images', 'Document', 'Videos', 'Audio'],
+				file_types: task.evidenceDetails?.fileTypes || ['images', 'document', 'videos', 'audio'],
 				min_no_of_evidences: task.evidenceDetails?.minNoOfEvidences || 1,
 			},
 			learning_resources: Array.isArray(task.learningResources) ? convertResources(task.learningResources) : [],
@@ -306,7 +344,8 @@ async function convertTemplate(template) {
 				? convertResources(template.learningResources)
 				: [],
 			licenses: 'cc_by_4.0',
-			created_by: template.createdBy,
+			created_by: userId.toString(),
+			organization_id: orgId.toString(),
 			published_id: template._id,
 			tasks: template.taskDetails ? template.taskDetails.map(convertTask) : [],
 		}
@@ -422,6 +461,7 @@ async function createProject(templateId, projectData, userId, orgId) {
 	}
 }
 
+// function to create project and entities
 async function createProjectAndEntities(templateId, templateData, entitiesToCreate, createdEntityIds) {
 	try {
 		if (entitiesToCreate.length > 0) {
@@ -456,7 +496,7 @@ async function createProjectAndEntities(templateId, templateData, entitiesToCrea
 			templateId,
 			templateData,
 			templateData.created_by,
-			process.env.DEFAULT_ORG_ID
+			templateData.organization_id
 		)
 
 		if (projectCreationResponse.success) {
