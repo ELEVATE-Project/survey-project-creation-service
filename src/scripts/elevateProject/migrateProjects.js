@@ -429,10 +429,17 @@ async function filterNonExistingEntities(entityTypeKey, values, entityTypeEntity
 		const existingEntities = new Set(entityTypeEntityMap[entityTypeKey].entities)
 		// Filter and push non-existing values in one step
 		values.forEach((value) => {
-			if (!existingEntities.has(value)) {
+			// Check if the value already exists in entitiesToCreate with the same entity_type_id
+			const alreadyExists = entitiesToCreate.some(
+				(entity) => entity.entity_type_id === entityTypeId && entity.value === value
+			)
+
+			// If the value is not present in existingEntities and not already in entitiesToCreate
+			if (!existingEntities.has(value) && !alreadyExists) {
 				entitiesToCreate.push({
 					entity_type_id: entityTypeId,
 					value: value,
+					label: formatTitle(value),
 				})
 			}
 		})
@@ -463,9 +470,9 @@ async function createProject(templateId, projectData, userId, orgId) {
 
 function formatTitle(str) {
 	return str
-		.replace(/[_/]+/g, ' / ')
-		.trim()
-		.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1))
+		.replace(/_/g, ' ') // Replace underscores with a space
+		.trim() // Trim any leading/trailing spaces
+		.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize each word
 }
 
 // function to create project and entities
@@ -476,7 +483,7 @@ async function createProjectAndEntities(templateId, templateData, entitiesToCrea
 				let entityCreationData = {
 					entity_type_id: entity.entity_type_id,
 					value: entity.value,
-					label: formatTitle(entity.value),
+					label: entity.label || entity.value,
 					type: 'SYSTEM',
 					status: 'ACTIVE',
 					created_at: new Date(),
@@ -484,7 +491,6 @@ async function createProjectAndEntities(templateId, templateData, entitiesToCrea
 					created_by: 0,
 					updated_by: 0,
 				}
-
 				const createdEntity = await entityService.create(entityCreationData, '0')
 				if (createdEntity?.result?.id) {
 					console.log(`Entity ${entity.value} created successfully.`)
