@@ -58,7 +58,6 @@ module.exports = class ProjectsHelper {
 			}
 
 			const orgConfig = await orgExtensionService.getConfig(orgId)
-
 			const orgConfigList = _.reduce(
 				orgConfig.result.resource,
 				(acc, item) => {

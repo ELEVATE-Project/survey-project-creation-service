@@ -2,7 +2,8 @@ const Entity = require('../models/index').Entity
 module.exports = class UserEntityData {
 	static async createEntity(data) {
 		try {
-			return await Entity.create(data, { returning: true })
+			const entity = await Entity.create(data, { returning: true })
+			return entity.get({ plain: true })
 		} catch (error) {
 			throw error
 		}
