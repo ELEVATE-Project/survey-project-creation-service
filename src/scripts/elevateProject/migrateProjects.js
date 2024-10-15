@@ -339,7 +339,7 @@ async function convertTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 								: ''
 					  )
 					: [],
-			languages: 'en',
+			languages: ['en'],
 			learning_resources: Array.isArray(template.learningResources)
 				? convertResources(template.learningResources)
 				: [],
