@@ -461,6 +461,13 @@ async function createProject(templateId, projectData, userId, orgId) {
 	}
 }
 
+function formatTitle(str) {
+	return str
+		.replace(/[_/]+/g, ' / ')
+		.trim()
+		.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1))
+}
+
 // function to create project and entities
 async function createProjectAndEntities(templateId, templateData, entitiesToCreate, createdEntityIds) {
 	try {
@@ -469,7 +476,7 @@ async function createProjectAndEntities(templateId, templateData, entitiesToCrea
 				let entityCreationData = {
 					entity_type_id: entity.entity_type_id,
 					value: entity.value,
-					label: entity.label || entity.value,
+					label: formatTitle(entity.value),
 					type: 'SYSTEM',
 					status: 'ACTIVE',
 					created_at: new Date(),
