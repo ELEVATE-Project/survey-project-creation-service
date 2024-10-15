@@ -19,7 +19,6 @@ const _ = require('lodash')
 const MongoClient = require('mongodb').MongoClient
 const { v4: uuidv4 } = require('uuid')
 const userRequest = require('@requests/user')
-var ObjectId = require('mongodb').ObjectID
 
 //get mongo db url
 const mongoUrl = process.env.MONGODB_URL
@@ -95,7 +94,6 @@ const dbName = mongoUrl.split('/').pop()
 			.find({
 				status: 'published',
 				isReusable: true,
-				// _id: ObjectId('66584ba3fa28840a616722cb')
 			})
 			.project({ _id: 1 })
 			.toArray()
