@@ -71,6 +71,7 @@ module.exports = class ProjectsHelper {
 				title: bodyData.title,
 				type: common.PROJECT,
 				status: common.RESOURCE_STATUS_DRAFT,
+				stage: common.RESOURCE_STAGE_CREATION,
 				user_id: loggedInUserId,
 				review_type: orgConfigList[common.PROJECT],
 				organization_id: orgId,
@@ -243,6 +244,12 @@ module.exports = class ProjectsHelper {
 				//update is_under_edit true if reviewer requested for changes
 				if (countReviews.count > 0) {
 					updateData.is_under_edit = true
+				}
+
+				//get the resource stage
+				const stageData = await resourceService.getResourceStage(resourceId, orgId)
+				if (stageData.statusCode == httpStatusCode.ok && stageData?.stage) {
+					updateData.stage = stageData.stage
 				}
 
 				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {

@@ -132,5 +132,6 @@
 	"CANNOT_DELETE_ACTION_DUE_TO_ASSOCIATED_ACTIVITIES": "Activities have been added for this action, so it cannot be deleted.",
 	"RESOURCE_ID_REQUIRED": "Resource Id is required",
 	"PROJECT_SAVED_SUCCESSFULLY": "Your changes have been saved",
-	"FAILED_TO_CREATE_CONFIG": "Organization config creation failed"
+	"FAILED_TO_CREATE_CONFIG": "Organization config creation failed",
+	"RESOURCE_STAGE_FETCHED": "Resource stage fetched"
 }

@@ -1260,4 +1260,59 @@ module.exports = class resourceHelper {
 			})
 		}
 	}
+
+	/**
+	 * Get resources stage
+	 * @name getResourceStage
+	 * @param {String} organization_id - Org Id of the user
+	 * @param {String} resourceId - Resource Id
+	 * @returns {Object} - stage of the resource
+	 */
+	static async getResourceStage(resourceId, orgId) {
+		try {
+			const resource = await resourceQueries.findOne({
+				id: resourceId,
+				organization_id: orgId,
+			})
+
+			if (!resource?.id) {
+				throw new Error('RESOURCE_NOT_FOUND')
+			}
+
+			let stage = common.RESOURCE_STAGE_CREATION
+			if (resource.status.includes(reviewStatuses)) {
+				stage = common.RESOURCE_STAGE_REVIEW
+			} else if (resource.status.includes(completionStatuses)) {
+				stage = common.RESOURCE_STAGE_REVIEW
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCE_STAGE_FETCHED',
+				result: {
+					stage,
+				},
+			})
+		} catch (error) {
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
+		}
+	}
 }
+
+const reviewStatuses = [
+	common.RESOURCE_STATUS_IN_REVIEW,
+	common.RESOURCE_STATUS_SUBMITTED,
+	common.REVIEW_STATUS_APPROVED,
+	common.REVIEW_STATUS_CHANGES_UPDATED,
+	common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+]
+
+const completionStatuses = [
+	common.RESOURCE_STATUS_PUBLISHED,
+	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+]
