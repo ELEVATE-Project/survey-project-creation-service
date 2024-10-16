@@ -61,7 +61,19 @@ module.exports = class resourceHelper {
 		const OrganizationIds = utils.getUniqueElements(resourcesCreatedByMe.map((item) => item.organization_id))
 
 		// get all the resources which are status requested for changes by the reviewerIds.
-		const distinctInreviewResourceIds = await reviewsQueries.distinctResources(
+		// const distinctInreviewResourceIds = await reviewsQueries.distinctResources(
+		// 	{
+		// 		organization_id: {
+		// 			[Op.in]: OrganizationIds,
+		// 		},
+		// 		resource_id: {
+		// 			[Op.in]: uniqueResourceIds,
+		// 		},
+		// 		status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+		// 	},
+		// 	['resource_id']
+		// )
+		const resourceReviews = await reviewsQueries.findAll(
 			{
 				organization_id: {
 					[Op.in]: OrganizationIds,
@@ -69,10 +81,10 @@ module.exports = class resourceHelper {
 				resource_id: {
 					[Op.in]: uniqueResourceIds,
 				},
-				status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 			},
-			['resource_id']
+			['resource_id', 'status']
 		)
+		this.finalResourceStatus(resourceReviews)
 
 		if (queryParams[common.STATUS] === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
 			primaryFilter = {
@@ -232,6 +244,23 @@ module.exports = class resourceHelper {
 			message: 'RESOURCE_LISTED_SUCCESSFULLY',
 			result,
 		})
+	}
+
+	static async finalResourceStatus(reviewDetails) {
+		let recourceStatusMapping = {}
+		reviewDetails.map((review) => {
+			if (!Object.keys(recourceStatusMapping).includes(review.resource_id)) {
+				recourceStatusMapping[review.resource_id] = []
+			}
+			recourceStatusMapping[review.resource_id].push(review.status)
+		})
+		console.log(recourceStatusMapping)
+
+		// SUBMITTED
+		// INREVIEW (STARTED BY ATLEAST ONE REVIEWER)
+		// REQUESTED CHANGES (REVIEW COMPLETED BY ATLEAST ONE REVIEWER)
+		// CHANGES UPDATED Replace SUBMITTED (ALL COMMENTS RESOLVED)
+		// APPROVE (IF NO ONE STARTED SUBMITTED)
 	}
 	/**
 	 * List of all draft resources
