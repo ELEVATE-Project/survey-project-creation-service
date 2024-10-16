@@ -22,7 +22,6 @@ const waitForServices = async (urls) => {
 	}
 	try {
 		await waitOn(opts)
-		console.log(`Services are ready at: ${urls.join(', ')}`)
 	} catch (error) {
 		console.error(`Services not ready at: ${urls.join(', ')}. Error: ${error.message}`)
 		throw new Error('Services not available')
