@@ -431,11 +431,11 @@ async function filterNonExistingEntities(entityTypeKey, values, entityTypeEntity
 		values.forEach((value) => {
 			// Check if the value already exists in entitiesToCreate with the same entity_type_id
 			const alreadyExists = entitiesToCreate.some(
-				(entity) => entity.entity_type_id === entityTypeId && entity.value === value
+				(entity) => entity.entity_type_id == entityTypeId && entity.value == formatEntityValue(value)
 			)
 
 			// If the value is not present in existingEntities and not already in entitiesToCreate
-			if (value && !existingEntities.has(value) && !alreadyExists) {
+			if (value && !existingEntities.has(formatEntityValue(value)) && !alreadyExists) {
 				entitiesToCreate.push({
 					entity_type_id: entityTypeId,
 					value: formatEntityValue(value),

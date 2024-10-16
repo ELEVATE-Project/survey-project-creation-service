@@ -20,6 +20,17 @@ module.exports = class UserEntityData {
 			throw error
 		}
 	}
+	static async findOne(filter, options = {}) {
+		try {
+			return await Entity.findOne({
+				where: filter,
+				...options,
+				raw: true,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
 
 	static async updateOneEntity(id, update, userId, options = {}) {
 		try {
