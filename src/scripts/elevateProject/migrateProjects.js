@@ -181,10 +181,14 @@ const dbName = mongoUrl.split('/').pop()
 					}
 				}
 
+				console.log(entitiesToCreate, 'entitiesToCreate before creation')
+				console.log(entityTypeEntityMap, 'entityTypeEntityMap before entity creation')
+
 				// Create the project and entities after conversion
 				let projectCreateResponse = await createProjectAndEntities(
 					templateIdStr,
 					convertedTemplate,
+					entityTypeEntityMap,
 					entitiesToCreate,
 					createdEntityIds
 				)
@@ -472,7 +476,13 @@ function formatTitle(str) {
 }
 
 // function to create project and entities
-async function createProjectAndEntities(templateId, templateData, entitiesToCreate, createdEntityIds) {
+async function createProjectAndEntities(
+	templateId,
+	templateData,
+	entityTypeEntityMap,
+	entitiesToCreate,
+	createdEntityIds
+) {
 	try {
 		if (entitiesToCreate.length > 0) {
 			for (const entity of entitiesToCreate) {
@@ -491,6 +501,24 @@ async function createProjectAndEntities(templateId, templateData, entitiesToCrea
 					const createdEntity = await entityService.create(entityCreationData, '0')
 					if (createdEntity?.result?.id) {
 						console.log(`Entity ${entity.value} created successfully.`)
+						//remove entity from create
+						entitiesToCreate = entitiesToCreate.filter(
+							(entity) =>
+								!(entity.entity_type_id === entity.entity_type_id && entity.value === entity.value)
+						)
+
+						//add this to entityTypeEntityMap
+						for (let [key, entityData] of Object.entries(entityTypeEntityMap)) {
+							if (entityData.entity_type_id && entityData.entity_type_id === entity.entity_type_id) {
+								entityTypeEntityMap[key].entity_type_id = entity.entity_type_id
+								entityTypeEntityMap[key].entities.push(entity.value)
+								break
+							}
+						}
+
+						console.log(entitiesToCreate, 'entitiesToCreate after creation')
+						console.log(entityTypeEntityMap, 'entityTypeEntityMap after entity creation')
+
 						if (!createdEntityIds[entity.entity_type_id]) {
 							createdEntityIds[entity.entity_type_id] = [] // Initialize if not already done
 						}
