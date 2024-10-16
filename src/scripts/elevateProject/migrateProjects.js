@@ -19,8 +19,8 @@ const _ = require('lodash')
 const MongoClient = require('mongodb').MongoClient
 const { v4: uuidv4 } = require('uuid')
 const userRequest = require('@requests/user')
+const ObjectId = require('mongodb').ObjectID
 
-//get mongo db url
 const mongoUrl = process.env.MONGODB_URL
 
 if (!mongoUrl) {
@@ -62,9 +62,7 @@ const dbName = mongoUrl.split('/').pop()
 
 		// Get the entities for the project
 		let entities = await entityTypeService.readUserEntityTypes(
-			{
-				value: entityKeys,
-			},
+			{ value: entityKeys },
 			'1',
 			process.env.DEFAULT_ORG_ID
 		)
@@ -74,7 +72,7 @@ const dbName = mongoUrl.split('/').pop()
 			throw new Error('Failed to fetch entities')
 		}
 
-		//create entity type and entity map
+		// Create entity type and entity map
 		entityTypesWithEntities.forEach((entityType) => {
 			if (entityTypeEntityMap[entityType.value]) {
 				entityTypeEntityMap[entityType.value].entity_type_id = entityType.id
@@ -82,7 +80,7 @@ const dbName = mongoUrl.split('/').pop()
 			}
 		})
 
-		//get default userId
+		// Get default userId
 		const DEFAULT_USER_ID = await getDefaultUserId()
 		if (!DEFAULT_USER_ID) {
 			throw new Error('Failed to get default org admin')
@@ -91,10 +89,7 @@ const dbName = mongoUrl.split('/').pop()
 		// Get all project templates
 		const projectTemplates = await db
 			.collection('projectTemplates')
-			.find({
-				status: 'published',
-				isReusable: true,
-			})
+			.find({ status: 'published', isReusable: true })
 			.project({ _id: 1 })
 			.toArray()
 
@@ -102,127 +97,117 @@ const dbName = mongoUrl.split('/').pop()
 
 		// Chunked processing
 		let chunkedTemplates = _.chunk(projectTemplates, 10)
-		let templateIds
-
 		let createdEntityIds = {}
 		let entitiesToCreate = []
 
-		// process each templates
+		// Process each chunk sequentially
 		for (const chunk of chunkedTemplates) {
-			templateIds = chunk.map((templateDoc) => templateDoc._id)
+			const templateIds = chunk.map((templateDoc) => templateDoc._id)
 
-			// Fetch templates in parallel
+			// Fetch templates sequentially
 			const templates = await db
 				.collection('projectTemplates')
 				.find({ _id: { $in: templateIds } })
 				.toArray()
 
-			//Fetch user and org details
+			// Fetch user and org details sequentially
 			let userIds = templates.map((template) => template.createdBy)
 			let userOrgMap = await getUserOrgDetails(userIds)
 
-			await Promise.all(
-				templates.map(async (template) => {
-					let templateIdStr = template._id.toString()
-					console.log(`Processing template ${templateIdStr}`)
-					// Check if the project exists before proceeding
-					const isProjectExist = await checkProjectExist(templateIdStr)
-					if (isProjectExist.success) {
-						console.log(`Project Exist for template ${templateIdStr}`)
-						csvRecords.push({
-							templateId: templateIdStr,
-							success: 'Project Exist',
-							projectId: isProjectExist.projectId,
-						})
-					} else {
-						let taskIdsToRemove = []
-						// Check if template.tasks exist before proceeding
-						if (Array.isArray(template.tasks) && template.tasks.length > 0) {
-							const templateTasks = await db
-								.collection('projectTemplateTasks')
-								.find({ _id: { $in: template.tasks } })
-								.toArray()
+			for (const template of templates) {
+				let templateIdStr = template._id.toString()
+				console.log(`Processing template ${templateIdStr}`)
 
-							if (templateTasks.length > 0) {
-								template.taskDetails = templateTasks
+				// Check if the project exists
+				const isProjectExist = await checkProjectExist(templateIdStr)
+				if (isProjectExist.success) {
+					console.log(`Project Exist for template ${templateIdStr}`)
+					csvRecords.push({
+						templateId: templateIdStr,
+						success: 'Project Exist',
+						projectId: isProjectExist.projectId,
+					})
+					continue
+				}
 
-								// Handle subtasks in parallel
-								await Promise.all(
-									templateTasks.map(async (currentTask) => {
-										if (Array.isArray(currentTask.children) && currentTask.children.length > 0) {
-											const subTasks = await db
-												.collection('projectTemplateTasks')
-												.find({ _id: { $in: currentTask.children } })
-												.toArray()
-											currentTask.children = subTasks
-											taskIdsToRemove.push(...subTasks.map((task) => task._id))
-										}
-									})
-								)
+				let taskIdsToRemove = []
+				// Check if template.tasks exist and handle sequentially
+				if (Array.isArray(template.tasks) && template.tasks.length > 0) {
+					const templateTasks = await db
+						.collection('projectTemplateTasks')
+						.find({ _id: { $in: template.tasks } })
+						.toArray()
 
-								// Remove child task from the tasks array
-								if (taskIdsToRemove.length > 0) {
-									template.taskDetails = template.taskDetails.filter(
-										(task) => !taskIdsToRemove.some((id) => id.equals(task._id))
-									)
-								}
+					if (templateTasks.length > 0) {
+						template.taskDetails = templateTasks
+
+						// Handle subtasks sequentially
+						for (const currentTask of templateTasks) {
+							if (Array.isArray(currentTask.children) && currentTask.children.length > 0) {
+								const subTasks = await db
+									.collection('projectTemplateTasks')
+									.find({ _id: { $in: currentTask.children } })
+									.toArray()
+
+								currentTask.children = subTasks
+								taskIdsToRemove.push(...subTasks.map((task) => task._id))
 							}
 						}
 
-						// Convert template
-						let convertedTemplate = await convertTemplate(template, userOrgMap, DEFAULT_USER_ID)
-						if (!convertedTemplate.success) {
-							throw new Error(convertedTemplate.error)
-						}
-						convertedTemplate = convertedTemplate.template
-
-						// Find the non-existing entities
-						for (const key of entityKeys) {
-							// Check if the value is an array and remove duplicates using Set
-							let values = convertedTemplate[key]
-							if (Array.isArray(values) && values.length > 0) {
-								values = [...new Set(values)]
-								convertedTemplate[key] = formatValues(values)
-
-								// Await async function inside the loop
-								await filterNonExistingEntities(
-									key,
-									Array.isArray(values) ? formatValues(values) : values,
-									entityTypeEntityMap,
-									entitiesToCreate
-								)
-							}
-						}
-
-						// Create the project and entities after conversion
-						let projectCreateResponse = await createProjectAndEntities(
-							templateIdStr,
-							convertedTemplate,
-							entitiesToCreate,
-							createdEntityIds
-						)
-
-						if (projectCreateResponse.success) {
-							csvRecords.push({
-								templateId: templateIdStr,
-								success: 'Project Created',
-								projectId: projectCreateResponse.projectId,
-							})
-						} else {
-							csvRecords.push({
-								templateId: templateIdStr,
-								success: projectCreateResponse.error?.message
-									? projectCreateResponse.error?.message
-									: projectCreateResponse.error,
-								projectId: null,
-							})
+						// Remove child tasks from the tasks array
+						if (taskIdsToRemove.length > 0) {
+							template.taskDetails = template.taskDetails.filter(
+								(task) => !taskIdsToRemove.some((id) => id.equals(task._id))
+							)
 						}
 					}
-				})
-			)
+				}
+
+				// Convert template sequentially
+				let convertedTemplate = await convertTemplate(template, userOrgMap, DEFAULT_USER_ID)
+				if (!convertedTemplate.success) {
+					throw new Error(convertedTemplate.error)
+				}
+				convertedTemplate = convertedTemplate.template
+
+				// Find non-existing entities sequentially
+				for (const key of entityKeys) {
+					let values = convertedTemplate[key]
+					if (Array.isArray(values) && values.length > 0) {
+						values = [...new Set(values)]
+						convertedTemplate[key] = formatValues(values)
+
+						await filterNonExistingEntities(key, values, entityTypeEntityMap, entitiesToCreate)
+					}
+				}
+
+				// Create the project and entities after conversion
+				let projectCreateResponse = await createProjectAndEntities(
+					templateIdStr,
+					convertedTemplate,
+					entitiesToCreate,
+					createdEntityIds
+				)
+
+				if (projectCreateResponse.success) {
+					csvRecords.push({
+						templateId: templateIdStr,
+						success: 'Project Created',
+						projectId: projectCreateResponse.projectId,
+					})
+				} else {
+					csvRecords.push({
+						templateId: templateIdStr,
+						success: projectCreateResponse.error?.message
+							? projectCreateResponse.error?.message
+							: projectCreateResponse.error,
+						projectId: null,
+					})
+				}
+			}
 		}
 
-		//write data to csv
+		// Write data to csv
 		await csvWriter.writeRecords(csvRecords)
 		console.log('Migration completed')
 		await client.close()
@@ -299,10 +284,12 @@ async function convertTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 
 		// Helper function to convert resources
 		const convertResources = (resources) =>
-			resources.map(({ name, link }) => ({
-				name,
-				url: link,
-			}))
+			resources
+				.filter(({ link }) => !!link)
+				.map(({ name, link }) => ({
+					name: name || 'Resource',
+					url: link,
+				}))
 
 		// Helper function to convert tasks and their children
 		const convertTask = (task, index) => ({
@@ -416,10 +403,19 @@ function formatValues(arr) {
 		return value
 			.replace(/\s*\(.*?\)\s*/g, '')
 			.toLowerCase()
+			.trim()
 			.replace(/\s+/g, '_')
 	})
 
 	return formatedArray
+}
+
+function formatEntityValue(value) {
+	return value
+		.replace(/\s*\(.*?\)\s*/g, '')
+		.toLowerCase()
+		.trim()
+		.replace(/\s+/g, '_')
 }
 
 //to get all entities which is not present
@@ -435,10 +431,10 @@ async function filterNonExistingEntities(entityTypeKey, values, entityTypeEntity
 			)
 
 			// If the value is not present in existingEntities and not already in entitiesToCreate
-			if (!existingEntities.has(value) && !alreadyExists) {
+			if (value && !existingEntities.has(value) && !alreadyExists) {
 				entitiesToCreate.push({
 					entity_type_id: entityTypeId,
-					value: value,
+					value: formatEntityValue(value),
 					label: formatTitle(value),
 				})
 			}
@@ -480,26 +476,28 @@ async function createProjectAndEntities(templateId, templateData, entitiesToCrea
 	try {
 		if (entitiesToCreate.length > 0) {
 			for (const entity of entitiesToCreate) {
-				let entityCreationData = {
-					entity_type_id: entity.entity_type_id,
-					value: entity.value,
-					label: entity.label || entity.value,
-					type: 'SYSTEM',
-					status: 'ACTIVE',
-					created_at: new Date(),
-					updated_at: new Date(),
-					created_by: 0,
-					updated_by: 0,
-				}
-				const createdEntity = await entityService.create(entityCreationData, '0')
-				if (createdEntity?.result?.id) {
-					console.log(`Entity ${entity.value} created successfully.`)
-					if (!createdEntityIds[entity.entity_type_id]) {
-						createdEntityIds[entity.entity_type_id] = [] // Initialize if not already done
+				if (entity.value) {
+					let entityCreationData = {
+						entity_type_id: entity.entity_type_id,
+						value: entity.value,
+						label: entity.label || entity.value,
+						type: 'SYSTEM',
+						status: 'ACTIVE',
+						created_at: new Date(),
+						updated_at: new Date(),
+						created_by: 0,
+						updated_by: 0,
 					}
-					createdEntityIds[entity.entity_type_id].push(createdEntity.result.id)
-				} else {
-					console.error(`Failed to create entity: ${entity.value}`, createdEntity.error)
+					const createdEntity = await entityService.create(entityCreationData, '0')
+					if (createdEntity?.result?.id) {
+						console.log(`Entity ${entity.value} created successfully.`)
+						if (!createdEntityIds[entity.entity_type_id]) {
+							createdEntityIds[entity.entity_type_id] = [] // Initialize if not already done
+						}
+						createdEntityIds[entity.entity_type_id].push(createdEntity.result.id)
+					} else {
+						console.error(`Failed to create entity: ${entity.value}`, createdEntity.error)
+					}
 				}
 			}
 		}
