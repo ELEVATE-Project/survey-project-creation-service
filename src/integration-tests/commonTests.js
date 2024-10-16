@@ -149,7 +149,6 @@ const verifyUserRole = async () => {
 const logIn = async () => {
 	try {
 		await verifyUserRole()
-		console.log('============>ATTEMPTING LOGIN : ')
 
 		// Define a separate request instance scoped to this function
 		let request = defaults(supertest(userServiceURL))
@@ -177,7 +176,6 @@ const logIn = async () => {
 
 		// Check if login was successful and return token details
 		if (res.body?.result?.access_token && res.body.result.user.id) {
-			console.log('============>LOGIN SUCCESSFUL')
 			defaultHeaders = {
 				'X-auth-token': 'bearer ' + res.body.result.access_token,
 				Connection: 'keep-alive',
