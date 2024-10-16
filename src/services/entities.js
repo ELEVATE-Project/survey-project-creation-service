@@ -21,6 +21,17 @@ module.exports = class EntityHelper {
 		bodyData.updated_by = loggedInUserId
 		bodyData.value = bodyData.value.toLowerCase()
 		try {
+			const checkEntity = await entityQueries.findOne({
+				entity_type_id: bodyData.entity_type_id,
+				value: bodyData.value,
+			})
+			if (checkEntity) {
+				return responses.failureResponse({
+					message: 'ENTITY_ALREADY_EXISTS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 			const entity = await entityQueries.createEntity(bodyData)
 			return responses.successResponse({
 				statusCode: httpStatusCode.created,
@@ -28,6 +39,7 @@ module.exports = class EntityHelper {
 				result: entity,
 			})
 		} catch (error) {
+			console.log('-=-=-=-=-=-=-=>>>> ERROR : ', error)
 			if (error instanceof UniqueConstraintError) {
 				return responses.failureResponse({
 					message: 'ENTITY_ALREADY_EXISTS',
