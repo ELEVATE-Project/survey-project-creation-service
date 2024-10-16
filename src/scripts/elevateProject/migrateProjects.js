@@ -185,12 +185,7 @@ const dbName = mongoUrl.split('/').pop()
 								convertedTemplate[key] = formatValues(values)
 
 								// Await async function inside the loop
-								await filterNonExistingEntities(
-									key,
-									Array.isArray(values) ? formatValues(values) : values,
-									entityTypeEntityMap,
-									entitiesToCreate
-								)
+								await filterNonExistingEntities(key, values, entityTypeEntityMap, entitiesToCreate)
 							}
 						}
 
@@ -429,10 +424,18 @@ async function filterNonExistingEntities(entityTypeKey, values, entityTypeEntity
 		const existingEntities = new Set(entityTypeEntityMap[entityTypeKey].entities)
 		// Filter and push non-existing values in one step
 		values.forEach((value) => {
-			if (!existingEntities.has(value)) {
+			let formatValue = value
+				.replace(/\s*\(.*?\)\s*/g, '')
+				.toLowerCase()
+				.replace(/\s+/g, '_')
+			console.log(value, 'value')
+			console.log(formatValue, 'formatValue')
+			console.log(existingEntities.has(formatValue), 'existingEntities.has(formatValue)')
+			if (!existingEntities.has(formatValue)) {
 				entitiesToCreate.push({
 					entity_type_id: entityTypeId,
-					value: value,
+					value: formatValue,
+					label: value,
 				})
 			}
 		})
@@ -461,7 +464,7 @@ async function createProject(templateId, projectData, userId, orgId) {
 	}
 }
 
-function formatTitle(str) {
+function formatLabel(str) {
 	return str
 		.replace(/[_/]+/g, ' / ')
 		.trim()
@@ -473,27 +476,29 @@ async function createProjectAndEntities(templateId, templateData, entitiesToCrea
 	try {
 		if (entitiesToCreate.length > 0) {
 			for (const entity of entitiesToCreate) {
-				let entityCreationData = {
-					entity_type_id: entity.entity_type_id,
-					value: entity.value,
-					label: formatTitle(entity.value),
-					type: 'SYSTEM',
-					status: 'ACTIVE',
-					created_at: new Date(),
-					updated_at: new Date(),
-					created_by: 0,
-					updated_by: 0,
-				}
-
-				const createdEntity = await entityService.create(entityCreationData, '0')
-				if (createdEntity?.result?.id) {
-					console.log(`Entity ${entity.value} created successfully.`)
-					if (!createdEntityIds[entity.entity_type_id]) {
-						createdEntityIds[entity.entity_type_id] = [] // Initialize if not already done
+				if (entity.value && entity.label) {
+					let entityCreationData = {
+						entity_type_id: entity.entity_type_id,
+						value: entity.value,
+						label: formatLabel(entity.label),
+						type: 'SYSTEM',
+						status: 'ACTIVE',
+						created_at: new Date(),
+						updated_at: new Date(),
+						created_by: 0,
+						updated_by: 0,
 					}
-					createdEntityIds[entity.entity_type_id].push(createdEntity.result.id)
-				} else {
-					console.error(`Failed to create entity: ${entity.value}`, createdEntity.error)
+
+					const createdEntity = await entityService.create(entityCreationData, '0')
+					if (createdEntity?.result?.id) {
+						console.log(`Entity ${entity.value} created successfully.`)
+						if (!createdEntityIds[entity.entity_type_id]) {
+							createdEntityIds[entity.entity_type_id] = [] // Initialize if not already done
+						}
+						createdEntityIds[entity.entity_type_id].push(createdEntity.result.id)
+					} else {
+						console.error(`Failed to create entity: ${entity.value}`, createdEntity.error)
+					}
 				}
 			}
 		}
