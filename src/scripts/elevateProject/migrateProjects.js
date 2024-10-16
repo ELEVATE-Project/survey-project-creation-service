@@ -287,7 +287,7 @@ async function convertTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 			resources
 				.filter(({ link }) => !!link)
 				.map(({ name, link }) => ({
-					name: name || '',
+					name: name || 'Resource',
 					url: link,
 				}))
 
