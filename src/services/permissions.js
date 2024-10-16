@@ -24,7 +24,7 @@ module.exports = class PermissionsHelper {
 				statusCode: httpStatusCode.created,
 				message: 'PERMISSION_CREATED_SUCCESSFULLY',
 				result: {
-					Id: permissions.id,
+					id: permissions.id,
 					status: permissions.status,
 					module: permissions.module,
 					request_type: permissions.request_type,
@@ -135,6 +135,10 @@ module.exports = class PermissionsHelper {
 
 	static async getPermissions(page, limit, search) {
 		try {
+			let result = {
+				data: [],
+				count: 0
+			}
 			const offset = common.getPaginationOffset(page, limit)
 
 			const filter = {
@@ -150,11 +154,11 @@ module.exports = class PermissionsHelper {
 			if (permissions.rows == 0 || permissions.count == 0) {
 				return responses.failureResponse({
 					message: 'PERMISSION_HAS_EMPTY_LIST',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
+					statusCode: httpStatusCode.ok,
+					result
 				})
 			} else {
-				const results = {
+				result = {
 					data: permissions.rows,
 					count: permissions.count,
 				}
@@ -162,7 +166,7 @@ module.exports = class PermissionsHelper {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'PERMISSION_FETCHED_SUCCESSFULLY',
-					result: { results },
+					result
 				})
 			}
 		} catch (error) {

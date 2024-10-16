@@ -4,17 +4,17 @@ orbs:
 jobs:
   build:
     machine: #Linux machine instead of docker environment
-      image: ubuntu-2004:202111-01
-      docker_layer_caching: true
+      image: ubuntu-2004:2024.05.1
+      resource_class: large
     working_directory: ~/survey-project-creation-service # Default working directory
     steps:
       - checkout:
           path: ~/survey-project-creation-service/
-      - restore_cache:
-          key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
+      # - restore_cache:
+      #     key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
       - run:
           name: Install dependencies
-          command: cd src/ && npm install #cd ../src/ && pwd &&
+          command: cd src/ && npm install
       - save_cache:
           key: survey-project-creation-service-dependency-cache-{{checksum "src/package.json"}}
           paths:
@@ -24,35 +24,102 @@ jobs:
           destination: /coverage/
       - run:
           name: Checking prerequisites
-          command: |-
+          command: |
             docker-compose --version
+            sudo apt-get install netcat
       - run:
           name: Cloning user service
-          command: cd ../ && git clone https://github.com/ELEVATE-Project/user.git --branch elevate-project --single-branch
-      - restore_cache:
-          key: user-dependency-cache-{{ checksum "../user/src/package.json" }}
+          command: cd ../ && git clone https://github.com/ELEVATE-Project/user.git --branch develop --single-branch
+      # - restore_cache:
+      #     key: user-dependency-cache-{{ checksum "../user/src/package.json" }}
       - run:
           name: Install User service dependencies
-          command: cd ../user/src/ && npm install #cd ../src/ && pwd &&
+          command: cd ../user/src/ && npm install
       - save_cache:
           key: user-dependency-cache-{{checksum "../user/src/package.json"}}
           paths:
             - ../user/src/node_modules
       - run:
+          name: Replace SCP Service environment variables
+          command: |
+            # Define the file path
+            ENV_FILE=~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+
+            # Replace the existing variables or append them if they don't exist
+            grep -q "^CLOUD_STORAGE_PROVIDER=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROVIDER=.*|CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER|" $ENV_FILE || echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" >> $ENV_FILE
+            grep -q "^CLOUD_STORAGE_ACCOUNTNAME=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_ACCOUNTNAME=.*|CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME|" $ENV_FILE || echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> $ENV_FILE
+            grep -q "^CLOUD_STORAGE_SECRET=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_SECRET=.*|CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET|" $ENV_FILE || echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> $ENV_FILE
+            grep -q "^CLOUD_STORAGE_BUCKETNAME=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_BUCKETNAME=.*|CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME|" $ENV_FILE || echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> $ENV_FILE
+            grep -q "^CLOUD_STORAGE_REGION=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_REGION=.*|CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION|" $ENV_FILE || echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> $ENV_FILE
+            grep -q "^CLOUD_STORAGE_PROJECT=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROJECT=.*|CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT|" $ENV_FILE || echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> $ENV_FILE
+            grep -q "^CLOUD_ENDPOINT=" $ENV_FILE && sed -i "s|^CLOUD_ENDPOINT=.*|CLOUD_ENDPOINT=$CLOUD_ENDPOINT|" $ENV_FILE || echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> $ENV_FILE
+
+            # List the file to ensure changes were made
+            ls -l $ENV_FILE
+
+            # Output the file content for verification
+            cat $ENV_FILE
+
+      - run:
+          name: Replace User Service environment variables
+          command: |
+            # Define the file path
+            USER_ENV_FILE=~/survey-project-creation-service/dev-ops/integration_test.user.env
+
+            # Replace the existing variables or append them if they don't exist
+            grep -q "^CLOUD_STORAGE_PROVIDER=" $USER_ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROVIDER=.*|CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER|" $USER_ENV_FILE || echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" >> $USER_ENV_FILE
+            grep -q "^CLOUD_STORAGE_ACCOUNTNAME=" $USER_ENV_FILE && sed -i "s|^CLOUD_STORAGE_ACCOUNTNAME=.*|CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME|" $USER_ENV_FILE || echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> $USER_ENV_FILE
+            grep -q "^CLOUD_STORAGE_SECRET=" $USER_ENV_FILE && sed -i "s|^CLOUD_STORAGE_SECRET=.*|CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET|" $USER_ENV_FILE || echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> $USER_ENV_FILE
+            grep -q "^CLOUD_STORAGE_BUCKETNAME=" $USER_ENV_FILE && sed -i "s|^CLOUD_STORAGE_BUCKETNAME=.*|CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME|" $USER_ENV_FILE || echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> $USER_ENV_FILE
+            grep -q "^CLOUD_STORAGE_REGION=" $USER_ENV_FILE && sed -i "s|^CLOUD_STORAGE_REGION=.*|CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION|" $USER_ENV_FILE || echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> $USER_ENV_FILE
+            grep -q "^CLOUD_STORAGE_PROJECT=" $USER_ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROJECT=.*|CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT|" $USER_ENV_FILE || echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> $USER_ENV_FILE
+            grep -q "^CLOUD_ENDPOINT=" $USER_ENV_FILE && sed -i "s|^CLOUD_ENDPOINT=.*|CLOUD_ENDPOINT=$CLOUD_ENDPOINT|" $USER_ENV_FILE || echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> $USER_ENV_FILE
+
+            # List the file to ensure changes were made
+            ls -l $USER_ENV_FILE
+
+            # Output the file content for verification
+            cat $USER_ENV_FILE
+      
+      - run:
           name: Starting the docker containers
           command: |-
-            cd dev-ops/ && docker-compose up
+            cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
+      - run:
+          name: Wait for PostgreSQL to be Ready
+          command: |
+            echo "Waiting for PostgreSQL to be ready on port 5432..."
+            timeout 60 bash -c "until nc -z localhost 5432; do sleep 1; done"
+            echo "PostgreSQL is up"
+      - run:
+          name: Wait for User Service to be Ready
+          command: |
+            echo "Waiting for User Service to be ready on port 5001..."
+            timeout 60 bash -c "until nc -z localhost 5001; do sleep 1; done"
+            echo "User Service is up"
+      - run:
+          name: Wait for Survey Project Creation Service to be Ready
+          command: |
+            echo "Waiting for Survey Project Creation Service to be ready on port 6001..."
+            timeout 60 bash -c "until nc -z localhost 6001; do sleep 1; done"
+            echo "Survey Project Creation Service is up"
       - run: 
           name: Check docker logs
           command: |-
-            docker ps && docker-compose logs --tail=1000 --follow
-
+            docker ps && docker-compose logs --tail=1000
+      - run:
+          name: Create test results directory
+          command: mkdir -p ./dev-ops/report
       - run:
           name: Running test cases
-          command: |-
-            cd src/ &&  npm run test:integration
+          command: |
+            cd src/ && npm run test:integration
       - store_test_results:
           path: ./dev-ops/report
+      - run:
+          name: Stop the docker containers - Unmap volumes
+          command: |-
+            cd dev-ops/ && docker-compose -f testing-docker-compose.yml down
 workflows:
   build-and-test: # This is the name of the workflow,
     # Inside the workflow, you define the jobs you want to run.

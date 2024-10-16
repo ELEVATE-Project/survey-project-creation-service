@@ -422,13 +422,13 @@ module.exports = {
 				{
 					role_title: common.ADMIN_ROLE,
 					permission_id: await getPermissionId(
-						'certificate',
+						'certificates',
 						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-						'/scp/v1/certificate/*'
+						'/scp/v1/certificates/*'
 					),
-					module: 'certificate',
+					module: 'certificates',
 					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-					api_path: '/scp/v1/certificate/*',
+					api_path: '/scp/v1/certificates/*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
@@ -436,33 +436,33 @@ module.exports = {
 				{
 					role_title: common.ORG_ADMIN_ROLE,
 					permission_id: await getPermissionId(
-						'certificate',
+						'certificates',
 						['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-						'/scp/v1/certificate/*'
+						'/scp/v1/certificates/*'
 					),
-					module: 'certificate',
+					module: 'certificates',
 					request_type: ['POST', 'DELETE', 'GET', 'PUT', 'PATCH'],
-					api_path: '/scp/v1/certificate/*',
+					api_path: '/scp/v1/certificates/*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
 				},
 				{
 					role_title: common.CONTENT_CREATOR,
-					permission_id: await getPermissionId('certificate', ['GET'], '/scp/v1/certificate/list'),
-					module: 'certificate',
+					permission_id: await getPermissionId('certificates', ['GET'], '/scp/v1/certificates/list'),
+					module: 'certificates',
 					request_type: ['GET'],
-					api_path: '/scp/v1/certificate/list',
+					api_path: '/scp/v1/certificates/list',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
 				},
 				{
 					role_title: common.REVIEWER,
-					permission_id: await getPermissionId('certificate', ['GET'], '/scp/v1/certificate/list'),
-					module: 'certificate',
+					permission_id: await getPermissionId('certificates', ['GET'], '/scp/v1/certificates/list'),
+					module: 'certificates',
 					request_type: ['GET'],
-					api_path: '/scp/v1/certificate/list',
+					api_path: '/scp/v1/certificates/list',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
@@ -727,10 +727,14 @@ module.exports = {
 				},
 				{
 					role_title: common.CONTENT_CREATOR,
-					permission_id: await getPermissionId('resource', ['GET'], '/scp/v1/resource/browseExisting*'),
+					permission_id: await getPermissionId(
+						'resource',
+						['GET'],
+						'/scp/v1/resource/getPublishedResources*'
+					),
 					module: 'resource',
 					request_type: ['GET'],
-					api_path: '/scp/v1/resource/browseExisting*',
+					api_path: '/scp/v1/resource/getPublishedResources*',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,

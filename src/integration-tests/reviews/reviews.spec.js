@@ -1,0 +1,55 @@
+const commonHelper = require('@commonTests')
+const { faker } = require('@faker-js/faker')
+const schema = require('./responseSchema')
+jest.setTimeout(200000)
+
+describe('Review APIs ', function () {
+	let userDetails
+	beforeAll(async () => {
+		await commonHelper.verifyUserRole()
+		console.log('verifyUserRole function completed....')
+		userDetails = await commonHelper.logIn()
+	})
+	jest.setTimeout(100000)
+	it('Start Review', async () => {
+		const projects = await request.get('/scp/v1/resource/upForReview?page=1&limit=5&listing=up_for_review')
+		console.log('userDetails =====> ', userDetails)
+		console.log('=-=-=-==-=>>>> ', projects.body)
+		expect(projects.statusCode).toBe(200)
+
+		if (projects.body?.result?.count > 0) {
+			let projectId = projects.body.result.data[0].id
+			const res = await request.post('/scp/v1/reviews/start/' + projectId)
+
+			expect(res.statusCode).toBe(200)
+			expect(res.body).toMatchSchema(schema.reviewResponse)
+		}
+	})
+
+	it('Request Changes', async () => {
+		const projects = await request.get('/scp/v1/resource/upForReview?page=1&limit=5&listing=up_for_review')
+		if (projects.body?.result?.count > 0) {
+			let projectId = projects.body.result.data[0].id
+			const res = await request.post('/scp/v1/reviews/update/' + projectId).send({
+				comment: {
+					text: 'Check spelling',
+					context: 'page',
+					page: 1,
+				},
+			})
+
+			expect(res.statusCode).toBe(200)
+			expect(res.body).toMatchSchema(schema.reviewResponse)
+		}
+	})
+
+	it('Reject Review', async () => {
+		const projects = await request.get('/scp/v1/resource/upForReview?page=1&limit=5&listing=up_for_review')
+		if (projects.body?.result?.count > 0) {
+			let projectId = projects.body.result.data[0].id
+			const res = await request.post('/scp/v1/reviews/rejectOrReport/' + projectId)
+			expect(res.statusCode).toBe(200)
+			expect(res.body).toMatchSchema(schema.reviewResponse)
+		}
+	})
+})

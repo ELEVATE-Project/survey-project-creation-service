@@ -8,7 +8,6 @@
 // Dependencies
 const common = require('@constants/common')
 const projectService = require('@services/projects')
-
 module.exports = class Projects {
 	/**
 	 * create or update project details
@@ -37,7 +36,8 @@ module.exports = class Projects {
 				const project = await projectService.create(
 					req.body,
 					req.decodedToken.id,
-					req.decodedToken.organization_id
+					req.decodedToken.organization_id,
+					req.query.reference_id ? parseInt(req.query.reference_id) : null
 				)
 				return project
 			}
@@ -68,7 +68,7 @@ module.exports = class Projects {
 	/**
 	 * List reviewers based on Org Id
 	 * @method
-	 * @name reviwerList
+	 * @name reviewerList
 	 * @returns {JSON} - permissions creation object.
 	 */
 

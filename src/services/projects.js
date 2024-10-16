@@ -15,7 +15,6 @@ const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
 const commentQueries = require('@database/queries/comments')
-
 module.exports = class ProjectsHelper {
 	/**
 	 *  project create
@@ -24,8 +23,30 @@ module.exports = class ProjectsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - project id
 	 */
-	static async create(bodyData, loggedInUserId, orgId) {
+	static async create(bodyData, loggedInUserId, orgId, reference_id = null) {
 		try {
+			if (reference_id) {
+				// check if the reference project Id is valid or not
+				const referenceProject = await resourceQueries.findOne(
+					{
+						id: reference_id,
+						status: common.RESOURCE_STATUS_PUBLISHED,
+						published_id: { [Op.not]: null },
+					},
+					{
+						attributes: ['type'],
+					}
+				)
+
+				if (!referenceProject || referenceProject.type != common.PROJECT) {
+					return responses.failureResponse({
+						message: 'PROJECT_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+			}
+
 			//validate the title length
 			const isTitleInvalid = utils.validateTitle(bodyData.title)
 			if (isTitleInvalid) {
@@ -37,7 +58,6 @@ module.exports = class ProjectsHelper {
 			}
 
 			const orgConfig = await orgExtensionService.getConfig(orgId)
-
 			const orgConfigList = _.reduce(
 				orgConfig.result.resource,
 				(acc, item) => {
@@ -59,6 +79,8 @@ module.exports = class ProjectsHelper {
 				updated_by: loggedInUserId,
 			}
 
+			if (reference_id) projectData.reference_id = reference_id
+
 			let projectCreate
 			try {
 				//create project
@@ -70,7 +92,7 @@ module.exports = class ProjectsHelper {
 				}
 				await resourceCreatorMappingQueries.create(mappingData)
 
-				//upload to blob
+				// upload to blob
 				const resourceId = projectCreate.id
 				const fileName = `${loggedInUserId}${resourceId}project.json`
 
@@ -153,7 +175,6 @@ module.exports = class ProjectsHelper {
 				common.RESOURCE_STATUS_REJECTED,
 				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 				common.RESOURCE_STATUS_SUBMITTED,
-				common.RESOURCE_STATUS_APPROVED,
 			]
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
@@ -171,13 +192,16 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const countReviews = await reviewsQueries.distinctResources({
-				id: resourceId,
-				status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
-				organization_id: orgId,
-			})
+			const countReviews = await reviewsQueries.distinctResources(
+				{
+					organization_id: orgId,
+					resource_id: resourceId,
+					status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
+				},
+				['resource_id']
+			)
 
-			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews > 0) {
+			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews.count == 0) {
 				return responses.failureResponse({
 					message: {
 						key: 'FORBIDDEN_RESOURCE_UPDATE',
@@ -216,6 +240,11 @@ module.exports = class ProjectsHelper {
 					updateData.title = bodyData['title']
 				}
 
+				//update is_under_edit true if reviewer requested for changes
+				if (countReviews.count > 0) {
+					updateData.is_under_edit = true
+				}
+
 				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {
 					returning: true,
 					raw: true,
@@ -231,7 +260,10 @@ module.exports = class ProjectsHelper {
 
 				return responses.successResponse({
 					statusCode: httpStatusCode.accepted,
-					message: 'PROJECT_UPDATED_SUCCESSFUL',
+					message:
+						fetchResource.status == common.RESOURCE_STATUS_IN_REVIEW
+							? 'PROJECT_SAVED_SUCCESSFULLY'
+							: 'PROJECT_UPDATED_SUCCESSFUL',
 					result: updatedProject[0].id,
 				})
 			} else {
@@ -255,7 +287,7 @@ module.exports = class ProjectsHelper {
 
 	static async delete(resourceId, loggedInUserId) {
 		try {
-			const fetchOrgId = await resourceCreatorMappingQueries.findOne(
+			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
 				{
 					resource_id: resourceId,
 					creator_id: loggedInUserId,
@@ -263,47 +295,44 @@ module.exports = class ProjectsHelper {
 				['id', 'organization_id']
 			)
 
-			let fetchResourceId = null
-
-			if (fetchOrgId) {
-				fetchResourceId = await resourceQueries.findOne(
-					{
-						id: resourceId,
-						organization_id: fetchOrgId.organization_id,
-						status: common.STATUS_DRAFT,
-					},
-					{ attributes: ['id'] }
-				)
+			if (!resourceCreatorMapping?.id) {
+				throw new Error('PROJECT_NOT_FOUND')
 			}
 
-			if (!fetchOrgId || !fetchResourceId) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+					organization_id: resourceCreatorMapping.organization_id,
+					status: common.RESOURCE_STATUS_DRAFT,
+				},
+				{ attributes: ['id', 'type', 'organization_id'] }
+			)
+
+			if (!resource?.id) {
+				throw new Error('PROJECT_NOT_FOUND')
 			}
 
-			let updatedProject = await resourceQueries.deleteOne(resourceId, fetchOrgId.organization_id)
+			let updatedProject = await resourceQueries.deleteOne(resourceId, resource.organization_id)
 			let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
-				fetchOrgId.id,
+				resourceCreatorMapping.id,
 				loggedInUserId
 			)
 
 			if (updatedProject === 0 && updatedProjectCreatorMapping === 0) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				throw new Error('PROJECT_NOT_FOUND')
 			}
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
 				message: 'PROJECT_DELETED_SUCCESSFUL',
 				result: {},
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -506,18 +535,12 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			//Restrict the user to submit it again
-			if (projectData.status === common.RESOURCE_STATUS_SUBMITTED) {
-				return responses.failureResponse({
-					message: 'RESOURCE_ALREADY_SUBMITTED',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+			//Restrict the user to submit the project
+			if (_nonReviewableResourceStatuses.includes(projectData.status)) {
+				throw new Error(`Resource is already ${projectData.status}. You can't submit it`)
 			}
 
-			//from comments table take all the comments which are from this org and userId != loggedin user and resourceId = current resourceId and status = open
-			// if count greated than 0 throw error ""
-
+			//check any open comments are there for this resource
 			const comments = await commentQueries.findAndCountAll({
 				user_id: {
 					[Op.notIn]: [userDetails.id],
@@ -528,7 +551,7 @@ module.exports = class ProjectsHelper {
 
 			if (comments.count > 0) {
 				return responses.failureResponse({
-					message: '"ALL_COMMENTS_NOT_RESOLVED"',
+					message: 'ALL_COMMENTS_NOT_RESOLVED',
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
@@ -712,7 +735,11 @@ module.exports = class ProjectsHelper {
 				userDetails.organization_id
 			)
 			if (!isReviewMandatory) {
-				const publishResource = await reviewService.publishResource(resourceId, userDetails.id)
+				const publishResource = await reviewService.publishResource(
+					resourceId,
+					userDetails.id,
+					userDetails.organization_id
+				)
 				return publishResource
 			}
 
@@ -720,6 +747,7 @@ module.exports = class ProjectsHelper {
 			let resourcesUpdate = {
 				status: resourceStatus,
 				submitted_on: new Date(),
+				is_under_edit: false,
 			}
 
 			if (bodyData.notes) {
@@ -729,6 +757,14 @@ module.exports = class ProjectsHelper {
 			}
 
 			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
+			//add user action
+			eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
+				actionCode: common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
+				userId: userDetails.id,
+				objectId: resourceId,
+				objectType: common.MODEL_NAMES.RESOURCE,
+				orgId: userDetails.organization_id,
+			})
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -751,7 +787,7 @@ module.exports = class ProjectsHelper {
 	 * @name validateEntityData
 	 * @param {Object} entityData - Data which needs to validate
 	 * @param {Object} entityType - Each entityType which have models
-	 * @param {string} model - The model needs to validate ex: projects, tasks, subTasks
+	 * @param {string} model - The model needs to validate ex: project, tasks, subTasks
 	 * @param {string} sourceType - Specifies the source of the input, which can be 'body', 'param', or 'query'.
 	 * @returns {JSON} - Response containing error details, if any.
 	 */
@@ -843,6 +879,37 @@ module.exports = class ProjectsHelper {
 							}
 						}
 					}
+				} else if (
+					entityType.value === common.SOLUTION_DETAILS &&
+					fieldData &&
+					JSON.parse(process.env.ENABLE_OBSERVATION_IN_PROJECTS)
+				) {
+					//validate the observation name
+					let checkRegex = utils.checkRegexPattern(entityType, fieldData.name)
+					if (!checkRegex) {
+						return {
+							hasError: true,
+							error: utils.errorObject(
+								sourceType,
+								entityType.value,
+								entityType.validations.message ||
+									`Solution Details ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
+							),
+						}
+					}
+					//validate the observation url
+					let regex = new RegExp(process.env.OBSERVATION_DEEP_LINK_REGEX)
+					let validateURL = regex.test(fieldData.link)
+					if (!validateURL) {
+						return {
+							hasError: true,
+							error: utils.errorObject(
+								sourceType,
+								entityType.value,
+								entityType.validations.message || `Invalid observation URL in ${model}`
+							),
+						}
+					}
 				} else {
 					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
 					if (!checkRegex) {
@@ -869,3 +936,15 @@ module.exports = class ProjectsHelper {
 		}
 	}
 }
+
+/**
+ * List of resource statuses that prevent a reviewer from starting a review.
+ * @constant
+ * @type {Array<String>}
+ */
+const _nonReviewableResourceStatuses = [
+	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+	common.RESOURCE_STATUS_PUBLISHED,
+	common.RESOURCE_STATUS_SUBMITTED,
+]

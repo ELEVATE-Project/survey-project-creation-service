@@ -1,10 +1,10 @@
 {
 	"info": {
-		"_postman_id": "f11e5645-7931-497d-aa56-e1fe3043340a",
+		"_postman_id": "a3d30138-61e3-4e62-a4ae-a3ce3362b692",
 		"name": "Self Creation Portal",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "6350183",
-		"_collection_link": "https://cloudy-eclipse-8615.postman.co/workspace/MentorED~099846e5-b1d5-4043-84b9-1e9ac3fc1e4f/collection/6350183-f11e5645-7931-497d-aa56-e1fe3043340a?action=share&source=collection_link&creator=6350183"
+		"_collection_link": "https://cloudy-eclipse-8615.postman.co/workspace/MentorED~099846e5-b1d5-4043-84b9-1e9ac3fc1e4f/collection/6350183-a3d30138-61e3-4e62-a4ae-a3ce3362b692?action=share&source=collection_link&creator=6350183"
 	},
 	"item": [
 		{
@@ -1009,7 +1009,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"show_reviewer_list\": true,\n    \"min_approval\": 2,\n    \"resource_type\": \"projects\",\n    \"review_type\": \"SEQUENTIAL\",\n    \"organization_id\":2,\n    \"review_stages\": [\n        {\n            \"role\": \"content_creator\",\n            \"level\": 1\n        }\n    ]\n}",
+							"raw": "{\n    \"show_reviewer_list\": true,\n    \"min_approval\": 2,\n    \"resource_type\": \"project\",\n    \"review_type\": \"SEQUENTIAL\",\n    \"organization_id\":2,\n    \"review_stages\": [\n        {\n            \"role\": \"content_creator\",\n            \"level\": 1\n        }\n    ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1045,13 +1045,13 @@
 							}
 						},
 						"url": {
-							"raw": "{{SCPBaseUrl}}scp/v1/organization-extensions/updateConfig/16?resource_type=projects",
+							"raw": "{{SCPBaseUrl}}scp/v1/organization-extensions/updateConfig/16?resource_type=project",
 							"host": ["{{SCPBaseUrl}}scp"],
 							"path": ["v1", "organization-extensions", "updateConfig", "16"],
 							"query": [
 								{
 									"key": "resource_type",
-									"value": "projects"
+									"value": "project"
 								}
 							]
 						}
@@ -1269,7 +1269,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{SCPBaseUrl}}scp/v1/resource/list?listing=drafts&limit=100&sort_by=title&sort_order=asc&page=1&type=projects",
+							"raw": "{{SCPBaseUrl}}scp/v1/resource/list?listing=drafts&limit=100&sort_by=title&sort_order=asc&page=1&type=project",
 							"host": ["{{SCPBaseUrl}}scp"],
 							"path": ["v1", "resource", "list"],
 							"query": [
@@ -1295,7 +1295,7 @@
 								},
 								{
 									"key": "type",
-									"value": "projects"
+									"value": "project"
 								}
 							]
 						}
@@ -1314,7 +1314,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{SCPBaseUrl}}scp/v1/resource/list?listing=submitted_for_review&limit=100&sort_by=title&sort_order=asc&page=1&type=projects",
+							"raw": "{{SCPBaseUrl}}scp/v1/resource/list?listing=submitted_for_review&limit=100&sort_by=title&sort_order=asc&page=1&type=project",
 							"host": ["{{SCPBaseUrl}}scp"],
 							"path": ["v1", "resource", "list"],
 							"query": [
@@ -1340,7 +1340,7 @@
 								},
 								{
 									"key": "type",
-									"value": "projects"
+									"value": "project"
 								}
 							]
 						}
@@ -1358,7 +1358,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{SCPBaseUrl}}scp/v1/resource/upForReview?limit=100&sort_by=title&sort_order=asc&page=1&type=projects",
+							"raw": "{{SCPBaseUrl}}scp/v1/resource/upForReview?limit=100&sort_by=title&sort_order=asc&page=1&type=project",
 							"host": ["{{SCPBaseUrl}}scp"],
 							"path": ["v1", "resource", "upForReview"],
 							"query": [
@@ -1380,7 +1380,7 @@
 								},
 								{
 									"key": "type",
-									"value": "projects"
+									"value": "project"
 								}
 							]
 						}
@@ -1965,6 +1965,40 @@
 					"response": []
 				},
 				{
+					"name": "Delete Comment",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"comment\": \"<h1>Check spelling</h1>\",\n    \"context\": \"page\",\n    \"page\": \"projectDetail\",\n    \"status\": \"RESOLVED\"\n\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/comments/update/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "comments", "update", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Comment listing",
 					"request": {
 						"method": "GET",
@@ -2206,13 +2240,13 @@
 							}
 						],
 						"url": {
-							"raw": "{{SCPBaseUrl}}scp/v1/review-stages/list?resource_type=projects",
+							"raw": "{{SCPBaseUrl}}scp/v1/review-stages/list?resource_type=project",
 							"host": ["{{SCPBaseUrl}}scp"],
 							"path": ["v1", "review-stages", "list"],
 							"query": [
 								{
 									"key": "resource_type",
-									"value": "projects"
+									"value": "project"
 								}
 							]
 						}

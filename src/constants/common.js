@@ -9,6 +9,21 @@ function getPaginationOffset(page, limit) {
 	return (page - 1) * limit
 }
 
+function getResourceActions(resource) {
+	return {
+		RESOURCE_CREATED: `CREATE_${resource}`,
+		RESOURCE_DELETED: `DELETE_${resource}`,
+		RESOURCE_SUBMITTED: `${resource}_SUBMITTED`,
+		REVIEW_STARTED: `${resource}_REVIEW_STARTED`,
+		REVIEW_CHANGES_REQUESTED: `${resource}_REVIEW_CHANGES_REQUESTED`,
+		REVIEW_APPROVED: `${resource}_APPROVED`,
+		RESOURCE_PUBLISHED: `${resource}_PUBLISHED`,
+		RESOURCE_REPORTED: `${resource}_REJECTED_AND_REPORTED`,
+		RESOURCE_REJECTED: `${resource}_REJECTED`,
+		REVIEW_INPROGRESS: `${resource}_REVIEW_INPROGRESS`,
+	}
+}
+
 module.exports = {
 	pagination: {
 		DEFAULT_PAGE_NO: 1,
@@ -52,11 +67,12 @@ module.exports = {
 	CLOUD_SERVICE: ['azure', 'gcloud'],
 	STATUS_ACTIVE: 'ACTIVE',
 	CREATED_BY_SYSTEM: '0',
-	PROJECT: 'projects',
+	PROJECT: 'project',
 	FILTER_ALL: 'ALL',
 	SORT_DESC: 'DESC',
 	SORT_ASC: 'ASC',
 	CREATED_AT: 'created_at',
+	UPDATED_AT: 'updated_at',
 	FILTER: 'filter',
 	TYPE: 'type',
 	STATUS: 'status',
@@ -79,7 +95,6 @@ module.exports = {
 	RESOURCE_STATUS_REJECTED: 'REJECTED',
 	RESOURCE_STATUS_IN_REVIEW: 'IN_REVIEW',
 	RESOURCE_STATUS_SUBMITTED: 'SUBMITTED',
-	RESOURCE_STATUS_APPROVED: 'APPROVED',
 	RESOURCE_STATUS_REJECTED_AND_REPORTED: 'REJECTED_AND_REPORTED',
 	STATUS_RESOLVED: 'RESOLVED',
 	ALL_USER_ROLES: 'all',
@@ -119,12 +134,13 @@ module.exports = {
 	FILE_TYPE: 'file_types',
 	CHILDREN: 'children',
 	SELF: 'self',
-	RESOURCE_TYPE_PROGRAM: 'programs',
+	RESOURCE_TYPE_PROGRAM: 'program',
 	COMMENT_STATUS_DRAFT: 'DRAFT',
 	REVIEW_COLUMN_REJECTED_AT: 'rejected_at',
 	REVIEW_STATUS: 'review_status',
 	COMMENT_STATUS_OPEN: 'OPEN',
 	LEARNING_RESOURCE: 'learning_resources',
+	SOLUTION_DETAILS: 'solution_details',
 	TASK_ALLOWED_FILE_TYPES: 'file_types',
 	ALLOWED_FILE_TYPES: {
 		images: ['jpg', 'png', 'jpeg', 'bmp', 'gif', 'tiff', 'heif'],
@@ -140,6 +156,24 @@ module.exports = {
 	DATA_TYPE_BOOLEAN: 'boolean',
 	KAFKA_ON: 'ON',
 	ENTITY_TYPE_MODELS: {
-		projects: ['projects', 'tasks', 'subTasks'],
+		project: ['project', 'tasks', 'subTasks'],
+	},
+	MODEL_NAMES: {
+		RESOURCE: 'Resource',
+	},
+	USER_ACTIONS: {
+		project: getResourceActions('PROJECT'),
+	},
+	EVENT_ADD_USER_ACTION: 'addUserAction',
+	REQUEST_TIMEOUT_MS: 3000,
+	CURRENT_USER: 'You',
+	ACTIVITY_DATE_TIME_OPTIONS: {
+		day: 'numeric',
+		month: 'long',
+		year: 'numeric',
+		hour: 'numeric',
+		minute: 'numeric',
+		second: 'numeric',
+		hour12: true, // Use 12-hour clock with AM/PM
 	},
 }

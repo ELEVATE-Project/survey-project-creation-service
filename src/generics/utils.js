@@ -17,6 +17,7 @@ const crypto = require('crypto')
 const { cloudClient } = require('@configs/cloud-service')
 const { v4: uuidV4 } = require('uuid')
 const unidecode = require('unidecode')
+const _ = require('lodash')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -524,11 +525,53 @@ const validateComment = (comments) => {
 			(eachComment) =>
 				eachComment &&
 				typeof eachComment === 'object' &&
-				eachComment.hasOwnProperty('comment') &&
+				eachComment.hasOwnProperty('text') &&
 				eachComment.hasOwnProperty('context') &&
 				eachComment.hasOwnProperty('page')
 		)
 	return isValidComment
+}
+// apply common.pagination to an array
+const paginate = (data, page, size) => {
+	// find the start index from page and size
+	const startIndex = (page - 1) * size
+	// slice the array and return a new array with from starting index to ending index
+	return data.slice(startIndex, startIndex + size)
+}
+
+/**
+ * apply sort to any array of objects. Sort by can be any key in the object and default sort orders can be applied
+ * @name sort
+ * @param {string} data - Array of objects.
+ * @param {Object} sort - Sort object with keys sort_by and order
+ * @returns {Object} - Response a sorted array of object based on the sort_by and order
+ */
+const sort = (data, sort) => {
+	const {
+		sort_by = common.CREATED_AT, // Default sort_by is 'created_at'
+		order = common.SORT_DESC, // Default order is 'desc'
+	} = sort || {}
+
+	// Determine if sorting should be by date
+	const isDateField = sort_by === common.CREATED_AT || sort_by === common.UPDATED_AT
+
+	// Use _.orderBy with a custom iteratee
+	return _.orderBy(
+		data,
+		[
+			(item) => {
+				// Apply different sorting logic based on the field type
+				const value = item[sort_by]
+				return isDateField ? new Date(value) : _.toLower(value)
+			},
+		],
+		[order.toLowerCase()]
+	)
+}
+
+const isEmpty = (obj) => {
+	for (let i in obj) return false
+	return true
 }
 
 module.exports = {
@@ -563,4 +606,7 @@ module.exports = {
 	convertToInteger,
 	validateTitle,
 	validateComment,
+	paginate,
+	sort,
+	isEmpty,
 }

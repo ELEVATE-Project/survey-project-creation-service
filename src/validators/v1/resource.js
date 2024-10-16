@@ -32,4 +32,24 @@ module.exports = {
 			.withMessage('resource_id is invalid, must be an integer')
 		req.checkQuery('published_id').trim().notEmpty().withMessage('published_id field is empty')
 	},
+	getPublishedResources: (req) => {
+		// Validate type parameter if provided
+		req.checkQuery(common.TYPE)
+			.optional({ checkFalsy: true })
+			.custom((value) => {
+				// list of allowedTypes
+				const resourceList = process.env.RESOURCE_TYPES.split(',')
+				let resourceType = []
+				if (req.query[common.TYPE] && req.query[common.TYPE] != '') {
+					resourceType = req.query[common.TYPE].split(',')
+					// Check if every element in resourceType is present in resourceList
+					const isSubset = resourceType.every((type) => resourceList.includes(type))
+
+					if (!isSubset) {
+						throw new Error('Invalid type(s) provided in query parameter.')
+					}
+				}
+				return true
+			})
+	},
 }

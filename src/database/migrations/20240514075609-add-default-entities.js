@@ -13,7 +13,7 @@ module.exports = {
 				entities: '',
 				has_entities: false,
 				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
-				model: 'projects',
+				model: 'project',
 			},
 			{
 				entityType: 'categories',
@@ -28,21 +28,21 @@ module.exports = {
 				],
 				has_entities: true,
 				validation: { required: true },
-				model: 'projects',
+				model: 'project',
 			},
 			{
 				entityType: 'objective',
 				entities: '',
 				has_entities: false,
 				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
-				model: 'projects',
+				model: 'project',
 			},
 			{
 				entityType: 'keywords',
 				entities: '',
 				has_entities: false,
 				validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: false },
-				model: 'projects',
+				model: 'project',
 			},
 			{
 				entityType: 'recommended_for',
@@ -54,7 +54,7 @@ module.exports = {
 				],
 				has_entities: true,
 				validation: { required: true },
-				model: 'projects',
+				model: 'project',
 			},
 			{
 				entityType: 'languages',
@@ -64,7 +64,7 @@ module.exports = {
 				],
 				has_entities: true,
 				validation: { required: true },
-				model: 'projects',
+				model: 'project',
 			},
 			{
 				entityType: 'licenses',
@@ -78,14 +78,14 @@ module.exports = {
 				],
 				has_entities: true,
 				validation: { required: true },
-				model: 'projects',
+				model: 'project',
 			},
 			{
 				entityType: 'tasks',
 				entities: '',
 				has_entities: false,
 				validation: { required: true },
-				model: 'projects',
+				model: 'project',
 			},
 			{
 				entityType: 'name',

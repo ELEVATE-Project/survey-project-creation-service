@@ -1,5 +1,5 @@
 const Comment = require('@database/models/index').Comment
-const { Op } = require('sequelize')
+const { Op, Sequelize } = require('sequelize')
 const common = require('@constants/common')
 
 module.exports = class CommentData {
@@ -44,7 +44,37 @@ module.exports = class CommentData {
 			throw error
 		}
 	}
+	/**
+	 * comment delete
+	 * @method
+	 * @name delete
+	 * @param {Integer} id - comment id
+	 * @param {Integer} resourceId - resource id
+	 * @param {String} userId - user id
+	 * @returns {JSON} - comment delete response.
+	 */
+	static async deleteOne(id, resourceId, userId) {
+		try {
+			const filter = {
+				where: {
+					id,
+					resource_id: resourceId,
+					user_id: userId,
+					status: common.COMMENT_STATUS_DRAFT,
+				},
+			}
 
+			let deleteComment = await Comment.destroy(filter)
+
+			if (deleteComment === 0) {
+				throw new Error('COMMENT_NOT_FOUND')
+			}
+
+			return deleteComment
+		} catch (error) {
+			throw error
+		}
+	}
 	static async findOne(filter) {
 		try {
 			const comments = await Comment.findOne({
@@ -77,6 +107,12 @@ module.exports = class CommentData {
 
 			const { rows, count } = await Comment.findAndCountAll({
 				where: filterQuery,
+				attributes: {
+					exclude: ['comment'],
+					include: [
+						[Sequelize.col('comment'), 'text'], // Alias 'comment' to 'text'
+					],
+				},
 				order: [[common.CREATED_AT, common.SORT_ASC]],
 				raw: true,
 			})
