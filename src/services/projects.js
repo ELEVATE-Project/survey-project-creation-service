@@ -363,7 +363,7 @@ module.exports = class ProjectsHelper {
 					organization_id: orgId,
 					type: common.PROJECT,
 				},
-				{ attributes: { exclude: ['next_stage', 'review_type', 'published_id', 'reference_id'] } }
+				{ attributes: { exclude: ['next_stage', 'review_type'] } }
 			)
 
 			if (!project) {
