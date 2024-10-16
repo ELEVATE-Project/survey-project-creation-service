@@ -58,7 +58,6 @@ module.exports = class ProjectsHelper {
 			}
 
 			const orgConfig = await orgExtensionService.getConfig(orgId)
-
 			const orgConfigList = _.reduce(
 				orgConfig.result.resource,
 				(acc, item) => {
@@ -883,6 +882,7 @@ module.exports = class ProjectsHelper {
 				} else if (
 					entityType.value === common.SOLUTION_DETAILS &&
 					fieldData &&
+					Object.keys(fieldData).length > 0 &&
 					JSON.parse(process.env.ENABLE_OBSERVATION_IN_PROJECTS)
 				) {
 					//validate the observation name

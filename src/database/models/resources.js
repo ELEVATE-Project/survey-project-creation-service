@@ -117,6 +117,7 @@ module.exports = (sequelize, DataTypes) => {
 	}
 
 	Resource.addHook('afterCreate', (instance) => emitUserAction(instance, 'RESOURCE_CREATED'))
+
 	Resource.addHook('afterDestroy', (instance) => emitUserAction(instance, 'RESOURCE_DELETED'))
 	Resource.addHook('afterUpdate', (instance) => {
 		const statusActionMap = {
