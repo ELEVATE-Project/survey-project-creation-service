@@ -31,6 +31,11 @@ module.exports = (sequelize, DataTypes) => {
 				),
 				defaultValue: 'DRAFT',
 			},
+			stage: {
+				allowNull: false,
+				type: DataTypes.ENUM('CREATION', 'REVIEW', 'COMPLETION'),
+				defaultValue: 'CREATION',
+			},
 			blob_path: {
 				allowNull: true,
 				type: DataTypes.STRING,

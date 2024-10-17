@@ -176,4 +176,7 @@ module.exports = {
 		second: 'numeric',
 		hour12: true, // Use 12-hour clock with AM/PM
 	},
+	RESOURCE_STAGE_CREATION: 'CREATION',
+	RESOURCE_STAGE_REVIEW: 'REVIEW',
+	RESOURCE_STAGE_COMPLETION: 'COMPLETION',
 }

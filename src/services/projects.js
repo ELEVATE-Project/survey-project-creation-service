@@ -31,6 +31,7 @@ module.exports = class ProjectsHelper {
 					{
 						id: reference_id,
 						status: common.RESOURCE_STATUS_PUBLISHED,
+						stage: common.RESOURCE_STAGE_COMPLETION,
 						published_id: { [Op.not]: null },
 					},
 					{
@@ -71,6 +72,7 @@ module.exports = class ProjectsHelper {
 				title: bodyData.title,
 				type: common.PROJECT,
 				status: common.RESOURCE_STATUS_DRAFT,
+				stage: common.RESOURCE_STAGE_CREATION,
 				user_id: loggedInUserId,
 				review_type: orgConfigList[common.PROJECT],
 				organization_id: orgId,
@@ -175,12 +177,17 @@ module.exports = class ProjectsHelper {
 				common.RESOURCE_STATUS_REJECTED,
 				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 				common.RESOURCE_STATUS_SUBMITTED,
+				common.REVIEW_STATUS_CHANGES_UPDATED,
+				common.REVIEW_STATUS_INPROGRESS,
 			]
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
 				organization_id: orgId,
 				status: {
 					[Op.notIn]: forbidden_resource_statuses,
+				},
+				stage: {
+					[Op.notIn]: [common.RESOURCE_STAGE_COMPLETION],
 				},
 			})
 
@@ -245,6 +252,12 @@ module.exports = class ProjectsHelper {
 					updateData.is_under_edit = true
 				}
 
+				//get the resource stage
+				const stageData = await resourceService.getResourceStage(resourceId, orgId)
+				if (stageData.statusCode == httpStatusCode.ok && stageData?.stage) {
+					updateData.stage = stageData.stage
+				}
+
 				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {
 					returning: true,
 					raw: true,
@@ -304,6 +317,7 @@ module.exports = class ProjectsHelper {
 					id: resourceId,
 					organization_id: resourceCreatorMapping.organization_id,
 					status: common.RESOURCE_STATUS_DRAFT,
+					stage: common.RESOURCE_STAGE_CREATION,
 				},
 				{ attributes: ['id', 'type', 'organization_id'] }
 			)
@@ -356,7 +370,7 @@ module.exports = class ProjectsHelper {
 					organization_id: orgId,
 					type: common.PROJECT,
 				},
-				{ attributes: { exclude: ['next_stage', 'review_type', 'published_id', 'reference_id'] } }
+				{ attributes: { exclude: ['next_stage', 'review_type'] } }
 			)
 
 			if (!project) {
@@ -745,9 +759,11 @@ module.exports = class ProjectsHelper {
 
 			//update resource
 			let resourcesUpdate = {
+				//update the logic to get the status
 				status: resourceStatus,
 				submitted_on: new Date(),
 				is_under_edit: false,
+				stage: common.RESOURCE_STAGE_REVIEW,
 			}
 
 			if (bodyData.notes) {
@@ -948,4 +964,6 @@ const _nonReviewableResourceStatuses = [
 	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 	common.RESOURCE_STATUS_PUBLISHED,
 	common.RESOURCE_STATUS_SUBMITTED,
+	common.REVIEW_STATUS_CHANGES_UPDATED,
+	common.REVIEW_STATUS_INPROGRESS,
 ]
