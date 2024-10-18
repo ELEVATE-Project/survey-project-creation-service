@@ -254,7 +254,7 @@ module.exports = class ProjectsHelper {
 
 				//get the resource stage
 				const stageData = await resourceService.getResourceStage(resourceId, orgId)
-				if (stageData.statusCode == httpStatusCode.ok && stageData?.stage) {
+				if (stageData.success && stageData.stage) {
 					updateData.stage = stageData.stage
 				}
 
@@ -740,7 +740,9 @@ module.exports = class ProjectsHelper {
 						status: common.REVIEW_STATUS_CHANGES_UPDATED,
 					}
 				)
-				resourceStatus = common.RESOURCE_STATUS_IN_REVIEW
+				//
+				resourceStatus = resourceService.finalResourceStatus(resourceId)
+				// common.RESOURCE_STATUS_IN_REVIEW
 			}
 
 			//check review is required or not

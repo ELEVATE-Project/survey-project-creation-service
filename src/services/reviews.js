@@ -105,7 +105,7 @@ module.exports = class reviewsHelper {
 				{
 					id: resourceId,
 				},
-				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_stage'] }
+				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_stage', 'stage'] }
 			)
 
 			// If no resource is found return error
@@ -146,7 +146,8 @@ module.exports = class reviewsHelper {
 					orgId,
 					resource.next_stage,
 					userRoles,
-					resource.type
+					resource.type,
+					resource.stage
 				)
 			}
 
@@ -160,8 +161,8 @@ module.exports = class reviewsHelper {
 			// Check if the review exists; if not, return a failure response
 			if (!review?.id) throw new Error('REVIEW_NOT_FOUND')
 
-			//check the review is already started
-			if (review.status === common.REVIEW_STATUS_STARTED) throw new Error('REVIEW_ALREADY_STARTED')
+			// //check the review is already started
+			// if (review.status === common.REVIEW_STATUS_STARTED) throw new Error('REVIEW_ALREADY_STARTED')
 
 			// If the review status is 'NOT_STARTED', validate that no active review is being conducted by others.
 			if (review.status === common.REVIEW_STATUS_NOT_STARTED) {
@@ -173,17 +174,23 @@ module.exports = class reviewsHelper {
 
 			// Update the status in the reviews table
 			// Update the 'last_reviewed_on' field in the resources table
-			await Promise.all([
-				reviewsQueries.update(
-					{ id: review.id, organization_id: review.organization_id },
-					{ status: common.REVIEW_STATUS_INPROGRESS }
-				),
-				resourceQueries.updateOne(
-					{ organization_id: resource.organization_id, id: resourceId },
-					{ status: common.RESOURCE_STATUS_IN_REVIEW }
-				),
-			])
+			await reviewsQueries.update(
+				{ id: review.id, organization_id: review.organization_id },
+				{ status: common.REVIEW_STATUS_INPROGRESS }
+			)
 
+			let resourceUpdateObj = {
+				status: resourceService.finalResourceStatus(resourceId),
+			}
+
+			let stageData = resourceService.getResourceStage(resourceId, resource.organization_id)
+			if (stageData.success) resourceUpdateObj.stage = stageData.stage
+
+			await resourceQueries.updateOne(
+				{ organization_id: resource.organization_id, id: resourceId },
+				// { status: common.RESOURCE_STATUS_IN_REVIEW }
+				resourceUpdateObj
+			)
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'REVIEW_CREATED',
@@ -435,7 +442,8 @@ module.exports = class reviewsHelper {
 		userOrgId,
 		nextStage = null,
 		userRoles,
-		resourceType
+		resourceType,
+		resourceStage
 	) {
 		try {
 			// If the review type is 'SEQUENTIAL', Check if there are no active reviews by others for the same resource
@@ -478,8 +486,15 @@ module.exports = class reviewsHelper {
 
 			// Update resource table data
 			let updateData = {
-				status: common.RESOURCE_STATUS_IN_REVIEW,
+				// status: common.RESOURCE_STATUS_IN_REVIEW,
+				status: resourceService.finalResourceStatus(resourceId),
 			}
+
+			//update resoure stage
+			if (resourceStage.stage != common.RESOURCE_STAGE_REVIEW) {
+				updateData.stage = common.RESOURCE_STAGE_REVIEW
+			}
+
 			// Update the resource table to reflect the review status
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
 

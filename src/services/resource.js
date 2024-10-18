@@ -1357,7 +1357,9 @@ module.exports = class resourceHelper {
 			})
 
 			if (!resource?.id) {
-				throw new Error('RESOURCE_NOT_FOUND')
+				return {
+					success: false,
+				}
 			}
 
 			let stage = common.RESOURCE_STAGE_CREATION
@@ -1367,13 +1369,10 @@ module.exports = class resourceHelper {
 				stage = common.RESOURCE_STAGE_REVIEW
 			}
 
-			return responses.successResponse({
-				statusCode: httpStatusCode.ok,
-				message: 'RESOURCE_STAGE_FETCHED',
-				result: {
-					stage,
-				},
-			})
+			return {
+				success: true,
+				stage,
+			}
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
