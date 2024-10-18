@@ -482,6 +482,32 @@
 			]
 		},
 		{
+			"sourceRoute": "/scp/v1/certificates/update",
+			"type": "POST",
+			"priority": "MUST_HAVE",
+			"inSequence": false,
+			"orchestrated": false,
+			"targetPackages": [
+				{
+					"basePackageName": "self-creation-portal",
+					"packageName": "elevate-self-creation-portal"
+				}
+			]
+		},
+		{
+			"sourceRoute": "/scp/v1/certificates/update:id",
+			"type": "POST",
+			"priority": "MUST_HAVE",
+			"inSequence": false,
+			"orchestrated": false,
+			"targetPackages": [
+				{
+					"basePackageName": "self-creation-portal",
+					"packageName": "elevate-self-creation-portal"
+				}
+			]
+		},
+		{
 			"sourceRoute": "/scp/v1/resource/list",
 			"type": "GET",
 			"priority": "MUST_HAVE",
