@@ -70,167 +70,164 @@ module.exports = class resourceHelper {
 					[Op.in]: uniqueResourceIds,
 				},
 			},
-			['resource_id', 'status']
+			['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes']
 		)
-		const resourceFinalStatus = await this.finalResourceStatus(resourceReviews)
+		// fetch the final resource status of each resources
+		const resourceFinalStatus = await this.finalResourceStatus(uniqueResourceIds, OrganizationIds)
+
 		let requestedForChangesResources = []
+		// get id of resources requested for change
 		Object.keys(resourceFinalStatus).forEach((resourceId) => {
 			if (resourceFinalStatus[resourceId] == common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
 				requestedForChangesResources.push(resourceId)
 			}
 		})
 
-		// if (queryParams[common.STATUS] === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
-		// 	primaryFilter = {
-		// 		organization_id: {
-		// 			[Op.in]: OrganizationIds,
-		// 		},
-		// 		id: {
-		// 			[Op.in]: distinctInreviewResourceIds.resource_ids,
-		// 		},
-		// 		user_id: userId,
-		// 	}
-		// } else {
-		// 	// add primary filters
-		// 	primaryFilter = {
-		// 		organization_id: {
-		// 			[Op.in]: OrganizationIds,
-		// 		},
-		// 		id: {
-		// 			[Op.in]: uniqueResourceIds,
-		// 		},
-		// 		status: {
-		// 			[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_SUBMITTED_FOR_REVIEW],
-		// 		},
-		// 	}
+		if (queryParams[common.STATUS] === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
+			primaryFilter = {
+				organization_id: {
+					[Op.in]: OrganizationIds,
+				},
+				id: {
+					[Op.in]: requestedForChangesResources,
+				},
+				user_id: userId,
+			}
+		} else {
+			// add primary filters
+			primaryFilter = {
+				organization_id: {
+					[Op.in]: OrganizationIds,
+				},
+				id: {
+					[Op.in]: uniqueResourceIds,
+				},
+				status: {
+					[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_SUBMITTED_FOR_REVIEW],
+				},
+			}
 
-		// 	if (queryParams[common.STATUS]) {
-		// 		primaryFilter.status = {
-		// 			[Op.in]: queryParams[common.STATUS].split(','),
-		// 		}
-		// 	}
-		// }
-		// // create the final filter by combining primary filters , query params and search text
-		// filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
+			if (queryParams[common.STATUS]) {
+				primaryFilter.status = {
+					[Op.in]: queryParams[common.STATUS].split(','),
+				}
+			}
+		}
+		// create the final filter by combining primary filters , query params and search text
+		filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
 
-		// // return a sort object with sorting parameters. if no params are provided returns {}
-		// const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
+		// return a sort object with sorting parameters. if no params are provided returns {}
+		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
 
-		// // fetches data from resource table with the passed filters
-		// const response = await resourceQueries.resourceList(
-		// 	filter,
-		// 	[
-		// 		'id',
-		// 		'title',
-		// 		'organization_id',
-		// 		'type',
-		// 		'status',
-		// 		'user_id',
-		// 		'created_at',
-		// 		'updated_at',
-		// 		'submitted_on',
-		// 		'published_on',
-		// 		'last_reviewed_on',
-		// 		'meta',
-		// 		'is_under_edit',
-		// 	],
-		// 	sort,
-		// 	page,
-		// 	limit
-		// )
+		// fetches data from resource table with the passed filters
+		const response = await resourceQueries.resourceList(
+			filter,
+			[
+				'id',
+				'title',
+				'organization_id',
+				'type',
+				'status',
+				'user_id',
+				'created_at',
+				'updated_at',
+				'submitted_on',
+				'published_on',
+				'last_reviewed_on',
+				'meta',
+				'is_under_edit',
+			],
+			sort,
+			page,
+			limit
+		)
 
-		// if (response.result.length <= 0) {
-		// 	result.changes_requested_count =
-		// 		distinctInreviewResourceIds.count > 0 ? distinctInreviewResourceIds.count : 0
-		// 	return responses.successResponse({
-		// 		statusCode: httpStatusCode.ok,
-		// 		message: 'RESOURCE_LISTED_SUCCESSFULLY',
-		// 		result,
-		// 	})
-		// }
-		// // fetch the organization details from user service
-		// const orgDetails = await orgExtension.fetchOrganizationDetails(
-		// 	utils.getUniqueElements(response.result.map((item) => item.organization_id))
-		// )
+		if (response.result.length <= 0) {
+			result.changes_requested_count =
+				requestedForChangesResources.length > 0 ? requestedForChangesResources.length : 0
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCE_LISTED_SUCCESSFULLY',
+				result,
+			})
+		}
+		// fetch the organization details from user service
+		const orgDetails = await orgExtension.fetchOrganizationDetails(
+			utils.getUniqueElements(response.result.map((item) => item.organization_id))
+		)
 
-		// // fetch all open comments for the resources which are in review
-		// const commentMapping = await this.fetchOpenComments(distinctInreviewResourceIds.resource_ids)
+		// fetch all open comments for the resources which are in review
+		const commentMapping = await this.fetchOpenComments(requestedForChangesResources)
 
-		// // fetch the relevant details from reviews table for additional data in the response
-		// const reviewDetails = await reviewsQueries.findAll(
-		// 	{
-		// 		organization_id: {
-		// 			[Op.in]: OrganizationIds,
-		// 		},
-		// 		resource_id: {
-		// 			[Op.in]: uniqueResourceIds,
-		// 		},
-		// 		status: {
-		// 			[Op.in]: [
-		// 				common.REVIEW_STATUS_REJECTED,
-		// 				common.REVIEW_STATUS_REJECTED_AND_REPORTED,
-		// 				common.REVIEW_STATUS_INPROGRESS,
-		// 				common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
-		// 				common.REVIEW_STATUS_CHANGES_UPDATED,
-		// 			],
-		// 		},
-		// 	},
-		// 	['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes']
-		// )
-		// let reviewerIds = []
+		let reviewerIds = []
 
-		// // create a mapping object for resourceId and review details to fetch the review details like reviewerId , status etc... using resource id
-		// // TODO for the time being we are fetching only one reviewer in the parallel review , we need to update the code to have multiple reviewers
-		// // Update the reviewed_by and reviewer_notes for multiple review.
-		// const reviewDetailsMapping = reviewDetails.reduce((acc, item) => {
-		// 	acc[item.resource_id] = {
-		// 		reviewer_id: item.reviewer_id,
-		// 		updated_at: item.updated_at,
-		// 		created_at: item.created_at,
-		// 		status: item.status,
-		// 		reviewer_notes: item.notes,
-		// 	}
-		// 	reviewerIds.push(item.reviewer_id)
-		// 	return acc
-		// }, {})
+		// create a mapping object for resourceId and review details to fetch the review details like reviewerId , status etc... using resource id
+		// Update the reviewed_by and reviewer_notes for multiple review.
+		const reviewDetailsMapping = resourceReviews.reduce((acc, item) => {
+			// Initialize acc[item.resource_id] if not already present
+			if (!acc[item.resource_id]) {
+				acc[item.resource_id] = {
+					updated_at: item.updated_at,
+					created_at: item.created_at,
+					status: item.status,
+					reviewer_notes: item.notes,
+					reviewer_id: [], // Initialize reviewer_id as an empty array
+				}
+			} else {
+				// If the object already exists, update only the fields that are necessary
+				acc[item.resource_id].updated_at = item.updated_at
+				acc[item.resource_id].status = item.status
+				acc[item.resource_id].reviewer_notes = item.notes
+			}
+			acc[item.resource_id].reviewer_id.push(item.reviewer_id)
+			reviewerIds.push(item.reviewer_id)
+			return acc
+		}, {})
 
-		// // fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
-		// const userDetails = await this.fetchUserDetails(
-		// 	utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds])
-		// )
+		// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
+		const userDetails = await this.fetchUserDetails(
+			utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds])
+		)
 
-		// // fetch additional information about resource
-		// const additionalResourceInformation = response.result.reduce((acc, resource) => {
-		// 	let additionalData = {}
-		// 	if (reviewDetailsMapping[resource.id]) {
-		// 		if (reviewDetailsMapping[resource.id].status !== common.REVIEW_STATUS_NOT_STARTED) {
-		// 			additionalData.reviewed_by = reviewDetailsMapping[resource.id].reviewer_id
-		// 				? userDetails[reviewDetailsMapping[resource.id].reviewer_id]?.name
-		// 				: null
-		// 			additionalData.reviewed_started_on = reviewDetailsMapping[resource.id].created_at
-		// 				? reviewDetailsMapping[resource.id].created_at
-		// 				: null
-		// 			if (
-		// 				reviewDetailsMapping[resource.id].status === common.REVIEW_STATUS_REJECTED ||
-		// 				reviewDetailsMapping[resource.id].status === common.REVIEW_STATUS_REJECTED_AND_REPORTED
-		// 			) {
-		// 				additionalData.rejected_at = reviewDetailsMapping[resource.id].updated_at
-		// 					? reviewDetailsMapping[resource.id].updated_at
-		// 					: null
-		// 			}
-		// 		}
-		// 		additionalData.review_status = reviewDetailsMapping[resource.id].status
-		// 		additionalData.review_status_updated = reviewDetailsMapping[resource.id].updated_at
-		// 		additionalData.is_comments = commentMapping[resource.id] ? commentMapping[resource.id] : false
-		// 		additionalData.reviewer_notes = reviewDetailsMapping[resource.id].reviewer_notes
-		// 	}
-		// 	acc[resource.id] = additionalData
+		// fetch additional information about resource
+		const additionalResourceInformation = response.result.reduce((acc, resource) => {
+			let additionalData = {}
+			if (reviewDetailsMapping[resource.id]) {
+				if (reviewDetailsMapping[resource.id].status !== common.REVIEW_STATUS_NOT_STARTED) {
+					additionalData.reviewed_by = ''
+					if (reviewDetailsMapping[resource.id].reviewer_id.length > 0) {
+						reviewDetailsMapping[resource.id].reviewer_id.forEach((reviewer_id) => {
+							additionalData.reviewed_by =
+								additionalData.reviewed_by +
+								userDetails[reviewDetailsMapping[resource.id][reviewer_id]]?.name +
+								' , '
+						})
+						additionalData.reviewed_by = additionalData.reviewed_by.replace(/[, \s]+$/, '')
+					}
+					additionalData.reviewed_started_on = reviewDetailsMapping[resource.id].created_at
+						? reviewDetailsMapping[resource.id].created_at
+						: null
+					if (
+						reviewDetailsMapping[resource.id].status === common.REVIEW_STATUS_REJECTED ||
+						reviewDetailsMapping[resource.id].status === common.REVIEW_STATUS_REJECTED_AND_REPORTED
+					) {
+						additionalData.rejected_at = reviewDetailsMapping[resource.id].updated_at
+							? reviewDetailsMapping[resource.id].updated_at
+							: null
+					}
+				}
+				additionalData.review_status = reviewDetailsMapping[resource.id].status
+				additionalData.review_status_updated = reviewDetailsMapping[resource.id].updated_at
+				additionalData.is_comments = commentMapping[resource.id] ? commentMapping[resource.id] : false
+				additionalData.reviewer_notes = reviewDetailsMapping[resource.id].reviewer_notes
+			}
+			acc[resource.id] = additionalData
 
-		// 	return acc
-		// }, {})
+			return acc
+		}, {})
 
-		// // generic function to merge all the collected data about the resource
-		// result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
+		// generic function to merge all the collected data about the resource
+		result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
 		// count of requested for changes resources
 		result.changes_requested_count =
 			requestedForChangesResources.length > 0 ? requestedForChangesResources.length : 0
@@ -241,10 +238,22 @@ module.exports = class resourceHelper {
 		})
 	}
 
-	static async finalResourceStatus(reviewDetails) {
+	static async finalResourceStatus(uniqueResourceIds, OrganizationIds) {
 		let recourceStatusMapping = {}
+		// get the review details of all the resources created by the logged in user
+		const resourceReviews = await reviewsQueries.findAll(
+			{
+				organization_id: {
+					[Op.in]: OrganizationIds,
+				},
+				resource_id: {
+					[Op.in]: uniqueResourceIds,
+				},
+			},
+			['resource_id', 'status']
+		)
 		// create a mapping of resource id and review statuses
-		reviewDetails.map((review) => {
+		resourceReviews.map((review) => {
 			if (!Object.keys(recourceStatusMapping).includes(review.resource_id)) {
 				recourceStatusMapping[review.resource_id] = []
 			}
@@ -260,11 +269,6 @@ module.exports = class resourceHelper {
 	static async determineResourceStatus(reviewDetails) {
 		let finalResourceStatus = {}
 		for (const [resourceId, statuses] of Object.entries(reviewDetails)) {
-			// If no reviews or all statuses are 'NOT_STARTED'
-			if (statuses.every((status) => status === common.REVIEW_STATUS_NOT_STARTED)) {
-				finalResourceStatus[resourceId] = common.RESOURCE_STATUS_SUBMITTED
-			}
-
 			// If at least one status is 'INPROGRESS', but no 'REJECTED' or 'REJECTED_AND_REPORTED'
 			if (
 				statuses.includes(common.REVIEW_STATUS_INPROGRESS) &&
@@ -293,20 +297,22 @@ module.exports = class resourceHelper {
 			) {
 				finalResourceStatus[resourceId] = common.REVIEW_STATUS_APPROVED
 			}
+			// If no reviews or all statuses are 'NOT_STARTED'
+			if (statuses.every((status) => status === common.REVIEW_STATUS_NOT_STARTED)) {
+				finalResourceStatus[resourceId] = common.RESOURCE_STATUS_SUBMITTED
+			}
 			// If one status is 'REJECTED' the resource status is REJECTED
-			if (
-				statuses.includes(common.REVIEW_STATUS_REJECTED) &&
-				statuses.every((status) => status === common.REVIEW_STATUS_REJECTED)
-			) {
+			if (statuses.includes(common.REVIEW_STATUS_REJECTED)) {
 				finalResourceStatus[resourceId] = common.REVIEW_STATUS_REJECTED
 			}
 
 			// If one status is 'REJECTED_AND_REPORTED' the resource status is REJECTED_AND_REPORTED
-			if (
-				statuses.includes(common.REVIEW_STATUS_REJECTED_AND_REPORTED) &&
-				statuses.every((status) => status === common.REVIEW_STATUS_REJECTED_AND_REPORTED)
-			) {
+			if (statuses.includes(common.REVIEW_STATUS_REJECTED_AND_REPORTED)) {
 				finalResourceStatus[resourceId] = common.REVIEW_STATUS_REJECTED_AND_REPORTED
+			}
+			// If No review status , assign status as SUBMITTED
+			if (statuses.length <= 0) {
+				finalResourceStatus[resourceId] = common.RESOURCE_STATUS_SUBMITTED
 			}
 		}
 
