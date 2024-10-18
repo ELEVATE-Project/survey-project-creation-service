@@ -495,7 +495,7 @@
 			]
 		},
 		{
-			"sourceRoute": "/scp/v1/certificates/update:id",
+			"sourceRoute": "/scp/v1/certificates/update/:id",
 			"type": "POST",
 			"priority": "MUST_HAVE",
 			"inSequence": false,
