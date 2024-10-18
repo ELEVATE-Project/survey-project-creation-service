@@ -207,8 +207,8 @@ module.exports = class ProjectsHelper {
 				},
 				['resource_id']
 			)
-
-			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews.count == 0) {
+			// fetchResource.stage === common.RESOURCE_STATUS_IN_REVIEW
+			if (fetchResource.stage === common.RESOURCE_STAGE_REVIEW && countReviews.count == 0) {
 				return responses.failureResponse({
 					message: {
 						key: 'FORBIDDEN_RESOURCE_UPDATE',
@@ -254,9 +254,7 @@ module.exports = class ProjectsHelper {
 
 				//get the resource stage
 				const stageData = await resourceService.getResourceStage(resourceId, orgId)
-				if (stageData.success && stageData.stage) {
-					updateData.stage = stageData.stage
-				}
+				if (stageData.success && stageData.stage) updateData.stage = stageData.stage
 
 				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {
 					returning: true,
@@ -274,7 +272,8 @@ module.exports = class ProjectsHelper {
 				return responses.successResponse({
 					statusCode: httpStatusCode.accepted,
 					message:
-						fetchResource.status == common.RESOURCE_STATUS_IN_REVIEW
+						// fetchResource.status == common.RESOURCE_STATUS_IN_REVIEW
+						fetchResource.stage == common.RESOURCE_STAGE_REVIEW
 							? 'PROJECT_SAVED_SUCCESSFULLY'
 							: 'PROJECT_UPDATED_SUCCESSFUL',
 					result: updatedProject[0].id,
@@ -726,7 +725,8 @@ module.exports = class ProjectsHelper {
 			//update the reviews and resource status
 			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
 			if (
-				projectData.status === common.RESOURCE_STATUS_IN_REVIEW ||
+				// projectData.status === common.RESOURCE_STATUS_IN_REVIEW ||
+				projectData.stage === common.RESOURCE_STAGE_REVIEW ||
 				projectData.status === common.RESOURCE_STATUS_SUBMITTED
 			) {
 				//Update the review status if the resource has been submitted before
@@ -740,9 +740,8 @@ module.exports = class ProjectsHelper {
 						status: common.REVIEW_STATUS_CHANGES_UPDATED,
 					}
 				)
-				//
-				resourceStatus = resourceService.finalResourceStatus(resourceId)
 				// common.RESOURCE_STATUS_IN_REVIEW
+				resourceStatus = resourceService.finalResourceStatus(resourceId)
 			}
 
 			//check review is required or not
