@@ -243,11 +243,11 @@ module.exports = class resourceHelper {
 	/**
 	 * Return the mapping of resource Id and its final status
 	 * @name finalResourceStatus
-	 * @param {Array} uniqueResourceIds - Array of unique resource ids
+	 * @param {Array} resourceIds - Array of unique resource ids
 	 * @param {Array} OrganizationIds - Array of unique org ids
 	 * @returns {JSON} - List of resources with final status
 	 */
-	static async finalResourceStatus(uniqueResourceIds, OrganizationIds) {
+	static async finalResourceStatus(resourceIds, OrganizationIds) {
 		let recourceStatusMapping = {}
 		// get the review details of all the resources created by the logged in user
 		const resourceReviews = await reviewsQueries.findAll(
@@ -256,7 +256,7 @@ module.exports = class resourceHelper {
 					[Op.in]: OrganizationIds,
 				},
 				resource_id: {
-					[Op.in]: uniqueResourceIds,
+					[Op.in]: resourceIds,
 				},
 			},
 			['resource_id', 'status']
