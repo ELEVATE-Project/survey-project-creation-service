@@ -63,17 +63,24 @@ module.exports = class reviewsHelper {
 			}
 
 			// Update the status in the reviews table
+			await reviewsQueries.update(
+				{ id: review.id, organization_id: review.organization_id },
+				{ status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES }
+			)
+
+			let resourceUpdateObj = {
+				status: resourceService.finalResourceStatus(resourceId),
+			}
+
+			//update stage
+			let stageData = resourceService.getResourceStage(resourceId, resource.organization_id)
+			if (stageData.success && stageData.stage) resourceUpdateObj.stage = stageData.stage
+
 			// Update the 'last_reviewed_on' field in the resources table
-			await Promise.all([
-				reviewsQueries.update(
-					{ id: review.id, organization_id: review.organization_id },
-					{ status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES }
-				),
-				resourceQueries.updateOne(
-					{ organization_id: resource.organization_id, id: resourceId },
-					{ last_reviewed_on: new Date() }
-				),
-			])
+			await resourceQueries.updateOne(
+				{ organization_id: resource.organization_id, id: resourceId },
+				{ last_reviewed_on: new Date() }
+			)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -326,6 +333,7 @@ module.exports = class reviewsHelper {
 				status: isReported ? common.REVIEW_STATUS_REJECTED_AND_REPORTED : common.REVIEW_STATUS_REJECTED,
 				...(bodyData.notes && { notes: bodyData.notes }),
 				last_reviewed_on: new Date(),
+				stage: common.RESOURCE_STAGE_COMPLETION,
 			}
 
 			// Update the review record in the reviews table with the new status and notes
@@ -715,6 +723,7 @@ module.exports = class reviewsHelper {
 				{
 					status: common.RESOURCE_STATUS_PUBLISHED,
 					published_on: new Date(),
+					stage: common.RESOURCE_STAGE_COMPLETION,
 				}
 			)
 
