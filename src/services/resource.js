@@ -249,7 +249,12 @@ module.exports = class resourceHelper {
 	 */
 	static async finalResourceStatus(resourceIds, OrganizationIds) {
 		let recourceStatusMapping = {}
-		// get the review details of all the resources created by the logged in user
+
+		// Ensure resourceIds and OrganizationIds are arrays
+		resourceIds = Array.isArray(resourceIds) ? resourceIds : [resourceIds]
+		OrganizationIds = Array.isArray(OrganizationIds) ? OrganizationIds : [OrganizationIds]
+
+		// Get the review details of all the resources created by the logged-in user
 		const resourceReviews = await reviewsQueries.findAll(
 			{
 				organization_id: {
@@ -261,16 +266,21 @@ module.exports = class resourceHelper {
 			},
 			['resource_id', 'status']
 		)
-		// create a mapping of resource id and review statuses
-		resourceReviews.map((review) => {
-			if (!Object.keys(recourceStatusMapping).includes(review.resource_id)) {
-				recourceStatusMapping[review.resource_id] = []
-			}
-			// push only the unique status value to the object
-			if (!recourceStatusMapping[review.resource_id].includes(review.status))
-				recourceStatusMapping[review.resource_id].push(review.status)
-		})
-		recourceStatusMapping = await this.determineResourceStatus(recourceStatusMapping)
+
+		if (resourceReviews.length > 0) {
+			// Create a mapping of resource id and review statuses
+			resourceReviews.forEach((review) => {
+				if (!recourceStatusMapping[review.resource_id]) {
+					recourceStatusMapping[review.resource_id] = []
+				}
+				// Push only unique status values to the object
+				if (!recourceStatusMapping[review.resource_id].includes(review.status)) {
+					recourceStatusMapping[review.resource_id].push(review.status)
+				}
+			})
+
+			recourceStatusMapping = await this.determineResourceStatus(recourceStatusMapping)
+		}
 
 		return recourceStatusMapping
 	}
@@ -310,7 +320,7 @@ module.exports = class resourceHelper {
 					(status) => status === common.REVIEW_STATUS_APPROVED || status === common.REVIEW_STATUS_NOT_STARTED
 				)
 			) {
-				finalResourceStatus[resourceId] = common.REVIEW_STATUS_APPROVED
+				finalResourceStatus[resourceId] = common.REVIEW_STATUS_NOT_STARTED
 			}
 			// If no reviews or all statuses are 'NOT_STARTED'
 			if (statuses.every((status) => status === common.REVIEW_STATUS_NOT_STARTED)) {
@@ -1384,9 +1394,9 @@ module.exports = class resourceHelper {
 			}
 
 			let stage = common.RESOURCE_STAGE_CREATION
-			if (resource.status.includes(reviewStatuses)) {
+			if (reviewStatuses.includes(resource.status)) {
 				stage = common.RESOURCE_STAGE_REVIEW
-			} else if (resource.status.includes(completionStatuses)) {
+			} else if (completionStatuses.includes(resource.status)) {
 				stage = common.RESOURCE_STAGE_REVIEW
 			}
 

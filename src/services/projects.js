@@ -741,7 +741,11 @@ module.exports = class ProjectsHelper {
 					}
 				)
 				// common.RESOURCE_STATUS_IN_REVIEW
-				resourceStatus = resourceService.finalResourceStatus(resourceId)
+				const resourceFinalStatus = await resourceService.finalResourceStatus(
+					resourceId,
+					userDetails.organization_id
+				)
+				resourceStatus = resourceFinalStatus[resourceId]
 			}
 
 			//check review is required or not

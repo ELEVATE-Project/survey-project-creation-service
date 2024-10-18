@@ -40,7 +40,7 @@ module.exports = class reviewsHelper {
 				{
 					id: resourceId,
 				},
-				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_stage'] }
+				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_stage', 'stage'] }
 			)
 			// If no resource is found return error
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
@@ -68,18 +68,20 @@ module.exports = class reviewsHelper {
 				{ status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES }
 			)
 
+			const resourceStatus = await resourceService.finalResourceStatus(resourceId, resource.organization_id)
 			let resourceUpdateObj = {
-				status: resourceService.finalResourceStatus(resourceId),
+				status: resourceStatus[resourceId],
+				last_reviewed_on: new Date(),
 			}
 
 			//update stage
-			let stageData = resourceService.getResourceStage(resourceId, resource.organization_id)
+			let stageData = await resourceService.getResourceStage(resourceId, resource.organization_id)
 			if (stageData.success && stageData.stage) resourceUpdateObj.stage = stageData.stage
 
 			// Update the 'last_reviewed_on' field in the resources table
 			await resourceQueries.updateOne(
 				{ organization_id: resource.organization_id, id: resourceId },
-				{ last_reviewed_on: new Date() }
+				resourceUpdateObj
 			)
 
 			return responses.successResponse({
@@ -185,12 +187,12 @@ module.exports = class reviewsHelper {
 				{ id: review.id, organization_id: review.organization_id },
 				{ status: common.REVIEW_STATUS_INPROGRESS }
 			)
-
+			const resourceStatus = await resourceService.finalResourceStatus(resourceId, resource.organization_id)
 			let resourceUpdateObj = {
-				status: resourceService.finalResourceStatus(resourceId),
+				status: resourceStatus[resourceId],
 			}
 
-			let stageData = resourceService.getResourceStage(resourceId, resource.organization_id)
+			let stageData = await resourceService.getResourceStage(resourceId, resource.organization_id)
 			if (stageData.success) resourceUpdateObj.stage = stageData.stage
 
 			await resourceQueries.updateOne(
@@ -491,11 +493,10 @@ module.exports = class reviewsHelper {
 			}
 			// Create a corresponding entry in the review_resources table
 			await reviewResourceQueries.create(_.omit(reviewData, [common.STATUS]))
-
+			const resourceStatusDetail = await resourceService.finalResourceStatus(resourceId, resourceOrgId)
 			// Update resource table data
 			let updateData = {
-				// status: common.RESOURCE_STATUS_IN_REVIEW,
-				status: resourceService.finalResourceStatus(resourceId),
+				status: resourceStatusDetail[resourceId],
 			}
 
 			//update resoure stage
@@ -755,7 +756,7 @@ const _nonReviewableResourceStatuses = [
  */
 const _restrictedReviewStatuses = [
 	common.REVIEW_STATUS_STARTED,
-	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+	common.REVIEW_STATUS_REJECTED,
 	common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 	common.REVIEW_STATUS_CHANGES_UPDATED,
 	common.REVIEW_STATUS_INPROGRESS,
