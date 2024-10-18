@@ -195,12 +195,14 @@ module.exports = class resourceHelper {
 			if (reviewDetailsMapping[resource.id]) {
 				if (reviewDetailsMapping[resource.id].status !== common.REVIEW_STATUS_NOT_STARTED) {
 					additionalData.reviewed_by = ''
-					if (reviewDetailsMapping[resource.id].reviewer_id.length > 0) {
-						reviewDetailsMapping[resource.id].reviewer_id.forEach((reviewer_id) => {
+					let reviewerIds = reviewDetailsMapping[resource.id].reviewer_id
+						? reviewDetailsMapping[resource.id].reviewer_id
+						: []
+					if (reviewerIds.length > 0) {
+						reviewerIds.forEach((reviewer_id) => {
+							reviewer_id = isNaN(reviewer_id) ? reviewer_id : Number(reviewer_id)
 							additionalData.reviewed_by =
-								additionalData.reviewed_by +
-								userDetails[reviewDetailsMapping[resource.id][reviewer_id]]?.name +
-								' , '
+								additionalData.reviewed_by + userDetails[reviewer_id]?.name + ' , '
 						})
 						additionalData.reviewed_by = additionalData.reviewed_by.replace(/[, \s]+$/, '')
 					}
