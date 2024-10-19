@@ -72,49 +72,21 @@ module.exports = class resourceHelper {
 			},
 			['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes']
 		)
-		// fetch the final resource status of each resources
-		const resourceFinalStatus = await this.finalResourceStatus(uniqueResourceIds, OrganizationIds)
 
-		let requestedForChangesResources = []
-		// get id of resources requested for change
-		Object.keys(resourceFinalStatus).forEach((resourceId) => {
-			if (resourceFinalStatus[resourceId] == common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
-				requestedForChangesResources.push(resourceId)
-			}
-		})
-
-		if (queryParams[common.STATUS] === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
-			primaryFilter = {
-				organization_id: {
-					[Op.in]: OrganizationIds,
-				},
-				id: {
-					[Op.in]: requestedForChangesResources,
-				},
-				user_id: userId,
-			}
-		} else {
-			// add primary filters
-			primaryFilter = {
-				organization_id: {
-					[Op.in]: OrganizationIds,
-				},
-				id: {
-					[Op.in]: uniqueResourceIds,
-				},
-				status: {
-					[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_SUBMITTED_FOR_REVIEW],
-				},
-			}
-
-			if (queryParams[common.STATUS]) {
-				primaryFilter.status = {
-					[Op.in]: queryParams[common.STATUS].split(','),
-				}
-			}
-		}
 		// create the final filter by combining primary filters , query params and search text
 		filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
+
+		filter.id = {
+			[Op.in]: uniqueResourceIds,
+		}
+
+		filter.organization_id = {
+			[Op.in]: OrganizationIds,
+		}
+
+		filter.status = {
+			[Op.in]: common.PAGE_STATUS_VALUES['submitted_for_review'],
+		}
 
 		// return a sort object with sorting parameters. if no params are provided returns {}
 		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
@@ -141,10 +113,39 @@ module.exports = class resourceHelper {
 			page,
 			limit
 		)
+		const requestedForChangesResources = await resourceQueries.resourceList(
+			{
+				id: {
+					[Op.in]: uniqueResourceIds,
+				},
+				organization_id: {
+					[Op.in]: OrganizationIds,
+				},
+				status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+			},
+			[
+				'id',
+				'title',
+				'organization_id',
+				'type',
+				'status',
+				'user_id',
+				'created_at',
+				'updated_at',
+				'submitted_on',
+				'published_on',
+				'last_reviewed_on',
+				'meta',
+				'is_under_edit',
+			],
+			sort,
+			page,
+			limit
+		)
 
 		if (response.result.length <= 0) {
 			result.changes_requested_count =
-				requestedForChangesResources.length > 0 ? requestedForChangesResources.length : 0
+				requestedForChangesResources.count > 0 ? requestedForChangesResources.count : 0
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -157,7 +158,9 @@ module.exports = class resourceHelper {
 		)
 
 		// fetch all open comments for the resources which are in review
-		const commentMapping = await this.fetchOpenComments(requestedForChangesResources)
+		const commentMapping = await this.fetchOpenComments(
+			requestedForChangesResources.result.map((resource) => resource.id)
+		)
 
 		let reviewerIds = []
 
@@ -231,8 +234,7 @@ module.exports = class resourceHelper {
 		// generic function to merge all the collected data about the resource
 		result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
 		// count of requested for changes resources
-		result.changes_requested_count =
-			requestedForChangesResources.length > 0 ? requestedForChangesResources.length : 0
+		result.changes_requested_count = requestedForChangesResources.count > 0 ? requestedForChangesResources.count : 0
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
 			message: 'RESOURCE_LISTED_SUCCESSFULLY',
