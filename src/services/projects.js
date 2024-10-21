@@ -177,7 +177,6 @@ module.exports = class ProjectsHelper {
 				common.RESOURCE_STATUS_REJECTED,
 				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 				common.RESOURCE_STATUS_SUBMITTED,
-				common.REVIEW_STATUS_CHANGES_UPDATED,
 				common.REVIEW_STATUS_INPROGRESS,
 			]
 			const fetchResource = await resourceQueries.findOne({
@@ -191,7 +190,7 @@ module.exports = class ProjectsHelper {
 				},
 			})
 
-			if (!fetchResource) {
+			if (!fetchResource?.id) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,

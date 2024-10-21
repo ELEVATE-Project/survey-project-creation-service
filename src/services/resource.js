@@ -88,6 +88,12 @@ module.exports = class resourceHelper {
 			[Op.in]: common.PAGE_STATUS_VALUES['submitted_for_review'],
 		}
 
+		if (queryParams.status != '' && queryParams.status) {
+			filter.status = {
+				[Op.in]: queryParams.status.split(','),
+			}
+		}
+
 		// return a sort object with sorting parameters. if no params are provided returns {}
 		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
 
