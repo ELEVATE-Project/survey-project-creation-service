@@ -76,22 +76,16 @@ module.exports = class resourceHelper {
 		// create the final filter by combining primary filters , query params and search text
 		filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
 
-		filter.id = {
-			[Op.in]: uniqueResourceIds,
-		}
-
-		filter.organization_id = {
-			[Op.in]: OrganizationIds,
-		}
-
-		filter.status = {
-			[Op.in]: common.PAGE_STATUS_VALUES['submitted_for_review'],
-		}
-
-		if (queryParams.status != '' && queryParams.status) {
-			filter.status = {
-				[Op.in]: queryParams.status.split(','),
-			}
+		// Add id, organization_id, and status filters
+		filter = {
+			...filter,
+			id: { [Op.in]: uniqueResourceIds },
+			organization_id: { [Op.in]: OrganizationIds },
+			status: {
+				[Op.in]: queryParams.status?.trim()
+					? queryParams.status.split(',')
+					: common.PAGE_STATUS_VALUES['submitted_for_review'],
+			},
 		}
 
 		// return a sort object with sorting parameters. if no params are provided returns {}
@@ -252,21 +246,21 @@ module.exports = class resourceHelper {
 	 * Return the mapping of resource Id and its final status
 	 * @name finalResourceStatus
 	 * @param {Array} resourceIds - Array of unique resource ids
-	 * @param {Array} OrganizationIds - Array of unique org ids
+	 * @param {Array} organizationIds - Array of unique org ids
 	 * @returns {JSON} - List of resources with final status
 	 */
-	static async finalResourceStatus(resourceIds, OrganizationIds) {
+	static async finalResourceStatus(resourceIds, organizationIds) {
 		let recourceStatusMapping = {}
 
-		// Ensure resourceIds and OrganizationIds are arrays
+		// Ensure resourceIds and organizationIds are arrays
 		resourceIds = Array.isArray(resourceIds) ? resourceIds : [resourceIds]
-		OrganizationIds = Array.isArray(OrganizationIds) ? OrganizationIds : [OrganizationIds]
+		organizationIds = Array.isArray(organizationIds) ? organizationIds : [organizationIds]
 
 		// Get the review details of all the resources created by the logged-in user
 		const resourceReviews = await reviewsQueries.findAll(
 			{
 				organization_id: {
-					[Op.in]: OrganizationIds,
+					[Op.in]: organizationIds,
 				},
 				resource_id: {
 					[Op.in]: resourceIds,
@@ -1404,7 +1398,7 @@ module.exports = class resourceHelper {
 			if (reviewStatuses.includes(resource.status)) {
 				stage = common.RESOURCE_STAGE_REVIEW
 			} else if (completionStatuses.includes(resource.status)) {
-				stage = common.RESOURCE_STAGE_REVIEW
+				stage = common.RESOURCE_STAGE_COMPLETION
 			}
 
 			return {
@@ -1427,6 +1421,7 @@ const reviewStatuses = [
 	common.REVIEW_STATUS_APPROVED,
 	common.REVIEW_STATUS_CHANGES_UPDATED,
 	common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+	common.REVIEW_STATUS_INPROGRESS,
 ]
 
 const completionStatuses = [

@@ -762,7 +762,6 @@ module.exports = class ProjectsHelper {
 
 			//update resource
 			let resourcesUpdate = {
-				//update the logic to get the status
 				status: resourceStatus,
 				submitted_on: new Date(),
 				is_under_edit: false,

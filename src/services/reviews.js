@@ -170,9 +170,6 @@ module.exports = class reviewsHelper {
 			// Check if the review exists; if not, return a failure response
 			if (!review?.id) throw new Error('REVIEW_NOT_FOUND')
 
-			// //check the review is already started
-			// if (review.status === common.REVIEW_STATUS_STARTED) throw new Error('REVIEW_ALREADY_STARTED')
-
 			// If the review status is 'NOT_STARTED', validate that no active review is being conducted by others.
 			if (review.status === common.REVIEW_STATUS_NOT_STARTED) {
 				const reviewCheck = await this.validateNoActiveReviewByOthers(resourceId, userId, orgId)
@@ -197,7 +194,6 @@ module.exports = class reviewsHelper {
 
 			await resourceQueries.updateOne(
 				{ organization_id: resource.organization_id, id: resourceId },
-				// { status: common.RESOURCE_STATUS_IN_REVIEW }
 				resourceUpdateObj
 			)
 			return responses.successResponse({
@@ -497,11 +493,7 @@ module.exports = class reviewsHelper {
 			// Update resource table data
 			let updateData = {
 				status: resourceStatusDetail[resourceId],
-			}
-
-			//update resoure stage
-			if (resourceStage.stage != common.RESOURCE_STAGE_REVIEW) {
-				updateData.stage = common.RESOURCE_STAGE_REVIEW
+				stage: common.RESOURCE_STAGE_REVIEW,
 			}
 
 			// Update the resource table to reflect the review status
