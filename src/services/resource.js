@@ -1330,7 +1330,6 @@ module.exports = class resourceHelper {
 			let filterQuery = {
 				organization_id,
 				status: common.RESOURCE_STATUS_PUBLISHED,
-				published_id: { [Op.not]: null },
 			}
 			// construct sort object
 			const sort = await this.constructSortOptions(query.sort_by, query.sort_order)

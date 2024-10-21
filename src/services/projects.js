@@ -32,7 +32,6 @@ module.exports = class ProjectsHelper {
 						id: reference_id,
 						status: common.RESOURCE_STATUS_PUBLISHED,
 						stage: common.RESOURCE_STAGE_COMPLETION,
-						published_id: { [Op.not]: null },
 					},
 					{
 						attributes: ['type'],
