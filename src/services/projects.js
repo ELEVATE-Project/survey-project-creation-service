@@ -250,10 +250,6 @@ module.exports = class ProjectsHelper {
 					updateData.is_under_edit = true
 				}
 
-				//get the resource stage
-				const stageData = await resourceService.getResourceStage(resourceId, orgId)
-				if (stageData.success && stageData.stage) updateData.stage = stageData.stage
-
 				const [updateCount, updatedProject] = await resourceQueries.updateOne(filter, updateData, {
 					returning: true,
 					raw: true,
@@ -743,13 +739,13 @@ module.exports = class ProjectsHelper {
 			//check review is required or not
 			const isReviewMandatory = await resourceService.isReviewMandatory(
 				projectData.type,
-				userDetails.organization_id
+				projectData.organization_id
 			)
 			if (!isReviewMandatory) {
 				const publishResource = await reviewService.publishResource(
 					resourceId,
-					userDetails.id,
-					userDetails.organization_id
+					projectData.user_id,
+					projectData.organization_id
 				)
 				return publishResource
 			}
