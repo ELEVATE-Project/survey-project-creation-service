@@ -557,6 +557,54 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
+			let errorArray = []
+
+			//validate number of task
+			if (projectData.tasks?.length > parseInt(process.env.MAX_PROJECT_TASK_COUNT, 10)) {
+				errorArray.push()
+				throw {
+					error: utils.errorObject(
+						common.BODY,
+						common.TASKS,
+						'Project task count has exceeded the maximum allowed limit'
+					),
+				}
+			}
+
+			// Check that the note character limit does not exceed the maximum limit
+			if (bodyData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOTE_LENGTH_EXCEEDED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			//validate the reviewer
+			let reviewerIds = []
+			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
+				const uniqueReviewerIds = utils.getUniqueElements(bodyData.reviewer_ids)
+				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
+					user_ids: uniqueReviewerIds,
+					excluded_user_ids: [userDetails.id],
+				})
+
+				if (!reviewers.success) throw new Error('REVIEWER_IDS_NOT_FOUND')
+
+				//written as a backup will remove once the user service PR merged
+				if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
+					reviewerIds = reviewers.data.result.data.map((item) => item.id)
+				} else {
+					// If no valid reviewers data is found, return an error response
+					throw new Error('REVIEWER_IDS_NOT_FOUND')
+				}
+
+				//return error message if the reviewer is invalid or not found
+				if (uniqueReviewerIds.length > reviewers.data.result.data.length) {
+					throw new Error('REVIEWER_IDS_NOT_FOUND')
+				}
+			}
+
 			//get all entity type validations for project
 			let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 				{
@@ -566,6 +614,8 @@ module.exports = class ProjectsHelper {
 				projectData.organization_id,
 				['id', 'value', 'has_entities', 'validations']
 			)
+
+			console.log(entityTypes, 'entityTypes')
 
 			//fetch task entityType validations
 			let taskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
@@ -584,25 +634,16 @@ module.exports = class ProjectsHelper {
 
 			//validate project data
 			const projectValidationPromises = entityTypes.map((entityType) =>
-				this.validateEntityData(projectData, entityType, common.PROJECT, common.BODY, taskEntityTypesMapping)
+				this.validateEntityData(projectData, entityType, common.PROJECT, common.PROJECT, taskEntityTypesMapping)
 			)
 			const projectValidationResults = await Promise.all(projectValidationPromises)
+			console.log(projectValidationResults, 'projectValidationResults')
 			for (const validationResult of projectValidationResults) {
 				if (validationResult.hasError) {
-					throw {
-						error: validationResult.error,
-					}
-				}
-			}
-
-			//validate number of task
-			if (projectData.tasks?.length > parseInt(process.env.MAX_PROJECT_TASK_COUNT, 10)) {
-				throw {
-					error: utils.errorObject(
-						common.BODY,
-						common.TASKS,
-						'Project task count has exceeded the maximum allowed limit'
-					),
+					errorArray.push(validationResult.error)
+					// throw {
+					// 	error: validationResult.error,
+					// }
 				}
 			}
 
@@ -616,155 +657,147 @@ module.exports = class ProjectsHelper {
 				['value', 'validations']
 			)
 
-			// validate task
-			await Promise.all(
-				projectData.tasks.map(async (task) => {
-					// Validate task entities
-					await Promise.all(
-						taskEntityTypes.map(async (taskEntityType) => {
-							let validationResult = await this.validateEntityData(
-								task,
-								taskEntityType,
-								common.TASKS,
-								common.BODY,
-								taskEntityTypesMapping
-							)
-							if (validationResult.hasError) {
-								throw {
-									error: validationResult.error,
-								}
-							}
-						})
-					)
-
-					// Validate child tasks if they exist
-					if (task.children && task.children.length > 0) {
+			//validation for task is not empty
+			if (projectData?.tasks?.length > 0) {
+				// validate task
+				await Promise.all(
+					projectData.tasks.map(async (task) => {
+						// Validate task entities
 						await Promise.all(
-							task.children.map(async (childTask) => {
-								await Promise.all(
-									subTaskEntityTypes.map(async (subTaskEntityType) => {
-										let validationResult = await this.validateEntityData(
-											childTask,
-											subTaskEntityType,
-											common.SUB_TASK,
-											common.BODY
-										)
-										if (validationResult.hasError) {
-											throw {
-												error: validationResult.error,
-											}
-										}
-									})
+							taskEntityTypes.map(async (taskEntityType) => {
+								let validationResult = await this.validateEntityData(
+									task,
+									taskEntityType,
+									common.TASKS,
+									common.BODY,
+									taskEntityTypesMapping
 								)
+								if (validationResult.hasError) {
+									errorArray.push(validationResult.error)
+									// throw {
+									// 	error: validationResult.error,
+									// }
+								}
 							})
 						)
-					}
-				})
-			)
 
-			// Check that the note character limit does not exceed the maximum limit
-			if (bodyData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
+						// Validate child tasks if they exist
+						if (task.children && task.children.length > 0) {
+							await Promise.all(
+								task.children.map(async (childTask) => {
+									await Promise.all(
+										subTaskEntityTypes.map(async (subTaskEntityType) => {
+											// entityData, entityType, model, sourceType, entityMapping, (taskId = '')
+											let validationResult = await this.validateEntityData(
+												childTask,
+												subTaskEntityType,
+												common.SUB_TASK,
+												subTaskEntityType.id,
+												//new change
+												taskEntityTypesMapping,
+												task.id
+											)
+											console.log(validationResult.hasError, 'validationResult.error')
+											if (validationResult.hasError) {
+												// throw {
+												// 	error: validationResult.error,
+												// }
+												// errorArray.push();
+												errorArray.push(validationResult.error)
+											}
+										})
+									)
+								})
+							)
+						}
+					})
+				)
+			}
+
+			console.log(errorArray, 'errorArray')
+			if (errorArray.length > 0) {
+				const result = Array.isArray(errorArray)
+					? errorArray.flat() // Flattens the nested array structure
+					: errorArray || []
 				return responses.failureResponse({
-					message: 'RESOURCE_NOTE_LENGTH_EXCEEDED',
-					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
+					statusCode: httpStatusCode.bad_request,
+					result: result,
+					message: 'Failed to send resource for review. Try again.',
 				})
 			}
 
-			//validate the reviewer
-			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
-				const uniqueReviewerIds = utils.getUniqueElements(bodyData.reviewer_ids)
-				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
-					user_ids: uniqueReviewerIds,
-					excluded_user_ids: [userDetails.id],
-				})
+			//create the review entry
+			// if (reviewerIds.length > 0) {
+			// 	//create entry in reviews table
+			// 	let reviewsData = reviewerIds.map((reviewer_id) => ({
+			// 		resource_id: projectData.id,
+			// 		reviewer_id,
+			// 		status: common.REVIEW_STATUS_NOT_STARTED,
+			// 		organization_id: userDetails.organization_id,
+			// 	}))
 
-				if (!reviewers.success) throw new Error('REVIEWER_IDS_NOT_FOUND')
+			// 	await reviewsQueries.bulkCreate(reviewsData)
+			// 	delete reviewsData.status
+			// 	await reviewsResourcesQueries.bulkCreate(reviewsData)
+			// }
 
-				let reviewerIds = []
+			// //update the reviews and resource status
+			// let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
+			// if (
+			// 	projectData.status === common.RESOURCE_STATUS_IN_REVIEW ||
+			// 	projectData.status === common.RESOURCE_STATUS_SUBMITTED
+			// ) {
+			// 	//Update the review status if the resource has been submitted before
+			// 	await reviewsQueries.update(
+			// 		{
+			// 			organization_id: projectData.organization_id,
+			// 			resource_id: projectData.id,
+			// 			status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+			// 		},
+			// 		{
+			// 			status: common.REVIEW_STATUS_CHANGES_UPDATED,
+			// 		}
+			// 	)
+			// 	resourceStatus = common.RESOURCE_STATUS_IN_REVIEW
+			// }
 
-				//written as a backup will remove once the user service PR merged
-				if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
-					reviewerIds = reviewers.data.result.data.map((item) => item.id)
-				} else {
-					// If no valid reviewers data is found, return an error response
-					throw new Error('REVIEWER_IDS_NOT_FOUND')
-				}
+			// //check review is required or not
+			// const isReviewMandatory = await resourceService.isReviewMandatory(
+			// 	projectData.type,
+			// 	userDetails.organization_id
+			// )
+			// if (!isReviewMandatory) {
+			// 	const publishResource = await reviewService.publishResource(
+			// 		resourceId,
+			// 		userDetails.id,
+			// 		userDetails.organization_id
+			// 	)
+			// 	return publishResource
+			// }
 
-				//return error message if the reviewer is invalid or not found
-				if (uniqueReviewerIds.length > reviewers.data.result.data.length) {
-					throw new Error('REVIEWER_IDS_NOT_FOUND')
-				}
+			// //update resource
+			// let resourcesUpdate = {
+			// 	status: resourceStatus,
+			// 	submitted_on: new Date(),
+			// 	is_under_edit: false,
+			// }
 
-				//create entry in reviews table
-				let reviewsData = reviewerIds.map((reviewer_id) => ({
-					resource_id: projectData.id,
-					reviewer_id,
-					status: common.REVIEW_STATUS_NOT_STARTED,
-					organization_id: userDetails.organization_id,
-				}))
+			// if (bodyData.notes) {
+			// 	resourcesUpdate.meta = {
+			// 		notes: bodyData.notes,
+			// 	}
+			// }
 
-				await reviewsQueries.bulkCreate(reviewsData)
-				delete reviewsData.status
-				await reviewsResourcesQueries.bulkCreate(reviewsData)
-			}
-
-			//update the reviews and resource status
-			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
-			if (
-				projectData.status === common.RESOURCE_STATUS_IN_REVIEW ||
-				projectData.status === common.RESOURCE_STATUS_SUBMITTED
-			) {
-				//Update the review status if the resource has been submitted before
-				await reviewsQueries.update(
-					{
-						organization_id: projectData.organization_id,
-						resource_id: projectData.id,
-						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
-					},
-					{
-						status: common.REVIEW_STATUS_CHANGES_UPDATED,
-					}
-				)
-				resourceStatus = common.RESOURCE_STATUS_IN_REVIEW
-			}
-
-			//check review is required or not
-			const isReviewMandatory = await resourceService.isReviewMandatory(
-				projectData.type,
-				userDetails.organization_id
-			)
-			if (!isReviewMandatory) {
-				const publishResource = await reviewService.publishResource(
-					resourceId,
-					userDetails.id,
-					userDetails.organization_id
-				)
-				return publishResource
-			}
-
-			//update resource
-			let resourcesUpdate = {
-				status: resourceStatus,
-				submitted_on: new Date(),
-				is_under_edit: false,
-			}
-
-			if (bodyData.notes) {
-				resourcesUpdate.meta = {
-					notes: bodyData.notes,
-				}
-			}
-
-			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
-			//add user action
-			eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
-				actionCode: common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
-				userId: userDetails.id,
-				objectId: resourceId,
-				objectType: common.MODEL_NAMES.RESOURCE,
-				orgId: userDetails.organization_id,
-			})
+			// await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
+			// //add user action
+			// eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
+			// 	actionCode: common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
+			// 	userId: userDetails.id,
+			// 	objectId: resourceId,
+			// 	objectType: common.MODEL_NAMES.RESOURCE,
+			// 	orgId: userDetails.organization_id,
+			// })
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -772,6 +805,10 @@ module.exports = class ProjectsHelper {
 				result: { id: projectData.id },
 			})
 		} catch (error) {
+			console.log(error, 'error')
+			// const result = Array.isArray(error.error)
+			// 	? error.error.flat() // Flattens the nested array structure
+			// 	: error.error || []
 			return responses.failureResponse({
 				message: error.message || 'RESOURCE_VALIDATION_FAILED',
 				statusCode: httpStatusCode.bad_request,
@@ -791,15 +828,22 @@ module.exports = class ProjectsHelper {
 	 * @param {string} sourceType - Specifies the source of the input, which can be 'body', 'param', or 'query'.
 	 * @returns {JSON} - Response containing error details, if any.
 	 */
-	static async validateEntityData(entityData, entityType, model, sourceType, entityMapping) {
+	static async validateEntityData(entityData, entityType, model, sourceType, entityMapping, taskId = '') {
 		try {
+			// console.log(entityMapping,'entityMapping')
+			// console.log("start-----------------------")
+			// console.log(entityType,'entityType')
+			// console.log(model,'model')
+			// console.log(sourceType,'sourceType')
+			// console.log(entityMapping,'entityMapping')
+			// console.log("end-----------------------")
 			let fieldData = entityData[entityType.value]
 			if (model == common.TASKS && entityData.allow_evidences == common.TRUE) {
 				// Check if file types are selected
 				if (!entityData?.evidence_details?.file_types.length) {
 					return {
 						hasError: true,
-						error: utils.errorObject(common.BODY, common.FILE_TYPE, 'File type not selected'),
+						error: utils.errorObject(common.TASKS, common.FILE_TYPE, 'File type not selected'),
 					}
 				}
 
@@ -807,34 +851,57 @@ module.exports = class ProjectsHelper {
 					fieldData = entityData.evidence_details[entityType.value]
 				}
 			}
+			// console.log(entityData, entityType, model, sourceType, entityMapping,'(entityData, entityType, model, sourceType, entityMapping')
 
 			// Check if the field is required
 			if (entityType.validations.required) {
+				let errorMessage
+				// console.log(entityType.value,'entityType.value')
+				// Check if the entityType has a nested message in _requiredMessageMappingForProject
+				if (typeof _requiredMessageMappingForProject[entityType.value] === 'object') {
+					// If it's an object, handle nested fields like learning_resources
+					const nestedFieldMessage =
+						_requiredMessageMappingForProject[entityType.value][entityType.nestedField]
+					// console.log(nestedFieldMessage,'nestedFieldMessage')
+					errorMessage =
+						nestedFieldMessage ||
+						entityType.validations.message ||
+						`Enter ${entityType.nestedField} for ${entityType.value}`
+				} else {
+					// Handle top-level messages
+					errorMessage =
+						_requiredMessageMappingForProject[entityType.value] ||
+						entityType.validations.message ||
+						`Enter ${model} ${entityType.value}`
+				}
 				let required = utils.checkRequired(entityType, fieldData)
+
 				if (!required) {
 					return {
 						hasError: true,
 						error: utils.errorObject(
 							sourceType,
-							entityType.value,
-							entityType.validations.message || `${model} ${entityType.value} is required`
+							model == common.TASKS ? fieldData : entityType.value,
+							errorMessage,
+							taskId ? taskId : ''
 						),
 					}
 				}
 			}
+			//need to identify if the fieldData is present and the regex is not there
 
 			// Check if the entity has sub-entities
-			if (entityType.has_entities) {
-				let checkEntities = utils.checkEntities(entityType, fieldData)
-				if (!checkEntities.status) {
-					return {
-						hasError: true,
-						error: utils.errorObject(sourceType, entityType.value, checkEntities.message),
-					}
-				}
-			}
+			// if (entityType.has_entities) {
+			// 	let checkEntities = utils.checkEntities(entityType, fieldData)
+			// 	if (!checkEntities.status) {
+			// 		return {
+			// 			hasError: true,
+			// 			error: utils.errorObject(sourceType, entityType.value, checkEntities.message),
+			// 		}
+			// 	}
+			// }
 
-			// Check regex pattern will check max length and special characters
+			// // Check regex pattern will check max length and special characters
 			if (entityType.validations.regex && fieldData) {
 				//validate learning resource validation
 				if (entityType.value === common.LEARNING_RESOURCE) {
@@ -920,7 +987,8 @@ module.exports = class ProjectsHelper {
 								sourceType,
 								entityType.value,
 								entityType.validations.message ||
-									`${model} ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
+									`${entityType.value} can only include alphanumeric characters with spaces, -, _, &, <>`
+								// `${model} ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
 							),
 						}
 					}
@@ -936,6 +1004,52 @@ module.exports = class ProjectsHelper {
 			return error
 		}
 	}
+
+	// static organizeErrorMessages(errorArray) {
+	// 	const organizedErrors = []
+
+	// 	// Organize top-level errors first (project-level)
+	// 	errorArray.forEach((error) => {
+	// 		if (!error.children) {
+	// 			organizedErrors.push(error)
+	// 		} else {
+	// 			const parentTask = organizedErrors.find(
+	// 				(err) => err.param === error.param && err.location === error.location
+	// 			)
+	// 			if (parentTask) {
+	// 				// If parent task already exists, push the child errors under "children"
+	// 				parentTask.children = parentTask.children || []
+	// 				parentTask.children.push(...error.children)
+	// 			} else {
+	// 				// Otherwise, create the parent task with children
+	// 				organizedErrors.push({
+	// 					location: error.location,
+	// 					param: error.param,
+	// 					msg: error.msg,
+	// 					children: error.children,
+	// 				})
+	// 			}
+	// 		}
+	// 	})
+
+	// 	return organizedErrors
+	// }
+}
+
+const _requiredMessageMappingForProject = {
+	categories: 'Add project category',
+	title: 'Enter valid project title',
+	objective: 'Summarize the goal of the project',
+	recommended_duration: 'Enter duration',
+	keywords: 'Add a tag',
+	recommended_for: 'Select role',
+	languages: 'Select language',
+	learning_resources: {
+		name: 'Enter Name of the resource',
+		url: 'Enter link to the resource',
+	},
+	licenses: 'Select license',
+	tasks: '',
 }
 
 /**

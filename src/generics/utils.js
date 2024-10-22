@@ -413,9 +413,20 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 	return Array.from(certificateMap.values())
 }
 
-const errorObject = (params, filed, msg) => {
-	return [{ location: params, param: filed, msg }]
+// const errorObject = (params, filed, msg, key = "") => {
+// 	return [{ location: params, param: filed, msg, }]
+// }
+const errorObject = (params, filed, msg, key = '') => {
+	const error = { location: params, param: filed, msg }
+
+	// Add key only if it's provided
+	if (key) {
+		error.key = key
+	}
+
+	return [error]
 }
+
 const checkRegexPattern = (entityType, entityData) => {
 	try {
 		let normalizedValue =
