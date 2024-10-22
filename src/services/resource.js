@@ -250,30 +250,22 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of resources with final status
 	 */
 	static async finalResourceStatus(resourceId, organizationId) {
-		let recourceStatusMapping = {}
+		let recourceStatusMapping = []
 
 		// Get the review details of all the resources created by the logged-in user
 		const resourceReviews = await reviewsQueries.findAll(
 			{
-				organization_id: {
-					[Op.in]: organizationId,
-				},
-				resource_id: {
-					[Op.in]: resourceId,
-				},
+				organization_id: organizationId,
+				resource_id: resourceId,
 			},
-			['resource_id', 'status']
+			['status']
 		)
 
 		if (resourceReviews.length > 0) {
-			// Create a mapping of resource id and review statuses
 			resourceReviews.forEach((review) => {
-				if (!recourceStatusMapping[review.resource_id]) {
-					recourceStatusMapping[review.resource_id] = []
-				}
-				// Push only unique status values to the object
-				if (!recourceStatusMapping[review.resource_id].includes(review.status)) {
-					recourceStatusMapping[review.resource_id].push(review.status)
+				// Push only unique status values to the array
+				if (!recourceStatusMapping.includes(review.status)) {
+					recourceStatusMapping.push(review.status)
 				}
 			})
 
@@ -286,57 +278,55 @@ module.exports = class resourceHelper {
 	/**
 	 * Determine the final status of each resources - logic
 	 * @name determineResourceStatus
-	 * @param {Object} reviewDetails - Object of each review detail
+	 * @param {Object} statuses - Object of each review detail
 	 * @returns {JSON} - Final determined status of each reviews
 	 */
-	static async determineResourceStatus(reviewDetails) {
+	static async determineResourceStatus(statuses) {
 		let finalResourceStatus = ''
-		for (const [resourceId, statuses] of Object.entries(reviewDetails)) {
-			// If at least one status is 'INPROGRESS', but no 'REJECTED' or 'REJECTED_AND_REPORTED'
-			if (
-				statuses.includes(common.REVIEW_STATUS_INPROGRESS) &&
-				!statuses.includes(common.REVIEW_STATUS_REJECTED) &&
-				!statuses.includes(common.REVIEW_STATUS_REJECTED_AND_REPORTED)
-			) {
-				finalResourceStatus = common.RESOURCE_STATUS_IN_REVIEW
-			}
+		// If at least one status is 'INPROGRESS', but no 'REJECTED' or 'REJECTED_AND_REPORTED'
+		if (
+			statuses.includes(common.REVIEW_STATUS_INPROGRESS) &&
+			!statuses.includes(common.REVIEW_STATUS_REJECTED) &&
+			!statuses.includes(common.REVIEW_STATUS_REJECTED_AND_REPORTED)
+		) {
+			finalResourceStatus = common.RESOURCE_STATUS_IN_REVIEW
+		}
 
-			// If any status is 'REQUESTED_FOR_CHANGE'
-			if (statuses.includes(common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)) {
-				finalResourceStatus = common.REVIEW_STATUS_REQUESTED_FOR_CHANGES
-			}
+		// If any status is 'REQUESTED_FOR_CHANGE'
+		if (statuses.includes(common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)) {
+			finalResourceStatus = common.REVIEW_STATUS_REQUESTED_FOR_CHANGES
+		}
 
-			// If any status is 'CHANGES_UPDATED'
-			if (statuses.includes(common.REVIEW_STATUS_CHANGES_UPDATED)) {
-				finalResourceStatus = common.RESOURCE_STATUS_SUBMITTED
-			}
+		// If any status is 'CHANGES_UPDATED'
+		if (statuses.includes(common.REVIEW_STATUS_CHANGES_UPDATED)) {
+			finalResourceStatus = common.RESOURCE_STATUS_SUBMITTED
+		}
 
-			// If one status is 'APPROVED' and the rest are 'NOT_STARTED'
-			if (
-				statuses.includes(common.REVIEW_STATUS_APPROVED) &&
-				statuses.every(
-					(status) => status === common.REVIEW_STATUS_APPROVED || status === common.REVIEW_STATUS_NOT_STARTED
-				)
-			) {
-				finalResourceStatus = common.REVIEW_STATUS_NOT_STARTED
-			}
-			// If no reviews or all statuses are 'NOT_STARTED'
-			if (statuses.every((status) => status === common.REVIEW_STATUS_NOT_STARTED)) {
-				finalResourceStatus = common.RESOURCE_STATUS_SUBMITTED
-			}
-			// If one status is 'REJECTED' the resource status is REJECTED
-			if (statuses.includes(common.REVIEW_STATUS_REJECTED)) {
-				finalResourceStatus = common.REVIEW_STATUS_REJECTED
-			}
+		// If one status is 'APPROVED' and the rest are 'NOT_STARTED'
+		if (
+			statuses.includes(common.REVIEW_STATUS_APPROVED) &&
+			statuses.every(
+				(status) => status === common.REVIEW_STATUS_APPROVED || status === common.REVIEW_STATUS_NOT_STARTED
+			)
+		) {
+			finalResourceStatus = common.REVIEW_STATUS_NOT_STARTED
+		}
+		// If no reviews or all statuses are 'NOT_STARTED'
+		if (statuses.every((status) => status === common.REVIEW_STATUS_NOT_STARTED)) {
+			finalResourceStatus = common.RESOURCE_STATUS_SUBMITTED
+		}
+		// If one status is 'REJECTED' the resource status is REJECTED
+		if (statuses.includes(common.REVIEW_STATUS_REJECTED)) {
+			finalResourceStatus = common.REVIEW_STATUS_REJECTED
+		}
 
-			// If one status is 'REJECTED_AND_REPORTED' the resource status is REJECTED_AND_REPORTED
-			if (statuses.includes(common.REVIEW_STATUS_REJECTED_AND_REPORTED)) {
-				finalResourceStatus = common.REVIEW_STATUS_REJECTED_AND_REPORTED
-			}
-			// If No review status , assign status as SUBMITTED
-			if (statuses.length <= 0) {
-				finalResourceStatus = common.RESOURCE_STATUS_SUBMITTED
-			}
+		// If one status is 'REJECTED_AND_REPORTED' the resource status is REJECTED_AND_REPORTED
+		if (statuses.includes(common.REVIEW_STATUS_REJECTED_AND_REPORTED)) {
+			finalResourceStatus = common.REVIEW_STATUS_REJECTED_AND_REPORTED
+		}
+		// If No review status , assign status as SUBMITTED
+		if (statuses.length <= 0) {
+			finalResourceStatus = common.RESOURCE_STATUS_SUBMITTED
 		}
 
 		// Default status if none of the conditions are met
