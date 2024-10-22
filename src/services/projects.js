@@ -738,12 +738,6 @@ module.exports = class ProjectsHelper {
 						status: common.REVIEW_STATUS_CHANGES_UPDATED,
 					}
 				)
-				// common.RESOURCE_STATUS_IN_REVIEW
-				const resourceFinalStatus = await resourceService.finalResourceStatus(
-					resourceId,
-					userDetails.organization_id
-				)
-				resourceStatus = resourceFinalStatus[resourceId]
 			}
 
 			//check review is required or not

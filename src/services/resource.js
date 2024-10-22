@@ -245,25 +245,21 @@ module.exports = class resourceHelper {
 	/**
 	 * Return the mapping of resource Id and its final status
 	 * @name finalResourceStatus
-	 * @param {Array} resourceIds - Array of unique resource ids
-	 * @param {Array} organizationIds - Array of unique org ids
+	 * @param {Array} resourceId - Array of unique resource ids
+	 * @param {Array} organizationId - Array of unique org ids
 	 * @returns {JSON} - List of resources with final status
 	 */
-	static async finalResourceStatus(resourceIds, organizationIds) {
+	static async finalResourceStatus(resourceId, organizationId) {
 		let recourceStatusMapping = {}
-
-		// Ensure resourceIds and organizationIds are arrays
-		resourceIds = Array.isArray(resourceIds) ? resourceIds : [resourceIds]
-		organizationIds = Array.isArray(organizationIds) ? organizationIds : [organizationIds]
 
 		// Get the review details of all the resources created by the logged-in user
 		const resourceReviews = await reviewsQueries.findAll(
 			{
 				organization_id: {
-					[Op.in]: organizationIds,
+					[Op.in]: organizationId,
 				},
 				resource_id: {
-					[Op.in]: resourceIds,
+					[Op.in]: resourceId,
 				},
 			},
 			['resource_id', 'status']
@@ -294,7 +290,7 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - Final determined status of each reviews
 	 */
 	static async determineResourceStatus(reviewDetails) {
-		let finalResourceStatus = {}
+		let finalResourceStatus = ''
 		for (const [resourceId, statuses] of Object.entries(reviewDetails)) {
 			// If at least one status is 'INPROGRESS', but no 'REJECTED' or 'REJECTED_AND_REPORTED'
 			if (
@@ -302,17 +298,17 @@ module.exports = class resourceHelper {
 				!statuses.includes(common.REVIEW_STATUS_REJECTED) &&
 				!statuses.includes(common.REVIEW_STATUS_REJECTED_AND_REPORTED)
 			) {
-				finalResourceStatus[resourceId] = common.RESOURCE_STATUS_IN_REVIEW
+				finalResourceStatus = common.RESOURCE_STATUS_IN_REVIEW
 			}
 
 			// If any status is 'REQUESTED_FOR_CHANGE'
 			if (statuses.includes(common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)) {
-				finalResourceStatus[resourceId] = common.REVIEW_STATUS_REQUESTED_FOR_CHANGES
+				finalResourceStatus = common.REVIEW_STATUS_REQUESTED_FOR_CHANGES
 			}
 
 			// If any status is 'CHANGES_UPDATED'
 			if (statuses.includes(common.REVIEW_STATUS_CHANGES_UPDATED)) {
-				finalResourceStatus[resourceId] = common.RESOURCE_STATUS_SUBMITTED
+				finalResourceStatus = common.RESOURCE_STATUS_SUBMITTED
 			}
 
 			// If one status is 'APPROVED' and the rest are 'NOT_STARTED'
@@ -322,24 +318,24 @@ module.exports = class resourceHelper {
 					(status) => status === common.REVIEW_STATUS_APPROVED || status === common.REVIEW_STATUS_NOT_STARTED
 				)
 			) {
-				finalResourceStatus[resourceId] = common.REVIEW_STATUS_NOT_STARTED
+				finalResourceStatus = common.REVIEW_STATUS_NOT_STARTED
 			}
 			// If no reviews or all statuses are 'NOT_STARTED'
 			if (statuses.every((status) => status === common.REVIEW_STATUS_NOT_STARTED)) {
-				finalResourceStatus[resourceId] = common.RESOURCE_STATUS_SUBMITTED
+				finalResourceStatus = common.RESOURCE_STATUS_SUBMITTED
 			}
 			// If one status is 'REJECTED' the resource status is REJECTED
 			if (statuses.includes(common.REVIEW_STATUS_REJECTED)) {
-				finalResourceStatus[resourceId] = common.REVIEW_STATUS_REJECTED
+				finalResourceStatus = common.REVIEW_STATUS_REJECTED
 			}
 
 			// If one status is 'REJECTED_AND_REPORTED' the resource status is REJECTED_AND_REPORTED
 			if (statuses.includes(common.REVIEW_STATUS_REJECTED_AND_REPORTED)) {
-				finalResourceStatus[resourceId] = common.REVIEW_STATUS_REJECTED_AND_REPORTED
+				finalResourceStatus = common.REVIEW_STATUS_REJECTED_AND_REPORTED
 			}
 			// If No review status , assign status as SUBMITTED
 			if (statuses.length <= 0) {
-				finalResourceStatus[resourceId] = common.RESOURCE_STATUS_SUBMITTED
+				finalResourceStatus = common.RESOURCE_STATUS_SUBMITTED
 			}
 		}
 

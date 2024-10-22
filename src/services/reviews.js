@@ -68,9 +68,8 @@ module.exports = class reviewsHelper {
 				{ status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES }
 			)
 
-			const resourceStatus = await resourceService.finalResourceStatus(resourceId, resource.organization_id)
 			let resourceUpdateObj = {
-				status: resourceStatus[resourceId],
+				status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 				last_reviewed_on: new Date(),
 			}
 
@@ -186,7 +185,7 @@ module.exports = class reviewsHelper {
 			)
 			const resourceStatus = await resourceService.finalResourceStatus(resourceId, resource.organization_id)
 			let resourceUpdateObj = {
-				status: resourceStatus[resourceId],
+				status: resourceStatus,
 			}
 
 			let stageData = await resourceService.getResourceStage(resourceId, resource.organization_id)
@@ -492,7 +491,7 @@ module.exports = class reviewsHelper {
 			const resourceStatusDetail = await resourceService.finalResourceStatus(resourceId, resourceOrgId)
 			// Update resource table data
 			let updateData = {
-				status: resourceStatusDetail[resourceId],
+				status: resourceStatusDetail,
 				stage: common.RESOURCE_STAGE_REVIEW,
 			}
 
