@@ -73,10 +73,6 @@ module.exports = class reviewsHelper {
 				last_reviewed_on: new Date(),
 			}
 
-			//update stage
-			let stageData = await resourceService.getResourceStage(resourceId, resource.organization_id)
-			if (stageData.success && stageData.stage) resourceUpdateObj.stage = stageData.stage
-
 			// Update the 'last_reviewed_on' field in the resources table
 			await resourceQueries.updateOne(
 				{ organization_id: resource.organization_id, id: resourceId },
@@ -184,17 +180,11 @@ module.exports = class reviewsHelper {
 				{ status: common.REVIEW_STATUS_INPROGRESS }
 			)
 			const resourceStatus = await resourceService.finalResourceStatus(resourceId, resource.organization_id)
-			let resourceUpdateObj = {
-				status: resourceStatus,
-			}
-
-			let stageData = await resourceService.getResourceStage(resourceId, resource.organization_id)
-			if (stageData.success) resourceUpdateObj.stage = stageData.stage
-
 			await resourceQueries.updateOne(
 				{ organization_id: resource.organization_id, id: resourceId },
-				resourceUpdateObj
+				{ status: resourceStatus }
 			)
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'REVIEW_CREATED',
@@ -410,8 +400,12 @@ module.exports = class reviewsHelper {
 				updateNextLevel = true
 			}
 
+			//update resource status
+			const resourceStatus = await resourceService.finalResourceStatus(resourceId, resourceOrgId)
+
 			let updateData = {
 				last_reviewed_on: new Date(),
+				status: resourceStatus,
 				...(updateNextLevel && { next_stage: currentReviewStage + 1 }),
 			}
 
@@ -488,10 +482,10 @@ module.exports = class reviewsHelper {
 			}
 			// Create a corresponding entry in the review_resources table
 			await reviewResourceQueries.create(_.omit(reviewData, [common.STATUS]))
-			const resourceStatusDetail = await resourceService.finalResourceStatus(resourceId, resourceOrgId)
+			const resourceStatus = await resourceService.finalResourceStatus(resourceId, resourceOrgId)
 			// Update resource table data
 			let updateData = {
-				status: resourceStatusDetail,
+				status: resourceStatus,
 				stage: common.RESOURCE_STAGE_REVIEW,
 			}
 
