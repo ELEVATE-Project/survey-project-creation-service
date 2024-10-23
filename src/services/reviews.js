@@ -179,10 +179,13 @@ module.exports = class reviewsHelper {
 				{ id: review.id, organization_id: review.organization_id },
 				{ status: common.REVIEW_STATUS_INPROGRESS }
 			)
-			const resourceStatus = await resourceService.finalResourceStatus(resourceId, resource.organization_id)
 			await resourceQueries.updateOne(
-				{ organization_id: resource.organization_id, id: resourceId },
-				{ status: resourceStatus }
+				{
+					organization_id: resource.organization_id,
+					id: resourceId,
+					status: { [Op.ne]: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES },
+				},
+				{ status: common.RESOURCE_STATUS_SUBMITTED }
 			)
 
 			return responses.successResponse({
@@ -255,7 +258,8 @@ module.exports = class reviewsHelper {
 				review.organization_id,
 				reviewType,
 				resource.organization_id,
-				resource.next_stage
+				resource.next_stage,
+				resource.status
 			)
 
 			// Publish resource if isPublishResource is true
@@ -374,7 +378,8 @@ module.exports = class reviewsHelper {
 		reviewOrgId,
 		reviewType,
 		resourceOrgId,
-		currentReviewStage
+		currentReviewStage,
+		status
 	) {
 		try {
 			let updateNextLevel = false
@@ -400,14 +405,13 @@ module.exports = class reviewsHelper {
 				updateNextLevel = true
 			}
 
-			//update resource status
-			const resourceStatus = await resourceService.finalResourceStatus(resourceId, resourceOrgId)
-
 			let updateData = {
 				last_reviewed_on: new Date(),
-				status: resourceStatus,
 				...(updateNextLevel && { next_stage: currentReviewStage + 1 }),
 			}
+			//if resource status
+			if (status != common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)
+				updateData.status = common.REVIEW_STATUS_NOT_STARTED
 
 			// Update the resource with the last review date and next_stage (if applicable).
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
@@ -482,15 +486,21 @@ module.exports = class reviewsHelper {
 			}
 			// Create a corresponding entry in the review_resources table
 			await reviewResourceQueries.create(_.omit(reviewData, [common.STATUS]))
-			const resourceStatus = await resourceService.finalResourceStatus(resourceId, resourceOrgId)
 			// Update resource table data
 			let updateData = {
-				status: resourceStatus,
+				status: common.RESOURCE_STATUS_SUBMITTED,
 				stage: common.RESOURCE_STAGE_REVIEW,
 			}
 
 			// Update the resource table to reflect the review status
-			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
+			await resourceQueries.updateOne(
+				{
+					organization_id: resourceOrgId,
+					id: resourceId,
+					status: { [Op.ne]: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES },
+				},
+				updateData
+			)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,

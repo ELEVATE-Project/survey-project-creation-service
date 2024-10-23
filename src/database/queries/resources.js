@@ -82,6 +82,14 @@ exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = c
 		return error
 	}
 }
+exports.count = async (filter) => {
+	try {
+		const result = await Resource.count({ where: filter })
+		return result
+	} catch (error) {
+		return error
+	}
+}
 
 exports.deleteOne = async (id, organization_id) => {
 	try {
