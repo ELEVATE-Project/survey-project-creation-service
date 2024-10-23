@@ -84,7 +84,14 @@ module.exports = {
 	LISTING: 'listing',
 	PAGE_STATUS_VALUES: {
 		drafts: ['DRAFT'],
-		submitted_for_review: ['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'],
+		submitted_for_review: [
+			'IN_REVIEW',
+			'SUBMITTED',
+			'PUBLISHED',
+			'REJECTED',
+			'REJECTED_AND_REPORTED',
+			'REQUESTED_FOR_CHANGES',
+		],
 	},
 	REVIEW_STATUS_UP_FOR_REVIEW: ['INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'],
 	PAGE_STATUS_DRAFTS: 'drafts',
@@ -176,4 +183,7 @@ module.exports = {
 		second: 'numeric',
 		hour12: true, // Use 12-hour clock with AM/PM
 	},
+	RESOURCE_STAGE_CREATION: 'CREATION',
+	RESOURCE_STAGE_REVIEW: 'REVIEW',
+	RESOURCE_STAGE_COMPLETION: 'COMPLETION',
 }

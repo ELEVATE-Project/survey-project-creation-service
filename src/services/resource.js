@@ -60,8 +60,8 @@ module.exports = class resourceHelper {
 		// get the unique organization ids from resource creator mapping table by the user
 		const OrganizationIds = utils.getUniqueElements(resourcesCreatedByMe.map((item) => item.organization_id))
 
-		// get all the resources which are status requested for changes by the reviewerIds.
-		const distinctInreviewResourceIds = await reviewsQueries.distinctResources(
+		// get the review details of all the resources created by the logged in user
+		const resourceReviews = await reviewsQueries.findAll(
 			{
 				organization_id: {
 					[Op.in]: OrganizationIds,
@@ -69,43 +69,24 @@ module.exports = class resourceHelper {
 				resource_id: {
 					[Op.in]: uniqueResourceIds,
 				},
-				status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 			},
-			['resource_id']
+			['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes']
 		)
 
-		if (queryParams[common.STATUS] === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
-			primaryFilter = {
-				organization_id: {
-					[Op.in]: OrganizationIds,
-				},
-				id: {
-					[Op.in]: distinctInreviewResourceIds.resource_ids,
-				},
-				user_id: userId,
-			}
-		} else {
-			// add primary filters
-			primaryFilter = {
-				organization_id: {
-					[Op.in]: OrganizationIds,
-				},
-				id: {
-					[Op.in]: uniqueResourceIds,
-				},
-				status: {
-					[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_SUBMITTED_FOR_REVIEW],
-				},
-			}
-
-			if (queryParams[common.STATUS]) {
-				primaryFilter.status = {
-					[Op.in]: queryParams[common.STATUS].split(','),
-				}
-			}
-		}
 		// create the final filter by combining primary filters , query params and search text
 		filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
+
+		// Add id, organization_id, and status filters
+		filter = {
+			...filter,
+			id: { [Op.in]: uniqueResourceIds },
+			organization_id: { [Op.in]: OrganizationIds },
+			status: {
+				[Op.in]: queryParams.status?.trim()
+					? queryParams.status.split(',')
+					: common.PAGE_STATUS_VALUES['submitted_for_review'],
+			},
+		}
 
 		// return a sort object with sorting parameters. if no params are provided returns {}
 		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
@@ -132,10 +113,19 @@ module.exports = class resourceHelper {
 			page,
 			limit
 		)
+		const requestedForChangesResources = await resourceQueries.count({
+			id: {
+				[Op.in]: uniqueResourceIds,
+			},
+			organization_id: {
+				[Op.in]: OrganizationIds,
+			},
+			status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+		})
 
 		if (response.result.length <= 0) {
 			result.changes_requested_count =
-				distinctInreviewResourceIds.count > 0 ? distinctInreviewResourceIds.count : 0
+				requestedForChangesResources.count > 0 ? requestedForChangesResources.count : 0
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -148,42 +138,33 @@ module.exports = class resourceHelper {
 		)
 
 		// fetch all open comments for the resources which are in review
-		const commentMapping = await this.fetchOpenComments(distinctInreviewResourceIds.resource_ids)
-
-		// fetch the relevant details from reviews table for additional data in the response
-		const reviewDetails = await reviewsQueries.findAll(
-			{
-				organization_id: {
-					[Op.in]: OrganizationIds,
-				},
-				resource_id: {
-					[Op.in]: uniqueResourceIds,
-				},
-				status: {
-					[Op.in]: [
-						common.REVIEW_STATUS_REJECTED,
-						common.REVIEW_STATUS_REJECTED_AND_REPORTED,
-						common.REVIEW_STATUS_INPROGRESS,
-						common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
-						common.REVIEW_STATUS_CHANGES_UPDATED,
-					],
-				},
-			},
-			['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes']
+		const commentMapping = await this.fetchOpenComments(
+			response.result
+				.filter((resource) => resource.status === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)
+				.map((resource) => resource.id)
 		)
+
 		let reviewerIds = []
 
 		// create a mapping object for resourceId and review details to fetch the review details like reviewerId , status etc... using resource id
-		// TODO for the time being we are fetching only one reviewer in the parallel review , we need to update the code to have multiple reviewers
 		// Update the reviewed_by and reviewer_notes for multiple review.
-		const reviewDetailsMapping = reviewDetails.reduce((acc, item) => {
-			acc[item.resource_id] = {
-				reviewer_id: item.reviewer_id,
-				updated_at: item.updated_at,
-				created_at: item.created_at,
-				status: item.status,
-				reviewer_notes: item.notes,
+		const reviewDetailsMapping = resourceReviews.reduce((acc, item) => {
+			// Initialize acc[item.resource_id] if not already present
+			if (!acc[item.resource_id]) {
+				acc[item.resource_id] = {
+					updated_at: item.updated_at,
+					created_at: item.created_at,
+					status: item.status,
+					reviewer_notes: item.notes,
+					reviewer_id: [], // Initialize reviewer_id as an empty array
+				}
+			} else {
+				// If the object already exists, update only the fields that are necessary
+				acc[item.resource_id].updated_at = item.updated_at
+				acc[item.resource_id].status = item.status
+				acc[item.resource_id].reviewer_notes = item.notes
 			}
+			acc[item.resource_id].reviewer_id.push(item.reviewer_id)
 			reviewerIds.push(item.reviewer_id)
 			return acc
 		}, {})
@@ -198,9 +179,18 @@ module.exports = class resourceHelper {
 			let additionalData = {}
 			if (reviewDetailsMapping[resource.id]) {
 				if (reviewDetailsMapping[resource.id].status !== common.REVIEW_STATUS_NOT_STARTED) {
-					additionalData.reviewed_by = reviewDetailsMapping[resource.id].reviewer_id
-						? userDetails[reviewDetailsMapping[resource.id].reviewer_id]?.name
-						: null
+					additionalData.reviewed_by = ''
+					let reviewerIds = reviewDetailsMapping[resource.id].reviewer_id
+						? reviewDetailsMapping[resource.id].reviewer_id
+						: []
+					if (reviewerIds.length > 0) {
+						reviewerIds.forEach((reviewer_id) => {
+							reviewer_id = isNaN(reviewer_id) ? reviewer_id : Number(reviewer_id)
+							additionalData.reviewed_by =
+								additionalData.reviewed_by + userDetails[reviewer_id]?.name + ' , '
+						})
+						additionalData.reviewed_by = additionalData.reviewed_by.replace(/[, \s]+$/, '')
+					}
 					additionalData.reviewed_started_on = reviewDetailsMapping[resource.id].created_at
 						? reviewDetailsMapping[resource.id].created_at
 						: null
@@ -226,13 +216,14 @@ module.exports = class resourceHelper {
 		// generic function to merge all the collected data about the resource
 		result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
 		// count of requested for changes resources
-		result.changes_requested_count = distinctInreviewResourceIds.count > 0 ? distinctInreviewResourceIds.count : 0
+		result.changes_requested_count = requestedForChangesResources.count > 0 ? requestedForChangesResources.count : 0
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
 			message: 'RESOURCE_LISTED_SUCCESSFULLY',
 			result,
 		})
 	}
+
 	/**
 	 * List of all draft resources
 	 * Description : This is a creator centric API which will return the list of all the resources which are draft status.
@@ -1210,7 +1201,6 @@ module.exports = class resourceHelper {
 			let filterQuery = {
 				organization_id,
 				status: common.RESOURCE_STATUS_PUBLISHED,
-				published_id: { [Op.not]: null },
 			}
 			// construct sort object
 			const sort = await this.constructSortOptions(query.sort_by, query.sort_order)

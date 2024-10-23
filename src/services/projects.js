@@ -31,7 +31,7 @@ module.exports = class ProjectsHelper {
 					{
 						id: reference_id,
 						status: common.RESOURCE_STATUS_PUBLISHED,
-						published_id: { [Op.not]: null },
+						stage: common.RESOURCE_STAGE_COMPLETION,
 					},
 					{
 						attributes: ['type'],
@@ -71,6 +71,7 @@ module.exports = class ProjectsHelper {
 				title: bodyData.title,
 				type: common.PROJECT,
 				status: common.RESOURCE_STATUS_DRAFT,
+				stage: common.RESOURCE_STAGE_CREATION,
 				user_id: loggedInUserId,
 				review_type: orgConfigList[common.PROJECT],
 				organization_id: orgId,
@@ -175,6 +176,7 @@ module.exports = class ProjectsHelper {
 				common.RESOURCE_STATUS_REJECTED,
 				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 				common.RESOURCE_STATUS_SUBMITTED,
+				common.REVIEW_STATUS_INPROGRESS,
 			]
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
@@ -182,9 +184,12 @@ module.exports = class ProjectsHelper {
 				status: {
 					[Op.notIn]: forbidden_resource_statuses,
 				},
+				stage: {
+					[Op.notIn]: [common.RESOURCE_STAGE_COMPLETION],
+				},
 			})
 
-			if (!fetchResource) {
+			if (!fetchResource?.id) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -200,8 +205,8 @@ module.exports = class ProjectsHelper {
 				},
 				['resource_id']
 			)
-
-			if (fetchResource.status === common.RESOURCE_STATUS_IN_REVIEW && countReviews.count == 0) {
+			// fetchResource.stage === common.RESOURCE_STATUS_IN_REVIEW
+			if (fetchResource.stage === common.RESOURCE_STAGE_REVIEW && countReviews.count == 0) {
 				return responses.failureResponse({
 					message: {
 						key: 'FORBIDDEN_RESOURCE_UPDATE',
@@ -261,7 +266,8 @@ module.exports = class ProjectsHelper {
 				return responses.successResponse({
 					statusCode: httpStatusCode.accepted,
 					message:
-						fetchResource.status == common.RESOURCE_STATUS_IN_REVIEW
+						// fetchResource.status == common.RESOURCE_STATUS_IN_REVIEW
+						fetchResource.stage == common.RESOURCE_STAGE_REVIEW
 							? 'PROJECT_SAVED_SUCCESSFULLY'
 							: 'PROJECT_UPDATED_SUCCESSFUL',
 					result: updatedProject[0].id,
@@ -304,6 +310,7 @@ module.exports = class ProjectsHelper {
 					id: resourceId,
 					organization_id: resourceCreatorMapping.organization_id,
 					status: common.RESOURCE_STATUS_DRAFT,
+					stage: common.RESOURCE_STAGE_CREATION,
 				},
 				{ attributes: ['id', 'type', 'organization_id'] }
 			)
@@ -356,7 +363,7 @@ module.exports = class ProjectsHelper {
 					organization_id: orgId,
 					type: common.PROJECT,
 				},
-				{ attributes: { exclude: ['next_stage', 'review_type', 'published_id', 'reference_id'] } }
+				{ attributes: { exclude: ['next_stage', 'review_type'] } }
 			)
 
 			if (!project) {
@@ -712,7 +719,8 @@ module.exports = class ProjectsHelper {
 			//update the reviews and resource status
 			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
 			if (
-				projectData.status === common.RESOURCE_STATUS_IN_REVIEW ||
+				// projectData.status === common.RESOURCE_STATUS_IN_REVIEW ||
+				projectData.stage === common.RESOURCE_STAGE_REVIEW ||
 				projectData.status === common.RESOURCE_STATUS_SUBMITTED
 			) {
 				//Update the review status if the resource has been submitted before
@@ -726,19 +734,18 @@ module.exports = class ProjectsHelper {
 						status: common.REVIEW_STATUS_CHANGES_UPDATED,
 					}
 				)
-				resourceStatus = common.RESOURCE_STATUS_IN_REVIEW
 			}
 
 			//check review is required or not
 			const isReviewMandatory = await resourceService.isReviewMandatory(
 				projectData.type,
-				userDetails.organization_id
+				projectData.organization_id
 			)
 			if (!isReviewMandatory) {
 				const publishResource = await reviewService.publishResource(
 					resourceId,
-					userDetails.id,
-					userDetails.organization_id
+					projectData.user_id,
+					projectData.organization_id
 				)
 				return publishResource
 			}
@@ -748,6 +755,7 @@ module.exports = class ProjectsHelper {
 				status: resourceStatus,
 				submitted_on: new Date(),
 				is_under_edit: false,
+				stage: common.RESOURCE_STAGE_REVIEW,
 			}
 
 			if (bodyData.notes) {
@@ -948,4 +956,6 @@ const _nonReviewableResourceStatuses = [
 	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 	common.RESOURCE_STATUS_PUBLISHED,
 	common.RESOURCE_STATUS_SUBMITTED,
+	common.REVIEW_STATUS_CHANGES_UPDATED,
+	common.REVIEW_STATUS_INPROGRESS,
 ]
