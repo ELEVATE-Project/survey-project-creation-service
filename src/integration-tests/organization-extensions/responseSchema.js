@@ -1,47 +1,47 @@
 const createSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'message': {
-			'type': 'string'
+		message: {
+			type: 'string',
 		},
-		'result': {
-			'type': 'object',
-			'properties': {
-				'review_required': {
-					'type': 'boolean'
+		result: {
+			type: 'object',
+			properties: {
+				review_required: {
+					type: 'boolean',
 				},
-				'id': {
-					'type': 'integer'
+				id: {
+					type: 'integer',
 				},
-				'show_reviewer_list': {
-					'type': 'boolean'
+				show_reviewer_list: {
+					type: 'boolean',
 				},
-				'min_approval': {
-					'type': 'integer'
+				min_approval: {
+					type: 'integer',
 				},
-				'resource_type': {
-					'type': 'string'
+				resource_type: {
+					type: 'string',
 				},
-				'review_type': {
-					'type': 'string'
+				review_type: {
+					type: 'string',
 				},
-				'organization_id': {
-					'type': 'string'
+				organization_id: {
+					type: 'string',
 				},
-				'updated_at': {
-					'type': 'string'
+				updated_at: {
+					type: 'string',
 				},
-				'created_at': {
-					'type': 'string'
+				created_at: {
+					type: 'string',
 				},
-				'deleted_at': {
-					'type': 'null'
-				}
+				deleted_at: {
+					type: 'null',
+				},
 			},
-			'required': [
+			required: [
 				'review_required',
 				'id',
 				'show_reviewer_list',
@@ -51,67 +51,53 @@ const createSchema = {
 				'organization_id',
 				'updated_at',
 				'created_at',
-				'deleted_at'
-			]
+				'deleted_at',
+			],
 		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'formsVersion': {
-					'type': 'array',
-					'items': {}
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					type: 'array',
+					items: {},
 				},
-				'correlation': {
-					'type': 'string'
-				}
+				correlation: {
+					type: 'string',
+				},
 			},
-			'required': [
-				'formsVersion'
-			]
-		}
+			required: ['formsVersion'],
+		},
 	},
-	'required': [
-		'responseCode',
-		'message',
-		'result',
-		'meta'
-	]
+	required: ['responseCode', 'message', 'result', 'meta'],
 }
 
 const failSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'error': {
-			'type': 'array',
-			'items': {}
+		error: {
+			type: 'array',
+			items: {},
 		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'correlation': {
-					'type': 'string'
-				}
+		meta: {
+			type: 'object',
+			properties: {
+				correlation: {
+					type: 'string',
+				},
 			},
-			'required': [
-				'correlation'
-			]
+			required: ['correlation'],
 		},
-		'message': {
-			'type': 'string'
-		}
+		message: {
+			type: 'string',
+		},
 	},
-	'required': [
-		'responseCode',
-		'error',
-		'meta',
-		'message'
-	]
+	required: ['responseCode', 'error', 'meta', 'message'],
 }
 
 module.exports = {
 	createSchema,
-	failSchema
+	failSchema,
 }

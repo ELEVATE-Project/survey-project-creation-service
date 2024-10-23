@@ -137,7 +137,7 @@ module.exports = class PermissionsHelper {
 		try {
 			let result = {
 				data: [],
-				count: 0
+				count: 0,
 			}
 			const offset = common.getPaginationOffset(page, limit)
 
@@ -155,7 +155,7 @@ module.exports = class PermissionsHelper {
 				return responses.failureResponse({
 					message: 'PERMISSION_HAS_EMPTY_LIST',
 					statusCode: httpStatusCode.ok,
-					result
+					result,
 				})
 			} else {
 				result = {
@@ -166,7 +166,7 @@ module.exports = class PermissionsHelper {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'PERMISSION_FETCHED_SUCCESSFULLY',
-					result
+					result,
 				})
 			}
 		} catch (error) {

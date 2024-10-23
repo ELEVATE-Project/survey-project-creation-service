@@ -1,107 +1,94 @@
 const updateSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'message': {
-			'type': 'string'
+		message: {
+			type: 'string',
 		},
-		'result': {
-			'type': 'object',
-			'properties': {
-				'id': {
-					'type': 'integer'
+		result: {
+			type: 'object',
+			properties: {
+				id: {
+					type: 'integer',
 				},
-				'role': {
-					'type': 'string'
+				role: {
+					type: 'string',
 				},
-				'level': {
-					'type': 'integer'
+				level: {
+					type: 'integer',
 				},
-				'organization_id': {
-					'type': 'string'
+				organization_id: {
+					type: 'string',
 				},
-				'resource_type': {
-					'type': 'string'
-				}
+				resource_type: {
+					type: 'string',
+				},
 			},
-			'required': [
-				'id',
-				'role',
-				'level',
-				'organization_id',
-				'resource_type'
-			]
+			required: ['id', 'role', 'level', 'organization_id', 'resource_type'],
 		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'formsVersion': {
-					'type': 'array',
-					'items': {}
-				}
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					type: 'array',
+					items: {},
+				},
 			},
-			'required': [
-				'formsVersion'
-			]
-		}
+			required: ['formsVersion'],
+		},
 	},
-	'required': [
-		'responseCode',
-		'message',
-		'result',
-		'meta'
-	]
+	required: ['responseCode', 'message', 'result', 'meta'],
 }
 
 const listSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'message': {
-			'type': 'string'
+		message: {
+			type: 'string',
 		},
-		'result': {
-			'type': 'object',
-			'properties': {
-				'results': {
-					'type': 'object',
-					'properties': {
-						'data': {
-							'type': 'array',
-							'items': [
+		result: {
+			type: 'object',
+			properties: {
+				results: {
+					type: 'object',
+					properties: {
+						data: {
+							type: 'array',
+							items: [
 								{
-									'type': 'object',
-									'properties': {
-										'id': {
-											'type': 'integer'
+									type: 'object',
+									properties: {
+										id: {
+											type: 'integer',
 										},
-										'role': {
-											'type': 'string'
+										role: {
+											type: 'string',
 										},
-										'level': {
-											'type': 'integer'
+										level: {
+											type: 'integer',
 										},
-										'resource_type': {
-											'type': 'string'
+										resource_type: {
+											type: 'string',
 										},
-										'organization_id': {
-											'type': 'string'
+										organization_id: {
+											type: 'string',
 										},
-										'created_at': {
-											'type': 'string'
+										created_at: {
+											type: 'string',
 										},
-										'updated_at': {
-											'type': 'string'
+										updated_at: {
+											type: 'string',
 										},
-										'deleted_at': {
-											'type': 'null'
-										}
+										deleted_at: {
+											type: 'null',
+										},
 									},
-									'required': [
+									required: [
 										'id',
 										'role',
 										'level',
@@ -109,50 +96,38 @@ const listSchema = {
 										'organization_id',
 										'created_at',
 										'updated_at',
-										'deleted_at'
-									]
-								}
-							]
+										'deleted_at',
+									],
+								},
+							],
 						},
-						'count': {
-							'type': 'integer'
-						}
+						count: {
+							type: 'integer',
+						},
 					},
-					'required': [
-						'data',
-						'count'
-					]
-				}
-			},
-			'required': [
-				'results'
-			]
-		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'formsVersion': {
-					'type': 'array',
-					'items': {}
+					required: ['data', 'count'],
 				},
-				'correlation': {
-					'type': 'string'
-				}
 			},
-			'required': [
-				'formsVersion'
-			]
-		}
+			required: ['results'],
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					type: 'array',
+					items: {},
+				},
+				correlation: {
+					type: 'string',
+				},
+			},
+			required: ['formsVersion'],
+		},
 	},
-	'required': [
-		'responseCode',
-		'message',
-		'result',
-		'meta'
-	]
+	required: ['responseCode', 'message', 'result', 'meta'],
 }
 
 module.exports = {
 	updateSchema,
-	listSchema
+	listSchema,
 }
