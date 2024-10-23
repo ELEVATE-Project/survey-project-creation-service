@@ -13,15 +13,18 @@ module.exports = {
 				{
 					validations: JSON.stringify([
 						{
-							regex: '^[a-zA-Z0-9 <>_&-]{1,256}$',
+							type: 'regex',
+							value: '^[a-zA-Z0-9 <>_&-]{1,256}$',
 							message: 'Name can only include alphanumeric characters with spaces, -, _, &, <>',
 						},
 						{
-							required: true,
+							type: 'required',
+							value: false,
 							message: 'Enter Name of the resource',
 						},
 						{
-							max_length: 256,
+							type: 'max_length',
+							value: 256,
 							message: 'Name must not exceed 256 characters',
 						},
 					]),
@@ -111,7 +114,21 @@ module.exports = {
 				if (entityType.value == 'duration') {
 					await queryInterface.bulkUpdate(
 						'entity_types',
-						{ validations: updatedValidation, value: 'recommended_duration' },
+						{
+							validations: JSON.stringify([
+								{
+									type: 'required',
+									value: true,
+									message: 'Enter duration in numbers',
+								},
+								{
+									type: 'regex',
+									value: '^(?:[1-9][0-9]{0,4}|100000)$',
+									message: 'Duration must not exceed 100,000',
+								},
+							]),
+							value: 'recommended_duration',
+						},
 						{ id: entityType.id }
 					)
 				} else if (updatedValidation) {
@@ -135,7 +152,7 @@ function transformValidation(validation, entityType) {
 	if (!validation) return transformedData
 
 	if (validation.regex) {
-		let data = { regex: validation.regex }
+		let data = { type: 'regex', value: validation.regex }
 		if (getNewMessage(entityType, 'regex')) {
 			data.message = getNewMessage(entityType, 'regex')
 		}
@@ -143,7 +160,7 @@ function transformValidation(validation, entityType) {
 	}
 
 	if (validation.required !== undefined) {
-		let data = { required: validation.required }
+		let data = { type: 'required', value: validation.required }
 		if (getNewMessage(entityType, 'required')) {
 			data.message = getNewMessage(entityType, 'required')
 		}
@@ -151,18 +168,20 @@ function transformValidation(validation, entityType) {
 	}
 
 	if (entityType == 'objective' || entityType == 'name') {
-		let data = { max_length: 2000 }
+		let data = { type: 'max_length', value: 2000 }
 		if (getNewMessage(entityType, 'max_length')) {
 			data.message = getNewMessage(entityType, 'required')
 		}
 		transformedData.push(data)
-	} else if (['keywords', 'learning_resources', 'title'].includes(entityType)) {
-		let data = { max_length: 256 }
+	}
+	if (['keywords', 'learning_resources', 'title'].includes(entityType)) {
+		let data = { type: 'max_length', value: 256 }
 		if (getNewMessage(entityType, 'max_length')) {
 			data.message = getNewMessage(entityType, 'max_length')
 		}
 		transformedData.push(data)
 	}
+
 	return transformedData
 }
 
@@ -178,10 +197,6 @@ function getNewMessage(entityType, validationType) {
 			regex: 'Objective can only include alphanumeric characters with spaces, -, _, &, <>',
 			required: 'Summarize the goal of the project',
 			max_length: 'Objective must not exceed 2000 characters',
-		},
-		recommended_duration: {
-			required: 'Enter duration in numbers',
-			regex: 'Duration must not exceed 100,000',
 		},
 		keywords: {
 			regex: 'Keyword can only include alphanumeric characters with spaces, -, _, &, <>',

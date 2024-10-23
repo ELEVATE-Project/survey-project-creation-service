@@ -413,18 +413,8 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 	return Array.from(certificateMap.values())
 }
 
-// const errorObject = (params, filed, msg, key = "") => {
-// 	return [{ location: params, param: filed, msg, }]
-// }
 const errorObject = (params, filed, msg, key = '') => {
-	const error = { location: params, param: filed, msg }
-
-	// Add key only if it's provided
-	if (key) {
-		error.key = key
-	}
-
-	return [error]
+	return [{ location: params, param: filed, msg }]
 }
 
 const checkRegexPattern = (entityType, entityData) => {
@@ -451,7 +441,7 @@ const checkRegexPattern = (entityType, entityData) => {
 
 const checkRequired = (entityType, entityData) => {
 	try {
-		if (entityType.validations.required) {
+		if (entityType.type === common.REQUIRED_VALIDATION && entityType.value) {
 			//validate entityData is boolean
 			if (typeof entityData === common.DATA_TYPE_BOOLEAN) {
 				return true

@@ -176,4 +176,5 @@ module.exports = {
 		second: 'numeric',
 		hour12: true, // Use 12-hour clock with AM/PM
 	},
+	REQUIRED_VALIDATION: 'required',
 }
