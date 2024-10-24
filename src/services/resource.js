@@ -124,8 +124,7 @@ module.exports = class resourceHelper {
 		})
 
 		if (response.result.length <= 0) {
-			result.changes_requested_count =
-				requestedForChangesResources.count > 0 ? requestedForChangesResources.count : 0
+			result.changes_requested_count = requestedForChangesResources > 0 ? requestedForChangesResources : 0
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -216,7 +215,7 @@ module.exports = class resourceHelper {
 		// generic function to merge all the collected data about the resource
 		result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
 		// count of requested for changes resources
-		result.changes_requested_count = requestedForChangesResources.count > 0 ? requestedForChangesResources.count : 0
+		result.changes_requested_count = requestedForChangesResources > 0 ? requestedForChangesResources : 0
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
 			message: 'RESOURCE_LISTED_SUCCESSFULLY',
