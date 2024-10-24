@@ -419,11 +419,21 @@ const errorObject = (params, filed, msg) => {
 
 const checkRegexPattern = (entityType, entityData) => {
 	try {
-		if (entityType.type === common.REGEX_VALIDATION) {
+		// Check if entityType is an array
+		if (Array.isArray(entityType)) {
+			// Find the object where type is "regex"
+			entityType = entityType.find((item) => item.type === common.REGEX_VALIDATION)
+		}
+
+		// Proceed if a regex validation object is found
+		if (entityType && entityType.type === common.REGEX_VALIDATION) {
+			// Normalize the entityData
 			let normalizedValue =
 				typeof entityData === common.DATA_TYPE_NUMBER ? entityData.toString() : unidecode(entityData)
-			if (Array.isArray(entityType.validations.regex)) {
-				for (let pattern of entityType.validations.regex) {
+
+			// Handle array of regex patterns
+			if (Array.isArray(entityType.regex)) {
+				for (let pattern of entityType.regex) {
 					let regex = new RegExp(pattern)
 					if (regex.test(normalizedValue)) {
 						return true
@@ -431,8 +441,8 @@ const checkRegexPattern = (entityType, entityData) => {
 				}
 				return false
 			} else {
-				// Handle the case where the regex validation is not an array
-				let regex = new RegExp(entityType.validations.regex)
+				// Handle the case where regex is a single pattern
+				let regex = new RegExp(entityType.value) // Use entityType.value for regex
 				return regex.test(normalizedValue)
 			}
 		}
@@ -487,10 +497,7 @@ const checkEntities = (entityType, entityData) => {
 const checkLength = (entityType, entityData) => {
 	try {
 		if (entityType.type === common.MAX_LENGTH_VALIDATION && entityType.value) {
-			// console.log(entityType, 'entityType in checkLength')
-			// console.log(entityData, 'entityData in checkLength')
-			const regex = new RegExp(`^.{${entityType.max_length}}$`)
-			return regex.test(entityData)
+			return entityData.length <= entityType.value
 		}
 	} catch (error) {
 		return error

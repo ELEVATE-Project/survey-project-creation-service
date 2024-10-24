@@ -635,15 +635,15 @@ module.exports = class ProjectsHelper {
 
 			let basePath = ''
 			//validate project data
-			// const projectValidationPromises = entityTypes.map((entityType) =>
-			// 	this.validateEntityData(projectData, entityType, common.PROJECT, basePath, taskEntityTypesMapping)
-			// )
-			// const projectValidationResults = await Promise.all(projectValidationPromises)
-			// for (const validationResult of projectValidationResults) {
-			// 	if (validationResult.hasError) {
-			// 		validationErrors.push(validationResult.error)
-			// 	}
-			// }
+			const projectValidationPromises = entityTypes.map((entityType) =>
+				this.validateEntityData(projectData, entityType, common.PROJECT, basePath, taskEntityTypesMapping)
+			)
+			const projectValidationResults = await Promise.all(projectValidationPromises)
+			for (const validationResult of projectValidationResults) {
+				if (validationResult.hasError) {
+					validationErrors.push(validationResult.error)
+				}
+			}
 
 			//get all entity type validations for task
 			const subTaskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
@@ -666,43 +666,44 @@ module.exports = class ProjectsHelper {
 						await Promise.all(
 							taskEntityTypes.map(async (taskEntityType) => {
 								// console.log(taskEntityType, 'taskEntityType')
-								let validationResult = await this.validateEntityData(
-									task,
-									taskEntityType,
-									common.TASKS,
-									taskPath,
-									taskEntityTypesMapping
-								)
-								// console.log(validationResult, 'validationResult')
-
-								if (validationResult.hasError) {
-									validationErrors.push(validationResult.error)
-								}
+								// let validationResult = await this.validateEntityData(
+								// 	task,
+								// 	taskEntityType,
+								// 	common.TASKS,
+								// 	taskPath,
+								// 	taskEntityTypesMapping
+								// )
+								// // console.log(validationResult, 'validationResult')
+								// if (validationResult.hasError) {
+								// 	validationErrors.push(validationResult.error)
+								// }
 							})
 						)
 
 						// Validate child tasks if they exist
-						// if (task.children && task.children.length > 0) {
-						// 	await Promise.all(
-						// 		task.children.map(async (childTask) => {
-						// 			await Promise.all(
-						// 				subTaskEntityTypes.map(async (subTaskEntityType) => {
-						// 					let validationResult = await this.validateEntityData(
-						// 						childTask,
-						// 						subTaskEntityType,
-						// 						common.SUB_TASK,
-						// 						subTaskEntityType.id,
-						// 						taskEntityTypesMapping
-						// 					)
+						if (task.children && task.children.length > 0) {
+							await Promise.all(
+								task.children.map(async (childTask, childTaskIndex) => {
+									// Validate task entities
+									let childTaskPath = `${basePath}[${taskIndex}].children[${childTaskIndex}]`
+									await Promise.all(
+										subTaskEntityTypes.map(async (subTaskEntityType) => {
+											let validationResult = await this.validateEntityData(
+												childTask,
+												subTaskEntityType,
+												common.SUB_TASK,
+												childTaskPath,
+												taskEntityTypesMapping
+											)
 
-						// 					if (validationResult.hasError) {
-						// 						validationErrors.push(validationResult.error)
-						// 					}
-						// 				})
-						// 			)
-						// 		})
-						// 	)
-						// }
+											if (validationResult.hasError) {
+												validationErrors.push(validationResult.error)
+											}
+										})
+									)
+								})
+							)
+						}
 					})
 				)
 			}
@@ -844,22 +845,22 @@ module.exports = class ProjectsHelper {
 			}
 
 			// Check if the field is required
-			// let requiredValidation = entityType.validations.find(
-			// 	(validation) => validation.type == common.REQUIRED_VALIDATION
-			// )
-			// if (requiredValidation) {
-			// 	let required = utils.checkRequired(requiredValidation, fieldData)
-			// 	if (!required) {
-			// 		return {
-			// 			hasError: true,
-			// 			error: utils.errorObject(
-			// 				model == common.PROJECT ? entityType.value : sourceType,
-			// 				model == common.PROJECT ? '' : model == common.TASKS ? fieldData : entityType.value,
-			// 				requiredValidation.message || `${entityType.value} is required`
-			// 			),
-			// 		}
-			// 	}
-			// }
+			let requiredValidation = entityType.validations.find(
+				(validation) => validation.type == common.REQUIRED_VALIDATION
+			)
+			if (requiredValidation) {
+				let required = utils.checkRequired(requiredValidation, fieldData)
+				if (!required) {
+					return {
+						hasError: true,
+						error: utils.errorObject(
+							model == common.PROJECT ? entityType.value : sourceType,
+							model == common.PROJECT ? '' : model == common.TASKS ? entityType.value : entityType.value,
+							requiredValidation.message || `${entityType.value} is required`
+						),
+					}
+				}
+			}
 
 			//length check validation
 			let maxLengthValidation = entityType.validations.find(
@@ -867,14 +868,14 @@ module.exports = class ProjectsHelper {
 			)
 			console.log(fieldData, 'fieldData')
 			// console.log(maxLengthValidation, entityType.value, 'entityType.value')
-			if (maxLengthValidation) {
+			if (maxLengthValidation && fieldData) {
 				let lengthCheck = utils.checkLength(maxLengthValidation, fieldData)
 				if (!lengthCheck) {
 					return {
 						hasError: true,
 						error: utils.errorObject(
 							model == common.PROJECT ? entityType.value : sourceType,
-							model == common.PROJECT ? '' : model == common.TASKS ? fieldData : entityType.value,
+							model == common.PROJECT ? '' : model == common.TASKS ? entityType.value : entityType.value,
 							maxLengthValidation.message || `${entityType.value} is required`
 						),
 					}
@@ -892,115 +893,122 @@ module.exports = class ProjectsHelper {
 				}
 			}
 
-			// // Check regex pattern will check max length and special characters
-			// let regexValidation = entityType.validations.find(
-			// 	(validation) => validation.type == common.REGEX_VALIDATION
-			// )
-			// if (regexValidation && fieldData) {
-			// 	//validate learning resource validation
-			// 	if (entityType.value === common.LEARNING_RESOURCE) {
-			// 		for (let i = 0; i < fieldData.length; i++) {
-			// 			let eachResource = fieldData[i]
-			// 			let currentPath = `${dynamicPath}[${i}]`
-			// 			//validate the name and url is there
-			// 			if (!eachResource.name) {
-			// 				return {
-			// 					hasError: true,
-			// 					error: utils.errorObject(
-			// 						currentPath || sourceType,
-			// 						'name',
-			// 						regexValidation.message || `Required learning resource name and url in ${model}`
-			// 					),
-			// 				}
-			// 			}
+			// Check regex pattern will check max length and special characters
+			let regexValidation = entityType.validations.find(
+				(validation) => validation.type == common.REGEX_VALIDATION
+			)
+			if (regexValidation && fieldData) {
+				//validate learning resource validation
+				if (entityType.value === common.LEARNING_RESOURCE) {
+					for (let i = 0; i < fieldData.length; i++) {
+						let eachResource = fieldData[i]
+						let currentPath = `${dynamicPath}[${i}]`
+						//validate the name and url is there
+						if (!eachResource.name) {
+							return {
+								hasError: true,
+								error: utils.errorObject(
+									currentPath || sourceType,
+									'name',
+									regexValidation.message || `Required learning resource name and url in ${model}`
+								),
+							}
+						}
 
-			// 			if (!eachResource.url) {
-			// 				return {
-			// 					hasError: true,
-			// 					error: utils.errorObject(
-			// 						currentPath || sourceType,
-			// 						'url',
-			// 						regexValidation.message || `Required learning resource name and url in ${model}`
-			// 					),
-			// 				}
-			// 			}
+						if (!eachResource.url) {
+							return {
+								hasError: true,
+								error: utils.errorObject(
+									currentPath || sourceType,
+									'url',
+									regexValidation.message || `Required learning resource name and url in ${model}`
+								),
+							}
+						}
 
-			// 			//validate the name
-			// 			let validateName = utils.checkRegexPattern(entityMapping[common.NAME], eachResource.name)
-			// 			if (!validateName) {
-			// 				return {
-			// 					hasError: true,
-			// 					error: utils.errorObject(
-			// 						sourceType,
-			// 						common.LEARNING_RESOURCE,
-			// 						regexValidation.message || `Invalid learning resource name in ${model}`
-			// 					),
-			// 				}
-			// 			}
-			// 			//validate the url
-			// 			let validateURL = utils.checkRegexPattern(
-			// 				entityMapping[common.LEARNING_RESOURCE],
-			// 				eachResource.url
-			// 			)
-			// 			if (validateURL) {
-			// 				return {
-			// 					hasError: true,
-			// 					error: utils.errorObject(
-			// 						sourceType,
-			// 						common.LEARNING_RESOURCE,
-			// 						regexValidation.message || `Invalid learning resource URL in ${model}`
-			// 					),
-			// 				}
-			// 			}
-			// 		}
-			// 	} else if (
-			// 		entityType.value === common.SOLUTION_DETAILS &&
-			// 		fieldData &&
-			// 		Object.keys(fieldData).length > 0 &&
-			// 		JSON.parse(process.env.ENABLE_OBSERVATION_IN_PROJECTS)
-			// 	) {
-			// 		//validate the observation name
-			// 		let checkRegex = utils.checkRegexPattern(entityType, fieldData.name)
-			// 		if (!checkRegex) {
-			// 			return {
-			// 				hasError: true,
-			// 				error: utils.errorObject(
-			// 					sourceType,
-			// 					entityType.value,
-			// 					regexValidation.message ||
-			// 						`Solution Details ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
-			// 				),
-			// 			}
-			// 		}
-			// 		//validate the observation url
-			// 		let regex = new RegExp(process.env.OBSERVATION_DEEP_LINK_REGEX)
-			// 		let validateURL = regex.test(fieldData.link)
-			// 		if (!validateURL) {
-			// 			return {
-			// 				hasError: true,
-			// 				error: utils.errorObject(
-			// 					sourceType,
-			// 					entityType.value,
-			// 					regexValidation.message || `Invalid observation URL in ${model}`
-			// 				),
-			// 			}
-			// 		}
-			// 	} else {
-			// 		let checkRegex = utils.checkRegexPattern(entityType, fieldData)
-			// 		if (!checkRegex) {
-			// 			return {
-			// 				hasError: true,
-			// 				error: utils.errorObject(
-			// 					model == common.PROJECT ? entityType.value : sourceType,
-			// 					model == common.PROJECT ? '' : model == common.TASKS ? fieldData : entityType.value,
-			// 					regexValidation.message ||
-			// 						`${entityType.value} can only include alphanumeric characters with spaces, -, _, &, <>`
-			// 					// `${model} ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
-			// 				),
-			// 			}
-			// 		}
-			// 	}
-			// }
+						//validate the name
+						let validateName = utils.checkRegexPattern(
+							entityMapping.learning_resource_name.validations,
+							eachResource.name
+						)
+						if (!validateName) {
+							return {
+								hasError: true,
+								error: utils.errorObject(
+									currentPath || sourceType,
+									common.NAME,
+									'Name can only include alphanumeric characters with spaces, -, _, &, <>'
+								),
+							}
+						}
+						//validate the url
+						let validateURL = utils.checkRegexPattern(
+							entityMapping[common.LEARNING_RESOURCE],
+							eachResource.url
+						)
+						if (validateURL) {
+							return {
+								hasError: true,
+								error: utils.errorObject(
+									currentPath || sourceType,
+									'url',
+									regexValidation.message || `Invalid learning resource URL in ${model}`
+								),
+							}
+						}
+					}
+				} else if (
+					entityType.value === common.SOLUTION_DETAILS &&
+					fieldData &&
+					Object.keys(fieldData).length > 0 &&
+					JSON.parse(process.env.ENABLE_OBSERVATION_IN_PROJECTS)
+				) {
+					//validate the observation name
+					let checkRegex = utils.checkRegexPattern(regexValidation, fieldData.name)
+					if (!checkRegex) {
+						return {
+							hasError: true,
+							error: utils.errorObject(
+								sourceType,
+								entityType.value,
+								regexValidation.message ||
+									`Solution Details ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
+							),
+						}
+					}
+					//validate the observation url
+					let regex = new RegExp(process.env.OBSERVATION_DEEP_LINK_REGEX)
+					let validateURL = regex.test(fieldData.link)
+					if (!validateURL) {
+						return {
+							hasError: true,
+							error: utils.errorObject(
+								sourceType,
+								entityType.value,
+								regexValidation.message || `Invalid observation URL in ${model}`
+							),
+						}
+					}
+				} else {
+					let checkRegex = utils.checkRegexPattern(regexValidation, fieldData)
+					if (!checkRegex) {
+						return {
+							hasError: true,
+							error: utils.errorObject(
+								model == common.PROJECT ? entityType.value : sourceType,
+								model == common.PROJECT
+									? ''
+									: model == common.TASKS
+									? entityType.value
+									: entityType.value,
+								regexValidation.message ||
+									`${entityType.value} can only include alphanumeric characters with spaces, -, _, &, <>`
+								// `${model} ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
+							),
+						}
+					}
+				}
+			}
 
 			// No errors, return null
 			return {
