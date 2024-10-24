@@ -124,7 +124,26 @@ module.exports = {
 								{
 									type: 'regex',
 									value: '^(?:[1-9][0-9]{0,4}|100000)$',
-									message: 'Duration must not exceed 100,000',
+									message: getNewMessage(),
+								},
+							]),
+							value: 'recommended_duration',
+						},
+						{ id: entityType.id }
+					)
+				} else if (entityType.value == 'sequence_no') {
+					await queryInterface.bulkUpdate(
+						'entity_types',
+						{
+							validations: JSON.stringify([
+								{
+									type: 'required',
+									value: true,
+								},
+								{
+									type: 'regex',
+									value: '^[1-9]\\d*$',
+									message: 'Only numbers allowed',
 								},
 							]),
 							value: 'recommended_duration',
@@ -174,7 +193,7 @@ function transformValidation(validation, entityType) {
 		}
 		transformedData.push(data)
 	}
-	if (['keywords', 'learning_resources', 'title', 'name'].includes(entityType)) {
+	if (['keywords', 'title'].includes(entityType)) {
 		let data = { type: 'max_length', value: 256 }
 		if (getNewMessage(entityType, 'max_length')) {
 			data.message = getNewMessage(entityType, 'max_length')
@@ -208,7 +227,6 @@ function getNewMessage(entityType, validationType) {
 		learning_resources: {
 			regex: 'Please add a valid link to resource',
 			required: 'Enter link to the resource',
-			max_length: 'Url must not exceed 256 characters',
 		},
 		name: {
 			regex: 'Description can only include alphanumeric characters with spaces, -, _, &, <>',
