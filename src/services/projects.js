@@ -189,6 +189,8 @@ module.exports = class ProjectsHelper {
 				},
 			})
 
+			console.log(fetchResource, 'fetchResource')
+
 			if (!fetchResource?.id) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
@@ -532,7 +534,6 @@ module.exports = class ProjectsHelper {
 			}
 
 			let projectData = projectDetails.result
-
 			//check the creator is valid
 			if (projectData.user_id !== userDetails.id) {
 				return responses.failureResponse({
@@ -547,7 +548,7 @@ module.exports = class ProjectsHelper {
 				throw new Error(`Resource is already ${projectData.status}. You can't submit it`)
 			}
 
-			//check any open comments are there for this resource
+			// check any open comments are there for this resource
 			const comments = await commentQueries.findAndCountAll({
 				user_id: {
 					[Op.notIn]: [userDetails.id],
@@ -562,6 +563,49 @@ module.exports = class ProjectsHelper {
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
+			}
+
+			let validationErrors = []
+
+			//validate number of task
+			if (projectData.tasks?.length > parseInt(process.env.MAX_PROJECT_TASK_COUNT, 10)) {
+				validationErrors.push(
+					utils.errorObject(common.TASKS, '', 'Project task count has exceeded the maximum allowed limit')
+				)
+			}
+
+			// Check that the note character limit does not exceed the maximum limit
+			if (bodyData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOTE_LENGTH_EXCEEDED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			//validate the reviewer
+			let reviewerIds = []
+			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
+				const uniqueReviewerIds = utils.getUniqueElements(bodyData.reviewer_ids)
+				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
+					user_ids: uniqueReviewerIds,
+					excluded_user_ids: [userDetails.id],
+				})
+
+				if (!reviewers.success) throw new Error('REVIEWER_IDS_NOT_FOUND')
+
+				//written as a backup will remove once the user service PR merged
+				if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
+					reviewerIds = reviewers.data.result.data.map((item) => item.id)
+				} else {
+					// If no valid reviewers data is found, return an error response
+					throw new Error('REVIEWER_IDS_NOT_FOUND')
+				}
+
+				//return error message if the reviewer is invalid or not found
+				if (uniqueReviewerIds.length > reviewers.data.result.data.length) {
+					throw new Error('REVIEWER_IDS_NOT_FOUND')
+				}
 			}
 
 			//get all entity type validations for project
@@ -589,27 +633,15 @@ module.exports = class ProjectsHelper {
 				return acc
 			}, {})
 
+			let basePath = ''
 			//validate project data
 			const projectValidationPromises = entityTypes.map((entityType) =>
-				this.validateEntityData(projectData, entityType, common.PROJECT, common.BODY, taskEntityTypesMapping)
+				this.validateEntityData(projectData, entityType, common.PROJECT, basePath, taskEntityTypesMapping)
 			)
 			const projectValidationResults = await Promise.all(projectValidationPromises)
 			for (const validationResult of projectValidationResults) {
 				if (validationResult.hasError) {
-					throw {
-						error: validationResult.error,
-					}
-				}
-			}
-
-			//validate number of task
-			if (projectData.tasks?.length > parseInt(process.env.MAX_PROJECT_TASK_COUNT, 10)) {
-				throw {
-					error: utils.errorObject(
-						common.BODY,
-						common.TASKS,
-						'Project task count has exceeded the maximum allowed limit'
-					),
+					validationErrors.push(validationResult.error)
 				}
 			}
 
@@ -623,86 +655,72 @@ module.exports = class ProjectsHelper {
 				['value', 'validations']
 			)
 
-			// validate task
-			await Promise.all(
-				projectData.tasks.map(async (task) => {
-					// Validate task entities
-					await Promise.all(
-						taskEntityTypes.map(async (taskEntityType) => {
-							let validationResult = await this.validateEntityData(
-								task,
-								taskEntityType,
-								common.TASKS,
-								common.BODY,
-								taskEntityTypesMapping
-							)
-							if (validationResult.hasError) {
-								throw {
-									error: validationResult.error,
-								}
-							}
-						})
-					)
-
-					// Validate child tasks if they exist
-					if (task.children && task.children.length > 0) {
+			// validation for task is not empty
+			if (projectData?.tasks?.length > 0) {
+				basePath = common.TASKS
+				// validate task
+				await Promise.all(
+					projectData.tasks.map(async (task, taskIndex) => {
+						// Validate task entities
+						let taskPath = `${basePath}[${taskIndex}]`
 						await Promise.all(
-							task.children.map(async (childTask) => {
-								await Promise.all(
-									subTaskEntityTypes.map(async (subTaskEntityType) => {
-										let validationResult = await this.validateEntityData(
-											childTask,
-											subTaskEntityType,
-											common.SUB_TASK,
-											common.BODY
-										)
-										if (validationResult.hasError) {
-											throw {
-												error: validationResult.error,
-											}
-										}
-									})
-								)
+							taskEntityTypes.map(async (taskEntityType) => {
+								// console.log(taskEntityType, 'taskEntityType')
+								// let validationResult = await this.validateEntityData(
+								// 	task,
+								// 	taskEntityType,
+								// 	common.TASKS,
+								// 	taskPath,
+								// 	taskEntityTypesMapping
+								// )
+								// // console.log(validationResult, 'validationResult')
+								// if (validationResult.hasError) {
+								// 	validationErrors.push(validationResult.error)
+								// }
 							})
 						)
-					}
-				})
-			)
 
-			// Check that the note character limit does not exceed the maximum limit
-			if (bodyData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
+						// Validate child tasks if they exist
+						if (task.children && task.children.length > 0) {
+							await Promise.all(
+								task.children.map(async (childTask, childTaskIndex) => {
+									// Validate task entities
+									let childTaskPath = `${basePath}[${taskIndex}].children[${childTaskIndex}]`
+									await Promise.all(
+										subTaskEntityTypes.map(async (subTaskEntityType) => {
+											let validationResult = await this.validateEntityData(
+												childTask,
+												subTaskEntityType,
+												common.SUB_TASK,
+												childTaskPath,
+												taskEntityTypesMapping
+											)
+
+											if (validationResult.hasError) {
+												validationErrors.push(validationResult.error)
+											}
+										})
+									)
+								})
+							)
+						}
+					})
+				)
+			}
+
+			// console.log(validationErrors, 'validationErrors')
+			if (validationErrors.length > 0) {
+				const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
 				return responses.failureResponse({
-					message: 'RESOURCE_NOTE_LENGTH_EXCEEDED',
-					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
+					statusCode: httpStatusCode.bad_request,
+					result: result,
+					message: 'RESOURCE_VALIDATION_FAILED',
 				})
 			}
 
-			//validate the reviewer
-			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
-				const uniqueReviewerIds = utils.getUniqueElements(bodyData.reviewer_ids)
-				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
-					user_ids: uniqueReviewerIds,
-					excluded_user_ids: [userDetails.id],
-				})
-
-				if (!reviewers.success) throw new Error('REVIEWER_IDS_NOT_FOUND')
-
-				let reviewerIds = []
-
-				//written as a backup will remove once the user service PR merged
-				if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
-					reviewerIds = reviewers.data.result.data.map((item) => item.id)
-				} else {
-					// If no valid reviewers data is found, return an error response
-					throw new Error('REVIEWER_IDS_NOT_FOUND')
-				}
-
-				//return error message if the reviewer is invalid or not found
-				if (uniqueReviewerIds.length > reviewers.data.result.data.length) {
-					throw new Error('REVIEWER_IDS_NOT_FOUND')
-				}
-
+			//create the review entry
+			if (reviewerIds.length > 0) {
 				//create entry in reviews table
 				let reviewsData = reviewerIds.map((reviewer_id) => ({
 					resource_id: projectData.id,
@@ -764,15 +782,15 @@ module.exports = class ProjectsHelper {
 				}
 			}
 
-			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
+			// await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
 			//add user action
-			eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
-				actionCode: common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
-				userId: userDetails.id,
-				objectId: resourceId,
-				objectType: common.MODEL_NAMES.RESOURCE,
-				orgId: userDetails.organization_id,
-			})
+			// eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
+			// 	actionCode: common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
+			// 	userId: userDetails.id,
+			// 	objectId: resourceId,
+			// 	objectType: common.MODEL_NAMES.RESOURCE,
+			// 	orgId: userDetails.organization_id,
+			// })
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -780,6 +798,7 @@ module.exports = class ProjectsHelper {
 				result: { id: projectData.id },
 			})
 		} catch (error) {
+			// console.log(error, 'error ')
 			return responses.failureResponse({
 				message: error.message || 'RESOURCE_VALIDATION_FAILED',
 				statusCode: httpStatusCode.bad_request,
@@ -801,13 +820,22 @@ module.exports = class ProjectsHelper {
 	 */
 	static async validateEntityData(entityData, entityType, model, sourceType, entityMapping) {
 		try {
+			console.log('---------------------------****************')
+			let dynamicPath = sourceType ? `${sourceType}` : entityType.value
+			if (model == common.TASKS) {
+				let keyPaths = findKeyPath(entityData, entityType.value, '', [])
+				// console.log(keyPaths, 'keyPaths')
+				// console.log(entityType.value, 'entityType.value')
+			}
+
 			let fieldData = entityData[entityType.value]
+			console.log(entityData, entityType.value, fieldData, 'entityData')
 			if (model == common.TASKS && entityData.allow_evidences == common.TRUE) {
 				// Check if file types are selected
 				if (!entityData?.evidence_details?.file_types.length) {
 					return {
 						hasError: true,
-						error: utils.errorObject(common.BODY, common.FILE_TYPE, 'File type not selected'),
+						error: utils.errorObject(common.TASKS, common.FILE_TYPE, 'File type not selected'),
 					}
 				}
 
@@ -817,15 +845,38 @@ module.exports = class ProjectsHelper {
 			}
 
 			// Check if the field is required
-			if (entityType.validations.required) {
-				let required = utils.checkRequired(entityType, fieldData)
+			let requiredValidation = entityType.validations.find(
+				(validation) => validation.type == common.REQUIRED_VALIDATION
+			)
+			if (requiredValidation) {
+				let required = utils.checkRequired(requiredValidation, fieldData)
 				if (!required) {
 					return {
 						hasError: true,
 						error: utils.errorObject(
-							sourceType,
-							entityType.value,
-							entityType.validations.message || `${model} ${entityType.value} is required`
+							model == common.PROJECT ? entityType.value : sourceType,
+							model == common.PROJECT ? '' : model == common.TASKS ? entityType.value : entityType.value,
+							requiredValidation.message || `${entityType.value} is required`
+						),
+					}
+				}
+			}
+
+			//length check validation
+			let maxLengthValidation = entityType.validations.find(
+				(validation) => validation.type == common.MAX_LENGTH_VALIDATION
+			)
+			console.log(fieldData, 'fieldData')
+			// console.log(maxLengthValidation, entityType.value, 'entityType.value')
+			if (maxLengthValidation && fieldData) {
+				let lengthCheck = utils.checkLength(maxLengthValidation, fieldData)
+				if (!lengthCheck) {
+					return {
+						hasError: true,
+						error: utils.errorObject(
+							model == common.PROJECT ? entityType.value : sourceType,
+							model == common.PROJECT ? '' : model == common.TASKS ? entityType.value : entityType.value,
+							maxLengthValidation.message || `${entityType.value} is required`
 						),
 					}
 				}
@@ -843,31 +894,50 @@ module.exports = class ProjectsHelper {
 			}
 
 			// Check regex pattern will check max length and special characters
-			if (entityType.validations.regex && fieldData) {
+			let regexValidation = entityType.validations.find(
+				(validation) => validation.type == common.REGEX_VALIDATION
+			)
+			if (regexValidation && fieldData) {
 				//validate learning resource validation
 				if (entityType.value === common.LEARNING_RESOURCE) {
-					for (let eachResource of fieldData) {
+					for (let i = 0; i < fieldData.length; i++) {
+						let eachResource = fieldData[i]
+						let currentPath = `${dynamicPath}[${i}]`
 						//validate the name and url is there
-						if (!eachResource.name || !eachResource.url) {
+						if (!eachResource.name) {
 							return {
 								hasError: true,
 								error: utils.errorObject(
-									sourceType,
-									common.LEARNING_RESOURCE,
-									entityType.validations.message ||
-										`Required learning resource name and url in ${model}`
+									currentPath || sourceType,
+									'name',
+									regexValidation.message || `Required learning resource name and url in ${model}`
 								),
 							}
 						}
+
+						if (!eachResource.url) {
+							return {
+								hasError: true,
+								error: utils.errorObject(
+									currentPath || sourceType,
+									'url',
+									regexValidation.message || `Required learning resource name and url in ${model}`
+								),
+							}
+						}
+
 						//validate the name
-						let validateName = utils.checkRegexPattern(entityMapping[common.NAME], eachResource.name)
+						let validateName = utils.checkRegexPattern(
+							entityMapping.learning_resource_name.validations,
+							eachResource.name
+						)
 						if (!validateName) {
 							return {
 								hasError: true,
 								error: utils.errorObject(
-									sourceType,
-									common.LEARNING_RESOURCE,
-									entityType.validations.message || `Invalid learning resource name in ${model}`
+									currentPath || sourceType,
+									common.NAME,
+									'Name can only include alphanumeric characters with spaces, -, _, &, <>'
 								),
 							}
 						}
@@ -880,9 +950,9 @@ module.exports = class ProjectsHelper {
 							return {
 								hasError: true,
 								error: utils.errorObject(
-									sourceType,
-									common.LEARNING_RESOURCE,
-									entityType.validations.message || `Invalid learning resource URL in ${model}`
+									currentPath || sourceType,
+									'url',
+									regexValidation.message || `Invalid learning resource URL in ${model}`
 								),
 							}
 						}
@@ -894,14 +964,14 @@ module.exports = class ProjectsHelper {
 					JSON.parse(process.env.ENABLE_OBSERVATION_IN_PROJECTS)
 				) {
 					//validate the observation name
-					let checkRegex = utils.checkRegexPattern(entityType, fieldData.name)
+					let checkRegex = utils.checkRegexPattern(regexValidation, fieldData.name)
 					if (!checkRegex) {
 						return {
 							hasError: true,
 							error: utils.errorObject(
 								sourceType,
 								entityType.value,
-								entityType.validations.message ||
+								regexValidation.message ||
 									`Solution Details ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
 							),
 						}
@@ -915,20 +985,25 @@ module.exports = class ProjectsHelper {
 							error: utils.errorObject(
 								sourceType,
 								entityType.value,
-								entityType.validations.message || `Invalid observation URL in ${model}`
+								regexValidation.message || `Invalid observation URL in ${model}`
 							),
 						}
 					}
 				} else {
-					let checkRegex = utils.checkRegexPattern(entityType, fieldData)
+					let checkRegex = utils.checkRegexPattern(regexValidation, fieldData)
 					if (!checkRegex) {
 						return {
 							hasError: true,
 							error: utils.errorObject(
-								sourceType,
-								entityType.value,
-								entityType.validations.message ||
-									`${model} ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
+								model == common.PROJECT ? entityType.value : sourceType,
+								model == common.PROJECT
+									? ''
+									: model == common.TASKS
+									? entityType.value
+									: entityType.value,
+								regexValidation.message ||
+									`${entityType.value} can only include alphanumeric characters with spaces, -, _, &, <>`
+								// `${model} ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
 							),
 						}
 					}
@@ -945,6 +1020,56 @@ module.exports = class ProjectsHelper {
 		}
 	}
 }
+
+function findKeyPath(obj, keyToFind, currentPath = '', paths = []) {
+	// Iterate over each key in the object
+	for (let key in obj) {
+		if (!obj.hasOwnProperty(key)) continue
+
+		// Construct the new path
+		let newPath = currentPath ? `${currentPath}.${key}` : key
+
+		// If the key is found, add the current path to the result
+		if (key === keyToFind) {
+			paths.push(newPath)
+		}
+
+		// If the value is an object, recursively search it
+		if (typeof obj[key] === 'object' && obj[key] !== null) {
+			findKeyPath(obj[key], keyToFind, newPath, paths)
+		}
+	}
+
+	return paths
+}
+
+function getPath(model) {}
+
+// function findKeyPath(obj, keyToFind, currentPath = '', results = []) {
+// 	// Check if the current object is an array
+// 	if (Array.isArray(obj)) {
+// 		for (let i = 0; i < obj.length; i++) {
+// 			findKeyPath(obj[i], keyToFind, `${currentPath}[${i}]`, results)
+// 		}
+// 	}
+// 	// Check if the current object is an object
+// 	else if (typeof obj === 'object' && obj !== null) {
+// 		for (const key in obj) {
+// 			// Build the new path
+// 			const newPath = currentPath ? `${currentPath}.${key}` : key
+
+// 			// Check if the current key matches the key to find
+// 			if (key === keyToFind) {
+// 				results.push(newPath)
+// 			}
+
+// 			// Recur for nested objects or arrays
+// 			findKeyPath(obj[key], keyToFind, newPath, results)
+// 		}
+// 	}
+
+// 	return results
+// }
 
 /**
  * List of resource statuses that prevent a reviewer from starting a review.
