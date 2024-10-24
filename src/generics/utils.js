@@ -487,6 +487,8 @@ const checkEntities = (entityType, entityData) => {
 const checkLength = (entityType, entityData) => {
 	try {
 		if (entityType.type === common.MAX_LENGTH_VALIDATION && entityType.value) {
+			// console.log(entityType, 'entityType in checkLength')
+			// console.log(entityData, 'entityData in checkLength')
 			const regex = new RegExp(`^.{${entityType.max_length}}$`)
 			return regex.test(entityData)
 		}

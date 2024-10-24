@@ -174,7 +174,7 @@ function transformValidation(validation, entityType) {
 		}
 		transformedData.push(data)
 	}
-	if (['keywords', 'learning_resources', 'title'].includes(entityType)) {
+	if (['keywords', 'learning_resources', 'title', 'name'].includes(entityType)) {
 		let data = { type: 'max_length', value: 256 }
 		if (getNewMessage(entityType, 'max_length')) {
 			data.message = getNewMessage(entityType, 'max_length')
