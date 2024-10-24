@@ -413,26 +413,28 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 	return Array.from(certificateMap.values())
 }
 
-const errorObject = (params, filed, msg, key = '') => {
+const errorObject = (params, filed, msg) => {
 	return [{ location: params, param: filed, msg }]
 }
 
 const checkRegexPattern = (entityType, entityData) => {
 	try {
-		let normalizedValue =
-			typeof entityData === common.DATA_TYPE_NUMBER ? entityData.toString() : unidecode(entityData)
-		if (Array.isArray(entityType.validations.regex)) {
-			for (let pattern of entityType.validations.regex) {
-				let regex = new RegExp(pattern)
-				if (regex.test(normalizedValue)) {
-					return true
+		if (entityType.type === common.REGEX_VALIDATION) {
+			let normalizedValue =
+				typeof entityData === common.DATA_TYPE_NUMBER ? entityData.toString() : unidecode(entityData)
+			if (Array.isArray(entityType.validations.regex)) {
+				for (let pattern of entityType.validations.regex) {
+					let regex = new RegExp(pattern)
+					if (regex.test(normalizedValue)) {
+						return true
+					}
 				}
+				return false
+			} else {
+				// Handle the case where the regex validation is not an array
+				let regex = new RegExp(entityType.validations.regex)
+				return regex.test(normalizedValue)
 			}
-			return false
-		} else {
-			// Handle the case where the regex validation is not an array
-			let regex = new RegExp(entityType.validations.regex)
-			return regex.test(normalizedValue)
 		}
 	} catch (error) {
 		return error
@@ -477,6 +479,17 @@ const checkEntities = (entityType, entityData) => {
 			}
 		}
 		return { status: true }
+	} catch (error) {
+		return error
+	}
+}
+
+const checkLength = (entityType, entityData) => {
+	try {
+		if (entityType.type === common.MAX_LENGTH_VALIDATION && entityType.value) {
+			const regex = new RegExp(`^.{${entityType.max_length}}$`)
+			return regex.test(entityData)
+		}
 	} catch (error) {
 		return error
 	}
@@ -610,4 +623,5 @@ module.exports = {
 	paginate,
 	sort,
 	isEmpty,
+	checkLength,
 }
