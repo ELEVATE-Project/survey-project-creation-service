@@ -16,7 +16,7 @@ module.exports = {
 
 		await queryInterface.sequelize.query(`
 			ALTER TYPE "enum_resources_status" ADD VALUE 'NOT_STARTED';
-			ALTER TYPE "enum_resources_status" ADD VALUE 'IN_PROGRESS';
+			ALTER TYPE "enum_resources_status" ADD VALUE 'INPROGRESS';
 			ALTER TYPE "enum_resources_status" ADD VALUE 'REQUESTED_FOR_CHANGES';
 		`)
 	},

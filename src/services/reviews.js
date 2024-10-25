@@ -185,7 +185,7 @@ module.exports = class reviewsHelper {
 					id: resourceId,
 					status: { [Op.ne]: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES },
 				},
-				{ status: common.RESOURCE_STATUS_SUBMITTED }
+				{ status: common.REVIEW_STATUS_INPROGRESS }
 			)
 
 			return responses.successResponse({
@@ -411,7 +411,7 @@ module.exports = class reviewsHelper {
 			}
 			//if resource status
 			if (status != common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)
-				updateData.status = common.REVIEW_STATUS_NOT_STARTED
+				updateData.status = common.RESOURCE_STATUS_SUBMITTED
 
 			// Update the resource with the last review date and next_stage (if applicable).
 			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
@@ -488,7 +488,7 @@ module.exports = class reviewsHelper {
 			await reviewResourceQueries.create(_.omit(reviewData, [common.STATUS]))
 			// Update resource table data
 			let updateData = {
-				status: common.RESOURCE_STATUS_SUBMITTED,
+				status: common.REVIEW_STATUS_INPROGRESS,
 				stage: common.RESOURCE_STAGE_REVIEW,
 			}
 

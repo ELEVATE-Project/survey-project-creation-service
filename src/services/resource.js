@@ -100,6 +100,7 @@ module.exports = class resourceHelper {
 				'organization_id',
 				'type',
 				'status',
+				'stage',
 				'user_id',
 				'created_at',
 				'updated_at',
@@ -113,6 +114,7 @@ module.exports = class resourceHelper {
 			page,
 			limit
 		)
+
 		const requestedForChangesResources = await resourceQueries.count({
 			id: {
 				[Op.in]: uniqueResourceIds,
@@ -124,8 +126,7 @@ module.exports = class resourceHelper {
 		})
 
 		if (response.result.length <= 0) {
-			result.changes_requested_count =
-				requestedForChangesResources.count > 0 ? requestedForChangesResources.count : 0
+			result.changes_requested_count = requestedForChangesResources > 0 ? requestedForChangesResources : 0
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -216,7 +217,7 @@ module.exports = class resourceHelper {
 		// generic function to merge all the collected data about the resource
 		result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
 		// count of requested for changes resources
-		result.changes_requested_count = requestedForChangesResources.count > 0 ? requestedForChangesResources.count : 0
+		result.changes_requested_count = requestedForChangesResources > 0 ? requestedForChangesResources : 0
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
 			message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -279,7 +280,7 @@ module.exports = class resourceHelper {
 		// fetches data from resource table with the passed filters
 		const response = await resourceQueries.resourceList(
 			filter,
-			['id', 'title', 'organization_id', 'type', 'status', 'user_id', 'created_at', 'updated_at'],
+			['id', 'title', 'organization_id', 'type', 'status', 'user_id', 'created_at', 'updated_at', 'stage'],
 			sort,
 			page,
 			limit
@@ -608,6 +609,7 @@ module.exports = class resourceHelper {
 					'type',
 					'organization_id',
 					'status',
+					'stage',
 					'user_id',
 					'submitted_on',
 					'last_reviewed_on',
@@ -828,10 +830,12 @@ module.exports = class resourceHelper {
 				})
 			}
 		})
+
 		let resourceFilter = {
 			organization_id,
 			[Op.or]: resourceTypeStagesConfig,
-			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
+			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED] },
+			stage: common.RESOURCE_STAGE_REVIEW,
 		}
 
 		const resourcesDetails = await resourceQueries.findAll(resourceFilter, ['id'])
@@ -857,7 +861,7 @@ module.exports = class resourceHelper {
 			type: {
 				[Op.in]: resourceTypes,
 			},
-			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
+			stage: common.RESOURCE_STAGE_REVIEW,
 		}
 		let resoureId = []
 		const resourcesDetails = await resourceQueries.findAll(resourceFilter, ['id'])
