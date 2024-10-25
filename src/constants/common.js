@@ -85,7 +85,7 @@ module.exports = {
 	PAGE_STATUS_VALUES: {
 		drafts: ['DRAFT'],
 		submitted_for_review: [
-			'IN_REVIEW',
+			'INPROGRESS',
 			'SUBMITTED',
 			'PUBLISHED',
 			'REJECTED',

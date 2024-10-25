@@ -205,7 +205,7 @@ module.exports = class ProjectsHelper {
 				},
 				['resource_id']
 			)
-			// fetchResource.stage === common.RESOURCE_STATUS_IN_REVIEW
+
 			if (fetchResource.stage === common.RESOURCE_STAGE_REVIEW && countReviews.count == 0) {
 				return responses.failureResponse({
 					message: {
@@ -266,7 +266,6 @@ module.exports = class ProjectsHelper {
 				return responses.successResponse({
 					statusCode: httpStatusCode.accepted,
 					message:
-						// fetchResource.status == common.RESOURCE_STATUS_IN_REVIEW
 						fetchResource.stage == common.RESOURCE_STAGE_REVIEW
 							? 'PROJECT_SAVED_SUCCESSFULLY'
 							: 'PROJECT_UPDATED_SUCCESSFUL',
@@ -719,7 +718,6 @@ module.exports = class ProjectsHelper {
 			//update the reviews and resource status
 			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
 			if (
-				// projectData.status === common.RESOURCE_STATUS_IN_REVIEW ||
 				projectData.stage === common.RESOURCE_STAGE_REVIEW ||
 				projectData.status === common.RESOURCE_STATUS_SUBMITTED
 			) {

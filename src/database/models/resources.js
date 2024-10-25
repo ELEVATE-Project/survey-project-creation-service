@@ -24,6 +24,7 @@ module.exports = (sequelize, DataTypes) => {
 					'DRAFT',
 					'SUBMITTED',
 					'IN_REVIEW',
+					'INPROGRESS',
 					'APPROVED',
 					'REJECTED',
 					'PUBLISHED',
