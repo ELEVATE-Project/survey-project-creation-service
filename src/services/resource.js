@@ -1081,6 +1081,7 @@ module.exports = class resourceHelper {
 					published_id: publishedId,
 					published_on: new Date(),
 					status: common.RESOURCE_STATUS_PUBLISHED,
+					stage: common.RESOURCE_STAGE_COMPLETION,
 				}
 			)
 
