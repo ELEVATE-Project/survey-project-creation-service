@@ -189,8 +189,6 @@ module.exports = class ProjectsHelper {
 				},
 			})
 
-			console.log(fetchResource, 'fetchResource')
-
 			if (!fetchResource?.id) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
