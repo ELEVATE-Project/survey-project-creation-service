@@ -848,7 +848,7 @@ module.exports = class ProjectsHelper {
 					validationErrors.push(
 						utils.errorObject(
 							model == common.PROJECT ? entityType.value : sourceType,
-							model == common.PROJECT ? '' : model == common.TASKS ? entityType.value : entityType.value,
+							model === common.PROJECT ? '' : entityType.value,
 							requiredValidation.message || `${entityType.value} is required`
 						)
 					)
@@ -865,7 +865,7 @@ module.exports = class ProjectsHelper {
 					validationErrors.push(
 						utils.errorObject(
 							model == common.PROJECT ? entityType.value : sourceType,
-							model == common.PROJECT ? '' : model == common.TASKS ? entityType.value : entityType.value,
+							model === common.PROJECT ? '' : entityType.value,
 							maxLengthValidation.message || `${entityType.value} is required`
 						)
 					)
@@ -995,11 +995,7 @@ module.exports = class ProjectsHelper {
 						validationErrors.push(
 							utils.errorObject(
 								model == common.PROJECT ? entityType.value : sourceType,
-								model == common.PROJECT
-									? ''
-									: model == common.TASKS
-									? entityType.value
-									: entityType.value,
+								model === common.PROJECT ? '' : entityType.value,
 								regexValidation.message ||
 									`${entityType.value} can only include alphanumeric characters with spaces, -, _, &, <>`
 							)
