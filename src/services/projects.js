@@ -665,18 +665,18 @@ module.exports = class ProjectsHelper {
 						let taskPath = `${basePath}[${taskIndex}]`
 						await Promise.all(
 							taskEntityTypes.map(async (taskEntityType) => {
-								// console.log(taskEntityType, 'taskEntityType')
-								// let validationResult = await this.validateEntityData(
-								// 	task,
-								// 	taskEntityType,
-								// 	common.TASKS,
-								// 	taskPath,
-								// 	taskEntityTypesMapping
-								// )
-								// // console.log(validationResult, 'validationResult')
-								// if (validationResult.hasError) {
-								// 	validationErrors.push(validationResult.error)
-								// }
+								console.log(taskEntityType, 'taskEntityType')
+								let validationResult = await this.validateEntityData(
+									task,
+									taskEntityType,
+									common.TASKS,
+									taskPath,
+									taskEntityTypesMapping
+								)
+								// console.log(validationResult, 'validationResult')
+								if (validationResult.hasError) {
+									validationErrors.push(validationResult.error)
+								}
 							})
 						)
 
@@ -824,18 +824,28 @@ module.exports = class ProjectsHelper {
 			let dynamicPath = sourceType ? `${sourceType}` : entityType.value
 			if (model == common.TASKS) {
 				let keyPaths = findKeyPath(entityData, entityType.value, '', [])
-				// console.log(keyPaths, 'keyPaths')
+				console.log(keyPaths, 'keyPaths')
 				// console.log(entityType.value, 'entityType.value')
 			}
 
 			let fieldData = entityData[entityType.value]
 			console.log(entityData, entityType.value, fieldData, 'entityData')
-			if (model == common.TASKS && entityData.allow_evidences == common.TRUE) {
+			if (
+				model == common.TASKS &&
+				entityData.allow_evidences == common.TRUE &&
+				entityType.value == 'file_types'
+			) {
+				let keyPaths = findKeyPath(entityData, entityType.value, '', [])
+				console.log(keyPaths)
 				// Check if file types are selected
-				if (!entityData?.evidence_details?.file_types.length) {
+				if (!entityData?.evidence_details?.file_types || entityData.evidence_details.file_types.length === 0) {
 					return {
 						hasError: true,
-						error: utils.errorObject(common.TASKS, common.FILE_TYPE, 'File type not selected'),
+						error: utils.errorObject(
+							sourceType + '.evidence_details',
+							common.FILE_TYPE,
+							'File type not selected'
+						),
 					}
 				}
 
@@ -886,6 +896,9 @@ module.exports = class ProjectsHelper {
 			if (entityType.has_entities) {
 				let checkEntities = utils.checkEntities(entityType, fieldData)
 				if (!checkEntities.status) {
+					if (model == common.TASKS && entityType.value == 'file_types') {
+						sourceType = sourceType + '.evidence_details'
+					}
 					return {
 						hasError: true,
 						error: utils.errorObject(sourceType, entityType.value, checkEntities.message),
@@ -969,10 +982,10 @@ module.exports = class ProjectsHelper {
 						return {
 							hasError: true,
 							error: utils.errorObject(
-								sourceType,
-								entityType.value,
+								sourceType + '.' + common.SOLUTION_DETAILS,
+								'name',
 								regexValidation.message ||
-									`Solution Details ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
+									`${entityType.value} name is invalid, please ensure it contains no special characters and does not exceed the character limit`
 							),
 						}
 					}
@@ -983,8 +996,8 @@ module.exports = class ProjectsHelper {
 						return {
 							hasError: true,
 							error: utils.errorObject(
-								sourceType,
-								entityType.value,
+								sourceType + '.' + common.SOLUTION_DETAILS,
+								'link',
 								regexValidation.message || `Invalid observation URL in ${model}`
 							),
 						}
