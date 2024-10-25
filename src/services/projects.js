@@ -636,14 +636,17 @@ module.exports = class ProjectsHelper {
 			let basePath = ''
 			//validate project data
 			const projectValidationPromises = entityTypes.map((entityType) =>
-				this.validateEntityData(projectData, entityType, common.PROJECT, basePath, taskEntityTypesMapping)
+				this.validateEntityData(
+					projectData,
+					entityType,
+					common.PROJECT,
+					basePath,
+					taskEntityTypesMapping,
+					validationErrors
+				)
 			)
-			const projectValidationResults = await Promise.all(projectValidationPromises)
-			for (const validationResult of projectValidationResults) {
-				if (validationResult.hasError) {
-					validationErrors.push(validationResult.error)
-				}
-			}
+
+			await Promise.all(projectValidationPromises)
 
 			//get all entity type validations for task
 			const subTaskEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
@@ -655,7 +658,7 @@ module.exports = class ProjectsHelper {
 				['value', 'validations']
 			)
 
-			// validation for task is not empty
+			// // validation for task is not empty
 			if (projectData?.tasks?.length > 0) {
 				basePath = common.TASKS
 				// validate task
@@ -665,18 +668,14 @@ module.exports = class ProjectsHelper {
 						let taskPath = `${basePath}[${taskIndex}]`
 						await Promise.all(
 							taskEntityTypes.map(async (taskEntityType) => {
-								// console.log(taskEntityType, 'taskEntityType')
-								let validationResult = await this.validateEntityData(
+								await this.validateEntityData(
 									task,
 									taskEntityType,
 									common.TASKS,
 									taskPath,
-									taskEntityTypesMapping
+									taskEntityTypesMapping,
+									validationErrors
 								)
-								// console.log(validationResult, 'validationResult')
-								if (validationResult.hasError) {
-									validationErrors.push(validationResult.error)
-								}
 							})
 						)
 
@@ -685,20 +684,17 @@ module.exports = class ProjectsHelper {
 							await Promise.all(
 								task.children.map(async (childTask, childTaskIndex) => {
 									// Validate task entities
-									let childTaskPath = `${basePath}[${taskIndex}].children[${childTaskIndex}]`
+									let subTaskPath = `${basePath}[${taskIndex}].${common.CHILDREN}[${childTaskIndex}]`
 									await Promise.all(
 										subTaskEntityTypes.map(async (subTaskEntityType) => {
-											let validationResult = await this.validateEntityData(
+											await this.validateEntityData(
 												childTask,
 												subTaskEntityType,
 												common.SUB_TASK,
-												childTaskPath,
-												taskEntityTypesMapping
+												subTaskPath,
+												taskEntityTypesMapping,
+												validationErrors
 											)
-
-											if (validationResult.hasError) {
-												validationErrors.push(validationResult.error)
-											}
 										})
 									)
 								})
@@ -708,7 +704,6 @@ module.exports = class ProjectsHelper {
 				)
 			}
 
-			// console.log(validationErrors, 'validationErrors')
 			if (validationErrors.length > 0) {
 				const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
 				return responses.failureResponse({
@@ -782,15 +777,15 @@ module.exports = class ProjectsHelper {
 				}
 			}
 
-			// await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
-			//add user action
-			// eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
-			// 	actionCode: common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
-			// 	userId: userDetails.id,
-			// 	objectId: resourceId,
-			// 	objectType: common.MODEL_NAMES.RESOURCE,
-			// 	orgId: userDetails.organization_id,
-			// })
+			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
+			// add user action
+			eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
+				actionCode: common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
+				userId: userDetails.id,
+				objectId: resourceId,
+				objectType: common.MODEL_NAMES.RESOURCE,
+				orgId: userDetails.organization_id,
+			})
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -818,35 +813,24 @@ module.exports = class ProjectsHelper {
 	 * @param {string} sourceType - Specifies the source of the input, which can be 'body', 'param', or 'query'.
 	 * @returns {JSON} - Response containing error details, if any.
 	 */
-	static async validateEntityData(entityData, entityType, model, sourceType, entityMapping) {
+	static async validateEntityData(entityData, entityType, model, sourceType, entityMapping, validationErrors = []) {
 		try {
-			console.log('---------------------------****************')
-			let dynamicPath = sourceType ? `${sourceType}` : entityType.value
-			if (model == common.TASKS) {
-				let keyPaths = findKeyPath(entityData, entityType.value, '', [])
-				console.log(keyPaths, 'keyPaths')
-				// console.log(entityType.value, 'entityType.value')
-			}
-
 			let fieldData = entityData[entityType.value]
-			console.log(entityData, entityType.value, fieldData, 'entityData')
+
 			if (
 				model == common.TASKS &&
 				entityData.allow_evidences == common.TRUE &&
-				entityType.value == 'file_types'
+				entityType.value == common.FILE_TYPE
 			) {
-				let keyPaths = findKeyPath(entityData, entityType.value, '', [])
-				console.log(keyPaths)
 				// Check if file types are selected
-				if (!entityData?.evidence_details?.file_types || entityData.evidence_details.file_types.length === 0) {
-					return {
-						hasError: true,
-						error: utils.errorObject(
-							sourceType + '.evidence_details',
+				if (!entityData?.evidence_details?.file_types?.length) {
+					validationErrors.push(
+						utils.errorObject(
+							sourceType + '.' + common.TASK_EVIDENCE,
 							common.FILE_TYPE,
 							'File type not selected'
-						),
-					}
+						)
+					)
 				}
 
 				if (entityType.value === common.FILE_TYPE || entityType.value === common.MIN_NO_OF_EVIDENCES) {
@@ -861,14 +845,13 @@ module.exports = class ProjectsHelper {
 			if (requiredValidation) {
 				let required = utils.checkRequired(requiredValidation, fieldData)
 				if (!required) {
-					return {
-						hasError: true,
-						error: utils.errorObject(
+					validationErrors.push(
+						utils.errorObject(
 							model == common.PROJECT ? entityType.value : sourceType,
 							model == common.PROJECT ? '' : model == common.TASKS ? entityType.value : entityType.value,
 							requiredValidation.message || `${entityType.value} is required`
-						),
-					}
+						)
+					)
 				}
 			}
 
@@ -876,19 +859,16 @@ module.exports = class ProjectsHelper {
 			let maxLengthValidation = entityType.validations.find(
 				(validation) => validation.type == common.MAX_LENGTH_VALIDATION
 			)
-			console.log(fieldData, 'fieldData')
-			// console.log(maxLengthValidation, entityType.value, 'entityType.value')
 			if (maxLengthValidation && fieldData) {
 				let lengthCheck = utils.checkLength(maxLengthValidation, fieldData)
 				if (!lengthCheck) {
-					return {
-						hasError: true,
-						error: utils.errorObject(
+					validationErrors.push(
+						utils.errorObject(
 							model == common.PROJECT ? entityType.value : sourceType,
 							model == common.PROJECT ? '' : model == common.TASKS ? entityType.value : entityType.value,
 							maxLengthValidation.message || `${entityType.value} is required`
-						),
-					}
+						)
+					)
 				}
 			}
 
@@ -896,13 +876,15 @@ module.exports = class ProjectsHelper {
 			if (entityType.has_entities) {
 				let checkEntities = utils.checkEntities(entityType, fieldData)
 				if (!checkEntities.status) {
-					if (model == common.TASKS && entityType.value == 'file_types') {
-						sourceType = sourceType + '.evidence_details'
-					}
-					return {
-						hasError: true,
-						error: utils.errorObject(sourceType, entityType.value, checkEntities.message),
-					}
+					validationErrors.push(
+						utils.errorObject(
+							model == common.TASKS && entityType.value == common.FILE_TYPE
+								? `${sourceType}.${common.TASK_EVIDENCE}`
+								: sourceType,
+							entityType.value,
+							checkEntities.message
+						)
+					)
 				}
 			}
 
@@ -913,101 +895,105 @@ module.exports = class ProjectsHelper {
 			if (regexValidation && fieldData) {
 				//validate learning resource validation
 				if (entityType.value === common.LEARNING_RESOURCE) {
-					for (let i = 0; i < fieldData.length; i++) {
-						let eachResource = fieldData[i]
-						let currentPath = `${dynamicPath}[${i}]`
-						//validate the name and url is there
+					const validationPromises = fieldData.map(async (eachResource, i) => {
+						let learningResourcePath =
+							sourceType == ''
+								? `${common.LEARNING_RESOURCE}[${i}]`
+								: `${sourceType}.${common.LEARNING_RESOURCE}[${i}]`
+						// Validate the name is present
 						if (!eachResource.name) {
-							return {
-								hasError: true,
-								error: utils.errorObject(
-									currentPath || sourceType,
-									'name',
-									regexValidation.message || `Required learning resource name and url in ${model}`
-								),
-							}
-						}
-
-						if (!eachResource.url) {
-							return {
-								hasError: true,
-								error: utils.errorObject(
-									currentPath || sourceType,
-									'url',
-									regexValidation.message || `Required learning resource name and url in ${model}`
-								),
-							}
-						}
-
-						//validate the name
-						let validateName = utils.checkRegexPattern(
-							entityMapping.learning_resource_name.validations,
-							eachResource.name
-						)
-						if (!validateName) {
-							return {
-								hasError: true,
-								error: utils.errorObject(
-									currentPath || sourceType,
+							validationErrors.push(
+								utils.errorObject(
+									learningResourcePath,
 									common.NAME,
-									'Name can only include alphanumeric characters with spaces, -, _, &, <>'
-								),
+									regexValidation.message || `Required learning resource name in ${model}`
+								)
+							)
+						}
+
+						// Validate the URL is present
+						if (!eachResource.url) {
+							validationErrors.push(
+								utils.errorObject(
+									learningResourcePath,
+									common.URL,
+									regexValidation.message || `Required learning resource URL in ${model}`
+								)
+							)
+						}
+
+						// Validate the name against the regex pattern
+						if (eachResource.name) {
+							const validateName = utils.checkRegexPattern(
+								entityMapping.learning_resource_name.validations,
+								eachResource.name
+							)
+							if (!validateName) {
+								validationErrors.push(
+									utils.errorObject(
+										learningResourcePath,
+										common.NAME,
+										'Name can only include alphanumeric characters with spaces, -, _, &, <>'
+									)
+								)
 							}
 						}
-						//validate the url
-						let validateURL = utils.checkRegexPattern(
-							entityMapping[common.LEARNING_RESOURCE],
-							eachResource.url
-						)
-						if (validateURL) {
-							return {
-								hasError: true,
-								error: utils.errorObject(
-									currentPath || sourceType,
-									'url',
-									regexValidation.message || `Invalid learning resource URL in ${model}`
-								),
+
+						// Validate the URL against the regex pattern
+						if (eachResource.url) {
+							const validateURL = utils.checkRegexPattern(
+								entityMapping[common.LEARNING_RESOURCE],
+								eachResource.url
+							)
+							if (!validateURL) {
+								validationErrors.push(
+									utils.errorObject(
+										learningResourcePath,
+										common.URL,
+										regexValidation.message || `Invalid learning resource URL in ${model}`
+									)
+								)
 							}
 						}
-					}
+					})
+
+					await Promise.all(validationPromises)
 				} else if (
 					entityType.value === common.SOLUTION_DETAILS &&
 					fieldData &&
 					Object.keys(fieldData).length > 0 &&
 					JSON.parse(process.env.ENABLE_OBSERVATION_IN_PROJECTS)
 				) {
+					let solutionDetailsPath = `${sourceType}.${common.SOLUTION_DETAILS}`
 					//validate the observation name
 					let checkRegex = utils.checkRegexPattern(regexValidation, fieldData.name)
 					if (!checkRegex) {
-						return {
-							hasError: true,
-							error: utils.errorObject(
-								sourceType + '.' + common.SOLUTION_DETAILS,
-								'name',
+						validationErrors.push(
+							utils.errorObject(
+								solutionDetailsPath,
+								common.NAME,
 								regexValidation.message ||
 									`${entityType.value} name is invalid, please ensure it contains no special characters and does not exceed the character limit`
-							),
-						}
+							)
+						)
 					}
 					//validate the observation url
 					let regex = new RegExp(process.env.OBSERVATION_DEEP_LINK_REGEX)
 					let validateURL = regex.test(fieldData.link)
 					if (!validateURL) {
-						return {
-							hasError: true,
-							error: utils.errorObject(
-								sourceType + '.' + common.SOLUTION_DETAILS,
-								'link',
+						validationErrors.push(
+							utils.errorObject(
+								solutionDetailsPath,
+								common.LINK,
 								regexValidation.message || `Invalid observation URL in ${model}`
-							),
-						}
+							)
+						)
 					}
 				} else {
 					let checkRegex = utils.checkRegexPattern(regexValidation, fieldData)
 					if (!checkRegex) {
-						return {
-							hasError: true,
-							error: utils.errorObject(
+						validationErrors.push(
+							utils.errorObject(
 								model == common.PROJECT ? entityType.value : sourceType,
 								model == common.PROJECT
 									? ''
@@ -1016,9 +1002,8 @@ module.exports = class ProjectsHelper {
 									: entityType.value,
 								regexValidation.message ||
 									`${entityType.value} can only include alphanumeric characters with spaces, -, _, &, <>`
-								// `${model} ${entityType.value} is invalid, please ensure it contains no special characters and does not exceed the character limit`
-							),
-						}
+							)
+						)
 					}
 				}
 			}
@@ -1033,56 +1018,6 @@ module.exports = class ProjectsHelper {
 		}
 	}
 }
-
-function findKeyPath(obj, keyToFind, currentPath = '', paths = []) {
-	// Iterate over each key in the object
-	for (let key in obj) {
-		if (!obj.hasOwnProperty(key)) continue
-
-		// Construct the new path
-		let newPath = currentPath ? `${currentPath}.${key}` : key
-
-		// If the key is found, add the current path to the result
-		if (key === keyToFind) {
-			paths.push(newPath)
-		}
-
-		// If the value is an object, recursively search it
-		if (typeof obj[key] === 'object' && obj[key] !== null) {
-			findKeyPath(obj[key], keyToFind, newPath, paths)
-		}
-	}
-
-	return paths
-}
-
-function getPath(model) {}
-
-// function findKeyPath(obj, keyToFind, currentPath = '', results = []) {
-// 	// Check if the current object is an array
-// 	if (Array.isArray(obj)) {
-// 		for (let i = 0; i < obj.length; i++) {
-// 			findKeyPath(obj[i], keyToFind, `${currentPath}[${i}]`, results)
-// 		}
-// 	}
-// 	// Check if the current object is an object
-// 	else if (typeof obj === 'object' && obj !== null) {
-// 		for (const key in obj) {
-// 			// Build the new path
-// 			const newPath = currentPath ? `${currentPath}.${key}` : key
-
-// 			// Check if the current key matches the key to find
-// 			if (key === keyToFind) {
-// 				results.push(newPath)
-// 			}
-
-// 			// Recur for nested objects or arrays
-// 			findKeyPath(obj[key], keyToFind, newPath, results)
-// 		}
-// 	}
-
-// 	return results
-// }
 
 /**
  * List of resource statuses that prevent a reviewer from starting a review.
