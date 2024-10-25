@@ -416,22 +416,35 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 const errorObject = (params, filed, msg) => {
 	return [{ location: params, param: filed, msg }]
 }
+
 const checkRegexPattern = (entityType, entityData) => {
 	try {
-		let normalizedValue =
-			typeof entityData === common.DATA_TYPE_NUMBER ? entityData.toString() : unidecode(entityData)
-		if (Array.isArray(entityType.validations.regex)) {
-			for (let pattern of entityType.validations.regex) {
-				let regex = new RegExp(pattern)
-				if (regex.test(normalizedValue)) {
-					return true
+		// Check if entityType is an array
+		if (Array.isArray(entityType)) {
+			// Find the object where type is "regex"
+			entityType = entityType.find((item) => item.type === common.REGEX_VALIDATION)
+		}
+
+		// Proceed if a regex validation object is found
+		if (entityType && entityType.type === common.REGEX_VALIDATION) {
+			// Normalize the entityData
+			let normalizedValue =
+				typeof entityData === common.DATA_TYPE_NUMBER ? entityData.toString() : unidecode(entityData)
+
+			// Handle array of regex patterns
+			if (Array.isArray(entityType.regex)) {
+				for (let pattern of entityType.regex) {
+					let regex = new RegExp(pattern)
+					if (regex.test(normalizedValue)) {
+						return true
+					}
 				}
+				return false
+			} else {
+				// Handle the case where regex is a single pattern
+				let regex = new RegExp(entityType.value) // Use entityType.value for regex
+				return regex.test(normalizedValue)
 			}
-			return false
-		} else {
-			// Handle the case where the regex validation is not an array
-			let regex = new RegExp(entityType.validations.regex)
-			return regex.test(normalizedValue)
 		}
 	} catch (error) {
 		return error
@@ -440,7 +453,7 @@ const checkRegexPattern = (entityType, entityData) => {
 
 const checkRequired = (entityType, entityData) => {
 	try {
-		if (entityType.validations.required) {
+		if (entityType.type === common.REQUIRED_VALIDATION && entityType.value) {
 			//validate entityData is boolean
 			if (typeof entityData === common.DATA_TYPE_BOOLEAN) {
 				return true
@@ -476,6 +489,16 @@ const checkEntities = (entityType, entityData) => {
 			}
 		}
 		return { status: true }
+	} catch (error) {
+		return error
+	}
+}
+
+const checkLength = (entityType, entityData) => {
+	try {
+		if (entityType.type === common.MAX_LENGTH_VALIDATION && entityType.value) {
+			return entityData.length <= entityType.value
+		}
 	} catch (error) {
 		return error
 	}
@@ -609,4 +632,5 @@ module.exports = {
 	paginate,
 	sort,
 	isEmpty,
+	checkLength,
 }
