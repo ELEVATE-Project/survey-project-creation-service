@@ -24,12 +24,18 @@ module.exports = (sequelize, DataTypes) => {
 					'DRAFT',
 					'SUBMITTED',
 					'IN_REVIEW',
+					'INPROGRESS',
 					'APPROVED',
 					'REJECTED',
 					'PUBLISHED',
 					'REJECTED_AND_REPORTED'
 				),
 				defaultValue: 'DRAFT',
+			},
+			stage: {
+				allowNull: false,
+				type: DataTypes.ENUM('CREATION', 'REVIEW', 'COMPLETION'),
+				defaultValue: 'CREATION',
 			},
 			blob_path: {
 				allowNull: true,
