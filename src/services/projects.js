@@ -666,17 +666,17 @@ module.exports = class ProjectsHelper {
 						await Promise.all(
 							taskEntityTypes.map(async (taskEntityType) => {
 								// console.log(taskEntityType, 'taskEntityType')
-								// let validationResult = await this.validateEntityData(
-								// 	task,
-								// 	taskEntityType,
-								// 	common.TASKS,
-								// 	taskPath,
-								// 	taskEntityTypesMapping
-								// )
-								// // console.log(validationResult, 'validationResult')
-								// if (validationResult.hasError) {
-								// 	validationErrors.push(validationResult.error)
-								// }
+								let validationResult = await this.validateEntityData(
+									task,
+									taskEntityType,
+									common.TASKS,
+									taskPath,
+									taskEntityTypesMapping
+								)
+								// console.log(validationResult, 'validationResult')
+								if (validationResult.hasError) {
+									validationErrors.push(validationResult.error)
+								}
 							})
 						)
 

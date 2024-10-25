@@ -193,7 +193,7 @@ function transformValidation(validation, entityType) {
 		}
 		transformedData.push(data)
 	}
-	if (['keywords', 'title'].includes(entityType)) {
+	if (['keywords', 'title', 'solution_details'].includes(entityType)) {
 		let data = { type: 'max_length', value: 256 }
 		if (getNewMessage(entityType, 'max_length')) {
 			data.message = getNewMessage(entityType, 'max_length')
@@ -237,6 +237,10 @@ function getNewMessage(entityType, validationType) {
 		is_mandatory: { required: 'is_mandatory field is required' },
 		allow_evidences: { required: 'allow_evidences field is required' },
 		min_no_of_evidences: { required: 'min_no_of_evidences field is required' },
+		solution_details: {
+			regex: 'Description can only include alphanumeric characters with spaces, -, _, &, <>',
+			max_length: 'Name must not exceed 256 characters',
+		},
 	}
 
 	return messages[entityType]?.[validationType] || null
