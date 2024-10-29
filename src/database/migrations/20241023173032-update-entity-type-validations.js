@@ -146,7 +146,7 @@ module.exports = {
 									message: 'Only numbers allowed',
 								},
 							]),
-							value: 'recommended_duration',
+							value: 'sequence_no',
 						},
 						{ id: entityType.id }
 					)
