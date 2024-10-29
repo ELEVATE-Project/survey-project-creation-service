@@ -111,27 +111,7 @@ module.exports = {
 				let updatedValidation = transformedValidation ? JSON.stringify(transformedValidation) : null
 
 				//update value of duration as recommended_duration
-				if (entityType.value == 'duration') {
-					await queryInterface.bulkUpdate(
-						'entity_types',
-						{
-							validations: JSON.stringify([
-								{
-									type: 'required',
-									value: true,
-									message: 'Enter duration in numbers',
-								},
-								{
-									type: 'regex',
-									value: '^(?:[1-9][0-9]{0,4}|100000)$',
-									message: getNewMessage(),
-								},
-							]),
-							value: 'recommended_duration',
-						},
-						{ id: entityType.id }
-					)
-				} else if (entityType.value == 'sequence_no') {
+				if (entityType.value == 'sequence_no') {
 					await queryInterface.bulkUpdate(
 						'entity_types',
 						{
@@ -146,7 +126,7 @@ module.exports = {
 									message: 'Only numbers allowed',
 								},
 							]),
-							value: 'recommended_duration',
+							value: 'sequence_no',
 						},
 						{ id: entityType.id }
 					)

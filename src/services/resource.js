@@ -490,12 +490,17 @@ module.exports = class resourceHelper {
 					['resource_id']
 				)
 
-				result.in_progress_count = distinctResourceIds.count
 				inProgressResources = utils.getUniqueElements(distinctResourceIds.resource_ids)
-			}
-			if (common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS) {
+				const in_progress_count = await resourceQueries.count({
+					id: {
+						[Op.in]: inProgressResources,
+					},
+					status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
+				})
+				result.in_progress_count = in_progress_count
 				finalResourceIds = inProgressResources
-			} else {
+			}
+			if (!(common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS)) {
 				// fetch the resources types of an organization based on parallel and sequential review type
 				let { sequential: resourceTypesInSequentialReview, parallel: resourceTypesInParallelReview } =
 					await this.fetchResourceReviewTypes(organization_id)
@@ -582,14 +587,18 @@ module.exports = class resourceHelper {
 				user_id: {
 					[Op.notIn]: [user_id],
 				},
-				status: {
+			}
+			if (common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS) {
+				resourceFilter.status = common.REVIEW_STATUS_INPROGRESS
+			} else {
+				resourceFilter.status = {
 					[Op.notIn]: [
 						common.RESOURCE_STATUS_PUBLISHED,
 						common.RESOURCE_STATUS_REJECTED,
 						common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 						common.RESOURCE_STATUS_DRAFT,
 					],
-				},
+				}
 			}
 			if (searchText != '')
 				resourceFilter.title = {
@@ -749,7 +758,8 @@ module.exports = class resourceHelper {
 									entityType.has_entities &&
 									entityType.entities &&
 									entityType.entities.length > 0 &&
-									resultData.hasOwnProperty(key)
+									resultData.hasOwnProperty(key) &&
+									entityType.value != common.DURATION
 								) {
 									const value = resultData[key]
 									// If the value is already in label-value pair format, skip processing
@@ -1220,20 +1230,38 @@ module.exports = class resourceHelper {
 
 			const internalResources = await resourceQueries.resourceList(
 				filterQuery,
-				['id', 'title', 'type', 'created_by', 'created_at'],
+				['id', 'title', 'type', 'created_by', 'created_at', 'published_on'],
 				sort,
 				pageNo,
 				pageSize
 			)
+			let userIds = internalResources.result.map((item) => item.created_by)
+			const internalResourcesIds = internalResources.result.map((item) => item.id)
+
+			const reviewerDetails = await reviewsQueries.findAll(
+				{
+					resource_id: internalResourcesIds,
+					status: common.REVIEW_STATUS_APPROVED,
+				},
+				['reviewer_id', 'resource_id']
+			)
+
+			const resouceReviewerMapping = _.mapValues(_.groupBy(reviewerDetails, 'resource_id'), (reviewers) =>
+				reviewers.map((item) => item.reviewer_id)
+			)
+
+			userIds = [...userIds, ...reviewerDetails.map((item) => item.reviewer_id)]
 
 			if (internalResources.result.length > 0) {
 				// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
-				const userDetails = await this.fetchUserDetails(
-					utils.getUniqueElements([...internalResources.result.map((item) => item.created_by)])
-				)
+				const userDetails = await this.fetchUserDetails(utils.getUniqueElements(userIds))
 				result.count = internalResources.count
 				internalResources.result.forEach((resource) => {
 					resource['creator'] = userDetails[resource.created_by]?.name || ''
+					resource['reviewed_by'] = (resouceReviewerMapping[resource.id] || [])
+						.map((reviewer_id) => userDetails[reviewer_id]?.name || '')
+						.filter(Boolean) // To remove any empty strings
+						.join(' , ')
 					delete resource.created_at
 					result.data.push(resource)
 				})
