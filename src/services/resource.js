@@ -1229,20 +1229,38 @@ module.exports = class resourceHelper {
 
 			const internalResources = await resourceQueries.resourceList(
 				filterQuery,
-				['id', 'title', 'type', 'created_by', 'created_at'],
+				['id', 'title', 'type', 'created_by', 'created_at', 'published_on'],
 				sort,
 				pageNo,
 				pageSize
 			)
+			let userIds = internalResources.result.map((item) => item.created_by)
+			const internalResourcesIds = internalResources.result.map((item) => item.id)
+
+			const reviewerDetails = await reviewsQueries.findAll(
+				{
+					resource_id: internalResourcesIds,
+					status: common.REVIEW_STATUS_APPROVED,
+				},
+				['reviewer_id', 'resource_id']
+			)
+
+			const resouceReviewerMapping = _.mapValues(_.groupBy(reviewerDetails, 'resource_id'), (reviewers) =>
+				reviewers.map((item) => item.reviewer_id)
+			)
+
+			userIds = [...userIds, ...reviewerDetails.map((item) => item.reviewer_id)]
 
 			if (internalResources.result.length > 0) {
 				// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
-				const userDetails = await this.fetchUserDetails(
-					utils.getUniqueElements([...internalResources.result.map((item) => item.created_by)])
-				)
+				const userDetails = await this.fetchUserDetails(utils.getUniqueElements(userIds))
 				result.count = internalResources.count
 				internalResources.result.forEach((resource) => {
 					resource['creator'] = userDetails[resource.created_by]?.name || ''
+					resource['reviewed_by'] = (resouceReviewerMapping[resource.id] || [])
+						.map((reviewer_id) => userDetails[reviewer_id]?.name || '')
+						.filter(Boolean) // To remove any empty strings
+						.join(' , ')
 					delete resource.created_at
 					result.data.push(resource)
 				})
