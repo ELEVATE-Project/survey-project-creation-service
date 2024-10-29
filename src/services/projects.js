@@ -960,13 +960,23 @@ module.exports = class ProjectsHelper {
 					fieldData &&
 					Object.keys(fieldData).length > 0
 				) {
+					if (!fieldData.number) {
+						validationErrors.push(
+							utils.errorObject(
+								model == common.PROJECT ? entityType.value : sourceType,
+								common.NUMBER,
+								'Enter duration in numbers'
+							)
+						)
+					}
+
 					let checkRegex = utils.checkRegexPattern(regexValidation, fieldData.number)
 					if (!checkRegex) {
 						validationErrors.push(
 							utils.errorObject(
 								model == common.PROJECT ? entityType.value : sourceType,
 								common.NUMBER,
-								regexValidation.message
+								regexValidation.message || 'Enter duration in numbers'
 							)
 						)
 					}
