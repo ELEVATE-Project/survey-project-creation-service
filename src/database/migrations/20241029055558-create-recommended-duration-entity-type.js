@@ -39,6 +39,30 @@ module.exports = {
 			]
 
 			await queryInterface.bulkInsert('entity_types', entityTypeData, {})
+
+			const entityTypes = await queryInterface.sequelize.query(
+				'SELECT * FROM entity_types WHERE value = :entityTypeValue AND organization_id = :defaultOrgId',
+				{
+					type: queryInterface.sequelize.QueryTypes.SELECT,
+					replacements: { entityTypeValue: 'recommended_duration', defaultOrgId },
+				}
+			)
+
+			if (!entityTypes.length) {
+				throw new Error(`Entity type 'recommended_duration' not found for organization ID ${defaultOrgId}`)
+			}
+
+			//create entity model mapping
+			// Create entity model mapping for the found entity_type_id
+			const entityModelMapping = entityTypes.map((entityType) => ({
+				entity_type_id: entityType.id,
+				model: 'project',
+				status: 'ACTIVE',
+				updated_at: new Date(),
+				created_at: new Date(),
+			}))
+
+			await queryInterface.bulkInsert('entities_model_mapping', entityModelMapping, {})
 		} catch (error) {
 			console.log(error, 'error')
 		}
@@ -46,15 +70,36 @@ module.exports = {
 
 	async down(queryInterface, Sequelize) {
 		try {
-			// Define condition to remove the inserted entity_type
-			await queryInterface.bulkDelete(
+			const entityType = await queryInterface.rawSelect(
 				'entity_types',
 				{
-					value: 'recommended_duration',
-					organization_id: queryInterface.sequelize.options.defaultOrgId,
+					where: {
+						value: 'recommended_duration',
+						organization_id: queryInterface.sequelize.options.defaultOrgId,
+					},
 				},
-				{}
+				['id'] // Select only the 'id' field
 			)
+
+			if (entityType) {
+				await queryInterface.bulkDelete(
+					'entities_model_mapping',
+					{
+						entity_type_id: entityType,
+					},
+					{}
+				)
+
+				// Define condition to remove the inserted entity_type
+				await queryInterface.bulkDelete(
+					'entity_types',
+					{
+						value: 'recommended_duration',
+						organization_id: queryInterface.sequelize.options.defaultOrgId,
+					},
+					{}
+				)
+			}
 		} catch (error) {
 			console.error('Error during rollback:', error)
 		}
