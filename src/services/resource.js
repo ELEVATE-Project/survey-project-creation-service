@@ -758,7 +758,8 @@ module.exports = class resourceHelper {
 									entityType.has_entities &&
 									entityType.entities &&
 									entityType.entities.length > 0 &&
-									resultData.hasOwnProperty(key)
+									resultData.hasOwnProperty(key) &&
+									entityType.value != common.DURATION
 								) {
 									const value = resultData[key]
 									// If the value is already in label-value pair format, skip processing

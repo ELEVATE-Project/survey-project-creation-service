@@ -413,7 +413,8 @@ module.exports = class ProjectsHelper {
 									entityType.has_entities &&
 									entityType.entities &&
 									entityType.entities.length > 0 &&
-									resultData.hasOwnProperty(key)
+									resultData.hasOwnProperty(key) &&
+									entityType.value != common.DURATION
 								) {
 									const value = resultData[key]
 									// If the value is already in label-value pair format, skip processing
@@ -954,6 +955,31 @@ module.exports = class ProjectsHelper {
 					})
 
 					await Promise.all(validationPromises)
+				} else if (
+					entityType.value === common.RECOMMENDED_DURATION &&
+					fieldData &&
+					Object.keys(fieldData).length > 0
+				) {
+					if (!fieldData.number) {
+						validationErrors.push(
+							utils.errorObject(
+								model == common.PROJECT ? entityType.value : sourceType,
+								common.NUMBER,
+								'Enter duration in numbers'
+							)
+						)
+					}
+
+					let checkRegex = utils.checkRegexPattern(regexValidation, fieldData.number)
+					if (!checkRegex) {
+						validationErrors.push(
+							utils.errorObject(
+								model == common.PROJECT ? entityType.value : sourceType,
+								common.NUMBER,
+								regexValidation.message || 'Enter duration in numbers'
+							)
+						)
+					}
 				} else if (
 					entityType.value === common.SOLUTION_DETAILS &&
 					fieldData &&

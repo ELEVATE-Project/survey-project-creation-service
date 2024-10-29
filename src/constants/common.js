@@ -190,4 +190,7 @@ module.exports = {
 	RESOURCE_STAGE_REVIEW: 'REVIEW',
 	RESOURCE_STAGE_COMPLETION: 'COMPLETION',
 	LINK: 'link',
+	DURATION: 'duration',
+	RECOMMENDED_DURATION: 'recommended_duration',
+	NUMBER: 'number',
 }
