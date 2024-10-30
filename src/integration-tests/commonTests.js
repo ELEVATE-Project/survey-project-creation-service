@@ -185,9 +185,10 @@ const logIn = async () => {
 
 			console.log('userRoles : : == : : ', userRoles)
 			console.log('hasAllRoles : : == : : ', hasAllRoles)
-			if (!hasAllRoles && retries > 0) {
+			if (!hasAllRoles) {
+				//&& retries > 0
 				console.log('retries : : == : : ', retries)
-				retries--
+				// retries--
 				logIn()
 			}
 
