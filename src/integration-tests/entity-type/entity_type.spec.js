@@ -36,6 +36,8 @@ describe('Entity-Type APIs', function () {
 			data_type: 'STRING',
 		})
 
+		console.log(' -=-=-=-=-=-=-=-=-=-=-> ', res.body)
+
 		expect(res.statusCode).toBe(202)
 		expect(res.body).toMatchSchema(schema.updateSchema)
 	})
