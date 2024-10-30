@@ -7,6 +7,7 @@ const baseURL = 'http://localhost:6001'
 // Global headers for authenticated requests
 let defaultHeaders
 const waitOn = require('wait-on')
+let retries = 5
 
 // Improved waitForService function
 const waitForService = async (url) => {
@@ -27,8 +28,6 @@ const waitForService = async (url) => {
 
 // Function to verify user roles and create them if necessary
 const verifyUserRole = async () => {
-	console.log('============>USER ROLE CHECK : ')
-
 	// Define a separate request instance scoped to this function
 	let request = defaults(supertest('http://localhost:5001'))
 
@@ -171,6 +170,18 @@ const logIn = async () => {
 			global.request = defaults(supertest(baseURL))
 			global.request.set(defaultHeaders)
 			global.userId = res.body.result.user.id
+
+			const requiredRoles = 'org_admin,content_creator,reviewer'.split(',')
+
+			const userRoles = res.body.result.user.user_roles.map((role) => role.title)
+
+			const hasAllRoles = requiredRoles.every((role) => userRoles.includes(role))
+
+			if (!hasAllRoles && retries > 0) {
+				retries--
+				logIn()
+			}
+
 			return {
 				token: res.body.result.access_token,
 				email: email,
