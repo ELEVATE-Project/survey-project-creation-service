@@ -71,7 +71,7 @@ services:
 
   user:
     build: '../../user/'
-    image: elevate/user:1.0
+    image: elevate/user:2.4
     ports:
       - '5001:5001'
     volumes:
