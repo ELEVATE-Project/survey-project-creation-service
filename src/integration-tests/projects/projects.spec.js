@@ -13,7 +13,7 @@ describe('Project APIs ', function () {
 		// await commonHelper.verifyUserRole()
 		userDetails = await commonHelper.logIn()
 		// Wait for the service to be ready
-		await waitForService(commonHelper.baseURL)
+		await commonHelper.waitForService(commonHelper.baseURL)
 
 		console.log(userDetails)
 	})
