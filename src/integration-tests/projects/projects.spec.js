@@ -1,6 +1,7 @@
 const commonHelper = require('@commonTests')
 const { faker } = require('@faker-js/faker')
 const schema = require('./responseSchema')
+var defaults = require('superagent-defaults')
 jest.setTimeout(200000)
 // Define a separate request instance scoped to this function
 let request = defaults(supertest(commonHelper.baseURL))
