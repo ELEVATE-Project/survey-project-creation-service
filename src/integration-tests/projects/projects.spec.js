@@ -2,12 +2,17 @@ const commonHelper = require('@commonTests')
 const { faker } = require('@faker-js/faker')
 const schema = require('./responseSchema')
 jest.setTimeout(200000)
+// Define a separate request instance scoped to this function
+let request = defaults(supertest(commonHelper.baseURL))
 
 describe('Project APIs ', function () {
 	let userDetails
 	beforeAll(async () => {
 		// await commonHelper.verifyUserRole()
 		userDetails = await commonHelper.logIn()
+		// Wait for the service to be ready
+		await waitForService(commonHelper.baseURL)
+
 		console.log(userDetails)
 	})
 

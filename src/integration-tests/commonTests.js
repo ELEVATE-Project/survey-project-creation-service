@@ -200,4 +200,6 @@ module.exports = {
 	logIn, //-- export if token is generated
 	logError,
 	verifyUserRole, // Uncomment if needed externally
+	baseURL,
+	waitForService,
 }
