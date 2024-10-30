@@ -177,7 +177,10 @@ const logIn = async () => {
 
 			const hasAllRoles = requiredRoles.every((role) => userRoles.includes(role))
 
+			console.log('userRoles : : == : : ', userRoles)
+			console.log('hasAllRoles : : == : : ', hasAllRoles)
 			if (!hasAllRoles && retries > 0) {
+				console.log('retries : : == : : ', retries)
 				retries--
 				logIn()
 			}
