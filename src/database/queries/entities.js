@@ -2,7 +2,8 @@ const Entity = require('../models/index').Entity
 module.exports = class UserEntityData {
 	static async createEntity(data) {
 		try {
-			return await Entity.create(data, { returning: true })
+			const entity = await Entity.create(data, { returning: true })
+			return entity.get({ plain: true })
 		} catch (error) {
 			throw error
 		}
@@ -11,6 +12,17 @@ module.exports = class UserEntityData {
 	static async findAllEntities(filter, options = {}) {
 		try {
 			return await Entity.findAll({
+				where: filter,
+				...options,
+				raw: true,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+	static async findOne(filter, options = {}) {
+		try {
+			return await Entity.findOne({
 				where: filter,
 				...options,
 				raw: true,

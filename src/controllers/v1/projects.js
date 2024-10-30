@@ -36,7 +36,8 @@ module.exports = class Projects {
 				const project = await projectService.create(
 					req.body,
 					req.decodedToken.id,
-					req.decodedToken.organization_id
+					req.decodedToken.organization_id,
+					req.query.reference_id ? parseInt(req.query.reference_id) : null
 				)
 				return project
 			}

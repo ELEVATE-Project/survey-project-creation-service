@@ -72,6 +72,7 @@ module.exports = {
 	SORT_DESC: 'DESC',
 	SORT_ASC: 'ASC',
 	CREATED_AT: 'created_at',
+	UPDATED_AT: 'updated_at',
 	FILTER: 'filter',
 	TYPE: 'type',
 	STATUS: 'status',
@@ -83,7 +84,14 @@ module.exports = {
 	LISTING: 'listing',
 	PAGE_STATUS_VALUES: {
 		drafts: ['DRAFT'],
-		submitted_for_review: ['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'],
+		submitted_for_review: [
+			'INPROGRESS',
+			'SUBMITTED',
+			'PUBLISHED',
+			'REJECTED',
+			'REJECTED_AND_REPORTED',
+			'REQUESTED_FOR_CHANGES',
+		],
 	},
 	REVIEW_STATUS_UP_FOR_REVIEW: ['INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED'],
 	PAGE_STATUS_DRAFTS: 'drafts',
@@ -139,6 +147,7 @@ module.exports = {
 	REVIEW_STATUS: 'review_status',
 	COMMENT_STATUS_OPEN: 'OPEN',
 	LEARNING_RESOURCE: 'learning_resources',
+	SOLUTION_DETAILS: 'solution_details',
 	TASK_ALLOWED_FILE_TYPES: 'file_types',
 	ALLOWED_FILE_TYPES: {
 		images: ['jpg', 'png', 'jpeg', 'bmp', 'gif', 'tiff', 'heif'],
@@ -174,4 +183,14 @@ module.exports = {
 		second: 'numeric',
 		hour12: true, // Use 12-hour clock with AM/PM
 	},
+	REQUIRED_VALIDATION: 'required',
+	REGEX_VALIDATION: 'regex',
+	MAX_LENGTH_VALIDATION: 'max_length',
+	RESOURCE_STAGE_CREATION: 'CREATION',
+	RESOURCE_STAGE_REVIEW: 'REVIEW',
+	RESOURCE_STAGE_COMPLETION: 'COMPLETION',
+	LINK: 'link',
+	DURATION: 'duration',
+	RECOMMENDED_DURATION: 'recommended_duration',
+	NUMBER: 'number',
 }

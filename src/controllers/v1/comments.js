@@ -6,6 +6,7 @@
  */
 
 const commentService = require('@services/comments')
+const common = require('@constants/common')
 module.exports = class comments {
 	/**
 	 * List Comments.
@@ -42,12 +43,21 @@ module.exports = class comments {
 	 */
 	async update(req) {
 		try {
-			const comment = await commentService.update(
-				req.params.id ? req.params.id : '',
-				req.query.resource_id,
-				req.body,
-				req.decodedToken.id
-			)
+			let comment
+			if (req.method === common.REQUEST_METHOD_DELETE) {
+				comment = await commentService.delete(
+					parseInt(req.params.id),
+					parseInt(req.query.resource_id),
+					req.decodedToken.id
+				)
+			} else {
+				comment = await commentService.update(
+					req.params.id ? req.params.id : '',
+					req.query.resource_id,
+					req.body,
+					req.decodedToken.id
+				)
+			}
 			return comment
 		} catch (error) {
 			return error

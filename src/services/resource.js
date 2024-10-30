@@ -4,7 +4,6 @@
  * Date : 04-June-2024
  * Description : Resource Service
  */
-
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
@@ -42,6 +41,7 @@ module.exports = class resourceHelper {
 		let result = {
 			data: [],
 			count: 0,
+			changes_requested_count: 0,
 		}
 		let primaryFilter = {}
 		let filter = {}
@@ -60,8 +60,8 @@ module.exports = class resourceHelper {
 		// get the unique organization ids from resource creator mapping table by the user
 		const OrganizationIds = utils.getUniqueElements(resourcesCreatedByMe.map((item) => item.organization_id))
 
-		// get all the resources which are status requested for changes by the reviewerIds.
-		const distinctInreviewResourceIds = await reviewsQueries.distinctResources(
+		// get the review details of all the resources created by the logged in user
+		const resourceReviews = await reviewsQueries.findAll(
 			{
 				organization_id: {
 					[Op.in]: OrganizationIds,
@@ -69,43 +69,24 @@ module.exports = class resourceHelper {
 				resource_id: {
 					[Op.in]: uniqueResourceIds,
 				},
-				status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 			},
-			['resource_id']
+			['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes']
 		)
 
-		if (queryParams[common.STATUS] === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES) {
-			primaryFilter = {
-				organization_id: {
-					[Op.in]: OrganizationIds,
-				},
-				id: {
-					[Op.in]: distinctInreviewResourceIds.resource_ids,
-				},
-				user_id: userId,
-			}
-		} else {
-			// add primary filters
-			primaryFilter = {
-				organization_id: {
-					[Op.in]: OrganizationIds,
-				},
-				id: {
-					[Op.in]: uniqueResourceIds,
-				},
-				status: {
-					[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_SUBMITTED_FOR_REVIEW],
-				},
-			}
-
-			if (queryParams[common.STATUS]) {
-				primaryFilter.status = {
-					[Op.in]: queryParams[common.STATUS].split(','),
-				}
-			}
-		}
 		// create the final filter by combining primary filters , query params and search text
 		filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
+
+		// Add id, organization_id, and status filters
+		filter = {
+			...filter,
+			id: { [Op.in]: uniqueResourceIds },
+			organization_id: { [Op.in]: OrganizationIds },
+			status: {
+				[Op.in]: queryParams.status?.trim()
+					? queryParams.status.split(',')
+					: common.PAGE_STATUS_VALUES['submitted_for_review'],
+			},
+		}
 
 		// return a sort object with sorting parameters. if no params are provided returns {}
 		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
@@ -119,6 +100,7 @@ module.exports = class resourceHelper {
 				'organization_id',
 				'type',
 				'status',
+				'stage',
 				'user_id',
 				'created_at',
 				'updated_at',
@@ -132,7 +114,19 @@ module.exports = class resourceHelper {
 			page,
 			limit
 		)
+
+		const requestedForChangesResources = await resourceQueries.count({
+			id: {
+				[Op.in]: uniqueResourceIds,
+			},
+			organization_id: {
+				[Op.in]: OrganizationIds,
+			},
+			status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+		})
+
 		if (response.result.length <= 0) {
+			result.changes_requested_count = requestedForChangesResources > 0 ? requestedForChangesResources : 0
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -145,42 +139,33 @@ module.exports = class resourceHelper {
 		)
 
 		// fetch all open comments for the resources which are in review
-		const commentMapping = await this.fetchOpenComments(distinctInreviewResourceIds.resource_ids)
-
-		// fetch the relevant details from reviews table for additional data in the response
-		const reviewDetails = await reviewsQueries.findAll(
-			{
-				organization_id: {
-					[Op.in]: OrganizationIds,
-				},
-				resource_id: {
-					[Op.in]: uniqueResourceIds,
-				},
-				status: {
-					[Op.in]: [
-						common.REVIEW_STATUS_REJECTED,
-						common.REVIEW_STATUS_REJECTED_AND_REPORTED,
-						common.REVIEW_STATUS_INPROGRESS,
-						common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
-						common.REVIEW_STATUS_CHANGES_UPDATED,
-					],
-				},
-			},
-			['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes']
+		const commentMapping = await this.fetchOpenComments(
+			response.result
+				.filter((resource) => resource.status === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)
+				.map((resource) => resource.id)
 		)
+
 		let reviewerIds = []
 
 		// create a mapping object for resourceId and review details to fetch the review details like reviewerId , status etc... using resource id
-		// TODO for the time being we are fetching only one reviewer in the parallel review , we need to update the code to have multiple reviewers
 		// Update the reviewed_by and reviewer_notes for multiple review.
-		const reviewDetailsMapping = reviewDetails.reduce((acc, item) => {
-			acc[item.resource_id] = {
-				reviewer_id: item.reviewer_id,
-				updated_at: item.updated_at,
-				created_at: item.created_at,
-				status: item.status,
-				reviewer_notes: item.notes,
+		const reviewDetailsMapping = resourceReviews.reduce((acc, item) => {
+			// Initialize acc[item.resource_id] if not already present
+			if (!acc[item.resource_id]) {
+				acc[item.resource_id] = {
+					updated_at: item.updated_at,
+					created_at: item.created_at,
+					status: item.status,
+					reviewer_notes: item.notes,
+					reviewer_id: [], // Initialize reviewer_id as an empty array
+				}
+			} else {
+				// If the object already exists, update only the fields that are necessary
+				acc[item.resource_id].updated_at = item.updated_at
+				acc[item.resource_id].status = item.status
+				acc[item.resource_id].reviewer_notes = item.notes
 			}
+			acc[item.resource_id].reviewer_id.push(item.reviewer_id)
 			reviewerIds.push(item.reviewer_id)
 			return acc
 		}, {})
@@ -195,9 +180,18 @@ module.exports = class resourceHelper {
 			let additionalData = {}
 			if (reviewDetailsMapping[resource.id]) {
 				if (reviewDetailsMapping[resource.id].status !== common.REVIEW_STATUS_NOT_STARTED) {
-					additionalData.reviewed_by = reviewDetailsMapping[resource.id].reviewer_id
-						? userDetails[reviewDetailsMapping[resource.id].reviewer_id]?.name
-						: null
+					additionalData.reviewed_by = ''
+					let reviewerIds = reviewDetailsMapping[resource.id].reviewer_id
+						? reviewDetailsMapping[resource.id].reviewer_id
+						: []
+					if (reviewerIds.length > 0) {
+						reviewerIds.forEach((reviewer_id) => {
+							reviewer_id = isNaN(reviewer_id) ? reviewer_id : Number(reviewer_id)
+							additionalData.reviewed_by =
+								additionalData.reviewed_by + userDetails[reviewer_id]?.name + ' , '
+						})
+						additionalData.reviewed_by = additionalData.reviewed_by.replace(/[, \s]+$/, '')
+					}
 					additionalData.reviewed_started_on = reviewDetailsMapping[resource.id].created_at
 						? reviewDetailsMapping[resource.id].created_at
 						: null
@@ -223,13 +217,14 @@ module.exports = class resourceHelper {
 		// generic function to merge all the collected data about the resource
 		result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
 		// count of requested for changes resources
-		result.changes_requested_count = distinctInreviewResourceIds.count
+		result.changes_requested_count = requestedForChangesResources > 0 ? requestedForChangesResources : 0
 		return responses.successResponse({
 			statusCode: httpStatusCode.ok,
 			message: 'RESOURCE_LISTED_SUCCESSFULLY',
 			result,
 		})
 	}
+
 	/**
 	 * List of all draft resources
 	 * Description : This is a creator centric API which will return the list of all the resources which are draft status.
@@ -285,7 +280,7 @@ module.exports = class resourceHelper {
 		// fetches data from resource table with the passed filters
 		const response = await resourceQueries.resourceList(
 			filter,
-			['id', 'title', 'organization_id', 'type', 'status', 'user_id', 'created_at', 'updated_at'],
+			['id', 'title', 'organization_id', 'type', 'status', 'user_id', 'created_at', 'updated_at', 'stage'],
 			sort,
 			page,
 			limit
@@ -495,12 +490,17 @@ module.exports = class resourceHelper {
 					['resource_id']
 				)
 
-				result.in_progress_count = distinctResourceIds.count
 				inProgressResources = utils.getUniqueElements(distinctResourceIds.resource_ids)
-			}
-			if (common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS) {
+				const in_progress_count = await resourceQueries.count({
+					id: {
+						[Op.in]: inProgressResources,
+					},
+					status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
+				})
+				result.in_progress_count = in_progress_count
 				finalResourceIds = inProgressResources
-			} else {
+			}
+			if (!(common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS)) {
 				// fetch the resources types of an organization based on parallel and sequential review type
 				let { sequential: resourceTypesInSequentialReview, parallel: resourceTypesInParallelReview } =
 					await this.fetchResourceReviewTypes(organization_id)
@@ -587,14 +587,18 @@ module.exports = class resourceHelper {
 				user_id: {
 					[Op.notIn]: [user_id],
 				},
-				status: {
+			}
+			if (common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS) {
+				resourceFilter.status = common.REVIEW_STATUS_INPROGRESS
+			} else {
+				resourceFilter.status = {
 					[Op.notIn]: [
 						common.RESOURCE_STATUS_PUBLISHED,
 						common.RESOURCE_STATUS_REJECTED,
 						common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 						common.RESOURCE_STATUS_DRAFT,
 					],
-				},
+				}
 			}
 			if (searchText != '')
 				resourceFilter.title = {
@@ -614,6 +618,7 @@ module.exports = class resourceHelper {
 					'type',
 					'organization_id',
 					'status',
+					'stage',
 					'user_id',
 					'submitted_on',
 					'last_reviewed_on',
@@ -753,7 +758,8 @@ module.exports = class resourceHelper {
 									entityType.has_entities &&
 									entityType.entities &&
 									entityType.entities.length > 0 &&
-									resultData.hasOwnProperty(key)
+									resultData.hasOwnProperty(key) &&
+									entityType.value != common.DURATION
 								) {
 									const value = resultData[key]
 									// If the value is already in label-value pair format, skip processing
@@ -834,10 +840,12 @@ module.exports = class resourceHelper {
 				})
 			}
 		})
+
 		let resourceFilter = {
 			organization_id,
 			[Op.or]: resourceTypeStagesConfig,
-			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
+			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED] },
+			stage: common.RESOURCE_STAGE_REVIEW,
 		}
 
 		const resourcesDetails = await resourceQueries.findAll(resourceFilter, ['id'])
@@ -863,7 +871,7 @@ module.exports = class resourceHelper {
 			type: {
 				[Op.in]: resourceTypes,
 			},
-			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED, common.RESOURCE_STATUS_IN_REVIEW] },
+			stage: common.RESOURCE_STAGE_REVIEW,
 		}
 		let resoureId = []
 		const resourcesDetails = await resourceQueries.findAll(resourceFilter, ['id'])
@@ -1081,6 +1089,9 @@ module.exports = class resourceHelper {
 				},
 				{
 					published_id: publishedId,
+					published_on: new Date(),
+					status: common.RESOURCE_STATUS_PUBLISHED,
+					stage: common.RESOURCE_STAGE_COMPLETION,
 				}
 			)
 
@@ -1191,7 +1202,7 @@ module.exports = class resourceHelper {
 	 * @param {String} searchText - Title to search
 	 * @param {Integer} pageNo -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
 	 * @param {Integer} pageSize -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
-	 * @returns {Object} - Response contain object of user details
+	 * @returns {Object} - Response contain object of resources
 	 */
 	static async browseExistingList(organization_id, token, query, searchText = '', pageNo, pageSize) {
 		try {
@@ -1199,78 +1210,61 @@ module.exports = class resourceHelper {
 				data: [],
 				count: 0,
 			}
-			const resourceType = query[common.TYPE] ? query[common.TYPE] : ''
+			const resourceType = query[common.TYPE] ? query[common.TYPE].split(',') : ''
 			const search = searchText != '' ? searchText : ''
-			let externalResources = {}
-			// consumption side if set to self , only resources published with in SCP will be showed
-			// If it has any value other than self , the result will be combination of resources from the coupled service and from SCP.
-			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-				externalResources = await interfaceRequests.browseExistingList(
-					resourceType,
-					organization_id,
-					token,
-					search
-				)
-			}
+
 			let filterQuery = {
 				organization_id,
 				status: common.RESOURCE_STATUS_PUBLISHED,
-				published_id: null,
 			}
-			if (resourceType) filterQuery.type = resourceType
+			// construct sort object
+			const sort = await this.constructSortOptions(query.sort_by, query.sort_order)
+			if (resourceType)
+				filterQuery.type = {
+					[Op.in]: resourceType,
+				}
 			if (search)
 				filterQuery.title = {
 					[Op.iLike]: `%${search}%`,
 				}
-			const internalResources = await resourceQueries.findAll(filterQuery, [
-				'id',
-				'title',
-				'type',
-				'created_by',
-				'created_at',
-			])
 
-			const aggregatedResources = [
-				...(externalResources?.success && externalResources?.data?.result?.data?.length
-					? externalResources.data.result.data
-					: []),
-				...(internalResources.length ? internalResources : []),
-			]
+			const internalResources = await resourceQueries.resourceList(
+				filterQuery,
+				['id', 'title', 'type', 'created_by', 'created_at', 'published_on'],
+				sort,
+				pageNo,
+				pageSize
+			)
+			let userIds = internalResources.result.map((item) => item.created_by)
+			const internalResourcesIds = internalResources.result.map((item) => item.id)
 
-			if (aggregatedResources.length > 0) {
-				// construct sort object
-				const sort = await this.constructSortOptions(query.sort_by, query.sort_order)
-				// sort the array
-				const sortedResources = utils.sort(aggregatedResources, sort)
-				// data after applying pagenation
-				const paginatedResources = utils.paginate(sortedResources, pageNo, pageSize)
-				// get the unique creator ids to fetch the user details
-				const uniqueCreatorIds = _.difference(
-					utils.getUniqueElements(
-						paginatedResources.map((resource) => {
-							const createdBy = resource.created_by
-							return !isNaN(createdBy) && !isNaN(parseFloat(createdBy)) ? +createdBy : createdBy
-						})
-					),
-					[null, undefined, '']
-				)
-				// fetch the user details from user service with creatorId
-				const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
+			const reviewerDetails = await reviewsQueries.findAll(
+				{
+					resource_id: internalResourcesIds,
+					status: common.REVIEW_STATUS_APPROVED,
+				},
+				['reviewer_id', 'resource_id']
+			)
 
-				let finalResources = []
+			const resouceReviewerMapping = _.mapValues(_.groupBy(reviewerDetails, 'resource_id'), (reviewers) =>
+				reviewers.map((item) => item.reviewer_id)
+			)
 
-				paginatedResources.filter((resource) => {
-					resource.creator = userDetails[resource.created_by]?.name
-						? userDetails[resource.created_by]?.name
-						: ''
-					delete resource.created_by
-					finalResources.push(resource)
+			userIds = [...userIds, ...reviewerDetails.map((item) => item.reviewer_id)]
+
+			if (internalResources.result.length > 0) {
+				// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
+				const userDetails = await this.fetchUserDetails(utils.getUniqueElements(userIds))
+				result.count = internalResources.count
+				internalResources.result.forEach((resource) => {
+					resource['creator'] = userDetails[resource.created_by]?.name || ''
+					resource['reviewed_by'] = (resouceReviewerMapping[resource.id] || [])
+						.map((reviewer_id) => userDetails[reviewer_id]?.name || '')
+						.filter(Boolean) // To remove any empty strings
+						.join(' , ')
+					delete resource.created_at
+					result.data.push(resource)
 				})
-
-				result = {
-					data: finalResources,
-					count: aggregatedResources.length,
-				}
 			}
 
 			return responses.successResponse({

@@ -1,4 +1,4 @@
-// DependenciesI
+// Dependencies
 const httpStatusCode = require('@generics/http-status')
 const { UniqueConstraintError } = require('sequelize')
 const { Op } = require('sequelize')
