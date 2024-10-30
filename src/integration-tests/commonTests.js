@@ -7,7 +7,7 @@ const baseURL = 'http://localhost:6001'
 // Global headers for authenticated requests
 let defaultHeaders
 const waitOn = require('wait-on')
-let retries = 5
+let retries = 0
 
 // Improved waitForService function
 const waitForService = async (url) => {
@@ -185,10 +185,11 @@ const logIn = async () => {
 
 			console.log('userRoles : : == : : ', userRoles)
 			console.log('hasAllRoles : : == : : ', hasAllRoles)
+			// retries--
 			if (!hasAllRoles) {
+				retries += 1
 				//&& retries > 0
 				console.log('retries : : == : : ', retries)
-				// retries--
 				logIn()
 			}
 
