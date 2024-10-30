@@ -98,7 +98,7 @@ const verifyUserRole = async () => {
 			// Wait for both role creation requests to complete
 			if (roleCreationPromises.length > 0) {
 				const resss = await Promise.all(roleCreationPromises)
-				console.log('-=-=-=-=-=-=-=-=>> login url : verify role create : ', resss.url)
+				console.log('-=-=-=-=-=-=-=-=>> login url : verify role create : ', resss.request.url)
 				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(resss.body, null, 2))
 			}
 		}
@@ -154,7 +154,7 @@ const logIn = async () => {
 			password: password,
 		})
 
-		console.log('-=-=-=-=-=-=-=-=>> login url : create : ', res.url)
+		console.log('-=-=-=-=-=-=-=-=>> login url : create : ', res.request.url)
 
 		// Log in with the created account
 		res = await request.post('/user/v1/account/login').send({
@@ -162,7 +162,7 @@ const logIn = async () => {
 			password: password,
 		})
 
-		console.log('-=-=-=-=-=-=-=-=>> login url : login : ', res.url)
+		console.log('-=-=-=-=-=-=-=-=>> login url : login : ', res.request.url)
 
 		// Check if login was successful and return token details
 		if (res.body?.result?.access_token && res.body.result.user.id) {
