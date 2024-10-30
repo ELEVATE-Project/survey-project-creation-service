@@ -22,7 +22,6 @@ const waitForDatabase = async (retries = 5, delay = 3000) => {
 			console.log('Connected to DB')
 			return true
 		} catch (err) {
-			console.error(`Attempt ${i + 1} failed: ${err.message}`)
 			if (i < retries - 1) {
 				await new Promise((resolve) => setTimeout(resolve, delay)) // Wait before retrying
 			}
