@@ -10,7 +10,7 @@ let request = defaults(supertest(commonHelper.baseURL))
 describe('Project APIs ', function () {
 	let userDetails
 	beforeAll(async () => {
-		// await commonHelper.verifyUserRole()
+		jest.setTimeout(60000)
 		userDetails = await commonHelper.logIn()
 		// Wait for the service to be ready
 		await commonHelper.waitForService(commonHelper.baseURL)
