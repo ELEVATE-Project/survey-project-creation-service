@@ -113,7 +113,10 @@ jobs:
       - run:
           name: Running test cases
           command: |
-            cd src/ && npm run test:integration
+            cd src/
+            echo "Waiting for 2 minutes before starting the test cases..."
+            sleep 120
+            npm run test:integration
       - store_test_results:
           path: ./dev-ops/report
       - run:
