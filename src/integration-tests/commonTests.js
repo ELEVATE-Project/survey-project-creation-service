@@ -98,7 +98,6 @@ const verifyUserRole = async () => {
 			// Wait for both role creation requests to complete
 			if (roleCreationPromises.length > 0) {
 				const resss = await Promise.all(roleCreationPromises)
-				console.log('-=-=-=-=-=-=-=-=>> login url : verify role create : ', resss.request.url)
 				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(resss.body, null, 2))
 			}
 		}
