@@ -852,16 +852,34 @@ module.exports = class ProjectsHelper {
 				}
 			}
 
+			let solutionDetailsPath = `${sourceType}.${common.SOLUTION_DETAILS}`
+
 			//length check validation
 			let maxLengthValidation = entityType.validations.find(
 				(validation) => validation.type == common.MAX_LENGTH_VALIDATION
 			)
-			if (maxLengthValidation && fieldData) {
-				let lengthCheck = utils.checkLength(maxLengthValidation, fieldData)
+
+			if (
+				maxLengthValidation &&
+				((typeof fieldData === common.STRING && fieldData !== null) ||
+					(typeof fieldData === common.OBJECT &&
+						fieldData !== null &&
+						Object.keys(fieldData).length > 0 &&
+						fieldData.name))
+			) {
+				let lengthCheck = utils.checkLength(
+					maxLengthValidation,
+					entityType.value === common.SOLUTION_DETAILS ? fieldData.name : fieldData
+				)
+
 				if (!lengthCheck) {
 					validationErrors.push(
 						utils.errorObject(
-							model == common.PROJECT ? entityType.value : sourceType,
+							entityType.value === common.SOLUTION_DETAILS
+								? solutionDetailsPath
+								: model === common.PROJECT
+								? entityType.value
+								: sourceType,
 							model === common.PROJECT ? '' : entityType.value,
 							maxLengthValidation.message || `${entityType.value} is required`
 						)
@@ -986,7 +1004,6 @@ module.exports = class ProjectsHelper {
 					Object.keys(fieldData).length > 0 &&
 					JSON.parse(process.env.ENABLE_OBSERVATION_IN_PROJECTS)
 				) {
-					let solutionDetailsPath = `${sourceType}.${common.SOLUTION_DETAILS}`
 					//validate the observation name
 					let checkRegex = utils.checkRegexPattern(regexValidation, fieldData.name)
 					if (!checkRegex) {
