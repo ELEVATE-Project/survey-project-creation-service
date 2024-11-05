@@ -1633,7 +1633,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/createEntity400Response'
   /scp/v1/entities/update/{id}:
-    patch:
+    put:
       summary: Update Entity
       tags:
         - Entity
