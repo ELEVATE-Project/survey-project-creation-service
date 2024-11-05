@@ -193,4 +193,5 @@ module.exports = {
 	DURATION: 'duration',
 	RECOMMENDED_DURATION: 'recommended_duration',
 	NUMBER: 'number',
+	STRING: 'string',
 }
