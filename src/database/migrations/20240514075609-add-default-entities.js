@@ -99,7 +99,10 @@ module.exports = {
 					entityType: 'learning_resources',
 					entities: '',
 					has_entities: false,
-					validation: { regex: `^(?!-)[A-Za-z0-9-]+([-.]{1}[a-z0-9]+)*.[A-Za-z]{2,6}$`, required: true },
+					validation: {
+						regex: `^(https?:\\/\\/)?([\\w-]+\\.)+[\\w-]{2,}(\\/\\S*)*\\/?(#[\\w-]*)?(\\?.*)?$`,
+						required: true,
+					},
 					model: 'subTasks',
 				},
 				{

@@ -938,7 +938,7 @@ module.exports = class ProjectsHelper {
 						}
 
 						// Validate the name against the regex pattern
-						if (eachResource.name) {
+						if (eachResource.name && entityMapping?.learning_resource_name?.validations) {
 							const validateName = utils.checkRegexPattern(
 								entityMapping.learning_resource_name.validations,
 								eachResource.name
@@ -955,9 +955,9 @@ module.exports = class ProjectsHelper {
 						}
 
 						// Validate the URL against the regex pattern
-						if (eachResource.url) {
+						if (eachResource.url && entityMapping[common.LEARNING_RESOURCE]?.validations) {
 							const validateURL = utils.checkRegexPattern(
-								entityMapping[common.LEARNING_RESOURCE],
+								entityMapping[common.LEARNING_RESOURCE].validations,
 								eachResource.url
 							)
 							if (!validateURL) {
