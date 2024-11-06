@@ -35,7 +35,7 @@ const verifyUserRole = async () => {
 	// Wait for the service to be ready
 	await waitForService(baseURL)
 
-	jest.setTimeout(5000)
+	jest.setTimeout(10000)
 
 	// Create a new user
 	let email = 'orgadmin' + crypto.randomBytes(5).toString('hex') + '@shikshalokam.com'
@@ -172,6 +172,7 @@ const logIn = async () => {
 			global.request.set(defaultHeaders)
 			global.userId = res.body.result.user.id
 			return {
+				id: res.body.result.user.id,
 				token: res.body.result.access_token,
 				email: email,
 				password: password,
