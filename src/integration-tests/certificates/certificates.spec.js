@@ -5,7 +5,6 @@ jest.setTimeout(10000)
 describe('Certificate APIs ', function () {
 	let userDetails
 	beforeAll(async () => {
-		// await commonHelper.verifyUserRole()
 		userDetails = await commonHelper.logIn()
 	})
 	it('List Certificate Templates', async () => {

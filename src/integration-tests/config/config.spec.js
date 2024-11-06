@@ -8,7 +8,7 @@ describe('Config APIs', function () {
 
 	beforeAll(async () => {
 		// Uncomment this if you need to verify user roles before logging in
-		// await commonHelper.verifyUserRole();
+		await commonHelper.verifyUserRole()
 		console.log('before login....')
 		userDetails = await commonHelper.logIn()
 		console.log('after login....') // Log userDetails here

@@ -122,11 +122,11 @@ const verifyUserRole = async () => {
 			process.env.CLOUD_ENDPOINT
 		)
 
-		console.log('Calling verifyUserRole...')
-		const result = await verifyUserRole()
-		console.log('verifyUserRole result:', result)
+		// console.log('Calling verifyUserRole...')
+		// const result = await verifyUserRole()
+		// console.log('verifyUserRole result:', result)
 	} catch (error) {
-		console.error('Error while calling verifyUserRole:', error)
+		// console.error('Error while calling verifyUserRole:', error)
 	}
 })()
 
