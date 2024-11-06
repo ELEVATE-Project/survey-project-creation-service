@@ -147,6 +147,7 @@ module.exports = {
 	REVIEW_STATUS: 'review_status',
 	COMMENT_STATUS_OPEN: 'OPEN',
 	LEARNING_RESOURCE: 'learning_resources',
+	LEARNING_RESOURCE_NAME: 'learning_resource_name',
 	SOLUTION_DETAILS: 'solution_details',
 	TASK_ALLOWED_FILE_TYPES: 'file_types',
 	ALLOWED_FILE_TYPES: {
