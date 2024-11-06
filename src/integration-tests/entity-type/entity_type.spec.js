@@ -25,7 +25,6 @@ describe('Entity-Type APIs', function () {
 			data_type: 'STRING',
 			has_entities: true,
 		})
-
 		expect(res.statusCode).toBe(201)
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
