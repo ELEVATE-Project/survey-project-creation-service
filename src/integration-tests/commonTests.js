@@ -110,25 +110,22 @@ const verifyUserRole = async () => {
 	return true
 }
 
-;(async () => {
-	try {
-		console.log(
-			'PROCESS ENV VARIABLES : : ==> ',
-			process.env.CLOUD_STORAGE_PROVIDER,
-			process.env.CLOUD_STORAGE_ACCOUNTNAME,
-			process.env.CLOUD_STORAGE_SECRET,
-			process.env.CLOUD_STORAGE_BUCKETNAME,
-			process.env.CLOUD_STORAGE_REGION,
-			process.env.CLOUD_ENDPOINT
-		)
+// ;(async () => {
+// 	try {
+// 		console.log(
+// 			'PROCESS ENV VARIABLES : : ==> ',
+// 			process.env.CLOUD_STORAGE_PROVIDER,
+// 			process.env.CLOUD_STORAGE_ACCOUNTNAME,
+// 			process.env.CLOUD_STORAGE_SECRET,
+// 			process.env.CLOUD_STORAGE_BUCKETNAME,
+// 			process.env.CLOUD_STORAGE_REGION,
+// 			process.env.CLOUD_ENDPOINT
+// 		)
 
-		// console.log('Calling verifyUserRole...')
-		// const result = await verifyUserRole()
-		// console.log('verifyUserRole result:', result)
-	} catch (error) {
-		// console.error('Error while calling verifyUserRole:', error)
-	}
-})()
+// 	} catch (error) {
+// 		// console.error('Error while calling verifyUserRole:', error)
+// 	}
+// })()
 
 // Function to log in and generate token
 const logIn = async () => {
