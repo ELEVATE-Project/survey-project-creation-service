@@ -11,6 +11,7 @@ services:
       - elevate_net
     logging:
       driver: none
+
   kafka:
     image: 'confluentinc/cp-kafka:7.3.0'
     ports:
@@ -51,7 +52,7 @@ services:
       - elevate_net
     logging:
       driver: none
-  
+
   schedular:
     image: shikshalokamqa/elevate-scheduler:2.6.1
     ports:
@@ -87,7 +88,7 @@ services:
             npm run db:init && npm run db:seed:all
         else
             echo 'Database already exists. Skipping initialization and seeding.'
-            exit 0  # Exit successfully to prevent the container from stopping
+            exit 0
         fi &&
         (echo 'Running User' && nodemon app.js &) &&
         (/bin/bash -c 'cd scripts && echo Running user service scripts && node insertDefaultOrg.js && node viewsScript.js && node -r module-alias/register uploadSampleCSV.js') &&
@@ -105,6 +106,7 @@ services:
       - elevate_net
     env_file:
       - integration_test.user.env
+
   survey-project-creation-service:
     build: '../../survey-project-creation-service/'
     ports:
@@ -122,14 +124,25 @@ services:
         npm run db:init && 
         echo "Database initialized successfully." &&
 
+        echo "Running addEntities.js script...";
+        cd scripts && ls &&
+        node defaultEntities/educational-sector/addEntities.js &&
+
         echo "Rebuilding node-expat module...";
         npm rebuild node-expat && npm rebuild &&
         
         echo "Starting the application...";
-        nodemon app.js
-        echo "SCP Started...";
-        '
+        nodemon app.js &
 
+        # Wait for the application to be fully up
+        echo "Waiting for survey-project-creation-service to start...";
+        until timeout 1 bash -c "</dev/tcp/localhost/6001" >/dev/null 2>&1; do
+            echo "Waiting for survey-project-creation-service to be ready...";
+            sleep 1;
+        done &&
+        
+        tail -f /dev/null
+      '
     volumes:
       - ../../survey-project-creation-service/src/:/var/src
     environment:
