@@ -6,27 +6,24 @@ jest.setTimeout(200000)
 describe('Project APIs ', function () {
 	let userDetails
 	beforeAll(async () => {
-		let userRoleResponse = await commonHelper.verifyUserRole()
+		await commonHelper.verifyUserRole()
 		userDetails = await commonHelper.logIn()
 		console.log('Logged in User:', userDetails.id, userDetails.roles)
 	})
 
 	it('Create Project', async () => {
 		let res = await request.post('/scp/v1/projects/update').send(insertProjectData())
-		console.log(JSON.stringify(res.body, null, 2), 'Create Project')
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
 
 	it('Delete Project', async () => {
 		const res = await request.delete('/scp/v1/projects/update/999999')
-		// console.log(' -=-=-=-=-=-=-=-=-=-=-> ', res.body)
 		expect(res.statusCode).toBe(400)
 	})
 
 	it('Project Details', async () => {
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
-		console.log(JSON.stringify(createProject.body, null, 2), 'Create Project Project Details')
 		const projectId = createProject.body?.result?.id
 		let res = await request.get('/scp/v1/projects/details/' + projectId)
 		expect(res.statusCode).toBe(200)
@@ -53,10 +50,9 @@ describe('Project APIs ', function () {
 	it('Submit Project for Review', async () => {
 		//create project
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
-		console.log(JSON.stringify(createProject.body, null, 2), 'Create Project Project Details')
 		const projectId = createProject.body?.result?.id
+		//submit for review
 		const res = await request.post('/scp/v1/projects/submitForReview/' + projectId)
-		console.log(JSON.stringify(res.body, null, 2), 'hhhhhhh')
 		expect(res.statusCode).toBe(400)
 		// expect(res.body).toMatchSchema(schema.submitProjectSchema)
 	})
