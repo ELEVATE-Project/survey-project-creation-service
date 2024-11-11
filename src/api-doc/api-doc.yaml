@@ -1755,7 +1755,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/updateUserEntity400Response'
   /scp/v1/entities/read/{id}:
-    get:
+    post:
       summary: Get entity details
       tags:
         - Entity
@@ -1916,7 +1916,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/updateUserEntity400Response'
   /scp/v1/entities/list:
-    post:
+    get:
       operationId: entitylist
       summary: Get entity list with pagination and search
       tags:
