@@ -126,20 +126,13 @@ services:
 
         echo "Running addEntities.js script...";
         cd scripts && ls &&
-        node defaultEntities/educational-sector/addEntities.js &&
+        node addDefaultEntitiesForEducationSector.js &&
 
         echo "Rebuilding node-expat module...";
         npm rebuild node-expat && npm rebuild &&
         
         echo "Starting the application...";
-        nodemon app.js &
-
-        # Wait for the application to be fully up
-        echo "Waiting for survey-project-creation-service to start...";
-        until timeout 1 bash -c "</dev/tcp/localhost/6001" >/dev/null 2>&1; do
-            echo "Waiting for survey-project-creation-service to be ready...";
-            sleep 1;
-        done &&
+        nodemon app.js &&
         
         tail -f /dev/null
       '

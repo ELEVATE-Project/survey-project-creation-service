@@ -1,15 +1,20 @@
 /**
- * name : addEntities.js
+ * name : addDefaultEntitiesForEducationSector.js
  * author : Adithya Dinesh
  * created-date : 07-Nov-2024
  * Description : script to upload default entities related to education industry.
  */
 require('module-alias/register')
-const entityTypeQueries = require('../../../database/queries/entityType')
-require('dotenv').config({ path: '../../../.env' })
+const entityTypeQueries = require('../database/queries/entityType')
+require('dotenv').config({ path: '../.env' })
 const defaultOrgId = process.env.DEFAULT_ORG_ID
+	? process.env.DEFAULT_ORG_ID.toString()
+	: (() => {
+			throw new Error('DEFAULT_ORG_ID is not defined in env')
+	  })()
 const { Op } = require('sequelize')
-const entitiesQueries = require('../../../database/queries/entities')
+const entitiesQueries = require('../database/queries/entities')
+
 // create entity Type entities mapping here.
 // replicate the same code by changing the values for other domains other than education.
 // add more in the below variable.
@@ -30,29 +35,36 @@ const entityTypeEntitiesMapping = {
 
 ;(async () => {
 	try {
-		// const defaultOrgId = process.env.DEFAULT_ORG_ID
+		// fetch the entity types to add entities
 		const entityTypes = Object.keys(entityTypeEntitiesMapping)
-
-		const entityTypeDetails = await entityTypeQueries.findAllEntityTypes(defaultOrgId, ['id', 'value'], {
+		// fetch entity type and its current entities
+		const entityTypeDetails = await entityTypeQueries.findUserEntityTypeAndEntities({
 			value: {
 				[Op.in]: entityTypes,
 			},
 		})
-		const entityTypeIdValueMap = entityTypeDetails.reduce((idValueMap, entityType) => {
-			idValueMap[Number(entityType.id)] = entityTypeEntitiesMapping[entityType.value]
-			return idValueMap
-		}, {})
-		let create = []
-		let entityTypeIds = Object.keys(entityTypeIdValueMap)
+		let existingEntities = []
+		// create entity id map
+		const entityTypeIdValueMap = Object.fromEntries(
+			entityTypeDetails.map((entityType) => {
+				const id = Number(entityType.id)
 
-		const existingEntities = await entitiesQueries.findAllEntities({
-			entity_type_id: {
-				[Op.in]: entityTypeIds,
-			},
-		})
+				// Populate existingEntities inline using flatMap for efficiency
+				existingEntities.push(
+					...entityType.entities.map((entity) => ({
+						entity_type_id: id,
+						value: entity.value,
+					}))
+				)
+
+				return [id, entityTypeEntitiesMapping[entityType.value]]
+			})
+		)
+
+		let entitiesToCreate = [] // all the entities to create will be pushed to this variable
+
 		Object.entries(entityTypeIdValueMap).forEach(([entity_type_id, entities]) => {
-			entityTypeIds.push(entity_type_id)
-
+			// iterate through the entities given and check if its already created for the entity type
 			entities.forEach((entity) => {
 				const exists = existingEntities.some(
 					(existingEntity) =>
@@ -62,7 +74,7 @@ const entityTypeEntitiesMapping = {
 
 				// Only push to create if the entity does not exist in existingEntities
 				if (!exists) {
-					create.push({
+					entitiesToCreate.push({
 						entity_type_id: Number(entity_type_id),
 						value: entity.value,
 						label: entity.label,
@@ -77,8 +89,9 @@ const entityTypeEntitiesMapping = {
 			})
 		})
 
-		if (create.length > 0) {
-			await entitiesQueries.bulkCreate(create)
+		if (entitiesToCreate.length > 0) {
+			// bulk create entities
+			await entitiesQueries.bulkCreate(entitiesToCreate)
 			console.log('-----> Entities Created Successfully.')
 		} else {
 			console.log('-----> All Entities already Created.')
