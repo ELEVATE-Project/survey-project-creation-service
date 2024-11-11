@@ -83,12 +83,12 @@ To set up the MentorEd application, ensure you have Docker and Docker Compose in
     curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0/dockerized/docker-compose.yml
     ```
 
-    > Note: All commands are run from the survey-project-creation directory.
+    > Note: All commands are run from the survey-project-creation-service directory.
 
     Directory structure:
 
     ```
-    ./survey-project-creation
+    ./survey-project-creation-service
     └── docker-compose.yml
     ```
 
@@ -108,12 +108,12 @@ To set up the MentorEd application, ensure you have Docker and Docker Compose in
 
         ```
         curl -L ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/master/documentation/1.0/dockerized/envs/interface_env ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/master/documentation/1.0/dockerized/envs/survey_project_creation_env ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/master/documentation/1.0/dockerized/envs/notification_env ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/master/documentation/1.0/dockerized/envs/scheduler_env ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/master/documentation/1.0/dockerized/envs/user_env ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/master/documentation/1.0/dockerized/envs/environment.ts
+            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/interface_env ^
+            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/survey_project_creation_env ^
+            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/notification_env ^
+            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/scheduler_env ^
+            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/user_env ^
+            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/environment.ts
         ```
 
     > **Note:** Modify the environment files as necessary for your deployment using any text editor, ensuring that the values are appropriate for your environment. The default values provided in the current files are functional and serve as a good starting point. Refer to the sample env files provided at the [Survey Project Creation](https://github.com/ELEVATE-Project/survey-project-creation-service/blob/develop/src/.env.sample), [User](https://github.com/ELEVATE-Project/user/blob/master/src/.env.sample), [Notification](https://github.com/ELEVATE-Project/notification/blob/master/src/.env.sample), [Scheduler](https://github.com/ELEVATE-Project/scheduler/blob/master/src/.env.sample), and [Interface](https://github.com/ELEVATE-Project/interface-service/blob/main/src/.env.sample) repositories for reference.
@@ -190,9 +190,144 @@ To set up the MentorEd application, ensure you have Docker and Docker Compose in
     -   **Windows**
 
         ```
-        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/master/documentation/1.0/dockerized/scripts/windows/docker-compose-up.bat
+        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/scripts/windows/docker-compose-up.bat
         ```
 
         ```
-        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/master/documentation/1.0/dockerized/scripts/windows/docker-compose-down.bat
+        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/scripts/windows/docker-compose-down.bat
         ```
+
+7.  **Run All Services & Dependencies:** All services and dependencies can be started using the `docker-compose-up` script file.
+
+    -   **Ubuntu/Linux/Mac**
+        ```
+        ./docker-compose-up.sh
+        ```
+    -   **Windows**
+
+        ```
+        docker-compose-up.bat
+        ```
+
+        > Double-click the file or run the above command from the terminal.
+
+        > **Note**: During the first Docker Compose run, the database, migration seeder files, and the script to set the default organization will be executed automatically.
+
+8.  **Access The Self Creation Portal Application**: Once the services are up and the front-end app bundle is built successfully, navigate to **[localhost:8100](http://localhost:8100/)** to access the Self Creation Portal app.
+
+9.  **Gracefully Stop All Services & Dependencies:** All containers which are part of the docker-compose can be gracefully stopped by pressing `Ctrl + c` in the same terminal where the services are running.
+
+10. **Remove All Service & Dependency Containers**: All docker containers can be stopped and removed by using the `docker-compose-down` file.
+
+    -   **Ubuntu/Linux/Mac**
+        ```
+        ./docker-compose-down.sh
+        ```
+    -   **Windows**
+
+        ```
+        docker-compose-down.bat
+        ```
+
+        > **Caution**: As per the default configuration in the `docker-compose.yml` file, using the `down` command will lead to data loss since the database container does not persist data. To persist data across `down` commands and subsequent container removals, refer to the "Persistence of Database Data in Docker Containers" section of this documentation.
+
+## Enable Citus Extension
+
+Self Creation Portal relies on PostgreSQL as its core database system. To boost performance and scalability, users can opt to enable the Citus extension. This transforms PostgreSQL into a distributed database, spreading data across multiple nodes to handle large datasets more efficiently as demand grows.
+
+For more information, refer **[Citus Data](https://www.citusdata.com/)**.
+
+To enable the Citus extension for mentoring and user services, follow these steps.
+
+1. Create a sub-directory named `survey-project-creation-service` and download `distributionColumns.sql` into it.
+
+```
+mkdir survey-project-creation-service && curl -o ./survey-project-creation-service/distributionColumns.sql -JL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/distribution-columns/survey-project-creation-service/distributionColumns.sql
+```
+
+2. Create a sub-directory named `user` and download `distributionColumns.sql` into it.
+
+```
+mkdir user && curl -o ./user/distributionColumns.sql -JL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/distribution-columns/user/distributionColumns.sql
+```
+
+3. Set up the citus_setup file by following the steps given below.
+
+-   **Ubuntu/Linux/Mac**
+
+    1. Download the `citus_setup.sh` file.
+
+        ```
+        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/scripts/mac-linux/citus_setup.sh
+        ```
+
+    2. Make the setup file executable by running the following command.
+
+        ```
+        chmod +x citus_setup.sh
+        ```
+
+    3. Enable Citus and set distribution columns for `survey-project-creation-service` database by running the `citus_setup.sh`with the following arguments.
+        ```
+        ./citus_setup.sh survey-project-creation-service postgres://postgres:postgres@citus_master:5432/elevate-scp
+        ```
+    4. Enable Citus and set distribution columns for `user` database by running the `citus_setup.sh`with the following arguments.
+        ```
+        ./citus_setup.sh user postgres://postgres:postgres@citus_master:5432/user
+        ```
+
+-   **Windows**
+    1. Download the `citus_setup.bat` file.
+        ```
+        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/scripts/windows/citus_setup.bat
+        ```
+    2. Enable Citus and set distribution columns for `survey-project-creation-service` database by running the `citus_setup.bat`with the following arguments.
+        ```
+        citus_setup.bat survey-project-creation-service postgres://postgres:postgres@citus_master:5432/elevate-scp
+        ```
+    3. Enable Citus and set distribution columns for `user` database by running the `citus_setup.bat`with the following arguments.
+        ```
+        citus_setup.bat user postgres://postgres:postgres@citus_master:5432/user
+        ```
+        > **Note:** Since the `citus_setup.bat` file requires arguments, it must be run from a terminal.
+
+## Persistence Of Database Data In Docker Container
+
+To ensure the persistence of database data when running `docker compose down`, it is necessary to modify the `docker-compose.yml` file according to the steps given below:
+
+1. **Modification Of The `docker-compose.yml` File:**
+
+    Begin by opening the `docker-compose.yml` file. Locate the section pertaining to the Citus container and proceed to uncomment the volume specification. This action is demonstrated in the snippet provided below:
+
+    ```yaml
+    citus:
+        image: citusdata/citus:11.2.0
+        container_name: 'citus_master'
+        ports:
+            - 5432:5432
+        volumes:
+            - citus-data:/var/lib/postgresql/data
+    ```
+
+2. **Uncommenting Volume Names Under The Volumes Section:**
+
+    Next, navigate to the volumes section of the file and proceed to uncomment the volume names as illustrated in the subsequent snippet:
+
+    ```yaml
+    networks:
+        elevate_net:
+            external: false
+
+    volumes:
+        citus-data:
+    ```
+
+By implementing these adjustments, the configuration ensures that when the `docker-compose down` command is executed, the database data is securely stored within the specified volumes. Consequently, this data will be retained and remain accessible, even after the containers are terminated and subsequently reinstated using the `docker-compose up` command.
+
+## Sample User Accounts Generation
+
+During the initial setup of Self Creation portal services with the default configuration, you may encounter issues creating new accounts through the regular SignUp flow on the Self Creation portal. This typically occurs because the default SignUp process includes OTP verification to prevent abuse. Until the notification service is configured correctly to send actual emails, you will not be able to create new accounts.
+
+In such cases, you can generate sample user accounts using the steps below. This allows you to explore the MentorEd services and portal immediately after setup.
+
+> **Warning:** Use this generator only immediately after the initial system setup and before any normal user accounts are created through the portal. It should not be used under any circumstances thereafter.
