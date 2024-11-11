@@ -18,15 +18,7 @@ module.exports = {
 				},
 				{
 					entityType: 'categories',
-					entities: [
-						{ value: 'teachers', label: 'Teachers' },
-						{ value: 'students', label: 'Students' },
-						{ value: 'community', label: 'Community' },
-						{ value: 'school_process', label: 'School Process' },
-						{ value: 'infrastructure', label: 'Infrastructure' },
-						{ value: 'education_leader', label: 'Education Leader' },
-						{ value: 'other', label: 'Other' },
-					],
+					entities: [],
 					has_entities: true,
 					validation: { required: true },
 					model: 'project',
@@ -47,12 +39,7 @@ module.exports = {
 				},
 				{
 					entityType: 'recommended_for',
-					entities: [
-						{ value: 'hm', label: 'HM' },
-						{ value: 'ht', label: 'HT' },
-						{ value: 'teachers', label: 'Teachers' },
-						{ value: 'education_leader', label: 'Education Leader' },
-					],
+					entities: [],
 					has_entities: true,
 					validation: { required: true },
 					model: 'project',
@@ -99,7 +86,10 @@ module.exports = {
 					entityType: 'learning_resources',
 					entities: '',
 					has_entities: false,
-					validation: { regex: `^(?!-)[A-Za-z0-9-]+([-.]{1}[a-z0-9]+)*.[A-Za-z]{2,6}$`, required: true },
+					validation: {
+						regex: `^(https?:\\/\\/)?([\\w-]+\\.)+[\\w-]{2,}(\\/\\S*)*\\/?(#[\\w-]*)?(\\?.*)?$`,
+						required: true,
+					},
 					model: 'subTasks',
 				},
 				{
