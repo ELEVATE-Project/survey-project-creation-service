@@ -309,3 +309,31 @@ In such cases, you can generate sample user accounts using the steps below. This
     ```
     ./insert_sample_data.sh user postgres://postgres:postgres@citus_master:5432/user
     ```
+
+-   **Windows**
+
+    1. **Download The `sampleData.sql` Files:**
+
+        ```
+        mkdir sample-data\user 2>nul & ^
+        curl -L "https://raw.githubusercontent.com/ELEVATE-Project/project-service/main/documentation/1.0.0/sample-data/windows/user/sampleData.sql" -o sample-data\user\sampleData.sql
+        ```
+
+    2. **Download The `insert_sample_data` Script File:**
+
+        ```
+        curl -L -o insert_sample_data.bat https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/dockerized/scripts/windows/insert_sample_data.bat
+        ```
+
+    3. **Run The `insert_sample_data` Script File:**
+
+        ```
+        insert_sample_data.bat user postgres://postgres:postgres@citus_master:5432/user
+        ```
+
+    After successfully running the script mentioned above, the following user accounts will be created and available for login:
+
+    | Email ID                 | Password   | Role            |
+    | ------------------------ | ---------- | --------------- |
+    | priyanka@tunerlabs.com   | Password1@ | reviewer        |
+    | adithya@shikshalokam.com | Password1@ | content_creator |
