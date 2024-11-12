@@ -52,7 +52,10 @@ The survey project creation module enables creators to independently design and 
 
 # System Requirements
 
--   **Operating System:** Ubuntu 22/Windows 11/macos 12
+-   **Operating System:**
+    -   **Ubuntu** (Recommended: Version 20 and above)
+    -   **Windows** (Recommended: Version 11 and above)
+    -   **macOS** (Recommended: Version 12 and above)
 -   **Node.js®:** v20
 -   **PostgreSQL:** 16
 -   **Apache Kafka®:** 3.5.0
@@ -61,94 +64,102 @@ The survey project creation module enables creators to independently design and 
 
 **Elevate services can be setup in local using two methods:**
 
+> Note : This guide outlines two setup methods, detailed below. For a quick, beginner-friendly setup and walkthrough of services, it is recommended to use the Dockerized Services & Dependencies setup with the Docker-Compose file.
+
 <details><summary>Dockerized Services & Dependencies Using Docker-Compose File</summary>
 
 ## Dockerized Services & Dependencies
 
-Expectation: Upon following the prescribed steps, you will achieve a fully operational MentorEd application setup, complete with both the portal and backend services.
+Expectation: Upon following the prescribed steps, you will achieve a fully operational Self Creation Portal application setup, complete with both the portal and backend services.
 
 ## Prerequisites
 
-To set up the MentorEd application, ensure you have Docker and Docker Compose installed on your system. For Ubuntu users, detailed installation instructions for both can be found in the documentation here: [How To Install and Use Docker Compose on Ubuntu](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-20-04). For Windows and MacOS users, you can refer to the Docker documentation for installation instructions: [Docker Compose Installation Guide](https://docs.docker.com/compose/install/). Once these prerequisites are in place, you're all set to get started with setting up the MentorEd application.
+To set up the Self Creation Portal application, ensure you have Docker and Docker Compose installed on your system. For Ubuntu users, detailed installation instructions for both can be found in the documentation here: [How To Install and Use Docker Compose on Ubuntu](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-20-04). For Windows and MacOS users, you can refer to the Docker documentation for installation instructions: [Docker Compose Installation Guide](https://docs.docker.com/compose/install/). Once these prerequisites are in place, you're all set to get started with setting up the MentorEd application.
 
 ## Installation
 
 1.  **Create survey-project-creation Directory:** Create a directory named **survey-project-creation**.
 
-    > Example Command: `mkdir survey-project-creation && cd survey-project-creation/`
+> Example Command: `mkdir survey-project-creation && cd survey-project-creation/`
 
-2.  **Download Docker Compose File:** Retrieve the **[docker-compose.yml](https://github.com/ELEVATE-Project/survey-project-creation-service/blob/develop/src/scripts/setup/docker-compose.yml)** file from the survey-project-creation-service repository and save it to the survey-project-creation directory.
+> Note: All commands are run from the project directory.
+
+## Operating Systems: Linux / macOS
+
+> **Caution:** Before proceeding, please ensure that the ports given here are available and open. It is essential to verify their availability prior to moving forward. You can run below command in your teminal to check this
+
+```
+for port in 3000 3001 3002 6000 5001 4000 9092 5432 7007 2181 2707 3569; do
+    if lsof -iTCP:$port -sTCP:LISTEN &>/dev/null; then
+        echo "Port $port is in use"
+    else
+        echo "Port $port is available"
+    fi
+done
+```
+
+1.  **Download and execute main setup script:** Execute the following command in your terminal from the project directory.
+    `   curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/scripts/mac-linux/setup_scp.sh && chmod +x setup_scp.sh && ./setup_scp.sh`
+
+         > Note : The script will download all the essential files and launch the services in Docker. Once all services are successfully up and running, you can proceed to the next steps.
+
+         **General Instructions :**
+
+         1. All containers which are part of the docker-compose can be gracefully stopped by pressing Ctrl + c in the same terminal where the services are running.
+
+         2. All docker containers can be stopped and removed by using below command.
+             ```
+             ./docker-compose-down.sh
+             ```
+         3. All services and dependencies can be started using below command.
+             ```
+             ./docker-compose-up.sh
+             ```
+
+    **Keep the current terminal session active, and kindly open a new terminal window within the survey-project-creation directory.**
+
+**After successfully completing this, please move to the next section: [Enable Citus Extension](#enable-citus-extension-optional)**
+
+## Operating Systems: Windows
+
+1.  **Download Docker Compose File:** Retrieve the **[docker-compose-project.yml](https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/docker-compose.yml)** file from the Project service repository and save it to the project directory.
 
     ```
-    curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0/dockerized/docker-compose.yml
+    curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/docker-compose.yml
     ```
 
-    > Note: All commands are run from the survey-project-creation-service directory.
+    > Note: All commands are run from the project directory.
 
-    Directory structure:
+2.  **Download Environment Files**: Using the OS specific commands given below, download environment files for all the services.
 
-    ```
-    ./survey-project-creation-service
-    └── docker-compose.yml
-    ```
-
-3.  **Download Environment Files**: Using the OS specific commands given below, download environment files for all the services.
-
-    -   **Ubuntu/Linux/Mac**
-        ```
-        curl -L \
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0/dockerized/envs/interface_env \
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0/dockerized/envs/survey_project_creation_env \
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0/dockerized/envs/notification_env \
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0/dockerized/envs/scheduler_env \
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0/dockerized/envs/user_env \
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0/dockerized/envs/environment.ts
-        ```
     -   **Windows**
 
         ```
         curl -L ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/interface_env ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/survey_project_creation_env ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/notification_env ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/scheduler_env ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/user_env ^
-            -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/envs/environment.ts
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/interface_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/survey_project_creation_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/entity_management_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/project_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/notification_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/scheduler_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/user_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/environment.ts
         ```
 
-    > **Note:** Modify the environment files as necessary for your deployment using any text editor, ensuring that the values are appropriate for your environment. The default values provided in the current files are functional and serve as a good starting point. Refer to the sample env files provided at the [Survey Project Creation](https://github.com/ELEVATE-Project/survey-project-creation-service/blob/develop/src/.env.sample), [User](https://github.com/ELEVATE-Project/user/blob/master/src/.env.sample), [Notification](https://github.com/ELEVATE-Project/notification/blob/master/src/.env.sample), [Scheduler](https://github.com/ELEVATE-Project/scheduler/blob/master/src/.env.sample), and [Interface](https://github.com/ELEVATE-Project/interface-service/blob/main/src/.env.sample) repositories for reference.
+    > **Note:** Modify the environment files as necessary for your deployment using any text editor, ensuring that the values are appropriate for your environment. The default values provided in the current files are functional and serve as a good starting point. Refer to the sample env files provided at the [Survey Project Creation](https://github.com/survey-project-creation-service/project-service/blob/main/.env.sample), [User](https://github.com/survey-project-creation-service/user/blob/master/src/.env.sample), [Notification](https://github.com/survey-project-creation-service/notification/blob/master/src/.env.sample), [Scheduler](https://github.com/survey-project-creation-service/scheduler/blob/master/src/.env.sample), [Interface](https://github.com/survey-project-creation-service/interface-service/blob/main/src/.env.sample) and [Entity-management](https://github.com/survey-project-creation-service/entity-management/blob/main/src/.env.sample) repositories for reference.
 
-    > **Caution:** While the default values in the downloaded environment files enable the Self Creation Portal Application to operate, certain features may not function correctly or could be impaired unless the adopter-specific environment variables are properly configured.
-    >
-    > For detailed instructions on adjusting these values, please consult the **[MentorEd Environment Variable Modification Guide](https://github.com/ELEVATE-Project/survey-project-creation-service/blob/develop/documentation/1.0/MentorEd-Env-Modification-README.md)**.
+    > **Caution:** While the default values in the downloaded environment files enable the Project Application to operate, certain features may not function correctly or could be impaired unless the adopter-specific environment variables are properly configured.
 
-    > **Important:** As mentioned in the above linked document, the **User SignUp** functionality may be compromised if key environment variables are not set correctly during deployment. If you opt to skip this setup, consider using the sample user account generator detailed in the `Sample User Accounts Generation` section of this document.
-
-4.  **Download `replace_volume_path` Script File**
-
-    -   **Ubuntu/Linux/Mac**
-
-        ```
-        curl -OJL https://raw.githubusercontent.com/ELEVATE-Project/survey-project-creation-service/develop/documentation/1.0/dockerized/scripts/mac-linux/replace_volume_path.sh
-        ```
+3.  **Download `replace_volume_path` Script File**
 
     -   **Windows**
 
         ```
-        curl -OJL https://raw.githubusercontent.com/ELEVATE-Project/survey-project-creation-service/develop/documentation/1.0/dockerized/scripts/windows/replace_volume_path.bat
+        curl -OJL https://raw.githubusercontent.com/survey-project-creation-service/project-service/main/documentation/1.0.0/dockerized/scripts/windows/replace_volume_path.bat
         ```
 
-5.  **Run `replace_volume_path` Script File**
+4.  **Run `replace_volume_path` Script File**
 
-    -   **Ubuntu/Linux/Mac**
-        1. Make the `replace_volume_path.sh` file an executable.
-            ```
-            chmod +x replace_volume_path.sh
-            ```
-        2. Run the script file using the following command.
-            ```
-            ./replace_volume_path.sh
-            ```
     -   **Windows**
 
         Run the script file either by double clicking it or by executing the following command from the terminal.
@@ -161,48 +172,22 @@ To set up the MentorEd application, ensure you have Docker and Docker Compose in
         >
         > volumes:
         >
-        > \- /home/priyanka/elevate/backend/environment.ts:/app/src/environments/environment.ts
+        > \- /home/priyanka/survey-project-creation/environment.ts:/app/src/environments/environment.ts
 
-6.  **Download `docker-compose-up` & `docker-compose-down` Script Files**
-
-    -   **Ubuntu/Linux/Mac**
-
-        1. Download the files.
-
-            ```
-            curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/scripts/mac-linux/docker-compose-up.sh
-            ```
-
-            ```
-            curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/scripts/mac-linux/docker-compose-down.sh
-            ```
-
-        2. Make the files executable by running the following commands.
-
-            ```
-            chmod +x docker-compose-up.sh
-            ```
-
-            ```
-            chmod +x docker-compose-down.sh
-            ```
+5.  **Download `docker-compose-up` & `docker-compose-down` Script Files**
 
     -   **Windows**
 
         ```
-        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/scripts/windows/docker-compose-up.bat
+        curl -OJL https://github.com/ELEVATE-Project/project-service/raw/main/documentation/1.0.0/dockerized/scripts/windows/docker-compose-up.bat
         ```
 
         ```
-        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/scripts/windows/docker-compose-down.bat
+        curl -OJL https://github.com/ELEVATE-Project/project-service/raw/main/documentation/1.0.0/dockerized/scripts/windows/docker-compose-down.bat
         ```
 
-7.  **Run All Services & Dependencies:** All services and dependencies can be started using the `docker-compose-up` script file.
+6.  **Run All Services & Dependencies**:All services and dependencies can be started using the `docker-compose-up` script file.
 
-    -   **Ubuntu/Linux/Mac**
-        ```
-        ./docker-compose-up.sh
-        ```
     -   **Windows**
 
         ```
@@ -213,23 +198,16 @@ To set up the MentorEd application, ensure you have Docker and Docker Compose in
 
         > **Note**: During the first Docker Compose run, the database, migration seeder files, and the script to set the default organization will be executed automatically.
 
-8.  **Access The Self Creation Portal Application**: Once the services are up and the front-end app bundle is built successfully, navigate to **[localhost:8100](http://localhost:8100/)** to access the Self Creation Portal app.
+7.  **Remove All Service & Dependency Containers**:
+    All docker containers can be stopped and removed by using the `docker-compose-down` file.
 
-9.  **Gracefully Stop All Services & Dependencies:** All containers which are part of the docker-compose can be gracefully stopped by pressing `Ctrl + c` in the same terminal where the services are running.
-
-10. **Remove All Service & Dependency Containers**: All docker containers can be stopped and removed by using the `docker-compose-down` file.
-
-    -   **Ubuntu/Linux/Mac**
-        ```
-        ./docker-compose-down.sh
-        ```
     -   **Windows**
 
         ```
         docker-compose-down.bat
         ```
 
-        > **Caution**: As per the default configuration in the `docker-compose.yml` file, using the `down` command will lead to data loss since the database container does not persist data. To persist data across `down` commands and subsequent container removals, refer to the "Persistence of Database Data in Docker Containers" section of this documentation.
+    > **Caution**: As per the default configuration in the `docker-compose-project.yml` file, using the `down` command will lead to data loss since the database container does not persist data. To persist data across `down` commands and subsequent container removals, refer to the "Persistence of Database Data in Docker Containers" section of this documentation.
 
 ## Enable Citus Extension
 
@@ -237,18 +215,18 @@ Self Creation Portal relies on PostgreSQL as its core database system. To boost 
 
 For more information, refer **[Citus Data](https://www.citusdata.com/)**.
 
-To enable the Citus extension for mentoring and user services, follow these steps.
+To enable the Citus extension for survey-project-creation and user services, follow these steps.
 
-1. Create a sub-directory named `survey-project-creation-service` and download `distributionColumns.sql` into it.
+1. Create a sub-directory named `survey-project-creation` and download `distributionColumns.sql` into it.
 
 ```
-mkdir survey-project-creation-service && curl -o ./survey-project-creation-service/distributionColumns.sql -JL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/distribution-columns/survey-project-creation-service/distributionColumns.sql
+mkdir survey-project-creation && curl -o ./survey-project-creation/distributionColumns.sql -JL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0.0/distribution-columns/survey-project-creation-service/distributionColumns.sql
 ```
 
 2. Create a sub-directory named `user` and download `distributionColumns.sql` into it.
 
 ```
-mkdir user && curl -o ./user/distributionColumns.sql -JL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/distribution-columns/user/distributionColumns.sql
+mkdir user && curl -o ./user/distributionColumns.sql -JL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0.0/distribution-columns/user/distributionColumns.sql
 ```
 
 3. Set up the citus_setup file by following the steps given below.
@@ -258,20 +236,14 @@ mkdir user && curl -o ./user/distributionColumns.sql -JL https://github.com/ELEV
     1. Download the `citus_setup.sh` file.
 
         ```
-        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0/dockerized/scripts/mac-linux/citus_setup.sh
+        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/develop/documentation/1.0.0/dockerized/scripts/mac-linux/citus_setup.sh
         ```
 
-    2. Make the setup file executable by running the following command.
-
-        ```
-        chmod +x citus_setup.sh
-        ```
-
-    3. Enable Citus and set distribution columns for `survey-project-creation-service` database by running the `citus_setup.sh`with the following arguments.
+    2. Enable Citus and set distribution columns for `survey-project-creation-service` database by running the `citus_setup.sh`with the following arguments.
         ```
         ./citus_setup.sh survey-project-creation-service postgres://postgres:postgres@citus_master:5432/elevate-scp
         ```
-    4. Enable Citus and set distribution columns for `user` database by running the `citus_setup.sh`with the following arguments.
+    3. Enable Citus and set distribution columns for `user` database by running the `citus_setup.sh`with the following arguments.
         ```
         ./citus_setup.sh user postgres://postgres:postgres@citus_master:5432/user
         ```
@@ -328,6 +300,12 @@ By implementing these adjustments, the configuration ensures that when the `dock
 
 During the initial setup of Self Creation portal services with the default configuration, you may encounter issues creating new accounts through the regular SignUp flow on the Self Creation portal. This typically occurs because the default SignUp process includes OTP verification to prevent abuse. Until the notification service is configured correctly to send actual emails, you will not be able to create new accounts.
 
-In such cases, you can generate sample user accounts using the steps below. This allows you to explore the MentorEd services and portal immediately after setup.
+In such cases, you can generate sample user accounts using the steps below. This allows you to explore the survey-project creation services and portal immediately after setup.
 
 > **Warning:** Use this generator only immediately after the initial system setup and before any normal user accounts are created through the portal. It should not be used under any circumstances thereafter.
+
+**Ubuntu/Linux/Mac**
+
+    ```
+    ./insert_sample_data.sh user postgres://postgres:postgres@citus_master:5432/user
+    ```
