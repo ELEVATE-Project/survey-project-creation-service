@@ -337,3 +337,18 @@ In such cases, you can generate sample user accounts using the steps below. This
     | ------------------------ | ---------- | --------------- |
     | priyanka@tunerlabs.com   | Password1@ | reviewer        |
     | adithya@shikshalokam.com | Password1@ | content_creator |
+
+</details>
+<details>
+<summary>Natively Installed Services & Dependencies </summary>
+
+## PM2 Managed Services & Natively Installed Dependencies
+
+### System Requirements
+
+-   **Node.js®:** v20
+-   **PostgreSQL:** 16
+-   **Apache Kafka®:** 3.5.0
+-   **Redis:** 7.2.4
+
+Expectation: Upon following the prescribed steps, you will achieve a fully operational ELEVATE-Survey-project Creation Portal application setup. Both the portal and backend services are managed using PM2, with all dependencies installed natively on the host system.
