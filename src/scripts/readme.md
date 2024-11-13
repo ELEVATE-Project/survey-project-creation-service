@@ -25,3 +25,17 @@ This script migrates all existing project templates of elevate project
     ```bash
         node migrateProjects.js
     ```
+
+### Script to Add Default Entities for the Education Sector.
+
+This script creates default entities.
+NOTE : Education related entities are added in the default script. Update the file accordingly to add desired entities.
+
+-   Navigate to the scripts folder using the following command
+    ```bash
+        cd src/scripts
+    ```
+-   Run the script
+    ```bash
+         node addDefaultEntitiesForEducationSector.js
+    ```
