@@ -5,13 +5,8 @@
  * Description : script to upload default entities related to education industry.
  */
 require('module-alias/register')
-const entityTypeQueries = require('../database/queries/entityType')
 require('dotenv').config({ path: '../.env' })
-const defaultOrgId = process.env.DEFAULT_ORG_ID
-	? process.env.DEFAULT_ORG_ID.toString()
-	: (() => {
-			throw new Error('DEFAULT_ORG_ID is not defined in env')
-	  })()
+const entityTypeQueries = require('../database/queries/entityType')
 const { Op } = require('sequelize')
 const entitiesQueries = require('../database/queries/entities')
 
