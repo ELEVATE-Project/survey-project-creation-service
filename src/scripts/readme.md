@@ -37,5 +37,5 @@ NOTE : Education related entities are added in the default script. Update the fi
     ```
 -   Run the script
     ```bash
-         node addDefaultEntitiesForEducationSector.js
+          node -r module-alias/register addDefaultEntitiesForEducationSector.js
     ```

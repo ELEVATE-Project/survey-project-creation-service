@@ -126,7 +126,7 @@ services:
 
         echo "Running addEntities.js script...";
         cd scripts && ls &&
-        node addDefaultEntitiesForEducationSector.js &&
+         node -r module-alias/register addDefaultEntitiesForEducationSector.js &&
 
         echo "Rebuilding node-expat module...";
         npm rebuild node-expat && npm rebuild &&
