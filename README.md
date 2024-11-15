@@ -89,7 +89,7 @@ To set up the Self Creation Portal application, ensure you have Docker and Docke
 > **Caution:** Before proceeding, please ensure that the ports given here are available and open. It is essential to verify their availability prior to moving forward. You can run below command in your teminal to check this
 
 ```
-for port in 3000 3001 3002 6000 5001 4000 9092 5432 7007 2181 2707 3569; do
+for port in 6001 3000 3001 3002 6000 5001 4000 9092 5432 7007 2181 2707 3569; do
     if lsof -iTCP:$port -sTCP:LISTEN &>/dev/null; then
         echo "Port $port is in use"
     else
@@ -337,3 +337,11 @@ In such cases, you can generate sample user accounts using the steps below. This
     | ------------------------ | ---------- | --------------- |
     | priyanka@tunerlabs.com   | Password1@ | reviewer        |
     | adithya@shikshalokam.com | Password1@ | content_creator |
+
+## Explore the Portal
+
+Once the services are up and the front-end app bundle is built successfully, navigate to **[localhost:7007](http://localhost:7007/)** to access the Self Creation Portal app.
+
+> **Warning:** In this setup, features such as **Sign-Up, Project Creation, Review Flow and Rollout** will not be available because cloud storage credentials have been masked in the environment files for security reasons.
+
+</details>
