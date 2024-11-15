@@ -20,7 +20,7 @@ const waitForService = async (url) => {
 		await waitOn(opts)
 		console.log(`Service is ready at: ${url}`)
 	} catch (error) {
-		console.error(`Service not ready at: ${url}. Error: ${error.message}`)
+		console.error(`Error: ${error.message}`)
 		throw new Error('Service not available')
 	}
 }
