@@ -66,7 +66,11 @@ module.exports = class PermissionsHelper {
 			const filter = { id }
 			const permissions = await permissionsQueries.findPermissionById(id)
 			if (!permissions) {
-				throw new Error('PERMISSION_NOT_FOUND')
+				return responses.failureResponse({
+					message: 'PERMISSION_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 			const updatedPermission = await permissionsQueries.updatePermissions(filter, bodyData)
 			if (!updatedPermission) {
@@ -88,11 +92,7 @@ module.exports = class PermissionsHelper {
 				})
 			}
 		} catch (error) {
-			return responses.failureResponse({
-				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
-				responseCode: 'CLIENT_ERROR',
-			})
+			throw error
 		}
 	}
 
