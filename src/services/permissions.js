@@ -89,7 +89,7 @@ module.exports = class PermissionsHelper {
 			}
 		} catch (error) {
 			return responses.failureResponse({
-				message: error.message,
+				message: error.message || error,
 				statusCode: httpStatusCode.bad_request,
 				responseCode: 'CLIENT_ERROR',
 			})
