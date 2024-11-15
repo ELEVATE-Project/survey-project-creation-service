@@ -114,7 +114,7 @@ services:
     command: >
       bash -c '
         echo "Waiting for User to accept connections...";
-        until timeout 1 bash -c "</dev/tcp/user/5001" >/dev/null 2>&1; do
+        until nc -z user 5001; do
             echo "Waiting for User to be ready...";
             sleep 1;
         done &&
