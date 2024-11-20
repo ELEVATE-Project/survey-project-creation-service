@@ -124,18 +124,13 @@ services:
         npm run db:init && 
         echo "Database initialized successfully." &&
 
-        echo "Running addEntities.js script...";
-        cd scripts && ls &&
-        node addDefaultEntitiesForEducationSector.js &&
-
         echo "Rebuilding node-expat module...";
         npm rebuild node-expat && npm rebuild &&
         
         echo "Starting the application...";
         nodemon app.js &&
         
-        tail -f /dev/null
-      '
+        tail -f /dev/null'
     volumes:
       - ../../survey-project-creation-service/src/:/var/src
     environment:
