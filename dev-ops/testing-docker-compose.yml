@@ -114,23 +114,32 @@ services:
       - '6001:6001'
     command: >
       bash -c '
-        echo "Waiting for User to accept connections...";
+        echo "Waiting for User service to accept connections...";
         until nc -z user 5001; do
-            echo "Waiting for User to be ready...";
+            echo "Waiting for User service to be ready...";
             sleep 1;
         done &&
-        echo "User Service is ready.";
+        echo "User service is ready.";
 
-        echo "Initializing database...";
-        npm run db:init && 
-        echo "Database initialized successfully." &&
+        echo "Waiting for PostgreSQL to accept connections...";
+        until nc -z postgres 5432; do
+            echo "Waiting for PostgreSQL to be ready...";
+            sleep 1;
+        done &&
+        echo "PostgreSQL is ready.";
 
-        echo "Rebuilding node-expat module...";
-        npm rebuild node-expat && npm rebuild &&
+        echo "Checking if database exists...";
+        if psql -h postgres -U postgres -lqt | cut -d \| -f 1 | grep -qw integration_test_scp; then
+          echo "Database exists. Running migrations...";
+          npm run db:migrate;
+        else
+          echo "Database does not exist. Running db:init...";
+          npm run db:init;
+        fi &&
         
         echo "Starting the application...";
         nodemon app.js &&
-        
+
         tail -f /dev/null'
     volumes:
       - ../../survey-project-creation-service/src/:/var/src
