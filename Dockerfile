@@ -11,6 +11,9 @@ RUN npm install && npm install -g nodemon@2.0.16
 #Copy all files 
 COPY ./src .
 
+# Install netcat-openbsd
+RUN apt-get update && apt-get install -y netcat-openbsd
+
 #Expose the application port
 EXPOSE 3000
 
