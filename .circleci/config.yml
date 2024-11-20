@@ -5,7 +5,7 @@ jobs:
   build:
     machine: #Linux machine instead of docker environment
       image: ubuntu-2004:2024.05.1
-      resource_class: 2xlarge
+      resource_class: large
     working_directory: ~/survey-project-creation-service # Default working directory
     steps:
       - checkout:
