@@ -1,4 +1,4 @@
-require('dotenv').config({ path: '../.env' })
+require('dotenv').config()
 const defaultOrgId = process.env.DEFAULT_ORG_ID
 	? process.env.DEFAULT_ORG_ID.toString()
 	: (() => {
