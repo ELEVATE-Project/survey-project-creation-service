@@ -1,4 +1,4 @@
-version: '3'
+version: '3.9'
 services:
   zookeeper:
     image: 'confluentinc/cp-zookeeper:7.3.0'
@@ -11,6 +11,11 @@ services:
       - elevate_net
     logging:
       driver: none
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   kafka:
     image: 'confluentinc/cp-kafka:7.3.0'
@@ -30,12 +35,17 @@ services:
       - elevate_net
     logging:
       driver: none
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   redis:
     image: 'redis:7.0.0'
     restart: 'always'
-    expose:
-      - '6379'
+    ports:
+      - '6379:6379'
     networks:
       - elevate_net
     logging:
@@ -54,6 +64,11 @@ services:
       - elevate_net
     logging:
       driver: none
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   schedular:
     image: shikshalokamqa/elevate-scheduler:2.6.1
@@ -65,8 +80,10 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
-      - kafka
-      - redis
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - elevate_net
     env_file:
@@ -96,10 +113,14 @@ services:
         (/bin/bash -c 'cd scripts && echo Running user service scripts && node insertDefaultOrg.js && node viewsScript.js && node -r module-alias/register uploadSampleCSV.js') &&
         tail -f /dev/null"
     depends_on:
-      - kafka
-      - redis
-      - schedular
-      - postgres
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      schedular:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     environment:
       - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/integration_test_user
       - KAFKA_URL=kafka:9092
@@ -149,10 +170,16 @@ services:
       - KAFKA_URL=kafka:9092
       - REDIS_HOST=redis://redis:6379
     depends_on:
-      - postgres
-      - kafka
-      - redis
-      - user
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      schedular:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      user:
+        condition: service_healthy
     networks:
       - elevate_net
     env_file:
