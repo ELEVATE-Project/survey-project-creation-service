@@ -51,7 +51,7 @@ services:
     logging:
       driver: none
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "6379"]
+      test: ["CMD", "nc", "-z", "127.0.0.1", "6379"]
       interval: 10s
       timeout: 5s
       retries: 3
