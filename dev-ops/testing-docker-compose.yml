@@ -50,6 +50,11 @@ services:
       - elevate_net
     logging:
       driver: none
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "6379"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   postgres:
     image: 'postgres:latest'
