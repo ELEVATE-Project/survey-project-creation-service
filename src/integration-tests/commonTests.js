@@ -14,7 +14,7 @@ const waitForService = async (url) => {
 		resources: [url],
 		delay: 5000, // Initial delay before checking
 		interval: 1000, // Interval between checks
-		timeout: 30000, // Max time to wait for service
+		timeout: 60000, // Max time to wait for service
 	}
 	try {
 		await waitOn(opts)

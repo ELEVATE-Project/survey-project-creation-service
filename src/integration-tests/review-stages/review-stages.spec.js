@@ -4,9 +4,16 @@ jest.setTimeout(20000)
 
 describe('Review Stages APIs ', function () {
 	let userDetails
+
 	beforeAll(async () => {
-		await commonHelper.verifyUserRole()
-		userDetails = await commonHelper.logIn()
+		try {
+			await commonHelper.verifyUserRole()
+			userDetails = await commonHelper.logIn()
+			console.log('Logged in User:', userDetails.id, userDetails.roles)
+		} catch (error) {
+			console.error('Error in beforeAll setup:', error)
+			throw error // Ensure the error is thrown to fail the tests
+		}
 	})
 
 	it('List Review Stages', async () => {
