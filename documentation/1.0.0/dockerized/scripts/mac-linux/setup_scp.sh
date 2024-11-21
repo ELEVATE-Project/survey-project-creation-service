@@ -15,7 +15,6 @@ log "Downloading environment files..."
 curl -L \
     -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/survey_project_creation_env \
     -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/interface_env \
-    -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/project_env \
     -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/notification_env \
     -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/scheduler_env \
     -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/user_env \
