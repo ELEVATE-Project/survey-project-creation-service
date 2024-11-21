@@ -619,7 +619,7 @@ paths:
                         - POST
                       api_path: /scp/v1/projects/create
         '400':
-          description: Bad Request. Permission not found
+          description: Bad Request. Permissions does not exists
           content:
             application/json:
               schema:
@@ -826,7 +826,7 @@ paths:
                     meta:
                       correlation: a3f7cde4-83f2-4143-a5c4-7e3291085cb4
         '400':
-          description: Bad Request. Permission not found.
+          description: Bad Request. Permissions does not exists.
           content:
             application.json:
               schema:
@@ -6342,7 +6342,7 @@ components:
           example: CLIENT_ERROR
         message:
           type: string
-          example: permission not found
+          example: Permissions does not exists
         error:
           type: array
           items:

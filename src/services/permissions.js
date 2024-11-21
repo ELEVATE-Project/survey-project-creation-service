@@ -66,7 +66,11 @@ module.exports = class PermissionsHelper {
 			const filter = { id }
 			const permissions = await permissionsQueries.findPermissionById(id)
 			if (!permissions) {
-				throw new Error('PERMISSION_NOT_FOUND')
+				return responses.failureResponse({
+					message: 'PERMISSION_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 			const updatedPermission = await permissionsQueries.updatePermissions(filter, bodyData)
 			if (!updatedPermission) {
@@ -137,7 +141,7 @@ module.exports = class PermissionsHelper {
 		try {
 			let result = {
 				data: [],
-				count: 0
+				count: 0,
 			}
 			const offset = common.getPaginationOffset(page, limit)
 
@@ -155,7 +159,7 @@ module.exports = class PermissionsHelper {
 				return responses.failureResponse({
 					message: 'PERMISSION_HAS_EMPTY_LIST',
 					statusCode: httpStatusCode.ok,
-					result
+					result,
 				})
 			} else {
 				result = {
@@ -166,7 +170,7 @@ module.exports = class PermissionsHelper {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'PERMISSION_FETCHED_SUCCESSFULLY',
-					result
+					result,
 				})
 			}
 		} catch (error) {
