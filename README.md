@@ -78,18 +78,19 @@ To set up the Self Creation Portal application, ensure you have Docker and Docke
 
 ## Installation
 
-1.  **Create survey-project-creation Directory:** Create a directory named **survey-project-creation**.
+1.  **Create survey-project-creation Directory:**
+    Create a directory named **survey-project-creation**.
 
-> Example Command: `mkdir survey-project-creation && cd survey-project-creation/`
+    > Example Command: `mkdir survey-project-creation && cd survey-project-creation/`
 
-> Note: All commands are run from the project directory.
+    > Note: All commands are run from the project directory.
 
 ## Operating Systems: Linux / macOS
 
 > **Caution:** Before proceeding, please ensure that the ports given here are available and open. It is essential to verify their availability prior to moving forward. You can run below command in your teminal to check this
 
 ```
-for port in 6001 3000 3001 3002 6000 5001 4000 9092 5432 7007 2181 2707 3569; do
+for port in 6001 3569 3001 3002 4000 9092 5432 7008 2181 2707 ; do
     if lsof -iTCP:$port -sTCP:LISTEN &>/dev/null; then
         echo "Port $port is in use"
     else
@@ -98,23 +99,27 @@ for port in 6001 3000 3001 3002 6000 5001 4000 9092 5432 7007 2181 2707 3569; do
 done
 ```
 
-1.  **Download and execute main setup script:** Execute the following command in your terminal from the project directory.
-    `   curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/scripts/mac-linux/setup_scp.sh && chmod +x setup_scp.sh && ./setup_scp.sh`
+1.  **Download and execute main setup script:**
+    Execute the following command in your terminal from the project directory.
 
-         > Note : The script will download all the essential files and launch the services in Docker. Once all services are successfully up and running, you can proceed to the next steps.
+    ```bash
+    curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/scripts/mac-linux/setup_scp.sh && chmod +x setup_scp.sh && ./setup_scp.sh
+    ```
 
-         **General Instructions :**
+    > Note : The script will download all the essential files and launch the services in Docker. Once all services are successfully up and running, you can proceed to the next steps.
 
-         1. All containers which are part of the docker-compose can be gracefully stopped by pressing Ctrl + c in the same terminal where the services are running.
+    **General Instructions :**
 
-         2. All docker containers can be stopped and removed by using below command.
-             ```
-             ./docker-compose-down.sh
-             ```
-         3. All services and dependencies can be started using below command.
-             ```
+        1. All containers which are part of the docker-compose can be gracefully stopped by pressing Ctrl + c in the same terminal where the services are running.
+
+        2. All docker containers can be stopped and removed by using below command.
+            ```
+            ./docker-compose-down.sh
+            ```
+        3. All services and dependencies can be started using below command.
+            ```
              ./docker-compose-up.sh
-             ```
+            ```
 
     **Keep the current terminal session active, and kindly open a new terminal window within the survey-project-creation directory.**
 
@@ -122,10 +127,10 @@ done
 
 ## Operating Systems: Windows
 
-1.  **Download Docker Compose File:** Retrieve the **[docker-compose-project.yml](https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/docker-compose.yml)** file from the Project service repository and save it to the project directory.
+1.  **Download Docker Compose File:** Retrieve the **[docker-compose-project.yml](https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/docker-compose.yml)** file from the Project service repository and save it to the project directory.
 
     ```
-    curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/docker-compose.yml
+    curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/docker-compose.yml
     ```
 
     > Note: All commands are run from the project directory.
@@ -136,17 +141,17 @@ done
 
         ```
         curl -L ^
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/interface_env ^
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/survey_project_creation_env ^
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/entity_management_env ^
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/project_env ^
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/notification_env ^
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/scheduler_env ^
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/user_env ^
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/dockerized/envs/environment.ts
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/interface_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/survey_project_creation_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/entity_management_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/project_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/notification_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/scheduler_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/user_env ^
+         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/environment.ts
         ```
 
-    > **Note:** Modify the environment files as necessary for your deployment using any text editor, ensuring that the values are appropriate for your environment. The default values provided in the current files are functional and serve as a good starting point. Refer to the sample env files provided at the [Survey Project Creation](https://github.com/survey-project-creation-service/project-service/blob/main/.env.sample), [User](https://github.com/survey-project-creation-service/user/blob/master/src/.env.sample), [Notification](https://github.com/survey-project-creation-service/notification/blob/master/src/.env.sample), [Scheduler](https://github.com/survey-project-creation-service/scheduler/blob/master/src/.env.sample), [Interface](https://github.com/survey-project-creation-service/interface-service/blob/main/src/.env.sample) and [Entity-management](https://github.com/survey-project-creation-service/entity-management/blob/main/src/.env.sample) repositories for reference.
+    > **Note:** Modify the environment files as necessary for your deployment using any text editor, ensuring that the values are appropriate for your environment. The default values provided in the current files are functional and serve as a good starting point. Refer to the sample env files provided at the [Survey Project Creation](https://github.com/survey-project-creation-service/project-service/blob/readme/.env.sample), [User](https://github.com/survey-project-creation-service/user/blob/master/src/.env.sample), [Notification](https://github.com/survey-project-creation-service/notification/blob/master/src/.env.sample), [Scheduler](https://github.com/survey-project-creation-service/scheduler/blob/master/src/.env.sample), [Interface](https://github.com/survey-project-creation-service/interface-service/blob/readme/src/.env.sample) and [Entity-management](https://github.com/survey-project-creation-service/entity-management/blob/readme/src/.env.sample) repositories for reference.
 
     > **Caution:** While the default values in the downloaded environment files enable the Project Application to operate, certain features may not function correctly or could be impaired unless the adopter-specific environment variables are properly configured.
 
@@ -155,7 +160,7 @@ done
     -   **Windows**
 
         ```
-        curl -OJL https://raw.githubusercontent.com/survey-project-creation-service/project-service/main/documentation/1.0.0/dockerized/scripts/windows/replace_volume_path.bat
+        curl -OJL https://raw.githubusercontent.com/survey-project-creation-service/project-service/readme/documentation/1.0.0/dockerized/scripts/windows/replace_volume_path.bat
         ```
 
 4.  **Run `replace_volume_path` Script File**
@@ -179,11 +184,11 @@ done
     -   **Windows**
 
         ```
-        curl -OJL https://github.com/ELEVATE-Project/project-service/raw/main/documentation/1.0.0/dockerized/scripts/windows/docker-compose-up.bat
+        curl -OJL https://github.com/ELEVATE-Project/project-service/raw/readme/documentation/1.0.0/dockerized/scripts/windows/docker-compose-up.bat
         ```
 
         ```
-        curl -OJL https://github.com/ELEVATE-Project/project-service/raw/main/documentation/1.0.0/dockerized/scripts/windows/docker-compose-down.bat
+        curl -OJL https://github.com/ELEVATE-Project/project-service/raw/readme/documentation/1.0.0/dockerized/scripts/windows/docker-compose-down.bat
         ```
 
 6.  **Run All Services & Dependencies**:All services and dependencies can be started using the `docker-compose-up` script file.
@@ -316,13 +321,13 @@ In such cases, you can generate sample user accounts using the steps below. This
 
         ```
         mkdir sample-data\user 2>nul & ^
-        curl -L "https://raw.githubusercontent.com/ELEVATE-Project/project-service/main/documentation/1.0.0/sample-data/windows/user/sampleData.sql" -o sample-data\user\sampleData.sql
+        curl -L "https://raw.githubusercontent.com/ELEVATE-Project/project-service/readme/documentation/1.0.0/sample-data/windows/user/sampleData.sql" -o sample-data\user\sampleData.sql
         ```
 
     2. **Download The `insert_sample_data` Script File:**
 
         ```
-        curl -L -o insert_sample_data.bat https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/dockerized/scripts/windows/insert_sample_data.bat
+        curl -L -o insert_sample_data.bat https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/readme/documentation/1.0.0/dockerized/scripts/windows/insert_sample_data.bat
         ```
 
     3. **Run The `insert_sample_data` Script File:**

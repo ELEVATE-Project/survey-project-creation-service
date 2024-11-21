@@ -15,5 +15,5 @@ CURRENT_DIR=$(pwd)
 # Escape the current directory path to be used in a sed expression
 ESCAPED_CURRENT_DIR=$(printf '%s\n' "$CURRENT_DIR" | sed -e 's/[\/&]/\\&/g')
 
-sed -i -e "s|/[^:]*\(\/environment\.ts\):/usr/src/app/www/assets/env/environment.js|$ESCAPED_CURRENT_DIR\1:/usr/src/app/www/assets/env/environment.js|" "$DOCKER_COMPOSE_FILE"
+sed -i -e "s|/[^:]*\(\/environment\.ts\):/usr/src/app/www/assets/env/environment.ts|$ESCAPED_CURRENT_DIR\1:/usr/src/app/www/assets/env/environment.ts|" "$DOCKER_COMPOSE_FILE"
 echo "Updated volume path for 'env.js' in $DOCKER_COMPOSE_FILE"

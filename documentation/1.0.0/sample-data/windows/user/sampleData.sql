@@ -1,5 +1,4 @@
 #
-create user roles
 INSERT INTO
     public.user_roles (
         id,
@@ -15,32 +14,6 @@ INSERT INTO
     )
 VALUES (
         8,
-        'state_education_officer',
-        0,
-        'ACTIVE',
-        '2024-04-18 08:12:19.394+00',
-        '2024-04-18 08:12:19.394+00',
-        NULL,
-        'PUBLIC',
-        1,
-        'State Education Officer'
-    );
-
-INSERT INTO
-    public.user_roles (
-        id,
-        title,
-        user_type,
-        status,
-        created_at,
-        updated_at,
-        deleted_at,
-        visibility,
-        organization_id,
-        label
-    )
-VALUES (
-        9,
         'content_creator',
         0,
         'ACTIVE',
@@ -66,7 +39,7 @@ INSERT INTO
         label
     )
 VALUES (
-        10,
+        9,
         'reviewer',
         0,
         'ACTIVE',
@@ -106,7 +79,7 @@ VALUES (
         'Priyanka',
         '8d1f1e11989cf7b739c9daa972c56c5083b46d490f8023a67eb89d28a2b615ef',
         false,
-        '{8,9,10}',
+        '{8,9}',
         'ACTIVE',
         '$2a$10$NTzc2CjEbwB4DavjEKU11eqJXJLrODnvAwvXWor9Dz/gXr55Pvyj.',
         1,
@@ -152,7 +125,7 @@ VALUES (
         'Adithya',
         '0f34042735bb359f1c227b4497cf5074b372085830eef69db07dd80789c25dd5',
         false,
-        '{8,9,10}',
+        '{8,9}',
         'ACTIVE',
         '$2a$10$NTzc2CjEbwB4DavjEKU11eqJXJLrODnvAwvXWor9Dz/gXr55Pvyj.',
         1,
@@ -195,10 +168,10 @@ INSERT INTO
     )
 VALUES (
         3,
-        'Akash',
+        'Hritvi',
         '1e8828f2f98d16ff63a424620f9d582a1de88268414606a0593c73eb5316543c',
         false,
-        '{8,9,10}',
+        '{8,9}',
         'ACTIVE',
         '$2a$10$NTzc2CjEbwB4DavjEKU11eqJXJLrODnvAwvXWor9Dz/gXr55Pvyj.',
         1,
@@ -293,100 +266,6 @@ VALUES (
         NULL,
         NULL
     );
-
-INSERT INTO
-    public.entity_types (
-        id,
-        value,
-        label,
-        status,
-        created_by,
-        updated_by,
-        allow_filtering,
-        data_type,
-        organization_id,
-        parent_id,
-        has_entities,
-        allow_custom_entities,
-        model_names,
-        created_at,
-        updated_at,
-        deleted_at,
-        meta,
-        external_entity_type,
-        required,
-        regex
-    )
-VALUES (
-        4,
-        'state',
-        'State',
-        'ACTIVE',
-        0,
-        0,
-        true,
-        'STRING',
-        1,
-        NULL,
-        true,
-        true,
-        '{User}',
-        '2024-04-18 08:12:19.394+00',
-        '2024-04-18 08:12:19.394+00',
-        NULL,
-        NULL,
-        true,
-        false,
-        NULL
-    );
-
-INSERT INTO
-    public.entity_types (
-        id,
-        value,
-        label,
-        status,
-        created_by,
-        updated_by,
-        allow_filtering,
-        data_type,
-        organization_id,
-        parent_id,
-        has_entities,
-        allow_custom_entities,
-        model_names,
-        created_at,
-        updated_at,
-        deleted_at,
-        meta,
-        external_entity_type,
-        required,
-        regex
-    )
-VALUES (
-        5,
-        'district',
-        'District',
-        'ACTIVE',
-        0,
-        0,
-        true,
-        'STRING',
-        1,
-        NULL,
-        true,
-        true,
-        '{User}',
-        '2024-04-18 08:12:19.394+00',
-        '2024-04-18 08:12:19.394+00',
-        NULL,
-        NULL,
-        true,
-        false,
-        NULL
-    );
-
-UPDATE public.entity_types SET status = 'INACTIVE' WHERE id = 3;
 
 SELECT nextval('users_id_seq'::regclass) FROM public.users;
 
