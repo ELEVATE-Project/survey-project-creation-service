@@ -160,7 +160,7 @@ services:
       - KAFKA_HOST=kafka:9092
       - DEV_DATABASE_URL=postgres://postgres:postgres@citus_master:5432/notification
     networks:
-      - project_net
+      - elevate_net
     env_file:
       - ${notification_env}
 
@@ -176,7 +176,7 @@ services:
       - kafka
       - redis
     networks:
-      - project_net
+      - elevate_net
     env_file:
       - ${scheduler_env}
 
