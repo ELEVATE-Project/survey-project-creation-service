@@ -937,23 +937,6 @@ module.exports = class ProjectsHelper {
 							)
 						}
 
-						// Validate the name against the regex pattern
-						if (eachResource.name && entityMapping[common.LEARNING_RESOURCE_NAME]?.validations) {
-							const validateName = utils.checkRegexPattern(
-								entityMapping[common.LEARNING_RESOURCE_NAME]?.validations,
-								eachResource.name
-							)
-							if (!validateName) {
-								validationErrors.push(
-									utils.errorObject(
-										learningResourcePath,
-										common.NAME,
-										'Name can only include alphanumeric characters with spaces, -, _, &, <>'
-									)
-								)
-							}
-						}
-
 						// Validate the URL against the regex pattern
 						if (eachResource.url && entityMapping[common.LEARNING_RESOURCE]?.validations) {
 							const validateURL = utils.checkRegexPattern(
