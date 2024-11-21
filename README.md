@@ -423,7 +423,7 @@ Before setting up the following ELEVATE-Survey-Project-Creation Portal applicati
     -   **Ubuntu/Linux/MacOS**
 
         ```
-        git clone -b main https://github.com/ELEVATE-Project/survey-project-creation-service.git && \
+        git clone -b native-setup https://github.com/ELEVATE-Project/survey-project-creation-service.git && \
         git clone -b master https://github.com/ELEVATE-Project/user.git && \
         git clone -b master https://github.com/ELEVATE-Project/notification.git && \
         git clone -b main https://github.com/ELEVATE-Project/interface-service.git && \
