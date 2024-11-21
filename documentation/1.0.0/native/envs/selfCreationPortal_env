@@ -58,3 +58,4 @@ INTERFACE_SERVICE_HOST=http://localhost:3567
 ENABLE_OBSERVATION_IN_PROJECTS=true
 OBSERVATION_DEEP_LINK_REGEX= "^https:\/\/dev\.elevate-ml\.shikshalokam\.org\/view\/observation\/[a-f0-9]{32}$"
 MONGODB_URL=mongodb://localhost:27017/elevate-project
+DEV_DATABASE_URL=postgres://postgres:postgres@localhost:5432/self_creation_portal_db
