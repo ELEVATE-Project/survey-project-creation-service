@@ -10,6 +10,7 @@ const waitOn = require('wait-on')
 
 // Improved waitForService function
 const waitForService = async (url) => {
+	console.log(`Waiting for service at: ${url}`)
 	const opts = {
 		resources: [url],
 		delay: 5000, // Initial delay before checking
