@@ -13,11 +13,6 @@ module.exports = {
 				{
 					validations: JSON.stringify([
 						{
-							type: 'regex',
-							value: '^[a-zA-Z0-9 <>_&-]{1,256}$',
-							message: 'Name can only include alphanumeric characters with spaces, -, _, &, <>',
-						},
-						{
 							type: 'required',
 							value: false,
 							message: 'Enter Name of the resource',
