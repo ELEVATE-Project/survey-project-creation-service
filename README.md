@@ -400,7 +400,7 @@ Before setting up the following ELEVATE-Survey-Project-Creation Portal applicati
     6. Download `check-dependencies.sh` file:
 
         ```
-        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/native/scripts/macos/check-dependencies.sh && \
+        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/native-setup/documentation/1.0.0/native/scripts/macos/check-dependencies.sh && \
         chmod +x check-dependencies.sh
         ```
 
@@ -537,6 +537,7 @@ Before setting up the following ELEVATE-Survey-Project-Creation Portal applicati
                     ```
 
     <!--
+
 
 8.  **Insert Initial Data**
 
