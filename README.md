@@ -143,15 +143,13 @@ done
         curl -L ^
          -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/interface_env ^
          -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/survey_project_creation_env ^
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/entity_management_env ^
-         -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/project_env ^
          -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/notification_env ^
          -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/scheduler_env ^
          -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/user_env ^
          -O https://github.com/ELEVATE-Project/survey-project-creation-service/raw/readme/documentation/1.0.0/dockerized/envs/environment.ts
         ```
 
-    > **Note:** Modify the environment files as necessary for your deployment using any text editor, ensuring that the values are appropriate for your environment. The default values provided in the current files are functional and serve as a good starting point. Refer to the sample env files provided at the [Survey Project Creation](https://github.com/survey-project-creation-service/project-service/blob/readme/.env.sample), [User](https://github.com/survey-project-creation-service/user/blob/master/src/.env.sample), [Notification](https://github.com/survey-project-creation-service/notification/blob/master/src/.env.sample), [Scheduler](https://github.com/survey-project-creation-service/scheduler/blob/master/src/.env.sample), [Interface](https://github.com/survey-project-creation-service/interface-service/blob/readme/src/.env.sample) and [Entity-management](https://github.com/survey-project-creation-service/entity-management/blob/readme/src/.env.sample) repositories for reference.
+    > **Note:** Modify the environment files as necessary for your deployment using any text editor, ensuring that the values are appropriate for your environment. The default values provided in the current files are functional and serve as a good starting point. Refer to the sample env files provided at the [Survey Project Creation](https://github.com/survey-project-creation-service/project-service/blob/readme/.env.sample), [User](https://github.com/survey-project-creation-service/user/blob/master/src/.env.sample), [Notification](https://github.com/survey-project-creation-service/notification/blob/master/src/.env.sample), [Scheduler](https://github.com/survey-project-creation-service/scheduler/blob/master/src/.env.sample), and [Interface](https://github.com/survey-project-creation-service/interface-service/blob/readme/src/.env.sample) repositories for reference.
 
     > **Caution:** While the default values in the downloaded environment files enable the Project Application to operate, certain features may not function correctly or could be impaired unless the adopter-specific environment variables are properly configured.
 
@@ -345,7 +343,7 @@ In such cases, you can generate sample user accounts using the steps below. This
 
 ## Explore the Portal
 
-Once the services are up and the front-end app bundle is built successfully, navigate to **[localhost:7007](http://localhost:7007/)** to access the Self Creation Portal app.
+Once the services are up and the front-end app bundle is built successfully, navigate to **[localhost:7008](http://localhost:7008/)** to access the Self Creation Portal app.
 
 > **Warning:** In this setup, features such as **Sign-Up, Project Creation, Review Flow and Rollout** will not be available because cloud storage credentials have been masked in the environment files for security reasons.
 
