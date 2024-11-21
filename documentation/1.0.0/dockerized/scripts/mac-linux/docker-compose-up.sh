@@ -3,8 +3,6 @@
 # Get the directory of the shell script
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-log "$SCRIPT_DIR script directory"
-
 # Set environment variables
 export notification_env="$SCRIPT_DIR/notification_env"
 export scheduler_env="$SCRIPT_DIR/scheduler_env"
