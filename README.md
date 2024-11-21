@@ -336,10 +336,10 @@ In such cases, you can generate sample user accounts using the steps below. This
 
     After successfully running the script mentioned above, the following user accounts will be created and available for login:
 
-    | Email ID                 | Password   | Role            |
-    | ------------------------ | ---------- | --------------- |
-    | priyanka@tunerlabs.com   | Password1@ | reviewer        |
-    | adithya@shikshalokam.com | Password1@ | content_creator |
+    | Email ID                 | Password   | Role                     |
+    | ------------------------ | ---------- | ------------------------ |
+    | priyanka@tunerlabs.com   | Password1@ | reviewer,content_creator |
+    | adithya@shikshalokam.com | Password1@ | content_creator          |
 
 ## Explore the Portal
 
