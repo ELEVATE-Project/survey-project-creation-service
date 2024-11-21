@@ -40,21 +40,6 @@ services:
     logging:
       driver: none
 
-  # postgres:
-  #   image: 'postgres:latest'
-  #   ports:
-  #     - '5432:5432'
-  #   environment:
-  #     - POSTGRES_DB=self_creation_portal
-  #     - POSTGRES_USER=postgres
-  #     - POSTGRES_PASSWORD=postgres
-  #   networks:
-  #     - elevate_net
-  #   volumes:
-  #     - postgres-data:/var/lib/postgresql/data
-  #   logging:
-  #     driver: none
-
   pgadmin:
     image: dpage/pgadmin4
     container_name: elevate-pgadmin
@@ -74,8 +59,6 @@ services:
     container_name: 'citus_master'
     ports:
      - 5432:5432
-    # expose:
-    #   - 5432
     environment: &AUTH
       POSTGRES_USER: '${POSTGRES_USER:-postgres}'
       POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:-postgres}'
@@ -86,8 +69,6 @@ services:
       POSTGRES_LOG_STATEMENT: 'all' # Enable query logging (set to 'all' for all queries)
     networks:
       - elevate_net
-    #volumes:
-    #  - citus-data:/var/lib/postgresql/data
 
   user:
     image: shikshalokamqa/elevate-user:3.1.2
@@ -123,7 +104,7 @@ services:
 
   scp:
     build: 'survey-project-creation-service/'
-    # image: elevate/survey-project-creation-service:1.0
+    image: elevate/survey-project-creation-service:1.0
     ports:
       - '3006:3006'
     command: ['nodemon', 'app.js']
@@ -194,9 +175,3 @@ services:
 networks:
   elevate_net:
     external: false
-# volumes:
-#   zookeeper-data:
-#   kafka-data:
-#   postgres-data:
-#   redis_data:
-#   healthcheck-volume:
