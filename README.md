@@ -436,7 +436,7 @@ Before setting up the following ELEVATE-Survey-Project-Creation Portal applicati
     -   **Ubuntu/Linux/MacOS**
 
         ```
-        cd survey-project-creation-service/src && npm install && cd ../ && \
+        cd survey-project-creation-service/src && npm install && cd ../.. && \
         cd user/src && npm install && cd ../.. && \
         cd notification/src && npm install && cd ../.. && \
         cd interface-service/src && npm install && cd ../.. && \
