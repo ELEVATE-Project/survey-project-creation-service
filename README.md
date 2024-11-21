@@ -428,7 +428,7 @@ Before setting up the following ELEVATE-Survey-Project-Creation Portal applicati
         git clone -b master https://github.com/ELEVATE-Project/notification.git && \
         git clone -b main https://github.com/ELEVATE-Project/interface-service.git && \
         git clone -b master https://github.com/ELEVATE-Project/scheduler.git && \
-        git clone -b main https://github.com/ELEVATE-Project/self-creation-portal.git
+        git clone -b release-1.0.0-sprint.3 https://github.com/ELEVATE-Project/self-creation-portal.git
         ```
 
 3.  **Install NPM Packages**
