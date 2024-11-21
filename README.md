@@ -343,3 +343,355 @@ Once the services are up and the front-end app bundle is built successfully, nav
 > **Warning:** In this setup, features such as **Sign-Up, Project Creation, Review Flow and Rollout** will not be available because cloud storage credentials have been masked in the environment files for security reasons.
 
 </details>
+<!-- ************************************ native set up ************************************ -->
+<details>
+<summary>Natively Installed Services & Dependencies </summary>
+
+## PM2 Managed Services & Natively Installed Dependencies
+
+### System Requirements
+
+-   **Node.js®:** v20
+-   **PostgreSQL:** 16
+-   **Apache Kafka®:** 3.5.0
+
+Expectation: Upon following the prescribed steps, you will achieve a fully operational ELEVATE-Survey-Project-Creation Portal application setup. Both the portal and backend services are managed using PM2, with all dependencies installed natively on the host system.
+
+Before setting up the following ELEVATE-Survey-Project-Creation Portal application, dependencies given below should be installed and verified to be running. Refer to the steps given below to install them and verify.
+
+-   **MacOS**
+
+    1. Install Node.js 20:
+
+        ```
+        brew install node@20
+        ```
+
+        ```
+        brew link --overwrite node@20
+        ```
+
+    2. Install Kafka:
+
+        ```
+        brew install kafka
+        ```
+
+        > Note: To install Kafka on older macOS versions like Monterey (Intel architecture), you need to follow the manual installation process instead of using Homebrew. The process includes downloading Kafka, setting up ZooKeeper, and running Kafka services. You can find the official Kafka installation guide here: [Kafka Quickstart Guide](https://kafka.apache.org/quickstart).This ensures compatibility with older macOS systems. Follow the steps outlined in the documentation for a smooth setup.
+
+    3. Install PostgreSQL 16:
+
+        ```
+        brew install postgresql@16
+        ```
+
+    4. Install PM2:
+
+        ```
+        sudo npm install pm2@latest -g
+        ```
+
+    5. Install Redis:
+
+        ```
+        brew install redis
+        ```
+
+    6. Download `check-dependencies.sh` file:
+
+        ```
+        curl -OJL https://github.com/ELEVATE-Project/survey-project-creation-service/raw/main/documentation/1.0.0/native/scripts/macos/check-dependencies.sh && \
+        chmod +x check-dependencies.sh
+        ```
+
+    7. Verify installed dependencies by running `check-dependencies.sh`:
+
+        ```
+        ./check-dependencies.sh
+        ```
+
+        > Note : If you've manually installed Kafka without Homebrew, the script might incorrectly indicate that Kafka and Homebrew are not installed, as it checks only for Homebrew installations. In such cases, you can safely ignore this warning. Ensure that both Kafka and ZooKeeper are running on their default ports (ZooKeeper on `2181`, Kafka on `9092`). This will confirm proper installation and functionality despite the script's output.
+
+## Installation
+
+1.  **Create ELEVATE-Survey-Project-Creation Directory:** Create a directory named **ELEVATE-Survey-Project-Creation**.
+
+    > Example Command: `mkdir ELEVATE-Survey-Project-Creation && cd ELEVATE-Survey-Project-Creation/`
+
+2.  **Git Clone Services And Portal Repositories**
+
+    -   **Ubuntu/Linux/MacOS**
+
+        ```
+        git clone -b main https://github.com/ELEVATE-Project/survey-project-creation-service.git && \
+        git clone -b master https://github.com/ELEVATE-Project/user.git && \
+        git clone -b master https://github.com/ELEVATE-Project/notification.git && \
+        git clone -b main https://github.com/ELEVATE-Project/interface-service.git && \
+        git clone -b master https://github.com/ELEVATE-Project/scheduler.git && \
+        git clone -b main https://github.com/ELEVATE-Project/self-creation-portal.git
+        ```
+
+3.  **Install NPM Packages**
+
+    -   **Ubuntu/Linux/MacOS**
+
+        ```
+        cd survey-project-creation-service/src && npm install && cd ../ && \
+        cd user/src && npm install && cd ../.. && \
+        cd notification/src && npm install && cd ../.. && \
+        cd interface-service/src && npm install && cd ../.. && \
+        cd scheduler/src && npm install && cd ../.. && \
+        cd self-creation-portal && npm install --force && cd ..
+        ```
+
+4.  **Download Environment Files**
+
+    -   **Ubuntu/Linux**
+
+        ```
+        curl -L -o survey-project-creation-service/src/.env https://raw.githubusercontent.com/ELEVATE-Project/survey-project-creation-service/refs/heads/native-setup/documentation/1.0.0/native/envs/selfCreationPortal_env && \
+        curl -L -o user/src/.env https://github.com/ELEVATE-Project/project-service/raw/refs/heads/main/documentation/1.0.0/native/envs/user_env && \
+        curl -L -o notification/src/.env https://github.com/ELEVATE-Project/project-service/raw/refs/heads/main/documentation/1.0.0/native/envs/notification_env && \
+        curl -L -o interface-service/src/.env https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/native/envs/interface_env && \
+        curl -L -o scheduler/src/.env https://github.com/ELEVATE-Project/project-service/raw/refs/heads/main/documentation/1.0.0/native/envs/scheduler_env && \
+        curl -L -o observation-survey-projects-pwa/src/environments/environment.ts https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/native/envs/enviroment.ts
+        ```
+
+    -   **MacOs**
+
+        ```
+        curl -L -o survey-project-creation-service/src/.env https://raw.githubusercontent.com/ELEVATE-Project/survey-project-creation-service/refs/heads/native-setup/documentation/1.0.0/native/envs/selfCreationPortal_env && \
+        curl -L -o user/src/.env https://github.com/ELEVATE-Project/project-service/raw/refs/heads/main/documentation/1.0.0/native/envs/user_env && \
+        curl -L -o notification/src/.env https://github.com/ELEVATE-Project/project-service/raw/refs/heads/main/documentation/1.0.0/native/envs/notification_env && \
+        curl -L -o interface-service/src/.env https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/native/envs/interface_env && \
+        curl -L -o scheduler/src/.env https://github.com/ELEVATE-Project/project-service/raw/refs/heads/main/documentation/1.0.0/native/envs/scheduler_env && \
+        curl -L -o observation-survey-projects-pwa/src/environments/environment.ts https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/native/envs/enviroment.ts
+        ```
+
+    > **Note:** Modify the environment files as necessary for your deployment using any text editor, ensuring that the values are appropriate for your environment. The default values provided in the current files are functional and serve as a good starting point. Refer to the sample env files provided at the [Self Creation Portal Service](https://github.com/ELEVATE-Project/survey-project-creation-service/blob/staging/src/.env.sample), [User](https://github.com/ELEVATE-Project/user/blob/master/src/.env.sample), [Notification](https://github.com/ELEVATE-Project/notification/blob/master/src/.env.sample), [Scheduler](https://github.com/ELEVATE-Project/scheduler/blob/master/src/.env.sample), [Interface](https://github.com/ELEVATE-Project/interface-service/blob/main/src/.env.sample) repositories for reference.
+
+    > **Important:** As mentioned in the above linked document, the **User SignUp** functionality may be compromised if key environment variables are not set correctly during deployment. If you opt to skip this setup, consider using the sample user account generator detailed in the `Sample User Accounts Generation` section of this document.
+
+5.  **Create Databases**
+
+    -   **MacOs**
+
+        1. Download `create-databases.sh` Script File:
+
+            ```
+            curl -OJL https://raw.githubusercontent.com/ELEVATE-Project/survey-project-creation-service/native-setup/documentation/1.0.0/native/scripts/macos/create-databases.sh
+
+            ```
+
+        2. Make the executable by running the following command:
+            ```
+            chmod +x create-databases.sh
+            ```
+        3. Run the script file:
+            ```
+            ./create-databases.sh
+            ```
+
+6.  **Run Migrations To Create Tables**
+
+    -   **Ubuntu/Linux/MacOS**
+
+        1. Run Migrations:
+            ```
+            cd user/src && npx sequelize-cli db:migrate && cd ../.. && \
+            cd notification/src && npx sequelize-cli db:migrate && cd ../..
+            ```
+
+7.  **Enabling Citus And Setting Distribution Columns (Optional)**
+
+        To boost performance and scalability, users can opt to enable the Citus extension. This transforms PostgreSQL into a distributed database, spreading data across multiple nodes to handle large datasets more efficiently as demand grows.
+
+        > NOTE: Currently only available for Linux based operation systems.
+
+        1. Download user `distributionColumns.sql` file.
+
+            ```
+            curl -o ./user/distributionColumns.sql -JL https://github.com/ELEVATE-Project/project-service/raw/refs/heads/main/documentation/1.0.0/distribution-columns/user/distributionColumns.sql
+            ```
+
+        2. Set up the `citus_setup` file by following the steps given below.
+
+            - **Ubuntu/Linux**
+
+                1. Download the `citus_setup.sh` file:
+
+                    ```
+                    curl -OJL https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/native/scripts/linux/citus_setup.sh
+
+                    ```
+
+                2. Make the setup file executable by running the following command:
+
+                    ```
+                    chmod +x citus_setup.sh
+                    ```
+
+                3. Enable Citus and set distribution columns for `user` database by running the `citus_setup.sh`with the following arguments.
+                    ```
+                    ./citus_setup.sh user postgres://postgres:postgres@localhost:9700/users
+                    ```
+
+    <!--
+
+8.  **Insert Initial Data**
+
+    -   **Ubuntu/Linux/MacOS**
+
+        1.  Download `entity-project-sample-data.sh` Script File:
+
+            1.1. For ubuntu/linux
+
+            ```
+            curl -OJL https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/native/scripts/linux/entity-project-sample-data.sh
+            ```
+
+            1.1. For mac
+
+            ```
+            curl -OJL https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/native/scripts/macos/entity-project-sample-data.sh
+            ```
+
+        2.  Make the executable by running the following command:
+            ```
+            chmod +x entity-project-sample-data.sh
+            ```
+        3.  Run the script file:
+            ```
+            ./entity-project-sample-data.sh
+            ```
+        4.  Run seeders of user service
+            ```
+            cd user/src && npm run db:seed:all && cd ../..
+            ```
+
+    -   **Windows**
+
+        1.  Download `entity-project-sample-data.bat` Script File:
+
+            ```
+            curl -OJL https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/native/scripts/windows/entity-project-sample-data.bat
+            ```
+
+        2.  Run the script file:
+
+            ```
+            entity-project-sample-data.bat
+            ```
+
+        3.  Run seeders of user service
+
+            ```
+            cd user\src && npm run db:seed:all && cd ..\..
+            ```
+
+9.  **Insert Forms Data into Database**
+
+    -   **Ubuntu/Linux/MacOS**
+
+        1.  Download `import_forms.js` Script File And Make the setup file executable by running the following command:
+
+            ```
+            curl -s https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/native/scripts/linux/import_forms.js | node
+            ```
+
+    -   **Windows**
+
+        1.  Download `import_forms_mongo.bat` Script File and execute the file by running the following commands:
+
+            ```
+            curl -OJL https://raw.githubusercontent.com/ELEVATE-Project/project-service/refs/heads/main/documentation/1.0.0/native/scripts/windows/import_forms_mongo.bat
+            ```
+
+            ```
+            import_forms_mongo.bat
+            ```
+
+10. **Start The Services**
+
+    Following the steps given below, 2 instances of each ELEVATE-Project backend service will be deployed and be managed by PM2 process manager.
+
+    -   **Ubuntu/Linux**
+
+        ```
+        (cd project-service && pm2 start app.js --name project-service && cd -) && \
+        (cd entity-management/src && pm2 start app.js --name entity-management && cd -) && \
+        (cd user/src && pm2 start app.js --name user && cd -) && \
+        (cd notification/src && pm2 start app.js --name notification && cd -) && \
+        (cd interface-service/src && pm2 start app.js --name interface && cd -) && \
+        (cd scheduler/src && pm2 start app.js --name scheduler && cd -)
+        ```
+
+    -   **MacOs**
+
+        ```
+        cd project-service && npx pm2 start app.js -i 2 --name project-service && cd .. && \
+        cd entity-management/src && npx pm2 start app.js -i 2 --name entity-management && cd ../.. && \
+        cd user/src && npx pm2 start app.js -i 2 --name user && cd ../.. && \
+        cd notification/src && npx pm2 start app.js -i 2 --name notification && cd ../.. && \
+        cd interface-service/src && npx pm2 start app.js -i 2 --name interface && cd ../.. && \
+        cd scheduler/src && npx pm2 start app.js -i 2 --name scheduler && cd ../..
+        ```
+
+    -   **Windows**
+
+        ```
+        cd project-service && pm2 start app.js --name project-service && cd ..
+        cd entity-management\src && pm2 start app.js --name entity-management && cd ..\..
+        cd user\src && pm2 start app.js --name user && cd ..\..
+        cd notification\src && pm2 start app.js --name notification && cd ..\..
+        cd interface-service\src && pm2 start app.js --name interface && cd ..\..
+        cd scheduler\src && pm2 start app.js --name scheduler && cd ..\..
+        ```
+
+11. **Run Service Scripts**
+
+    -   **Ubuntu/Linux/MacOS**
+
+        ```
+        cd user/src/scripts && node insertDefaultOrg.js && node viewsScript.js && cd ../../..
+        ```
+
+    -   **Windows**
+
+        ```
+        cd user\src\scripts && node insertDefaultOrg.js && node viewsScript.js && cd ..\..\..
+        ```
+
+12. **Start The Portal**
+
+    ELEVATE-Project portal utilizes Ionic for building the browser bundle, follow the steps given below to install them and start the portal.
+
+    -   **Ubuntu/Linux/Windows**
+
+        1. Install the Ionic framework:
+
+            ```
+            npm install -g ionic
+            ```
+
+        2. Install the Ionic client:
+
+            ```
+            npm install -g @ionic/cli
+            ```
+
+        3. Navigate to `observation-survey-projects-pwa` directory:
+
+            ```
+            cd observation-survey-projects-pwa
+            ```
+
+        4. Run the project on your local system using the following command:
+
+            ```
+            ionic serve
+            ```
+
+    Navigate to http://localhost:8100 to access the ELEVATE-Project Portal. -->
+
+</details>

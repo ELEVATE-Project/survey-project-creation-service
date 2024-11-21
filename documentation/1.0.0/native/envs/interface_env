@@ -1,0 +1,16 @@
+API_DOC_URL= /interface/api-doc
+APPLICATION_ENV= development
+APPLICATION_PORT= 3569
+SELF-CREATION-PORTAL_SERVICE_BASE_URL=http://localhost:5000
+INSTALLED_PACKAGES=elevate-user elevate-scheduler elevate-entity-management 
+NOTIFICATION_SERVICE_BASE_URL= http://localhost:3002
+RATE_LIMITER_ENABLED= false
+RATE_LIMITER_GENERAL_LIMIT= 50
+RATE_LIMITER_NUMBER_OF_PROXIES= 3
+RATE_LIMITER_PUBLIC_LOW_LIMIT= 5
+REQUIRED_BASE_PACKAGES= user,notification,scheduler,self-creation-portal
+REQUIRED_PACKAGES="elevate-user@1.1.77 elevate-scheduler@1.0.4 elevate-self-creation-portal@1.0.34"
+ROUTE_CONFIG_JSON_URLS_PATHS="https://raw.githubusercontent.com/ELEVATE-Project/user/staging/src/constants/interface-routes/configs.json,https://raw.githubusercontent.com/ELEVATE-Project/survey-project-creation-service/staging/src/constants/interface-routes/configs.json,https://raw.githubusercontent.com/ELEVATE-Project/scheduler/develop/src/constants/interface-routes/configs.json,https://raw.githubusercontent.com/ELEVATE-Project/entity-management/main/src/constants/interface-routes/configs.json"
+SCHEDULER_SERVICE_BASE_URL= http://localhost:4000
+SUPPORTED_HTTP_TYPES= GET POST PUT PATCH DELETE
+USER_SERVICE_BASE_URL= http://localhost:3001
