@@ -121,7 +121,7 @@ services:
     env_file:
       - ${users_env}
 
-  survey-project-creation-service:
+  scp:
     build: 'survey-project-creation-service/'
     # image: elevate/survey-project-creation-service:1.0
     ports:
