@@ -18,12 +18,14 @@ describe('Project APIs ', function () {
 
 	it('Create Project', async () => {
 		let res = await request.post('/scp/v1/projects/update').send(insertProjectData())
+		console.log(JSON.stringify(res.body, null, 2))
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
 
 	it('Delete Project', async () => {
 		const res = await request.delete('/scp/v1/projects/update/999999')
+		console.log(JSON.stringify(res.body, null, 2))
 		expect(res.statusCode).toBe(400)
 	})
 
@@ -31,12 +33,14 @@ describe('Project APIs ', function () {
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
 		const projectId = createProject.body?.result?.id
 		let res = await request.get('/scp/v1/projects/details/' + projectId)
+		console.log(JSON.stringify(res.body, null, 2))
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.detailSchema)
 	})
 
 	it('Reviewer List', async () => {
 		const res = await request.get('/scp/v1/projects/reviewerList')
+		console.log(JSON.stringify(res.body, null, 2))
 		expect(res.statusCode).toBe(200)
 	})
 
@@ -58,6 +62,7 @@ describe('Project APIs ', function () {
 		const projectId = createProject.body?.result?.id
 		//submit for review
 		const res = await request.post('/scp/v1/projects/submitForReview/' + projectId)
+		console.log(JSON.stringify(res.body, null, 2))
 		expect(res.statusCode).toBe(400)
 		// expect(res.body).toMatchSchema(schema.submitProjectSchema)
 	})
