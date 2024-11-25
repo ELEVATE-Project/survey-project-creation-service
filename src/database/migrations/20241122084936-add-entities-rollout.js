@@ -92,7 +92,7 @@ module.exports = {
 	},
 
 	async down(queryInterface, Sequelize) {
-		const entityTypesList = ['location', 'role', 'gender']
+		const entityTypesList = ['state', 'role', 'gender']
 		const entityTypes = await queryInterface.sequelize.query(
 			`SELECT id FROM entity_types WHERE value IN (:entityTypesList)`,
 			{
