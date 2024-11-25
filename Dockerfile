@@ -18,7 +18,7 @@ COPY ./src .
 RUN apt-get update && apt-get install -y netcat-openbsd
 
 #Expose the application port
-EXPOSE 3000
+EXPOSE 6001
 
 #Start the application
 CMD [ "node", "app.js" ]
