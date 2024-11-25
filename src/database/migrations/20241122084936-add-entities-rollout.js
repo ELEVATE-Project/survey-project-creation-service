@@ -10,7 +10,7 @@ module.exports = {
 
 			const entitiesArray = [
 				{
-					entityType: 'location',
+					entityType: 'state',
 					entities: '',
 					has_entities: true,
 					is_external: true,
