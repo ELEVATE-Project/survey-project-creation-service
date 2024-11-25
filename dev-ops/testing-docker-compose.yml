@@ -75,7 +75,6 @@ services:
 
   user:
     build: '../../user/'
-    image: elevate/user:1.0
     ports:
       - '5001:5001'
     volumes:
@@ -110,7 +109,7 @@ services:
     env_file:
       - integration_test.user.env
 
-  survey-project-creation-service:
+  scp:
     # build: '../../survey-project-creation-service/'
     build: '../'
     ports:

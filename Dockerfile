@@ -6,6 +6,9 @@ WORKDIR /var/src/
 #Copy package.json file
 COPY ./src/package.json .
 
+# Remove node_modules if they exist
+RUN rm -rf node_modules
+
 #Install node packages
 RUN npm install && npm install -g nodemon@2.0.16
 #Copy all files 
