@@ -111,7 +111,8 @@ services:
       - integration_test.user.env
 
   survey-project-creation-service:
-    build: '../../survey-project-creation-service/'
+    # build: '../../survey-project-creation-service/'
+    build: '../'
     ports:
       - '6001:6001'
     command: >
