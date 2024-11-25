@@ -168,9 +168,12 @@ module.exports = {
 	},
 	MODEL_NAMES: {
 		RESOURCE: 'Resource',
+		ROLLOUT: 'Rollouts',
 	},
 	USER_ACTIONS: {
 		project: getResourceActions('PROJECT'),
+		rollout_program: getResourceActions('PROGRAM_ROLLOUT'),
+		rollout_solution: getResourceActions('SOLUTION_ROLLOUT'),
 	},
 	EVENT_ADD_USER_ACTION: 'addUserAction',
 	REQUEST_TIMEOUT_MS: 3000,

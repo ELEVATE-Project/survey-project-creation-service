@@ -17,7 +17,7 @@ module.exports = {
 			},
 			resource_id: {
 				allowNull: false,
-				type: Sequelize.STRING,
+				type: Sequelize.INTEGER,
 			},
 			status: {
 				allowNull: false,
@@ -88,6 +88,16 @@ module.exports = {
 			deleted_at: {
 				type: Sequelize.DATE,
 			},
+		})
+
+		await queryInterface.addIndex('rollouts', ['status'], {
+			name: 'rollouts_status_index',
+		})
+		await queryInterface.addIndex('rollouts', ['resource_type'], {
+			name: 'rollouts_resource_type_index',
+		})
+		await queryInterface.addIndex('rollouts', ['user_id'], {
+			name: 'rollouts_user_id_index',
 		})
 	},
 

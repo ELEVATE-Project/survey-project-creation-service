@@ -15,6 +15,7 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 			},
 			resource_id: {
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			status: {
@@ -24,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			rollout_date: {
 				allowNull: true,
-				type: DataTypes.STRING,
+				type: DataTypes.DATE,
 			},
 			organization_id: {
 				primaryKey: true,
@@ -36,12 +37,12 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 			},
 			start_date: {
-				allowNull: true,
-				type: DataTypes.STRING,
+				allowNull: false,
+				type: DataTypes.DATE,
 			},
 			end_date: {
-				allowNull: true,
-				type: DataTypes.STRING,
+				allowNull: false,
+				type: DataTypes.DATE,
 			},
 			published_id: {
 				type: DataTypes.STRING,
@@ -57,7 +58,7 @@ module.exports = (sequelize, DataTypes) => {
 			parent_id: {
 				type: DataTypes.INTEGER,
 			},
-			stage: {
+			type: {
 				allowNull: true,
 				type: DataTypes.ENUM('PROGRAM', 'SOLUTION'),
 			},
@@ -69,18 +70,6 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 			},
 			updated_by: {
-				type: DataTypes.STRING,
-			},
-			created_at: {
-				allowNull: true,
-				type: DataTypes.STRING,
-			},
-			updated_at: {
-				allowNull: true,
-				type: DataTypes.STRING,
-			},
-			deleted_at: {
-				allowNull: true,
 				type: DataTypes.STRING,
 			},
 		},
@@ -96,10 +85,10 @@ module.exports = (sequelize, DataTypes) => {
 		try {
 			if (actionType) {
 				eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
-					actionCode: common.USER_ACTIONS[instance.type][actionType],
+					actionCode: common.USER_ACTIONS['rollout_' + instance.resource_type.toLowerCase()][actionType],
 					userId: instance.user_id,
 					objectId: instance.id,
-					objectType: common.MODEL_NAMES.RESOURCE,
+					objectType: common.MODEL_NAMES.ROLLOUT,
 					orgId: instance.organization_id,
 				})
 			}
@@ -109,9 +98,9 @@ module.exports = (sequelize, DataTypes) => {
 		}
 	}
 
-	Rollouts.addHook('afterCreate', (instance) => emitUserAction(instance, 'ROLLOUT_CREATED'))
+	Rollouts.addHook('afterCreate', (instance) => emitUserAction(instance, 'RESOURCE_CREATED'))
 
-	Rollouts.addHook('afterDestroy', (instance) => emitUserAction(instance, 'ROLLOUT_DELETED'))
+	Rollouts.addHook('afterDestroy', (instance) => emitUserAction(instance, 'RESOURCE_DELETED'))
 
 	return Rollouts
 }
