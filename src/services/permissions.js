@@ -92,15 +92,7 @@ module.exports = class PermissionsHelper {
 				})
 			}
 		} catch (error) {
-			if (error.name === common.SEQUELIZE_DATABASE_ERROR && error.parent?.code === '22003') {
-				return responses.failureResponse({
-					message: 'PERMISSION_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			} else {
-				throw error
-			}
+			throw error
 		}
 	}
 
@@ -133,15 +125,7 @@ module.exports = class PermissionsHelper {
 				result: {},
 			})
 		} catch (error) {
-			if (error.name === common.SEQUELIZE_DATABASE_ERROR && error.parent?.code === '22003') {
-				return responses.failureResponse({
-					message: 'PERMISSION_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			} else {
-				throw error
-			}
+			throw error
 		}
 	}
 
