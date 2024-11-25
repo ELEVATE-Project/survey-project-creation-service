@@ -22,6 +22,7 @@ module.exports = {
 					has_entities: true,
 					is_external: true,
 					validation: {},
+					depended_on: 'state',
 				},
 				{
 					entityType: 'gender',
@@ -59,6 +60,24 @@ module.exports = {
 
 			const entityTypes = await queryInterface.sequelize.query('SELECT * FROM entity_types', {
 				type: queryInterface.sequelize.QueryTypes.SELECT,
+			})
+
+			entitiesArray.forEach(async (eachEntityType) => {
+				if (eachEntityType.hasOwnProperty('depended_on') && eachEntityType['depended_on'] != '') {
+					const dependent_entity_type = entityTypes.find(
+						(entityType) => entityType.value == eachEntityType['depended_on']
+					)
+					await queryInterface.bulkUpdate(
+						'entity_types',
+						{
+							is_dependent: true,
+							depended_on: dependent_entity_type.id,
+						},
+						{
+							value: eachEntityType.entityType,
+						}
+					)
+				}
 			})
 
 			const entitiesFinalArray = entityTypes.reduce((acc, eachType) => {
