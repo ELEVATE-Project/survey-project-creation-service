@@ -13,6 +13,9 @@ jobs:
       # - restore_cache:
       #     key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
       - run:
+          name: Print Node.js version
+          command: node -v
+      - run:
           name: Install dependencies
           command: cd src/ && npm install
       - save_cache:
