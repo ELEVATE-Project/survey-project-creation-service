@@ -90,6 +90,10 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.BOOLEAN,
 				defaultValue: false,
 			},
+			associated_resource_ids: {
+				type: DataTypes.ARRAY(DataTypes.INTEGER),
+				defaultValue: [],
+			},
 		},
 		{
 			modelName: 'Resource',

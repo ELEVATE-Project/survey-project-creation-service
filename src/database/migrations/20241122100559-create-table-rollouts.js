@@ -69,6 +69,14 @@ module.exports = {
 			duplicate_template_id: {
 				type: Sequelize.STRING,
 			},
+			created_by: {
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
+			updated_by: {
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
 			created_at: {
 				allowNull: false,
 				type: Sequelize.DATE,

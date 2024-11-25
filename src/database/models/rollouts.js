@@ -1,0 +1,117 @@
+const common = require('@constants/common')
+
+module.exports = (sequelize, DataTypes) => {
+	const Rollouts = sequelize.define(
+		'Rollouts',
+		{
+			id: {
+				allowNull: false,
+				autoIncrement: true,
+				primaryKey: true,
+				type: DataTypes.INTEGER,
+			},
+			resource_type: {
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			resource_id: {
+				type: DataTypes.INTEGER,
+			},
+			status: {
+				allowNull: false,
+				type: DataTypes.ENUM('PENDING', 'ROLLED_OUT', 'INACTIVE'),
+				defaultValue: 'PENDING',
+			},
+			rollout_date: {
+				allowNull: true,
+				type: DataTypes.STRING,
+			},
+			organization_id: {
+				primaryKey: true,
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			user_id: {
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			start_date: {
+				allowNull: true,
+				type: DataTypes.STRING,
+			},
+			end_date: {
+				allowNull: true,
+				type: DataTypes.STRING,
+			},
+			published_id: {
+				type: DataTypes.STRING,
+			},
+			title: {
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			blob_path: {
+				allowNull: true,
+				type: DataTypes.STRING,
+			},
+			parent_id: {
+				type: DataTypes.INTEGER,
+			},
+			stage: {
+				allowNull: true,
+				type: DataTypes.ENUM('PROGRAM', 'SOLUTION'),
+			},
+			duplicate_template_id: {
+				type: DataTypes.STRING,
+			},
+			created_by: {
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			updated_by: {
+				type: DataTypes.STRING,
+			},
+			created_at: {
+				allowNull: true,
+				type: DataTypes.STRING,
+			},
+			updated_at: {
+				allowNull: true,
+				type: DataTypes.STRING,
+			},
+			deleted_at: {
+				allowNull: true,
+				type: DataTypes.STRING,
+			},
+		},
+		{
+			modelName: 'Rollouts',
+			tableName: 'rollouts',
+			freezeTableName: true,
+			paranoid: true,
+		}
+	)
+	// Helper function to emit user actions with dynamic action types
+	const emitUserAction = async (instance, actionType) => {
+		try {
+			if (actionType) {
+				eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
+					actionCode: common.USER_ACTIONS[instance.type][actionType],
+					userId: instance.user_id,
+					objectId: instance.id,
+					objectType: common.MODEL_NAMES.RESOURCE,
+					orgId: instance.organization_id,
+				})
+			}
+		} catch (error) {
+			console.error(`Error during ${actionType} hook:`, error)
+			throw error
+		}
+	}
+
+	Rollouts.addHook('afterCreate', (instance) => emitUserAction(instance, 'ROLLOUT_CREATED'))
+
+	Rollouts.addHook('afterDestroy', (instance) => emitUserAction(instance, 'ROLLOUT_DELETED'))
+
+	return Rollouts
+}
