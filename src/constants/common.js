@@ -195,4 +195,5 @@ module.exports = {
 	RECOMMENDED_DURATION: 'recommended_duration',
 	NUMBER: 'number',
 	STRING: 'string',
+	SEQUELIZE_DATABASE_ERROR: 'SequelizeDatabaseError',
 }

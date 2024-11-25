@@ -13,6 +13,8 @@ module.exports = {
 			.withMessage('id param is empty, please append a valid resource id')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('Id is not valid')
 
 		req.checkBody('comment').optional({ checkFalsy: true })
 	},
@@ -23,6 +25,8 @@ module.exports = {
 			.withMessage('id param is empty, please append a valid resource id')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('Id is not valid')
 
 		req.checkBody('comment').optional({ checkFalsy: true })
 	},
@@ -33,6 +37,8 @@ module.exports = {
 			.withMessage('id param is empty, please append a valid resource id')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('Id is not valid')
 	},
 	rejectOrReport: (req) => {
 		req.checkParams('id')
@@ -41,6 +47,8 @@ module.exports = {
 			.withMessage('id param is empty, please append a valid resource id')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('Id is not valid')
 
 		req.checkQuery('isReported')
 			.optional()
