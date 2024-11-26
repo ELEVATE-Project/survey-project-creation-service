@@ -84,10 +84,14 @@ jobs:
             # Output the file content for verification
             cat $USER_ENV_FILE
 
+      # - run:
+      #     name: Starting the docker containers
+      #     command: |-
+      #       cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
       - run:
-          name: Starting the docker containers
-          command: |-
-            cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
+          name: Starting the docker containers with logs
+          command: |
+            cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d > ../logs/docker-compose.log 2>&1
       - run:
           name: Wait for PostgreSQL to be Ready
           command: |
@@ -114,6 +118,16 @@ jobs:
             docker exec postgres psql -U postgres -c "CREATE DATABASE integration_test_scp;"
 
       - run:
+          name: Capture service logs
+          command: |
+            cd dev-ops/ &&
+            docker-compose logs survey-project-creation-service > ../logs/survey-project-creation-service.log 2>&1 &&
+            docker-compose logs user > ../logs/user-service.log 2>&1 &&
+            docker-compose logs postgres > ../logs/postgres.log 2>&1
+      - run:
+          name: Validate logs creation
+          command: ls -l ~/survey-project-creation-service/dev-ops/logs
+      - run:
           name: Check docker logs
           command: |-
             docker ps && docker-compose logs --tail=1000
@@ -131,7 +145,7 @@ jobs:
             docker-compose -f dev-ops/testing-docker-compose.yml logs --tail=1000 > ./dev-ops/logs/docker-services.log
             docker-compose ps > ./dev-ops/logs/docker-ps.log
       - store_artifacts:
-          path: ./dev-ops/logs/
+          path: ~/survey-project-creation-service/dev-ops/logs
           destination: docker-logs
       - store_test_results:
           path: ./dev-ops/report
