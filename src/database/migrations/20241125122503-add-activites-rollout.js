@@ -20,6 +20,14 @@ module.exports = {
 				code: 'DELETE_SOLUTION_ROLLOUT',
 				description: 'deleted the Solution rollout with',
 			},
+			{
+				code: 'PROGRAM_ROLLOUT_PUBLISHED',
+				description: 'published the Program rollout with',
+			},
+			{
+				code: 'SOLUTION_ROLLOUT_PUBLISHED',
+				description: 'published the Solution rollout with',
+			},
 		]
 
 		const actionsFinalArray = actionsData.map((action) => {
@@ -45,6 +53,8 @@ module.exports = {
 						'CREATE_SOLUTION_ROLLOUT',
 						'DELETE_PROGRAM_ROLLOUT',
 						'DELETE_SOLUTION_ROLLOUT',
+						'PROGRAM_ROLLOUT_PUBLISHED',
+						'SOLUTION_ROLLOUT_PUBLISHED',
 					],
 				},
 			},

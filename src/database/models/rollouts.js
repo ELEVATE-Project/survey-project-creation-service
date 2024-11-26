@@ -102,5 +102,11 @@ module.exports = (sequelize, DataTypes) => {
 
 	Rollouts.addHook('afterDestroy', (instance) => emitUserAction(instance, 'RESOURCE_DELETED'))
 
+	Rollouts.addHook('afterUpdate', (instance) => {
+		if (instance.status == common.ROLLOUT_STATUS_PUBLISHED) {
+			emitUserAction(instance, 'RESOURCE_PUBLISHED')
+		}
+	})
+
 	return Rollouts
 }

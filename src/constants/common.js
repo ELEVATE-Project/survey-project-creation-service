@@ -198,4 +198,5 @@ module.exports = {
 	RECOMMENDED_DURATION: 'recommended_duration',
 	NUMBER: 'number',
 	STRING: 'string',
+	ROLLOUT_STATUS_PUBLISHED: 'PUBLISHED',
 }
