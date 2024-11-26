@@ -13,8 +13,8 @@ jobs:
       # - restore_cache:
       #     key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
       - run:
-          name: Create logs directory
-          command: mkdir -p ~/survey-project-creation-service/dev-ops/logs
+        name: Create logs directory
+        command: mkdir -p ~/survey-project-creation-service/dev-ops/logs
       - run:
           name: Install dependencies
           command: cd src/ && npm install
@@ -89,11 +89,11 @@ jobs:
       #     command: |-
       #       cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
       - run:
-          name: Starting the docker containers with logs
+          name: Start Docker Containers and Capture Logs
           command: |
-            mkdir -p ~/survey-project-creation-service/logs
-            cd dev-ops/
-            docker-compose -f testing-docker-compose.yml up --build -d > ../logs/docker-compose.log 2>&1
+            cd ~/survey-project-creation-service/dev-ops
+            docker-compose -f testing-docker-compose.yml up --build -d
+            docker-compose logs --tail=100 > logs/docker-compose.log
 
       - run:
           name: Wait for PostgreSQL to be Ready
@@ -121,15 +121,16 @@ jobs:
             docker exec postgres psql -U postgres -c "CREATE DATABASE integration_test_scp;"
 
       - run:
-          name: Capture service logs
+          name: Start Docker Containers and Capture Logs
           command: |
-            cd dev-ops/ &&
-            docker-compose logs survey-project-creation-service > ../logs/survey-project-creation-service.log 2>&1 &&
-            docker-compose logs user > ../logs/user-service.log 2>&1 &&
-            docker-compose logs postgres > ../logs/postgres.log 2>&1
+            cd ~/survey-project-creation-service/dev-ops
+            docker-compose -f testing-docker-compose.yml up --build -d
+            docker-compose logs --tail=100 > logs/docker-compose.log
       - run:
-          name: Validate logs creation
-          command: ls -l ~/survey-project-creation-service/dev-ops/logs
+          name: Validate Log File
+          command: |
+            ls -l ~/survey-project-creation-service/dev-ops/logs/
+            cat ~/survey-project-creation-service/dev-ops/logs/docker-compose.log
       - run:
           name: Check docker logs
           command: |-
@@ -142,11 +143,17 @@ jobs:
           command: |
             cd src/ && npm run test:integration
       - run:
-          name: Capture Docker Logs
+          name: Ensure Logs Directory
           command: |
-            mkdir -p ./dev-ops/logs
-            docker-compose -f dev-ops/testing-docker-compose.yml logs --tail=1000 > ./dev-ops/logs/docker-services.log
-            docker-compose ps > ./dev-ops/logs/docker-ps.log
+            mkdir -p ~/survey-project-creation-service/dev-ops/logs
+            cd ~/survey-project-creation-service/dev-ops/
+            touch logs/docker-compose.log
+      - run:
+          name: Debug Docker Services
+          command: |
+            docker ps
+            docker-compose ps
+            docker-compose logs
       - store_artifacts:
           path: ~/survey-project-creation-service/dev-ops/logs
           destination: docker-logs
