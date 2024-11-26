@@ -28,6 +28,8 @@ module.exports = {
 				.withMessage('id param is required')
 				.isNumeric()
 				.withMessage('id param is invalid, must be an integer')
+				.isInt({ min: 1, max: 2147483647 })
+				.withMessage('Id is not valid')
 		} else {
 			// For non-DELETE methods (e.g., PUT, PATCH), validate other fields
 			req.checkBody('comment').optional().notEmpty().withMessage('comment param is empty')
@@ -45,7 +47,13 @@ module.exports = {
 				.withMessage(`status is invalid, must be one of: ${allowedStatuses.join(', ')}`)
 
 			// Validate 'id' in the URL if present
-			req.checkParams('id').optional().trim().isNumeric().withMessage('id param is invalid, must be an integer')
+			req.checkParams('id')
+				.optional()
+				.trim()
+				.isNumeric()
+				.withMessage('id param is invalid, must be an integer')
+				.isInt({ min: 1, max: 2147483647 })
+				.withMessage('Id is not valid')
 
 			// Custom validation: if `id` is present, ensure `comment` is an object
 			if (req.params.id) {

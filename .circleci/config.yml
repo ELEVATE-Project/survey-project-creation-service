@@ -121,6 +121,15 @@ jobs:
           name: Running test cases
           command: |
             cd src/ && npm run test:integration
+      - run:
+          name: Capture Docker Logs
+          command: |
+            mkdir -p ./dev-ops/logs
+            docker-compose -f dev-ops/testing-docker-compose.yml logs --tail=1000 > ./dev-ops/logs/docker-services.log
+            docker-compose ps > ./dev-ops/logs/docker-ps.log
+      - store_artifacts:
+          path: ./dev-ops/logs/
+          destination: docker-logs
       - store_test_results:
           path: ./dev-ops/report
       - run:
