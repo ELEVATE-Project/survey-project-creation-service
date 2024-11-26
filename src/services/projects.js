@@ -987,18 +987,6 @@ module.exports = class ProjectsHelper {
 					Object.keys(fieldData).length > 0 &&
 					JSON.parse(process.env.ENABLE_OBSERVATION_IN_PROJECTS)
 				) {
-					//validate the observation name
-					let checkRegex = utils.checkRegexPattern(regexValidation, fieldData.name)
-					if (!checkRegex) {
-						validationErrors.push(
-							utils.errorObject(
-								solutionDetailsPath,
-								common.NAME,
-								regexValidation.message ||
-									`${entityType.value} name is invalid, please ensure it contains no special characters and does not exceed the character limit`
-							)
-						)
-					}
 					//validate the observation url
 					let regex = new RegExp(process.env.OBSERVATION_DEEP_LINK_REGEX)
 					let validateURL = regex.test(fieldData.link)
