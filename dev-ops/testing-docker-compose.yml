@@ -72,6 +72,12 @@ services:
       - elevate_net
     env_file:
       - integration_test.scheduler.env
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+        path: /var/log/scheduler/
 
   user:
     build: '../../user/'
@@ -108,6 +114,12 @@ services:
       - elevate_net
     env_file:
       - integration_test.user.env
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+        path: /var/log/user/
 
   scp:
     # build: '../../survey-project-creation-service/'
@@ -158,6 +170,12 @@ services:
       - elevate_net
     env_file:
       - integration_test.self_creation_portal.env
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+        path: /var/log/scp/
 
 networks:
   elevate_net:
