@@ -91,6 +91,7 @@ jobs:
       - run:
           name: Starting the docker containers with logs
           command: |
+            mkdir -p ~/survey-project-creation-service/dev-ops/logs
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d > ../logs/docker-compose.log 2>&1
       - run:
           name: Wait for PostgreSQL to be Ready
