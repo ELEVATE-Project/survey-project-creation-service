@@ -209,4 +209,5 @@ module.exports = {
 	ROLL_OUT: 'rollout',
 	ROLLOUT_TYPE_PROGRAM: 'program',
 	ROLLOUT_TYPE_SOLUTION: 'solution',
+	ROLL_OUT_PATH: 'rollout/',
 }

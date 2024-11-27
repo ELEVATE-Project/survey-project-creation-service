@@ -74,7 +74,7 @@ module.exports = class RolloutsHelper {
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 			}
-			console.log(rolloutData, 'rolloutData')
+
 			let rolloutCreate
 			try {
 				//create rollout
@@ -97,7 +97,7 @@ module.exports = class RolloutsHelper {
 					rolloutUploadStatus.result.status == httpStatusCode.created
 				) {
 					let filter = {
-						id: resourceId,
+						id: rolloutId,
 						organization_id: orgId,
 					}
 
@@ -122,7 +122,6 @@ module.exports = class RolloutsHelper {
 					throw new Error('FILE_UPLOADED_FAILED')
 				}
 			} catch (error) {
-				console.log(error, 'errorrr')
 				return responses.failureResponse({
 					message: error.message || error,
 					statusCode: httpStatusCode.bad_request,
@@ -136,7 +135,6 @@ module.exports = class RolloutsHelper {
 				result: { id: rolloutCreate.id },
 			})
 		} catch (error) {
-			console.log(error, 'errorrr')
 			throw error
 		}
 	}
