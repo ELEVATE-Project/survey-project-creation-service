@@ -1,7 +1,7 @@
 const common = require('@constants/common')
 
 module.exports = (sequelize, DataTypes) => {
-	const Rollouts = sequelize.define(
+	const Rollout = sequelize.define(
 		'Rollout',
 		{
 			id: {
@@ -60,7 +60,7 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			type: {
 				allowNull: true,
-				type: DataTypes.ENUM('PROGRAM', 'SOLUTION'),
+				type: DataTypes.ENUM('program', 'solution'),
 			},
 			duplicate_template_id: {
 				type: DataTypes.STRING,
@@ -82,10 +82,14 @@ module.exports = (sequelize, DataTypes) => {
 	)
 	// Helper function to emit user actions with dynamic action types
 	const emitUserAction = async (instance, actionType) => {
+		console.log(actionType, 'actionType')
+		// CREATE_PROGRAM_ROLLOUT
+		// rollout_program
+		// console.log(common.USER_ACTIONS['rollout_' + instance.resource_type.toLowerCase()][actionType], 'jjj')
 		try {
 			if (actionType) {
 				eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
-					actionCode: common.USER_ACTIONS['rollout_' + instance.resource_type.toLowerCase()][actionType],
+					actionCode: common.USER_ACTIONS['rollout_' + instance.type.toLowerCase()][actionType],
 					userId: instance.user_id,
 					objectId: instance.id,
 					objectType: common.MODEL_NAMES.ROLLOUT,
@@ -98,15 +102,15 @@ module.exports = (sequelize, DataTypes) => {
 		}
 	}
 
-	Rollouts.addHook('afterCreate', (instance) => emitUserAction(instance, 'RESOURCE_CREATED'))
+	Rollout.addHook('afterCreate', (instance) => emitUserAction(instance, `ROLLOUT_CREATE`))
 
-	Rollouts.addHook('afterDestroy', (instance) => emitUserAction(instance, 'RESOURCE_DELETED'))
+	Rollout.addHook('afterDestroy', (instance) => emitUserAction(instance, 'ROLLOUT_DELETED'))
 
-	Rollouts.addHook('afterUpdate', (instance) => {
+	Rollout.addHook('afterUpdate', (instance) => {
 		if (instance.status == common.ROLLOUT_STATUS_PUBLISHED) {
-			emitUserAction(instance, 'RESOURCE_PUBLISHED')
+			emitUserAction(instance, 'ROLLOUT_PUBLISHED')
 		}
 	})
 
-	return Rollouts
+	return Rollout
 }

@@ -12,7 +12,6 @@ module.exports = {
 			},
 			resource_type: {
 				allowNull: false,
-				unique: true,
 				type: Sequelize.STRING,
 			},
 			resource_id: {
@@ -63,7 +62,8 @@ module.exports = {
 			},
 			type: {
 				allowNull: false,
-				type: Sequelize.ENUM('PROGRAM', 'SOLUTION'),
+				type: Sequelize.ENUM('program', 'solution'),
+				defaultValue: 'program',
 			},
 			duplicate_template_id: {
 				type: Sequelize.STRING,
@@ -91,9 +91,6 @@ module.exports = {
 
 		await queryInterface.addIndex('rollouts', ['status'], {
 			name: 'rollouts_status_index',
-		})
-		await queryInterface.addIndex('rollouts', ['resource_type'], {
-			name: 'rollouts_resource_type_index',
 		})
 		await queryInterface.addIndex('rollouts', ['user_id'], {
 			name: 'rollouts_user_id_index',
