@@ -194,6 +194,10 @@ let environmentVariables = {
 			value: 'true',
 		},
 	},
+	DEFAULT_DATA_MANAGERS: {
+		message: 'Default data managers required.',
+		optional: false,
+	},
 }
 
 let success = true

@@ -247,6 +247,9 @@ module.exports = class orgExtensionsHelper {
 					auto_save_interval: utils.convertToInteger(process.env.RESOURCE_AUTO_SAVE_TIMER),
 					note_length: utils.convertToInteger(process.env.MAX_RESOURCE_NOTE_LENGTH),
 				},
+				default_roles: {
+					data_manager: [],
+				},
 			}
 			// attributes to fetch from organisation Extenstion
 			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
