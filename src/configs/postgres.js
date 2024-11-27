@@ -1,4 +1,6 @@
-require('dotenv').config()
+require('dotenv').config({
+	path: '/home/priyanka/workspace/SCP/survey-project-creation-service/src/.env',
+})
 const defaultOrgId = process.env.DEFAULT_ORG_ID
 	? process.env.DEFAULT_ORG_ID.toString()
 	: (() => {

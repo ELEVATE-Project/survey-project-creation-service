@@ -9,7 +9,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 require('dotenv').config({
-	path: '.env',
+	path: '/home/priyanka/workspace/SCP/survey-project-creation-service/src/.env',
 })
 const path = require('path')
 const i18next = require('i18next')
