@@ -89,7 +89,7 @@ module.exports = (sequelize, DataTypes) => {
 		try {
 			if (actionType) {
 				eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
-					actionCode: common.USER_ACTIONS['rollout_' + instance.resource_type.toLowerCase()][actionType],
+					actionCode: common.USER_ACTIONS['rollout_' + instance.type.toLowerCase()][actionType],
 					userId: instance.user_id,
 					objectId: instance.id,
 					objectType: common.MODEL_NAMES.ROLLOUT,
@@ -102,15 +102,13 @@ module.exports = (sequelize, DataTypes) => {
 		}
 	}
 
-	Rollout.addHook('afterCreate', (instance) =>
-		emitUserAction(instance, `CREATE_${instance.type.toUpperCase()}_ROLLOUT`)
-	)
+	Rollout.addHook('afterCreate', (instance) => emitUserAction(instance, `ROLLOUT_CREATE`))
 
-	Rollout.addHook('afterDestroy', (instance) => emitUserAction(instance, 'RESOURCE_DELETED'))
+	Rollout.addHook('afterDestroy', (instance) => emitUserAction(instance, 'ROLLOUT_DELETED'))
 
 	Rollout.addHook('afterUpdate', (instance) => {
 		if (instance.status == common.ROLLOUT_STATUS_PUBLISHED) {
-			emitUserAction(instance, 'RESOURCE_PUBLISHED')
+			emitUserAction(instance, 'ROLLOUT_PUBLISHED')
 		}
 	})
 

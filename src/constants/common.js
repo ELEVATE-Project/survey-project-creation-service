@@ -21,6 +21,9 @@ function getResourceActions(resource) {
 		RESOURCE_REPORTED: `${resource}_REJECTED_AND_REPORTED`,
 		RESOURCE_REJECTED: `${resource}_REJECTED`,
 		REVIEW_INPROGRESS: `${resource}_REVIEW_INPROGRESS`,
+		ROLLOUT_CREATED: `CREATE_${resource}`,
+		ROLLOUT_DELETED: `DELETE_${resource}`,
+		ROLLOUT_PUBLISHED: `${resource}_PUBLISHED`,
 	}
 }
 
