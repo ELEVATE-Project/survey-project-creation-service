@@ -2,7 +2,7 @@ const common = require('@constants/common')
 
 module.exports = (sequelize, DataTypes) => {
 	const Rollouts = sequelize.define(
-		'Rollouts',
+		'Rollout',
 		{
 			id: {
 				allowNull: false,
@@ -74,7 +74,7 @@ module.exports = (sequelize, DataTypes) => {
 			},
 		},
 		{
-			modelName: 'Rollouts',
+			modelName: 'Rollout',
 			tableName: 'rollouts',
 			freezeTableName: true,
 			paranoid: true,

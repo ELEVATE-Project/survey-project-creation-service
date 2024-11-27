@@ -25,7 +25,7 @@ module.exports = {
 				defaultValue: 'PENDING',
 			},
 			rollout_date: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.DATE,
 			},
 			organization_id: {
@@ -64,7 +64,6 @@ module.exports = {
 			type: {
 				allowNull: false,
 				type: Sequelize.ENUM('PROGRAM', 'SOLUTION'),
-				type: Sequelize.STRING,
 			},
 			duplicate_template_id: {
 				type: Sequelize.STRING,
