@@ -3,9 +3,10 @@
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
-const userRequests = require('@requests/user')
 const utils = require('@generics/utils')
-
+const rolloutQueries = require('@database/queries/rollouts')
+const resourceService = require('@services/resource')
+const resourceQueries = require('@database/queries/resources')
 module.exports = class RolloutsHelper {
 	/**
 	 * Rollout create
@@ -41,14 +42,18 @@ module.exports = class RolloutsHelper {
 			}
 
 			//validate the resource
+			console.log({
+				id: bodyData.resource_id,
+				organization_id: orgId,
+				stage: common.RESOURCE_STAGE_COMPLETION,
+			})
 			let resource = await resourceQueries.findOne({
 				id: bodyData.resource_id,
 				organization_id: orgId,
-				status: common.RESOURCE_STATUS_PUBLISHED,
 				stage: common.RESOURCE_STAGE_COMPLETION,
 			})
 
-			if (resource?.id) {
+			if (!resource?.id) {
 				return responses.failureResponse({
 					message: 'RESOURCE_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -69,7 +74,7 @@ module.exports = class RolloutsHelper {
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 			}
-
+			console.log(rolloutData, 'rolloutData')
 			let rolloutCreate
 			try {
 				//create rollout
@@ -79,10 +84,10 @@ module.exports = class RolloutsHelper {
 				const rolloutId = rolloutCreate.id
 				const fileName = `${loggedInUserId}${rolloutId}rollout.json`
 
-				const rolloutUploadStatus = await rolloutService.uploadToCloud(
+				const rolloutUploadStatus = await resourceService.uploadToCloud(
 					fileName,
 					rolloutCreate.id,
-					common.PROJECT,
+					common.ROLL_OUT,
 					loggedInUserId,
 					bodyData
 				)
@@ -117,6 +122,7 @@ module.exports = class RolloutsHelper {
 					throw new Error('FILE_UPLOADED_FAILED')
 				}
 			} catch (error) {
+				console.log(error, 'errorrr')
 				return responses.failureResponse({
 					message: error.message || error,
 					statusCode: httpStatusCode.bad_request,
@@ -130,6 +136,7 @@ module.exports = class RolloutsHelper {
 				result: { id: rolloutCreate.id },
 			})
 		} catch (error) {
+			console.log(error, 'errorrr')
 			throw error
 		}
 	}

@@ -12,7 +12,6 @@ module.exports = {
 			},
 			resource_type: {
 				allowNull: false,
-				unique: true,
 				type: Sequelize.STRING,
 			},
 			resource_id: {
@@ -25,7 +24,7 @@ module.exports = {
 				defaultValue: 'PENDING',
 			},
 			rollout_date: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.DATE,
 			},
 			organization_id: {
@@ -63,8 +62,8 @@ module.exports = {
 			},
 			type: {
 				allowNull: false,
-				type: Sequelize.ENUM('PROGRAM', 'SOLUTION'),
-				type: Sequelize.STRING,
+				type: Sequelize.ENUM('program', 'solution'),
+				defaultValue: 'program',
 			},
 			duplicate_template_id: {
 				type: Sequelize.STRING,
