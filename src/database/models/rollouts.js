@@ -82,10 +82,6 @@ module.exports = (sequelize, DataTypes) => {
 	)
 	// Helper function to emit user actions with dynamic action types
 	const emitUserAction = async (instance, actionType) => {
-		console.log(actionType, 'actionType')
-		// CREATE_PROGRAM_ROLLOUT
-		// rollout_program
-		// console.log(common.USER_ACTIONS['rollout_' + instance.resource_type.toLowerCase()][actionType], 'jjj')
 		try {
 			if (actionType) {
 				eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
@@ -102,7 +98,7 @@ module.exports = (sequelize, DataTypes) => {
 		}
 	}
 
-	Rollout.addHook('afterCreate', (instance) => emitUserAction(instance, `ROLLOUT_CREATE`))
+	Rollout.addHook('afterCreate', (instance) => emitUserAction(instance, 'ROLLOUT_CREATE'))
 
 	Rollout.addHook('afterDestroy', (instance) => emitUserAction(instance, 'ROLLOUT_DELETED'))
 

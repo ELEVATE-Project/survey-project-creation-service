@@ -42,11 +42,6 @@ module.exports = class RolloutsHelper {
 			}
 
 			//validate the resource
-			console.log({
-				id: bodyData.resource_id,
-				organization_id: orgId,
-				stage: common.RESOURCE_STAGE_COMPLETION,
-			})
 			let resource = await resourceQueries.findOne({
 				id: bodyData.resource_id,
 				organization_id: orgId,
