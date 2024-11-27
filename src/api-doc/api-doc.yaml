@@ -4007,6 +4007,79 @@ paths:
                         - id: 3
                           type: projecsuccessfullytCreation
                           version: 3
+    post:
+      summary: Fetch Published Resources by ID
+      tags:
+        - Resource
+      description: |-
+        You can use this API to fetch published resources based on the provided `resource_ids`.
+         - The API Endpoint for fetching resources is `/scp/v1/resource/getPublishedResources`.
+         - The request body must include the `resource_ids` array, which contains the IDs of the resources to fetch.
+      requestBody:
+        description: A JSON object containing resource IDs to fetch details.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resource_ids:
+                  type: array
+                  items:
+                    type: integer
+              required:
+                - resource_ids
+            example:
+              resource_ids: [2]
+      responses:
+        '200':
+          description: Resources fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: number
+                        title:
+                          type: string
+                        type:
+                          type: string
+                        organization:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            name:
+                              type: string
+                            code:
+                              type: string
+                        status:
+                          type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Resources fetched successfully
+                    result:
+                      - id: 2
+                        title: sample resource
+                        type: project
+                        organization:
+                          id: 24
+                          name: Shikshalokam
+                          code: sl
+                        status: PUBLISHED
+
   /scp/v1/resource/upForReview:
     get:
       summary: Up For Review Resource List
@@ -5479,7 +5552,7 @@ paths:
 
       responses:
         '201':
-          description: Changes published successfully
+          description: saved successfully
           content:
             application/json:
               schema:
@@ -5490,7 +5563,7 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: Your changes have been published
+                    example: Saved successfully
                   result:
                     type: object
                     properties:
@@ -5583,7 +5656,7 @@ paths:
 
       responses:
         '200':
-          description: Changes published successfully
+          description: Saved successfully
           content:
             application/json:
               schema:
@@ -5594,7 +5667,7 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: Your changes have been published
+                    example: Saved successfully
                   result:
                     type: object
                     properties:
@@ -5648,6 +5721,99 @@ paths:
                       id:
                         type: number
                         example: 1
+  /scp/v1/rollouts/getDataManagers:
+    get:
+      summary: Get Data Manager List
+      tags:
+        - Rollout
+      description: |-
+        You can use this API to retrieve a list of all users who have access to the program dashboard.
+         - The API endpoint to retrieve all data managers is `/scp/v1/rollouts/getDataManagers`.
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: Users fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      resource_id:
+                        type: string
+                      comments:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Users fetched successfully
+                    result:
+                      data:
+                        - id: 1
+                          name: Priyanka
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                        - id: 2
+                          name: Adithya
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                        - id: 3
+                          name: Ankit
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                      count: 3
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
 
   /scp/v1/organization-extensions/createConfig:
     post:
