@@ -3,7 +3,6 @@
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
-const utils = require('@generics/utils')
 const rolloutQueries = require('@database/queries/rollouts')
 const resourceService = require('@services/resource')
 const resourceQueries = require('@database/queries/resources')
@@ -17,30 +16,6 @@ module.exports = class RolloutsHelper {
 	 */
 	static async create(bodyData, loggedInUserId, orgId) {
 		try {
-			//validate the title length
-			const isTitleInvalid = utils.validateTitle(bodyData.title)
-			if (isTitleInvalid) {
-				return responses.failureResponse({
-					message: 'CHARACTER_LIMIT_EXCEED',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
-			//validation for start date and end date
-			if (bodyData.start_date && bodyData.end_date) {
-				const startDate = new Date(bodyData.start_date)
-				const endDate = new Date(bodyData.end_date)
-
-				if (startDate > endDate) {
-					return responses.failureResponse({
-						message: 'INVALID_DATE_RANGE',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
-				}
-			}
-
 			//validate the resource
 			let resource = await resourceQueries.findOne({
 				id: bodyData.resource_id,

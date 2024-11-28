@@ -7,12 +7,22 @@
 const common = require('@constants/common')
 const filterRequestBody = require('../common')
 const { rollouts } = require('@constants/blacklistConfig')
+const utils = require('@generics/utils')
 module.exports = {
 	update: (req) => {
 		req.body = filterRequestBody(req.body, rollouts.update)
 
 		if (req.method != common.REQUEST_METHOD_DELETE) {
-			req.checkBody('title').trim().notEmpty().withMessage('title is required')
+			req.checkBody('title')
+				.trim()
+				.notEmpty()
+				.withMessage('title is required')
+				.custom((value) => {
+					if (utils.validateTitle(value)) {
+						throw new Error('Value exceeds the allowed length for the field title')
+					}
+					return true
+				})
 		}
 
 		req.checkParams('id')
@@ -25,11 +35,27 @@ module.exports = {
 			.isInt({ min: 1, max: 2147483647 })
 			.withMessage('Id is not valid')
 
-		req.checkParams('start_date').trim().notEmpty().withMessage('start_date param is empty')
+		req.checkBody('start_date')
+			.trim()
+			.notEmpty()
+			.withMessage('start_date param is empty')
+			.custom((value) => {
+				if (req.body.end_date) {
+					const startDate = new Date(req.body.start_date)
+					const endDate = new Date(req.body.end_date)
 
-		req.checkParams('end_date').trim().notEmpty().withMessage('end_date param is empty')
+					// Check if start_date is before end_date
+					if (startDate >= endDate) {
+						throw new Error('End date should be greater than the start date')
+					}
+					return true
+				}
+				return true
+			})
 
-		req.checkParams('resource_id')
+		req.checkBody('end_date').trim().notEmpty().withMessage('end_date param is empty')
+
+		req.checkBody('resource_id')
 			.trim()
 			.optional({ checkFalsy: true })
 			.notEmpty()
