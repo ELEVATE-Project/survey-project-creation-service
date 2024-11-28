@@ -25,6 +25,31 @@ module.exports = class EntityTypeHelper {
 			bodyData.updated_by = loggedInUserId
 			bodyData.organization_id = orgId
 			bodyData.value = bodyData.value.toLowerCase()
+			bodyData.config = {}
+			if (bodyData?.is_external) {
+				bodyData.config = {
+					is_external: bodyData?.is_external ? true : false,
+				}
+			}
+
+			if (bodyData?.depended_on) {
+				const check_depended_entity_type = await entityTypeQueries.findOneEntityType({
+					id: bodyData.depended_on,
+				})
+
+				if (!check_depended_entity_type) {
+					return responses.failureResponse({
+						message: 'DEPENDED_ENTITY_TYPE_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+				bodyData.config.depended_on = bodyData.depended_on
+				bodyData.config.is_dependent = bodyData.depended_on ? true : false
+			}
+			delete bodyData.depended_on
+			delete bodyData.is_external
+			delete bodyData.is_dependent
 			let entityType = await entityTypeQueries.createEntityType(bodyData)
 
 			if (entityType) {
@@ -68,6 +93,22 @@ module.exports = class EntityTypeHelper {
 		try {
 			bodyData.updated_by = loggedInUserId
 			if (bodyData.value) bodyData.value = bodyData.value.toLowerCase()
+
+			if (bodyData.hasOwnProperty('is_external') && bodyData['is_external'] != '') {
+				bodyData.config = {
+					is_external: bodyData.is_external ? true : false,
+				}
+			}
+
+			if (bodyData.hasOwnProperty('depended_on') && bodyData['depended_on'] != '') {
+				bodyData.config.depended_on = bodyData.depended_on
+				bodyData.config.is_dependent = bodyData.depended_on ? true : false
+			}
+
+			delete bodyData.depended_on
+			delete bodyData.is_external
+			delete bodyData.is_dependent
+
 			const [updateCount, updatedEntityType] = await entityTypeQueries.updateOneEntityType(id, orgId, bodyData, {
 				returning: true,
 				raw: true,
