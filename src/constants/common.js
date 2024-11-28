@@ -202,5 +202,4 @@ module.exports = {
 	NUMBER: 'number',
 	STRING: 'string',
 	ROLLOUT_STATUS_PUBLISHED: 'PUBLISHED',
-	SEQUELIZE_DATABASE_ERROR: 'SequelizeDatabaseError',
 }

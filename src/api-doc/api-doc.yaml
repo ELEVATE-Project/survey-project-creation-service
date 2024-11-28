@@ -4007,6 +4007,79 @@ paths:
                         - id: 3
                           type: projecsuccessfullytCreation
                           version: 3
+    post:
+      summary: Fetch Published Resources by ID
+      tags:
+        - Resource
+      description: |-
+        You can use this API to fetch published resources based on the provided `resource_ids`.
+         - The API Endpoint for fetching resources is `/scp/v1/resource/getPublishedResources`.
+         - The request body must include the `resource_ids` array, which contains the IDs of the resources to fetch.
+      requestBody:
+        description: A JSON object containing resource IDs to fetch details.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resource_ids:
+                  type: array
+                  items:
+                    type: integer
+              required:
+                - resource_ids
+            example:
+              resource_ids: [2]
+      responses:
+        '200':
+          description: Resources fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: number
+                        title:
+                          type: string
+                        type:
+                          type: string
+                        organization:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            name:
+                              type: string
+                            code:
+                              type: string
+                        status:
+                          type: string
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Resources fetched successfully
+                    result:
+                      - id: 2
+                        title: sample resource
+                        type: project
+                        organization:
+                          id: 24
+                          name: Shikshalokam
+                          code: sl
+                        status: PUBLISHED
+
   /scp/v1/resource/upForReview:
     get:
       summary: Up For Review Resource List
@@ -4953,6 +5026,789 @@ paths:
                             name: Priyanka
                           is_read: true
                       count: 2
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+
+  /scp/v1/rollouts/list:
+    get:
+      summary: Rollout List
+      tags:
+        - Rollout
+      description: |-
+        You can use this API to get the list all rollouts
+         - The API Endpoint for get the list of rollouts is `/scp/v1/rollouts/list` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: The page number for pagination.
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: The limit of projects per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
+        - name: search
+          in: query
+          description: The search value to filter projects based on title.
+          required: false
+          schema:
+            type: string
+        - name: resource_type
+          in: query
+          description: Type of the resource
+          required: false
+          schema:
+            type: string
+          example: project
+        - name: status
+          in: query
+          description: The status of the rollout (['PENDING', 'ROLLED_OUT'])
+          required: false
+          schema:
+            type: string
+          example: PENDING
+        - name: sort_by
+          in: query
+          description: Sort the response by status or title of the rollout. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          required: false
+          schema:
+            type: string
+          example: status
+        - name: sort_order
+          in: query
+          description: Sort order (ascending or descending).
+          required: false
+          schema:
+            type: string
+            enum: ['asc', 'desc']
+          example: asc
+
+      responses:
+        '200':
+          description: Rollout Listed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Rollout Listed successfully
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                              example: 595
+                            title:
+                              type: string
+                              example: test rollout
+                            resource_id:
+                              type: number
+                              example: 2
+                            resource_type:
+                              type: string
+                              example: project
+                            status:
+                              type: string
+                              example: PENDING
+                            start_date:
+                              type: string
+                              format: date-time
+                              example: 2024-10-29T11:35:08.694Z
+                            end_date:
+                              type: string
+                              format: date-time
+                              example: 2024-11-29T11:36:31.117Z
+                            organization:
+                              type: object
+                              properties:
+                                id:
+                                  type: number
+                                  example: 1
+                                name:
+                                  type: string
+                                  example: Default Organization
+                                code:
+                                  type: string
+                                  example: default_code
+                                description:
+                                  type: string
+                                  example: Default Organisation
+                            creator:
+                              type: string
+                              example: Sumatest
+                            created_at:
+                              type: string
+                              format: date-time
+                              example: 2024-10-28T09:06:19.079Z
+                            updated_at:
+                              type: string
+                              format: date-time
+                              example: 2024-10-29T11:36:31.118Z
+                        example:
+                          - id: 595
+                            title: test rollout
+                            resource_id: 2
+                            resource_type: project
+                            status: PENDING
+                            start_date: 2024-10-29T11:35:08.694Z
+                            end_date: 2024-11-29T11:36:31.117Z
+                            organization:
+                              id: 1
+                              name: Default Organization
+                              code: default_code
+                              description: Default Organisation
+                            creator: Sumatest
+                            created_at: 2024-10-28T09:06:19.079Z
+                            updated_at: 2024-10-29T11:36:31.118Z
+                      count:
+                        type: number
+                        example: 1
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                              example: 3
+                            type:
+                              type: string
+                              example: solutionlist
+                            version:
+                              type: number
+                              example: 49
+                        example:
+                          - id: 3
+                            type: solutionlist
+                            version: 49
+                      correlation:
+                        type: string
+                        example: fca8dae2-0b87-4f50-a74b-60e2b6d4aa07
+  /scp/v1/rollouts/delete/{id}:
+    delete:
+      summary: Delete Rollout
+      tags:
+        - Rollout
+      description: |-
+        You can use this API to delete rollout
+         - The API Endpoint for delete the rollout is `/scp/v1/rollouts/delete` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: Rollout Id
+          required: true
+          schema:
+            type: integer
+          example: 1
+
+      responses:
+        '200':
+          description: Rollout deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Rollout deleted successfully
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                              example: 3
+                            type:
+                              type: string
+                              example: projectCreation
+                            version:
+                              type: number
+                              example: 3
+                        example:
+                          - id: 3
+                            type: projectCreation
+                            version: 3
+  /scp/v1/rollouts/details/{id}:
+    get:
+      summary: Rollout Details
+      tags:
+        - Rollout
+      description: |-
+        You can use this API to get details of one rollout
+         - The API Endpoint for get the details of the rollout is `/scp/v1/rollouts/details` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: Rollout id
+          required: true
+          schema:
+            type: integer
+          example: 1
+
+      responses:
+        '200':
+          description: Rollout fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Rollout fetched successfully
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                        example: 595
+                      title:
+                        type: string
+                        example: test rollout
+                      resource_id:
+                        type: number
+                        example: 2
+                      resource_type:
+                        type: string
+                        example: project
+                      status:
+                        type: string
+                        example: PENDING
+                      targeting_criteria:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            state:
+                              oneOf:
+                                - type: object
+                                  properties:
+                                    _id:
+                                      type: string
+                                      example: 6687b8d38ead9320cf997c65
+                                    name:
+                                      type: string
+                                      example: AP
+                                - type: array
+                                  items:
+                                    type: string
+                                    example: 66bf7eb960de1616f42cb984
+                            entity_targeting:
+                              type: string
+                              example: district
+                            district:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 671097d667b6747799a761a4
+                                  name:
+                                    type: string
+                                    example: Anakapalli
+                            block:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 6710d01167b6747799a7671d
+                                  name:
+                                    type: string
+                                    example: Achutapuram
+                            gender:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  label:
+                                    type: string
+                                    example: Male
+                                  value:
+                                    type: string
+                                    example: male
+                            roles:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 66b9df998d2c4516ea1b4494
+                                  label:
+                                    type: string
+                                    example: Block Education Officer
+                                  value:
+                                    type: string
+                                    example: deo
+                      viewers:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                              example: 23
+                            name:
+                              type: string
+                              example: Priyanka
+                            email:
+                              type: string
+                              example: priyanka@yopmail.com
+                            about:
+                              type: string
+                              nullable: true
+                              example: null
+                            image:
+                              type: string
+                              nullable: true
+                              example: null
+                            organization:
+                              type: object
+                              properties:
+                                id:
+                                  type: number
+                                  example: 1
+                                code:
+                                  type: string
+                                  example: default_code
+                                name:
+                                  type: string
+                                  example: Default Organization
+                      start_date:
+                        type: string
+                        format: date-time
+                        example: 2024-10-29T11:35:08.694Z
+                      end_date:
+                        type: string
+                        format: date-time
+                        example: 2024-11-29T11:36:31.117Z
+                      organization:
+                        type: object
+                        properties:
+                          id:
+                            type: number
+                            example: 1
+                          name:
+                            type: string
+                            example: Default Organization
+                          code:
+                            type: string
+                            example: default_code
+                          description:
+                            type: string
+                            example: Default Organisation
+                      creator:
+                        type: string
+                        example: Sumatest
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: 2024-10-28T09:06:19.079Z
+                      updated_at:
+                        type: string
+                        format: date-time
+                        example: 2024-10-29T11:36:31.118Z
+  /scp/v1/rollouts/update:
+    post:
+      summary: Create Rollout
+      tags:
+        - Rollout
+      description: |-
+        You can use this API to create rollout
+         - The API Endpoint for create rollout is `/scp/v1/rollouts/update` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: test rollout
+                resource_id:
+                  type: number
+                  example: 2
+                targeting_criteria:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      state:
+                        type: string
+                        example: 6687b8d38ead9320cf997c65
+                      entity_targeting:
+                        type: string
+                        example: district
+                      district:
+                        type: array
+                        items:
+                          type: string
+                          example: 671097d667b6747799a761a4
+                      block:
+                        type: array
+                        items:
+                          type: string
+                          example: 6710d01167b6747799a7671d
+                      gender:
+                        type: array
+                        items:
+                          type: string
+                          example: male
+                      roles:
+                        type: array
+                        items:
+                          type: string
+                          example: deo
+                viewers:
+                  type: array
+                  items:
+                    type: number
+                    example: 23
+                start_date:
+                  type: string
+                  format: date-time
+                  example: 2024-10-29T11:35:08.694Z
+                end_date:
+                  type: string
+                  format: date-time
+                  example: 2024-11-29T11:36:31.117Z
+
+      responses:
+        '201':
+          description: saved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Saved successfully
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                        example: 1
+  /scp/v1/rollouts/update/{id}:
+    patch:
+      summary: Update Rollout
+      tags:
+        - Rollout
+      description: |-
+        You can use this API to update rollout
+         - The API Endpoint for update rollout is `/scp/v1/rollouts/update` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: Rollout Id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: test rollout
+                resource_id:
+                  type: number
+                  example: 2
+                targeting_criteria:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      state:
+                        type: string
+                        example: 6687b8d38ead9320cf997c65
+                      entity_targeting:
+                        type: string
+                        example: district
+                      district:
+                        type: array
+                        items:
+                          type: string
+                          example: 671097d667b6747799a761a4
+                      block:
+                        type: array
+                        items:
+                          type: string
+                          example: 6710d01167b6747799a7671d
+                      gender:
+                        type: array
+                        items:
+                          type: string
+                          example: male
+                      roles:
+                        type: array
+                        items:
+                          type: string
+                          example: deo
+                viewers:
+                  type: array
+                  items:
+                    type: number
+                    example: 23
+                start_date:
+                  type: string
+                  format: date-time
+                  example: 2024-10-29T11:35:08.694Z
+                end_date:
+                  type: string
+                  format: date-time
+                  example: 2024-11-29T11:36:31.117Z
+
+      responses:
+        '200':
+          description: Saved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Saved successfully
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                        example: 1
+  /scp/v1/rollouts/publish/{id}:
+    post:
+      summary: Publish Rollout
+      tags:
+        - Rollout
+      description: |-
+        You can use this API to publish rollout
+         - The API Endpoint for publish rollout is `/scp/v1/rollouts/publish` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: The page number for pagination.
+          required: true
+          schema:
+            type: integer
+          example: 1
+
+      responses:
+        '200':
+          description: Resource rolled out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Your resource has been successfully rolled out
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                        example: 1
+  /scp/v1/rollouts/getDataManagers:
+    get:
+      summary: Get Data Manager List
+      tags:
+        - Rollout
+      description: |-
+        You can use this API to retrieve a list of all users who have access to the program dashboard.
+         - The API endpoint to retrieve all data managers is `/scp/v1/rollouts/getDataManagers`.
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: >-
+            To use this API, you require an X-auth-token. This is available in
+            the login API Response.
+          required: true
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: Users fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      resource_id:
+                        type: string
+                      comments:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: string
+
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Users fetched successfully
+                    result:
+                      data:
+                        - id: 1
+                          name: Priyanka
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                        - id: 2
+                          name: Adithya
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                        - id: 3
+                          name: Ankit
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                      count: 3
                     meta:
                       formsVersion:
                         - id: 3
