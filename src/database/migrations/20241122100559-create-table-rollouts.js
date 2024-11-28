@@ -23,7 +23,7 @@ module.exports = {
 				type: Sequelize.ENUM('PENDING', 'ROLLED_OUT', 'INACTIVE'),
 				defaultValue: 'PENDING',
 			},
-			rollout_date: {
+			published_on: {
 				allowNull: true,
 				type: Sequelize.DATE,
 			},
@@ -65,7 +65,7 @@ module.exports = {
 				type: Sequelize.ENUM('program', 'solution'),
 				defaultValue: 'program',
 			},
-			duplicate_template_id: {
+			template_id: {
 				type: Sequelize.STRING,
 			},
 			created_by: {

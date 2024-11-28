@@ -23,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.ENUM('PENDING', 'ROLLED_OUT', 'INACTIVE'),
 				defaultValue: 'PENDING',
 			},
-			rollout_date: {
+			published_on: {
 				allowNull: true,
 				type: DataTypes.DATE,
 			},
@@ -62,7 +62,7 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: true,
 				type: DataTypes.ENUM('program', 'solution'),
 			},
-			duplicate_template_id: {
+			template_id: {
 				type: DataTypes.STRING,
 			},
 			created_by: {
