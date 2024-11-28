@@ -33,11 +33,12 @@ module.exports = class EntityTypeHelper {
 			}
 
 			if (bodyData?.depended_on) {
-				const check_depended_entity_type = await entityTypeQueries.findOneEntityType({
+				const checkDependedEntityType = await entityTypeQueries.findOneEntityType({
 					id: bodyData.depended_on,
+					organization_id: orgId,
 				})
 
-				if (!check_depended_entity_type) {
+				if (!checkDependedEntityType.id) {
 					return responses.failureResponse({
 						message: 'DEPENDED_ENTITY_TYPE_NOT_FOUND',
 						statusCode: httpStatusCode.bad_request,
@@ -94,13 +95,25 @@ module.exports = class EntityTypeHelper {
 			bodyData.updated_by = loggedInUserId
 			if (bodyData.value) bodyData.value = bodyData.value.toLowerCase()
 
-			if (bodyData.hasOwnProperty('is_external') && bodyData['is_external'] != '') {
+			if ('is_external' in bodyData && bodyData.is_external !== '') {
 				bodyData.config = {
 					is_external: bodyData.is_external ? true : false,
 				}
 			}
 
-			if (bodyData.hasOwnProperty('depended_on') && bodyData['depended_on'] != '') {
+			if ('depended_on' in bodyData && bodyData.depended_on !== '') {
+				const checkDependedEntityType = await entityTypeQueries.findOneEntityType({
+					id: bodyData.depended_on,
+					organization_id: orgId,
+				})
+
+				if (!checkDependedEntityType.id) {
+					return responses.failureResponse({
+						message: 'DEPENDED_ENTITY_TYPE_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
 				bodyData.config.depended_on = bodyData.depended_on
 				bodyData.config.is_dependent = bodyData.depended_on ? true : false
 			}
