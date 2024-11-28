@@ -30,3 +30,13 @@ exports.findAll = async (filter, attributes) => {
 		throw error
 	}
 }
+
+exports.destroy = async (filter) => {
+	try {
+		return await RolePermissionMapping.destroy({
+			where: filter,
+		})
+	} catch (error) {
+		throw error
+	}
+}

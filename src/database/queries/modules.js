@@ -54,4 +54,15 @@ module.exports = class UserRoleModulesData {
 			throw error
 		}
 	}
+
+	static async findOrCreateModule(filter) {
+		try {
+			const [module, created] = await Module.findOrCreate({
+				where: filter,
+			})
+			return { module, created }
+		} catch (error) {
+			throw error
+		}
+	}
 }
