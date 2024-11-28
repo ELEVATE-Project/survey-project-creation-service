@@ -26,19 +26,15 @@ module.exports = {
 				},
 				{
 					entityType: 'gender',
-					entities: [
-						{ value: 'male', label: 'male' },
-						{ value: 'female', label: 'female' },
-						{ value: 'other', label: 'other' },
-					],
+					entities: '',
 					has_entities: true,
-					is_external: false,
+					is_external: true,
 					validation: {},
 				},
 			]
 
 			const entityTypeFinalArray = entitiesArray.map((entity) => {
-				const { entityType, has_entities, validation, is_external } = entity
+				const { entityType, has_entities, validation } = entity
 				return {
 					value: entityType,
 					label: convertToWords(entityType),
@@ -51,7 +47,6 @@ module.exports = {
 					allow_filtering: false,
 					organization_id: defaultOrgId,
 					has_entities,
-					is_external,
 					allow_custom_entities: false,
 					validations: validation ? JSON.stringify(validation) : null,
 				}
@@ -63,16 +58,24 @@ module.exports = {
 			})
 
 			entitiesArray.forEach(async (eachEntityType) => {
-				if (eachEntityType.hasOwnProperty('depended_on') && eachEntityType['depended_on'] != '') {
-					const dependent_entity_type = entityTypes.find(
-						(entityType) => entityType.value == eachEntityType['depended_on']
-					)
+				if (
+					(eachEntityType.hasOwnProperty('depended_on') && eachEntityType['depended_on'] != '') ||
+					(eachEntityType.hasOwnProperty('is_external') && eachEntityType['is_external'] != '')
+				) {
+					let dependent_entity_type = {}
+					if (eachEntityType.hasOwnProperty('depended_on') && eachEntityType['depended_on']) {
+						dependent_entity_type = entityTypes.find(
+							(entityType) => entityType.value == eachEntityType['depended_on']
+						)
+					}
+					const config = {
+						is_external: eachEntityType?.is_external ? true : false,
+						is_dependent: eachEntityType.hasOwnProperty('depended_on'),
+						depended_on: dependent_entity_type.id ? dependent_entity_type.id : null,
+					}
 					await queryInterface.bulkUpdate(
 						'entity_types',
-						{
-							is_dependent: true,
-							depended_on: dependent_entity_type.id,
-						},
+						{ config },
 						{
 							value: eachEntityType.entityType,
 						}
@@ -103,8 +106,9 @@ module.exports = {
 				}
 				return acc
 			}, [])
-
-			await queryInterface.bulkInsert('entities', entitiesFinalArray, {})
+			if (entitiesFinalArray.length > 0) {
+				await queryInterface.bulkInsert('entities', entitiesFinalArray, {})
+			}
 		} catch (error) {
 			console.error('ERR : : ', error)
 		}
