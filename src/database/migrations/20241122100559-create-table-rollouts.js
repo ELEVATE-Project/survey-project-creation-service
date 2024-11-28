@@ -95,6 +95,9 @@ module.exports = {
 		await queryInterface.addIndex('rollouts', ['user_id'], {
 			name: 'rollouts_user_id_index',
 		})
+		await queryInterface.addIndex('rollouts', ['title'], {
+			name: 'rollouts_title_index',
+		})
 	},
 
 	async down(queryInterface, Sequelize) {
