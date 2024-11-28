@@ -1,5 +1,6 @@
 /* eslint-disable no-useless-catch */
 /* eslint-disable no-undef */
+const db = require('@database/models/index')
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
@@ -15,6 +16,7 @@ module.exports = class RolloutsHelper {
 	 * @returns {JSON} - project id
 	 */
 	static async create(bodyData, loggedInUserId, orgId) {
+		const transaction = await db.sequelize.transaction()
 		try {
 			//validate the resource
 			let resource = await resourceQueries.findOne({
@@ -79,9 +81,11 @@ module.exports = class RolloutsHelper {
 					const [updateCount] = await rolloutQueries.updateOne(filter, updateData, {
 						returning: true,
 						raw: true,
+						transaction,
 					})
 
 					if (updateCount === 0) {
+						await transaction.rollback()
 						return responses.failureResponse({
 							message: 'ROLLOUT_NOT_FOUND',
 							statusCode: httpStatusCode.bad_request,
@@ -89,9 +93,15 @@ module.exports = class RolloutsHelper {
 						})
 					}
 				} else {
+					// If file upload fails, rollback the transaction and delete the created entry
+					if (rolloutCreate.id)
+						await rolloutQueries.deleteOne(rolloutCreate.id, rolloutCreate.organization_id)
+					await transaction.rollback()
 					throw new Error('FILE_UPLOADED_FAILED')
 				}
 			} catch (error) {
+				if (rolloutCreate.id) await rolloutQueries.deleteOne(rolloutCreate.id, rolloutCreate.organization_id)
+				await transaction.rollback()
 				return responses.failureResponse({
 					message: error.message || error,
 					statusCode: httpStatusCode.bad_request,
@@ -99,12 +109,16 @@ module.exports = class RolloutsHelper {
 				})
 			}
 
+			// Commit the transaction if everything goes well
+			await transaction.commit()
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'ROLLOUT_CREATED_SUCCESSFULLY',
 				result: { id: rolloutCreate.id },
 			})
 		} catch (error) {
+			await transaction.rollback() // Rollback transaction on any error
 			throw error
 		}
 	}
