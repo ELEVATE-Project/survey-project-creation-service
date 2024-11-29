@@ -1,23 +1,44 @@
 /**
  * name : rollouts.js
- * author : Adithya Dinesh
- * created-date : 27-November-2024
- * Description : Controller for rollouts
+ * author : Priyanka Pradeep
+ * created-date : 26-Nov-2024
+ * Description : Controller for Rollouts
  */
-const rolloutsService = require('@services/rollouts')
+
+const rolloutService = require('@services/rollouts')
+const common = require('@constants/common')
 module.exports = class rollouts {
 	/**
-	 * Get Data managers list
+	 * Create or Update Rollout.
 	 * @method
-	 * @name getDataManagers
-	 * @param {Object} req - Request data.
-	 * @returns {JSON} - List of data managers
+	 * @name update
+	 * @param {Integer} id  rollout id.
+	 * @param {Object} body  rollout data
+	 * @returns {JSON} - Detail of rollout as response.
 	 */
-
-	async getDataManagers(req) {
+	async update(req) {
 		try {
-			const dataManagersList = await rolloutsService.getDataManagers(req.decodedToken.organization_id)
-			return dataManagersList
+			if (req.params.id) {
+				let rollout = {}
+				if (req.method === common.REQUEST_METHOD_DELETE) {
+					rollout = await rolloutService.delete(req.params.id, req.decodedToken.id)
+				} else {
+					rollout = await rolloutService.update(
+						req.params.id,
+						req.body,
+						req.decodedToken.id,
+						req.decodedToken.organization_id
+					)
+				}
+				return rollout
+			} else {
+				const rollout = await rolloutService.create(
+					req.body,
+					req.decodedToken.id,
+					req.decodedToken.organization_id
+				)
+				return rollout
+			}
 		} catch (error) {
 			return error
 		}

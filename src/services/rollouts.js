@@ -1,93 +1,125 @@
 /* eslint-disable no-useless-catch */
-/**
- * name : services/reviews.js
- * author : Priyanka Pradeep
- * Date : 11-July-2024
- * Description : Review Stage Service
- */
-// Dependencies
+/* eslint-disable no-undef */
+const db = require('@database/models/index')
 const httpStatusCode = require('@generics/http-status')
-const common = require('@constants/common')
-const reviewsQueries = require('@database/queries/reviews')
-const reviewResourceQueries = require('@database/queries/reviewResources')
-const resourceQueries = require('@database/queries/resources')
 const responses = require('@helpers/responses')
-const orgExtensionService = require('@services/organization-extension')
-const commentQueries = require('@database/queries/comments')
-const _ = require('lodash')
+const common = require('@constants/common')
+const rolloutQueries = require('@database/queries/rollouts')
 const resourceService = require('@services/resource')
-const { Op } = require('sequelize')
-const utils = require('@generics/utils')
-const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
-const kafkaCommunication = require('@generics/kafka-communication')
-module.exports = class reviewsHelper {
+const resourceQueries = require('@database/queries/resources')
+module.exports = class RolloutsHelper {
 	/**
-	 * getDataManagers review.
+	 * Rollout create
 	 * @method
-	 * @name getDataManagers
-	 * @param {String} orgId - organization id
-	 * @returns {JSON} - get the list of data managers
+	 * @name create
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - project id
 	 */
-
-	static async getDataManagers(orgId) {
+	static async create(bodyData, loggedInUserId, orgId) {
+		const transaction = await db.sequelize.transaction()
 		try {
-			// Retrieve resource details based on the provided resourceId.
-			const resource = await resourceQueries.findOne(
-				{
-					id: resourceId,
-				},
-				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_stage', 'stage'] }
-			)
-			// If no resource is found return error
-			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
+			//validate the resource
+			let resource = await resourceQueries.findOne({
+				id: bodyData.resource_id,
+				organization_id: orgId,
+				stage: common.RESOURCE_STAGE_COMPLETION,
+			})
 
-			// Validate if there is an ongoing review for the given resourceId, userId, resource status, and orgId.
-			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgId)
-			if (ongoingReview.statusCode !== httpStatusCode.ok) {
-				return ongoingReview
+			if (!resource?.id) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
-			const review = ongoingReview.result
-
-			// if already requested for changes then throw error
-			if (review.status === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)
-				throw new Error('CHANGES_ALREADY_REQUESTED')
-
-			// If the bodyData contains a comment Add or update comments
-			if (bodyData.comment) {
-				await handleComments(bodyData.comment, resourceId, userId, true)
+			let rolloutData = {
+				title: bodyData.title,
+				resource_type: resource.type,
+				resource_id: resource.id,
+				status: common.ROLLOUT_STATUS_PENDING,
+				start_date: bodyData.start_date,
+				end_date: bodyData.end_date,
+				type: common.ROLLOUT_TYPE_PROGRAM,
+				user_id: loggedInUserId,
+				organization_id: orgId,
+				created_by: loggedInUserId,
+				updated_by: loggedInUserId,
 			}
 
-			// Update the status in the reviews table
-			await reviewsQueries.update(
-				{ id: review.id, organization_id: review.organization_id },
-				{ status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES }
-			)
+			let rolloutCreate
+			try {
+				//create rollout
+				rolloutCreate = await rolloutQueries.create(rolloutData)
 
-			let resourceUpdateObj = {
-				status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
-				last_reviewed_on: new Date(),
+				// upload to blob
+				const rolloutId = rolloutCreate.id
+				const fileName = `${loggedInUserId}${rolloutId}rollout.json`
+
+				const rolloutUploadStatus = await resourceService.uploadToCloud(
+					fileName,
+					rolloutCreate.id,
+					common.ROLL_OUT,
+					loggedInUserId,
+					bodyData
+				)
+
+				if (
+					rolloutUploadStatus.result.status == httpStatusCode.ok ||
+					rolloutUploadStatus.result.status == httpStatusCode.created
+				) {
+					let filter = {
+						id: rolloutId,
+						organization_id: orgId,
+					}
+
+					let updateData = {
+						updated_by: loggedInUserId,
+						blob_path: rolloutUploadStatus.blob_path,
+					}
+
+					const [updateCount] = await rolloutQueries.updateOne(filter, updateData, {
+						returning: true,
+						raw: true,
+						transaction,
+					})
+
+					if (updateCount === 0) {
+						await transaction.rollback()
+						return responses.failureResponse({
+							message: 'ROLLOUT_NOT_FOUND',
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+						})
+					}
+				} else {
+					// If file upload fails, rollback the transaction and delete the created entry
+					if (rolloutCreate.id)
+						await rolloutQueries.deleteOne(rolloutCreate.id, rolloutCreate.organization_id)
+					await transaction.rollback()
+					throw new Error('FILE_UPLOADED_FAILED')
+				}
+			} catch (error) {
+				if (rolloutCreate.id) await rolloutQueries.deleteOne(rolloutCreate.id, rolloutCreate.organization_id)
+				await transaction.rollback()
+				return responses.failureResponse({
+					message: error.message || error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
-			// Update the 'last_reviewed_on' field in the resources table
-			await resourceQueries.updateOne(
-				{ organization_id: resource.organization_id, id: resourceId },
-				resourceUpdateObj
-			)
+			// Commit the transaction if everything goes well
+			await transaction.commit()
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
-				message: 'REVIEW_CHANGES_REQUESTED',
+				message: 'ROLLOUT_CREATED_SUCCESSFULLY',
+				result: { id: rolloutCreate.id },
 			})
 		} catch (error) {
-			return responses.failureResponse({
-				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
-				responseCode: 'CLIENT_ERROR',
-			})
+			await transaction.rollback() // Rollback transaction on any error
+			throw error
 		}
 	}
 }
-
-// Export the handleComments function
-module.exports.handleComments = handleComments

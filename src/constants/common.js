@@ -21,6 +21,9 @@ function getResourceActions(resource) {
 		RESOURCE_REPORTED: `${resource}_REJECTED_AND_REPORTED`,
 		RESOURCE_REJECTED: `${resource}_REJECTED`,
 		REVIEW_INPROGRESS: `${resource}_REVIEW_INPROGRESS`,
+		ROLLOUT_CREATED: `CREATE_${resource}`,
+		ROLLOUT_DELETED: `DELETE_${resource}`,
+		ROLLOUT_PUBLISHED: `${resource}_PUBLISHED`,
 	}
 }
 
@@ -168,9 +171,12 @@ module.exports = {
 	},
 	MODEL_NAMES: {
 		RESOURCE: 'Resource',
+		ROLLOUT: 'Rollouts',
 	},
 	USER_ACTIONS: {
 		project: getResourceActions('PROJECT'),
+		rollout_program: getResourceActions('PROGRAM_ROLLOUT'),
+		rollout_solution: getResourceActions('SOLUTION_ROLLOUT'),
 	},
 	EVENT_ADD_USER_ACTION: 'addUserAction',
 	REQUEST_TIMEOUT_MS: 3000,
@@ -195,5 +201,12 @@ module.exports = {
 	RECOMMENDED_DURATION: 'recommended_duration',
 	NUMBER: 'number',
 	STRING: 'string',
-	SEQUELIZE_DATABASE_ERROR: 'SequelizeDatabaseError',
+	ROLLOUT_STATUS_PUBLISHED: 'PUBLISHED',
+	ROLLOUT_STATUS_PENDING: 'PENDING',
+	ROLLOUT_STATUS_ROLLED_OUT: 'ROLLED_OUT',
+	ROLLOUT_STATUS_INACTIVE: 'INACTIVE',
+	ROLL_OUT: 'rollout',
+	ROLLOUT_TYPE_PROGRAM: 'program',
+	ROLLOUT_TYPE_SOLUTION: 'solution',
+	ROLL_OUT_PATH: 'rollout/',
 }
