@@ -18,13 +18,6 @@ module.exports = {
 				allowNull: true,
 				type: Sequelize.ARRAY(Sequelize.STRING),
 			},
-			created_by: {
-				allowNull: false,
-				type: Sequelize.STRING,
-			},
-			updated_by: {
-				type: Sequelize.STRING,
-			},
 			created_at: {
 				allowNull: false,
 				type: Sequelize.DATE,
