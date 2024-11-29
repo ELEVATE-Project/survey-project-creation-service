@@ -94,25 +94,61 @@ jobs:
             cd ~/survey-project-creation-service/dev-ops
             docker-compose -f testing-docker-compose.yml up --build -d
             docker-compose logs --tail=100 > logs/docker-compose.log
-
       - run:
           name: Wait for PostgreSQL to be Ready
           command: |
             echo "Waiting for PostgreSQL to be ready on port 5432..."
-            timeout 60 bash -c "until nc -z localhost 5432; do sleep 1; done"
-            echo "PostgreSQL is up"
+            for i in {1..60}; do
+              nc -zv localhost 5432 && echo "PostgreSQL is ready" && break
+              echo "Waiting for PostgreSQL... attempt $i"
+              sleep 1
+            done
+
       - run:
           name: Wait for User Service to be Ready
           command: |
             echo "Waiting for User Service to be ready on port 5001..."
-            timeout 60 bash -c "until nc -z localhost 5001; do sleep 1; done"
-            echo "User Service is up"
+            for i in {1..60}; do
+              nc -zv localhost 5001 && echo "User service is ready" && break
+              echo "Waiting for User service... attempt $i"
+              sleep 1
+            done
+      - run:
+          name: Wait for Scheduler to be Ready
+          command: |
+            echo "Waiting for Scheduler to be ready on port 4000..."
+            for i in {1..60}; do
+              nc -zv localhost 4000 && echo "Scheduler is ready" && break
+              echo "Waiting for Scheduler... attempt $i"
+              sleep 1
+            done
       - run:
           name: Wait for Survey Project Creation Service to be Ready
           command: |
-            echo "Waiting for Survey Project Creation Service to be ready on port 6001..."
-            timeout 60 bash -c "until nc -z localhost 6001; do sleep 1; done"
-            echo "Survey Project Creation Service is up"
+            echo "Waiting for Survey Project Creation Service on port 6001..."
+            for i in {1..60}; do
+              nc -zv localhost 6001 && echo "Survey Project Creation Service is ready" && break
+              echo "Waiting for Survey Project Creation Service... attempt $i"
+              sleep 1
+            done
+      # - run:
+      #     name: Wait for PostgreSQL to be Ready
+      #     command: |
+      #       echo "Waiting for PostgreSQL to be ready on port 5432..."
+      #       timeout 60 bash -c "until nc -z localhost 5432; do sleep 1; done"
+      #       echo "PostgreSQL is up"
+      # - run:
+      #     name: Wait for User Service to be Ready
+      #     command: |
+      #       echo "Waiting for User Service to be ready on port 5001..."
+      #       timeout 60 bash -c "until nc -z localhost 5001; do sleep 1; done"
+      #       echo "User Service is up"
+      # - run:
+      #     name: Wait for Survey Project Creation Service to be Ready
+      #     command: |
+      #       echo "Waiting for Survey Project Creation Service to be ready on port 6001..."
+      #       timeout 60 bash -c "until nc -z localhost 6001; do sleep 1; done"
+      #       echo "Survey Project Creation Service is up"
       - run:
           name: Create integration_test_scp database in Docker
           command: |

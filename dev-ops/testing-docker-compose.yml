@@ -77,7 +77,6 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
-        path: /var/log/scheduler/
 
   user:
     build: '../../user/'
@@ -99,7 +98,7 @@ services:
             exit 0
         fi &&
         (echo 'Running User' && nodemon app.js &) &&
-        (/bin/bash -c 'cd scripts && echo Running user service scripts && node insertDefaultOrg.js && node viewsScript.js && node -r module-alias/register uploadSampleCSV.js') &&
+        (/bin/bash -c 'cd scripts && echo Running user service scripts && node insertDefaultOrg.js && node viewsScript.js') &&
         tail -f /dev/null"
     depends_on:
       - kafka
@@ -119,11 +118,10 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
-        path: /var/log/user/
 
   scp:
-    # build: '../../survey-project-creation-service/'
-    build: '../'
+    build: '../../survey-project-creation-service/'
+    # build: '../'
     ports:
       - '6001:6001'
     command: >
@@ -152,10 +150,10 @@ services:
         fi &&
         
         echo "Starting the application...";
-        nodemon app.js &&
-
-        tail -f /dev/null'
+        nodemon app.js && tail -f /dev/null'
+  
     volumes:
+      # - ../src/:/var/src
       - ../../survey-project-creation-service/src/:/var/src
     environment:
       - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/integration_test_scp
@@ -175,7 +173,6 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
-        path: /var/log/scp/
 
 networks:
   elevate_net:
