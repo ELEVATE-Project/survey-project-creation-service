@@ -89,40 +89,22 @@ jobs:
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
       - run:
-          name: Wait for PostgreSQL to be Ready
+          name: Wait for all services to be ready
           command: |
-            echo "Waiting for PostgreSQL to be ready on port 5432..."
+            echo "Waiting for PostgreSQL, User service, and SCP service to be ready..."
             for i in {1..60}; do
               nc -zv localhost 5432 && echo "PostgreSQL is ready" && break
               echo "Waiting for PostgreSQL... attempt $i"
               sleep 1
             done
-
-      - run:
-          name: Wait for User Service to be Ready
-          command: |
-            echo "Waiting for User Service to be ready on port 5001..."
             for i in {1..60}; do
               nc -zv localhost 5001 && echo "User service is ready" && break
               echo "Waiting for User service... attempt $i"
               sleep 1
             done
-      - run:
-          name: Wait for Scheduler to be Ready
-          command: |
-            echo "Waiting for Scheduler to be ready on port 4000..."
             for i in {1..60}; do
-              nc -zv localhost 4000 && echo "Scheduler is ready" && break
-              echo "Waiting for Scheduler... attempt $i"
-              sleep 1
-            done
-      - run:
-          name: Wait for Survey Project Creation Service to be Ready
-          command: |
-            echo "Waiting for Survey Project Creation Service on port 6001..."
-            for i in {1..60}; do
-              nc -zv localhost 6001 && echo "Survey Project Creation Service is ready" && break
-              echo "Waiting for Survey Project Creation Service... attempt $i"
+              nc -zv localhost 6001 && echo "SCP service is ready" && break
+              echo "Waiting for SCP service... attempt $i"
               sleep 1
             done
 
@@ -132,21 +114,17 @@ jobs:
             echo "Checking if database exists and creating it if necessary..."
             docker exec postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'integration_test_scp'" | grep -q 1 || \
             docker exec postgres psql -U postgres -c "CREATE DATABASE integration_test_scp;"
-      - run:
-          name: Verify SCP container is running
-          command: |
-            echo "Checking if SCP container is running..."
-            docker ps -a | grep scp
-      - run:
-          name: Print SCP container logs
-          command: |
-            echo "Printing SCP container logs..."
-            docker-compose logs --tail=100000 scp
 
       - run:
-          name: Check docker logs
-          command: |-
-            docker ps && docker-compose logs --tail=10000
+          name: Get SCP container ID and print logs
+          command: |
+            echo "Getting SCP container ID..."
+            SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
+            echo "SCP container ID: $SCP_CONTAINER_ID"
+
+            # Print logs of the SCP container
+            echo "Printing SCP container logs..."
+            docker logs $SCP_CONTAINER_ID --tail=10000
       - run:
           name: Create test results directory
           command: mkdir -p ./dev-ops/report
