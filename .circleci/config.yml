@@ -115,19 +115,33 @@ jobs:
       #       docker exec postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'integration_test_scp'" | grep -q 1 || \
       #       docker exec postgres psql -U postgres -c "CREATE DATABASE integration_test_scp;"
       #       npm run db:migrate
+      # - run:
+      #     name: Initialize Database and Run Migrations if Needed
+      #     command: |
+      #       echo "Checking if database 'integration_test_scp' exists..."
+
+      #       # Check if the database exists
+      #       if docker exec postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'integration_test_scp'" | grep -q 1; then
+      #         echo "Database 'integration_test_scp' already exists. Skipping migrations."
+      #       else
+      #         echo "Database 'integration_test_scp' does not exist. Creating database and running migrations..."
+      #         docker exec postgres psql -U postgres -c "CREATE DATABASE integration_test_scp;"
+      #         npx sequelize-cli db:migrate  # Run migrations only if the database is created
+      #       fi
       - run:
-          name: Initialize Database and Run Migrations if Needed
+          name: Wait for Database Creation and Run Migrations
           command: |
             echo "Checking if database 'integration_test_scp' exists..."
 
-            # Check if the database exists
-            if docker exec postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'integration_test_scp'" | grep -q 1; then
-              echo "Database 'integration_test_scp' already exists. Skipping migrations."
-            else
-              echo "Database 'integration_test_scp' does not exist. Creating database and running migrations..."
-              docker exec postgres psql -U postgres -c "CREATE DATABASE integration_test_scp;"
-              npx sequelize-cli db:migrate  # Run migrations only if the database is created
-            fi
+            # Polling to check if the database is ready
+            for i in {1..60}; do
+              if docker exec postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'integration_test_scp'" | grep -q 1; then
+                echo "Database 'integration_test_scp' is ready."
+                break
+              fi
+              echo "Database 'integration_test_scp' not ready yet... waiting (attempt $i)"
+              sleep 2
+            done
 
       - run:
           name: Create test results directory
