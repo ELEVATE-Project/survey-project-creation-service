@@ -48,6 +48,7 @@ describe('Project APIs ', function () {
 		//create project
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
 		const res = await request.get('/scp/v1/resource/list?page=1&limit=5&listing=drafts')
+		console.log(JSON.stringify(res.body, null, 2))
 		expect(res.statusCode).toBe(200)
 		if (createProject.body?.result?.id) {
 			expect(res.body).toMatchSchema(schema.listSchema)

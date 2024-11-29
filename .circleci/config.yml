@@ -10,8 +10,8 @@ jobs:
     steps:
       - checkout:
           path: ~/survey-project-creation-service/
-      # - restore_cache:
-      #     key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
+      - restore_cache:
+          key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
       - run:
           name: Create logs directory
           command: mkdir -p ~/survey-project-creation-service/dev-ops/logs
@@ -33,8 +33,8 @@ jobs:
       - run:
           name: Cloning user service
           command: cd ../ && git clone https://github.com/ELEVATE-Project/user.git --branch develop --single-branch
-      # - restore_cache:
-      #     key: user-dependency-cache-{{ checksum "../user/src/package.json" }}
+      - restore_cache:
+          key: user-dependency-cache-{{ checksum "../user/src/package.json" }}
       - run:
           name: Install User service dependencies
           command: cd ../user/src/ && npm install
@@ -84,16 +84,10 @@ jobs:
             # Output the file content for verification
             cat $USER_ENV_FILE
 
-      # - run:
-      #     name: Starting the docker containers
-      #     command: |-
-      #       cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
       - run:
-          name: Start Docker Containers and Capture Logs
-          command: |
-            cd ~/survey-project-creation-service/dev-ops
-            docker-compose -f testing-docker-compose.yml up --build -d
-            docker-compose logs --tail=100 > logs/docker-compose.log
+          name: Starting the docker containers
+          command: |-
+            cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
       - run:
           name: Wait for PostgreSQL to be Ready
           command: |
@@ -131,46 +125,24 @@ jobs:
               echo "Waiting for Survey Project Creation Service... attempt $i"
               sleep 1
             done
-      # - run:
-      #     name: Wait for PostgreSQL to be Ready
-      #     command: |
-      #       echo "Waiting for PostgreSQL to be ready on port 5432..."
-      #       timeout 60 bash -c "until nc -z localhost 5432; do sleep 1; done"
-      #       echo "PostgreSQL is up"
-      # - run:
-      #     name: Wait for User Service to be Ready
-      #     command: |
-      #       echo "Waiting for User Service to be ready on port 5001..."
-      #       timeout 60 bash -c "until nc -z localhost 5001; do sleep 1; done"
-      #       echo "User Service is up"
-      # - run:
-      #     name: Wait for Survey Project Creation Service to be Ready
-      #     command: |
-      #       echo "Waiting for Survey Project Creation Service to be ready on port 6001..."
-      #       timeout 60 bash -c "until nc -z localhost 6001; do sleep 1; done"
-      #       echo "Survey Project Creation Service is up"
+
       - run:
           name: Create integration_test_scp database in Docker
           command: |
             echo "Checking if database exists and creating it if necessary..."
             docker exec postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'integration_test_scp'" | grep -q 1 || \
             docker exec postgres psql -U postgres -c "CREATE DATABASE integration_test_scp;"
+      - run:
+          name: Capture Docker Logs
+          command: |
+            echo "Capturing Docker container logs..."
+            docker-compose logs --tail=100 > ~/logs/docker-compose.log
+            cat ~/logs/docker-compose.log
 
-      - run:
-          name: Start Docker Containers and Capture Logs
-          command: |
-            cd ~/survey-project-creation-service/dev-ops
-            docker-compose -f testing-docker-compose.yml up --build -d
-            docker-compose logs --tail=100 > logs/docker-compose.log
-      - run:
-          name: Validate Log File
-          command: |
-            ls -l ~/survey-project-creation-service/dev-ops/logs/
-            cat ~/survey-project-creation-service/dev-ops/logs/docker-compose.log
       - run:
           name: Check docker logs
           command: |-
-            docker ps && docker-compose logs --tail=1000
+            docker ps && docker-compose logs --tail=10000
       - run:
           name: Create test results directory
           command: mkdir -p ./dev-ops/report
@@ -178,21 +150,10 @@ jobs:
           name: Running test cases
           command: |
             cd src/ && npm run test:integration
-      - run:
-          name: Ensure Logs Directory
-          command: |
-            mkdir -p ~/survey-project-creation-service/dev-ops/logs
-            cd ~/survey-project-creation-service/dev-ops/
-            touch logs/docker-compose.log
-      - run:
-          name: Debug Docker Services
-          command: |
-            docker ps
-            docker-compose ps
-            docker-compose logs
+
       - store_artifacts:
-          path: ~/survey-project-creation-service/dev-ops/logs
-          destination: docker-logs
+          path: ~/logs/docker-compose.log
+
       - store_test_results:
           path: ./dev-ops/report
       - run:
