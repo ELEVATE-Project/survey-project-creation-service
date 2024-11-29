@@ -107,27 +107,6 @@ jobs:
               echo "Waiting for SCP service... attempt $i"
               sleep 1
             done
-
-      # - run:
-      #     name: Create integration_test_scp database in Docker
-      #     command: |
-      #       echo "Checking if database exists and creating it if necessary..."
-      #       docker exec postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'integration_test_scp'" | grep -q 1 || \
-      #       docker exec postgres psql -U postgres -c "CREATE DATABASE integration_test_scp;"
-      #       npm run db:migrate
-      # - run:
-      #     name: Initialize Database and Run Migrations if Needed
-      #     command: |
-      #       echo "Checking if database 'integration_test_scp' exists..."
-
-      #       # Check if the database exists
-      #       if docker exec postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'integration_test_scp'" | grep -q 1; then
-      #         echo "Database 'integration_test_scp' already exists. Skipping migrations."
-      #       else
-      #         echo "Database 'integration_test_scp' does not exist. Creating database and running migrations..."
-      #         docker exec postgres psql -U postgres -c "CREATE DATABASE integration_test_scp;"
-      #         npx sequelize-cli db:migrate  # Run migrations only if the database is created
-      #       fi
       - run:
           name: Wait for Database Creation and Run Migrations
           command: |
@@ -142,31 +121,31 @@ jobs:
               echo "Database 'integration_test_scp' not ready yet... waiting (attempt $i)"
               sleep 2
             done
-
       - run:
           name: Create test results directory
           command: mkdir -p ./dev-ops/report
       - run:
           name: Running test cases
           command: |
-            cd src/ && npm run test:integration || true
-          continue-on-error: true
-      - run:
-          name: Get SCP container ID and print logs
-          command: |
-            echo "Getting SCP container ID..."
-            SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
-            echo "SCP container ID: $SCP_CONTAINER_ID"
+            cd src/ && npm run test:integration
+          #   cd src/ && npm run test:integration || true
+          # continue-on-error: true
+      # - run:
+      #     name: Get SCP container ID and print logs
+      #     command: |
+      #       echo "Getting SCP container ID..."
+      #       SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
+      #       echo "SCP container ID: $SCP_CONTAINER_ID"
 
-            # Check if the SCP container is running
-            if [ -z "$SCP_CONTAINER_ID" ]; then
-              echo "SCP container is not running. Cannot fetch logs."
-              exit 1  # Exit with an error if SCP container is not running
-            fi
+      #       # Check if the SCP container is running
+      #       if [ -z "$SCP_CONTAINER_ID" ]; then
+      #         echo "SCP container is not running. Cannot fetch logs."
+      #         exit 1  # Exit with an error if SCP container is not running
+      #       fi
 
-            # Print logs of the SCP container
-            echo "Printing SCP container logs..."
-            docker logs $SCP_CONTAINER_ID --tail=10000
+      #       # Print logs of the SCP container
+      #       echo "Printing SCP container logs..."
+      #       docker logs $SCP_CONTAINER_ID --tail=10000
 
       - store_test_results:
           path: ./dev-ops/report
