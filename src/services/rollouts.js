@@ -7,6 +7,8 @@ const common = require('@constants/common')
 const rolloutQueries = require('@database/queries/rollouts')
 const resourceService = require('@services/resource')
 const resourceQueries = require('@database/queries/resources')
+const orgExtensionService = require('@services/organization-extension')
+const userRequests = require('@requests/user')
 module.exports = class RolloutsHelper {
 	/**
 	 * Rollout create
@@ -119,6 +121,36 @@ module.exports = class RolloutsHelper {
 			})
 		} catch (error) {
 			await transaction.rollback() // Rollback transaction on any error
+			throw error
+		}
+	}
+	/**
+	 * Rollout getDataManagers
+	 * @method
+	 * @name getDataManagers
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - project id
+	 */
+	static async getDataManagers(orgId, pageNo, pageSize) {
+		try {
+			const orgConfigs = await orgExtensionService.getConfig(orgId)
+			const dataManagerRoles = orgConfigs?.result?.config?.data_managers
+			const dataManagersList = await userRequests.list(dataManagerRoles.join(','), pageNo, pageSize, '', orgId)
+			let result = {
+				data: [],
+				count: 0,
+			}
+
+			if (dataManagersList.success) {
+				result = dataManagersList?.data?.result
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'ROLLOUT_CREATED_SUCCESSFULLY',
+				result,
+			})
+		} catch (error) {
 			throw error
 		}
 	}
