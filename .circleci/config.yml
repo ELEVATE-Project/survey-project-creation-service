@@ -133,6 +133,11 @@ jobs:
             docker exec postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'integration_test_scp'" | grep -q 1 || \
             docker exec postgres psql -U postgres -c "CREATE DATABASE integration_test_scp;"
       - run:
+          name: Verify SCP container is running
+          command: |
+            echo "Checking if SCP container is running..."
+            docker ps -a | grep scp
+      - run:
           name: Print SCP container logs
           command: |
             echo "Printing SCP container logs..."
