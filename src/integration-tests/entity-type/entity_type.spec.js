@@ -17,9 +17,7 @@ describe('Entity-Type APIs', function () {
 
 	it('Read Entity-Type', async () => {
 		const res = await request.post('/scp/v1/entity-types/read')
-
 		expect(res.statusCode).toBe(200)
-
 		expect(res.body).toMatchSchema(schema.listSchema)
 	})
 
@@ -33,7 +31,6 @@ describe('Entity-Type APIs', function () {
 			has_entities: true,
 		})
 		expect(res.statusCode).toBe(201)
-		console.log('Create Entity Typ Response:', JSON.stringify(res.body, null, 2))
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
 
@@ -44,13 +41,11 @@ describe('Entity-Type APIs', function () {
 		})
 
 		expect(res.statusCode).toBe(202)
-		console.log('Update Entity Typ Response:', JSON.stringify(res.body, null, 2))
 		expect(res.body).toMatchSchema(schema.updateSchema)
 	})
 
 	it('Delete Entity-Type', async () => {
 		const res = await request.delete('/scp/v1/entity-types/delete/999')
-		console.log('Delete Entity Typ Response:', JSON.stringify(res.body, null, 2))
 		expect(res.statusCode).toBe(400)
 	})
 })
