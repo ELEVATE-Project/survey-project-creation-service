@@ -116,6 +116,13 @@ jobs:
             docker exec postgres psql -U postgres -c "CREATE DATABASE integration_test_scp;"
 
       - run:
+          name: Create test results directory
+          command: mkdir -p ./dev-ops/report
+      - run:
+          name: Running test cases
+          command: |
+            cd src/ && npm run test:integration
+      - run:
           name: Get SCP container ID and print logs
           command: |
             echo "Getting SCP container ID..."
@@ -125,13 +132,6 @@ jobs:
             # Print logs of the SCP container
             echo "Printing SCP container logs..."
             docker logs $SCP_CONTAINER_ID --tail=10000
-      - run:
-          name: Create test results directory
-          command: mkdir -p ./dev-ops/report
-      - run:
-          name: Running test cases
-          command: |
-            cd src/ && npm run test:integration
 
       - store_artifacts:
           path: ~/logs/docker-compose.log
