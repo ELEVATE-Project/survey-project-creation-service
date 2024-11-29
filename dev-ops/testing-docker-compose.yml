@@ -2,6 +2,7 @@ version: '3.9'
 services:
   zookeeper:
     image: 'confluentinc/cp-zookeeper:7.3.0'
+    container_name: zookeeper
     ports:
       - '2181:2181'
     environment:
@@ -14,6 +15,7 @@ services:
 
   kafka:
     image: 'confluentinc/cp-kafka:7.3.0'
+    container_name: kafka
     ports:
       - '9092:9092'
     environment:
@@ -34,6 +36,7 @@ services:
 
   redis:
     image: 'redis:7.0.0'
+    container_name: redis
     restart: 'always'
     ports:
       - '6379:6379'
@@ -58,6 +61,7 @@ services:
 
   scheduler:
     image: shikshalokamqa/elevate-scheduler:3.1
+    container_name: scheduler
     ports:
       - '4000:4000'
     command: ['nodemon', 'app.js']
@@ -80,6 +84,7 @@ services:
 
   user:
     build: '../../user/'
+    container_name: user
     ports:
       - '5001:5001'
     volumes:
@@ -121,7 +126,7 @@ services:
 
   scp:
     build: '../../survey-project-creation-service/'
-    # build: '../'
+    container_name: scp
     ports:
       - '6001:6001'
     command: >
@@ -153,7 +158,6 @@ services:
         nodemon app.js && tail -f /dev/null'
   
     volumes:
-      # - ../src/:/var/src
       - ../../survey-project-creation-service/src/:/var/src
     environment:
       - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/integration_test_scp
