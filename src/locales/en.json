@@ -133,5 +133,6 @@
 	"RESOURCE_ID_REQUIRED": "Resource Id is required",
 	"PROJECT_SAVED_SUCCESSFULLY": "Your changes have been saved",
 	"FAILED_TO_CREATE_CONFIG": "Organization config creation failed",
-	"RESOURCE_STAGE_FETCHED": "Resource stage fetched"
+	"RESOURCE_STAGE_FETCHED": "Resource stage fetched",
+	"DEPENDED_ENTITY_TYPE_NOT_FOUND": "Invalid depended entity type value."
 }
