@@ -194,6 +194,11 @@ let environmentVariables = {
 			value: 'true',
 		},
 	},
+	DEFAULT_ROLLOUT_ROLES: {
+		message: 'Default rollout role is required',
+		optional: true,
+		default: 'rollout_manager',
+	},
 }
 
 let success = true

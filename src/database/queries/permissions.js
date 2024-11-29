@@ -85,4 +85,15 @@ module.exports = class permissionData {
 			throw error
 		}
 	}
+
+	static async findOrCreate(filter) {
+		try {
+			const [record, created] = await Permissions.findOrCreate({
+				where: filter,
+			})
+			return { record, created }
+		} catch (error) {
+			throw error
+		}
+	}
 }
