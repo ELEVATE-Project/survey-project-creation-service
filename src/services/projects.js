@@ -148,7 +148,6 @@ module.exports = class ProjectsHelper {
 				result: { id: projectCreate.id },
 			})
 		} catch (error) {
-			console.log(error, 'error')
 			throw error
 		}
 	}
@@ -276,7 +275,6 @@ module.exports = class ProjectsHelper {
 				throw new Error('FILE_UPLOADED_FAILED')
 			}
 		} catch (error) {
-			console.log(error, 'error')
 			return responses.failureResponse({
 				message: error.message || error,
 				statusCode: httpStatusCode.bad_request,
@@ -336,7 +334,6 @@ module.exports = class ProjectsHelper {
 				result: {},
 			})
 		} catch (error) {
-			console.log(error, 'error')
 			return responses.failureResponse({
 				message: error.message || error,
 				statusCode: httpStatusCode.bad_request,
@@ -793,7 +790,6 @@ module.exports = class ProjectsHelper {
 				result: { id: projectData.id },
 			})
 		} catch (error) {
-			// console.log(error, 'error ')
 			return responses.failureResponse({
 				message: error.message || 'RESOURCE_VALIDATION_FAILED',
 				statusCode: httpStatusCode.bad_request,

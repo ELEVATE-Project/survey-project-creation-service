@@ -13,9 +13,6 @@ jobs:
       - restore_cache:
           key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
       - run:
-          name: Create logs directory
-          command: mkdir -p ~/survey-project-creation-service/dev-ops/logs
-      - run:
           name: Install dependencies
           command: cd src/ && npm install
       - save_cache:
