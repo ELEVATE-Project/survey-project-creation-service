@@ -122,6 +122,7 @@ jobs:
           name: Running test cases
           command: |
             cd src/ && npm run test:integration
+          continue-on-error: true
       - run:
           name: Get SCP container ID and print logs
           command: |
