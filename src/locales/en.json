@@ -136,5 +136,6 @@
 	"RESOURCE_STAGE_FETCHED": "Resource stage fetched",
 	"ROLLOUT_NOT_FOUND": "Rollout not found",
 	"ROLLOUT_CREATED_SUCCESSFULLY": "Saved successfully",
-	"DEPENDED_ENTITY_TYPE_NOT_FOUND": "Invalid depended entity type value."
+	"DEPENDED_ENTITY_TYPE_NOT_FOUND": "Invalid depended entity type value.",
+	"DATA_MANAGER_LIST_FETCHED": "Data Manager list fetched successfully."
 }

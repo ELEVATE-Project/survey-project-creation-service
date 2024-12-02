@@ -196,7 +196,8 @@ let environmentVariables = {
 	},
 	DEFAULT_DATA_MANAGERS: {
 		message: 'Default data managers required.',
-		optional: false,
+		optional: true,
+		default: 'program_manager,program_designer',
 	},
 	DEFAULT_ROLLOUT_ROLES: {
 		message: 'Default rollout role is required',

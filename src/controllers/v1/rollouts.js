@@ -45,7 +45,7 @@ module.exports = class rollouts {
 	}
 
 	/**
-	 * getDataManagers review.
+	 * getDataManagers list.
 	 * @method
 	 * @name getDataManagers
 	 * @param {String} orgId - organization id

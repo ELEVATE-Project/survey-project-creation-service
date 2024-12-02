@@ -125,16 +125,19 @@ module.exports = class RolloutsHelper {
 		}
 	}
 	/**
-	 * Rollout getDataManagers
+	 * Get Data Managers list
 	 * @method
 	 * @name getDataManagers
 	 * @param {Object} req - request data.
-	 * @returns {JSON} - project id
+	 * @returns {JSON} - List of data managers
 	 */
 	static async getDataManagers(orgId, pageNo, pageSize) {
 		try {
+			// get org config based on orgId
 			const orgConfigs = await orgExtensionService.getConfig(orgId)
+			// identify the roles have data manager access
 			const dataManagerRoles = orgConfigs?.result?.config?.data_managers
+			// fetch the users from user service
 			const dataManagersList = await userRequests.list(dataManagerRoles.join(','), pageNo, pageSize, '', orgId)
 			let result = {
 				data: [],
@@ -147,7 +150,7 @@ module.exports = class RolloutsHelper {
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
-				message: 'ROLLOUT_CREATED_SUCCESSFULLY',
+				message: 'DATA_MANAGER_LIST_FETCHED',
 				result,
 			})
 		} catch (error) {
