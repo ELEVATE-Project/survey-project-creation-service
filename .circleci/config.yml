@@ -10,8 +10,8 @@ jobs:
     steps:
       - checkout:
           path: ~/survey-project-creation-service/
-      # - restore_cache:
-      #     key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
+      - restore_cache:
+          key: survey-project-creation-service-dependency-cache-{{ checksum "src/package.json" }}
       - run:
           name: Install dependencies
           command: cd src/ && npm install
@@ -30,8 +30,8 @@ jobs:
       - run:
           name: Cloning user service
           command: cd ../ && git clone https://github.com/ELEVATE-Project/user.git --branch develop --single-branch
-      # - restore_cache:
-      #     key: user-dependency-cache-{{ checksum "../user/src/package.json" }}
+      - restore_cache:
+          key: user-dependency-cache-{{ checksum "../user/src/package.json" }}
       - run:
           name: Install User service dependencies
           command: cd ../user/src/ && npm install
@@ -80,33 +80,44 @@ jobs:
 
             # Output the file content for verification
             cat $USER_ENV_FILE
-      
+
       - run:
           name: Starting the docker containers
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
       - run:
-          name: Wait for PostgreSQL to be Ready
+          name: Wait for all services to be ready
           command: |
-            echo "Waiting for PostgreSQL to be ready on port 5432..."
-            timeout 60 bash -c "until nc -z localhost 5432; do sleep 1; done"
-            echo "PostgreSQL is up"
+            echo "Waiting for PostgreSQL, User service, and SCP service to be ready..."
+            for i in {1..60}; do
+              nc -zv localhost 5432 && echo "PostgreSQL is ready" && break
+              echo "Waiting for PostgreSQL... attempt $i"
+              sleep 1
+            done
+            for i in {1..60}; do
+              nc -zv localhost 5001 && echo "User service is ready" && break
+              echo "Waiting for User service... attempt $i"
+              sleep 1
+            done
+            for i in {1..60}; do
+              nc -zv localhost 6001 && echo "SCP service is ready" && break
+              echo "Waiting for SCP service... attempt $i"
+              sleep 1
+            done
       - run:
-          name: Wait for User Service to be Ready
+          name: Wait for Database Creation and Run Migrations
           command: |
-            echo "Waiting for User Service to be ready on port 5001..."
-            timeout 60 bash -c "until nc -z localhost 5001; do sleep 1; done"
-            echo "User Service is up"
-      - run:
-          name: Wait for Survey Project Creation Service to be Ready
-          command: |
-            echo "Waiting for Survey Project Creation Service to be ready on port 6001..."
-            timeout 60 bash -c "until nc -z localhost 6001; do sleep 1; done"
-            echo "Survey Project Creation Service is up"
-      - run: 
-          name: Check docker logs
-          command: |-
-            docker ps && docker-compose logs --tail=1000
+            echo "Checking if database 'integration_test_scp' exists..."
+
+            # Polling to check if the database is ready
+            for i in {1..60}; do
+              if docker exec postgres psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'integration_test_scp'" | grep -q 1; then
+                echo "Database 'integration_test_scp' is ready."
+                break
+              fi
+              echo "Database 'integration_test_scp' not ready yet... waiting (attempt $i)"
+              sleep 2
+            done
       - run:
           name: Create test results directory
           command: mkdir -p ./dev-ops/report
@@ -114,6 +125,25 @@ jobs:
           name: Running test cases
           command: |
             cd src/ && npm run test:integration
+          #   cd src/ && npm run test:integration || true
+          # continue-on-error: true
+      # - run:
+      #     name: Get SCP container ID and print logs
+      #     command: |
+      #       echo "Getting SCP container ID..."
+      #       SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
+      #       echo "SCP container ID: $SCP_CONTAINER_ID"
+
+      #       # Check if the SCP container is running
+      #       if [ -z "$SCP_CONTAINER_ID" ]; then
+      #         echo "SCP container is not running. Cannot fetch logs."
+      #         exit 1  # Exit with an error if SCP container is not running
+      #       fi
+
+      #       # Print logs of the SCP container
+      #       echo "Printing SCP container logs..."
+      #       docker logs $SCP_CONTAINER_ID --tail=10000
+
       - store_test_results:
           path: ./dev-ops/report
       - run:

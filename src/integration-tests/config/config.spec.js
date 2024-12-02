@@ -1,19 +1,20 @@
 const commonHelper = require('@commonTests')
 // const commonHelper = require('../commonTests')
 const schema = require('./responseSchema')
-const timeOutValue = 20000
 
+jest.setTimeout(20000)
 describe('Config APIs', function () {
 	let userDetails
-
 	beforeAll(async () => {
-		// Uncomment this if you need to verify user roles before logging in
-		// await commonHelper.verifyUserRole();
-		console.log('before login....')
-		userDetails = await commonHelper.logIn()
-		console.log('after login....') // Log userDetails here
-	}, timeOutValue) // Define timeOutValue properly before using it
-	jest.setTimeout(timeOutValue)
+		try {
+			userDetails = await commonHelper.verifyUserRole()
+			userDetails = await commonHelper.logIn()
+			console.log('Logged in User:', userDetails.id, userDetails.roles)
+		} catch (error) {
+			console.error('Error in beforeAll setup:', error)
+			throw error // Ensure the error is thrown to fail the tests
+		}
+	})
 
 	it('List Organization and Instance Configurations', async () => {
 		let res = await request.get('/scp/v1/config/list')
