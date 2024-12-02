@@ -20,7 +20,7 @@ describe('Rollout APIs', function () {
 		let res = await request.get('/scp/v1/rollouts/getDataManagers').query({ page: 1, limit: 10 })
 		console.log('-=-=-=-=-==-===>> ', res.body)
 		expect(res.statusCode).toBe(200)
-		if (res.body?.result?.data.length == 0) {
+		if (res.body?.result.length == 0) {
 			expect(res.body).toMatchSchema(schema.getDataManagersEmptyResponseSchema)
 		}
 		expect(res.body).toMatchSchema(schema.getDataManagersSchema)
