@@ -96,6 +96,18 @@ const verifyUserRole = async () => {
 				roleCreationPromises.push(createReviewRole)
 			}
 
+			// Add rollout_manager role creation promise
+			if (existingReviewerRole.statusCode === 400 || !existingReviewerRole.body.result?.data?.length) {
+				const createRolloutManagerRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+					title: 'rollout_manager',
+					user_type: 0,
+					organization_id: 1,
+					label: 'Rollout Manager',
+					visibility: 'PUBLIC',
+				})
+				roleCreationPromises.push(createRolloutManagerRole)
+			}
+
 			// Wait for both role creation requests to complete
 			if (roleCreationPromises.length > 0) {
 				const res = await Promise.all(roleCreationPromises)
