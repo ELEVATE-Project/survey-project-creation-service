@@ -42,7 +42,7 @@ exports.updateOne = async (filter, update, options = {}) => {
 	}
 }
 
-exports.findAll = async (filter, attributes = [], options = {}) => {
+exports.findAll = async (filter, attributes = {}) => {
 	try {
 		const res = await Rollout.findAll({
 			where: filter,
@@ -62,7 +62,6 @@ exports.findAllAndCount = async (filter, attributes = [], options = {}) => {
 			where: filter,
 			attributes,
 			raw: true,
-			...options,
 		}
 		const res = await Rollout.findAndCountAll(rolloutFilter)
 
