@@ -6,12 +6,17 @@ describe('Entity-Type APIs', function () {
 	let userDetails
 
 	beforeAll(async () => {
-		userDetails = await commonHelper.logIn()
+		try {
+			userDetails = await commonHelper.logIn()
+			console.log('Logged in User:', userDetails.id, userDetails.roles)
+		} catch (error) {
+			console.error('Error in beforeAll setup:', error)
+			throw error // Ensure the error is thrown to fail the tests
+		}
 	})
 
 	it('Read Entity-Type', async () => {
 		const res = await request.post('/scp/v1/entity-types/read')
-
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.listSchema)
 	})
@@ -25,7 +30,6 @@ describe('Entity-Type APIs', function () {
 			data_type: 'STRING',
 			has_entities: true,
 		})
-
 		expect(res.statusCode).toBe(201)
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})

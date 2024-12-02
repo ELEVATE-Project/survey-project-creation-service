@@ -23,7 +23,7 @@ module.exports = {
 				type: Sequelize.ENUM('PENDING', 'ROLLED_OUT', 'INACTIVE'),
 				defaultValue: 'PENDING',
 			},
-			rollout_date: {
+			published_on: {
 				allowNull: true,
 				type: Sequelize.DATE,
 			},
@@ -65,7 +65,7 @@ module.exports = {
 				type: Sequelize.ENUM('program', 'solution'),
 				defaultValue: 'program',
 			},
-			duplicate_template_id: {
+			template_id: {
 				type: Sequelize.STRING,
 			},
 			created_by: {
@@ -97,6 +97,9 @@ module.exports = {
 		})
 		await queryInterface.addIndex('rollouts', ['user_id'], {
 			name: 'rollouts_user_id_index',
+		})
+		await queryInterface.addIndex('rollouts', ['title'], {
+			name: 'rollouts_title_index',
 		})
 	},
 

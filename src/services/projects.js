@@ -790,7 +790,6 @@ module.exports = class ProjectsHelper {
 				result: { id: projectData.id },
 			})
 		} catch (error) {
-			// console.log(error, 'error ')
 			return responses.failureResponse({
 				message: error.message || 'RESOURCE_VALIDATION_FAILED',
 				statusCode: httpStatusCode.bad_request,

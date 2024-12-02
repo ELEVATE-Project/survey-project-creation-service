@@ -25,6 +25,32 @@ module.exports = class EntityTypeHelper {
 			bodyData.updated_by = loggedInUserId
 			bodyData.organization_id = orgId
 			bodyData.value = bodyData.value.toLowerCase()
+			bodyData.config = {}
+			if (bodyData?.is_external) {
+				bodyData.config = {
+					is_external: bodyData?.is_external ? true : false,
+				}
+			}
+
+			if (bodyData?.depended_on) {
+				const checkDependedEntityType = await entityTypeQueries.findOneEntityType({
+					id: bodyData.depended_on,
+					organization_id: orgId,
+				})
+
+				if (!checkDependedEntityType.id) {
+					return responses.failureResponse({
+						message: 'DEPENDED_ENTITY_TYPE_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+				bodyData.config.depended_on = bodyData.depended_on
+				bodyData.config.is_dependent = bodyData.depended_on ? true : false
+			}
+			delete bodyData.depended_on
+			delete bodyData.is_external
+			delete bodyData.is_dependent
 			let entityType = await entityTypeQueries.createEntityType(bodyData)
 
 			if (entityType) {
@@ -68,6 +94,34 @@ module.exports = class EntityTypeHelper {
 		try {
 			bodyData.updated_by = loggedInUserId
 			if (bodyData.value) bodyData.value = bodyData.value.toLowerCase()
+
+			if ('is_external' in bodyData && bodyData.is_external !== '') {
+				bodyData.config = {
+					is_external: bodyData.is_external ? true : false,
+				}
+			}
+
+			if ('depended_on' in bodyData && bodyData.depended_on !== '') {
+				const checkDependedEntityType = await entityTypeQueries.findOneEntityType({
+					id: bodyData.depended_on,
+					organization_id: orgId,
+				})
+
+				if (!checkDependedEntityType.id) {
+					return responses.failureResponse({
+						message: 'DEPENDED_ENTITY_TYPE_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+				bodyData.config.depended_on = bodyData.depended_on
+				bodyData.config.is_dependent = bodyData.depended_on ? true : false
+			}
+
+			delete bodyData.depended_on
+			delete bodyData.is_external
+			delete bodyData.is_dependent
+
 			const [updateCount, updatedEntityType] = await entityTypeQueries.updateOneEntityType(id, orgId, bodyData, {
 				returning: true,
 				raw: true,
