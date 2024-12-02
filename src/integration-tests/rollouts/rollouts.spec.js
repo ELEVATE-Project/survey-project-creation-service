@@ -18,6 +18,7 @@ describe('Rollout APIs', function () {
 
 	it('Get list of data managers list', async () => {
 		let res = await request.get('/scp/v1/rollouts/getDataManagers').query({ page: 1, limit: 10 })
+		console.log('-=-=-=-=-==-===>> ', res)
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.listSchema)
 	})
