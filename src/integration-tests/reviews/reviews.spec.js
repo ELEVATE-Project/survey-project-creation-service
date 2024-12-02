@@ -5,16 +5,20 @@ jest.setTimeout(200000)
 
 describe('Review APIs ', function () {
 	let userDetails
+
 	beforeAll(async () => {
-		await commonHelper.verifyUserRole()
-		console.log('verifyUserRole function completed....')
-		userDetails = await commonHelper.logIn()
+		try {
+			await commonHelper.verifyUserRole()
+			userDetails = await commonHelper.logIn()
+			console.log('Logged in User:', userDetails.id, userDetails.roles)
+		} catch (error) {
+			console.error('Error in beforeAll setup:', error)
+			throw error // Ensure the error is thrown to fail the tests
+		}
 	})
 	jest.setTimeout(100000)
 	it('Start Review', async () => {
 		const projects = await request.get('/scp/v1/resource/upForReview?page=1&limit=5&listing=up_for_review')
-		console.log('userDetails =====> ', userDetails)
-		console.log('=-=-=-==-=>>>> ', projects.body)
 		expect(projects.statusCode).toBe(200)
 
 		if (projects.body?.result?.count > 0) {

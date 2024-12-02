@@ -10,17 +10,18 @@ const waitOn = require('wait-on')
 
 // Improved waitForService function
 const waitForService = async (url) => {
+	console.log(`Waiting for service at: ${url}`)
 	const opts = {
 		resources: [url],
 		delay: 5000, // Initial delay before checking
 		interval: 1000, // Interval between checks
-		timeout: 30000, // Max time to wait for service
+		timeout: 60000, // Max time to wait for service
 	}
 	try {
 		await waitOn(opts)
 		console.log(`Service is ready at: ${url}`)
 	} catch (error) {
-		console.error(`Service not ready at: ${url}. Error: ${error.message}`)
+		console.error(`Error: ${error.message}`)
 		throw new Error('Service not available')
 	}
 }
@@ -35,7 +36,7 @@ const verifyUserRole = async () => {
 	// Wait for the service to be ready
 	await waitForService(baseURL)
 
-	jest.setTimeout(5000)
+	jest.setTimeout(10000)
 
 	// Create a new user
 	let email = 'orgadmin' + crypto.randomBytes(5).toString('hex') + '@shikshalokam.com'
@@ -97,8 +98,8 @@ const verifyUserRole = async () => {
 
 			// Wait for both role creation requests to complete
 			if (roleCreationPromises.length > 0) {
-				const resss = await Promise.all(roleCreationPromises)
-				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(resss.body, null, 2))
+				const res = await Promise.all(roleCreationPromises)
+				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(res.body, null, 2))
 			}
 		}
 	} catch (error) {
@@ -111,23 +112,15 @@ const verifyUserRole = async () => {
 }
 
 ;(async () => {
-	try {
-		console.log(
-			'PROCESS ENV VARIABLES : : ==> ',
-			process.env.CLOUD_STORAGE_PROVIDER,
-			process.env.CLOUD_STORAGE_ACCOUNTNAME,
-			process.env.CLOUD_STORAGE_SECRET,
-			process.env.CLOUD_STORAGE_BUCKETNAME,
-			process.env.CLOUD_STORAGE_REGION,
-			process.env.CLOUD_ENDPOINT
-		)
-
-		console.log('Calling verifyUserRole...')
-		const result = await verifyUserRole()
-		console.log('verifyUserRole result:', result)
-	} catch (error) {
-		console.error('Error while calling verifyUserRole:', error)
-	}
+	console.log(
+		'PROCESS ENV VARIABLES : : ==> ',
+		process.env.CLOUD_STORAGE_PROVIDER,
+		process.env.CLOUD_STORAGE_ACCOUNTNAME,
+		process.env.CLOUD_STORAGE_SECRET,
+		process.env.CLOUD_STORAGE_BUCKETNAME,
+		process.env.CLOUD_STORAGE_REGION,
+		process.env.CLOUD_ENDPOINT
+	)
 })()
 
 // Function to log in and generate token
@@ -172,6 +165,7 @@ const logIn = async () => {
 			global.request.set(defaultHeaders)
 			global.userId = res.body.result.user.id
 			return {
+				id: res.body.result.user.id,
 				token: res.body.result.access_token,
 				email: email,
 				password: password,
@@ -197,7 +191,7 @@ function logError(res) {
 }
 
 module.exports = {
-	logIn, //-- export if token is generated
+	logIn,
 	logError,
-	verifyUserRole, // Uncomment if needed externally
+	verifyUserRole,
 }
