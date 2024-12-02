@@ -114,7 +114,7 @@ module.exports = class RolloutsHelper {
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
-				message: 'ROLLOUT_CREATED_SUCCESSFULLY',
+				message: 'ROLLOUT_SAVED_SUCCESSFULLY',
 				result: { id: rolloutCreate.id },
 			})
 		} catch (error) {
@@ -148,7 +148,8 @@ module.exports = class RolloutsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-			//check the rollout
+
+			// Prevent changes to the resource id if a rollout is published
 			if (bodyData.resource_id && bodyData.resource_id != rollout.resource_id) {
 				if (rollout.rollout_date || bodyData.published_id) {
 					return responses.failureResponse({
@@ -157,6 +158,7 @@ module.exports = class RolloutsHelper {
 						responseCode: 'CLIENT_ERROR',
 					})
 				}
+
 				let resource = await resourceQueries.findOne({
 					id: bodyData.resource_id,
 					organization_id: orgId,
@@ -171,6 +173,8 @@ module.exports = class RolloutsHelper {
 					})
 				}
 			}
+
+			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_id', 'user_id'])
 
 			if (bodyData.targeting_criteria) {
 				const fileName = `${loggedInUserId}${rolloutId}rollout.json`
@@ -191,8 +195,6 @@ module.exports = class RolloutsHelper {
 				}
 			}
 
-			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_id', 'user_id'])
-
 			let filter = {
 				id: rolloutId,
 				organization_id: orgId,
@@ -203,7 +205,7 @@ module.exports = class RolloutsHelper {
 				...bodyData,
 			}
 
-			const [updateCount] = await rolloutQueries.updateOne(filter, updateData, {
+			const [updateCount, updatedRolledout] = await rolloutQueries.updateOne(filter, updateData, {
 				returning: true,
 				raw: true,
 			})
@@ -215,12 +217,14 @@ module.exports = class RolloutsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-		} catch (error) {
-			return responses.failureResponse({
-				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
-				responseCode: 'CLIENT_ERROR',
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'ROLLOUT_SAVED_SUCCESSFULLY',
+				result: updatedRolledout[0].id,
 			})
+		} catch (error) {
+			throw error
 		}
 	}
 }
