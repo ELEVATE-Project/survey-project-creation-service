@@ -58,13 +58,18 @@ const verifyUserRole = async () => {
 			}
 
 			// Run role checks concurrently for content_creator and reviewer roles
-			const [existingCreatorRole, existingReviewerRole] = await Promise.all([
+			const [existingCreatorRole, existingReviewerRole, existingRolloutManagerRole] = await Promise.all([
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'content_creator',
 					organization_id: 1,
 				}),
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'reviewer',
+					organization_id: 1,
+				}),
+
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'rollout_manager',
 					organization_id: 1,
 				}),
 			])
@@ -94,6 +99,21 @@ const verifyUserRole = async () => {
 					visibility: 'PUBLIC',
 				})
 				roleCreationPromises.push(createReviewRole)
+			}
+
+			// Add rollout_manager role creation promise
+			if (
+				existingRolloutManagerRole.statusCode === 400 ||
+				!existingRolloutManagerRole.body.result?.data?.length
+			) {
+				const createRolloutManagerRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+					title: 'rollout_manager',
+					user_type: 0,
+					organization_id: 1,
+					label: 'Rollout Manager',
+					visibility: 'PUBLIC',
+				})
+				roleCreationPromises.push(createRolloutManagerRole)
 			}
 
 			// Wait for both role creation requests to complete

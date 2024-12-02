@@ -7,6 +7,9 @@ const common = require('@constants/common')
 const rolloutQueries = require('@database/queries/rollouts')
 const resourceService = require('@services/resource')
 const resourceQueries = require('@database/queries/resources')
+const orgExtension = require('@services/organization-extension')
+const userRequests = require('@requests/user')
+const { Op } = require('sequelize')
 module.exports = class RolloutsHelper {
 	/**
 	 * Rollout create
@@ -127,7 +130,7 @@ module.exports = class RolloutsHelper {
 	 * @method
 	 * @name list
 	 * @param {Object} req - request data.
-	 * @returns {JSON} - project id
+	 * @returns {JSON} - List of rollouts
 	 */
 	static async list(organization_id, loggedInUserId, queryParams, searchText = '', page, limit) {
 		try {
@@ -138,8 +141,6 @@ module.exports = class RolloutsHelper {
 			let filters = {
 				organization_id,
 				user_id: loggedInUserId,
-				limit: page,
-				offset: common.getPaginationOffset(page, limit),
 			}
 
 			if (searchText && searchText != '') {
@@ -158,11 +159,110 @@ module.exports = class RolloutsHelper {
 				}
 			}
 
-			const rolloutList = rolloutQueries.findAll(filters, [])
-			if (rolloutList) {
+			const sort = await this.constructSortOptions(queryParams?.sort_by, queryParams?.sort_order)
+
+			const rolloutList = await rolloutQueries.findAllAndCount(
+				filters,
+				[
+					'id',
+					'type',
+					'resource_type',
+					'resource_id',
+					'title',
+					'status',
+					'start_date',
+					'end_date',
+					'organization_id',
+					'created_by',
+					'created_at',
+					'updated_at',
+				],
+				{
+					limit,
+					offset: common.getPaginationOffset(page, limit),
+					order: [sort],
+				}
+			)
+			if (rolloutList.result.length <= 0) {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'ROLLOUT_LISTED_SUCCESSFULLY',
+					result,
+				})
 			}
+			let orgList = []
+
+			rolloutList.result.forEach((eachRollout) => {
+				orgList.push(eachRollout.organization_id)
+			})
+
+			// fetch the user details from user service
+			const userDetails = await this.fetchUserDetails([loggedInUserId])
+
+			// fetch the org details from user service
+			const orgDetails = await orgExtension.fetchOrganizationDetails(orgList)
+
+			let rolloutFinalList = []
+
+			rolloutList.result.forEach((eachRollout) => {
+				eachRollout['creator'] = userDetails[eachRollout.created_by]
+					? userDetails[eachRollout.created_by].name
+					: null
+				eachRollout['organization'] = orgDetails[eachRollout.organization_id]
+					? orgDetails[eachRollout.organization_id]
+					: null
+				delete eachRollout['created_by']
+				delete eachRollout['organization_id']
+				rolloutFinalList.push(eachRollout)
+			})
+
+			result = {
+				data: rolloutFinalList,
+				count: rolloutList.count,
+			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'ROLLOUT_LISTED_SUCCESSFULLY',
+				result,
+			})
 		} catch (error) {
 			throw error
 		}
+	}
+
+	/**
+	 * Get all details of users from the user service.
+	 * @name fetchUserDetails
+	 * @param {Array} userIds - array of userIds.
+	 * @returns {Object} - Response contain object of user details
+	 */
+	static async fetchUserDetails(userIds) {
+		const userDetailsResponse = await userRequests.list(common.FILTER_ALL.toLowerCase(), '', '', '', '', {
+			user_ids: userIds,
+		})
+		let userDetails = {}
+		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
+			userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
+		}
+		return userDetails
+	}
+
+	/**
+	 * Generate sort filter
+	 * @name constructSortOptions
+	 * @param {Object} sort_by - Sort by value
+	 * @param sort_order - sort_order value ASC / DESC
+	 * @returns {JSON} - Response contain sort filter
+	 */
+	static async constructSortOptions(sort_by, sort_order) {
+		let sort = []
+		if (sort_by && sort_order) {
+			sort.push(sort_by)
+			sort.push(sort_order.toUpperCase() == common.SORT_DESC.toUpperCase() ? common.SORT_DESC : common.SORT_ASC)
+		} else {
+			sort.push(common.CREATED_AT)
+			sort.push(common.SORT_DESC)
+		}
+		return sort
 	}
 }
