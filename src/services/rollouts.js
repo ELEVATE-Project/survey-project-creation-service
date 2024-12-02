@@ -144,7 +144,11 @@ module.exports = class RolloutsHelper {
 				count: 0,
 			}
 
-			if (dataManagersList.success) {
+			if (
+				dataManagersList.success &&
+				dataManagersList?.data?.result?.data &&
+				dataManagersList?.data?.result?.data.length > 0
+			) {
 				result = dataManagersList?.data?.result
 			}
 
