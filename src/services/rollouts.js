@@ -122,4 +122,47 @@ module.exports = class RolloutsHelper {
 			throw error
 		}
 	}
+	/**
+	 * Rollout List
+	 * @method
+	 * @name list
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - project id
+	 */
+	static async list(organization_id, loggedInUserId, queryParams, searchText = '', page, limit) {
+		try {
+			let result = {
+				data: [],
+				count: 0,
+			}
+			let filters = {
+				organization_id,
+				user_id: loggedInUserId,
+				limit: page,
+				offset: common.getPaginationOffset(page, limit),
+			}
+
+			if (searchText && searchText != '') {
+				filters.title = {
+					[Op.iLike]: '%' + searchText + '%',
+				}
+			}
+
+			if (queryParams.type && queryParams.type != '') {
+				filters.type = queryParams.type
+			}
+
+			if (queryParams.status && queryParams.status != '') {
+				filters.status = {
+					[Op.in]: queryParams.status.trim().split(','),
+				}
+			}
+
+			const rolloutList = rolloutQueries.findAll(filters, [])
+			if (rolloutList) {
+			}
+		} catch (error) {
+			throw error
+		}
+	}
 }

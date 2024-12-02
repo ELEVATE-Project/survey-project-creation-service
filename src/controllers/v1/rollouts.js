@@ -43,4 +43,27 @@ module.exports = class rollouts {
 			return error
 		}
 	}
+	/**
+	 * Get Rollout List.
+	 * @method
+	 * @name list
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - Rollout list
+	 */
+	async list(req) {
+		try {
+			const rolloutList = await rolloutService.list(
+				req.decodedToken.organization_id,
+				req.decodedToken.id,
+				req.query,
+				req.searchText,
+				req.pageNo,
+				req.pageSize
+			)
+
+			return rolloutList
+		} catch (error) {
+			return error
+		}
+	}
 }
