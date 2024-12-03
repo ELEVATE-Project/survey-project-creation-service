@@ -137,5 +137,6 @@
 	"ROLLOUT_NOT_FOUND": "Rollout not found",
 	"ROLLOUT_SAVED_SUCCESSFULLY": "Saved successfully",
 	"DEPENDED_ENTITY_TYPE_NOT_FOUND": "Invalid depended entity type value.",
-	"CANT_CHANGE_RESOURCE": "You cant change the resource of published rollout"
+	"CANT_CHANGE_RESOURCE": "You cant change the resource of published rollout",
+	"DONT_HAVE_ROLLOUT_ACCESS": "You don't have permission to access this rollout"
 }

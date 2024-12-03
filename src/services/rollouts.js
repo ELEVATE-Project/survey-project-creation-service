@@ -148,6 +148,14 @@ module.exports = class RolloutsHelper {
 				})
 			}
 
+			if (rollout.user_id !== loggedInUserId) {
+				return responses.failureResponse({
+					message: 'DONT_HAVE_ROLLOUT_ACCESS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
 			// Prevent changes to the resource id if a rollout is published
 			if (bodyData.resource_id && bodyData.resource_id != rollout.resource_id) {
 				if (rollout.rollout_date || bodyData.published_id) {
