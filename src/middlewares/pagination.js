@@ -6,9 +6,9 @@
  */
 const httpStatus = require('@generics/http-status')
 const responses = require('@helpers/responses')
-const unidecode = require('unidecode')
+const { transliterate: tr } = require('transliteration')
 function containsSpecialChars(str) {
-	str = unidecode(str)
+	str = tr(str)
 	const specialChars = /[`!#$%^*()+\=\[\]{};':"\\|\/?~]/
 	return specialChars.test(str)
 }

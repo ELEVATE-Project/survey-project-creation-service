@@ -76,11 +76,6 @@ services:
       - elevate_net
     env_file:
       - integration_test.scheduler.env
-    logging:
-      driver: 'json-file'
-      options:
-        max-size: '10m'
-        max-file: '3'
 
   user:
     build: '../../user/'
@@ -167,6 +162,6 @@ networks:
   elevate_net:
     external: false
 
-volumes:
-  zookeeper-data:
-  kafka-data:
+# volumes:
+#   zookeeper-data:
+#   kafka-data:
