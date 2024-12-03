@@ -129,7 +129,12 @@ module.exports = class RolloutsHelper {
 	 * Rollout List
 	 * @method
 	 * @name list
-	 * @param {Object} req - request data.
+	 * @param {String} organization_id
+	 * @param {String} loggedInUserId
+	 * @param {Object} queryParams
+	 * @param {String} searchText
+	 * @param {Integer} page
+	 * @param {Integer} limit
 	 * @returns {JSON} - List of rollouts
 	 */
 	static async list(organization_id, loggedInUserId, queryParams, searchText = '', page, limit) {
@@ -141,6 +146,7 @@ module.exports = class RolloutsHelper {
 			let filters = {
 				organization_id,
 				user_id: loggedInUserId,
+				type: common.ROLLOUT_TYPE_PROGRAM,
 			}
 
 			if (searchText && searchText != '') {
@@ -149,8 +155,8 @@ module.exports = class RolloutsHelper {
 				}
 			}
 
-			if (queryParams.type && queryParams.type != '') {
-				filters.type = queryParams.type
+			if (queryParams.resource_type && queryParams.resource_type != '') {
+				filters.resource_type = queryParams.resource_type
 			}
 
 			if (queryParams.status && queryParams.status != '') {

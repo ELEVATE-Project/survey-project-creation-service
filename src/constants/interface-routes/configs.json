@@ -742,6 +742,21 @@
 					"responseBody": []
 				}
 			]
+		},
+		{
+			"sourceRoute": "/scp/v1/rollouts/list",
+			"type": "GET",
+			"priority": "MUST_HAVE",
+			"inSequence": false,
+			"orchestrated": true,
+			"targetPackages": [
+				{
+					"basePackageName": "self-creation-portal",
+					"packageName": "elevate-self-creation-portal",
+					"targetBody": [],
+					"responseBody": []
+				}
+			]
 		}
 	]
 }

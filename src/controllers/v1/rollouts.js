@@ -47,7 +47,12 @@ module.exports = class rollouts {
 	 * Get Rollout List.
 	 * @method
 	 * @name list
-	 * @param {Object} req - request data.
+	 * @param {String} organization_id
+	 * @param {String} loggedInUserId
+	 * @param {Object} queryParams
+	 * @param {String} searchText
+	 * @param {Integer} page
+	 * @param {Integer} limit
 	 * @returns {JSON} - Rollout list
 	 */
 	async list(req) {
