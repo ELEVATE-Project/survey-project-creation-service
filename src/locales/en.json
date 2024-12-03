@@ -135,8 +135,10 @@
 	"FAILED_TO_CREATE_CONFIG": "Organization config creation failed",
 	"RESOURCE_STAGE_FETCHED": "Resource stage fetched",
 	"ROLLOUT_NOT_FOUND": "Rollout not found",
-	"ROLLOUT_SAVED_SUCCESSFULLY": "Saved successfully",
+	"ROLLOUT_CREATED_SUCCESSFULLY": "Saved successfully",
 	"DEPENDED_ENTITY_TYPE_NOT_FOUND": "Invalid depended entity type value.",
+	"ROLLOUT_LISTED_SUCCESSFULLY": "Rollout Listed successfully",
+	"ROLLOUT_SAVED_SUCCESSFULLY": "Saved successfully",
 	"CANT_CHANGE_RESOURCE": "You cant change the resource of published rollout",
 	"DONT_HAVE_ROLLOUT_ACCESS": "You don't have permission to access this rollout"
 }
