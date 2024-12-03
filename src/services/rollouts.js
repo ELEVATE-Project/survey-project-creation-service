@@ -54,7 +54,7 @@ module.exports = class RolloutsHelper {
 
 				// upload to blob
 				const rolloutId = rolloutCreate.id
-				const fileName = `${loggedInUserId}${rolloutId}rollout.json`
+				const fileName = 'rollout.json'
 
 				const rolloutUploadStatus = await resourceService.uploadToCloud(
 					fileName,
@@ -177,7 +177,7 @@ module.exports = class RolloutsHelper {
 			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_id', 'user_id'])
 
 			if (bodyData.targeting_criteria) {
-				const fileName = `${loggedInUserId}${rolloutId}rollout.json`
+				const fileName = 'rollout.json'
 				const rolloutUploadStatus = await resourceService.uploadToCloud(
 					fileName,
 					rolloutId,
