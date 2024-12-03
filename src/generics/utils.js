@@ -5,19 +5,12 @@
  * Description : Utils helper function.
  */
 
-const bcryptJs = require('bcryptjs')
-const momentTimeZone = require('moment-timezone')
-const moment = require('moment')
-const path = require('path')
-// const md5 = require('md5')
 const { RedisCache, InternalCache } = require('elevate-node-cache')
 const startCase = require('lodash/startCase')
 const common = require('@constants/common')
-const crypto = require('crypto')
-const { cloudClient } = require('@configs/cloud-service')
 const { v4: uuidV4 } = require('uuid')
-const unidecode = require('unidecode')
 const _ = require('lodash')
+const { transliterate: tr } = require('transliteration')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -428,9 +421,7 @@ const checkRegexPattern = (entityType, entityData) => {
 		// Proceed if a regex validation object is found
 		if (entityType && entityType.type === common.REGEX_VALIDATION) {
 			// Normalize the entityData
-			let normalizedValue =
-				typeof entityData === common.DATA_TYPE_NUMBER ? entityData.toString() : unidecode(entityData)
-
+			let normalizedValue = typeof entityData === common.DATA_TYPE_NUMBER ? entityData.toString() : tr(entityData)
 			// Handle array of regex patterns
 			if (Array.isArray(entityType.regex)) {
 				for (let pattern of entityType.regex) {
@@ -497,7 +488,7 @@ const checkEntities = (entityType, entityData) => {
 const checkLength = (entityType, entityData) => {
 	try {
 		if (entityType.type === common.MAX_LENGTH_VALIDATION && entityType.value) {
-			return entityData.length <= entityType.value
+			return entityData.length < entityType.value
 		}
 	} catch (error) {
 		return error
@@ -534,9 +525,8 @@ const isLabelValuePair = (item) => {
 }
 
 const validateTitle = (title) => {
-	// Regex to match titles longer than 256 characters
-	const regex = /^.{257,}$/
-	return regex.test(title)
+	//check for titles longer than 256 characters
+	return title.length > 257
 }
 const validateComment = (comments) => {
 	// check if the comment passed to the resource is valid or not

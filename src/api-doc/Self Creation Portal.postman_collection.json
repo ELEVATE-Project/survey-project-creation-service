@@ -2186,6 +2186,46 @@
 						"url": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/getDataManagers"
 					},
 					"response": []
+				},
+				{
+					"name": "rollout list",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/list?limit=100&sort_by=title&sort_order=desc&page=10&search=",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "rollouts", "list"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100"
+								},
+								{
+									"key": "sort_by",
+									"value": "title"
+								},
+								{
+									"key": "sort_order",
+									"value": "desc"
+								},
+								{
+									"key": "page",
+									"value": "10"
+								},
+								{
+									"key": "search",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		}

@@ -64,4 +64,32 @@ module.exports = class rollouts {
 			return error
 		}
 	}
+	/**
+	 * Get Rollout List.
+	 * @method
+	 * @name list
+	 * @param {String} organization_id
+	 * @param {String} loggedInUserId
+	 * @param {Object} queryParams
+	 * @param {String} searchText
+	 * @param {Integer} page
+	 * @param {Integer} limit
+	 * @returns {JSON} - Rollout list
+	 */
+	async list(req) {
+		try {
+			const rolloutList = await rolloutService.list(
+				req.decodedToken.organization_id,
+				req.decodedToken.id,
+				req.query,
+				req.searchText,
+				req.pageNo,
+				req.pageSize
+			)
+
+			return rolloutList
+		} catch (error) {
+			return error
+		}
+	}
 }

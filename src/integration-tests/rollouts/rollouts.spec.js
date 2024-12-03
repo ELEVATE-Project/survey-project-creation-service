@@ -24,4 +24,13 @@ describe('Rollout APIs', function () {
 		}
 		expect(res.body).toMatchSchema(schema.getDataManagersSchema)
 	})
+
+	it('Get list of Rollouts', async () => {
+		let res = await request.get('/scp/v1/rollouts/list').query({ page: 1, limit: 10 })
+		expect(res.statusCode).toBe(200)
+		if (res.body?.result.length == 0) {
+			expect(res.body).toMatchSchema(schema.getRolloutsListEmptyResponseSchema)
+		}
+		expect(res.body).toMatchSchema(schema.getRolloutsListSchema)
+	})
 })

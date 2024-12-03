@@ -95,10 +95,9 @@ module.exports = class ProjectsHelper {
 
 				// upload to blob
 				const resourceId = projectCreate.id
-				const fileName = `${loggedInUserId}${resourceId}project.json`
 
 				const projectUploadStatus = await resourceService.uploadToCloud(
-					fileName,
+					common.PROJECT_UPLOAD_FILE_NAME,
 					projectCreate.id,
 					common.PROJECT,
 					loggedInUserId,
@@ -220,9 +219,8 @@ module.exports = class ProjectsHelper {
 			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id', 'user_id'])
 
 			//upload to blob
-			const fileName = `${loggedInUserId}${resourceId}project.json`
 			const projectUploadStatus = await resourceService.uploadToCloud(
-				fileName,
+				common.PROJECT_UPLOAD_FILE_NAME,
 				resourceId,
 				common.PROJECT,
 				loggedInUserId,
@@ -880,7 +878,8 @@ module.exports = class ProjectsHelper {
 								? entityType.value
 								: sourceType,
 							model === common.PROJECT ? '' : entityType.value,
-							maxLengthValidation.message || `${entityType.value} is required`
+							maxLengthValidation.message ||
+								`${entityType.value} must not exceed ${maxLengthValidation.value} characters `
 						)
 					)
 				}
