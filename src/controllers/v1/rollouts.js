@@ -43,4 +43,20 @@ module.exports = class rollouts {
 			return error
 		}
 	}
+
+	/**
+	 * Details Rollout.
+	 * @method
+	 * @name details
+	 * @param {Object} req  user request.
+	 * @returns {JSON} - Detail of rollout as response.
+	 */
+	async details(req) {
+		try {
+			const rollout = await rolloutService.details(req.params.id, req.decodedToken.organization_id)
+			return rollout
+		} catch (error) {
+			return error
+		}
+	}
 }

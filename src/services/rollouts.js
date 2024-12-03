@@ -7,6 +7,9 @@ const common = require('@constants/common')
 const rolloutQueries = require('@database/queries/rollouts')
 const resourceService = require('@services/resource')
 const resourceQueries = require('@database/queries/resources')
+const filesService = require('@services/files')
+const orgExtension = require('@services/organization-extension')
+const userRequests = require('@requests/user')
 module.exports = class RolloutsHelper {
 	/**
 	 * Rollout create
@@ -121,5 +124,97 @@ module.exports = class RolloutsHelper {
 			await transaction.rollback() // Rollback transaction on any error
 			throw error
 		}
+	}
+	/**
+	 * Rollout details
+	 * @method
+	 * @name details
+	 * @param {String} rolloutId - Rollout id
+	 * @param {String} organization_id - Organization id
+	 * @returns {JSON} - Rollout Details
+	 */
+	static async details(rolloutId, orgId) {
+		try {
+			let result = {
+				organization: {},
+			}
+
+			const rollout = await rolloutQueries.findOne({
+				id: rolloutId,
+				organization_id: orgId,
+				type: common.ROLLOUT_TYPE_PROGRAM,
+			})
+
+			if (!rollout) {
+				return responses.failureResponse({
+					message: 'ROLLOUT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			//get the data from storage
+			if (rollout.blob_path) {
+				const response = await filesService.fetchJsonFromCloud(rollout.blob_path)
+				if (
+					response.statusCode === httpStatusCode.ok &&
+					response.result &&
+					Object.keys(response.result).length > 0
+				) {
+					let resultData = response.result
+					resultData['created_at'] = rollout.created_at
+					resultData['updated_at'] = rollout.updated_at
+					delete resultData['blob_path']
+					const userDetails = await this.fetchUserDetails([resultData.viewers])
+					const viewerUserIds = resultData.viewers
+
+					if (userDetails) {
+						resultData.viewers = []
+						resultData.viewers = viewerUserIds.map((user) => {
+							return userDetails[user]
+						})
+					}
+
+					// fetch the org details from user service
+					const organizationDetails = await orgExtension.fetchOrganizationDetails([rollout.organization_id])
+
+					if (organizationDetails) {
+						resultData.organization = _.defaults(
+							_.pick(organizationDetails[rollout.organization_id], ['id', 'name', 'code']),
+							{
+								id: '',
+								name: '',
+								code: '',
+							}
+						)
+					}
+					result = { ...resultData }
+				}
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'PROJECT_FETCHED_SUCCESSFULLY',
+				result: result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+	/**
+	 * Get all details of users from the user service.
+	 * @name fetchUserDetails
+	 * @param {Array} userIds - array of userIds.
+	 * @returns {Object} - Response contain object of user details
+	 */
+	static async fetchUserDetails(userIds) {
+		const userDetailsResponse = await userRequests.list(common.FILTER_ALL.toLowerCase(), '', '', '', '', {
+			user_ids: userIds,
+		})
+		let userDetails = {}
+		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
+			userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
+		}
+		return userDetails
 	}
 }
