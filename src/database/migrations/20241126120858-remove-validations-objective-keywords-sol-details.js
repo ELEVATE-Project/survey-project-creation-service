@@ -6,21 +6,30 @@ module.exports = {
 		const entityTypeArray = [
 			{
 				entityType: 'solution_details',
-				validation: { required: false },
+				validation: [
+					{ type: 'required', value: false },
+					{ type: 'max_length', value: 256, message: 'Name must not exceed 256 characters' },
+				],
 			},
 			{
 				entityType: 'objective',
-				validation: { required: true },
+				validation: [
+					{ type: 'required', value: true, message: 'Summarize the goal of the project' },
+					{ type: 'max_length', value: 2000, message: 'Objective must not exceed 2000 characters' },
+				],
 			},
 			{
 				entityType: 'keywords',
-				validation: { required: false },
+				validation: [
+					{ type: 'required', value: false },
+					{ type: 'max_length', value: 256, message: 'Keyword must not exceed 256 characters' },
+				],
 			},
 		]
 		entityTypeArray.forEach(async (eachEntityType) => {
 			await queryInterface.bulkUpdate(
 				'entity_types',
-				{ validations: eachEntityType.validation },
+				{ validations: JSON.stringify(eachEntityType.validation) },
 				{ value: eachEntityType.entityType }
 			)
 		})
