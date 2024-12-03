@@ -790,7 +790,6 @@ module.exports = class ProjectsHelper {
 				result: { id: projectData.id },
 			})
 		} catch (error) {
-			// console.log(error, 'error ')
 			return responses.failureResponse({
 				message: error.message || 'RESOURCE_VALIDATION_FAILED',
 				statusCode: httpStatusCode.bad_request,
@@ -881,7 +880,8 @@ module.exports = class ProjectsHelper {
 								? entityType.value
 								: sourceType,
 							model === common.PROJECT ? '' : entityType.value,
-							maxLengthValidation.message || `${entityType.value} is required`
+							maxLengthValidation.message ||
+								`${entityType.value} must not exceed ${maxLengthValidation.value} characters `
 						)
 					)
 				}

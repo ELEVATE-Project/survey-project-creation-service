@@ -42,6 +42,7 @@ module.exports = class FilesHelper {
 				[common.LOGO]: common.LOGO_PATH,
 				[common.SIGNATURE]: common.SIGNATURE_PATH,
 				[common.BASE_TEMPLATE]: common.BASE_TEMPLATE_PATH,
+				[common.ROLL_OUT]: common.ROLL_OUT_PATH,
 			}
 
 			if (referenceTypes.hasOwnProperty(referenceType)) {

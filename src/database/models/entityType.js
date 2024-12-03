@@ -55,6 +55,9 @@ module.exports = (sequelize, DataTypes) => {
 			validations: {
 				type: DataTypes.JSONB,
 			},
+			config: {
+				type: DataTypes.JSONB,
+			},
 			created_by: {
 				type: DataTypes.STRING,
 				allowNull: false,
