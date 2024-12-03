@@ -64,7 +64,6 @@
 		"stream": "^0.0.2",
 		"swagger-ui-express": "^4.4.0",
 		"transliteration": "^2.3.5",
-		"unidecode": "^1.1.0",
 		"uuid": "^8.3.2",
 		"xml2json": "^0.12.0"
 	},
