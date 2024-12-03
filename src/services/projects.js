@@ -880,7 +880,8 @@ module.exports = class ProjectsHelper {
 								? entityType.value
 								: sourceType,
 							model === common.PROJECT ? '' : entityType.value,
-							maxLengthValidation.message || `${entityType.value} is required`
+							maxLengthValidation.message ||
+								`${entityType.value} must not exceed ${maxLengthValidation.value} characters `
 						)
 					)
 				}
