@@ -56,7 +56,7 @@ module.exports = class RolloutsHelper {
 				const rolloutId = rolloutCreate.id
 
 				const rolloutUploadStatus = await resourceService.uploadToCloud(
-					ROLLOUT_UPLOAD_FILE_NAME,
+					common.ROLLOUT_UPLOAD_FILE_NAME,
 					rolloutCreate.id,
 					common.ROLL_OUT,
 					loggedInUserId,
@@ -177,7 +177,7 @@ module.exports = class RolloutsHelper {
 
 			if (bodyData.targeting_criteria) {
 				const rolloutUploadStatus = await resourceService.uploadToCloud(
-					ROLLOUT_UPLOAD_FILE_NAME,
+					common.ROLLOUT_UPLOAD_FILE_NAME,
 					rolloutId,
 					common.ROLL_OUT,
 					loggedInUserId,
