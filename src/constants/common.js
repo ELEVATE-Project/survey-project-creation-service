@@ -209,4 +209,6 @@ module.exports = {
 	ROLLOUT_TYPE_PROGRAM: 'program',
 	ROLLOUT_TYPE_SOLUTION: 'solution',
 	ROLL_OUT_PATH: 'rollout/',
+	PROJECT_UPLOAD_FILE_NAME: 'project.json',
+	ROLLOUT_UPLOAD_FILE_NAME: 'rollout.json',
 }

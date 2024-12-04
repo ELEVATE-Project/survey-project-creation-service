@@ -525,9 +525,8 @@ const isLabelValuePair = (item) => {
 }
 
 const validateTitle = (title) => {
-	// Regex to match titles longer than 256 characters
-	const regex = /^.{257,}$/
-	return regex.test(title)
+	//check for titles longer than 256 characters
+	return title.length > 257
 }
 const validateComment = (comments) => {
 	// check if the comment passed to the resource is valid or not
