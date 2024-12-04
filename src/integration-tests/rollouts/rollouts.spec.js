@@ -27,12 +27,17 @@ describe('Rollout APIs', function () {
 	})
 	it('Get Rollout Details', async () => {
 		const createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
+		console.log('createProject', createProject)
 		const projectId = createProject.result
+		console.log('projectId', projectId)
 		await request.post('/scp/v1/projects/submitForReview/' + projectId)
 		reviewUser = await commonHelper.logIn()
 		await request.post('/scp/v1/reviews/start/' + projectId)
+		console.log('/scp/v1/reviews/start/' + projectId)
 		await request.post('/scp/v1/reviews/approve/' + projectId)
+		console.log('/scp/v1/reviews/approve/' + projectId)
 		const createRollout = await request.post('/scp/v1/rollouts/update').send(insertRolloutData(projectId))
+		console.log('createRollout', createRollout)
 		let res = await request.get('/scp/v1/rollouts/details/' + createRollout?.result?.id)
 		console.log('/scp/v1/rollouts/details/' + createRollout?.result?.id)
 		console.log('-=-=-=-=-=-=-=-=-=-=>> ', res.body)
