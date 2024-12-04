@@ -129,7 +129,9 @@ module.exports = class RolloutsHelper {
 	 * Get Data Managers list
 	 * @method
 	 * @name getDataManagers
-	 * @param {Object} req - request data.
+	 * @param orgId  - Organization Id
+	 * @param pageNo - Page number
+	 * @param pageSize - Page size
 	 * @returns {JSON} - List of data managers
 	 */
 	static async getDataManagers(orgId, pageNo, pageSize) {

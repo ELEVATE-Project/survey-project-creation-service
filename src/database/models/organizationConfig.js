@@ -14,10 +14,9 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				primaryKey: true,
 			},
-			data_manager_roles: {
+			meta: {
 				allowNull: true,
-				type: DataTypes.ARRAY(DataTypes.STRING),
-				defaultValue: [],
+				type: DataTypes.JSONB,
 			},
 		},
 		{

@@ -14,9 +14,9 @@ module.exports = {
 				primaryKey: true,
 				type: Sequelize.STRING,
 			},
-			data_manager_roles: {
+			meta: {
 				allowNull: true,
-				type: Sequelize.ARRAY(Sequelize.STRING),
+				type: Sequelize.JSONB,
 			},
 			created_at: {
 				allowNull: false,

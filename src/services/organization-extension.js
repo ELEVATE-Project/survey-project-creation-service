@@ -39,13 +39,13 @@ module.exports = class orgExtensionsHelper {
 							organization_id,
 						},
 						{
-							data_manager_roles: data_managers,
+							meta: { data_managers },
 						}
 					)
 				} else {
 					await organizationConfigQueries.create({
 						organization_id,
-						data_manager_roles: data_managers,
+						meta: { data_managers },
 						created_at: new Date(),
 						updated_at: new Date(),
 					})
@@ -165,14 +165,14 @@ module.exports = class orgExtensionsHelper {
 							organization_id,
 						},
 						{
-							data_manager_roles: data_managers,
+							meta: { data_managers },
 							updated_at: new Date(),
 						}
 					)
 				} else {
 					await organizationConfigQueries.create({
 						organization_id,
-						data_manager_roles: data_managers,
+						meta: { data_managers },
 					})
 				}
 			}
@@ -298,9 +298,7 @@ module.exports = class orgExtensionsHelper {
 				organization_id,
 			}
 			let result = {
-				config: {
-					data_managers: process.env.DEFAULT_DATA_MANAGERS.split(','),
-				},
+				config: {},
 				resource: [],
 				instance: {
 					auto_save_interval: utils.convertToInteger(process.env.RESOURCE_AUTO_SAVE_TIMER),
@@ -312,11 +310,15 @@ module.exports = class orgExtensionsHelper {
 				{
 					organization_id,
 				},
-				['data_manager_roles']
+				['meta']
 			)
 
-			if (orgConfig?.data_manager_roles && orgConfig?.data_manager_roles.length > 0) {
-				result.config.data_managers = orgConfig?.data_manager_roles
+			if (orgConfig?.meta && orgConfig?.meta != {}) {
+				result.config = orgConfig?.meta
+			}
+
+			if (orgConfig?.meta?.data_managers.length == 0) {
+				orgConfig.meta.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
 			}
 
 			// attributes to fetch from organisation Extenstion
