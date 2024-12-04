@@ -30,7 +30,8 @@ describe('Rollout APIs', function () {
 		console.log('createProject', createProject)
 		const projectId = createProject.body.result.id
 		console.log('projectId', projectId)
-		await request.post('/scp/v1/projects/submitForReview/' + projectId)
+		const submit = await request.post('/scp/v1/projects/submitForReview/' + projectId)
+		console.log('submit.body : ', submit.body)
 		reviewUser = await commonHelper.logIn()
 		const startReview = await request.post('/scp/v1/reviews/start/' + projectId)
 		console.log('startReview.body : ', startReview.body)
