@@ -28,7 +28,7 @@ describe('Rollout APIs', function () {
 	it('Get Rollout Details', async () => {
 		const createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
 		console.log('createProject', createProject)
-		const projectId = createProject.result
+		const projectId = createProject.body.result.id
 		console.log('projectId', projectId)
 		await request.post('/scp/v1/projects/submitForReview/' + projectId)
 		reviewUser = await commonHelper.logIn()
