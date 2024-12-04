@@ -1,5 +1,6 @@
 const commonHelper = require('@commonTests')
 const schema = require('./responseSchema')
+const { faker } = require('@faker-js/faker')
 jest.setTimeout(20000)
 
 describe('Rollout APIs', function () {
