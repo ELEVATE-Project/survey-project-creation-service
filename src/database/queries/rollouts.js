@@ -55,6 +55,21 @@ exports.findAll = async (filter, attributes = {}) => {
 		return error
 	}
 }
+exports.findAllAndCount = async (filter, attributes = [], options = {}) => {
+	try {
+		const rolloutFilter = {
+			where: filter,
+			attributes,
+			...options,
+			raw: true,
+		}
+		const res = await Rollout.findAndCountAll(rolloutFilter)
+
+		return { result: res.rows, count: res.count }
+	} catch (error) {
+		return error
+	}
+}
 
 exports.deleteOne = async (id, organization_id) => {
 	try {
