@@ -194,7 +194,7 @@ module.exports = class RolloutsHelper {
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
-				message: 'PROJECT_FETCHED_SUCCESSFULLY',
+				message: 'ROLLOUT_FETCHED_SUCCESSFULLY',
 				result: result,
 			})
 		} catch (error) {

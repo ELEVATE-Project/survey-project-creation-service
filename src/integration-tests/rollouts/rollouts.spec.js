@@ -34,6 +34,7 @@ describe('Rollout APIs', function () {
 		await request.post('/scp/v1/reviews/approve/' + projectId)
 		const createRollout = await request.post('/scp/v1/rollouts/update').send(insertRolloutData(projectId))
 		let res = await request.get('/scp/v1/rollouts/details/' + createRollout?.result?.id)
+		console.log('/scp/v1/rollouts/details/' + createRollout?.result?.id)
 		console.log('-=-=-=-=-=-=-=-=-=-=>> ', res.body)
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.rolloutDetailResponseSchema)
