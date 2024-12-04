@@ -317,7 +317,7 @@ module.exports = class orgExtensionsHelper {
 				result.config = orgConfig?.meta
 			}
 
-			if (orgConfig?.meta?.data_managers.length == 0) {
+			if (orgConfig?.meta?.data_managers?.length == 0 || orgConfig?.meta?.data_managers?.length == undefined) {
 				orgConfig.meta.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
 			}
 
