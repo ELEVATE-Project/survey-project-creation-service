@@ -313,12 +313,12 @@ module.exports = class orgExtensionsHelper {
 				['meta']
 			)
 
-			if (orgConfig?.meta && orgConfig?.meta != {}) {
+			if (orgConfig?.meta && Object.keys(orgConfig.meta).length > 0) {
 				result.config = orgConfig?.meta
 			}
 
 			if (orgConfig?.meta?.data_managers?.length == 0 || orgConfig?.meta?.data_managers?.length == undefined) {
-				orgConfig.meta.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
+				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
 			}
 
 			// attributes to fetch from organisation Extenstion
