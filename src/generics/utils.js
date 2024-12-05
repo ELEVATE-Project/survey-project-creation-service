@@ -605,9 +605,7 @@ const isEmpty = (obj) => {
 
 function isEnglish(text) {
 	// Regex to match only English letters and numbers
-	// var englishRegex = new RegExp('^[A-Za-z0-9s<>_&-]*$')
 	var englishRegex = new RegExp('^[\x20-\x7E]*$')
-	// If the text matches the regex, it's considered English
 	if (englishRegex.test(text)) {
 		return true
 	} else {
