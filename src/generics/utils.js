@@ -420,12 +420,24 @@ const checkRegexPattern = (entityType, entityData) => {
 
 		// Proceed if a regex validation object is found
 		if (entityType && entityType.type === common.REGEX_VALIDATION) {
+			const isTextEnglish = this.isEnglish(entityData)
 			// Normalize the entityData
-			let normalizedValue = typeof entityData === common.DATA_TYPE_NUMBER ? entityData.toString() : tr(entityData)
+			let normalizedValue = typeof entityData === 'number' ? entityData.toString() : entityData
+			// If the language is not English, we translate
+			if (!isTextEnglish) {
+				normalizedValue = tr(entityData) // Assuming translateText function exists
+			}
+
+			// Function to remove apostrophes if language is not English
+			const modifyPattern = (pattern) => {
+				return isTextEnglish ? pattern : pattern.replace(/'/g, '')
+			}
+
 			// Handle array of regex patterns
 			if (Array.isArray(entityType.regex)) {
 				for (let pattern of entityType.regex) {
-					let regex = new RegExp(pattern)
+					let regex = new RegExp(modifyPattern(pattern))
+
 					if (regex.test(normalizedValue)) {
 						return true
 					}
@@ -433,7 +445,7 @@ const checkRegexPattern = (entityType, entityData) => {
 				return false
 			} else {
 				// Handle the case where regex is a single pattern
-				let regex = new RegExp(entityType.value) // Use entityType.value for regex
+				let regex = new RegExp(modifyPattern(entityType.value)) // Use entityType.value for regex
 				return regex.test(normalizedValue)
 			}
 		}
@@ -587,6 +599,19 @@ const isEmpty = (obj) => {
 	return true
 }
 
+function isEnglish(text) {
+	// Regex to match only English letters and numbers
+	var englishRegex = new RegExp("^[A-Za-z0-9\\s'<>_&\\-]*$")
+	// '/^[\x20-\x7E]*$/'
+
+	// If the text matches the regex, it's considered English
+	if (englishRegex.test(text)) {
+		return true
+	} else {
+		return false
+	}
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -623,4 +648,5 @@ module.exports = {
 	sort,
 	isEmpty,
 	checkLength,
+	isEnglish,
 }
