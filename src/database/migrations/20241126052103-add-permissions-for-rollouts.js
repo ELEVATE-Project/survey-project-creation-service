@@ -26,7 +26,7 @@ const getPermissionId = async (module, request_type, api_path) => {
 let defaultRoles = process.env.DEFAULT_ROLLOUT_ROLES.split(',') || []
 defaultRoles.push(common.ADMIN_ROLE, common.ORG_ADMIN_ROLE)
 
-const rolePermissions = [
+let rolePermissions = [
 	{
 		module: 'rollouts',
 		request_type: ['PUT', 'GET', 'POST', 'DELETE', 'PATCH'],
@@ -60,6 +60,37 @@ module.exports = {
 					updated_at: new Date(),
 				},
 			})
+
+			//add browse existing list permission
+			let browseExistingPermission = await Permissions.findOne({
+				where: {
+					code: 'list_browseExisting_resource_permissions',
+					module: 'resource',
+				},
+			})
+
+			if (browseExistingPermission?.id) {
+				//update browse existing list permission
+				await Permissions.update(
+					{
+						code: 'list_browseExisting_resource_permissions',
+						module: 'resource',
+						request_type: ['GET', 'POST'],
+						api_path: '/scp/v1/resource/getPublishedResources*',
+					},
+					{
+						where: {
+							id: browseExistingPermission.id,
+						},
+					}
+				)
+
+				rolePermissions.push({
+					module: 'resource',
+					request_type: ['GET', 'POST'],
+					api_path: '/scp/v1/resource/getPublishedResources*',
+				})
+			}
 
 			for (const role of defaultRoles) {
 				const rolePermissionsData = await Promise.all(

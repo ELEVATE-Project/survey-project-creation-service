@@ -1197,14 +1197,14 @@ module.exports = class resourceHelper {
 	 * Get resources from consumption service
 	 * @name browseExistingList
 	 * @param {String} organization_id - Org Id of the user
-	 * @param {String} token - Token of the user
+	 * @param {Array} resourceIds - Resource Ids
 	 * @param {Object} query - Query object passed by user
 	 * @param {String} searchText - Title to search
 	 * @param {Integer} pageNo -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
 	 * @param {Integer} pageSize -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {Object} - Response contain object of resources
 	 */
-	static async browseExistingList(organization_id, token, query, searchText = '', pageNo, pageSize) {
+	static async browseExistingList(organization_id, resourceIds = [], query, searchText = '', pageNo, pageSize) {
 		try {
 			let result = {
 				data: [],
@@ -1223,10 +1223,17 @@ module.exports = class resourceHelper {
 				filterQuery.type = {
 					[Op.in]: resourceType,
 				}
-			if (search)
+			if (search) {
 				filterQuery.title = {
 					[Op.iLike]: `%${search}%`,
 				}
+			}
+
+			if (resourceIds.length > 0) {
+				filterQuery.id = {
+					[Op.in]: resourceIds,
+				}
+			}
 
 			const internalResources = await resourceQueries.resourceList(
 				filterQuery,
