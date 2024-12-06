@@ -24,4 +24,9 @@ describe('Rollout APIs', function () {
 		}
 		expect(res.body).toMatchSchema(schema.getRolloutsListSchema)
 	})
+
+	it('Delete Rollout', async () => {
+		const res = await request.delete('/scp/v1/rollouts/update/999999')
+		expect(res.statusCode).toBe(400)
+	})
 })
