@@ -7,6 +7,7 @@ const common = require('@constants/common')
 const rolloutQueries = require('@database/queries/rollouts')
 const resourceService = require('@services/resource')
 const resourceQueries = require('@database/queries/resources')
+const filesService = require('@services/files')
 const orgExtension = require('@services/organization-extension')
 const userRequests = require('@requests/user')
 const { Op } = require('sequelize')
@@ -124,6 +125,82 @@ module.exports = class RolloutsHelper {
 			throw error
 		}
 	}
+
+	/**
+	 * Rollout details
+	 * @method
+	 * @name details
+	 * @param {String} rolloutId - Rollout id
+	 * @param {String} orgId - Organization id
+	 * @param {String} loggedInUserId - User id
+	 * @returns {JSON} - Rollout Details
+	 */
+	static async details(rolloutId, orgId, loggedInUserId) {
+		try {
+			let result = {
+				organization: {},
+			}
+
+			const rollout = await rolloutQueries.findOne({
+				id: rolloutId,
+				organization_id: orgId,
+				user_id: loggedInUserId,
+			})
+
+			if (!rollout?.id) {
+				return responses.failureResponse({
+					message: 'ROLLOUT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			//get the data from storage
+			if (rollout.blob_path) {
+				const response = await filesService.fetchJsonFromCloud(rollout.blob_path)
+				if (
+					response.statusCode === httpStatusCode.ok &&
+					response.result &&
+					Object.keys(response.result).length > 0
+				) {
+					let resultData = {
+						...response.result,
+						...rollout,
+					}
+
+					delete resultData['blob_path']
+					const userDetails = await this.fetchUserDetails([resultData.viewers])
+					const viewerUserIds = resultData.viewers
+					resultData.viewers = []
+					if (userDetails && Object.keys(userDetails).length > 0) {
+						resultData.viewers = viewerUserIds.map((user) => {
+							return userDetails[user]
+						})
+					}
+
+					// fetch the org details from user service
+					const organizationDetails = await orgExtension.fetchOrganizationDetails([rollout.organization_id])
+					if (organizationDetails?.[rollout.organization_id]) {
+						resultData.organization = _.pick(organizationDetails[rollout.organization_id], [
+							'id',
+							'name',
+							'code',
+						])
+					}
+					result = { ...resultData }
+				}
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'ROLLOUT_FETCHED_SUCCESSFULLY',
+				result: result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
 	/**
 	 * Rollout List
 	 * @method

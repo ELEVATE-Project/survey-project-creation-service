@@ -1626,6 +1626,24 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Rollout Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/details/1",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "rollouts", "details", "1"]
+						}
+					},
+					"response": []
 				}
 			]
 		},

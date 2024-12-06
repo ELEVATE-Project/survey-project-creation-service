@@ -285,7 +285,33 @@ const getRolloutsListEmptyResponseSchema = {
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
 }
+const rolloutDetailResponseSchema = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		error: {
+			type: 'array',
+			items: {},
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				correlation: {
+					type: 'string',
+				},
+			},
+			required: [],
+		},
+		message: {
+			type: 'string',
+		},
+	},
+	required: ['responseCode', 'error', 'meta', 'message'],
+}
 module.exports = {
 	getRolloutsListSchema,
 	getRolloutsListEmptyResponseSchema,
+	rolloutDetailResponseSchema,
 }
