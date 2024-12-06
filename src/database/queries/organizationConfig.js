@@ -30,3 +30,14 @@ exports.update = async (filter, update, options = {}) => {
 		return error
 	}
 }
+
+exports.upsert = async (values, filter, options = {}) => {
+	try {
+		return await organizationConfig.upsert(values, {
+			...options,
+			where: filter,
+		})
+	} catch (error) {
+		return error
+	}
+}

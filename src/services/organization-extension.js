@@ -24,32 +24,15 @@ module.exports = class orgExtensionsHelper {
 			bodyData.organization_id = organization_id
 			const { resource_type, review_stages, review_type, data_managers } = bodyData
 			// check if body have data_managers
-			if (data_managers && data_managers.length > 0) {
-				// fetch org config for organization_id
-				const orgConfig = await organizationConfigQueries.findOne(
+			if (data_managers?.length) {
+				await organizationConfigQueries.upsert(
 					{
 						organization_id,
-					},
-					['id']
-				)
-
-				if (orgConfig?.id) {
-					await organizationConfigQueries.update(
-						{
-							organization_id,
-						},
-						{
-							meta: { data_managers },
-						}
-					)
-				} else {
-					await organizationConfigQueries.create({
-						organization_id,
 						meta: { data_managers },
-						created_at: new Date(),
 						updated_at: new Date(),
-					})
-				}
+					},
+					{ organization_id }
+				)
 			}
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
 			if (!validResourceTypes.includes(resource_type)) {
@@ -150,31 +133,15 @@ module.exports = class orgExtensionsHelper {
 			const { review_stages, review_type, data_managers } = bodyData
 
 			// check if body have data_managers
-			if (data_managers) {
-				// fetch org config for organization_id
-				const orgConfig = await organizationConfigQueries.findOne(
+			if (data_managers?.length) {
+				await organizationConfigQueries.upsert(
 					{
 						organization_id,
-					},
-					['id']
-				)
-
-				if (orgConfig?.id) {
-					await organizationConfigQueries.update(
-						{
-							organization_id,
-						},
-						{
-							meta: { data_managers },
-							updated_at: new Date(),
-						}
-					)
-				} else {
-					await organizationConfigQueries.create({
-						organization_id,
 						meta: { data_managers },
-					})
-				}
+						updated_at: new Date(),
+					},
+					{ organization_id }
+				)
 			}
 
 			const filter = {
