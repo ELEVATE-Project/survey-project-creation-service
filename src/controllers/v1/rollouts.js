@@ -45,7 +45,27 @@ module.exports = class rollouts {
 	}
 
 	/**
-	 * Details Rollout.
+	 * getDataManagers list.
+	 * @method
+	 * @name getDataManagers
+	 * @param {String} orgId - organization id
+	 * @returns {JSON} - get the list of data managers
+	 */
+
+	async getDataManagers(req) {
+		try {
+			const dataManagers = await rolloutService.getDataManagers(
+				req.decodedToken.organization_id,
+				req.pageNo,
+				req.pageSize
+			)
+			return dataManagers
+		} catch (error) {
+			return error
+		}
+	}
+
+	/* Details Rollout.
 	 * @method
 	 * @name details
 	 * @param {Object} req  user request.

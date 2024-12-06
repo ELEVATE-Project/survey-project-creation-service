@@ -16,6 +16,13 @@ module.exports = {
 			.withMessage('resource_type field is empty')
 			.isIn(allowedResourceTypes)
 			.withMessage(`resource_type is invalid, must be one of: ${allowedResourceTypes.join(', ')}`)
+		req.checkBody('data_managers')
+			.trim()
+			.optional({ checkFalsy: true })
+			.notEmpty()
+			.withMessage('data_managers field is empty')
+			.matches(/^[A-Za-z]+(?:\s*,\s*[A-Za-z]+)*$/)
+			.withMessage('data_managers must be a comma-separated list of alphabetic strings')
 	},
 
 	updateConfig: (req) => {
@@ -35,6 +42,30 @@ module.exports = {
 			.isIn(allowedResourceTypes)
 			.withMessage(`resource_type is invalid, must be one of: ${allowedResourceTypes.join(', ')}`)
 
+		req.checkBody('data_managers')
+			.optional({ checkFalsy: true })
+			.custom((value) => {
+				// Allow empty array explicitly
+				if (Array.isArray(value) && value.length === 0) {
+					return true
+				}
+
+				// If it's an array, validate each element
+				if (Array.isArray(value)) {
+					return value.every((item) => typeof item === 'string' && /^[A-Za-z]+$/.test(item))
+				}
+
+				// If it's a string, validate the pattern
+				if (typeof value === 'string') {
+					return /^[A-Za-z]+(?:\s*,\s*[A-Za-z]+)*$/.test(value)
+				}
+
+				// Reject other types
+				return false
+			})
+			.withMessage(
+				'data_managers must be a comma-separated list of alphabetic strings, an array of alphabetic strings, or an empty array'
+			)
 		req.checkBody('organization_id')
 			.trim()
 			.optional({ checkFalsy: true })

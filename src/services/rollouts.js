@@ -7,8 +7,8 @@ const common = require('@constants/common')
 const rolloutQueries = require('@database/queries/rollouts')
 const resourceService = require('@services/resource')
 const resourceQueries = require('@database/queries/resources')
+const orgExtensionService = require('@services/organization-extension')
 const filesService = require('@services/files')
-const orgExtension = require('@services/organization-extension')
 const userRequests = require('@requests/user')
 const { Op } = require('sequelize')
 module.exports = class RolloutsHelper {
@@ -179,7 +179,9 @@ module.exports = class RolloutsHelper {
 					}
 
 					// fetch the org details from user service
-					const organizationDetails = await orgExtension.fetchOrganizationDetails([rollout.organization_id])
+					const organizationDetails = await orgExtensionService.fetchOrganizationDetails([
+						rollout.organization_id,
+					])
 					if (organizationDetails?.[rollout.organization_id]) {
 						resultData.organization = _.pick(organizationDetails[rollout.organization_id], [
 							'id',
@@ -202,7 +204,42 @@ module.exports = class RolloutsHelper {
 	}
 
 	/**
-	 * Rollout List
+	 * Get Data Managers list
+	 * @method
+	 * @name getDataManagers
+	 * @param orgId  - Organization Id
+	 * @param pageNo - Page number
+	 * @param pageSize - Page size
+	 * @returns {JSON} - List of data managers
+	 */
+	static async getDataManagers(orgId, pageNo, pageSize) {
+		try {
+			// get org config based on orgId
+			const orgConfigs = await orgExtensionService.getConfig(orgId)
+			// identify the roles have data manager access
+			const dataManagerRoles = orgConfigs?.result?.config?.data_managers
+			// fetch the users from user service
+			const dataManagersList = await userRequests.list(dataManagerRoles.join(','), pageNo, pageSize, '', orgId)
+			let result = {
+				data: [],
+				count: 0,
+			}
+
+			if (dataManagersList.success && dataManagersList?.data?.result?.data.length) {
+				result = dataManagersList?.data?.result
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'DATA_MANAGER_LIST_FETCHED',
+				result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/* Rollout List
 	 * @method
 	 * @name list
 	 * @param {String} organization_id
@@ -219,6 +256,7 @@ module.exports = class RolloutsHelper {
 				data: [],
 				count: 0,
 			}
+
 			let filters = {
 				organization_id,
 				user_id: loggedInUserId,
@@ -282,7 +320,7 @@ module.exports = class RolloutsHelper {
 			const userDetails = await this.fetchUserDetails([loggedInUserId])
 
 			// fetch the org details from user service
-			const orgDetails = await orgExtension.fetchOrganizationDetails(orgList)
+			const orgDetails = await orgExtensionService.fetchOrganizationDetails(orgList)
 
 			let rolloutFinalList = []
 
