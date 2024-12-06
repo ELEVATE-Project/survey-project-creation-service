@@ -181,15 +181,12 @@ module.exports = class RolloutsHelper {
 
 					// fetch the org details from user service
 					const organizationDetails = await orgExtension.fetchOrganizationDetails([rollout.organization_id])
-					if (organizationDetails && Object.keys(organizationDetails).length > 0) {
-						resultData.organization = _.defaults(
-							_.pick(organizationDetails[rollout.organization_id], ['id', 'name', 'code']),
-							{
-								id: '',
-								name: '',
-								code: '',
-							}
-						)
+					if (organizationDetails?.[rollout.organization_id]) {
+						resultData.organization = _.pick(organizationDetails[rollout.organization_id], [
+							'id',
+							'name',
+							'code',
+						])
 					}
 					result = { ...resultData }
 				}
