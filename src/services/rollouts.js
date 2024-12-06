@@ -145,7 +145,6 @@ module.exports = class RolloutsHelper {
 				id: rolloutId,
 				organization_id: orgId,
 				user_id: loggedInUserId,
-				type: common.ROLLOUT_TYPE_PROGRAM,
 			})
 
 			if (!rollout?.id) {
