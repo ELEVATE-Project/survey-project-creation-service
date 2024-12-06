@@ -1038,7 +1038,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"title\": \"Improvement\",\n    \"objective\": \"In the vibrant city of Metropolis\",\n    \"recommended_for\": [\n        \"teachers\",\n        \"ht\"\n    ],\n    \"languages\": \"en\",\n    \"categories\": \"school_process\",\n    \"licenses\": [\n        \"cc_by_4.0\"\n    ],\n    \"learning_resources\": [\n        {\n            \"name\": \"sample doc\",\n            \"url\": \"http://test.com\"\n        }\n    ],\n    \"tasks\": [\n        {\n            \"id\": \"7a8b13fb-c9e1-4296-8abd-8b64b357a128\",\n            \"name\": \"task without children\",\n            \"type\": \"content\",\n            \"is_mandatory\": true,\n            \"sequence_no\": 1,\n            \"allow_evidences\": false,\n            \"learning_resources\": [\n                {\n                    \"name\": \"sample doc\",\n                    \"url\": \"http://test.com\"\n                }\n            ],\n            \"children\": [\n                {\n                    \"name\": \"hhhhhhhh\",\n                    \"type\": \"simple\",\n                    \"id\": \"7a8b13fb-c9e1-4296\",\n                    \"parent_id\": \"8f63493a-42aa-4137-aa37-d95f58b1bf1a\",\n                    \"sequence_no\": 1\n                }\n            ]\n        }\n    ]\n}",
+							"raw": "{\n    \"title\": \"test case no!\",\n    \"categories\": [\n        \"teachers\"\n    ],\n    \"objective\": \"akdhd\",\n    \"recommended_duration\": {\n        \"number\": \"2\",\n        \"duration\": \"weeks\"\n    },\n    \"keywords\": \"wdd\",\n    \"recommended_for\": [\n        \"ht\"\n    ],\n    \"languages\": [\n        \"hi\"\n    ],\n    \"learning_resources\": [\n        {\n            \"name\": \"hello!\",\n            \"url\": \"https://youtube.com\"\n        }\n    ],\n    \"licenses\": \"cc_by_4.0\",\n    \"tasks\": [\n        {\n            \"id\": \"db182d03-c3ac-434d-889b-e74fafab439e\",\n            \"name\": \"sdhgd\",\n            \"is_mandatory\": true,\n            \"allow_evidences\": true,\n            \"evidence_details\": {\n                // \"file_types\": [\n                //     \"document\"\n                // ],\n                \"min_no_of_evidences\": 2\n            },\n            \"learning_resources\": [],\n            \"children\": [],\n            \"type\": \"observation\",\n            \"sequence_no\": 1,\n            \"solution_details\": {\n                \"name\": \"Observation \",\n                \"link\": \"https://devsss.elevate-ml.shikshalokam.org/view/observation/beb6e72ad73a097b9d7910e45a613431\",\n                \"min_no_of_submissions_required\": 4,\n                \"type\": \"observation\"\n            }\n        },\n        {\n            \"id\": \"06a2d511-eabf-4389-b169-3920e20cdd50\",\n            \"type\": \"content\",\n            \"name\": \"hello\",\n            \"is_mandatory\": false,\n            \"allow_evidences\": false,\n            \"evidence_details\": {},\n            \"sequence_no\": 2,\n            \"learning_resources\": [\n                {\n                    \"name\": \"hello\",\n                    \"url\": \"https://youtube.com\"\n                }\n            ],\n            \"children\": [\n                {\n                    \"id\": \"a8f95e92-eadb-4b33-ae2b-3a530868a9c4\",\n                    \"name\": \"hi im sub task\",\n                    \"type\": \"content\",\n                    \"parent_id\": \"06a2d511-eabf-4389-b169-3920e20cdd50\",\n                    \"sequence_no\": 1,\n                    \"is_mandatory\": false,\n                    \"allow_evidences\": false\n                }\n            ]\n            // \"solution_details\": {}\n        }\n    ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1046,15 +1046,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{SCPBaseUrl}}scp/v1/projects/update/:id",
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/update/5457",
 							"host": ["{{SCPBaseUrl}}scp"],
-							"path": ["v1", "projects", "update", ":id"],
-							"variable": [
-								{
-									"key": "id",
-									"value": ""
-								}
-							]
+							"path": ["v1", "projects", "update", "5457"]
 						}
 					},
 					"response": []
@@ -1071,21 +1065,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{SCPBaseUrl}}scp/v1/projects/details/:id",
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/update/:id",
 							"host": ["{{SCPBaseUrl}}scp"],
-							"path": ["v1", "projects", "details", ":id"],
-							"query": [
-								{
-									"key": "search",
-									"value": "s",
-									"disabled": true
-								},
-								{
-									"key": "actions",
-									"value": "",
-									"disabled": true
-								}
-							],
+							"path": ["v1", "projects", "update", ":id"],
 							"variable": [
 								{
 									"key": "id",
@@ -1324,6 +1306,56 @@
 					"response": []
 				},
 				{
+					"name": "Get published resources by Id",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"resource_ids\":[390,372]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/resource/getPublishedResources?limit=100&sort_by=title&sort_order=asc&page=1&type=project",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "resource", "getPublishedResources"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100"
+								},
+								{
+									"key": "sort_by",
+									"value": "title"
+								},
+								{
+									"key": "sort_order",
+									"value": "asc"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "type",
+									"value": "project"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Callback URL for Update Published Resource",
 					"request": {
 						"method": "POST",
@@ -1357,6 +1389,209 @@
 								}
 							]
 						}
+					},
+					"response": []
+				},
+				{
+					"name": "Browse Existing List",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/resource/getPublishedResources?limit=100&sort_by=title&sort_order=asc&page=1&type=project",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "resource", "getPublishedResources"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100"
+								},
+								{
+									"key": "sort_by",
+									"value": "title"
+								},
+								{
+									"key": "sort_order",
+									"value": "asc"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "type",
+									"value": "project"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Rollouts",
+			"item": [
+				{
+					"name": "Create Rollout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Lorem ipsum dolor sit amet\",\n  \"resource_id\": 202,\n  \"targeting_criteria\": [\n    {\n      \"state\": \"6687b8d38ead9320cf997c65\",\n      \"entity_targeting\": \"district\",\n      \"district\": [\n        \"671097d667b6747799a761a4\"\n      ],\n      \"block\": [\n        \"6710d01167b6747799a7671d\"\n      ],\n      \"roles\": [\n        \"deo\"\n      ]\n    }\n  ],\n  \"viewers\": [\n    23\n  ],\n  \"start_date\": \"2024-10-29T11:35:08.694Z\",\n  \"end_date\": \"2024-11-29T11:36:31.117Z\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/rollouts/update",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "rollouts", "update"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Rollout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Lorem ipsum dolor sit amet\",\n  \"resource_id\": 639,\n  \"targeting_criteria\": [\n    {\n      \"state\": \"6687b8d38ead9320cf997c65\",\n      \"entity_targeting\": \"district\",\n      \"district\": [\n        \"671097d667b6747799a761a4\"\n      ],\n      \"block\": [\n        \"6710d01167b6747799a7671d\"\n      ],\n      \"roles\": [\n        \"deo\"\n      ]\n    }\n  ],\n  \"viewers\": [\n    23\n  ],\n  \"start_date\": \"2024-10-29T11:35:08.694Z\",\n  \"end_date\": \"2024-11-29T11:36:31.117Z\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/rollouts/update/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "rollouts", "update", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Rollout",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/rollouts/update/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "rollouts", "update", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Rollout",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/list?limit=100&sort_by=title&sort_order=desc&page=10&search=",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "rollouts", "list"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100"
+								},
+								{
+									"key": "sort_by",
+									"value": "title"
+								},
+								{
+									"key": "sort_order",
+									"value": "desc"
+								},
+								{
+									"key": "page",
+									"value": "10"
+								},
+								{
+									"key": "search",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Rollout Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/details/1",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "rollouts", "details", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Data Manager list",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/getDataManagers"
 					},
 					"response": []
 				}
@@ -1875,19 +2110,16 @@
 								"type": "text"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"comment\": \"<h1>Check spelling</h1>\",\n    \"context\": \"page\",\n    \"page\": \"projectDetail\",\n    \"status\": \"RESOLVED\"\n\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
 						"url": {
-							"raw": "{{SCPBaseUrl}}scp/v1/comments/update/:id",
+							"raw": "{{SCPBaseUrl}}scp/v1/comments/update/:id?resource_id=1",
 							"host": ["{{SCPBaseUrl}}scp"],
 							"path": ["v1", "comments", "update", ":id"],
+							"query": [
+								{
+									"key": "resource_id",
+									"value": "1"
+								}
+							],
 							"variable": [
 								{
 									"key": "id",
@@ -2139,88 +2371,6 @@
 								{
 									"key": "resource_type",
 									"value": "project"
-								}
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Rollouts",
-			"item": [
-				{
-					"name": "Create Rollout",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-auth-token",
-								"value": "bearer {{token}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"title\": \"test rollout\",\n  \"resource_id\": 639,\n  \"targeting_criteria\": [\n    {\n      \"state\": \"6687b8d38ead9320cf997c65\",\n      \"entity_targeting\": \"district\",\n      \"district\": [\n        \"671097d667b6747799a761a4\"\n      ],\n      \"block\": [\n        \"6710d01167b6747799a7671d\"\n      ],\n      \"gender\": [\n        \"male\"\n      ],\n      \"roles\": [\n        \"deo\"\n      ]\n    }\n  ],\n  \"viewers\": [\n    23\n  ],\n  \"start_date\": \"2024-10-29T11:35:08.694Z\",\n  \"end_date\": \"2024-11-29T11:36:31.117Z\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/getDataManagers"
-					},
-					"response": []
-				},
-				{
-					"name": "getDataManagers list",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "X-auth-token",
-								"value": "bearer {{token}}"
-							}
-						],
-						"url": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/getDataManagers"
-					},
-					"response": []
-				},
-				{
-					"name": "rollout list",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "X-auth-token",
-								"value": "bearer {{token}}"
-							}
-						],
-						"url": {
-							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/list?limit=100&sort_by=title&sort_order=desc&page=10&search=",
-							"host": ["{{selfCreationPortalBaseUrl}}scp"],
-							"path": ["v1", "rollouts", "list"],
-							"query": [
-								{
-									"key": "limit",
-									"value": "100"
-								},
-								{
-									"key": "sort_by",
-									"value": "title"
-								},
-								{
-									"key": "sort_order",
-									"value": "desc"
-								},
-								{
-									"key": "page",
-									"value": "10"
-								},
-								{
-									"key": "search",
-									"value": ""
 								}
 							]
 						}

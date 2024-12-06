@@ -5,11 +5,11 @@ module.exports = {
 		// as per the discussion with products , all text field length is set to 256 and text-area tp 2000
 
 		const validations = {
-			title: { required: true, regex: '^[a-zA-Z0-9 <>_&-]$' },
-			description: { required: true, regex: '^[a-zA-Z0-9 <>_&-]$' },
-			objective: { required: true, regex: '^[a-zA-Z0-9 <>_&-]$' },
-			name: { required: true, regex: '^[a-zA-Z0-9 <>_&\\-,]$' },
-			keywords: { required: false, regex: '^[a-zA-Z0-9 <>_&-,]$' },
+			title: { required: true, regex: "^[a-zA-Z0-9 <>_&-' ]+$" },
+			description: { required: true, regex: "^[a-zA-Z0-9 <>_&-' ]+$" },
+			objective: { required: true, regex: "^[a-zA-Z0-9 <>_&-' ]+$" },
+			name: { required: true, regex: "^[a-zA-Z0-9 <>_&-' ]+$" },
+			keywords: { required: false, regex: '^[a-zA-Z0-9 <>_&-,]$+' },
 			learning_resources: {
 				required: false,
 				regex: `^(https?:\\/\\/)?([\\w-]+\\.)+[\\w-]{2,}(\\/\\S*)*\\/?(#[\\w-]*)?(\\?.*)?$`,

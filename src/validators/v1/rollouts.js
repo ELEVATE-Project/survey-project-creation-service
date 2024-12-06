@@ -23,6 +23,35 @@ module.exports = {
 					}
 					return true
 				})
+			req.checkBody('start_date')
+				.trim()
+				.notEmpty()
+				.withMessage('start_date param is empty')
+				.custom((value) => {
+					if (req.body.end_date) {
+						const startDate = new Date(req.body.start_date)
+						const endDate = new Date(req.body.end_date)
+
+						// Check if start_date is before end_date
+						if (startDate >= endDate) {
+							throw new Error('End date should be greater than the start date')
+						}
+						return true
+					}
+					return true
+				})
+
+			req.checkBody('end_date').trim().notEmpty().withMessage('end_date param is empty')
+
+			req.checkBody('resource_id')
+				.trim()
+				.optional({ checkFalsy: true })
+				.notEmpty()
+				.withMessage('resource_id param is empty')
+				.isNumeric()
+				.withMessage('resource_id param is invalid, must be an integer')
+				.isInt({ min: 1, max: 2147483647 })
+				.withMessage('resource_id is not valid')
 		}
 
 		req.checkParams('id')
@@ -34,35 +63,5 @@ module.exports = {
 			.withMessage('id param is invalid, must be an integer')
 			.isInt({ min: 1, max: 2147483647 })
 			.withMessage('Id is not valid')
-
-		req.checkBody('start_date')
-			.trim()
-			.notEmpty()
-			.withMessage('start_date param is empty')
-			.custom((value) => {
-				if (req.body.end_date) {
-					const startDate = new Date(req.body.start_date)
-					const endDate = new Date(req.body.end_date)
-
-					// Check if start_date is before end_date
-					if (startDate >= endDate) {
-						throw new Error('End date should be greater than the start date')
-					}
-					return true
-				}
-				return true
-			})
-
-		req.checkBody('end_date').trim().notEmpty().withMessage('end_date param is empty')
-
-		req.checkBody('resource_id')
-			.trim()
-			.optional({ checkFalsy: true })
-			.notEmpty()
-			.withMessage('resource_id param is empty')
-			.isNumeric()
-			.withMessage('resource_id param is invalid, must be an integer')
-			.isInt({ min: 1, max: 2147483647 })
-			.withMessage('resource_id is not valid')
 	},
 }
