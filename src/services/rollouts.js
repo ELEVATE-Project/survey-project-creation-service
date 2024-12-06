@@ -382,4 +382,49 @@ module.exports = class RolloutsHelper {
 		}
 		return sort
 	}
+
+	/**
+	 * rollout delete
+	 * @method
+	 * @name delete
+	 * @param {Integer} rolloutId - rollout id
+	 * @param {String} loggedInUserId - user id
+	 * @returns {JSON} - rollout delete response.
+	 */
+
+	static async delete(rolloutId, loggedInUserId) {
+		try {
+			let rollout = await rolloutQueries.findOne({
+				id: rolloutId,
+				user_id: loggedInUserId,
+				status: common.ROLLOUT_STATUS_PENDING,
+			})
+
+			if (!rollout?.id) {
+				return responses.failureResponse({
+					message: 'ROLLOUT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			let updatedRolledout = await rolloutQueries.deleteOne(rolloutId, rollout.organization_id)
+
+			if (updatedRolledout === 0) {
+				return responses.failureResponse({
+					message: 'ROLLOUT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'ROLLOUT_DELETED_SUCCESSFULLY',
+				result: {},
+			})
+		} catch (error) {
+			return error
+		}
+	}
 }
