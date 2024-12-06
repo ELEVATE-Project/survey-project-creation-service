@@ -125,15 +125,17 @@ module.exports = class RolloutsHelper {
 			throw error
 		}
 	}
+
 	/**
 	 * Rollout details
 	 * @method
 	 * @name details
 	 * @param {String} rolloutId - Rollout id
-	 * @param {String} organization_id - Organization id
+	 * @param {String} orgId - Organization id
+	 * @param {String} loggedInUserId - User id
 	 * @returns {JSON} - Rollout Details
 	 */
-	static async details(rolloutId, orgId) {
+	static async details(rolloutId, orgId, loggedInUserId) {
 		try {
 			let result = {
 				organization: {},
@@ -142,10 +144,11 @@ module.exports = class RolloutsHelper {
 			const rollout = await rolloutQueries.findOne({
 				id: rolloutId,
 				organization_id: orgId,
+				user_id: loggedInUserId,
 				type: common.ROLLOUT_TYPE_PROGRAM,
 			})
 
-			if (!rollout) {
+			if (!rollout?.id) {
 				return responses.failureResponse({
 					message: 'ROLLOUT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -161,15 +164,16 @@ module.exports = class RolloutsHelper {
 					response.result &&
 					Object.keys(response.result).length > 0
 				) {
-					let resultData = response.result
-					resultData['created_at'] = rollout.created_at
-					resultData['updated_at'] = rollout.updated_at
+					let resultData = {
+						...response.result,
+						...rollout,
+					}
+
 					delete resultData['blob_path']
 					const userDetails = await this.fetchUserDetails([resultData.viewers])
 					const viewerUserIds = resultData.viewers
-
-					if (userDetails) {
-						resultData.viewers = []
+					resultData.viewers = []
+					if (userDetails && Object.keys(userDetails).length > 0) {
 						resultData.viewers = viewerUserIds.map((user) => {
 							return userDetails[user]
 						})
@@ -177,8 +181,7 @@ module.exports = class RolloutsHelper {
 
 					// fetch the org details from user service
 					const organizationDetails = await orgExtension.fetchOrganizationDetails([rollout.organization_id])
-
-					if (organizationDetails) {
+					if (organizationDetails && Object.keys(organizationDetails).length > 0) {
 						resultData.organization = _.defaults(
 							_.pick(organizationDetails[rollout.organization_id], ['id', 'name', 'code']),
 							{
@@ -201,22 +204,7 @@ module.exports = class RolloutsHelper {
 			throw error
 		}
 	}
-	/**
-	 * Get all details of users from the user service.
-	 * @name fetchUserDetails
-	 * @param {Array} userIds - array of userIds.
-	 * @returns {Object} - Response contain object of user details
-	 */
-	static async fetchUserDetails(userIds) {
-		const userDetailsResponse = await userRequests.list(common.FILTER_ALL.toLowerCase(), '', '', '', '', {
-			user_ids: userIds,
-		})
-		let userDetails = {}
-		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
-			userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
-		}
-		return userDetails
-	}
+
 	/**
 	 * Rollout List
 	 * @method

@@ -53,7 +53,11 @@ module.exports = class rollouts {
 	 */
 	async details(req) {
 		try {
-			const rollout = await rolloutService.details(req.params.id, req.decodedToken.organization_id)
+			const rollout = await rolloutService.details(
+				req.params.id,
+				req.decodedToken.organization_id,
+				req.decodedToken.id
+			)
 			return rollout
 		} catch (error) {
 			return error
