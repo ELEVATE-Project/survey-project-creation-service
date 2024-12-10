@@ -417,7 +417,6 @@ const checkRegexPattern = (entityType, entityData) => {
 			// Find the object where type is "regex"
 			entityType = entityType.find((item) => item.type === common.REGEX_VALIDATION)
 		}
-
 		// Proceed if a regex validation object is found
 		if (entityType && entityType.type === common.REGEX_VALIDATION) {
 			const isTextEnglish = isEnglish(entityData)
@@ -432,7 +431,7 @@ const checkRegexPattern = (entityType, entityData) => {
 
 			const modifyPattern = (pattern) => {
 				// If the text is English, remove the apostrophe from the regex pattern
-				if (isTextEnglish) {
+				if (!isTextEnglish) {
 					return pattern.replace(/'/g, '')
 				}
 				return pattern
