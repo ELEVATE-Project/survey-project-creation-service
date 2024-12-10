@@ -147,9 +147,7 @@ jobs:
       - run:
           name: Running test cases
           command: |
-            # cd src/ && npm run test:integration
             cd src/ && npm run test:integration || true
-            continue-on-error: true
       - run:
           name: Get User container ID and print logs
           command: |
