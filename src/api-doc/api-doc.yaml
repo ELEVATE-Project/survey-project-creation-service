@@ -5353,44 +5353,16 @@ paths:
                                       example: AP
                                 - type: array
                                   items:
-                                    type: string
-                                    example: 66bf7eb960de1616f42cb984
+
                             entity_targeting:
                               type: string
                               example: district
                             district:
-                              type: array
-                              items:
-                                type: object
-                                properties:
-                                  _id:
-                                    type: string
-                                    example: 671097d667b6747799a761a4
-                                  name:
-                                    type: string
-                                    example: Anakapalli
+                              type: string
+                              example: 671097d667b6747799a761a4
                             block:
-                              type: array
-                              items:
-                                type: object
-                                properties:
-                                  _id:
-                                    type: string
-                                    example: 6710d01167b6747799a7671d
-                                  name:
-                                    type: string
-                                    example: Achutapuram
-                            gender:
-                              type: array
-                              items:
-                                type: object
-                                properties:
-                                  label:
-                                    type: string
-                                    example: Male
-                                  value:
-                                    type: string
-                                    example: male
+                              type: string
+                              example: 6710d01167b6747799a7671d
                             roles:
                               type: array
                               items:

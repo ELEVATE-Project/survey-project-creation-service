@@ -157,7 +157,7 @@ const logIn = async () => {
 
 		// Generate unique email for testing
 		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
-		let password = 'Welcome@123'
+		let password = 'Welco@Me#123!'
 
 		// Create a new account
 		let res = await request.post('/user/v1/account/create').send({
@@ -166,12 +166,14 @@ const logIn = async () => {
 			password: password,
 		})
 
+		console.log(' Create : -=-=-=-=-=>>  ', res.body)
+
 		// Log in with the created account
 		res = await request.post('/user/v1/account/login').send({
 			email: email,
 			password: password,
 		})
-
+		console.log('-=-=-=-=-=>> ', res.body)
 		// Check if login was successful and return token details
 		if (res.body?.result?.access_token && res.body.result.user.id) {
 			console.log('============>LOGIN SUCCESSFUL')

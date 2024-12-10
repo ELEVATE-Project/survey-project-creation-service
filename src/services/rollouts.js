@@ -7,7 +7,8 @@ const common = require('@constants/common')
 const rolloutQueries = require('@database/queries/rollouts')
 const resourceService = require('@services/resource')
 const resourceQueries = require('@database/queries/resources')
-const orgExtension = require('@services/organization-extension')
+const orgExtensionService = require('@services/organization-extension')
+const filesService = require('@services/files')
 const userRequests = require('@requests/user')
 const { Op } = require('sequelize')
 module.exports = class RolloutsHelper {
@@ -124,8 +125,121 @@ module.exports = class RolloutsHelper {
 			throw error
 		}
 	}
+
 	/**
-	 * Rollout List
+	 * Rollout details
+	 * @method
+	 * @name details
+	 * @param {String} rolloutId - Rollout id
+	 * @param {String} orgId - Organization id
+	 * @param {String} loggedInUserId - User id
+	 * @returns {JSON} - Rollout Details
+	 */
+	static async details(rolloutId, orgId, loggedInUserId) {
+		try {
+			let result = {
+				organization: {},
+			}
+
+			const rollout = await rolloutQueries.findOne({
+				id: rolloutId,
+				organization_id: orgId,
+				user_id: loggedInUserId,
+			})
+
+			if (!rollout?.id) {
+				return responses.failureResponse({
+					message: 'ROLLOUT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			//get the data from storage
+			if (rollout.blob_path) {
+				const response = await filesService.fetchJsonFromCloud(rollout.blob_path)
+				if (
+					response.statusCode === httpStatusCode.ok &&
+					response.result &&
+					Object.keys(response.result).length > 0
+				) {
+					let resultData = {
+						...response.result,
+						...rollout,
+					}
+
+					delete resultData['blob_path']
+					const userDetails = await this.fetchUserDetails([resultData.viewers])
+					const viewerUserIds = resultData.viewers
+					resultData.viewers = []
+					if (userDetails && Object.keys(userDetails).length > 0) {
+						resultData.viewers = viewerUserIds.map((user) => {
+							return userDetails[user]
+						})
+					}
+
+					// fetch the org details from user service
+					const organizationDetails = await orgExtensionService.fetchOrganizationDetails([
+						rollout.organization_id,
+					])
+					if (organizationDetails?.[rollout.organization_id]) {
+						resultData.organization = _.pick(organizationDetails[rollout.organization_id], [
+							'id',
+							'name',
+							'code',
+						])
+					}
+					result = { ...resultData }
+				}
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'ROLLOUT_FETCHED_SUCCESSFULLY',
+				result: result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Get Data Managers list
+	 * @method
+	 * @name getDataManagers
+	 * @param orgId  - Organization Id
+	 * @param pageNo - Page number
+	 * @param pageSize - Page size
+	 * @returns {JSON} - List of data managers
+	 */
+	static async getDataManagers(orgId, pageNo, pageSize) {
+		try {
+			// get org config based on orgId
+			const orgConfigs = await orgExtensionService.getConfig(orgId)
+			// identify the roles have data manager access
+			const dataManagerRoles = orgConfigs?.result?.config?.data_managers
+			// fetch the users from user service
+			const dataManagersList = await userRequests.list(dataManagerRoles.join(','), pageNo, pageSize, '', orgId)
+			let result = {
+				data: [],
+				count: 0,
+			}
+
+			if (dataManagersList.success && dataManagersList?.data?.result?.data.length) {
+				result = dataManagersList?.data?.result
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'DATA_MANAGER_LIST_FETCHED',
+				result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/* Rollout List
 	 * @method
 	 * @name list
 	 * @param {String} organization_id
@@ -142,6 +256,7 @@ module.exports = class RolloutsHelper {
 				data: [],
 				count: 0,
 			}
+
 			let filters = {
 				organization_id,
 				user_id: loggedInUserId,
@@ -205,7 +320,7 @@ module.exports = class RolloutsHelper {
 			const userDetails = await this.fetchUserDetails([loggedInUserId])
 
 			// fetch the org details from user service
-			const orgDetails = await orgExtension.fetchOrganizationDetails(orgList)
+			const orgDetails = await orgExtensionService.fetchOrganizationDetails(orgList)
 
 			let rolloutFinalList = []
 
@@ -381,5 +496,50 @@ module.exports = class RolloutsHelper {
 			sort.push(common.SORT_DESC)
 		}
 		return sort
+	}
+
+	/**
+	 * rollout delete
+	 * @method
+	 * @name delete
+	 * @param {Integer} rolloutId - rollout id
+	 * @param {String} loggedInUserId - user id
+	 * @returns {JSON} - rollout delete response.
+	 */
+
+	static async delete(rolloutId, loggedInUserId) {
+		try {
+			let rollout = await rolloutQueries.findOne({
+				id: rolloutId,
+				user_id: loggedInUserId,
+				status: common.ROLLOUT_STATUS_PENDING,
+			})
+
+			if (!rollout?.id) {
+				return responses.failureResponse({
+					message: 'ROLLOUT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			let updatedRolledout = await rolloutQueries.deleteOne(rolloutId, rollout.organization_id)
+
+			if (updatedRolledout === 0) {
+				return responses.failureResponse({
+					message: 'ROLLOUT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'ROLLOUT_DELETED_SUCCESSFULLY',
+				result: {},
+			})
+		} catch (error) {
+			return error
+		}
 	}
 }

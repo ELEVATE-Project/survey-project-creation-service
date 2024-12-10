@@ -1,5 +1,6 @@
 const commonHelper = require('@commonTests')
 const schema = require('./responseSchema')
+const { faker } = require('@faker-js/faker')
 jest.setTimeout(20000)
 
 describe('Rollout APIs', function () {
@@ -16,6 +17,15 @@ describe('Rollout APIs', function () {
 		}
 	})
 
+	it('Get list of data managers list', async () => {
+		let res = await request.get('/scp/v1/rollouts/getDataManagers').query({ page: 1, limit: 10 })
+		expect(res.statusCode).toBe(200)
+		if (res.body?.result.length == 0) {
+			expect(res.body).toMatchSchema(schema.getDataManagersEmptyResponseSchema)
+		}
+		expect(res.body).toMatchSchema(schema.getDataManagersSchema)
+	})
+
 	it('Get list of Rollouts', async () => {
 		let res = await request.get('/scp/v1/rollouts/list').query({ page: 1, limit: 10 })
 		expect(res.statusCode).toBe(200)
@@ -23,5 +33,16 @@ describe('Rollout APIs', function () {
 			expect(res.body).toMatchSchema(schema.getRolloutsListEmptyResponseSchema)
 		}
 		expect(res.body).toMatchSchema(schema.getRolloutsListSchema)
+	})
+
+	it('Get Rollout Details', async () => {
+		let res = await request.get('/scp/v1/rollouts/details/1')
+		expect(res.statusCode).toBe(400)
+		expect(res.body).toMatchSchema(schema.rolloutDetailResponseSchema)
+	})
+
+	it('Delete Rollout', async () => {
+		const res = await request.delete('/scp/v1/rollouts/update/999999')
+		expect(res.statusCode).toBe(400)
 	})
 })
