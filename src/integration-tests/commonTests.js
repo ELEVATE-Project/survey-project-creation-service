@@ -166,6 +166,8 @@ const logIn = async () => {
 			password: password,
 		})
 
+		console.log(' Create : -=-=-=-=-=>>  ', res.body)
+
 		// Log in with the created account
 		res = await request.post('/user/v1/account/login').send({
 			email: email,
