@@ -39,11 +39,34 @@ jobs:
           key: user-dependency-cache-{{checksum "../user/src/package.json"}}
           paths:
             - ../user/src/node_modules
+      # - run:
+      #     name: Replace SCP Service environment variables
+      #     command: |
+      #       # Define the file path
+      #       ENV_FILE=~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+
+      #       # Replace the existing variables or append them if they don't exist
+      #       grep -q "^CLOUD_STORAGE_PROVIDER=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROVIDER=.*|CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER|" $ENV_FILE || echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" >> $ENV_FILE
+      #       grep -q "^CLOUD_STORAGE_ACCOUNTNAME=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_ACCOUNTNAME=.*|CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME|" $ENV_FILE || echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> $ENV_FILE
+      #       grep -q "^CLOUD_STORAGE_SECRET=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_SECRET=.*|CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET|" $ENV_FILE || echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> $ENV_FILE
+      #       grep -q "^CLOUD_STORAGE_BUCKETNAME=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_BUCKETNAME=.*|CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME|" $ENV_FILE || echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> $ENV_FILE
+      #       grep -q "^CLOUD_STORAGE_REGION=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_REGION=.*|CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION|" $ENV_FILE || echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> $ENV_FILE
+      #       grep -q "^CLOUD_STORAGE_PROJECT=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROJECT=.*|CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT|" $ENV_FILE || echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> $ENV_FILE
+      #       grep -q "^CLOUD_ENDPOINT=" $ENV_FILE && sed -i "s|^CLOUD_ENDPOINT=.*|CLOUD_ENDPOINT=$CLOUD_ENDPOINT|" $ENV_FILE || echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> $ENV_FILE
+
+      #       # List the file to ensure changes were made
+      #       ls -l $ENV_FILE
+
+      #       # Output the file content for verification
+      #       cat $ENV_FILE
       - run:
           name: Replace SCP Service environment variables
           command: |
             # Define the file path
             ENV_FILE=~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
+
+            # Ensure the file ends with a newline before appending
+            sed -i -e '$a\' $ENV_FILE
 
             # Replace the existing variables or append them if they don't exist
             grep -q "^CLOUD_STORAGE_PROVIDER=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROVIDER=.*|CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER|" $ENV_FILE || echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" >> $ENV_FILE
