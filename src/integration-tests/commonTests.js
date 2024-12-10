@@ -157,7 +157,7 @@ const logIn = async () => {
 
 		// Generate unique email for testing
 		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
-		let password = 'Welcome@123'
+		let password = 'Welco@Me#123!'
 
 		// Create a new account
 		let res = await request.post('/user/v1/account/create').send({
