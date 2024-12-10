@@ -9,6 +9,7 @@ const _ = require('lodash')
 const userRequests = require('@requests/user')
 const utils = require('@generics/utils')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
+const organizationConfigQueries = require('@database/queries/organizationConfig')
 module.exports = class orgExtensionsHelper {
 	/**
 	 * Create Organization Config.
@@ -21,8 +22,18 @@ module.exports = class orgExtensionsHelper {
 	static async createConfig(bodyData, organization_id) {
 		try {
 			bodyData.organization_id = organization_id
-			const { resource_type, review_stages, review_type } = bodyData
-
+			const { resource_type, review_stages, review_type, data_managers } = bodyData
+			// check if body have data_managers
+			if (data_managers?.length) {
+				await organizationConfigQueries.upsert(
+					{
+						organization_id,
+						meta: { data_managers },
+						updated_at: new Date(),
+					},
+					{ organization_id }
+				)
+			}
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
 			if (!validResourceTypes.includes(resource_type)) {
 				return responses.failureResponse({
@@ -119,7 +130,19 @@ module.exports = class orgExtensionsHelper {
 				})
 			}
 
-			const { review_stages, review_type } = bodyData
+			const { review_stages, review_type, data_managers } = bodyData
+
+			// check if body have data_managers
+			if (data_managers?.length) {
+				await organizationConfigQueries.upsert(
+					{
+						organization_id,
+						meta: { data_managers },
+						updated_at: new Date(),
+					},
+					{ organization_id }
+				)
+			}
 
 			const filter = {
 				id: id,
@@ -242,12 +265,29 @@ module.exports = class orgExtensionsHelper {
 				organization_id,
 			}
 			let result = {
+				config: {},
 				resource: [],
 				instance: {
 					auto_save_interval: utils.convertToInteger(process.env.RESOURCE_AUTO_SAVE_TIMER),
 					note_length: utils.convertToInteger(process.env.MAX_RESOURCE_NOTE_LENGTH),
 				},
 			}
+			// fetch org config for organization_id
+			const orgConfig = await organizationConfigQueries.findOne(
+				{
+					organization_id,
+				},
+				['meta']
+			)
+
+			if (orgConfig?.meta && Object.keys(orgConfig.meta).length > 0) {
+				result.config = orgConfig?.meta
+			}
+
+			if (orgConfig?.meta?.data_managers?.length == 0 || orgConfig?.meta?.data_managers?.length == undefined) {
+				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
+			}
+
 			// attributes to fetch from organisation Extenstion
 			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
 

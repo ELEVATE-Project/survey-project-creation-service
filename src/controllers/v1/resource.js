@@ -82,11 +82,18 @@ module.exports = class Resource {
 		}
 	}
 
+	/**
+	 * Get List of Published Resource
+	 * @method POST/GET
+	 * @name getPublishedResources
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - list of resources
+	 */
 	async getPublishedResources(req) {
 		try {
 			const resourceList = await resourceService.browseExistingList(
 				req.decodedToken.organization_id,
-				req.decodedToken.token,
+				req.body.resource_ids ? req.body.resource_ids : [],
 				req.query,
 				req.searchText,
 				req.pageNo,
