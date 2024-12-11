@@ -835,19 +835,6 @@
 					"packageName": "elevate-self-creation-portal"
 				}
 			]
-		},
-		{
-			"sourceRoute": "/scp/v1/rollouts/delete/:id",
-			"type": "DELETE",
-			"priority": "MUST_HAVE",
-			"inSequence": false,
-			"orchestrated": false,
-			"targetPackages": [
-				{
-					"basePackageName": "self-creation-portal",
-					"packageName": "elevate-self-creation-portal"
-				}
-			]
 		}
 	]
 }

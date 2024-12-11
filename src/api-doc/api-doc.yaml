@@ -5215,14 +5215,14 @@ paths:
                       correlation:
                         type: string
                         example: fca8dae2-0b87-4f50-a74b-60e2b6d4aa07
-  /scp/v1/rollouts/delete/{id}:
+  /scp/v1/rollouts/update/{id}:
     delete:
       summary: Delete Rollout
       tags:
         - Rollout
       description: |-
         You can use this API to delete rollout
-         - The API Endpoint for delete the rollout is `/scp/v1/rollouts/delete` 
+         - The API Endpoint for delete the rollout is `/scp/v1/rollouts/update` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
@@ -5283,30 +5283,28 @@ paths:
       tags:
         - Rollout
       description: |-
-        You can use this API to get details of one rollout
-         - The API Endpoint for get the details of the rollout is `/scp/v1/rollouts/details` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        Use this API to get details of a specific rollout.
+        - The API endpoint for getting rollout details is `/scp/v1/rollouts/details/{id}`.
+        - Mandatory parameters must be provided and cannot be empty or null.
       parameters:
         - name: X-auth-token
           in: header
           description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+            Required X-auth-token available in the login API response.
           required: true
           schema:
             type: string
         - name: id
           in: path
-          description: Rollout id
+          description: The unique identifier for the rollout.
           required: true
           schema:
             type: integer
-          example: 1
+            example: 1
 
       responses:
         '200':
-          description: Rollout fetched successfully
+          description: Rollout fetched successfully.
           content:
             application/json:
               schema:
@@ -5342,18 +5340,8 @@ paths:
                           type: object
                           properties:
                             state:
-                              oneOf:
-                                - type: object
-                                  properties:
-                                    _id:
-                                      type: string
-                                      example: 6687b8d38ead9320cf997c65
-                                    name:
-                                      type: string
-                                      example: AP
-                                - type: array
-                                  items:
-
+                              type: string
+                              example: 6687b8d38ead9320cf997c65
                             entity_targeting:
                               type: string
                               example: district
@@ -5445,6 +5433,7 @@ paths:
                         type: string
                         format: date-time
                         example: 2024-10-29T11:36:31.118Z
+
   /scp/v1/rollouts/update:
     post:
       summary: Create Rollout
@@ -5498,11 +5487,6 @@ paths:
                         items:
                           type: string
                           example: 6710d01167b6747799a7671d
-                      gender:
-                        type: array
-                        items:
-                          type: string
-                          example: male
                       roles:
                         type: array
                         items:
@@ -5542,7 +5526,7 @@ paths:
                       id:
                         type: number
                         example: 1
-  /scp/v1/rollouts/update/{id}:
+  /scp/v1/rollouts/update/{rolloutid}:
     patch:
       summary: Update Rollout
       tags:
@@ -5561,7 +5545,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: id
+        - name: rolloutid
           in: path
           description: Rollout Id
           required: true
@@ -5602,11 +5586,6 @@ paths:
                         items:
                           type: string
                           example: 6710d01167b6747799a7671d
-                      gender:
-                        type: array
-                        items:
-                          type: string
-                          example: male
                       roles:
                         type: array
                         items:
