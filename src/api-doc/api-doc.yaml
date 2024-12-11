@@ -5340,42 +5340,31 @@ paths:
                           type: object
                           properties:
                             state:
-                              oneOf:
-                                - type: object
-                                  properties:
-                                    _id:
-                                      type: string
-                                      example: 6687b8d38ead9320cf997c65
-                                    name:
-                                      type: string
-                                      example: AP
-                                - type: array
-                                  items:
-                                    type: object
-                                    properties:
-                                      entity_targeting:
-                                        type: string
-                                        example: district
-                                      district:
-                                        type: string
-                                        example: 671097d667b6747799a761a4
-                                      block:
-                                        type: string
-                                        example: 6710d01167b6747799a7671d
-                                      roles:
-                                        type: array
-                                        items:
-                                          type: object
-                                          properties:
-                                            _id:
-                                              type: string
-                                              example: 66b9df998d2c4516ea1b4494
-                                            label:
-                                              type: string
-                                              example: Block Education Officer
-                                            value:
-                                              type: string
-                                              example: deo
+                              type: string
+                              example: 6687b8d38ead9320cf997c65
+                            entity_targeting:
+                              type: string
+                              example: district
+                            district:
+                              type: string
+                              example: 671097d667b6747799a761a4
+                            block:
+                              type: string
+                              example: 6710d01167b6747799a7671d
+                            roles:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 66b9df998d2c4516ea1b4494
+                                  label:
+                                    type: string
+                                    example: Block Education Officer
+                                  value:
+                                    type: string
+                                    example: deo
                       viewers:
                         type: array
                         items:
@@ -5498,11 +5487,6 @@ paths:
                         items:
                           type: string
                           example: 6710d01167b6747799a7671d
-                      gender:
-                        type: array
-                        items:
-                          type: string
-                          example: male
                       roles:
                         type: array
                         items:
@@ -5602,11 +5586,6 @@ paths:
                         items:
                           type: string
                           example: 6710d01167b6747799a7671d
-                      gender:
-                        type: array
-                        items:
-                          type: string
-                          example: male
                       roles:
                         type: array
                         items:
