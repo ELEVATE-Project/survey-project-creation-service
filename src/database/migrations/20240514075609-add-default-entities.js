@@ -13,7 +13,7 @@ module.exports = {
 					entityType: 'title',
 					entities: '',
 					has_entities: false,
-					validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
+					validation: { regex: `^[a-zA-Z0-9 <>_&'\\-]+$`, required: true },
 					model: 'project',
 				},
 				{
@@ -79,7 +79,7 @@ module.exports = {
 					entityType: 'name',
 					entities: '',
 					has_entities: false,
-					validation: { regex: `[^A-Za-z0-9 <>_&-]`, required: true },
+					validation: { regex: `^[a-zA-Z0-9 <>_&'\\-]+$`, required: true },
 					model: 'tasks',
 				},
 				{

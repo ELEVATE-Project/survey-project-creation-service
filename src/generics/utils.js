@@ -431,7 +431,7 @@ const checkRegexPattern = (entityType, entityData) => {
 
 			const modifyPattern = (pattern) => {
 				// If the text is English, remove the apostrophe from the regex pattern
-				if (!isTextEnglish) {
+				if (isTextEnglish) {
 					return pattern.replace(/'/g, '')
 				}
 				return pattern
