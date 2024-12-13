@@ -411,22 +411,20 @@ module.exports = class RolloutsHelper {
 
 			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_id', 'user_id'])
 
-			if (bodyData.targeting_criteria) {
-				const rolloutUploadStatus = await resourceService.uploadToCloud(
-					common.ROLLOUT_UPLOAD_FILE_NAME,
-					rolloutId,
-					common.ROLL_OUT,
-					loggedInUserId,
-					bodyData
-				)
-				if (
-					rolloutUploadStatus.result.status == httpStatusCode.ok ||
-					rolloutUploadStatus.result.status == httpStatusCode.created
-				) {
-					bodyData.blob_path = rolloutUploadStatus.blob_path
-				} else {
-					throw new Error('FILE_UPLOADED_FAILED')
-				}
+			const rolloutUploadStatus = await resourceService.uploadToCloud(
+				common.ROLLOUT_UPLOAD_FILE_NAME,
+				rolloutId,
+				common.ROLL_OUT,
+				loggedInUserId,
+				bodyData
+			)
+			if (
+				rolloutUploadStatus.result.status == httpStatusCode.ok ||
+				rolloutUploadStatus.result.status == httpStatusCode.created
+			) {
+				bodyData.blob_path = rolloutUploadStatus.blob_path
+			} else {
+				throw new Error('FILE_UPLOADED_FAILED')
 			}
 
 			let filter = {
