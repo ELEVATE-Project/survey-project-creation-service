@@ -32,6 +32,41 @@ let rolePermissions = [
 		request_type: ['PUT', 'GET', 'POST', 'DELETE', 'PATCH'],
 		api_path: '/scp/v1/rollouts/*',
 	},
+	{
+		module: 'cloud-services',
+		request_type: ['POST', 'GET'],
+		api_path: '/scp/v1/cloud-services/*',
+	},
+	{
+		module: 'entity-types',
+		request_type: ['POST'],
+		api_path: '/scp/v1/entity-types/read',
+	},
+	{
+		module: 'entities',
+		request_type: ['POST'],
+		api_path: '/scp/v1/entities/read',
+	},
+	{
+		module: 'form',
+		request_type: ['POST'],
+		api_path: '/scp/v1/form/read*',
+	},
+	{
+		module: 'config',
+		request_type: ['GET'],
+		api_path: '/scp/v1/config/list',
+	},
+	{
+		module: 'projects',
+		request_type: ['GET'],
+		api_path: '/scp/v1/projects/details*',
+	},
+	{
+		module: 'permissions',
+		request_type: ['GET'],
+		api_path: '/scp/v1/permissions/list',
+	},
 ]
 
 module.exports = {
