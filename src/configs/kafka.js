@@ -22,7 +22,6 @@ module.exports = async () => {
 	const consumer = KafkaClient.consumer({ groupId: process.env.KAFKA_GROUP_ID })
 
 	await producer.connect()
-	console.log('Consumer connected')
 
 	producer.on('producer.connect', () => {
 		logger.info('KafkaProvider: connected')
@@ -34,13 +33,6 @@ module.exports = async () => {
 	})
 
 	await consumer.connect()
-	try {
-		await consumer.connect()
-		logger.info('KafkaConsumer: connected')
-	} catch (error) {
-		logger.error('KafkaConsumer: failed to connect', { error })
-		throw error
-	}
 
 	consumer.on('consumer.connect', () => {
 		logger.info('KafkaConsumer: connection established')
