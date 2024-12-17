@@ -169,7 +169,7 @@ module.exports = class RolloutsHelper {
 					}
 
 					delete resultData['blob_path']
-					const userDetails = await this.fetchUserDetails([resultData.viewers])
+					const userDetails = await this.fetchUserDetails(resultData.viewers)
 					const viewerUserIds = resultData.viewers
 					resultData.viewers = []
 					if (userDetails && Object.keys(userDetails).length > 0) {
