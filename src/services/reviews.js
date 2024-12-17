@@ -709,8 +709,9 @@ module.exports = class reviewsHelper {
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
 				if (process.env.RESOURCE_KAFKA_PUSH_ON_OFF == common.KAFKA_ON) {
 					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
+				} else {
+					// api need to implement
 				}
-				// api need to implement
 			}
 
 			//update resource table

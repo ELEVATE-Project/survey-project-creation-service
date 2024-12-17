@@ -211,4 +211,6 @@ module.exports = {
 	ROLL_OUT_PATH: 'rollout/',
 	PROJECT_UPLOAD_FILE_NAME: 'project.json',
 	ROLLOUT_UPLOAD_FILE_NAME: 'rollout.json',
+	PUBLISHED_STATUS: 'published',
+	CONSUMPTION_SERVICE_SELF: 'self',
 }

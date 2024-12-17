@@ -9,7 +9,7 @@ const utils = require('@generics/utils')
 const { elevateLog } = require('elevate-logger')
 const logger = elevateLog.init()
 const { Kafka } = require('kafkajs')
-const projectService = require('@services/projects')
+const consumptionService = require('@requests/consumption')
 
 module.exports = async () => {
 	const kafkaIps = process.env.KAFKA_URL.split(',')
@@ -71,10 +71,9 @@ module.exports = async () => {
 						}
 
 						if (streamingData.type == 'CLEAR_INTERNAL_CACHE') {
-							console.log('Processing CLEAR_INTERNAL_CACHE message')
-							utils.internalDel(streamingData.value)
+							utils.internalDel(streamingData)
 						} else if (topic == process.env.PROJECT_PUBLISH_KAFKA_TOPIC) {
-							await projectService.publishToConsumption(streamingData)
+							await consumptionService.publishProjectTemplates(streamingData)
 						}
 					} catch (error) {
 						logger.error('Error processing Kafka message:', { error })
