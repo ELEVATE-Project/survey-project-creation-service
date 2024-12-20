@@ -173,8 +173,8 @@ module.exports = class RolloutsHelper {
 					resultData.viewers = []
 
 					// fetch the user if viewer is present
-					if (rollout.viewers?.length > 0) {
-						const viewerUserIds = rollout.viewers
+					if (response?.result?.viewers?.length > 0) {
+						const viewerUserIds = response.result.viewers
 						const userDetails = await this.fetchUserDetails(viewerUserIds)
 
 						if (userDetails && Object.keys(userDetails).length > 0) {
