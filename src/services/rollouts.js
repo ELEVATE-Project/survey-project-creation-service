@@ -42,14 +42,15 @@ module.exports = class RolloutsHelper {
 				resource_type: resource.type,
 				resource_id: resource.id,
 				status: common.ROLLOUT_STATUS_PENDING,
-				start_date: bodyData.start_date,
-				end_date: bodyData.end_date,
 				type: common.ROLLOUT_TYPE_PROGRAM,
 				user_id: loggedInUserId,
 				organization_id: orgId,
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 			}
+
+			if (bodyData.start_date) rolloutData.start_date = bodyData.start_date
+			if (bodyData.end_date) rolloutData.end_date = bodyData.end_date
 
 			let rolloutCreate
 			try {
@@ -169,7 +170,7 @@ module.exports = class RolloutsHelper {
 					}
 
 					delete resultData['blob_path']
-					const userDetails = await this.fetchUserDetails([resultData.viewers])
+					const userDetails = await this.fetchUserDetails(resultData.viewers)
 					const viewerUserIds = resultData.viewers
 					resultData.viewers = []
 					if (userDetails && Object.keys(userDetails).length > 0) {
