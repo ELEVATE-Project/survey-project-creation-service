@@ -170,13 +170,18 @@ module.exports = class RolloutsHelper {
 					}
 
 					delete resultData['blob_path']
-					const userDetails = await this.fetchUserDetails(resultData.viewers)
-					const viewerUserIds = resultData.viewers
 					resultData.viewers = []
-					if (userDetails && Object.keys(userDetails).length > 0) {
-						resultData.viewers = viewerUserIds.map((user) => {
-							return userDetails[user]
-						})
+
+					// fetch the user if viewer is present
+					if (rollout.viewers?.length > 0) {
+						const viewerUserIds = rollout.viewers
+						const userDetails = await this.fetchUserDetails(viewerUserIds)
+
+						if (userDetails && Object.keys(userDetails).length > 0) {
+							resultData.viewers = viewerUserIds.map((user) => {
+								return userDetails[user]
+							})
+						}
 					}
 
 					// fetch the org details from user service
