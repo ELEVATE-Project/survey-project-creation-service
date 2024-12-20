@@ -173,8 +173,8 @@ module.exports = class RolloutsHelper {
 					resultData.viewers = []
 
 					// fetch the user if viewer is present
-					if (rollout.viewers?.length > 0) {
-						const viewerUserIds = rollout.viewers
+					if (response?.result?.viewers?.length > 0) {
+						const viewerUserIds = response.result.viewers
 						const userDetails = await this.fetchUserDetails(viewerUserIds)
 
 						if (userDetails && Object.keys(userDetails).length > 0) {
@@ -416,6 +416,14 @@ module.exports = class RolloutsHelper {
 			}
 
 			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_id', 'user_id'])
+
+			if (bodyData.start_date == '' || bodyData.start_date == undefined) {
+				bodyData.start_date = null
+			}
+
+			if (bodyData.end_date == '' || bodyData.end_date == undefined) {
+				bodyData.end_date = null
+			}
 
 			const rolloutUploadStatus = await resourceService.uploadToCloud(
 				common.ROLLOUT_UPLOAD_FILE_NAME,
