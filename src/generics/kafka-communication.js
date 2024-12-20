@@ -27,10 +27,9 @@ const pushPayloadToKafka = async (payload) => {
 			throw 'Kafka configuration is not done'
 		}
 
-		console.log('-------Kafka producer log starts here------------------')
-		console.log('Topic Name: ', payload[0].topic)
-		console.log('Message: ', JSON.stringify(payload))
-		console.log('-------Kafka producer log ends here------------------')
+		if (!payload || !payload.messages || payload.messages.length === 0) {
+			throw 'Empty payload or messages'
+		}
 
 		let response = await kafkaProducer.send(payload)
 		return response
@@ -52,7 +51,26 @@ const pushResourceToKafka = async (message, resourceType) => {
 		}
 
 		const payload = {
-			topic,
+			topic: topic,
+			messages: [{ value: JSON.stringify(message) }],
+		}
+
+		return await pushPayloadToKafka(payload)
+	} catch (error) {
+		throw error
+	}
+}
+const pushRolloutToKafka = async (message, rolloutType) => {
+	try {
+		const topic = process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC
+
+		if (!topic) {
+			console.log('Publishing Rollout Kafka topic is not implemented.')
+			return
+		}
+
+		const payload = {
+			topic: topic,
 			messages: [{ value: JSON.stringify(message) }],
 		}
 		return await pushPayloadToKafka(payload)
@@ -64,4 +82,5 @@ const pushResourceToKafka = async (message, resourceType) => {
 module.exports = {
 	clearInternalCache,
 	pushResourceToKafka,
+	pushRolloutToKafka,
 }

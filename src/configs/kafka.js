@@ -9,6 +9,7 @@ const utils = require('@generics/utils')
 const { elevateLog } = require('elevate-logger')
 const logger = elevateLog.init()
 const { Kafka } = require('kafkajs')
+const consumptionService = require('@requests/consumption')
 
 module.exports = async () => {
 	const kafkaIps = process.env.KAFKA_URL.split(',')
@@ -21,7 +22,6 @@ module.exports = async () => {
 	const consumer = KafkaClient.consumer({ groupId: process.env.KAFKA_GROUP_ID })
 
 	await producer.connect()
-	await consumer.connect()
 
 	producer.on('producer.connect', () => {
 		logger.info('KafkaProvider: connected')
@@ -32,21 +32,61 @@ module.exports = async () => {
 		})
 	})
 
+	await consumer.connect()
+
+	consumer.on('consumer.connect', () => {
+		logger.info('KafkaConsumer: connection established')
+	})
+	consumer.on('consumer.disconnect', () => {
+		logger.error('KafkaConsumer: disconnected', { triggerNotification: true })
+	})
+	consumer.on('consumer.crash', (event) => {
+		logger.error('KafkaConsumer: crashed', { event })
+	})
+
 	const subscribeToConsumer = async () => {
-		await consumer.subscribe({ topics: [process.env.CLEAR_INTERNAL_CACHE] })
-		await consumer.run({
-			eachMessage: async ({ topic, partition, message }) => {
-				try {
-					let streamingData = JSON.parse(message.value)
-					if (streamingData.type == 'CLEAR_INTERNAL_CACHE') {
-						utils.internalDel(streamingData.value)
+		try {
+			await consumer.subscribe({ topics: [process.env.CLEAR_INTERNAL_CACHE] })
+			await consumer.subscribe({ topic: process.env.PROJECT_PUBLISH_KAFKA_TOPIC, fromBeginning: true })
+			logger.info(
+				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} and ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC}`
+			)
+			await consumer.run({
+				eachMessage: async ({ topic, partition, message }) => {
+					try {
+						if (!message || !message.value || message.value.length === 0) {
+							console.error('Received empty message')
+							return
+						}
+
+						let streamingData
+						try {
+							streamingData = JSON.parse(message.value.toString('utf-8'))
+						} catch (parseError) {
+							console.error('Error parsing JSON message:', {
+								message: message.value,
+								error: parseError,
+							})
+							throw new Error('Invalid JSON format in Kafka message')
+						}
+
+						if (streamingData.type == 'CLEAR_INTERNAL_CACHE') {
+							utils.internalDel(streamingData)
+						} else if (topic == process.env.PROJECT_PUBLISH_KAFKA_TOPIC) {
+							await consumptionService.publishProjectTemplates(streamingData)
+						}
+					} catch (error) {
+						logger.error('Error processing Kafka message:', { error })
+						throw error
 					}
-				} catch (error) {
-					throw error
-				}
-			},
-		})
+				},
+			})
+		} catch (error) {
+			logger.error('KafkaConsumer: Error in subscribing or running', { error })
+			throw error
+		}
 	}
+
 	subscribeToConsumer()
 
 	global.kafkaProducer = producer
