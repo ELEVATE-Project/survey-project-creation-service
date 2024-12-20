@@ -26,7 +26,6 @@ module.exports = {
 			req.checkBody('start_date')
 				.optional()
 				.trim()
-				.notEmpty()
 				.withMessage('start_date param is empty')
 				.custom((value) => {
 					if (req.body.end_date && req.body.start_date) {
@@ -45,10 +44,7 @@ module.exports = {
 			req.checkBody('end_date')
 				.optional() // Mark end_date as optional
 				.trim()
-				.notEmpty()
 				.withMessage('end_date param is empty')
-
-			req.checkBody('end_date').trim().notEmpty().withMessage('end_date param is empty')
 
 			req.checkBody('resource_id')
 				.trim()
