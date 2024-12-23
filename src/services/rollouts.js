@@ -578,6 +578,10 @@ module.exports = class RolloutsHelper {
 					message: 'ROLLOUT_VALIDATION_FAILED',
 				})
 			}
+
+			//remove after fixing kafka issue
+			await this.publishCallback(rolloutId, null)
+
 			// fetch resource details
 			const resourceDetails = await resourceService.getDetails(rolloutDetails?.result?.resource_id, orgId)
 			// check if resource is present or not
