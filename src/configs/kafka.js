@@ -32,8 +32,6 @@ module.exports = async () => {
 		})
 	})
 
-	await consumer.connect()
-
 	consumer.on('consumer.connect', () => {
 		logger.info('KafkaConsumer: connection established')
 	})
@@ -43,14 +41,20 @@ module.exports = async () => {
 	consumer.on('consumer.crash', (event) => {
 		logger.error('KafkaConsumer: crashed', { event })
 	})
-
 	const subscribeToConsumer = async () => {
 		try {
+			await consumer.connect()
 			await consumer.subscribe({ topics: [process.env.CLEAR_INTERNAL_CACHE] })
-			await consumer.subscribe({ topic: process.env.PROJECT_PUBLISH_KAFKA_TOPIC, fromBeginning: true })
-			await consumer.subscribe({ topic: process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC, fromBeginning: true })
+			await consumer.subscribe({
+				topics: process.env.PROJECT_PUBLISH_KAFKA_TOPIC.split(','),
+				fromBeginning: true,
+			})
+			await consumer.subscribe({
+				topics: process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC.split(','),
+				fromBeginning: true,
+			})
 			logger.info(
-				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} and ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC}`
+				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} , ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC} and ${process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC}`
 			)
 			await consumer.run({
 				eachMessage: async ({ topic, partition, message }) => {

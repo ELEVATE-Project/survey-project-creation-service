@@ -145,5 +145,6 @@
 	"ROLLOUT_DELETED_SUCCESSFULLY": "Rollout deleted successfully",
 	"ROLLOUT_VALIDATION_FAILED": "Rollout Failed. Try again.",
 	"ROLLOUT_PUBLISHED": "Rollout Published.",
+	"ROLLOUT_ALREADY_PUBLISHED": "Rollout Already Published.",
 	"ROLLOUT_UPDATED_SUCCESSFULLY": "Rollout updated successfully"
 }

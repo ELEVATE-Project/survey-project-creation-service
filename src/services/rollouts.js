@@ -559,6 +559,15 @@ module.exports = class RolloutsHelper {
 			// check if rollout is present or not
 			if (rolloutDetails?.statusCode != 200 || rolloutDetails?.result == undefined) return rolloutDetails
 
+			if (rolloutDetails?.result?.status && rolloutDetails?.result?.status == common.ROLLOUT_PUBLISHED) {
+				return responses.failureResponse({
+					responseCode: 'CLIENT_ERROR',
+					statusCode: httpStatusCode.bad_request,
+					result: [],
+					message: 'ROLLOUT_ALREADY_PUBLISHED',
+				})
+			}
+
 			const validateRollout = await this.validateRollout(rolloutDetails?.result)
 			if (validateRollout.length > 0) {
 				const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
