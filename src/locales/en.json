@@ -144,5 +144,6 @@
 	"ROLLOUT_FETCHED_SUCCESSFULLY": "Project fetched successfully",
 	"ROLLOUT_DELETED_SUCCESSFULLY": "Rollout deleted successfully",
 	"ROLLOUT_VALIDATION_FAILED": "Rollout Failed. Try again.",
-	"ROLLOUT_PUBLISHED": "Rollout Published."
+	"ROLLOUT_PUBLISHED": "Rollout Published.",
+	"ROLLOUT_UPDATED_SUCCESSFULLY": "Rollout updated successfully"
 }

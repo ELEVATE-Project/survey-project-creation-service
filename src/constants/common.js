@@ -216,4 +216,15 @@ module.exports = {
 	ROLL_OUT_PATH: 'rollout/',
 	PROJECT_UPLOAD_FILE_NAME: 'project.json',
 	ROLLOUT_UPLOAD_FILE_NAME: 'rollout.json',
+	SUFFIX_CHILD: '_CHILD',
+	SOLUTIONS_RESOURCE_TYPE: {
+		project: 'Improvement Project Solution',
+	},
+	SOLUTIONS_ENTITY_TYPE: {
+		project: 'school',
+	},
+	SOLUTIONS_TYPE: {
+		project: 'improvementProject',
+	},
+	ROLLOUT_PUBLISHED: 'ROLLED_OUT',
 }

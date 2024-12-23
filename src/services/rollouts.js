@@ -707,4 +707,39 @@ module.exports = class RolloutsHelper {
 
 		return validationErrors
 	}
+
+	/**
+	 * Callback URL for Update Published Rollout
+	 * @method
+	 * @name publishCallback
+	 * @returns {JSON} - details of Rollout
+	 */
+	static async publishCallback(rolloutId, publishedId) {
+		try {
+			let rollout = await rolloutQueries.updateOne(
+				{
+					id: rolloutId,
+				},
+				{
+					published_id: publishedId,
+					published_on: new Date(),
+					status: common.ROLLOUT_PUBLISHED,
+				}
+			)
+
+			if (rollout === 0) {
+				return responses.failureResponse({
+					message: 'ROLLOUT_PUBLISHED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'ROLLOUT_UPDATED_SUCCESSFULLY',
+			})
+		} catch (error) {
+			throw error
+		}
+	}
 }

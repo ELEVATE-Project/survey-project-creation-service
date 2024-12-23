@@ -48,6 +48,7 @@ module.exports = async () => {
 		try {
 			await consumer.subscribe({ topics: [process.env.CLEAR_INTERNAL_CACHE] })
 			await consumer.subscribe({ topic: process.env.PROJECT_PUBLISH_KAFKA_TOPIC, fromBeginning: true })
+			await consumer.subscribe({ topic: process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC, fromBeginning: true })
 			logger.info(
 				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} and ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC}`
 			)
@@ -74,6 +75,8 @@ module.exports = async () => {
 							utils.internalDel(streamingData)
 						} else if (topic == process.env.PROJECT_PUBLISH_KAFKA_TOPIC) {
 							await consumptionService.publishProjectTemplates(streamingData)
+						} else if (topic == process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC) {
+							await consumptionService.publishProgram(streamingData)
 						}
 					} catch (error) {
 						logger.error('Error processing Kafka message:', { error })

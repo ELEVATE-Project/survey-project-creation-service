@@ -6,7 +6,12 @@
  */
 const common = require('@constants/common')
 const resourceService = require('@services/resource')
+const rolloutService = require('@services/rollouts')
 const MongoClient = require('mongodb').MongoClient
+const ObjectId = require('mongodb').ObjectID
+const _ = require('lodash')
+const { UUID } = require('sequelize')
+const utils = require('@generics/utils')
 let mongoDb
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
@@ -33,8 +38,10 @@ if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
 // Define the mongoDb collection names used
 const COLLECTIONS = {
 	CATEGORIES: 'projectCategories',
-	TEMPLATES: 'projectTemplates',
+	PROJECT_TEMPLATES: 'projectTemplates',
 	TASKS: 'projectTemplateTasks',
+	PROGRAMS: 'programs',
+	SOLUTIONS: 'solutions',
 }
 
 /**
@@ -66,7 +73,7 @@ const publishProjectTemplates = function (templateData) {
 			}
 
 			// Insert the template into the database
-			const templateCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
+			const templateCollection = mongoDb.collection(COLLECTIONS.PROJECT_TEMPLATES)
 			const result = await templateCollection.insertOne(template)
 
 			// Validate the result of the template creation
@@ -372,71 +379,357 @@ const assignSequenceNumbers = (tasks) => {
 	})
 }
 
+const createSolutions = async (resourceDetails, programDetails) => {
+	try {
+		let solutionsToCreate = []
+		resourceDetails.forEach((resource) => {
+			const solutionTemplate = {
+				resourceType: [common.SOLUTIONS_RESOURCE_TYPE[resource.type]],
+				language: resource?.languages ? resource?.languages.map((language) => language.label) : [],
+				keywords: resource?.keywords
+					? Array.isArray(resource?.keywords)
+						? resource?.keywords
+						: resource?.keywords.split(',')
+					: [],
+				concepts: resource?.concepts ? resource?.concepts : [],
+				themes: resource?.themes ? resource?.themes : [],
+				flattenedThemes: resource?.flattenedThemes ? resource?.flattenedThemes : [],
+				entities: resource?.entities ? resource?.entities : [],
+				registry: resource?.registry ? resource?.registry : [],
+				isRubricDriven: resource?.isRubricDriven ? true : false,
+				enableQuestionReadOut: resource?.enableQuestionReadOut ? true : false,
+				captureGpsLocationAtQuestionLevel: resource?.captureGpsLocationAtQuestionLevel ? true : false,
+				isAPrivateProgram: false,
+				allowMultipleAssessemts: resource?.allowMultipleAssessemts ? true : false,
+				isDeleted: false,
+				pageHeading: 'Domains',
+				minNoOfSubmissionsRequired: resource?.minNoOfSubmissionsRequired
+					? resource?.minNoOfSubmissionsRequired
+					: 1,
+				rootOrganisations: resource?.organization
+					? resource?.organization.map((organization) => organization.id)
+					: [],
+				createdFor: resource?.organization ? resource?.organization.map((organization) => organization.id) : [],
+				deleted: false,
+				name: resource?.title,
+				programExternalId: programDetails.externalId,
+				entityType: common.SOLUTIONS_ENTITY_TYPE[resource.type]
+					? common.SOLUTIONS_ENTITY_TYPE[resource.type]
+					: resource?.entityType
+					? resource?.entityType
+					: null,
+				type: common.SOLUTIONS_TYPE[resource.type] ? common.SOLUTIONS_TYPE[resource.type] : null,
+				subType: common.SOLUTIONS_TYPE[resource.type] ? common.SOLUTIONS_TYPE[resource.type] : null,
+				isReusable: false,
+				externalId: utils.generateUniqueId(),
+				programId: programDetails._id,
+				programName: programDetails.name,
+				programDescription: programDetails.description,
+				status: common.STATUS_ACTIVE.toLowerCase(),
+				updatedAt: new Date(),
+				createdAt: new Date(),
+				__v: 0,
+				scope: programDetails.scope,
+				projectTemplateId: null,
+				updatedBy: 1,
+				endDate: programDetails.end_date,
+				startDate: programDetails.start_date,
+			}
+			solutionsToCreate.push(solutionTemplate)
+		})
+
+		const solutionCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
+		await solutionCollection.insertMany(solutionsToCreate)
+
+		const createdSolutions = await solutionCollection
+			.find({
+				programId: programDetails._id,
+			})
+			.toArray()
+
+		return createdSolutions
+	} catch (error) {
+		console.log(error)
+	}
+}
+
+const duplicateResources = async (resourceDetails) => {
+	let projectTemplateIds = []
+	let solutionTemplateIds = []
+	resourceDetails.forEach((resource) => {
+		if (resource.type == common.PROJECT) projectTemplateIds.push(ObjectId(resource._id))
+		else solutionTemplateIds.push(ObjectId(resource._id))
+	})
+
+	// handling only project creation now. Make changes here for observation , survey etc...
+	if (projectTemplateIds.length > 0) {
+		const projectsCollection = mongoDb.collection(COLLECTIONS.PROJECT_TEMPLATES)
+		const projectTemplates = await projectsCollection
+			.find({
+				_id: {
+					$in: projectTemplateIds,
+				},
+			})
+			.toArray()
+
+		//templateProjectsTaskMap = {
+		// 	projectExternalId : [ list of last ids]
+		// }
+		let templateProjectsTaskMap = {}
+		let templateProjects = []
+		let templateTaskIds = []
+		let duplicateTasks = []
+
+		//taskMap = {
+		// 	projectTaskId : duplicateProjectTaskId
+		// }
+		let taskMap = {}
+
+		if (projectTemplates) {
+			projectTemplates.forEach((project) => {
+				project.externalId = project.externalId + common.SUFFIX_CHILD
+				delete project._id
+				project.updatedAt = new Date()
+				project.createdAt = new Date()
+				project.isReusable = false
+				templateProjectsTaskMap[project.externalId] = project.tasks
+				templateProjects.push(project)
+			})
+
+			Object.keys(templateProjectsTaskMap).forEach(async (projectExtId) => {
+				templateTaskIds = [...templateTaskIds, ...templateProjectsTaskMap[projectExtId]]
+			})
+			templateTaskIds = [...new Set(templateTaskIds)]
+			const projectsTaskCollection = mongoDb.collection(COLLECTIONS.TASKS)
+			const projectsTasksDetails = await projectsTaskCollection
+				.find({
+					_id: {
+						$in: templateTaskIds,
+					},
+				})
+				.toArray()
+
+			projectsTasksDetails.forEach((projectTask) => {
+				projectTask.externalId = utils.generateUniqueId()
+				taskMap[projectTask._id] = projectTask.externalId
+				projectTask.updatedAt = new Date()
+				projectTask.createdAt = new Date()
+				delete projectTask._id
+				duplicateTasks.push(projectTask)
+			})
+
+			await projectsTaskCollection.insertMany(duplicateTasks)
+
+			const projectsTasksDetailsAfterInsert = await projectsTaskCollection
+				.find({
+					externalId: {
+						$in: duplicateTasks.map((tasks) => tasks.externalId),
+					},
+				})
+				.toArray()
+
+			taskMap = _.mapValues(taskMap, (externalId) => {
+				// Find the corresponding object from projectsTasksDetailsAfterInsert
+				const task = _.find(projectsTasksDetailsAfterInsert, { externalId: externalId })
+
+				// If found, replace externalId with _id; otherwise, keep the externalId
+				return task ? ObjectId(task._id) : externalId
+			})
+
+			templateProjects.forEach((project) => {
+				let projectTasks = []
+				project.tasks.forEach((task) => {
+					projectTasks.push(taskMap[task])
+				})
+				project.tasks = projectTasks
+			})
+
+			await projectsCollection.insertMany(templateProjects)
+		}
+
+		const projectTemplatesAfterInsert = await projectsCollection
+			.find({
+				externalId: {
+					$in: templateProjects.map((projects) => projects.externalId),
+				},
+			})
+			.toArray()
+
+		// Add a new 'type' key to each project
+		const updatedProjectTemplates = projectTemplatesAfterInsert.map((project) => ({
+			...project, // Spread the existing project fields
+			type: common.PROJECT,
+		}))
+
+		return [...updatedProjectTemplates]
+	}
+}
+
+/**
+ * Format Program Template
+ * @name formatProgramTemplate
+ * @param {Object} templateData - Program template data
+ * @returns {Object} - Response contains formatted template
+ */
+const formatProgramTemplate = (templateData) => {
+	try {
+		let language = templateData?.language
+			? templateData?.language
+			: templateData?.resource
+			? templateData?.resource.flatMap((resource) => {
+					return resource.languages.map((language) => {
+						return language.label
+					})
+			  })
+			: []
+		language = [...new Set(language)]
+		let keywords = templateData?.keywords
+			? templateData?.keywords
+			: templateData?.resource
+			? templateData?.resource.flatMap((resource) => {
+					return resource.keywords.split(',')
+			  })
+			: []
+		keywords = [...new Set(keywords)]
+
+		const resourceDetails = templateData?.resource
+			.map((resource) => {
+				return {
+					_id: ObjectId(resource.published_id),
+					type: resource.type,
+				}
+			})
+			.filter((published_id) => published_id !== null && published_id !== undefined)
+		let scope = {
+			roles: [],
+			entityType: [],
+		}
+		let metaInformation = {
+			recommendedFor: [],
+		}
+		if (templateData?.targeting_criteria) {
+			templateData?.targeting_criteria.forEach((targeting) => {
+				const targeting_entity = targeting?.entity_targeting?.value
+
+				if (!scope.entityType.includes(targeting_entity)) scope.entityType.push(targeting_entity)
+				if (targeting?.roles) {
+					targeting.roles.forEach((role) => {
+						if (!scope.roles.includes(role.value)) scope.roles.push(role.value)
+						if (!metaInformation.recommendedFor.includes(role.label))
+							metaInformation.recommendedFor.push(role.label)
+					})
+				} else {
+					scope.roles = []
+					metaInformation.recommendedFor = []
+				}
+				targeting[targeting_entity].forEach((target) => {
+					if (scope[targeting_entity] == undefined) scope[targeting_entity] = []
+					if (metaInformation[targeting_entity] == undefined) metaInformation[targeting_entity] = []
+					metaInformation[targeting_entity].push(target.name)
+					scope[targeting_entity].push(target._id)
+				})
+			})
+		}
+
+		let template = {
+			scope,
+			metaInformation,
+			resourceType: [common.ROLLOUT_TYPE_PROGRAM],
+			language,
+			keywords,
+			concepts: templateData?.concepts ? templateData?.concepts : [],
+			components: [],
+			resourceDetails,
+			isAPrivateProgram: false,
+			isDeleted: false,
+			requestForPIIConsent: templateData?.requestForPIIConsent ? true : false,
+			rootOrganisations: [
+				templateData?.rootOrganisations ? templateData?.rootOrganisations : templateData?.organization?.id,
+			],
+			createdFor: [templateData?.createdFor ? templateData?.createdFor : templateData?.organization?.id],
+			deleted: false,
+			status: common.STATUS_ACTIVE.toLowerCase(),
+			owner: templateData?.created_by,
+			createdBy: templateData?.created_by,
+			updatedBy: templateData?.created_by,
+			externalId: generateExternalId(templateData?.title),
+			name: templateData?.title.trim(),
+			description: templateData?.description ? templateData?.description : '',
+			updatedAt: new Date(),
+			createdAt: new Date(),
+			__v: 0,
+			endDate: new Date(templateData?.end_date),
+			startDate: new Date(templateData?.start_date),
+		}
+
+		return { success: true, template }
+	} catch (error) {
+		console.error('Error in formatTemplate:', error.message)
+		return { success: false, error: error.message }
+	}
+}
+
 /**
  * Publish the Program
  * @name publishProjectTemplates
- * @param {Object} templateData - Project template data
- * @returns {Object} - Response of template creation
+ * @param {Object} programData - Program template data
+ * @returns {Object} - Response of Program creation
  */
-const publishProgram = function (templateData) {
+const publishProgram = function (programData) {
 	return new Promise(async (resolve, reject) => {
 		const result = { success: false, templateId: null, error: null }
 		try {
-			console.log(templateData, 'templateData')
 			// Format the template
-			let formattedTemplate = formatTemplate(templateData)
+			let formattedTemplate = formatProgramTemplate(programData)
 			if (!formattedTemplate.success) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
 
 			let template = formattedTemplate.template
-
-			// Process Categories
-			if (templateData.categories?.length > 0) {
-				let categoriesResponse = await processCategories(templateData.categories)
-				if (!categoriesResponse.success) {
-					throw new Error('FAILED_TO_FETCH_OR_CREATE_CATEGORIES')
-				}
-				template.categories = categoriesResponse.categories
-			}
+			const resourceDetails = template.resourceDetails
+			const programScope = template.scope
+			delete template.resourceDetails
 
 			// Insert the template into the database
-			const templateCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
-			const result = await templateCollection.insertOne(template)
+			const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
+			const result = await programsCollection.insertOne(template)
 
 			// Validate the result of the template creation
 			if (!result || !result.insertedId) {
 				throw new Error('Failed to insert the template into the database.')
 			}
 
-			const templateId = result.insertedId
+			const programId = result.insertedId
 
-			// Process and Create Tasks
-			const processedTasks = assignSequenceNumbers(templateData.tasks || [])
-			const taskCreationResponse = await createTasks(processedTasks, templateId, template.externalId)
+			const duplicateResource = await duplicateResources(resourceDetails)
 
-			// Validate the result of the task creation
-			if (!taskCreationResponse.success) {
-				throw new Error('FAILED_TO_CREATE_TASKS')
-			}
+			const solutions = await createSolutions(duplicateResource, {
+				_id: programId,
+				scope: programScope,
+				externalId: template.externalId,
+				name: template.name,
+				description: template.description ? template.description : '',
+				end_date: template.endDate,
+				start_date: template.startDate,
+			})
+
+			const solutionIds = solutions.map((solution) => solution._id)
 
 			// Update Template with tasks and sequence
-			await templateCollection.updateOne(
-				{ _id: templateId },
+			await programsCollection.updateOne(
+				{ _id: programId },
 				{
 					$set: {
-						tasks: taskCreationResponse.taskIds,
-						taskSequence: taskCreationResponse.externalIds,
+						components: solutionIds,
 					},
 				}
 			)
 
-			//update the published id in resource table
-			await resourceService.publishCallback(templateData.id, templateId.toString())
+			await rolloutService.publishCallback(programData.id, programId.toString())
 
 			//return result
 			result.success = true
-			result.templateId = templateId
+			result.programId = programId
 			return resolve(result)
 		} catch (error) {
 			result.error = `Error: ${error.message}`
@@ -447,4 +740,5 @@ const publishProgram = function (templateData) {
 
 module.exports = {
 	publishProjectTemplates,
+	publishProgram,
 }
