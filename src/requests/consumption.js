@@ -121,7 +121,11 @@ const formatTemplate = (templateData) => {
 		let template = {
 			title: templateData.title,
 			description: templateData.objective || '',
-			keywords: templateData.keywords ? templateData.keywords.split(',').map((k) => k.trim()) : [],
+			keywords: Array.isArray(templateData.keywords)
+				? templateData.keywords.map((k) => k.trim()) // If it's an array, trim each keyword
+				: templateData.keywords
+				? templateData.keywords.split(',').map((k) => k.trim()) // If it's a string, split and trim
+				: [],
 			isDeleted: false,
 			recommendedFor: templateData.recommended_for?.length
 				? templateData.recommended_for.map((item) => item.label)
@@ -181,11 +185,11 @@ async function processCategories(categories) {
 		const existingCategories = await categoriesCollection
 			.find({ externalId: { $in: formattedCategories.map((cat) => cat.externalId) } })
 			.toArray()
-		const existingExternalIds = new Set(existingCategories.map((cat) => cat.externalId))
+		const existingExternalIds = existingCategories.map((cat) => cat.externalId)
 
 		// Filter out categories that already exist
 		const newCategories = formattedCategories
-			.filter((cat) => !existingExternalIds.has(cat.externalId))
+			.filter((cat) => !existingExternalIds.includes(cat.externalId))
 			.map(({ formattedName, externalId, label }) => ({
 				createdBy: 'SYSTEM',
 				updatedBy: 'SYSTEM',
@@ -264,7 +268,7 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				sequenceNumber: task.sequence_no,
 				projectTemplateId: templateId,
 				projectTemplateExternalId: templateExternalId,
-				hasSubTasks: !!task.children?.length,
+				hasSubTasks: task.children?.length > 0,
 				learningResources: convertResources(task.learning_resources || []),
 				parentId,
 				deleted: false,
@@ -363,13 +367,25 @@ const convertResources = (resources) =>
  * @returns {Object} - Response contains task object
  */
 const assignSequenceNumbers = (tasks) => {
+	/* Temporory fix start, because elevate-project doent have the observation capability in tasks now */
+	// Filter out 'observation' type tasks
+	const filteredTasks = tasks.filter((task) => task.type !== 'observation')
+	// Sort tasks based on their current sequence number (ascending order)
+	filteredTasks.sort((a, b) => a.sequence_no - b.sequence_no)
 	let sequenceCounter = 1
-	return tasks.map((task) => {
-		if (!task.sequence_no) {
-			task.sequence_no = sequenceCounter++
-		}
+	return filteredTasks.map((task) => {
+		task.sequence_no = sequenceCounter++ // Reassign sequence number
 		return task
 	})
+	/* Temporory fix end */
+
+	// let sequenceCounter = 1
+	// return tasks.map((task) => {
+	// 	if (!task.sequence_no) {
+	// 		task.sequence_no = sequenceCounter++
+	// 	}
+	// 	return task
+	// })
 }
 
 module.exports = {
