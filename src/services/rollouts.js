@@ -45,14 +45,15 @@ module.exports = class RolloutsHelper {
 				resource_type: resource.type,
 				resource_id: resource.id,
 				status: common.ROLLOUT_STATUS_PENDING,
-				start_date: bodyData.start_date,
-				end_date: bodyData.end_date,
 				type: common.ROLLOUT_TYPE_PROGRAM,
 				user_id: loggedInUserId,
 				organization_id: orgId,
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 			}
+
+			if (bodyData.start_date) rolloutData.start_date = bodyData.start_date
+			if (bodyData.end_date) rolloutData.end_date = bodyData.end_date
 
 			let rolloutCreate
 			try {
@@ -172,13 +173,18 @@ module.exports = class RolloutsHelper {
 					}
 
 					delete resultData['blob_path']
-					const userDetails = await this.fetchUserDetails(resultData.viewers)
-					const viewerUserIds = resultData.viewers
 					resultData.viewers = []
-					if (userDetails && Object.keys(userDetails).length > 0) {
-						resultData.viewers = viewerUserIds.map((user) => {
-							return userDetails[user]
-						})
+
+					// fetch the user if viewer is present
+					if (response?.result?.viewers?.length > 0) {
+						const viewerUserIds = response.result.viewers
+						const userDetails = await this.fetchUserDetails(viewerUserIds)
+
+						if (userDetails && Object.keys(userDetails).length > 0) {
+							resultData.viewers = viewerUserIds.map((user) => {
+								return userDetails[user]
+							})
+						}
 					}
 
 					// fetch the org details from user service
@@ -413,6 +419,14 @@ module.exports = class RolloutsHelper {
 			}
 
 			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_id', 'user_id'])
+
+			if (bodyData.start_date == '' || bodyData.start_date == undefined) {
+				bodyData.start_date = null
+			}
+
+			if (bodyData.end_date == '' || bodyData.end_date == undefined) {
+				bodyData.end_date = null
+			}
 
 			const rolloutUploadStatus = await resourceService.uploadToCloud(
 				common.ROLLOUT_UPLOAD_FILE_NAME,
