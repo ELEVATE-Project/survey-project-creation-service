@@ -653,15 +653,25 @@ module.exports = class RolloutsHelper {
 				(validation) => validation.type == common.REQUIRED_VALIDATION
 			)
 			if (requiredValidation) {
-				const required = utils.checkRequired(requiredValidation, rollout[entityType.value])
-				if (!required) {
+				if (Array.isArray(rollout[entityType.value]) && rollout[entityType.value].length == 0) {
 					validationErrors.push(
 						utils.errorObject(
 							common.ROLL_OUT_MODULE,
 							entityType.value,
-							`Rollout ${entityType.value} is required`
+							`Rollout ${entityType.value} cannot be empty.`
 						)
 					)
+				} else {
+					const required = utils.checkRequired(requiredValidation, rollout[entityType.value])
+					if (!required) {
+						validationErrors.push(
+							utils.errorObject(
+								common.ROLL_OUT_MODULE,
+								entityType.value,
+								`Rollout ${entityType.value} is required`
+							)
+						)
+					}
 				}
 			}
 
