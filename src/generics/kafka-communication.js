@@ -38,11 +38,14 @@ const pushPayloadToKafka = async (payload) => {
 	}
 }
 
-const pushResourceToKafka = async (message, resourceType) => {
+const pushDataToKafka = async (message, resourceType) => {
 	try {
 		let topic
 		if (resourceType === common.PROJECT) {
 			topic = process.env.PROJECT_PUBLISH_KAFKA_TOPIC
+		}
+		if (resourceType === common.ROLL_OUT) {
+			topic = process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC
 		}
 
 		if (!topic) {
@@ -60,27 +63,8 @@ const pushResourceToKafka = async (message, resourceType) => {
 		throw error
 	}
 }
-const pushRolloutToKafka = async (message, rolloutType) => {
-	try {
-		const topic = process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC
-
-		if (!topic) {
-			console.log('Publishing Rollout Kafka topic is not implemented.')
-			return
-		}
-
-		const payload = {
-			topic: topic,
-			messages: [{ value: JSON.stringify(message) }],
-		}
-		return await pushPayloadToKafka(payload)
-	} catch (error) {
-		throw error
-	}
-}
 
 module.exports = {
 	clearInternalCache,
-	pushResourceToKafka,
-	pushRolloutToKafka,
+	pushDataToKafka,
 }

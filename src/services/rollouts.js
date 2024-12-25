@@ -14,6 +14,7 @@ const { Op } = require('sequelize')
 const kafkaCommunication = require('@generics/kafka-communication')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
+
 module.exports = class RolloutsHelper {
 	/**
 	 * Rollout create
@@ -22,7 +23,7 @@ module.exports = class RolloutsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - rollout id
 	 */
-	static async create(bodyData, loggedInUserId, orgId) {
+	static async create(bodyData, loggedInUserId, orgId, internalUpload = false) {
 		const transaction = await db.sequelize.transaction()
 		try {
 			//validate the resource
@@ -45,7 +46,7 @@ module.exports = class RolloutsHelper {
 				resource_type: resource.type,
 				resource_id: resource.id,
 				status: common.ROLLOUT_STATUS_PENDING,
-				type: common.ROLLOUT_TYPE_PROGRAM,
+				type: internalUpload ? common.ROLLOUT_TYPE_SOLUTION : common.ROLLOUT_TYPE_PROGRAM,
 				user_id: loggedInUserId,
 				organization_id: orgId,
 				created_by: loggedInUserId,
@@ -569,54 +570,74 @@ module.exports = class RolloutsHelper {
 		try {
 			// fetch rollout details
 			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId)
+			let rolloutProcessType = common.ROLLOUT_PROCESS_TYPE_CREATE //to determine if the rollout is create / update
+			let rolloutSolutionProcessType = common.ROLLOUT_PROCESS_TYPE_CREATE //to determine if the solution rollout is create / update
+			let solutionRolloutId
 
 			// check if rollout is present or not
-			if (rolloutDetails?.statusCode != 200 || rolloutDetails?.result == undefined) return rolloutDetails
+			if (rolloutDetails?.statusCode != httpStatusCode.ok) return rolloutDetails
 
-			if (rolloutDetails?.result?.status && rolloutDetails?.result?.status == common.ROLLOUT_PUBLISHED) {
-				return responses.failureResponse({
-					responseCode: 'CLIENT_ERROR',
-					statusCode: httpStatusCode.bad_request,
-					result: [],
-					message: 'ROLLOUT_ALREADY_PUBLISHED',
-				})
+			const rolloutDetailsResult = resourceDetailsResult
+			if (rolloutDetailsResult?.status == common.ROLLOUT_STATUS_PUBLISHED) {
+				rolloutProcessType = common.ROLLOUT_PROCESS_TYPE_UPDATE
 			}
 
-			const validateRollout = await this.validateRollout(rolloutDetails?.result)
+			const validateRollout = await this.validateRollout(resourceDetailsResult)
 			if (validateRollout.length > 0) {
 				const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
 				return responses.failureResponse({
-					responseCode: 'CLIENT_ERROR',
 					statusCode: httpStatusCode.bad_request,
 					result: result,
 					message: 'ROLLOUT_VALIDATION_FAILED',
 				})
 			}
 
-			//remove after fixing kafka issue
-			await this.publishCallback(rolloutId, null)
-
 			// fetch resource details
-			const resourceDetails = await resourceService.getDetails(rolloutDetails?.result?.resource_id, orgId)
+			const resourceDetails = await resourceService.getDetails(resourceDetailsResult?.resource_id, orgId)
+
+			const resourceDetailsResult = resourceDetails?.result
+
 			// check if resource is present or not
-			if (resourceDetails?.statusCode != 200 || resourceDetails?.result == undefined) return resourceDetails
+			if (resourceDetails?.statusCode != httpStatusCode.ok) return resourceDetails
+
+			let solutionRollout = await rolloutQueries.findOne({
+				resource_id: resourceDetailsResult?.resource_id,
+				type: common.ROLLOUT_TYPE_SOLUTION,
+				organization_id: orgId,
+			})
+
+			if (!solutionRollout && resourceDetailsResult?.resource_type != common.ROLLOUT_TYPE_PROGRAM) {
+				const resultCreateRollout = await this.create(resourceDetailsResult, loggedInUserId, orgId, true)
+				solutionRolloutId = resultCreateRollout?.result?.id
+			} else {
+				solutionRolloutId = solutionRollout.id
+				rolloutSolutionProcessType = common.ROLLOUT_PROCESS_TYPE_UPDATE
+			}
+
 			// publish the resource if not published
 			if (
 				resourceDetails?.result?.status != common.RESOURCE_STATUS_PUBLISHED ||
 				resourceDetails?.result?.published_id === undefined
-			)
+			) {
 				await kafkaCommunication.pushResourceToKafka(resourceDetails?.result, resourceDetails?.result?.type)
-
+			}
 			const rolloutKafkaPayload = {
 				...rolloutDetails.result,
+				processType: rolloutProcessType,
 				resource: [
 					{
 						...resourceDetails?.result,
+						rolloutId: solutionRolloutId,
+						processType: rolloutSolutionProcessType,
 					},
 				],
 			}
 
-			await kafkaCommunication.pushRolloutToKafka(rolloutKafkaPayload, rolloutDetails.result.type)
+			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
+				await kafkaCommunication.pushDataToKafka(rolloutKafkaPayload, common.ROLL_OUT)
+			} else {
+				// implement API based publish
+			}
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
@@ -751,7 +772,7 @@ module.exports = class RolloutsHelper {
 	 * @name publishCallback
 	 * @returns {JSON} - details of Rollout
 	 */
-	static async publishCallback(rolloutId, publishedId) {
+	static async publishCallback(rolloutId, publishedId, templateId = null) {
 		try {
 			let rollout = await rolloutQueries.updateOne(
 				{
@@ -759,14 +780,15 @@ module.exports = class RolloutsHelper {
 				},
 				{
 					published_id: publishedId,
+					template_id: templateId,
 					published_on: new Date(),
-					status: common.ROLLOUT_PUBLISHED,
+					status: common.ROLLOUT_STATUS_PUBLISHED,
 				}
 			)
 
 			if (rollout === 0) {
 				return responses.failureResponse({
-					message: 'ROLLOUT_PUBLISHED',
+					message: 'ROLLOUT_PUBLISH_FAILED',
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})

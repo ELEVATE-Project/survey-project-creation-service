@@ -16,7 +16,7 @@ module.exports = {
 					{
 						type: 'required',
 						value: true,
-						message: 'Enter valid project title',
+						message: 'Start Date is Mandatory.',
 					},
 				],
 				model: ['rollouts'],
@@ -28,12 +28,48 @@ module.exports = {
 					{
 						type: 'required',
 						value: true,
-						message: 'Enter valid project title',
+						message: 'End Date is Mandatory.',
 					},
 					{
-						type: 'endDateCheck',
+						type: 'end_date_check',
 						value: true,
 						message: 'Start Date should be before End Date',
+					},
+				],
+				model: ['rollouts'],
+			},
+			{
+				entityType: 'viewers',
+				has_entities: false,
+				validation: [
+					{
+						type: 'required',
+						value: true,
+						message: 'Data Managers should not be empty.',
+					},
+				],
+				model: ['rollouts'],
+			},
+			{
+				entityType: 'targeting_criteria',
+				has_entities: false,
+				validation: [
+					{
+						type: 'required',
+						value: true,
+						message: 'Targeting Criteria should not be empty.',
+					},
+				],
+				model: ['rollouts'],
+			},
+			{
+				entityType: 'resource_id',
+				has_entities: false,
+				validation: [
+					{
+						type: 'required',
+						value: true,
+						message: 'Resource cannot be empty.',
 					},
 				],
 				model: ['rollouts'],

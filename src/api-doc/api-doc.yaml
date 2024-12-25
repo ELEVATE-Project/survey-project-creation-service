@@ -5626,7 +5626,7 @@ paths:
                         type: number
                         example: 1
   /scp/v1/rollouts/publish/{id}:
-    post:
+    get:
       summary: Publish Rollout
       tags:
         - Rollout

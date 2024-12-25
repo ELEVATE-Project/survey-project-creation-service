@@ -10,8 +10,12 @@ const rolloutService = require('@services/rollouts')
 const MongoClient = require('mongodb').MongoClient
 const ObjectId = require('mongodb').ObjectID
 const _ = require('lodash')
-const { UUID } = require('sequelize')
 const utils = require('@generics/utils')
+const axios = require('axios')
+const cheerio = require('cheerio')
+let fs = require('fs')
+const path = require('path')
+const request = require('request')
 let mongoDb
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
@@ -42,6 +46,7 @@ const COLLECTIONS = {
 	TASKS: 'projectTemplateTasks',
 	PROGRAMS: 'programs',
 	SOLUTIONS: 'solutions',
+	CERTIFICATE_TEMPLATE: 'certificateTemplates',
 }
 
 /**
@@ -382,6 +387,7 @@ const assignSequenceNumbers = (tasks) => {
 const createSolutions = async (resourceDetails, programDetails) => {
 	try {
 		let solutionsToCreate = []
+		let solutionCertificateMap = []
 		resourceDetails.forEach((resource) => {
 			const solutionTemplate = {
 				resourceType: [common.SOLUTIONS_RESOURCE_TYPE[resource.type]],
@@ -428,12 +434,23 @@ const createSolutions = async (resourceDetails, programDetails) => {
 				status: common.STATUS_ACTIVE.toLowerCase(),
 				updatedAt: new Date(),
 				createdAt: new Date(),
-				__v: 0,
 				scope: programDetails.scope,
 				projectTemplateId: null,
 				updatedBy: 1,
 				endDate: programDetails.end_date,
 				startDate: programDetails.start_date,
+			}
+
+			// map resource externalId and certificate Data if it has certificate data
+			if (
+				resource?.certificate &&
+				typeof resource?.certificate === 'object' &&
+				Object.keys(resource?.certificate).length != 0
+			) {
+				solutionCertificateMap.push({
+					externalId: solutionTemplate.externalId,
+					certificate: resource?.certificate,
+				})
 			}
 			solutionsToCreate.push(solutionTemplate)
 		})
@@ -446,6 +463,13 @@ const createSolutions = async (resourceDetails, programDetails) => {
 				programId: programDetails._id,
 			})
 			.toArray()
+
+		if (solutionCertificateMap && solutionCertificateMap.length > 0) {
+			solutionCertificateMap.forEach((solutionMap) => {
+				const found = createdSolutions.find((solution) => solution.externalId == solutionMap.externalId)
+				insertCertificateTemplate(found.certificate, found._id, programDetails._id)
+			})
+		}
 
 		return createdSolutions
 	} catch (error) {
@@ -476,6 +500,7 @@ const duplicateResources = async (resourceDetails) => {
 		// 	projectExternalId : [ list of last ids]
 		// }
 		let templateProjectsTaskMap = {}
+		let templateProjectsIdMap = {}
 		let templateProjects = []
 		let templateTaskIds = []
 		let duplicateTasks = []
@@ -493,6 +518,7 @@ const duplicateResources = async (resourceDetails) => {
 				project.createdAt = new Date()
 				project.isReusable = false
 				templateProjectsTaskMap[project.externalId] = project.tasks
+				templateProjectsIdMap[project.externalId] = project.rolloutId
 				templateProjects.push(project)
 			})
 
@@ -559,6 +585,7 @@ const duplicateResources = async (resourceDetails) => {
 		const updatedProjectTemplates = projectTemplatesAfterInsert.map((project) => ({
 			...project, // Spread the existing project fields
 			type: common.PROJECT,
+			resource_id: templateProjectsIdMap[project.externalId],
 		}))
 
 		return [...updatedProjectTemplates]
@@ -657,7 +684,6 @@ const formatProgramTemplate = (templateData) => {
 			description: templateData?.description ? templateData?.description : '',
 			updatedAt: new Date(),
 			createdAt: new Date(),
-			__v: 0,
 			endDate: new Date(templateData?.end_date),
 			startDate: new Date(templateData?.start_date),
 		}
@@ -668,6 +694,230 @@ const formatProgramTemplate = (templateData) => {
 		return { success: false, error: error.message }
 	}
 }
+
+// function to replace special charecters
+const escapeXml = (unsafe) => {
+	return unsafe
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&apos;')
+}
+
+/**
+ * create svg template by editing base template.
+ * @method
+ * @name createSvg
+ * @param {Object} certificateData - Certificate data for upload
+ */
+
+async function createSvg(certificateData) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			// fetch base template from cloud
+			let baseTemplate = await getBaseTemplate(certificateData?.base_template_url)
+			if (!baseTemplate.success) {
+				throw new Error('Base template download failed.')
+			}
+
+			// Load SVG template using Cheerio with XML mode
+			const $ = cheerio.load(baseTemplate.result, { xmlMode: true })
+
+			// set issuer name
+			const issuerNameTag = 'stateTitle'
+			const issuerNameElement = $(`#${issuerNameTag}`)
+			issuerNameElement.text(escapeXml(certificateData.issuer))
+
+			// update signature
+			for (let index = 1; index <= certificateData.signature.no_of_signature; index++) {
+				const signatureNameTag = `signatureTitleName${index}`
+				const signatureDesignationTag = `signatureTitleDesignation${index}`
+				const signatureImgTag = `signatureImg${index}`
+				const imageData = await downloadAndConvertToBase64(certificateData.signature[signatureImgTag])
+				const signatureNameElement = $(`#${signatureNameTag}`)
+				const signatureDesignationElement = $(`#${signatureDesignationTag}`)
+				const signatureImgElement = $(`#${signatureImgTag}`)
+				signatureImgElement.attr('xlink:href', escapeXml(imageData))
+				signatureNameElement.text(escapeXml(certificateData.signature[signatureImgTag]))
+				signatureDesignationElement.text(escapeXml(certificateData.signature[signatureDesignationTag]))
+			}
+
+			// update logos
+			for (let index = 1; index <= certificateData.logos.no_of_logos; index++) {
+				const logoTag = `stateLogo${index}`
+				const imageData = await downloadAndConvertToBase64(certificateData.logos[logoTag])
+				const logoElement = $(`#${logoTag}`)
+				logoElement.attr('xlink:href', escapeXml(imageData))
+			}
+
+			// updated svg
+			let updatedSvg = $.xml()
+
+			const uniqueId = utils.generateUniqueId() //generate a unique id for folder
+			let fileName = `./certificate_template_${uniqueId}.svg` //create a unique file name
+			const mainPath = path.join(__dirname, `../temp/certificate/`) //temporary folder path for certificate template
+			let dirPath = path.join(mainPath, `${uniqueId}/`) //create a directory path
+			fs.mkdirSync(dirPath, { recursive: true }) //create directory
+			fs.writeFileSync(path.join(dirPath, fileName), updatedSvg, { encoding: 'utf8' }) //create file
+			// create a file upload payload
+			let payloadData = {
+				cert: {
+					files: [fileName],
+				},
+				ref: common.CERTIFICATE,
+			}
+			// generate signed url
+			const getSignedUrl = await filesService.getSignedUrl(
+				payloadData,
+				common.CERTIFICATE_TEMPLATE,
+				'system',
+				false
+			)
+			if (!getSignedUrl.result) {
+				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
+			}
+
+			if (!getSignedUrl.result) {
+				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
+			}
+
+			const fileUploadUrl = getSignedUrl.result['cert']['files'][0].url
+			let uploadedFilePath = getSignedUrl.result['cert']['files'][0].file
+			const fileData = fs.readFileSync(path.join(dirPath, fileName))
+			//upload file
+			const fileUploadToSingedUrl = await request({
+				url: fileUploadUrl,
+				method: 'put',
+				headers: {
+					'Content-Type': 'application/multipart/form-data',
+				},
+				body: fileData,
+			})
+			console.log('fileUploadToSingedUrl : ', fileUploadToSingedUrl.status)
+			// delete folder after upload
+			await deleteFolderRecursive(path.join(mainPath, uniqueId))
+
+			resolve({
+				message: 'Template edited successfully',
+				filePath: uploadedFilePath,
+			})
+		} catch (error) {
+			reject(error)
+		}
+	})
+}
+
+async function insertCertificateTemplate(certificateData, solutionId, programId) {
+	const filePath = await createSvg(certificateData)
+	const certificateDocument = {
+		status: common.STATUS_ACTIVE.toLowerCase(),
+		deleted: false,
+		solutionId,
+		programId,
+		createdAt: new Date(),
+		updatedAt: new Date(),
+		templateUrl: filePath,
+		issuer: { name: certificateData.issuer },
+		criteria: certificateData.criteria,
+	}
+
+	// Insert the template into the database
+	const certificateTemplateCollection = mongoDb.collection(COLLECTIONS.CERTIFICATE_TEMPLATE)
+	const result = await certificateTemplateCollection.insertOne(certificateDocument)
+
+	// Validate the result of the template creation
+	if (!result || !result.insertedId) {
+		throw new Error(`Failed to insert the template into the ${COLLECTIONS.CERTIFICATE_TEMPLATE} collection.`)
+	}
+	// Insert the template into the database
+	const solutionTemplateCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
+	const resultUpdateSolution = await solutionTemplateCollection.updateOne(
+		({ _id: solutionId },
+		{
+			$set: {
+				certificateTemplateId: result.insertedId,
+			},
+		})
+	)
+	// Validate the result of the template creation
+	if (!resultUpdateSolution) {
+		throw new Error(`Failed to update the template into the ${COLLECTIONS.SOLUTIONS} collection.`)
+	}
+
+	return true
+}
+// function to recursively delete folder after upload
+async function deleteFolderRecursive(folderPath) {
+	// Check if the folder exists
+	if (fs.existsSync(folderPath)) {
+		// Get all files and subdirectories in the folder
+		fs.readdirSync(folderPath).forEach((file) => {
+			const currentPath = path.join(folderPath, file)
+
+			// If the item is a directory, recursively delete its contents
+			if (fs.lstatSync(currentPath).isDirectory()) {
+				deleteFolderRecursive(currentPath)
+			} else {
+				// Otherwise, delete the file
+				fs.unlinkSync(currentPath)
+			}
+		})
+		// Delete the empty folder
+		fs.rmdirSync(folderPath)
+		console.log(`Folder and its contents deleted: ${folderPath}`)
+	} else {
+		console.log('Folder does not exist:', folderPath)
+	}
+}
+// Function to fetch data information from cloud using downloadable Url
+async function getBaseTemplate(templateUrl) {
+	try {
+		const response = await axios.get(templateUrl)
+		if (response.status === 200) {
+			return {
+				success: true,
+				result: response.data,
+			}
+		} else {
+			throw new Error(`Unexpected response status: ${response.status}`)
+		}
+	} catch (error) {
+		return Promise.reject(new Error(`Failed to fetch base template: ${error.message}`))
+	}
+}
+
+// download file from cloud and convert it into base64
+async function downloadAndConvertToBase64(url) {
+	try {
+		// Download the image file as a binary buffer
+		const response = await axios({
+			url,
+			method: 'GET',
+			responseType: 'arraybuffer', // Ensures we receive raw binary data
+			timeout: 40000,
+			headers: {
+				Connection: 'close', // Ensures the socket is closed after the request
+			},
+		})
+
+		// Convert the binary data to a Base64 string
+		const base64 = Buffer.from(response.data, 'binary').toString('base64')
+
+		// Get the content type (e.g., image/jpeg) from the response headers
+		const contentType = response.headers['content-type']
+
+		// Create the Base64 Data URL
+		const base64DataUrl = `data:${contentType};base64,${base64}`
+
+		return base64DataUrl
+	} catch (error) {
+		console.error('Error downloading or converting file:', error.message)
+		throw error
+	}
+}
+
+// async function createResourceRollouts()
 
 /**
  * Publish the Program
@@ -686,46 +936,111 @@ const publishProgram = function (programData) {
 			}
 
 			let template = formattedTemplate.template
-			const resourceDetails = template.resourceDetails
+			const resourceDetailsCreate = template.resourceDetails.map(
+				(resource) => resource.processType == common.ROLLOUT_PROCESS_TYPE_CREATE
+			)
+			const resourceDetailsUpdate = template.resourceDetails.map(
+				(resource) => resource.processType == common.ROLLOUT_PROCESS_TYPE_UPDATE
+			)
 			const programScope = template.scope
 			delete template.resourceDetails
-
+			let result = {}
+			let programId
 			// Insert the template into the database
 			const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
-			const result = await programsCollection.insertOne(template)
+			if (programData.processType == common.ROLLOUT_PROCESS_TYPE_UPDATE) {
+				const updateTemplate = {
+					scope: formattedTemplate.template.scope,
+					endDate: formattedTemplate.template.endDate,
+					startDate: formattedTemplate.template.startDate,
+				}
 
-			// Validate the result of the template creation
-			if (!result || !result.insertedId) {
-				throw new Error('Failed to insert the template into the database.')
+				result = await programsCollection.updateOne(
+					{ _id: programData._id },
+					{
+						$set: updateTemplate,
+					}
+				)
+
+				programId = programData._id
+			} else {
+				result = await programsCollection.insertOne(template)
+				// Validate the result of the template creation
+				if (!result || !result.insertedId) {
+					throw new Error('Failed to insert the template into the database.')
+				}
+				programId = result.insertedId
 			}
 
-			const programId = result.insertedId
+			if (resourceDetailsCreate.length > 0) {
+				const duplicateResource = await duplicateResources(resourceDetailsCreate)
+				const solutions = await createSolutions(duplicateResource, {
+					_id: programId,
+					scope: programScope,
+					externalId: template.externalId,
+					name: template.name,
+					description: template.description ? template.description : '',
+					end_date: template.endDate,
+					start_date: template.startDate,
+				})
+				const solutionIds = solutions.map((solution) => solution._id)
+				// Update Template with tasks and sequence
+				await programsCollection.updateOne(
+					{ _id: programId },
+					{
+						$set: {
+							components: solutionIds,
+						},
+					}
+				)
+				await rolloutService.publishCallback(programData.id, programId.toString())
+				duplicateResource.forEach(async (resource) => {
+					await rolloutService.publishCallback(resource.resource_id, resource._id.toString())
+				})
+			}
 
-			const duplicateResource = await duplicateResources(resourceDetails)
+			if (resourceDetailsUpdate.length > 0) {
+				const solutionCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
+				resourceDetailsUpdate.forEach(async (resource) => {
+					let scope = {
+						roles: [],
+						entityType: [],
+					}
+					if (resource?.targeting_criteria) {
+						resource?.targeting_criteria.forEach((targeting) => {
+							const targeting_entity = targeting?.entity_targeting?.value
 
-			const solutions = await createSolutions(duplicateResource, {
-				_id: programId,
-				scope: programScope,
-				externalId: template.externalId,
-				name: template.name,
-				description: template.description ? template.description : '',
-				end_date: template.endDate,
-				start_date: template.startDate,
-			})
+							if (!scope.entityType.includes(targeting_entity)) scope.entityType.push(targeting_entity)
+							if (targeting?.roles) {
+								targeting.roles.forEach((role) => {
+									if (!scope.roles.includes(role.value)) scope.roles.push(role.value)
+									if (!metaInformation.recommendedFor.includes(role.label))
+										metaInformation.recommendedFor.push(role.label)
+								})
+							} else {
+								scope.roles = []
+								metaInformation.recommendedFor = []
+							}
+							targeting[targeting_entity].forEach((target) => {
+								if (scope[targeting_entity] == undefined) scope[targeting_entity] = []
+								if (metaInformation[targeting_entity] == undefined)
+									metaInformation[targeting_entity] = []
+								metaInformation[targeting_entity].push(target.name)
+								scope[targeting_entity].push(target._id)
+							})
+						})
+					} else {
+						scope = formattedTemplate.scope
+					}
 
-			const solutionIds = solutions.map((solution) => solution._id)
-
-			// Update Template with tasks and sequence
-			await programsCollection.updateOne(
-				{ _id: programId },
-				{
-					$set: {
-						components: solutionIds,
-					},
-				}
-			)
-
-			await rolloutService.publishCallback(programData.id, programId.toString())
+					await solutionCollection.updateOne(
+						{ _id: resource.published_id },
+						{
+							$set: scope,
+						}
+					)
+				})
+			}
 
 			//return result
 			result.success = true

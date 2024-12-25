@@ -8,12 +8,6 @@ const common = require('@constants/common')
 module.exports = {
 	async up(queryInterface, Sequelize) {
 		try {
-			const module = await Modules.findOne({
-				where: { code: common.ROLL_OUT_MODULE, status: common.STATUS_ACTIVE },
-			})
-
-			if (!module) throw module
-
 			const entityType = await EntityType.findOne({
 				where: { value: common.ROLLOUT_TITLE, status: common.STATUS_ACTIVE },
 			})
@@ -21,7 +15,7 @@ module.exports = {
 			const entityModelMapping = [
 				{
 					entity_type_id: entityType.id,
-					model: module.code,
+					model: common.ROLL_OUT_MODULE,
 					status: 'ACTIVE',
 					updated_at: new Date(),
 					created_at: new Date(),

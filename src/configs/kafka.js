@@ -31,7 +31,7 @@ module.exports = async () => {
 			triggerNotification: true,
 		})
 	})
-
+	await consumer.connect()
 	consumer.on('consumer.connect', () => {
 		logger.info('KafkaConsumer: connection established')
 	})
@@ -43,7 +43,6 @@ module.exports = async () => {
 	})
 	const subscribeToConsumer = async () => {
 		try {
-			await consumer.connect()
 			await consumer.subscribe({ topics: [process.env.CLEAR_INTERNAL_CACHE] })
 			await consumer.subscribe({
 				topics: process.env.PROJECT_PUBLISH_KAFKA_TOPIC.split(','),
