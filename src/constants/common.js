@@ -213,4 +213,5 @@ module.exports = {
 	ROLLOUT_UPLOAD_FILE_NAME: 'rollout.json',
 	PUBLISHED_STATUS: 'published',
 	CONSUMPTION_SERVICE_SELF: 'self',
+	INTERNAL_ACCESS_TOKEN: 'internal-access-token',
 }
