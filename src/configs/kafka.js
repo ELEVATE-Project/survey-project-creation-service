@@ -46,8 +46,9 @@ module.exports = async () => {
 
 	const subscribeToConsumer = async () => {
 		try {
-			await consumer.subscribe({ topics: [process.env.CLEAR_INTERNAL_CACHE] })
-			await consumer.subscribe({ topic: process.env.PROJECT_PUBLISH_KAFKA_TOPIC, fromBeginning: true })
+			await consumer.subscribe({
+				topics: [process.env.CLEAR_INTERNAL_CACHE, process.env.PROJECT_PUBLISH_KAFKA_TOPIC],
+			})
 			logger.info(
 				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} and ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC}`
 			)

@@ -204,6 +204,24 @@ let environmentVariables = {
 		optional: true,
 		default: 'rollout_manager',
 	},
+	CONSUMPTION_SERVICE_BASE_URL: {
+		message: 'Default data managers required.',
+		optional: true,
+		requiredIf: {
+			key: 'RESOURCE_KAFKA_PUSH_ON_OFF',
+			operator: 'EQUALS',
+			value: 'OFF',
+		},
+	},
+	PROJECT_PUBLISH_END_POINT: {
+		message: 'Required project publish endpoint',
+		optional: true,
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
 }
 
 let success = true

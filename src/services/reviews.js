@@ -20,6 +20,7 @@ const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const kafkaCommunication = require('@generics/kafka-communication')
+const consumptionRequests = require('@requests/consumption')
 module.exports = class reviewsHelper {
 	/**
 	 * Update review.
@@ -707,10 +708,12 @@ module.exports = class reviewsHelper {
 
 			//publish the resource
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
+				//resource creation through kafka
 				if (process.env.RESOURCE_KAFKA_PUSH_ON_OFF == common.KAFKA_ON) {
 					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
-				} else {
-					// api need to implement
+				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
+					//resource creation through api
+					consumptionRequests.publishProject(resourceData)
 				}
 			}
 

@@ -6,6 +6,10 @@
  */
 const common = require('@constants/common')
 const resourceService = require('@services/resource')
+const utils = require('@generics/utils')
+const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST
+const requests = require('@generics/requests')
+const endpoints = require('@constants/endpoints')
 const MongoClient = require('mongodb').MongoClient
 let mongoDb
 
@@ -47,7 +51,6 @@ const publishProjectTemplates = function (templateData) {
 	return new Promise(async (resolve, reject) => {
 		const result = { success: false, templateId: null, error: null }
 		try {
-			console.log(templateData, 'templateData')
 			// Format the template
 			let formattedTemplate = formatTemplate(templateData)
 			if (!formattedTemplate.success) {
@@ -71,7 +74,7 @@ const publishProjectTemplates = function (templateData) {
 
 			// Validate the result of the template creation
 			if (!result || !result.insertedId) {
-				throw new Error('Failed to insert the template into the database.')
+				throw new Error('FAILED_TO_CREATE_TEMPLATE')
 			}
 
 			const templateId = result.insertedId
@@ -104,7 +107,7 @@ const publishProjectTemplates = function (templateData) {
 			result.templateId = templateId
 			return resolve(result)
 		} catch (error) {
-			result.error = `Error: ${error.message}`
+			result.error = error.message || error
 			return reject(error)
 		}
 	})
@@ -121,33 +124,21 @@ const formatTemplate = (templateData) => {
 		let template = {
 			title: templateData.title,
 			description: templateData.objective || '',
-			keywords: Array.isArray(templateData.keywords)
-				? templateData.keywords.map((k) => k.trim()) // If it's an array, trim each keyword
-				: templateData.keywords
-				? templateData.keywords.split(',').map((k) => k.trim()) // If it's a string, split and trim
-				: [],
+			keywords: utils.formatKeywords(templateData.keywords),
 			isDeleted: false,
 			recommendedFor: templateData.recommended_for?.length
 				? templateData.recommended_for.map((item) => item.label)
 				: [],
 			createdBy: templateData.user_id,
 			updatedBy: templateData.user_id,
-			learningResources: templateData.learning_resources ? convertResources(templateData.learning_resources) : [],
+			learningResources: utils.convertResources(templateData.learning_resources || []),
 			isReusable: true,
 			taskSequence: [], // Initially empty
 			deleted: false,
 			status: common.PUBLISHED_STATUS,
-			externalId: generateExternalId(templateData.title),
+			externalId: utils.generateExternalId(templateData.title),
 			entityType: '',
-			metaInformation: {
-				goal: '',
-				rationale: '',
-				primaryAudience: '',
-				duration: `${templateData.recommended_duration.number} ${templateData.recommended_duration.duration}`,
-				successIndicators: '',
-				risks: '',
-				approaches: '',
-			},
+			metaInformation: utils.formatMetaInformation(templateData),
 			tasks: [], // Initially empty
 		}
 
@@ -171,20 +162,23 @@ async function processCategories(categories) {
 		// Format categories
 		const formattedCategories = categories.map((category) => {
 			if (!category.label || !category.value) {
-				throw new Error('Each category must have a label and a value.')
+				throw new Error('EACH_CATEGORY_MUST_BE_LABEL_AND_VALUE')
 			}
 			return {
 				label: category.label,
 				value: category.value,
-				formattedName: formatCategoriesName(category.value),
+				formattedName: utils.formatToTitleCase(category.value),
 				externalId: category.value.replace(/_/g, '').toLowerCase(),
 			}
 		})
 
 		// Fetch existing categories by externalId
-		const existingCategories = await categoriesCollection
-			.find({ externalId: { $in: formattedCategories.map((cat) => cat.externalId) } })
-			.toArray()
+		let existingCategories = []
+		const externalIds = formattedCategories.map((cat) => cat.externalId)
+		if (externalIds.length > 0) {
+			existingCategories = await categoriesCollection.find({ externalId: { $in: externalIds } }).toArray()
+		}
+
 		const existingExternalIds = existingCategories.map((cat) => cat.externalId)
 
 		// Filter out categories that already exist
@@ -207,29 +201,33 @@ async function processCategories(categories) {
 
 		// Insert only new categories
 		if (newCategories.length > 0) {
-			const result = await categoriesCollection.insertMany(newCategories)
+			const { insertedIds } = await categoriesCollection.insertMany(newCategories)
 			newCategories.forEach((category, index) => {
-				category._id = result.insertedIds[index]
+				category._id = insertedIds[index]
 				existingExternalIds.add(category.externalId)
 			})
 		}
 
-		// Map all categories to the response format
+		// Create a lookup object for existing and new categories
+		const categoryLookup = {}
+
+		// Populate lookup with existing categories
+		existingCategories.forEach((cat) => {
+			categoryLookup[cat.externalId] = cat
+		})
+
+		// Add new categories to the lookup (overwrite if already exists)
+		newCategories.forEach((cat) => {
+			categoryLookup[cat.externalId] = cat
+		})
+
+		// Map formatted categories to the processed result using the lookup object
 		const processedCategories = formattedCategories.map((category) => {
-			const existing = existingCategories.find((cat) => cat.externalId === category.externalId)
-			if (existing) {
-				return {
-					_id: existing._id,
-					externalId: existing.externalId,
-					name: existing.name,
-				}
-			} else {
-				const newCategory = newCategories.find((cat) => cat.externalId === category.externalId)
-				return {
-					_id: newCategory._id,
-					externalId: newCategory.externalId,
-					name: newCategory.name,
-				}
+			const cat = categoryLookup[category.externalId]
+			return {
+				_id: cat._id,
+				externalId: cat.externalId,
+				name: cat.name,
 			}
 		})
 
@@ -261,7 +259,7 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 			const taskData = {
 				name: task.name,
 				description: task.name,
-				externalId: generateExternalId(task.name),
+				externalId: utils.generateExternalId(task.name),
 				type: task.type,
 				isDeleted: !task.is_mandatory,
 				isDeletable: !task.is_mandatory,
@@ -269,7 +267,7 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				projectTemplateId: templateId,
 				projectTemplateExternalId: templateExternalId,
 				hasSubTasks: task.children?.length > 0,
-				learningResources: convertResources(task.learning_resources || []),
+				learningResources: utils.convertResources(task.learning_resources || []),
 				parentId,
 				deleted: false,
 				createdAt: new Date(),
@@ -280,8 +278,7 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 			const taskCreationRes = await taskCollection.insertOne(taskData)
 			// Validate the insertion result
 			if (!taskCreationRes || !taskCreationRes.insertedId) {
-				result.error = `Failed to insert task: ${task.name}`
-				return result
+				throw new Error(`Failed to insert task: ${task.name}`)
 			}
 
 			const taskId = taskCreationRes.insertedId
@@ -294,8 +291,9 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 
 				// Validate the child task creation
 				if (!childTaskResult.success) {
-					result.error = `Failed to create child tasks for task: ${task.name}. Error: ${childTaskResult.error}`
-					return result
+					throw new Error(
+						`Failed to create child tasks for task: ${task.name}. Error: ${childTaskResult.error}`
+					)
 				}
 
 				// Update task with child task sequence and children
@@ -316,50 +314,6 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 		return result
 	}
 }
-
-/**
- * Format category Name
- * @name formatCategoriesName
- * @param {String} value - category
- * @returns {String} - Category
- */
-function formatCategoriesName(value) {
-	return value
-		.replace(/_/g, ' ') // Replace underscores with spaces
-		.replace(/\b\w/g, (char) => char.toUpperCase()) // Capitalize the first letter of each word
-		.trim() // Ensure no leading or trailing spaces
-}
-
-/**
- * Generate externalId from title
- * @name generateExternalId
- * @param {String} title - title
- * @returns {String} - ExternalId
- */
-
-function generateExternalId(title) {
-	console.log(title, 'title')
-	const words = title.split(/[\s-]+/)
-	const abbreviation = words.map((word) => (word[0] || '').toUpperCase()).join('')
-	const uniqueSuffix = Date.now()
-	return `${abbreviation}-${uniqueSuffix}`
-}
-
-/**
- * Convert Learning Resource
- * @name convertResources
- * @param {Array} resources - learning resource data
- * @returns {Object} - Response contains formatted learning resource
- */
-const convertResources = (resources) =>
-	resources
-		.filter((resource) => resource.url) // Ensure `url` exists
-		.map((resource) => ({
-			name: resource.name || 'resource',
-			link: resource.url,
-			app: process.env.CONSUMPTION_SERVICE,
-			id: resource.url.split('/').pop(), // Extract the last part of the URL
-		}))
 
 /**
  * Assign sequence number for task
@@ -388,6 +342,33 @@ const assignSequenceNumbers = (tasks) => {
 	// })
 }
 
+/**
+ * Create Template and Tasks
+ * @name publishProject
+ * @param {Object} categories - Categories Data
+ * @returns {Object} - Response contains categories data
+ */
+const publishProject = function (templateData) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let apiUrl =
+				interfaceBaseUrl + process.env.CONSUMPTION_SERVICE_BASE_URL + process.env.PROJECT_PUBLISH_END_POINT
+
+			let bodyData = {
+				data: templateData,
+				callBackUrl:
+					interfaceBaseUrl + process.env.APPLICATION_BASE_URL + endpoints.CALLBACK_URL_FOR_RESOURCE_PUBLISH,
+			}
+			const response = await requests.post(apiUrl, bodyData, '', true, common.INTERNAL_ACCESS_TOKEN)
+
+			return resolve(response)
+		} catch (error) {
+			return reject(error)
+		}
+	})
+}
+
 module.exports = {
 	publishProjectTemplates,
+	publishProject,
 }
