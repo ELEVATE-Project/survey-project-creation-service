@@ -226,4 +226,8 @@ module.exports = {
 		project: 'improvementProject',
 	},
 	ROLLOUT_STATUS_PUBLISHED: 'ROLLED_OUT',
+	PUBLISHED_STATUS: 'published',
+	CONSUMPTION_SERVICE_SELF: 'self',
+	INTERNAL_ACCESS_TOKEN: 'internal-access-token',
+	DIKSHA: 'diksha',
 }
