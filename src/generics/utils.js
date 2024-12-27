@@ -671,7 +671,7 @@ function formatKeywords(keywords) {
  * @param {Object} templateData - Template data
  * @returns {Object} - Meta-information
  */
-function formatMetaInformation(templateData) {
+function formatProjectMetaInformation(templateData) {
 	return {
 		duration: `${templateData.recommended_duration.number} ${templateData.recommended_duration.duration}`,
 		goal: '',
@@ -680,6 +680,48 @@ function formatMetaInformation(templateData) {
 		successIndicators: '',
 		risks: '',
 		approaches: '',
+	}
+}
+
+/**
+ * Converts a duration object to the desired format.
+ * name convertDuration
+ * @param {Object} input - The input duration object.
+ * @returns {Object} - The converted duration object or null if input is invalid.
+ */
+function convertDuration(durationObj) {
+	// Validate input
+	if (!durationObj || typeof durationObj !== 'object') {
+		return null
+	}
+
+	const number = durationObj?.number
+	const unit = durationObj?.duration
+
+	// Check if both number and unit are present
+	if (!number || !unit) {
+		return {}
+	}
+
+	// Define a map for unit abbreviations
+	const unitAbbreviations = {
+		weeks: 'W',
+		days: 'D',
+		hours: 'H',
+		minutes: 'M',
+		seconds: 'S',
+	}
+
+	// Get the abbreviation for the unit
+	const abbreviation = unitAbbreviations[unit.toLowerCase()]
+
+	if (!abbreviation) {
+		return {}
+	}
+
+	return {
+		value: `${number}${abbreviation}`,
+		label: `${number} ${unit.charAt(0).toUpperCase() + unit.slice(1)}`,
 	}
 }
 
@@ -724,5 +766,6 @@ module.exports = {
 	generateExternalId,
 	convertResources,
 	formatKeywords,
-	formatMetaInformation,
+	formatProjectMetaInformation,
+	convertDuration,
 }

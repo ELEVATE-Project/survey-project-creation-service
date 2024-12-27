@@ -39,6 +39,7 @@ const COLLECTIONS = {
 	CATEGORIES: 'projectCategories',
 	TEMPLATES: 'projectTemplates',
 	TASKS: 'projectTemplateTasks',
+	USER_ROLES: 'userRoles',
 }
 
 /**
@@ -66,6 +67,15 @@ const publishProjectTemplates = function (templateData) {
 					throw new Error('FAILED_TO_FETCH_OR_CREATE_CATEGORIES')
 				}
 				template.categories = categoriesResponse.categories
+			}
+
+			//process recommededFor
+			if (templateData.recommended_for?.length > 0) {
+				let recommededForResponse = await convertRecommendedRolesForProjects(templateData.recommended_for)
+				if (!recommededForResponse.success) {
+					throw new Error('FAILED_TO_FETCH_RECOMMENDED_FOR')
+				}
+				template.recommendedFor = recommededForResponse?.recommendedRoles
 			}
 
 			// Insert the template into the database
@@ -126,20 +136,20 @@ const formatTemplate = (templateData) => {
 			description: templateData.objective || '',
 			keywords: utils.formatKeywords(templateData.keywords),
 			isDeleted: false,
-			recommendedFor: templateData.recommended_for?.length
-				? templateData.recommended_for.map((item) => item.label)
-				: [],
 			createdBy: templateData.user_id,
 			updatedBy: templateData.user_id,
 			learningResources: utils.convertResources(templateData.learning_resources || []),
 			isReusable: true,
-			taskSequence: [], // Initially empty
 			deleted: false,
 			status: common.PUBLISHED_STATUS,
 			externalId: utils.generateExternalId(templateData.title),
 			entityType: '',
-			metaInformation: utils.formatMetaInformation(templateData),
+			metaInformation: utils.formatProjectMetaInformation(templateData),
+			duration: utils.convertDuration(templateData.recommended_duration),
+			recommendedFor: [], //Initially empty
+			categories: [], //Initially empty
 			tasks: [], // Initially empty
+			taskSequence: [], // Initially empty
 		}
 
 		return { success: true, template }
@@ -367,7 +377,41 @@ const publishProject = function (templateData) {
 		}
 	})
 }
+/**
+ * Converts the recommended roles for projects based on the consumption service type.
+ * @name convertRecommendedRolesForProjects
+ * @param {Array} recommendedFor - An array of objects containing label and value for recommended roles.
+ * @returns {Object} The result object containing success status and recommended roles.
+ */
+async function convertRecommendedRolesForProjects(recommendedFor) {
+	try {
+		if (process.env.CONSUMPTION_SERVICE == common.DIKSHA) {
+			const userRoleCollection = mongoDb.collection(COLLECTIONS.USER_ROLES)
+			const roles = await userRoleCollection.find({ status: 'active' }).toArray()
 
+			// Prepare the recommended roles for the Diksha project
+			const recommendedRoles = recommendedFor
+				.filter((item) => item?.label && item?.value)
+				// Validate label and value exist
+				.map((item) => {
+					// Find the matching role for each item
+					const matchingRole = roles.find((role) => role.title.trim() === item.label.trim())
+					return matchingRole ? { roleId: matchingRole._id, code: matchingRole.code } : null
+				})
+				.filter((role) => role !== null) // Remove any null roles from the output
+
+			return { success: true, recommendedRoles }
+		} else {
+			const recommendedRoles = recommendedFor?.length
+				? recommendedFor.filter((item) => item?.label).map((item) => item.label)
+				: []
+
+			return { success: true, recommendedRoles }
+		}
+	} catch (error) {
+		return { success: false, error: `Failed to process recommeded for: ${error.message}` }
+	}
+}
 module.exports = {
 	publishProjectTemplates,
 	publishProject,

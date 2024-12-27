@@ -205,7 +205,7 @@ let environmentVariables = {
 		default: 'rollout_manager',
 	},
 	CONSUMPTION_SERVICE_BASE_URL: {
-		message: 'Default data managers required.',
+		message: 'Consumption service base name required',
 		optional: true,
 		requiredIf: {
 			key: 'RESOURCE_KAFKA_PUSH_ON_OFF',
