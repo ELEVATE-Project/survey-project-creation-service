@@ -474,6 +474,24 @@ const checkRequired = (entityType, entityData) => {
 	}
 }
 
+/**
+ * Check if end date is greater than start date
+ * @method
+ * @name checkEndDate
+ * @param {String} start_date
+ * @param {String} end_date
+ * @returns {Boolean} - true / false based on the start and end date
+ */
+const checkEndDate = (start_date, end_date) => {
+	try {
+		start_date = new Date(start_date)
+		end_date = new Date(end_date)
+		return !isNaN(start_date) && !isNaN(end_date) && end_date > start_date
+	} catch (error) {
+		return error
+	}
+}
+
 const checkEntities = (entityType, entityData) => {
 	try {
 		if (entityType.has_entities) {
@@ -612,6 +630,119 @@ function isEnglish(text) {
 	}
 }
 
+/**
+ * Format Name to title case
+ * @name formatToTitleCase
+ * @param {String} value - category
+ * @returns {String} - Category
+ */
+function formatToTitleCase(value) {
+	return value
+		.replace(/_/g, ' ') // Replace underscores with spaces
+		.replace(/\b\w/g, (char) => char.toUpperCase()) // Capitalize the first letter of each word
+		.trim() // Ensure no leading or trailing spaces
+}
+
+/**
+ * Generate externalId from title
+ * @name generateExternalId
+ * @param {String} title - title
+ * @returns {String} - ExternalId
+ */
+
+function generateExternalId(title) {
+	const words = title.split(/[\s-]+/)
+	const abbreviation = words.map((word) => (word[0] || '').toUpperCase()).join('')
+	const uniqueSuffix = Date.now()
+	return `${abbreviation}-${uniqueSuffix}`
+}
+
+/**
+ * Convert Learning Resource
+ * @name convertResources
+ * @param {Array} resources - learning resource data
+ * @returns {Object} - Response contains formatted learning resource
+ */
+const convertResources = (resources) =>
+	resources
+		.filter((resource) => resource.url) // Ensure `url` exists
+		.map((resource) => ({
+			name: resource.name || 'resource',
+			link: resource.url,
+			app: process.env.CONSUMPTION_SERVICE,
+			id: resource.url.split('/').pop(), // Extract the last part of the URL
+		}))
+
+/**
+ * Format keywords
+ * @param {Array|String} keywords - Keywords
+ * @returns {Array} - Formatted keywords
+ */
+function formatKeywords(keywords) {
+	if (Array.isArray(keywords)) return keywords.map((k) => k.trim())
+	if (typeof keywords === 'string') return keywords.split(',').map((k) => k.trim())
+	return []
+}
+
+/**
+ * Format meta-information
+ * @param {Object} templateData - Template data
+ * @returns {Object} - Meta-information
+ */
+function formatProjectMetaInformation(templateData) {
+	return {
+		duration: `${templateData.recommended_duration.number} ${templateData.recommended_duration.duration}`,
+		goal: '',
+		rationale: '',
+		primaryAudience: '',
+		successIndicators: '',
+		risks: '',
+		approaches: '',
+	}
+}
+
+/**
+ * Converts a duration object to the desired format.
+ * name convertDuration
+ * @param {Object} input - The input duration object.
+ * @returns {Object} - The converted duration object or null if input is invalid.
+ */
+function convertDuration(durationObj) {
+	// Validate input
+	if (!durationObj || typeof durationObj !== 'object') {
+		return null
+	}
+
+	const number = durationObj?.number
+	const unit = durationObj?.duration
+
+	// Check if both number and unit are present
+	if (!number || !unit) {
+		return {}
+	}
+
+	// Define a map for unit abbreviations
+	const unitAbbreviations = {
+		weeks: 'W',
+		days: 'D',
+		hours: 'H',
+		minutes: 'M',
+		seconds: 'S',
+	}
+
+	// Get the abbreviation for the unit
+	const abbreviation = unitAbbreviations[unit.toLowerCase()]
+
+	if (!abbreviation) {
+		return {}
+	}
+
+	return {
+		value: `${number}${abbreviation}`,
+		label: `${number} ${unit.charAt(0).toUpperCase() + unit.slice(1)}`,
+	}
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -649,4 +780,11 @@ module.exports = {
 	isEmpty,
 	checkLength,
 	isEnglish,
+	checkEndDate,
+	formatToTitleCase,
+	generateExternalId,
+	convertResources,
+	formatKeywords,
+	formatProjectMetaInformation,
+	convertDuration,
 }

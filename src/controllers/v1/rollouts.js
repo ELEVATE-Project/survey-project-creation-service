@@ -111,4 +111,23 @@ module.exports = class rollouts {
 			return error
 		}
 	}
+
+	/* publish Rollout.
+	 * @method GET
+	 * @name publish
+	 * @param {Object} req  user request.
+	 * @returns {JSON} - Detail of published rollout.
+	 */
+	async publish(req) {
+		try {
+			const rollout = await rolloutService.publish(
+				req.params.id,
+				req.decodedToken.id,
+				req.decodedToken.organization_id
+			)
+			return rollout
+		} catch (error) {
+			return error
+		}
+	}
 }
