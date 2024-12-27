@@ -67,7 +67,6 @@ module.exports = {
 	SIGNATURE: 'signature',
 	LOGO: 'logo',
 	CERTIFICATE: 'certificate',
-	CERTIFICATE: 'certificate',
 	CLOUD_SERVICE_EXPIRY_TIME: 30,
 	LINK_EXPIRY_TIME: 60,
 	CLOUD_SERVICE: ['azure', 'gcloud'],
@@ -227,6 +226,4 @@ module.exports = {
 		project: 'improvementProject',
 	},
 	ROLLOUT_STATUS_PUBLISHED: 'ROLLED_OUT',
-	ROLLOUT_PROCESS_TYPE_CREATE: 'create',
-	ROLLOUT_PROCESS_TYPE_UPDATE: 'update',
 }
