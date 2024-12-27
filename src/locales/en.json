@@ -142,5 +142,9 @@
 	"CANT_CHANGE_RESOURCE": "You cant change the resource of published rollout",
 	"DONT_HAVE_ROLLOUT_ACCESS": "You don't have permission to access this rollout",
 	"ROLLOUT_FETCHED_SUCCESSFULLY": "Project fetched successfully",
-	"ROLLOUT_DELETED_SUCCESSFULLY": "Rollout deleted successfully"
+	"ROLLOUT_DELETED_SUCCESSFULLY": "Rollout deleted successfully",
+	"ROLLOUT_VALIDATION_FAILED": "Rollout Failed. Try again.",
+	"ROLLOUT_PUBLISHED": "Your changes have been published.",
+	"ROLLOUT_PUBLISH_FAILED": "Rollout Publish Failed.",
+	"ROLLOUT_UPDATED_SUCCESSFULLY": "Rollout updated successfully"
 }

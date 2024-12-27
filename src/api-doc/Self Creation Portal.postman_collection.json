@@ -1,10 +1,9 @@
 {
 	"info": {
-		"_postman_id": "caab3242-e913-47da-9a05-5ee0c48ea607",
+		"_postman_id": "6b394df6-e8d2-4d8d-b1e7-f998821d3b38",
 		"name": "Self Creation Portal",
-		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
-		"_exporter_id": "12011146",
-		"_collection_link": "https://crimson-star-573488.postman.co/workspace/backend~c1daa04f-8872-40f8-9e04-dcefba7434d5/collection/12011146-caab3242-e913-47da-9a05-5ee0c48ea607?action=share&source=collection_link&creator=12011146"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "40647259"
 	},
 	"item": [
 		{
@@ -30,7 +29,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/role-permission-mapping/create"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/role-permission-mapping/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "role-permission-mapping", "create"]
+						}
 					},
 					"response": []
 				},
@@ -79,7 +82,11 @@
 								"type": "text"
 							}
 						],
-						"url": "{{SCPBaseUrl}}scp/v1/role-permission-mapping/list"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/role-permission-mapping/list",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "role-permission-mapping", "list"]
+						}
 					},
 					"response": []
 				}
@@ -111,7 +118,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/permissions/create"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/permissions/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "permissions", "create"]
+						}
 					},
 					"response": []
 				},
@@ -239,7 +250,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/modules/create"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/modules/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "modules", "create"]
+						}
 					},
 					"response": []
 				},
@@ -365,7 +380,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/actions/update"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/actions/update",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "actions", "update"]
+						}
 					},
 					"response": []
 				},
@@ -527,7 +546,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/form/create"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/form/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "form", "create"]
+						}
 					},
 					"response": []
 				},
@@ -586,7 +609,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/form/read"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/form/read",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "form", "read"]
+						}
 					},
 					"response": []
 				},
@@ -640,7 +667,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/entities/create",
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entities/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entities", "create"]
+						},
 						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
 					},
 					"response": []
@@ -716,7 +747,11 @@
 								"type": "text"
 							}
 						],
-						"url": "{{SCPBaseUrl}}scp/v1/entities/read",
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entities/read",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entities", "read"]
+						},
 						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
 					},
 					"response": []
@@ -808,7 +843,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/entity-types/create",
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entity-types/create",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entity-types", "create"]
+						},
 						"description": "NOTE: Pass type as roles/designation/expertise etc. whatever types needs to be created"
 					},
 					"response": []
@@ -833,7 +872,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/entity-types/update/1",
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entity-types/update/1",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entity-types", "update", "1"]
+						},
 						"description": "NOET: All body req parameters are optional to update."
 					},
 					"response": []
@@ -849,7 +892,11 @@
 								"type": "text"
 							}
 						],
-						"url": "{{SCPBaseUrl}}scp/v1/entity-types/delete/1"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entity-types/delete/1",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entity-types", "delete", "1"]
+						}
 					},
 					"response": []
 				},
@@ -864,7 +911,11 @@
 								"type": "text"
 							}
 						],
-						"url": "{{SCPBaseUrl}}scp/v1/entity-types/read",
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/entity-types/read",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "entity-types", "read"]
+						},
 						"description": "NOTE: Query Parmas\n1). type is mandatory\n2). deleted is optional\n3). status is optional"
 					},
 					"response": []
@@ -931,7 +982,11 @@
 								"type": "text"
 							}
 						],
-						"url": "{{SCPBaseUrl}}scp/v1/config/list"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/config/list",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "config", "list"]
+						}
 					},
 					"response": []
 				}
@@ -960,7 +1015,11 @@
 								}
 							}
 						},
-						"url": "{{selfCreationPortalBaseUrl}}scp/v1/organization-extensions/createConfig"
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/organization-extensions/createConfig",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "organization-extensions", "createConfig"]
+						}
 					},
 					"response": []
 				},
@@ -1022,7 +1081,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/projects/update"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/update",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "projects", "update"]
+						}
 					},
 					"response": []
 				},
@@ -1582,6 +1645,30 @@
 					"response": []
 				},
 				{
+					"name": "Rollout Publish",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/publish/:id",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "rollouts", "publish", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Get Data Manager list",
 					"request": {
 						"method": "GET",
@@ -1591,7 +1678,11 @@
 								"value": "bearer {{token}}"
 							}
 						],
-						"url": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/getDataManagers"
+						"url": {
+							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/rollouts/getDataManagers",
+							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"path": ["v1", "rollouts", "getDataManagers"]
+						}
 					},
 					"response": []
 				}
@@ -1610,7 +1701,11 @@
 								"value": "bearer {{token}}"
 							}
 						],
-						"url": "{{SCPBaseUrl}}scp/v1/certificates/list"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/certificates/list",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "certificates", "list"]
+						}
 					},
 					"response": []
 				},
@@ -1634,7 +1729,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/certificate/update"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/certificate/update",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "certificate", "update"]
+						}
 					},
 					"response": []
 				},
@@ -1658,7 +1757,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/certificate/update:/id"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/certificate/update:/id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "certificate", "update:", "id"]
+						}
 					},
 					"response": []
 				}
@@ -1701,7 +1804,11 @@
 								}
 							}
 						},
-						"url": "{{UserBaseURL}}user/v1/account/create"
+						"url": {
+							"raw": "{{UserBaseURL}}user/v1/account/create",
+							"host": ["{{UserBaseURL}}user"],
+							"path": ["v1", "account", "create"]
+						}
 					},
 					"response": []
 				},
@@ -1769,7 +1876,11 @@
 								}
 							]
 						},
-						"url": "{{UserBaseURL}}user/v1/account/login"
+						"url": {
+							"raw": "{{UserBaseURL}}user/v1/account/login",
+							"host": ["{{UserBaseURL}}user"],
+							"path": ["v1", "account", "login"]
+						}
 					},
 					"response": []
 				},
@@ -1848,7 +1959,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/cloud-services/file/getDownloadableUrl"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/cloud-services/file/getDownloadableUrl",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "cloud-services", "file", "getDownloadableUrl"]
+						}
 					},
 					"response": []
 				},
@@ -1878,7 +1993,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/cloud-services/file/getSignedUrl"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/cloud-services/file/getSignedUrl",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "cloud-services", "file", "getSignedUrl"]
+						}
 					},
 					"response": []
 				}
@@ -1907,7 +2026,11 @@
 								}
 							}
 						},
-						"url": "{{UserBaseURL}}user/v1/organization/create"
+						"url": {
+							"raw": "{{UserBaseURL}}user/v1/organization/create",
+							"host": ["{{UserBaseURL}}user"],
+							"path": ["v1", "organization", "create"]
+						}
 					},
 					"response": []
 				},
@@ -1931,7 +2054,11 @@
 								}
 							}
 						},
-						"url": "{{UserBaseURL}}user/v1/organization/update/3"
+						"url": {
+							"raw": "{{UserBaseURL}}user/v1/organization/update/3",
+							"host": ["{{UserBaseURL}}user"],
+							"path": ["v1", "organization", "update", "3"]
+						}
 					},
 					"response": []
 				},
@@ -2179,7 +2306,11 @@
 								"type": "text"
 							}
 						],
-						"url": "{{SCPBaseUrl}}scp/v1/reviews/start/2417"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/reviews/start/2417",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "reviews", "start", "2417"]
+						}
 					},
 					"response": []
 				},
@@ -2274,7 +2405,11 @@
 								}
 							}
 						},
-						"url": "{{SCPBaseUrl}}scp/v1/reviews/rejectOrReport/2406"
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/reviews/rejectOrReport/2406",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "reviews", "rejectOrReport", "2406"]
+						}
 					},
 					"response": []
 				},

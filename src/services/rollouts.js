@@ -11,6 +11,10 @@ const orgExtensionService = require('@services/organization-extension')
 const filesService = require('@services/files')
 const userRequests = require('@requests/user')
 const { Op } = require('sequelize')
+const kafkaCommunication = require('@generics/kafka-communication')
+const entityModelMappingQuery = require('@database/queries/entityModelMapping')
+const utils = require('@generics/utils')
+
 module.exports = class RolloutsHelper {
 	/**
 	 * Rollout create
@@ -19,7 +23,7 @@ module.exports = class RolloutsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - rollout id
 	 */
-	static async create(bodyData, loggedInUserId, orgId) {
+	static async create(bodyData, loggedInUserId, orgId, isSolutionType = false) {
 		const transaction = await db.sequelize.transaction()
 		try {
 			//validate the resource
@@ -42,7 +46,7 @@ module.exports = class RolloutsHelper {
 				resource_type: resource.type,
 				resource_id: resource.id,
 				status: common.ROLLOUT_STATUS_PENDING,
-				type: common.ROLLOUT_TYPE_PROGRAM,
+				type: isSolutionType ? common.ROLLOUT_TYPE_SOLUTION : common.ROLLOUT_TYPE_PROGRAM,
 				user_id: loggedInUserId,
 				organization_id: orgId,
 				created_by: loggedInUserId,
@@ -51,6 +55,7 @@ module.exports = class RolloutsHelper {
 
 			if (bodyData.start_date) rolloutData.start_date = bodyData.start_date
 			if (bodyData.end_date) rolloutData.end_date = bodyData.end_date
+			if (isSolutionType == common.ROLLOUT_TYPE_SOLUTION) rolloutData.parent_id = bodyData.parent_id
 
 			let rolloutCreate
 			try {
@@ -559,6 +564,232 @@ module.exports = class RolloutsHelper {
 			})
 		} catch (error) {
 			return error
+		}
+	}
+	/**
+	 * rollout publish
+	 * @method
+	 * @name publish
+	 * @param {Integer} rolloutId - Rollout Id.
+	 * @param {String} loggedInUserId - userId
+	 * @param {String} orgId - organization id
+	 * @returns {JSON} - rollout publish response.
+	 */
+
+	static async publish(rolloutId, loggedInUserId, orgId) {
+		try {
+			// fetch rollout details
+			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId)
+			let solutionRolloutId
+
+			// check if rollout is present or not
+			if (rolloutDetails?.statusCode != httpStatusCode.ok) return rolloutDetails
+
+			const validateRollout = await this.validateRollout(resourceDetailsResult)
+			if (validateRollout.length > 0) {
+				const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					result: result,
+					message: 'ROLLOUT_VALIDATION_FAILED',
+				})
+			}
+
+			// fetch resource details
+			const resourceDetails = await resourceService.getDetails(resourceDetailsResult?.resource_id, orgId)
+
+			let resourceDetailsResult = resourceDetails?.result
+
+			// check if resource is present or not
+			if (resourceDetails?.statusCode != httpStatusCode.ok) return resourceDetails
+
+			let solutionRollout = await rolloutQueries.findOne({
+				resource_id: resourceDetailsResult?.resource_id,
+				type: common.ROLLOUT_TYPE_SOLUTION,
+				parent_id: rolloutId,
+				organization_id: orgId,
+			})
+
+			if (!solutionRollout && resourceDetailsResult?.resource_type != common.ROLLOUT_TYPE_PROGRAM) {
+				resourceDetailsResult.parent_id = rolloutId
+				const resultCreateRollout = await this.create(resourceDetailsResult, loggedInUserId, orgId, true)
+				solutionRolloutId = resultCreateRollout?.result?.id
+			} else {
+				solutionRolloutId = solutionRollout.id
+			}
+
+			// publish the resource if not published
+			if (
+				resourceDetails?.result?.status != common.RESOURCE_STATUS_PUBLISHED ||
+				resourceDetails?.result?.published_id === undefined
+			) {
+				await kafkaCommunication.pushResourceToKafka(resourceDetails?.result, resourceDetails?.result?.type)
+			}
+			const rolloutKafkaPayload = {
+				...rolloutDetails.result,
+				resource: {
+					...resourceDetails?.result,
+					rolloutId: solutionRolloutId,
+				},
+			}
+
+			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
+				// seperating it in another pr
+				// await kafkaCommunication.pushRolloutToKafka(rolloutKafkaPayload, common.ROLL_OUT)
+			} else {
+				// implement API based publish
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'ROLLOUT_PUBLISHED',
+				result: {},
+			})
+		} catch (error) {
+			return error
+		}
+	}
+
+	/**
+	 * Validate rollout before publish
+	 * @method
+	 * @name validateRollout
+	 * @param {Object} rollout - rollout object
+	 * @returns {Array} - Array of errors if any , else an empty array
+	 */
+	static async validateRollout(rollout) {
+		let validationErrors = []
+
+		//get all entity type validations for rollout
+		const rolloutEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+			{
+				model: common.ROLL_OUT_MODEL,
+				status: common.STATUS_ACTIVE,
+			},
+			rollout.organization_id,
+			['value', 'validations']
+		)
+
+		rolloutEntityTypes.forEach((entityType) => {
+			let requiredValidation = entityType.validations.find(
+				(validation) => validation.type == common.REQUIRED_VALIDATION
+			)
+			if (requiredValidation) {
+				const required = utils.checkRequired(requiredValidation, rollout[entityType.value])
+				if (!required) {
+					validationErrors.push(
+						utils.errorObject(
+							common.ROLL_OUT_MODEL,
+							entityType.value,
+							`Rollout ${entityType.value} is required`
+						)
+					)
+				}
+			}
+
+			//length check validation
+			let maxLengthValidation = entityType.validations.find(
+				(validation) => validation.type == common.MAX_LENGTH_VALIDATION
+			)
+
+			if (
+				maxLengthValidation &&
+				typeof rollout[entityType.value] === common.STRING &&
+				rollout[entityType.value] !== null
+			) {
+				let lengthCheck = utils.checkLength(maxLengthValidation, rollout[entityType.value])
+
+				if (!lengthCheck) {
+					validationErrors.push(
+						utils.errorObject(
+							common.ROLL_OUT_MODEL,
+							entityType.value,
+							`${rolloutEntityTypes.value} must not exceed ${maxLengthValidation.value} characters `
+						)
+					)
+				}
+			}
+			// Check regex pattern will check max length and special characters
+			let regexValidation = entityType.validations.find(
+				(validation) => validation.type == common.REGEX_VALIDATION
+			)
+			if (
+				regexValidation &&
+				typeof rollout[entityType.value] === common.STRING &&
+				rollout[entityType.value] !== null
+			) {
+				const validateRegex = utils.checkRegexPattern(regexValidation, rollout[entityType.value])
+				if (!validateRegex) {
+					validationErrors.push(
+						utils.errorObject(
+							common.ROLL_OUT_MODEL,
+							entityType.value,
+							`Rollout title ${entityType.value} can only include alphanumeric characters with spaces, -, _, &, <>`
+						)
+					)
+				}
+			}
+			// Check regex pattern will check max length and special characters
+			let endDateCheck = entityType.validations.find(
+				(validation) => validation.type == common.END_DATE_VALIDATION
+			)
+			if (
+				endDateCheck &&
+				typeof rollout[entityType.value] === common.STRING &&
+				rollout[entityType.value] !== null
+			) {
+				const validateEndDate = utils.checkEndDate(rollout[common.START_DATE], rollout[entityType.value])
+				if (!validateEndDate) {
+					validationErrors.push(
+						utils.errorObject(
+							common.ROLL_OUT_MODEL,
+							entityType.value,
+							validateEndDate.message || 'End date should be greater than the start date.'
+						)
+					)
+				}
+			}
+		})
+
+		return validationErrors
+	}
+
+	/**
+	 * Callback URL for Update Published Rollout
+	 * @method
+	 * @name publishCallback
+	 * @param {String} rolloutId - rollout id
+	 * @param {String} publishedId - published id
+	 * @param {String} templateId - template id
+	 * @returns {JSON} - details of Rollout
+	 */
+	static async publishCallback(rolloutId, publishedId, templateId = null) {
+		try {
+			let rollout = await rolloutQueries.updateOne(
+				{
+					id: rolloutId,
+				},
+				{
+					published_id: publishedId,
+					template_id: templateId,
+					published_on: new Date(),
+					status: common.ROLLOUT_STATUS_PUBLISHED,
+				}
+			)
+
+			if (rollout === 0) {
+				return responses.failureResponse({
+					message: 'ROLLOUT_PUBLISH_FAILED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'ROLLOUT_UPDATED_SUCCESSFULLY',
+			})
+		} catch (error) {
+			throw error
 		}
 	}
 }

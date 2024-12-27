@@ -474,6 +474,24 @@ const checkRequired = (entityType, entityData) => {
 	}
 }
 
+/**
+ * Check if end date is greater than start date
+ * @method
+ * @name checkEndDate
+ * @param {String} start_date
+ * @param {String} end_date
+ * @returns {Boolean} - true / false based on the start and end date
+ */
+const checkEndDate = (start_date, end_date) => {
+	try {
+		start_date = new Date(start_date)
+		end_date = new Date(end_date)
+		return !isNaN(start_date) && !isNaN(end_date) && end_date > start_date
+	} catch (error) {
+		return error
+	}
+}
+
 const checkEntities = (entityType, entityData) => {
 	try {
 		if (entityType.has_entities) {
@@ -762,6 +780,7 @@ module.exports = {
 	isEmpty,
 	checkLength,
 	isEnglish,
+	checkEndDate,
 	formatToTitleCase,
 	generateExternalId,
 	convertResources,

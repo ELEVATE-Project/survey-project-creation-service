@@ -204,6 +204,11 @@ let environmentVariables = {
 		optional: true,
 		default: 'rollout_manager',
 	},
+	ROLLOUT_PUBLISH_KAFKA_TOPIC: {
+		message: 'Default Kafka topic for rollout publish required',
+		optional: true,
+		default: 'dev.rolloutpublishtopic',
+  },
 	CONSUMPTION_SERVICE_BASE_URL: {
 		message: 'Consumption service base name required',
 		optional: true,
