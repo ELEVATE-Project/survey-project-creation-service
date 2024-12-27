@@ -581,11 +581,12 @@ module.exports = class RolloutsHelper {
 			// fetch rollout details
 			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId)
 			let solutionRolloutId
+			const rolloutDetailsResult = rolloutDetails?.result
 
 			// check if rollout is present or not
 			if (rolloutDetails?.statusCode != httpStatusCode.ok) return rolloutDetails
 
-			const validateRollout = await this.validateRollout(resourceDetailsResult)
+			const validateRollout = await this.validateRollout(rolloutDetailsResult)
 			if (validateRollout.length > 0) {
 				const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
 				return responses.failureResponse({
@@ -596,7 +597,7 @@ module.exports = class RolloutsHelper {
 			}
 
 			// fetch resource details
-			const resourceDetails = await resourceService.getDetails(resourceDetailsResult?.resource_id, orgId)
+			const resourceDetails = await resourceService.getDetails(rolloutDetailsResult?.resource_id, orgId)
 
 			let resourceDetailsResult = resourceDetails?.result
 
@@ -639,6 +640,8 @@ module.exports = class RolloutsHelper {
 			} else {
 				// implement API based publish
 			}
+
+			await this.publishCallback(rolloutId, '', '')
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
