@@ -82,12 +82,12 @@ module.exports = async function (req, res, next) {
 		}
 
 		let token
+		const [authType, extractedToken] = authHeader.split(' ')
 		if (isBearerRequired) {
-			const [authType, extractedToken] = authHeader.split(' ')
 			if (authType.toLowerCase() !== 'bearer') throw unAuthorizedResponse
 			token = extractedToken?.trim()
 		} else {
-			token = authHeader.trim()
+			token = authType.toLowerCase() === 'bearer' ? extractedToken?.trim() : authType.trim()
 		}
 
 		if (!token) throw unAuthorizedResponse
