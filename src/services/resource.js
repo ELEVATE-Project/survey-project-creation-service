@@ -401,13 +401,13 @@ module.exports = class resourceHelper {
 	 * @param {Object} queryParams -  queryParams contain sort details like sort_by, sort_order
 	 * @returns {JSON} - Response contain sort filter
 	 */
-	static async constructSortOptions(sort_by, sort_order) {
+	static async constructSortOptions(sort_by, sort_order, defaultSortBy = common.CREATED_AT) {
 		let sort = {}
 		if (sort_by && sort_order) {
 			sort.sort_by = sort_by
 			sort.order = sort_order.toUpperCase() == common.SORT_DESC.toUpperCase() ? common.SORT_DESC : common.SORT_ASC
 		} else {
-			sort.sort_by = common.CREATED_AT
+			sort.sort_by = defaultSortBy
 			sort.order = common.SORT_DESC
 		}
 		return sort
@@ -1218,7 +1218,7 @@ module.exports = class resourceHelper {
 				status: common.RESOURCE_STATUS_PUBLISHED,
 			}
 			// construct sort object
-			const sort = await this.constructSortOptions(query.sort_by, query.sort_order)
+			const sort = await this.constructSortOptions(query.sort_by, query.sort_order, common.UPDATED_AT)
 			if (resourceType)
 				filterQuery.type = {
 					[Op.in]: resourceType,
@@ -1242,6 +1242,7 @@ module.exports = class resourceHelper {
 				pageNo,
 				pageSize
 			)
+
 			let userIds = internalResources.result.map((item) => item.created_by)
 			const internalResourcesIds = internalResources.result.map((item) => item.id)
 

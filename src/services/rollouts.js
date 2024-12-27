@@ -280,8 +280,13 @@ module.exports = class RolloutsHelper {
 				}
 			}
 
-			if (queryParams.resource_type && queryParams.resource_type != '') {
-				filters.resource_type = queryParams.resource_type
+			//filter based on multiple resource_types
+			let resourceTypes =
+				queryParams.resource_type && queryParams.resource_type != '' ? queryParams.resource_type.split(',') : ''
+			if (resourceTypes) {
+				filters.resource_type = {
+					[Op.in]: resourceTypes,
+				}
 			}
 
 			if (queryParams.status && queryParams.status != '') {
@@ -314,6 +319,7 @@ module.exports = class RolloutsHelper {
 					order: [sort],
 				}
 			)
+
 			if (rolloutList.result.length <= 0) {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
@@ -321,6 +327,7 @@ module.exports = class RolloutsHelper {
 					result,
 				})
 			}
+
 			let orgList = []
 
 			rolloutList.result.forEach((eachRollout) => {

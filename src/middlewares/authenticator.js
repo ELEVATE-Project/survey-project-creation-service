@@ -45,6 +45,7 @@ module.exports = async function (req, res, next) {
 	try {
 		let roleValidation = false
 		let decodedToken
+		const isBearerRequired = process.env.IS_AUTH_TOKEN_BEARER === 'true'
 
 		const authHeader = req.get('X-auth-token')
 
@@ -80,11 +81,19 @@ module.exports = async function (req, res, next) {
 			}
 		}
 
-		const authHeaderArray = authHeader.split(' ')
-		if (authHeaderArray[0] !== 'bearer') throw unAuthorizedResponse
+		let token
+		if (isBearerRequired) {
+			const [authType, extractedToken] = authHeader.split(' ')
+			if (authType.toLowerCase() !== 'bearer') throw unAuthorizedResponse
+			token = extractedToken?.trim()
+		} else {
+			token = authHeader.trim()
+		}
+
+		if (!token) throw unAuthorizedResponse
 
 		try {
-			decodedToken = jwt.verify(authHeaderArray[1], process.env.ACCESS_TOKEN_SECRET)
+			decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
 		} catch (err) {
 			if (err.name === 'TokenExpiredError') {
 				throw responses.failureResponse({
