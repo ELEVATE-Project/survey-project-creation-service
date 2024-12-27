@@ -23,7 +23,7 @@ module.exports = class RolloutsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - rollout id
 	 */
-	static async create(bodyData, loggedInUserId, orgId, internalUpload = false) {
+	static async create(bodyData, loggedInUserId, orgId, isSolutionType = false) {
 		const transaction = await db.sequelize.transaction()
 		try {
 			//validate the resource
@@ -46,7 +46,7 @@ module.exports = class RolloutsHelper {
 				resource_type: resource.type,
 				resource_id: resource.id,
 				status: common.ROLLOUT_STATUS_PENDING,
-				type: internalUpload ? common.ROLLOUT_TYPE_SOLUTION : common.ROLLOUT_TYPE_PROGRAM,
+				type: isSolutionType ? common.ROLLOUT_TYPE_SOLUTION : common.ROLLOUT_TYPE_PROGRAM,
 				user_id: loggedInUserId,
 				organization_id: orgId,
 				created_by: loggedInUserId,
@@ -55,6 +55,7 @@ module.exports = class RolloutsHelper {
 
 			if (bodyData.start_date) rolloutData.start_date = bodyData.start_date
 			if (bodyData.end_date) rolloutData.end_date = bodyData.end_date
+			if (isSolutionType == common.ROLLOUT_TYPE_SOLUTION) rolloutData.parent_id = bodyData.parent_id
 
 			let rolloutCreate
 			try {
@@ -562,25 +563,20 @@ module.exports = class RolloutsHelper {
 	 * rollout publish
 	 * @method
 	 * @name publish
-	 * @param {Integer} rolloutId - rollout id
+	 * @param {Integer} rolloutId - Rollout Id.
+	 * @param {String} loggedInUserId - userId
+	 * @param {String} orgId - organization id
 	 * @returns {JSON} - rollout publish response.
 	 */
 
-	static async publish(rolloutId, orgId, loggedInUserId) {
+	static async publish(rolloutId, loggedInUserId, orgId) {
 		try {
 			// fetch rollout details
 			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId)
-			let rolloutProcessType = common.ROLLOUT_PROCESS_TYPE_CREATE //to determine if the rollout is create / update
-			let rolloutSolutionProcessType = common.ROLLOUT_PROCESS_TYPE_CREATE //to determine if the solution rollout is create / update
 			let solutionRolloutId
 
 			// check if rollout is present or not
 			if (rolloutDetails?.statusCode != httpStatusCode.ok) return rolloutDetails
-
-			const rolloutDetailsResult = resourceDetailsResult
-			if (rolloutDetailsResult?.status == common.ROLLOUT_STATUS_PUBLISHED) {
-				rolloutProcessType = common.ROLLOUT_PROCESS_TYPE_UPDATE
-			}
 
 			const validateRollout = await this.validateRollout(resourceDetailsResult)
 			if (validateRollout.length > 0) {
@@ -595,7 +591,7 @@ module.exports = class RolloutsHelper {
 			// fetch resource details
 			const resourceDetails = await resourceService.getDetails(resourceDetailsResult?.resource_id, orgId)
 
-			const resourceDetailsResult = resourceDetails?.result
+			let resourceDetailsResult = resourceDetails?.result
 
 			// check if resource is present or not
 			if (resourceDetails?.statusCode != httpStatusCode.ok) return resourceDetails
@@ -603,15 +599,16 @@ module.exports = class RolloutsHelper {
 			let solutionRollout = await rolloutQueries.findOne({
 				resource_id: resourceDetailsResult?.resource_id,
 				type: common.ROLLOUT_TYPE_SOLUTION,
+				parent_id: rolloutId,
 				organization_id: orgId,
 			})
 
 			if (!solutionRollout && resourceDetailsResult?.resource_type != common.ROLLOUT_TYPE_PROGRAM) {
+				resourceDetailsResult.parent_id = rolloutId
 				const resultCreateRollout = await this.create(resourceDetailsResult, loggedInUserId, orgId, true)
 				solutionRolloutId = resultCreateRollout?.result?.id
 			} else {
 				solutionRolloutId = solutionRollout.id
-				rolloutSolutionProcessType = common.ROLLOUT_PROCESS_TYPE_UPDATE
 			}
 
 			// publish the resource if not published
@@ -623,18 +620,15 @@ module.exports = class RolloutsHelper {
 			}
 			const rolloutKafkaPayload = {
 				...rolloutDetails.result,
-				processType: rolloutProcessType,
-				resource: [
-					{
-						...resourceDetails?.result,
-						rolloutId: solutionRolloutId,
-						processType: rolloutSolutionProcessType,
-					},
-				],
+				resource: {
+					...resourceDetails?.result,
+					rolloutId: solutionRolloutId,
+				},
 			}
 
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-				await kafkaCommunication.pushDataToKafka(rolloutKafkaPayload, common.ROLL_OUT)
+				// seperating it in another pr
+				// await kafkaCommunication.pushRolloutToKafka(rolloutKafkaPayload, common.ROLL_OUT)
 			} else {
 				// implement API based publish
 			}
@@ -662,7 +656,7 @@ module.exports = class RolloutsHelper {
 		//get all entity type validations for rollout
 		const rolloutEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 			{
-				model: common.ROLL_OUT_MODULE,
+				model: common.ROLL_OUT_MODEL,
 				status: common.STATUS_ACTIVE,
 			},
 			rollout.organization_id,
@@ -674,25 +668,15 @@ module.exports = class RolloutsHelper {
 				(validation) => validation.type == common.REQUIRED_VALIDATION
 			)
 			if (requiredValidation) {
-				if (Array.isArray(rollout[entityType.value]) && rollout[entityType.value].length == 0) {
+				const required = utils.checkRequired(requiredValidation, rollout[entityType.value])
+				if (!required) {
 					validationErrors.push(
 						utils.errorObject(
-							common.ROLL_OUT_MODULE,
+							common.ROLL_OUT_MODEL,
 							entityType.value,
-							`Rollout ${entityType.value} cannot be empty.`
+							`Rollout ${entityType.value} is required`
 						)
 					)
-				} else {
-					const required = utils.checkRequired(requiredValidation, rollout[entityType.value])
-					if (!required) {
-						validationErrors.push(
-							utils.errorObject(
-								common.ROLL_OUT_MODULE,
-								entityType.value,
-								`Rollout ${entityType.value} is required`
-							)
-						)
-					}
 				}
 			}
 
@@ -711,7 +695,7 @@ module.exports = class RolloutsHelper {
 				if (!lengthCheck) {
 					validationErrors.push(
 						utils.errorObject(
-							common.ROLL_OUT_MODULE,
+							common.ROLL_OUT_MODEL,
 							entityType.value,
 							`${rolloutEntityTypes.value} must not exceed ${maxLengthValidation.value} characters `
 						)
@@ -731,7 +715,7 @@ module.exports = class RolloutsHelper {
 				if (!validateRegex) {
 					validationErrors.push(
 						utils.errorObject(
-							common.ROLL_OUT_MODULE,
+							common.ROLL_OUT_MODEL,
 							entityType.value,
 							`Rollout title ${entityType.value} can only include alphanumeric characters with spaces, -, _, &, <>`
 						)
@@ -751,12 +735,9 @@ module.exports = class RolloutsHelper {
 				if (!validateEndDate) {
 					validationErrors.push(
 						utils.errorObject(
-							common.ROLL_OUT_MODULE,
+							common.ROLL_OUT_MODEL,
 							entityType.value,
-							validateEndDate.message ||
-								`Start Date : ${rollout[common.START_DATE]} is greater than End Date : ${
-									rollout[entityType.value]
-								}.`
+							validateEndDate.message || 'End date should be greater than the start date.'
 						)
 					)
 				}
@@ -770,6 +751,9 @@ module.exports = class RolloutsHelper {
 	 * Callback URL for Update Published Rollout
 	 * @method
 	 * @name publishCallback
+	 * @param {String} rolloutId - rollout id
+	 * @param {String} publishedId - published id
+	 * @param {String} templateId - template id
 	 * @returns {JSON} - details of Rollout
 	 */
 	static async publishCallback(rolloutId, publishedId, templateId = null) {

@@ -213,7 +213,7 @@ module.exports = {
 	ROLLOUT_STATUS_ROLLED_OUT: 'ROLLED_OUT',
 	ROLLOUT_STATUS_INACTIVE: 'INACTIVE',
 	ROLL_OUT: 'rollout',
-	ROLL_OUT_MODULE: 'rollouts',
+	ROLL_OUT_MODEL: 'rollouts',
 	ROLLOUT_TYPE_PROGRAM: 'program',
 	ROLLOUT_TYPE_SOLUTION: 'solution',
 	ROLL_OUT_PATH: 'rollout/',
@@ -222,9 +222,6 @@ module.exports = {
 	SUFFIX_CHILD: '_CHILD',
 	SOLUTIONS_RESOURCE_TYPE: {
 		project: 'Improvement Project Solution',
-	},
-	SOLUTIONS_ENTITY_TYPE: {
-		project: 'school',
 	},
 	SOLUTIONS_TYPE: {
 		project: 'improvementProject',

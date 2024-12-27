@@ -486,10 +486,7 @@ const checkEndDate = (start_date, end_date) => {
 	try {
 		start_date = new Date(start_date)
 		end_date = new Date(end_date)
-		if (start_date && end_date && typeof start_date == Object && typeof end_date == Object) {
-			return end_date - start_date > 0
-		}
-		return false
+		return !isNaN(start_date) && !isNaN(end_date) && end_date > start_date
 	} catch (error) {
 		return error
 	}

@@ -419,11 +419,7 @@ const createSolutions = async (resourceDetails, programDetails) => {
 				deleted: false,
 				name: resource?.title,
 				programExternalId: programDetails.externalId,
-				entityType: common.SOLUTIONS_ENTITY_TYPE[resource.type]
-					? common.SOLUTIONS_ENTITY_TYPE[resource.type]
-					: resource?.entityType
-					? resource?.entityType
-					: null,
+				entityType: resource?.entityType ? resource?.entityType : null,
 				type: common.SOLUTIONS_TYPE[resource.type] ? common.SOLUTIONS_TYPE[resource.type] : null,
 				subType: common.SOLUTIONS_TYPE[resource.type] ? common.SOLUTIONS_TYPE[resource.type] : null,
 				isReusable: false,
@@ -512,7 +508,7 @@ const duplicateResources = async (resourceDetails) => {
 
 		if (projectTemplates) {
 			projectTemplates.forEach((project) => {
-				project.externalId = project.externalId + common.SUFFIX_CHILD
+				project.externalId = project.externalId + Date.now() + common.SUFFIX_CHILD
 				delete project._id
 				project.updatedAt = new Date()
 				project.createdAt = new Date()

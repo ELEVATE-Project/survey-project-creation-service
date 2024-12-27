@@ -1,5 +1,6 @@
 'use strict'
-
+require('module-alias/register')
+const common = require('@constants/common')
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
@@ -8,7 +9,7 @@ module.exports = {
 			throw new Error('Default org ID is undefined. Please make sure it is set in sequelize options.')
 		}
 
-		const entityTypeArray = [
+		let entityTypeArray = [
 			{
 				entityType: 'start_date',
 				has_entities: false,
@@ -33,7 +34,7 @@ module.exports = {
 					{
 						type: 'end_date_check',
 						value: true,
-						message: 'Start Date should be before End Date',
+						message: 'End date should be greater than the start date',
 					},
 				],
 				model: ['rollouts'],
@@ -83,7 +84,7 @@ module.exports = {
 				value: entityType,
 				label: convertToWords(entityType),
 				data_type: 'ARRAY[STRING]',
-				status: 'ACTIVE',
+				status: common.STATUS_ACTIVE,
 				updated_at: new Date(),
 				created_at: new Date(),
 				created_by: 0,
@@ -98,6 +99,11 @@ module.exports = {
 
 		//create entity type
 		await queryInterface.bulkInsert('entity_types', entityTypeFinalArray, {})
+		//update entityTypeArray array. add title to for entity model mapping
+		entityTypeArray.push({
+			entityType: common.ROLLOUT_TITLE,
+			model: ['rollouts'],
+		})
 
 		const entityTypes = await queryInterface.sequelize.query('SELECT * FROM entity_types', {
 			type: queryInterface.sequelize.QueryTypes.SELECT,
@@ -112,7 +118,7 @@ module.exports = {
 					let data = {
 						entity_type_id: entityType.id,
 						model: entity.model[pointerToModel],
-						status: 'ACTIVE',
+						status: common.STATUS_ACTIVE,
 						updated_at: new Date(),
 						created_at: new Date(),
 					}
