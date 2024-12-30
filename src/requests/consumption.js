@@ -963,7 +963,8 @@ const publishProgram = function (programData) {
 
 			let template = formattedTemplate.template
 			// fetch the resource details to create
-			const resourceDetailsCreate = template.resourceDetails
+			const resourceDetailsCreateResponse = await rolloutService.details(template?.resourceDetails?.rolloutId)
+			const resourceDetailsCreate = resourceDetailsCreateResponse.result
 			const programScope = template.scope
 			delete template.resourceDetails
 			let result = {}
@@ -996,7 +997,8 @@ const publishProgram = function (programData) {
 				programId = result.insertedId
 			}
 			let solutions = []
-			if (resourceDetailsCreate?.published_id) {
+
+			if (resourceDetailsCreate?.status == common.ROLLOUT_STATUS_PENDING && resourceDetailsCreate?.published_id) {
 				const updateTemplate = {
 					scope: formattedTemplate.template.scope,
 					endDate: formattedTemplate.template.endDate,
