@@ -7,6 +7,7 @@
 const common = require('@constants/common')
 const resourceService = require('@services/resource')
 const rolloutService = require('@services/rollouts')
+const rolloutQueries = require('@database/queries/rollouts')
 const utils = require('@generics/utils')
 const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST
 const requests = require('@generics/requests')
@@ -963,8 +964,13 @@ const publishProgram = function (programData) {
 
 			let template = formattedTemplate.template
 			// fetch the resource details to create
-			const resourceDetailsCreateResponse = await rolloutService.details(template?.resourceDetails?.rolloutId)
-			const resourceDetailsCreate = resourceDetailsCreateResponse.result
+			const resourceDetailsCreate = template.resourceDetails
+			const resourceStatus = await rolloutQueries.findOne(
+				{
+					id: template?.resourceDetails?.rolloutId,
+				},
+				{ attributes: ['status', 'published_id'] }
+			)
 			const programScope = template.scope
 			delete template.resourceDetails
 			let result = {}
@@ -998,7 +1004,10 @@ const publishProgram = function (programData) {
 			}
 			let solutions = []
 
-			if (resourceDetailsCreate?.status == common.ROLLOUT_STATUS_PENDING && resourceDetailsCreate?.published_id) {
+			if (
+				resourceStatus?.status == common.ROLLOUT_STATUS_ROLLED_OUT &&
+				resourceStatus?.published_id != undefined
+			) {
 				const updateTemplate = {
 					scope: formattedTemplate.template.scope,
 					endDate: formattedTemplate.template.endDate,

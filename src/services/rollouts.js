@@ -614,10 +614,17 @@ module.exports = class RolloutsHelper {
 
 			if (!solutionRollout && resourceDetailsResult?.type != common.ROLLOUT_TYPE_PROGRAM) {
 				resourceDetailsResult.parent_id = rolloutId
+				// add the start date and end date of program for single roll out
+				resourceDetailsResult.start_date = rolloutDetailsResult.start_date
+				resourceDetailsResult.end_date = rolloutDetailsResult.end_date
 				const resultCreateRollout = await this.create(resourceDetailsResult, loggedInUserId, orgId, true)
 				solutionRolloutId = resultCreateRollout?.result?.id
 			} else {
+				// update the start date and end date of program for single roll out
 				solutionRolloutId = solutionRollout.id
+				bodyData.start_date = rolloutDetailsResult.start_date
+				bodyData.end_date = rolloutDetailsResult.end_date
+				await this.update(solutionRolloutId, bodyData, loggedInUserId, orgId)
 			}
 
 			// publish the resource if not published
