@@ -312,6 +312,8 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 					)
 				}
 
+				taskIds.push(...childTaskResult.taskIds)
+
 				// Update task with child task sequence and children
 				await taskCollection.updateOne(
 					{ _id: taskId },
