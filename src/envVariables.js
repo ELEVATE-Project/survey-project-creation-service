@@ -208,6 +208,11 @@ let environmentVariables = {
 		message: 'Default Kafka topic for rollout publish required',
 		optional: true,
 		default: 'dev.rolloutpublish',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE_BASE_URL',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
 	},
 	CONSUMPTION_SERVICE_BASE_URL: {
 		message: 'Consumption service base name required',

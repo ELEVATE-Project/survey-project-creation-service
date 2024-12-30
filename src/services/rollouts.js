@@ -636,6 +636,8 @@ module.exports = class RolloutsHelper {
 			}
 			const rolloutKafkaPayload = {
 				...rolloutDetails.result,
+				loggedInUserId,
+				orgId,
 				resource: {
 					...resourceDetails?.result,
 					rolloutId: solutionRolloutId,

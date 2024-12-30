@@ -428,20 +428,27 @@ async function convertRecommendedRolesForProjects(recommendedFor) {
 	}
 }
 
+/**
+ * Create solutions for resources
+ * @name createSolutions
+ * @param {Object} resourceDetails - Object of resource details
+ * @param {Object} programDetails - Object of program details
+ * @returns {Array} Array of objects of solutions
+ */
 const createSolutions = async (resourceDetails, programDetails) => {
 	try {
+		// array to have objects of solutions to create
 		let solutionsToCreate = []
+		// solution to certificate mapping
 		let solutionCertificateMap = []
+		// solution to rollout if map
 		let solutionRolloutMap = {}
 		resourceDetails.forEach((resource) => {
+			// create solutions template
 			const solutionTemplate = {
 				resourceType: [common.SOLUTIONS_RESOURCE_TYPE[resource.type]],
 				language: resource?.languages ? resource?.languages.map((language) => language.label) : [],
-				keywords: resource?.keywords
-					? Array.isArray(resource?.keywords)
-						? resource?.keywords
-						: resource?.keywords.split(',')
-					: [],
+				keywords: resource?.keywords ? utils.formatKeywords(resource?.keywords) : [],
 				concepts: resource?.concepts ? resource?.concepts : [],
 				themes: resource?.themes ? resource?.themes : [],
 				flattenedThemes: resource?.flattenedThemes ? resource?.flattenedThemes : [],
@@ -477,7 +484,8 @@ const createSolutions = async (resourceDetails, programDetails) => {
 				createdAt: new Date(),
 				scope: programDetails.scope,
 				projectTemplateId: resource._id,
-				updatedBy: 1,
+				updatedBy: programDetails.loggedInUserId,
+				author: programDetails.loggedInUserId,
 				endDate: programDetails.end_date,
 				startDate: programDetails.start_date,
 			}
@@ -487,7 +495,7 @@ const createSolutions = async (resourceDetails, programDetails) => {
 			// map resource externalId and certificate Data if it has certificate data
 			if (
 				resource?.certificate &&
-				typeof resource?.certificate === 'object' &&
+				typeof resource?.certificate === common.OBJECT &&
 				Object.keys(resource?.certificate).length != 0
 			) {
 				solutionCertificateMap.push({
@@ -525,10 +533,19 @@ const createSolutions = async (resourceDetails, programDetails) => {
 	}
 }
 
+/**
+ * Create a duplicate solution from the given resource details
+ * @name duplicateResources
+ * @param {Object} resourceDetails - Object of resource details
+ * @returns {Array} Array of objects of duplicate templates
+ */
 const duplicateResources = async (resourceDetails) => {
+	// initialise list of project templates to create
 	let projectTemplateIds = []
+	//initialise list of solution templates to create
 	let solutionTemplateIds = []
 
+	// seggregate templates based on type , all projects should be created in projectTemplates and others in solutions collection
 	if (resourceDetails.type == common.PROJECT) projectTemplateIds.push(ObjectId(resourceDetails._id))
 	else solutionTemplateIds.push(ObjectId(resourceDetails._id))
 
@@ -547,9 +564,16 @@ const duplicateResources = async (resourceDetails) => {
 		// 	projectExternalId : [ list of last ids]
 		// }
 		let templateProjectsTaskMap = {}
+		//templateProjectsIdMap = {
+		// resource_id: resource id in the resource table,
+		// rollout_id: rollout id in the rollout table,
+		// }
 		let templateProjectsIdMap = {}
+		// array of project templates to create
 		let templateProjects = []
+		// array of template tasks to create
 		let templateTaskIds = []
+		// array of created template tasks
 		let duplicateTasks = []
 
 		//taskMap = {
@@ -557,7 +581,8 @@ const duplicateResources = async (resourceDetails) => {
 		// }
 		let taskMap = {}
 
-		if (projectTemplates) {
+		if (projectTemplates.length > 0) {
+			// create project duplicate template to create
 			projectTemplates.forEach((project) => {
 				project.externalId = project.externalId + Date.now() + common.SUFFIX_CHILD
 				delete project._id
@@ -571,7 +596,7 @@ const duplicateResources = async (resourceDetails) => {
 				}
 				templateProjects.push(project)
 			})
-
+			// array of tasks to create
 			Object.keys(templateProjectsTaskMap).forEach(async (projectExtId) => {
 				templateTaskIds = [...templateTaskIds, ...templateProjectsTaskMap[projectExtId]]
 			})
@@ -584,7 +609,7 @@ const duplicateResources = async (resourceDetails) => {
 					},
 				})
 				.toArray()
-
+			// duplicate project task details to create
 			projectsTasksDetails.forEach((projectTask) => {
 				projectTask.externalId = utils.generateUniqueId()
 				taskMap[projectTask._id] = projectTask.externalId
@@ -611,15 +636,19 @@ const duplicateResources = async (resourceDetails) => {
 				// If found, replace externalId with _id; otherwise, keep the externalId
 				return task ? ObjectId(task._id) : externalId
 			})
-
+			// update the project template after tasks created
 			templateProjects.forEach((project) => {
 				let projectTasks = []
+				let taskSequence = []
 				project.tasks.forEach((task) => {
 					projectTasks.push(taskMap[task])
+					let seqNum = task.sequenceNumber - 1 < 0 ? 0 : task.sequenceNumber - 1
+					taskSequence[seqNum] = task.externalId
 				})
 				project.tasks = projectTasks
+				project.taskSequence = taskSequence
 			})
-
+			// create project templates
 			await projectsCollection.insertMany(templateProjects)
 		}
 
@@ -631,7 +660,7 @@ const duplicateResources = async (resourceDetails) => {
 			})
 			.toArray()
 
-		// Add a new 'type' key to each project
+		// Add a new 'type', 'resource_id' , 'rolloutId' keys to each project
 		const updatedProjectTemplates = projectTemplatesAfterInsert.map((project) => ({
 			...project, // Spread the existing project fields
 			type: common.PROJECT,
@@ -663,7 +692,7 @@ const formatProgramTemplate = (templateData) => {
 		let keywords = templateData?.keywords
 			? templateData?.keywords
 			: templateData?.resource
-			? templateData?.resource?.keywords?.split(',').map((keyword) => keyword.trim())
+			? utils.formatKeywords(templateData?.resource?.keywords)
 			: []
 		keywords = [...new Set(keywords)]
 
@@ -677,14 +706,20 @@ const formatProgramTemplate = (templateData) => {
 		let metaInformation = {
 			recommendedFor: [],
 		}
+		// check if targeting criteria is given in the template or not
 		if (templateData?.targeting_criteria) {
+			// iterate through the targeting_criteria given
 			templateData?.targeting_criteria.forEach((targeting) => {
+				// fetch the targeting entity
 				const targeting_entity = targeting?.entity_targeting?.value
-
+				// check if entity type in scope is added or not. if not added , add
 				if (!scope.entityType.includes(targeting_entity)) scope.entityType.push(targeting_entity)
+				// check of roles
 				if (targeting?.roles) {
+					// iterate through the roles object and add the value of role if its not added
 					targeting.roles.forEach((role) => {
 						if (!scope.roles.includes(role.value)) scope.roles.push(role.value)
+						// iterate through the roles object and add the value of role in metaInformation.recommendedFor if its not added
 						if (!metaInformation.recommendedFor.includes(role.label))
 							metaInformation.recommendedFor.push(role.label)
 					})
@@ -693,6 +728,7 @@ const formatProgramTemplate = (templateData) => {
 					metaInformation.recommendedFor = []
 				}
 				targeting[targeting_entity].forEach((target) => {
+					// add the entity ids in scope and metaInformation
 					if (scope[targeting_entity] == undefined) scope[targeting_entity] = []
 					if (metaInformation[targeting_entity] == undefined) metaInformation[targeting_entity] = []
 					metaInformation[targeting_entity].push(target.name)
@@ -700,8 +736,8 @@ const formatProgramTemplate = (templateData) => {
 				})
 			})
 		}
-
-		let template = {
+		// prepare the program template
+		let programTemplate = {
 			scope,
 			metaInformation,
 			resourceType: [common.ROLLOUT_TYPE_PROGRAM],
@@ -730,23 +766,15 @@ const formatProgramTemplate = (templateData) => {
 			endDate: new Date(templateData?.end_date),
 			startDate: new Date(templateData?.start_date),
 		}
-		if (templateData.published_id) template._id = ObjectId(templateData.published_id)
-		return { success: true, template }
+		// if the program is already published , update _id from the published_id
+		if (templateData.published_id) programTemplate._id = ObjectId(templateData.published_id)
+		return { success: true, programTemplate }
 	} catch (error) {
 		console.error('Error in formatTemplate:', error.message)
 		return { success: false, error: error.message }
 	}
 }
 
-// function to replace special charecters
-const escapeXml = (unsafe) => {
-	return unsafe
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/"/g, '&quot;')
-		.replace(/'/g, '&apos;')
-}
 /**
  * create svg template by editing base template.
  * @method
@@ -769,7 +797,7 @@ async function createSvg(certificateData) {
 			// set issuer name
 			const issuerNameTag = 'stateTitle'
 			const issuerNameElement = $(`#${issuerNameTag}`)
-			issuerNameElement.text(escapeXml(certificateData.issuer))
+			issuerNameElement.text(utils.escapeXml(certificateData.issuer))
 
 			// update signature
 			for (let index = 1; index <= certificateData.signature.no_of_signature; index++) {
@@ -780,9 +808,9 @@ async function createSvg(certificateData) {
 				const signatureNameElement = $(`#${signatureNameTag}`)
 				const signatureDesignationElement = $(`#${signatureDesignationTag}`)
 				const signatureImgElement = $(`#${signatureImgTag}`)
-				signatureImgElement.attr('xlink:href', escapeXml(imageData))
-				signatureNameElement.text(escapeXml(certificateData.signature[signatureImgTag]))
-				signatureDesignationElement.text(escapeXml(certificateData.signature[signatureDesignationTag]))
+				signatureImgElement.attr('xlink:href', utils.escapeXml(imageData))
+				signatureNameElement.text(utils.escapeXml(certificateData.signature[signatureImgTag]))
+				signatureDesignationElement.text(utils.escapeXml(certificateData.signature[signatureDesignationTag]))
 			}
 
 			// update logos
@@ -790,7 +818,7 @@ async function createSvg(certificateData) {
 				const logoTag = `stateLogo${index}`
 				const imageData = await downloadAndConvertToBase64(certificateData.logos[logoTag])
 				const logoElement = $(`#${logoTag}`)
-				logoElement.attr('xlink:href', escapeXml(imageData))
+				logoElement.attr('xlink:href', utils.escapeXml(imageData))
 			}
 
 			// updated svg
@@ -850,6 +878,14 @@ async function createSvg(certificateData) {
 	})
 }
 
+/**
+ * Insert certificate templates
+ * @method
+ * @name insertCertificateTemplate
+ * @param {Object} certificateData - Certificate data for upload
+ * @param {String} solutionId - solutionId of the created solution
+ * @param {String} programId - programId of the created program
+ */
 async function insertCertificateTemplate(certificateData, solutionId, programId) {
 	const filePath = await createSvg(certificateData)
 	const certificateDocument = {
@@ -872,7 +908,7 @@ async function insertCertificateTemplate(certificateData, solutionId, programId)
 	if (!result || !result.insertedId) {
 		throw new Error(`Failed to insert the template into the ${COLLECTIONS.CERTIFICATE_TEMPLATE} collection.`)
 	}
-	// Insert the template into the database
+	// update the solution with the certificate template id
 	const solutionTemplateCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 	const resultUpdateSolution = await solutionTemplateCollection.updateOne(
 		({ _id: solutionId },
@@ -889,7 +925,13 @@ async function insertCertificateTemplate(certificateData, solutionId, programId)
 
 	return true
 }
-// function to recursively delete folder after upload
+
+/**
+ * function to recursively delete folder after upload
+ * @method
+ * @name deleteFolderRecursive
+ * @param {String} folderPath - folder path to delete
+ */
 async function deleteFolderRecursive(folderPath) {
 	// Check if the folder exists
 	if (fs.existsSync(folderPath)) {
@@ -913,10 +955,34 @@ async function deleteFolderRecursive(folderPath) {
 	}
 }
 
-// Function to fetch data information from cloud using downloadable Url
-async function getBaseTemplate(templateUrl) {}
+/**
+ *  Function to fetch data information from cloud using downloadable Url
+ * @method
+ * @name getBaseTemplate
+ * @param {String} templateUrl - cloud path to download
+ */
+async function getBaseTemplate(templateUrl) {
+	try {
+		const response = await axios.get(templateUrl)
+		if (response.status === 200) {
+			return {
+				success: true,
+				result: response.data,
+			}
+		} else {
+			throw new Error(`Unexpected response status: ${response.status}`)
+		}
+	} catch (error) {
+		return Promise.reject(new Error(`Failed to fetch base template: ${error.message}`))
+	}
+}
 
-// download file from cloud and convert it into base64
+/**
+ *  download file from cloud and convert it into base64
+ * @method
+ * @name downloadAndConvertToBase64
+ * @param {String} templateUrl - cloud path to download
+ */
 async function downloadAndConvertToBase64(url) {
 	try {
 		// Download the image file as a binary buffer
@@ -963,7 +1029,7 @@ const publishProgram = function (programData) {
 			}
 
 			let template = formattedTemplate.template
-			// fetch the resource details to create
+			// fetch the resource details to create solutions
 			const resourceDetailsCreate = template.resourceDetails
 			const resourceStatus = await rolloutQueries.findOne(
 				{
@@ -1032,6 +1098,8 @@ const publishProgram = function (programData) {
 					description: template.description ? template.description : '',
 					end_date: template.endDate,
 					start_date: template.startDate,
+					loggedInUserId: programData.loggedInUserId,
+					orgId: programData.orgId,
 				})
 				const solutionIds = solutions.map((solution) => solution._id)
 				// Update Template with tasks and sequence

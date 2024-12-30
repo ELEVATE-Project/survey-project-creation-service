@@ -718,6 +718,21 @@ function convertDuration(durationObj) {
 	}
 }
 
+/**
+ * Converts charachters which can cause issues in xml file to accepted values
+ * name escapeXml
+ * @param {String} inputElement - The input duration object.
+ * @returns {String} - Converted xml with accepted charecters.
+ */
+const escapeXml = (inputElement) => {
+	return inputElement
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&apos;')
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
