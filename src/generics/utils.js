@@ -419,28 +419,13 @@ const checkRegexPattern = (entityType, entityData) => {
 		}
 		// Proceed if a regex validation object is found
 		if (entityType && entityType.type === common.REGEX_VALIDATION) {
-			const isTextEnglish = isEnglish(entityData)
-
 			// Normalize the entityData
-			let normalizedValue = typeof entityData === 'number' ? entityData.toString() : entityData
-
-			// If the language is not English, translate
-			if (!isTextEnglish) {
-				normalizedValue = tr(entityData) // Assuming translateText function exists
-			}
-
-			const modifyPattern = (pattern) => {
-				// If the text is English, remove the apostrophe from the regex pattern
-				if (isTextEnglish) {
-					return pattern.replace(/'/g, '')
-				}
-				return pattern
-			}
+			let normalizedValue = typeof entityData === 'number' ? entityData.toString() : tr(entityData)
 
 			// Handle array of regex patterns
 			if (Array.isArray(entityType.regex)) {
 				for (let pattern of entityType.regex) {
-					let regex = new RegExp(modifyPattern(pattern))
+					let regex = new RegExp(pattern)
 					if (regex.test(normalizedValue)) {
 						return true
 					}
@@ -448,7 +433,7 @@ const checkRegexPattern = (entityType, entityData) => {
 				return false
 			} else {
 				// Handle the case where regex is a single pattern
-				let regex = new RegExp(modifyPattern(entityType.value))
+				let regex = new RegExp(entityType.value)
 				return regex.test(normalizedValue)
 			}
 		}
@@ -620,16 +605,6 @@ const isEmpty = (obj) => {
 	return true
 }
 
-function isEnglish(text) {
-	// Regex to match only English letters and numbers
-	var englishRegex = new RegExp('^[\x20-\x7E]*$')
-	if (englishRegex.test(text)) {
-		return true
-	} else {
-		return false
-	}
-}
-
 /**
  * Format Name to title case
  * @name formatToTitleCase
@@ -779,7 +754,6 @@ module.exports = {
 	sort,
 	isEmpty,
 	checkLength,
-	isEnglish,
 	checkEndDate,
 	formatToTitleCase,
 	generateExternalId,
