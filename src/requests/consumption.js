@@ -154,6 +154,8 @@ const formatTemplate = (templateData) => {
 			categories: [], //Initially empty
 			tasks: [], // Initially empty
 			taskSequence: [], // Initially empty
+			createdAt: new Date(),
+			updatedAt: new Date(),
 		}
 
 		return { success: true, template }
