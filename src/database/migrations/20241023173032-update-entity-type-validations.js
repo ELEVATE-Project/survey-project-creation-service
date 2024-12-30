@@ -182,18 +182,18 @@ function transformValidation(validation, entityType) {
 function getNewMessage(entityType, validationType) {
 	const messages = {
 		title: {
-			regex: 'Project title can only include alphanumeric characters with spaces, -, _, &, <>',
+			regex: "Project title can only include alphanumeric characters with spaces, -, _, &, <>, '",
 			required: 'Enter valid project title',
 			max_length: 'Project title must not exceed 256 characters',
 		},
 		categories: { required: 'Add project category' },
 		objective: {
-			regex: 'Objective can only include alphanumeric characters with spaces, -, _, &, <>',
+			regex: "Objective can only include alphanumeric characters with spaces, -, _, &, <>, '",
 			required: 'Summarize the goal of the project',
 			max_length: 'Objective must not exceed 2000 characters',
 		},
 		keywords: {
-			regex: 'Keyword can only include alphanumeric characters with spaces, -, _, &, <>',
+			regex: "Keyword can only include alphanumeric characters with spaces, -, _, &, <>, '",
 			required: 'Add a tag',
 			max_length: 'Keyword must not exceed 256 characters',
 		},
@@ -204,7 +204,7 @@ function getNewMessage(entityType, validationType) {
 			required: 'Enter link to the resource',
 		},
 		name: {
-			regex: 'Description can only include alphanumeric characters with spaces, -, _, &, <>',
+			regex: "Description can only include alphanumeric characters with spaces, -, _, &, <>, '",
 			required: 'Enter description for task',
 			max_length: 'Description title must not exceed 2000 characters',
 		},
@@ -213,7 +213,7 @@ function getNewMessage(entityType, validationType) {
 		allow_evidences: { required: 'allow_evidences field is required' },
 		min_no_of_evidences: { required: 'min_no_of_evidences field is required' },
 		solution_details: {
-			regex: 'Description can only include alphanumeric characters with spaces, -, _, &, <>',
+			regex: "Description can only include alphanumeric characters with spaces, -, _, &, <>, '",
 			max_length: 'Name must not exceed 256 characters',
 		},
 	}
