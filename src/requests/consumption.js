@@ -277,7 +277,7 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				description: task.name,
 				externalId: utils.generateExternalId(task.name),
 				type: task.type,
-				isDeleted: !task.is_mandatory,
+				isDeleted: false,
 				isDeletable: !task.is_mandatory,
 				sequenceNumber: task.sequence_no,
 				projectTemplateId: templateId,
