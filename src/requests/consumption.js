@@ -60,6 +60,11 @@ const publishProjectTemplates = function (templateData) {
 
 			let template = formattedTemplate.template
 
+			//add duration key if consumption service is diksha
+			if (process.env.CONSUMPTION_SERVICE == common.DIKSHA && templateData.recommended_duration) {
+				template.duration = utils.convertDuration(templateData.recommended_duration)
+			}
+
 			// Process Categories
 			if (templateData.categories?.length > 0) {
 				let categoriesResponse = await processCategories(templateData.categories)
@@ -145,7 +150,6 @@ const formatTemplate = (templateData) => {
 			externalId: utils.generateExternalId(templateData.title),
 			entityType: '',
 			metaInformation: utils.formatProjectMetaInformation(templateData),
-			duration: utils.convertDuration(templateData.recommended_duration),
 			recommendedFor: [], //Initially empty
 			categories: [], //Initially empty
 			tasks: [], // Initially empty
