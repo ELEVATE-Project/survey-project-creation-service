@@ -60,8 +60,28 @@ const pushResourceToKafka = async (message, resourceType) => {
 		throw error
 	}
 }
+const pushRolloutToKafka = async (message, resourceType) => {
+	try {
+		let topic = process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC
+
+		if (!topic) {
+			console.log('Publishing rollout topic not fount.')
+			return
+		}
+
+		const payload = {
+			topic: topic,
+			messages: [{ value: JSON.stringify(message) }],
+		}
+
+		return await pushPayloadToKafka(payload)
+	} catch (error) {
+		throw error
+	}
+}
 
 module.exports = {
 	clearInternalCache,
 	pushResourceToKafka,
+	pushRolloutToKafka,
 }

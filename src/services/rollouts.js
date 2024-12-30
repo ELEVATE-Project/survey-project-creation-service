@@ -600,18 +600,19 @@ module.exports = class RolloutsHelper {
 			const resourceDetails = await resourceService.getDetails(rolloutDetailsResult?.resource_id, orgId)
 
 			let resourceDetailsResult = resourceDetails?.result
+			resourceDetailsResult.resource_id = resourceDetailsResult?.id
 
 			// check if resource is present or not
 			if (resourceDetails?.statusCode != httpStatusCode.ok) return resourceDetails
 
 			let solutionRollout = await rolloutQueries.findOne({
-				resource_id: resourceDetailsResult?.resource_id,
+				resource_id: resourceDetailsResult?.id,
 				type: common.ROLLOUT_TYPE_SOLUTION,
 				parent_id: rolloutId,
 				organization_id: orgId,
 			})
 
-			if (!solutionRollout && resourceDetailsResult?.resource_type != common.ROLLOUT_TYPE_PROGRAM) {
+			if (!solutionRollout && resourceDetailsResult?.type != common.ROLLOUT_TYPE_PROGRAM) {
 				resourceDetailsResult.parent_id = rolloutId
 				const resultCreateRollout = await this.create(resourceDetailsResult, loggedInUserId, orgId, true)
 				solutionRolloutId = resultCreateRollout?.result?.id
@@ -635,13 +636,10 @@ module.exports = class RolloutsHelper {
 			}
 
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-				// seperating it in another pr
-				// await kafkaCommunication.pushRolloutToKafka(rolloutKafkaPayload, common.ROLL_OUT)
+				await kafkaCommunication.pushRolloutToKafka(rolloutKafkaPayload, common.ROLL_OUT)
 			} else {
 				// implement API based publish
 			}
-
-			await this.publishCallback(rolloutId, '', '')
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
