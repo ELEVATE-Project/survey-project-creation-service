@@ -141,7 +141,7 @@ module.exports = class RolloutsHelper {
 	 * @param {String} loggedInUserId - User id
 	 * @returns {JSON} - Rollout Details
 	 */
-	static async details(rolloutId, orgId, loggedInUserId) {
+	static async details(rolloutId, orgId, loggedInUserId, returnBlobPath = false) {
 		try {
 			let result = {
 				organization: {},
@@ -174,7 +174,9 @@ module.exports = class RolloutsHelper {
 						...rollout,
 					}
 
-					delete resultData['blob_path']
+					if (!returnBlobPath) {
+						delete resultData['blob_path']
+					}
 					resultData.viewers = []
 
 					// fetch the user if viewer is present
@@ -579,7 +581,7 @@ module.exports = class RolloutsHelper {
 	static async publish(rolloutId, loggedInUserId, orgId) {
 		try {
 			// fetch rollout details
-			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId)
+			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, true)
 			let solutionRolloutId
 			const rolloutDetailsResult = rolloutDetails?.result
 
@@ -612,26 +614,28 @@ module.exports = class RolloutsHelper {
 				organization_id: orgId,
 			})
 
-			const parentRollout = await rolloutQueries.findOne({
-				id: rolloutId,
-				organization_id: orgId,
-			})
-
-			if (solutionRollout?.id == undefined && resourceDetailsResult?.type != common.ROLLOUT_TYPE_PROGRAM) {
-				let childRollout = parentRollout
-				childRollout.parent_id = rolloutId
+			if (!solutionRollout?.id) {
+				let childRollout = _.pick(rolloutDetailsResult, [
+					'title',
+					'blob_path',
+					'start_date',
+					'end_date',
+					'resource_id',
+					'created_by',
+					'updated_by',
+					'status',
+					'organization_id',
+					'user_id',
+					'resource_type',
+				])
 				childRollout.type = common.ROLLOUT_TYPE_SOLUTION
-				delete childRollout.id
+				childRollout.parent_id = rolloutId
 				const resultCreateRollout = await rolloutQueries.create(childRollout)
 				solutionRolloutId = resultCreateRollout.id
 			} else {
-				let childRollout = {
-					blob_path: parentRollout.blob_path,
-				}
+				let childRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])
 				// update the start date and end date of program for single roll out
 				solutionRolloutId = solutionRollout.id
-				childRollout.start_date = parentRollout.start_date
-				childRollout.end_date = parentRollout.end_date
 				await rolloutQueries.updateOne(childRollout, { id: solutionRolloutId })
 			}
 

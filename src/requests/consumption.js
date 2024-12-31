@@ -581,11 +581,14 @@ const duplicateResources = async (resourceDetails, created_by) => {
 		// 	projectTaskId : duplicateProjectTaskId
 		// }
 		let taskMap = {}
+		let taskSeqMap = {}
+		const externalId_suffixing = `${Date.now()}${common.SUFFIX_CHILD}`
 
 		if (projectTemplates.length > 0) {
 			// create project duplicate template to create
 			projectTemplates.forEach((project) => {
-				project.externalId = project.externalId + Date.now() + common.SUFFIX_CHILD
+				project.externalId = project.externalId + externalId_suffixing
+				taskSeqMap[project.externalId] = project.taskSequence
 				delete project._id
 				project.updatedAt = new Date()
 				project.createdAt = new Date()
@@ -597,6 +600,7 @@ const duplicateResources = async (resourceDetails, created_by) => {
 					resource_id: resourceDetails.resource_id,
 					rollout_id: resourceDetails.rolloutId,
 				}
+
 				templateProjects.push(project)
 			})
 			// array of tasks to create
@@ -614,12 +618,18 @@ const duplicateResources = async (resourceDetails, created_by) => {
 				.toArray()
 			// duplicate project task details to create
 			projectsTasksDetails.forEach((projectTask) => {
+				let oldTaskExtId = projectTask.externalId
 				projectTask.externalId = utils.generateUniqueId()
+				// replace old task id by new task id in sequence
+				_.update(taskSeqMap, projectTask.projectTemplateExternalId + externalId_suffixing, (tasks) =>
+					tasks.map((task) => (task === oldTaskExtId ? projectTask.externalId : task))
+				)
 				taskMap[projectTask._id] = projectTask.externalId
 				projectTask.updatedAt = new Date()
 				projectTask.createdAt = new Date()
 				projectTask.createdBy = created_by
 				projectTask.updatedBy = created_by
+				projectTask.projectTemplateExternalId = projectTask.projectTemplateExternalId + externalId_suffixing
 				delete projectTask._id
 				duplicateTasks.push(projectTask)
 			})
@@ -633,12 +643,10 @@ const duplicateResources = async (resourceDetails, created_by) => {
 					},
 				})
 				.toArray()
-			let seqCounter = 0
-			let taskSequence = []
+
 			taskMap = _.mapValues(taskMap, (externalId) => {
 				// Find the corresponding object from projectsTasksDetailsAfterInsert
 				const task = _.find(projectsTasksDetailsAfterInsert, { externalId: externalId })
-				taskSequence[seqCounter++] = externalId
 
 				// If found, replace externalId with _id; otherwise, keep the externalId
 				return task ? ObjectId(task._id) : externalId
@@ -648,11 +656,9 @@ const duplicateResources = async (resourceDetails, created_by) => {
 				let projectTasks = []
 				project.tasks.forEach((task) => {
 					projectTasks.push(taskMap[task])
-					// let seqNum = task.sequenceNumber - 1 < 0 ? 0 : task.sequenceNumber - 1
-					// taskSequence[seqNum] = task.externalId
 				})
 				project.tasks = projectTasks
-				project.taskSequence = taskSequence
+				project.taskSequence = taskSeqMap[project.externalId]
 			})
 			// create project templates
 			await projectsCollection.insertMany(templateProjects)
