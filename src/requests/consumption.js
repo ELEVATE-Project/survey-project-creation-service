@@ -709,7 +709,7 @@ const processTargetingCriteria = (targetingData) => {
 			if (targeting?.roles?.length) {
 				// Add unique roles to scope and metaInformation
 				targeting.roles.forEach(({ value, label }) => {
-					scope.roles.push(value)
+					scope.roles.push(label.toLowerCase().replace(' ', '_'))
 					metaInformation.recommendedFor.push(label)
 				})
 			} else {
@@ -727,12 +727,14 @@ const processTargetingCriteria = (targetingData) => {
 			})
 		})
 	}
+
 	// refactor scope to remove duplicates
 	Object.keys(scope).forEach((key) => {
 		if (Array.isArray(scope[key] && scope[key].length > 0)) {
 			scope[key] = [...new Set(scope[key])] // Remove duplicates while preserving array structure
 		}
 	})
+	scope.entityType = scope?.entityType ? scope?.entityType.join(',') : ''
 	// refactor metaInformation to remove duplicates
 	Object.keys(metaInformation).forEach((key) => {
 		if (Array.isArray(metaInformation[key] && metaInformation[key].length > 0)) {
