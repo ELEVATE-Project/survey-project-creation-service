@@ -218,9 +218,9 @@ let environmentVariables = {
 		message: 'Consumption service base name required',
 		optional: true,
 		requiredIf: {
-			key: 'RESOURCE_KAFKA_PUSH_ON_OFF',
-			operator: 'EQUALS',
-			value: 'OFF',
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'NOT_EQUALS',
+			value: 'self',
 		},
 	},
 	PROJECT_PUBLISH_END_POINT: {

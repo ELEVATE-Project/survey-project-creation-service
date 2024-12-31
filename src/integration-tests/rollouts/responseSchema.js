@@ -111,7 +111,7 @@ const getDataManagersEmptyResponseSchema = {
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
 }
-const getRolloutsListSchema = {
+const listSchema = {
 	type: 'object',
 	properties: {
 		responseCode: {
@@ -360,7 +360,7 @@ const getRolloutsListSchema = {
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
 }
-const getRolloutsListEmptyResponseSchema = {
+const listEmptyResponseSchema = {
 	type: 'object',
 	properties: {
 		responseCode: {
@@ -398,7 +398,33 @@ const getRolloutsListEmptyResponseSchema = {
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
 }
-const rolloutDetailResponseSchema = {
+const detailResponseSchema = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		error: {
+			type: 'array',
+			items: {},
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				correlation: {
+					type: 'string',
+				},
+			},
+			required: [],
+		},
+		message: {
+			type: 'string',
+		},
+	},
+	required: ['responseCode', 'error', 'meta', 'message'],
+}
+
+const createSchema = {
 	type: 'object',
 	properties: {
 		responseCode: {
@@ -426,7 +452,8 @@ const rolloutDetailResponseSchema = {
 module.exports = {
 	getDataManagersSchema,
 	getDataManagersEmptyResponseSchema,
-	getRolloutsListSchema,
-	getRolloutsListEmptyResponseSchema,
-	rolloutDetailResponseSchema,
+	listSchema,
+	listEmptyResponseSchema,
+	detailResponseSchema,
+	createSchema,
 }
