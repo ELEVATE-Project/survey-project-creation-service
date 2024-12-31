@@ -776,4 +776,5 @@ module.exports = {
 	formatKeywords,
 	formatProjectMetaInformation,
 	convertDuration,
+	escapeXml,
 }
