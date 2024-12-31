@@ -141,7 +141,7 @@ module.exports = class RolloutsHelper {
 	 * @param {String} loggedInUserId - User id
 	 * @returns {JSON} - Rollout Details
 	 */
-	static async details(rolloutId, orgId, loggedInUserId) {
+	static async details(rolloutId, orgId, loggedInUserId, returnBlobPath = false) {
 		try {
 			let result = {
 				organization: {},
@@ -174,7 +174,9 @@ module.exports = class RolloutsHelper {
 						...rollout,
 					}
 
-					delete resultData['blob_path']
+					if (!returnBlobPath) {
+						delete resultData['blob_path']
+					}
 					resultData.viewers = []
 
 					// fetch the user if viewer is present
@@ -579,7 +581,7 @@ module.exports = class RolloutsHelper {
 	static async publish(rolloutId, loggedInUserId, orgId) {
 		try {
 			// fetch rollout details
-			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId)
+			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, true)
 			let solutionRolloutId
 			const rolloutDetailsResult = rolloutDetails?.result
 
@@ -600,23 +602,41 @@ module.exports = class RolloutsHelper {
 			const resourceDetails = await resourceService.getDetails(rolloutDetailsResult?.resource_id, orgId)
 
 			let resourceDetailsResult = resourceDetails?.result
+			resourceDetailsResult.resource_id = resourceDetailsResult?.id
 
 			// check if resource is present or not
 			if (resourceDetails?.statusCode != httpStatusCode.ok) return resourceDetails
 
 			let solutionRollout = await rolloutQueries.findOne({
-				resource_id: resourceDetailsResult?.resource_id,
+				resource_id: resourceDetailsResult?.id,
 				type: common.ROLLOUT_TYPE_SOLUTION,
 				parent_id: rolloutId,
 				organization_id: orgId,
 			})
 
-			if (!solutionRollout && resourceDetailsResult?.resource_type != common.ROLLOUT_TYPE_PROGRAM) {
-				resourceDetailsResult.parent_id = rolloutId
-				const resultCreateRollout = await this.create(resourceDetailsResult, loggedInUserId, orgId, true)
-				solutionRolloutId = resultCreateRollout?.result?.id
+			if (!solutionRollout?.id) {
+				let childRollout = _.pick(rolloutDetailsResult, [
+					'title',
+					'blob_path',
+					'start_date',
+					'end_date',
+					'resource_id',
+					'created_by',
+					'updated_by',
+					'status',
+					'organization_id',
+					'user_id',
+					'resource_type',
+				])
+				childRollout.type = common.ROLLOUT_TYPE_SOLUTION
+				childRollout.parent_id = rolloutId
+				const resultCreateRollout = await rolloutQueries.create(childRollout)
+				solutionRolloutId = resultCreateRollout.id
 			} else {
+				let childRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])
+				// update the start date and end date of program for single roll out
 				solutionRolloutId = solutionRollout.id
+				await rolloutQueries.updateOne(childRollout, { id: solutionRolloutId })
 			}
 
 			// publish the resource if not published
@@ -635,13 +655,10 @@ module.exports = class RolloutsHelper {
 			}
 
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
-				// seperating it in another pr
-				// await kafkaCommunication.pushRolloutToKafka(rolloutKafkaPayload, common.ROLL_OUT)
+				await kafkaCommunication.pushRolloutToKafka(rolloutKafkaPayload, common.ROLL_OUT)
 			} else {
 				// implement API based publish
 			}
-
-			await this.publishCallback(rolloutId, '', '')
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,

@@ -47,10 +47,14 @@ module.exports = async () => {
 	const subscribeToConsumer = async () => {
 		try {
 			await consumer.subscribe({
-				topics: [process.env.CLEAR_INTERNAL_CACHE, process.env.PROJECT_PUBLISH_KAFKA_TOPIC],
+				topics: [
+					process.env.CLEAR_INTERNAL_CACHE,
+					process.env.PROJECT_PUBLISH_KAFKA_TOPIC,
+					process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC,
+				],
 			})
 			logger.info(
-				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} and ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC}`
+				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} , ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC} and ${process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC}`
 			)
 			await consumer.run({
 				eachMessage: async ({ topic, partition, message }) => {
@@ -75,6 +79,8 @@ module.exports = async () => {
 							utils.internalDel(streamingData)
 						} else if (topic == process.env.PROJECT_PUBLISH_KAFKA_TOPIC) {
 							await consumptionService.publishProjectTemplates(streamingData)
+						} else if (topic == process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC) {
+							await consumptionService.publishProgram(streamingData)
 						}
 					} catch (error) {
 						logger.error('Error processing Kafka message:', { error })
