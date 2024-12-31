@@ -59,10 +59,10 @@ describe('Rollout APIs', function () {
 	})
 })
 
-function insertRolloutData(resource_id) {
+function insertRolloutData() {
 	return {
 		title: faker.random.alpha(5),
-		resource_id: resource_id,
+		resource_id: 1,
 		start_date: '2024-11-29T11:36:31.117Z',
 		end_date: '2024-12-30T11:36:31.117Z',
 	}
