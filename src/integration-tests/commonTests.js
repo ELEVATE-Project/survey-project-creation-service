@@ -40,7 +40,7 @@ const verifyUserRole = async () => {
 
 	// Create a new user
 	let email = 'orgadmin' + crypto.randomBytes(5).toString('hex') + '@shikshalokam.com'
-	let password = 'Welcome@123'
+	let password = 'Welco@Me#123!'
 
 	try {
 		let res = await request.post('/user/v1/account/create').send({
