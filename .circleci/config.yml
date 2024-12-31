@@ -148,8 +148,6 @@ jobs:
           name: Running test cases
           command: |
             cd src/ && npm run test:integration || true
-      - store_artifacts:
-          path: ./dev-ops/report
       - run:
           name: Get User container ID and print logs
           command: |
@@ -185,6 +183,10 @@ jobs:
 
       - store_test_results:
           path: ./dev-ops/report
+          # path: test-results
+      - store_artifacts:
+          path: ./dev-ops/report
+          destination: test-results/
       - run:
           name: Stop the docker containers - Unmap volumes
           command: |-
