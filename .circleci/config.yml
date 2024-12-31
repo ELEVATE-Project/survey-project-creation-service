@@ -147,39 +147,39 @@ jobs:
       - run:
           name: Running test cases
           command: |
-            cd src/ && npm run test:integration || true
-      - run:
-          name: Get User container ID and print logs
-          command: |
-            echo "Getting User container ID..."
-            USER_CONTAINER_ID=$(docker ps -q --filter "name=user")
-            echo "User container ID: $USER_CONTAINER_ID"
+            cd src/ && npm run test:integration
+      # - run:
+      #     name: Get User container ID and print logs
+      #     command: |
+      #       echo "Getting User container ID..."
+      #       USER_CONTAINER_ID=$(docker ps -q --filter "name=user")
+      #       echo "User container ID: $USER_CONTAINER_ID"
 
-            # Check if the User container is running
-            if [ -z "$USER_CONTAINER_ID" ]; then
-              echo "User container is not running. Cannot fetch logs."
-              exit 1  # Exit with an error if User container is not running
-            fi
+      #       # Check if the User container is running
+      #       if [ -z "$USER_CONTAINER_ID" ]; then
+      #         echo "User container is not running. Cannot fetch logs."
+      #         exit 1  # Exit with an error if User container is not running
+      #       fi
 
-            # Print logs of the SCP container
-            echo "Printing SCP container logs..."
-            docker logs $USER_CONTAINER_ID --tail=20000
-      - run:
-          name: Get SCP container ID and print logs
-          command: |
-            echo "Getting SCP container ID..."
-            SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
-            echo "SCP container ID: $SCP_CONTAINER_ID"
+      #       # Print logs of the SCP container
+      #       echo "Printing SCP container logs..."
+      #       docker logs $USER_CONTAINER_ID --tail=20000
+      # - run:
+      #     name: Get SCP container ID and print logs
+      #     command: |
+      #       echo "Getting SCP container ID..."
+      #       SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
+      #       echo "SCP container ID: $SCP_CONTAINER_ID"
 
-            # Check if the SCP container is running
-            if [ -z "$SCP_CONTAINER_ID" ]; then
-              echo "SCP container is not running. Cannot fetch logs."
-              exit 1  # Exit with an error if SCP container is not running
-            fi
+      #       # Check if the SCP container is running
+      #       if [ -z "$SCP_CONTAINER_ID" ]; then
+      #         echo "SCP container is not running. Cannot fetch logs."
+      #         exit 1  # Exit with an error if SCP container is not running
+      #       fi
 
-            # Print logs of the SCP container
-            echo "Printing SCP container logs..."
-            docker logs $SCP_CONTAINER_ID --tail=20000
+      #       # Print logs of the SCP container
+      #       echo "Printing SCP container logs..."
+      #       docker logs $SCP_CONTAINER_ID --tail=20000
 
       - store_test_results:
           path: ./dev-ops/report
