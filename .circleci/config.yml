@@ -148,6 +148,8 @@ jobs:
           name: Running test cases
           command: |
             cd src/ && npm run test:integration || true
+      - store_artifacts:
+          path: ./dev-ops/report
       - run:
           name: Get User container ID and print logs
           command: |
