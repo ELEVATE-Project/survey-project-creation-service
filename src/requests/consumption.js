@@ -484,8 +484,8 @@ const createSolutions = async (resourceDetails, programDetails) => {
 				createdAt: new Date(),
 				scope: programDetails.scope,
 				projectTemplateId: resource._id,
-				updatedBy: programDetails.loggedInUserId,
-				author: programDetails.loggedInUserId,
+				updatedBy: programDetails.created_by,
+				author: programDetails.created_by,
 				endDate: programDetails.end_date,
 				startDate: programDetails.start_date,
 			}
@@ -537,17 +537,18 @@ const createSolutions = async (resourceDetails, programDetails) => {
  * Create a duplicate solution from the given resource details
  * @name duplicateResources
  * @param {Object} resourceDetails - Object of resource details
+ * @param {String} created_by - created by user id
  * @returns {Array} Array of objects of duplicate templates
  */
-const duplicateResources = async (resourceDetails) => {
+const duplicateResources = async (resourceDetails, created_by) => {
 	// initialise list of project templates to create
 	let projectTemplateIds = []
 	//initialise list of solution templates to create
 	let solutionTemplateIds = []
 
 	// seggregate templates based on type , all projects should be created in projectTemplates and others in solutions collection
-	if (resourceDetails.type == common.PROJECT) projectTemplateIds.push(ObjectId(resourceDetails._id))
-	else solutionTemplateIds.push(ObjectId(resourceDetails._id))
+	if (resourceDetails.type == common.PROJECT) projectTemplateIds.push(ObjectId(resourceDetails.published_id))
+	else solutionTemplateIds.push(ObjectId(resourceDetails.published_id))
 
 	// handling only project creation now. Make changes here for observation , survey etc...
 	if (projectTemplateIds.length > 0) {
@@ -588,6 +589,8 @@ const duplicateResources = async (resourceDetails) => {
 				delete project._id
 				project.updatedAt = new Date()
 				project.createdAt = new Date()
+				project.createdBy = created_by
+				project.updatedBy = created_by
 				project.isReusable = false
 				templateProjectsTaskMap[project.externalId] = project.tasks
 				templateProjectsIdMap[project.externalId] = {
@@ -615,6 +618,8 @@ const duplicateResources = async (resourceDetails) => {
 				taskMap[projectTask._id] = projectTask.externalId
 				projectTask.updatedAt = new Date()
 				projectTask.createdAt = new Date()
+				projectTask.createdBy = created_by
+				projectTask.updatedBy = created_by
 				delete projectTask._id
 				duplicateTasks.push(projectTask)
 			})
@@ -628,10 +633,12 @@ const duplicateResources = async (resourceDetails) => {
 					},
 				})
 				.toArray()
-
+			let seqCounter = 0
+			let taskSequence = []
 			taskMap = _.mapValues(taskMap, (externalId) => {
 				// Find the corresponding object from projectsTasksDetailsAfterInsert
 				const task = _.find(projectsTasksDetailsAfterInsert, { externalId: externalId })
+				taskSequence[seqCounter++] = externalId
 
 				// If found, replace externalId with _id; otherwise, keep the externalId
 				return task ? ObjectId(task._id) : externalId
@@ -639,11 +646,10 @@ const duplicateResources = async (resourceDetails) => {
 			// update the project template after tasks created
 			templateProjects.forEach((project) => {
 				let projectTasks = []
-				let taskSequence = []
 				project.tasks.forEach((task) => {
 					projectTasks.push(taskMap[task])
-					let seqNum = task.sequenceNumber - 1 < 0 ? 0 : task.sequenceNumber - 1
-					taskSequence[seqNum] = task.externalId
+					// let seqNum = task.sequenceNumber - 1 < 0 ? 0 : task.sequenceNumber - 1
+					// taskSequence[seqNum] = task.externalId
 				})
 				project.tasks = projectTasks
 				project.taskSequence = taskSequence
@@ -673,102 +679,132 @@ const duplicateResources = async (resourceDetails) => {
 }
 
 /**
+ * Process targeting criteria
+ * @name processTargetingCriteria
+ * @param {Object} targetingData - Program template data
+ * @returns {Object} - Response contains scope and metaInformation
+ */
+const processTargetingCriteria = (targetingData) => {
+	let scope = {
+		roles: [],
+		entityType: [],
+	}
+	let metaInformation = {
+		recommendedFor: [],
+	}
+
+	if (targetingData) {
+		// Iterate through each targeting criterion
+		targetingData.forEach((targeting) => {
+			const targetingEntity = targeting?.entity_targeting?.value
+
+			scope.entityType.push(targetingEntity)
+
+			if (targeting?.roles?.length) {
+				// Add unique roles to scope and metaInformation
+				targeting.roles.forEach(({ value, label }) => {
+					scope.roles.push(value)
+					metaInformation.recommendedFor.push(label)
+				})
+			} else {
+				// Reset roles and recommendedFor if no roles are present
+				scope.roles = []
+				metaInformation.recommendedFor = []
+			}
+
+			// Add entity-specific targets to scope and metaInformation
+			targeting[targetingEntity]?.forEach(({ name, _id }) => {
+				scope[targetingEntity] = scope[targetingEntity] || []
+				metaInformation[targetingEntity] = metaInformation[targetingEntity] || []
+				scope[targetingEntity].push(_id)
+				metaInformation[targetingEntity].push(name)
+			})
+		})
+	}
+	// refactor scope to remove duplicates
+	Object.keys(scope).forEach((key) => {
+		if (Array.isArray(scope[key] && scope[key].length > 0)) {
+			scope[key] = [...new Set(scope[key])] // Remove duplicates while preserving array structure
+		}
+	})
+	// refactor metaInformation to remove duplicates
+	Object.keys(metaInformation).forEach((key) => {
+		if (Array.isArray(metaInformation[key] && metaInformation[key].length > 0)) {
+			metaInformation[key] = [...new Set(metaInformation[key])] // Remove duplicates while preserving array structure
+		}
+	})
+
+	return { scope, metaInformation }
+}
+
+/**
  * Format Program Template
  * @name formatProgramTemplate
- * @param {Object} templateData - Program template data
+ * @param {Object} programData - Program template data
  * @returns {Object} - Response contains formatted template
  */
-const formatProgramTemplate = (templateData) => {
+const formatProgramTemplate = (programData) => {
 	try {
-		let language = templateData?.language
-			? templateData?.resource.flatMap((resource) => {
-					return resource.languages.map((language) => {
-						return language.label
-					})
-			  })
-			: []
-
-		language = [...new Set(language)]
-		let keywords = templateData?.keywords
-			? templateData?.keywords
-			: templateData?.resource
-			? utils.formatKeywords(templateData?.resource?.keywords)
-			: []
-		keywords = [...new Set(keywords)]
-
-		let resourceDetails = templateData?.resource
-		if (templateData?.resource?.published_id) resourceDetails._id = templateData?.resource?.published_id
-
-		let scope = {
-			roles: [],
-			entityType: [],
+		let programDocument = {}
+		if (programData?.targeting_criteria) {
+			const targeting = processTargetingCriteria(programData?.targeting_criteria)
+			programDocument.scope = targeting.scope
+			programDocument.metaInformation = targeting.metaInformation
 		}
-		let metaInformation = {
-			recommendedFor: [],
-		}
-		// check if targeting criteria is given in the template or not
-		if (templateData?.targeting_criteria) {
-			// iterate through the targeting_criteria given
-			templateData?.targeting_criteria.forEach((targeting) => {
-				// fetch the targeting entity
-				const targeting_entity = targeting?.entity_targeting?.value
-				// check if entity type in scope is added or not. if not added , add
-				if (!scope.entityType.includes(targeting_entity)) scope.entityType.push(targeting_entity)
-				// check of roles
-				if (targeting?.roles) {
-					// iterate through the roles object and add the value of role if its not added
-					targeting.roles.forEach((role) => {
-						if (!scope.roles.includes(role.value)) scope.roles.push(role.value)
-						// iterate through the roles object and add the value of role in metaInformation.recommendedFor if its not added
-						if (!metaInformation.recommendedFor.includes(role.label))
-							metaInformation.recommendedFor.push(role.label)
-					})
-				} else {
-					scope.roles = []
-					metaInformation.recommendedFor = []
-				}
-				targeting[targeting_entity].forEach((target) => {
-					// add the entity ids in scope and metaInformation
-					if (scope[targeting_entity] == undefined) scope[targeting_entity] = []
-					if (metaInformation[targeting_entity] == undefined) metaInformation[targeting_entity] = []
-					metaInformation[targeting_entity].push(target.name)
-					scope[targeting_entity].push(target._id)
-				})
-			})
-		}
-		// prepare the program template
-		let programTemplate = {
-			scope,
-			metaInformation,
-			resourceType: [common.ROLLOUT_TYPE_PROGRAM],
-			language,
-			keywords,
-			concepts: templateData?.concepts ? templateData?.concepts : [],
-			components: [],
-			resourceDetails,
-			isAPrivateProgram: false,
-			isDeleted: false,
-			requestForPIIConsent: templateData?.requestForPIIConsent ? true : false,
-			rootOrganisations: [
-				templateData?.rootOrganisations ? templateData?.rootOrganisations : templateData?.organization?.id,
-			],
-			createdFor: [templateData?.createdFor ? templateData?.createdFor : templateData?.organization?.id],
-			deleted: false,
-			status: common.STATUS_ACTIVE.toLowerCase(),
-			owner: templateData?.created_by,
-			createdBy: templateData?.created_by,
-			updatedBy: templateData?.created_by,
-			externalId: utils.generateExternalId(templateData?.title),
-			name: templateData?.title.trim(),
-			description: templateData?.description ? templateData?.description : '',
-			updatedAt: new Date(),
-			createdAt: new Date(),
-			endDate: new Date(templateData?.end_date),
-			startDate: new Date(templateData?.start_date),
-		}
+		programDocument.updatedAt = new Date()
+		programDocument.endDate = new Date(programData?.end_date)
+		programDocument.startDate = new Date(programData?.start_date)
 		// if the program is already published , update _id from the published_id
-		if (templateData.published_id) programTemplate._id = ObjectId(templateData.published_id)
-		return { success: true, programTemplate }
+		if (programData?.published_id) {
+			programDocument._id = ObjectId(programData.published_id)
+		} else {
+			let language = programData?.language
+				? programData?.resource.flatMap((resource) => {
+						return resource.languages.map((language) => {
+							return language.label
+						})
+				  })
+				: []
+
+			language = [...new Set(language)]
+			let keywords = programData?.keywords
+				? programData?.keywords
+				: programData?.resource
+				? utils.formatKeywords(programData?.resource?.keywords)
+				: []
+			keywords = [...new Set(keywords)]
+
+			let resourceDetails = programData?.resource // prepare the program template
+			programDocument = {
+				...programDocument,
+				...{
+					resourceType: [common.ROLLOUT_TYPE_PROGRAM],
+					language,
+					keywords,
+					concepts: programData?.concepts ? programData?.concepts : [],
+					components: [],
+					resourceDetails,
+					isAPrivateProgram: false,
+					isDeleted: false,
+					requestForPIIConsent: programData?.requestForPIIConsent ? true : false,
+					rootOrganisations: [
+						programData?.rootOrganisations ? programData?.rootOrganisations : programData?.organization?.id,
+					],
+					createdFor: [programData?.createdFor ? programData?.createdFor : programData?.organization?.id],
+					deleted: false,
+					status: common.STATUS_ACTIVE.toLowerCase(),
+					owner: programData?.created_by,
+					createdBy: programData?.created_by,
+					updatedBy: programData?.created_by,
+					externalId: utils.generateExternalId(programData?.title),
+					name: programData?.title.trim(),
+					description: programData?.description ? programData?.description.trim() : '',
+					createdAt: new Date(),
+				},
+			}
+		}
+
+		return { success: true, programDocument }
 	} catch (error) {
 		console.error('Error in formatTemplate:', error.message)
 		return { success: false, error: error.message }
@@ -1028,17 +1064,18 @@ const publishProgram = function (programData) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
 
-			let template = formattedTemplate.template
+			let template = formattedTemplate.programDocument
 			// fetch the resource details to create solutions
-			const resourceDetailsCreate = template.resourceDetails
+			const resourceDetailsCreate = programData.resource
+			delete template.resourceDetails
 			const resourceStatus = await rolloutQueries.findOne(
 				{
-					id: template?.resourceDetails?.rolloutId,
+					id: resourceDetailsCreate?.rolloutId,
 				},
 				{ attributes: ['status', 'published_id'] }
 			)
 			const programScope = template.scope
-			delete template.resourceDetails
+
 			let result = {}
 			let programId = template?._id
 
@@ -1046,16 +1083,13 @@ const publishProgram = function (programData) {
 			const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
-				const updateTemplate = {
-					scope: formattedTemplate.template.scope,
-					endDate: formattedTemplate.template.endDate,
-					startDate: formattedTemplate.template.startDate,
-				}
+				let updateData = template
+				delete updateData._id
 
 				result = await programsCollection.updateOne(
 					{ _id: template?._id },
 					{
-						$set: updateTemplate,
+						$set: updateData,
 					}
 				)
 
@@ -1089,7 +1123,7 @@ const publishProgram = function (programData) {
 
 				solutions.push(resourceDetailsCreate?.published_id)
 			} else {
-				const duplicateResource = await duplicateResources(resourceDetailsCreate)
+				const duplicateResource = await duplicateResources(resourceDetailsCreate, programData.created_by)
 				solutions = await createSolutions(duplicateResource, {
 					_id: programId,
 					scope: programScope,
@@ -1098,8 +1132,8 @@ const publishProgram = function (programData) {
 					description: template.description ? template.description : '',
 					end_date: template.endDate,
 					start_date: template.startDate,
-					loggedInUserId: programData.loggedInUserId,
-					orgId: programData.orgId,
+					created_by: programData.created_by,
+					orgId: programData.organization_id,
 				})
 				const solutionIds = solutions.map((solution) => solution._id)
 				// Update Template with tasks and sequence

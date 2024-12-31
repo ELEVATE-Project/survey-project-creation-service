@@ -612,19 +612,27 @@ module.exports = class RolloutsHelper {
 				organization_id: orgId,
 			})
 
-			if (!solutionRollout && resourceDetailsResult?.type != common.ROLLOUT_TYPE_PROGRAM) {
-				resourceDetailsResult.parent_id = rolloutId
-				// add the start date and end date of program for single roll out
-				resourceDetailsResult.start_date = rolloutDetailsResult.start_date
-				resourceDetailsResult.end_date = rolloutDetailsResult.end_date
-				const resultCreateRollout = await this.create(resourceDetailsResult, loggedInUserId, orgId, true)
-				solutionRolloutId = resultCreateRollout?.result?.id
+			const parentRollout = await rolloutQueries.findOne({
+				id: rolloutId,
+				organization_id: orgId,
+			})
+
+			if (solutionRollout?.id == undefined && resourceDetailsResult?.type != common.ROLLOUT_TYPE_PROGRAM) {
+				let childRollout = parentRollout
+				childRollout.parent_id = rolloutId
+				childRollout.type = common.ROLLOUT_TYPE_SOLUTION
+				delete childRollout.id
+				const resultCreateRollout = await rolloutQueries.create(childRollout)
+				solutionRolloutId = resultCreateRollout.id
 			} else {
+				let childRollout = {
+					blob_path: parentRollout.blob_path,
+				}
 				// update the start date and end date of program for single roll out
 				solutionRolloutId = solutionRollout.id
-				bodyData.start_date = rolloutDetailsResult.start_date
-				bodyData.end_date = rolloutDetailsResult.end_date
-				await this.update(solutionRolloutId, bodyData, loggedInUserId, orgId)
+				childRollout.start_date = parentRollout.start_date
+				childRollout.end_date = parentRollout.end_date
+				await rolloutQueries.updateOne(childRollout, { id: solutionRolloutId })
 			}
 
 			// publish the resource if not published
@@ -636,8 +644,6 @@ module.exports = class RolloutsHelper {
 			}
 			const rolloutKafkaPayload = {
 				...rolloutDetails.result,
-				loggedInUserId,
-				orgId,
 				resource: {
 					...resourceDetails?.result,
 					rolloutId: solutionRolloutId,
