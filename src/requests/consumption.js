@@ -709,7 +709,7 @@ const processTargetingCriteria = (targetingData) => {
 			if (targeting?.roles?.length) {
 				// Add unique roles to scope and metaInformation
 				targeting.roles.forEach(({ value, label }) => {
-					scope.roles.push(label.toLowerCase().replace(' ', '_'))
+					scope.roles.push(label.toLowerCase().replace(/ /g, '_'))
 					metaInformation.recommendedFor.push(label)
 				})
 			} else {
