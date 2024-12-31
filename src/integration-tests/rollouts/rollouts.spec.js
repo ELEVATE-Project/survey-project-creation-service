@@ -26,23 +26,44 @@ describe('Rollout APIs', function () {
 		expect(res.body).toMatchSchema(schema.getDataManagersSchema)
 	})
 
+	it('Create Rollout', async () => {
+		let res = await request.post('/scp/v1/rollouts/update').send(insertRolloutData())
+		expect(res.statusCode).toBe(400)
+		expect(res.body).toMatchSchema(schema.createSchema)
+	})
+
 	it('Get list of Rollouts', async () => {
 		let res = await request.get('/scp/v1/rollouts/list').query({ page: 1, limit: 10 })
 		expect(res.statusCode).toBe(200)
 		if (res.body?.result.length == 0) {
-			expect(res.body).toMatchSchema(schema.getRolloutsListEmptyResponseSchema)
+			expect(res.body).toMatchSchema(schema.listEmptyResponseSchema)
 		}
-		expect(res.body).toMatchSchema(schema.getRolloutsListSchema)
+		expect(res.body).toMatchSchema(schema.listSchema)
 	})
 
 	it('Get Rollout Details', async () => {
 		let res = await request.get('/scp/v1/rollouts/details/1')
 		expect(res.statusCode).toBe(400)
-		expect(res.body).toMatchSchema(schema.rolloutDetailResponseSchema)
+		expect(res.body).toMatchSchema(schema.detailResponseSchema)
 	})
 
 	it('Delete Rollout', async () => {
 		const res = await request.delete('/scp/v1/rollouts/update/999999')
 		expect(res.statusCode).toBe(400)
 	})
+
+	it('Publish Rollout', async () => {
+		let res = await request.get('/scp/v1/rollouts/publish/1').send()
+		expect(res.statusCode).toBe(400)
+		expect(res.body).toMatchSchema(schema.createSchema)
+	})
 })
+
+function insertRolloutData(resource_id) {
+	return {
+		title: faker.random.alpha(5),
+		resource_id: resource_id,
+		start_date: '2024-11-29T11:36:31.117Z',
+		end_date: '2024-12-30T11:36:31.117Z',
+	}
+}
