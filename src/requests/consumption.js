@@ -521,10 +521,10 @@ const createSolutions = async (resourceDetails, programDetails) => {
 				insertCertificateTemplate(found.certificate, found._id, programDetails._id)
 			})
 		}
-		const projectsCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
+		const projectTemplateCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
 		const createdSolutionsResponse = await Promise.all(
 			createdSolutions.map(async (solution) => {
-				const resultUpdateProjectTemplate = await projectsCollection.updateOne(
+				const updateProjectTemplate = await projectTemplateCollection.updateOne(
 					{
 						_id: solution.projectTemplateId,
 					},
@@ -537,8 +537,10 @@ const createSolutions = async (resourceDetails, programDetails) => {
 				)
 
 				// Validate the result of the template updation
-				if (!resultUpdateProjectTemplate) {
-					throw new Error(`Failed to update the template into the ${COLLECTIONS.SOLUTIONS} collection.`)
+				if (!updateProjectTemplate) {
+					throw new Error(
+						`Failed to update the child project template with solution details into the ${COLLECTIONS.TEMPLATES} collection.`
+					)
 				}
 
 				return {
@@ -779,8 +781,8 @@ const formatProgramTemplate = async (programData) => {
 		let programDocument = {}
 		if (programData?.targeting_criteria) {
 			const targeting = await processTargetingCriteria(programData?.targeting_criteria)
-			programDocument.scope = targeting.scope
-			programDocument.metaInformation = targeting.metaInformation
+			programDocument.scope = targeting?.scope ? targeting?.scope : {}
+			programDocument.metaInformation = targeting?.metaInformation ? targeting?.metaInformation : {}
 		}
 		programDocument.updatedAt = new Date()
 		programDocument.endDate = new Date(programData?.end_date)
