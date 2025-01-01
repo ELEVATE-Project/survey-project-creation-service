@@ -522,27 +522,33 @@ const createSolutions = async (resourceDetails, programDetails) => {
 			})
 		}
 		const projectsCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
-		return createdSolutions.map(async (solution) => {
-			const resultUpdateProjectTemplate = await projectsCollection.updateOne(
-				{
-					_id: solution.projectTemplateId,
-				},
-				{
-					$set: {
-						solutionId: solution._id,
-						solutionExternalId: solution.externalId,
+		const createdSolutionsResponse = await Promise.all(
+			createdSolutions.map(async (solution) => {
+				const resultUpdateProjectTemplate = await projectsCollection.updateOne(
+					{
+						_id: solution.projectTemplateId,
 					},
+					{
+						$set: {
+							solutionId: solution._id,
+							solutionExternalId: solution.externalId,
+						},
+					}
+				)
+
+				// Validate the result of the template updation
+				if (!resultUpdateProjectTemplate) {
+					throw new Error(`Failed to update the template into the ${COLLECTIONS.SOLUTIONS} collection.`)
 				}
-			)
-			// Validate the result of the template updation
-			if (!resultUpdateProjectTemplate) {
-				throw new Error(`Failed to update the template into the ${COLLECTIONS.SOLUTIONS} collection.`)
-			}
-			return {
-				...solution,
-				rolloutId: solutionRolloutMap[solution.externalId],
-			}
-		})
+
+				return {
+					...solution,
+					rolloutId: solutionRolloutMap[solution.externalId],
+				}
+			})
+		)
+
+		return createdSolutionsResponse
 	} catch (error) {
 		console.log(error)
 	}
@@ -1176,8 +1182,8 @@ const publishProgram = function async(programData) {
 			solutions.forEach(async (solution) => {
 				await rolloutService.publishCallback(
 					solution.rolloutId,
-					solution._id.toString(),
-					solution.projectTemplateId.toString()
+					solution?._id.toString(),
+					solution?.projectTemplateId.toString()
 				)
 			})
 
