@@ -758,6 +758,7 @@ const processTargetingCriteria = async (targetingData) => {
 			const matchedRole = userRoleExtensionResult.find((userRole) => {
 				userRole.userRoleId == role
 			})
+			console.log('matchedRole : : ', matchedRole, '-------------_-------------', userRoleExtensionResult)
 			return matchedRole.code
 		})
 	}
