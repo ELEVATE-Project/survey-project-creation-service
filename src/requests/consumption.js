@@ -46,7 +46,6 @@ const COLLECTIONS = {
 	PROGRAMS: 'programs',
 	SOLUTIONS: 'solutions',
 	CERTIFICATE_TEMPLATE: 'certificateTemplates',
-	USERROLEEXTENSION: 'userRoleExtension',
 }
 
 /**
@@ -524,15 +523,21 @@ const createSolutions = async (resourceDetails, programDetails) => {
 		}
 		const projectsCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
 		return createdSolutions.map(async (solution) => {
-			await projectsCollection.updateOne(
+			const resultUpdateProjectTemplate = await projectsCollection.updateOne(
 				{
 					_id: solution.projectTemplateId,
 				},
 				{
-					solutionId: solution._id,
-					solutionExternalId: solution.externalId,
+					$set: {
+						solutionId: solution._id,
+						solutionExternalId: solution.externalId,
+					},
 				}
 			)
+			// Validate the result of the template creation
+			if (!resultUpdateProjectTemplate) {
+				throw new Error(`Failed to update the template into the ${COLLECTIONS.SOLUTIONS} collection.`)
+			}
 			return {
 				...solution,
 				rolloutId: solutionRolloutMap[solution.externalId],
@@ -718,9 +723,8 @@ const processTargetingCriteria = async (targetingData) => {
 
 			if (targeting?.roles?.length) {
 				// Add unique roles to scope and metaInformation
-				targeting.roles.forEach(({ value, label }) => {
-					// scope.roles.push(label.toLowerCase().replace(/ /g, '_'))
-					scope.roles.push(value)
+				targeting.roles.forEach(({ code, label }) => {
+					scope.roles.push(code)
 					metaInformation.recommendedFor.push(label)
 				})
 			} else {
@@ -746,22 +750,6 @@ const processTargetingCriteria = async (targetingData) => {
 		}
 	})
 
-	// convert the role id value to role code
-	if (scope?.roles.length > 0) {
-		const userRoleExtensionCollection = mongoDb.collection(COLLECTIONS.USERROLEEXTENSION)
-
-		const userRoleExtensionResult = await userRoleExtensionCollection
-			.find({ userRoleId: { $in: [23, 24, 8] } })
-			.toArray()
-
-		scope.roles = scope?.roles.map((role) => {
-			const matchedRole = userRoleExtensionResult.find((userRole) => {
-				userRole.userRoleId == role
-			})
-			console.log('matchedRole : : ', matchedRole, '-------------_-------------', userRoleExtensionResult)
-			return matchedRole.code
-		})
-	}
 	// convert the 'entityType' array to coma separated string
 	scope.entityType = scope?.entityType ? scope?.entityType.join(',') : ''
 	// refactor metaInformation to remove duplicates
