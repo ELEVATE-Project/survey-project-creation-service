@@ -46,6 +46,7 @@ const COLLECTIONS = {
 	PROGRAMS: 'programs',
 	SOLUTIONS: 'solutions',
 	CERTIFICATE_TEMPLATE: 'certificateTemplates',
+	USERROLEEXTENSION: 'userRoleExtension',
 }
 
 /**
@@ -521,8 +522,17 @@ const createSolutions = async (resourceDetails, programDetails) => {
 				insertCertificateTemplate(found.certificate, found._id, programDetails._id)
 			})
 		}
-
-		return createdSolutions.map((solution) => {
+		const projectsCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
+		return createdSolutions.map(async (solution) => {
+			await projectsCollection.updateOne(
+				{
+					_id: solution.projectTemplateId,
+				},
+				{
+					solutionId: solution._id,
+					solutionExternalId: solution.externalId,
+				}
+			)
 			return {
 				...solution,
 				rolloutId: solutionRolloutMap[solution.externalId],
@@ -690,7 +700,7 @@ const duplicateResources = async (resourceDetails, created_by) => {
  * @param {Object} targetingData - Program template data
  * @returns {Object} - Response contains scope and metaInformation
  */
-const processTargetingCriteria = (targetingData) => {
+const processTargetingCriteria = async (targetingData) => {
 	let scope = {
 		roles: [],
 		entityType: [],
@@ -709,7 +719,8 @@ const processTargetingCriteria = (targetingData) => {
 			if (targeting?.roles?.length) {
 				// Add unique roles to scope and metaInformation
 				targeting.roles.forEach(({ value, label }) => {
-					scope.roles.push(label.toLowerCase().replace(/ /g, '_'))
+					// scope.roles.push(label.toLowerCase().replace(/ /g, '_'))
+					scope.roles.push(value)
 					metaInformation.recommendedFor.push(label)
 				})
 			} else {
@@ -734,6 +745,23 @@ const processTargetingCriteria = (targetingData) => {
 			scope[key] = [...new Set(scope[key])] // Remove duplicates while preserving array structure
 		}
 	})
+
+	// convert the role id value to role code
+	if (scope?.roles.length > 0) {
+		const userRoleExtensionCollection = mongoDb.collection(COLLECTIONS.USERROLEEXTENSION)
+
+		const userRoleExtensionResult = await userRoleExtensionCollection
+			.find({ userRoleId: { $in: [23, 24, 8] } })
+			.toArray()
+
+		scope.roles = scope?.roles.map((role) => {
+			const matchedRole = userRoleExtensionResult.find((userRole) => {
+				userRole.userRoleId == role
+			})
+			return matchedRole.code
+		})
+	}
+	// convert the 'entityType' array to coma separated string
 	scope.entityType = scope?.entityType ? scope?.entityType.join(',') : ''
 	// refactor metaInformation to remove duplicates
 	Object.keys(metaInformation).forEach((key) => {
@@ -751,11 +779,11 @@ const processTargetingCriteria = (targetingData) => {
  * @param {Object} programData - Program template data
  * @returns {Object} - Response contains formatted template
  */
-const formatProgramTemplate = (programData) => {
+const formatProgramTemplate = async (programData) => {
 	try {
 		let programDocument = {}
 		if (programData?.targeting_criteria) {
-			const targeting = processTargetingCriteria(programData?.targeting_criteria)
+			const targeting = await processTargetingCriteria(programData?.targeting_criteria)
 			programDocument.scope = targeting.scope
 			programDocument.metaInformation = targeting.metaInformation
 		}
@@ -1062,12 +1090,12 @@ async function downloadAndConvertToBase64(url) {
  * @param {Object} programData - Program template data
  * @returns {Object} - Response of Program creation
  */
-const publishProgram = function (programData) {
+const publishProgram = function async(programData) {
 	return new Promise(async (resolve, reject) => {
 		const result = { success: false, templateId: null, error: null }
 		try {
 			// Format the program template
-			let formattedTemplate = formatProgramTemplate(programData)
+			let formattedTemplate = await formatProgramTemplate(programData)
 			if (!formattedTemplate.success) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
