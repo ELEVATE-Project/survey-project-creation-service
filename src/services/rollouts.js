@@ -783,18 +783,19 @@ module.exports = class RolloutsHelper {
 	 * @param {String} templateId - template id
 	 * @returns {JSON} - details of Rollout
 	 */
-	static async publishCallback(rolloutId, publishedId, templateId = null) {
+	static async publishCallback(rolloutId, publishedId = null, templateId = null) {
 		try {
+			let updateData = {
+				published_on: new Date(),
+				status: common.ROLLOUT_STATUS_PUBLISHED,
+			}
+			if (publishedId) updateData.published_id = publishedId
+			if (templateId) updateData.template_id = templateId
 			let rollout = await rolloutQueries.updateOne(
 				{
 					id: rolloutId,
 				},
-				{
-					published_id: publishedId,
-					template_id: templateId,
-					published_on: new Date(),
-					status: common.ROLLOUT_STATUS_PUBLISHED,
-				}
+				updateData
 			)
 
 			if (rollout === 0) {
