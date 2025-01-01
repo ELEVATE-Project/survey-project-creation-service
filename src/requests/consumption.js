@@ -534,7 +534,7 @@ const createSolutions = async (resourceDetails, programDetails) => {
 					},
 				}
 			)
-			// Validate the result of the template creation
+			// Validate the result of the template updation
 			if (!resultUpdateProjectTemplate) {
 				throw new Error(`Failed to update the template into the ${COLLECTIONS.SOLUTIONS} collection.`)
 			}
