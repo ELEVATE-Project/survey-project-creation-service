@@ -1142,9 +1142,9 @@ const publishProgram = function async(programData) {
 				resourceStatus?.published_id != undefined
 			) {
 				const updateTemplate = {
-					scope: formattedTemplate.template.scope,
-					endDate: formattedTemplate.template.endDate,
-					startDate: formattedTemplate.template.startDate,
+					scope: formattedTemplate.programDocument.scope,
+					endDate: formattedTemplate.programDocument.endDate,
+					startDate: formattedTemplate.programDocument.startDate,
 				}
 				const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 				result = await solutionsCollection.updateOne(
@@ -1180,12 +1180,12 @@ const publishProgram = function async(programData) {
 				)
 			}
 
-			await rolloutService.publishCallback(programData.id, programId.toString())
+			await rolloutService.publishCallback(programData.id, programId ? programId.toString() : null)
 			solutions.forEach(async (solution) => {
 				await rolloutService.publishCallback(
 					solution.rolloutId,
-					solution?._id.toString(),
-					solution?.projectTemplateId.toString()
+					solution?._id ? solution?._id.toString() : null,
+					solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null
 				)
 			})
 
