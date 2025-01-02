@@ -1119,7 +1119,7 @@ const publishProgram = function async(programData) {
 				let updateData = _.omit(template, ['_id'])
 
 				result = await programsCollection.updateOne(
-					{ _id: programId },
+					{ _id: ObjectId(programId) },
 					{
 						$set: updateData,
 					}
@@ -1145,7 +1145,7 @@ const publishProgram = function async(programData) {
 				}
 				const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 				result = await solutionsCollection.updateOne(
-					{ _id: resourceDetailsCreate?.published_id },
+					{ _id: ObjectId(resourceStatus?.published_id) },
 					{
 						$set: updateTemplate,
 					}
