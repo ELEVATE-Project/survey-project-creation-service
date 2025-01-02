@@ -1272,7 +1272,7 @@ module.exports = class resourceHelper {
 						.map((reviewer_id) => userDetails[reviewer_id]?.name || '')
 						.filter(Boolean) // To remove any empty strings
 						.join(' , ')
-					resource['organisation'] = orgDetails[resource.organization_id] || {}
+					resource['organization'] = orgDetails[resource.organization_id] || {}
 					delete resource.created_at
 					result.data.push(resource)
 				})
