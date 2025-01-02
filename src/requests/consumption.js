@@ -1116,17 +1116,14 @@ const publishProgram = function async(programData) {
 			const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
-				let updateData = template
-				delete updateData._id
+				let updateData = _.omit(template, ['_id'])
 
 				result = await programsCollection.updateOne(
-					{ _id: template?._id },
+					{ _id: programId },
 					{
 						$set: updateData,
 					}
 				)
-
-				programId = template?._id
 			} else {
 				result = await programsCollection.insertOne(template)
 				// Validate the result of the template creation
