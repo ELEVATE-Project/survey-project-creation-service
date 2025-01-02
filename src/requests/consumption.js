@@ -521,13 +521,36 @@ const createSolutions = async (resourceDetails, programDetails) => {
 				insertCertificateTemplate(found.certificate, found._id, programDetails._id)
 			})
 		}
+		const projectTemplateCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
+		const createdSolutionsResponse = await Promise.all(
+			createdSolutions.map(async (solution) => {
+				const updateProjectTemplate = await projectTemplateCollection.updateOne(
+					{
+						_id: solution.projectTemplateId,
+					},
+					{
+						$set: {
+							solutionId: solution._id,
+							solutionExternalId: solution.externalId,
+						},
+					}
+				)
 
-		return createdSolutions.map((solution) => {
-			return {
-				...solution,
-				rolloutId: solutionRolloutMap[solution.externalId],
-			}
-		})
+				// Validate the result of the template updation
+				if (!updateProjectTemplate) {
+					throw new Error(
+						`Failed to update the child project template with solution details into the ${COLLECTIONS.TEMPLATES} collection.`
+					)
+				}
+
+				return {
+					...solution,
+					rolloutId: solutionRolloutMap[solution.externalId],
+				}
+			})
+		)
+
+		return createdSolutionsResponse
 	} catch (error) {
 		console.log(error)
 	}
@@ -690,7 +713,7 @@ const duplicateResources = async (resourceDetails, created_by) => {
  * @param {Object} targetingData - Program template data
  * @returns {Object} - Response contains scope and metaInformation
  */
-const processTargetingCriteria = (targetingData) => {
+const processTargetingCriteria = async (targetingData) => {
 	let scope = {
 		roles: [],
 		entityType: [],
@@ -708,8 +731,8 @@ const processTargetingCriteria = (targetingData) => {
 
 			if (targeting?.roles?.length) {
 				// Add unique roles to scope and metaInformation
-				targeting.roles.forEach(({ value, label }) => {
-					scope.roles.push(label.toLowerCase().replace(/ /g, '_'))
+				targeting.roles.forEach(({ code, label }) => {
+					scope.roles.push(code)
 					metaInformation.recommendedFor.push(label)
 				})
 			} else {
@@ -734,6 +757,8 @@ const processTargetingCriteria = (targetingData) => {
 			scope[key] = [...new Set(scope[key])] // Remove duplicates while preserving array structure
 		}
 	})
+
+	// convert the 'entityType' array to coma separated string
 	scope.entityType = scope?.entityType ? scope?.entityType.join(',') : ''
 	// refactor metaInformation to remove duplicates
 	Object.keys(metaInformation).forEach((key) => {
@@ -751,13 +776,13 @@ const processTargetingCriteria = (targetingData) => {
  * @param {Object} programData - Program template data
  * @returns {Object} - Response contains formatted template
  */
-const formatProgramTemplate = (programData) => {
+const formatProgramTemplate = async (programData) => {
 	try {
 		let programDocument = {}
 		if (programData?.targeting_criteria) {
-			const targeting = processTargetingCriteria(programData?.targeting_criteria)
-			programDocument.scope = targeting.scope
-			programDocument.metaInformation = targeting.metaInformation
+			const targeting = await processTargetingCriteria(programData?.targeting_criteria)
+			programDocument.scope = targeting?.scope ? targeting?.scope : {}
+			programDocument.metaInformation = targeting?.metaInformation ? targeting?.metaInformation : {}
 		}
 		programDocument.updatedAt = new Date()
 		programDocument.endDate = new Date(programData?.end_date)
@@ -1062,12 +1087,12 @@ async function downloadAndConvertToBase64(url) {
  * @param {Object} programData - Program template data
  * @returns {Object} - Response of Program creation
  */
-const publishProgram = function (programData) {
+const publishProgram = function async(programData) {
 	return new Promise(async (resolve, reject) => {
 		const result = { success: false, templateId: null, error: null }
 		try {
 			// Format the program template
-			let formattedTemplate = formatProgramTemplate(programData)
+			let formattedTemplate = await formatProgramTemplate(programData)
 			if (!formattedTemplate.success) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
@@ -1091,17 +1116,14 @@ const publishProgram = function (programData) {
 			const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
-				let updateData = template
-				delete updateData._id
+				let updateData = _.omit(template, ['_id'])
 
 				result = await programsCollection.updateOne(
-					{ _id: template?._id },
+					{ _id: ObjectId(programId) },
 					{
 						$set: updateData,
 					}
 				)
-
-				programId = template?._id
 			} else {
 				result = await programsCollection.insertOne(template)
 				// Validate the result of the template creation
@@ -1117,13 +1139,13 @@ const publishProgram = function (programData) {
 				resourceStatus?.published_id != undefined
 			) {
 				const updateTemplate = {
-					scope: formattedTemplate.template.scope,
-					endDate: formattedTemplate.template.endDate,
-					startDate: formattedTemplate.template.startDate,
+					scope: formattedTemplate.programDocument.scope,
+					endDate: formattedTemplate.programDocument.endDate,
+					startDate: formattedTemplate.programDocument.startDate,
 				}
 				const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 				result = await solutionsCollection.updateOne(
-					{ _id: resourceDetailsCreate?.published_id },
+					{ _id: ObjectId(resourceStatus?.published_id) },
 					{
 						$set: updateTemplate,
 					}
@@ -1155,12 +1177,12 @@ const publishProgram = function (programData) {
 				)
 			}
 
-			await rolloutService.publishCallback(programData.id, programId.toString())
+			await rolloutService.publishCallback(programData.id, programId ? programId.toString() : null)
 			solutions.forEach(async (solution) => {
 				await rolloutService.publishCallback(
 					solution.rolloutId,
-					solution._id.toString(),
-					solution.projectTemplateId.toString()
+					solution?._id ? solution?._id.toString() : null,
+					solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null
 				)
 			})
 
