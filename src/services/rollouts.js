@@ -636,7 +636,7 @@ module.exports = class RolloutsHelper {
 				let childRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])
 				// update the start date and end date of program for single roll out
 				solutionRolloutId = solutionRollout.id
-				await rolloutQueries.updateOne(childRollout, { id: solutionRolloutId })
+				await rolloutQueries.updateOne({ id: solutionRolloutId }, childRollout)
 			}
 
 			// publish the resource if not published
