@@ -1237,13 +1237,14 @@ module.exports = class resourceHelper {
 
 			const internalResources = await resourceQueries.resourceList(
 				filterQuery,
-				['id', 'title', 'type', 'created_by', 'created_at', 'published_on'],
+				['id', 'title', 'type', 'created_by', 'created_at', 'published_on', 'organization_id'],
 				sort,
 				pageNo,
 				pageSize
 			)
 
 			let userIds = internalResources.result.map((item) => item.created_by)
+			let organizationIds = internalResources.result.map((item) => item.organization_id)
 			const internalResourcesIds = internalResources.result.map((item) => item.id)
 
 			const reviewerDetails = await reviewsQueries.findAll(
@@ -1263,6 +1264,7 @@ module.exports = class resourceHelper {
 			if (internalResources.result.length > 0) {
 				// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
 				const userDetails = await this.fetchUserDetails(utils.getUniqueElements(userIds))
+				const orgDetails = await orgExtension.fetchOrganizationDetails(utils.getUniqueElements(organizationIds))
 				result.count = internalResources.count
 				internalResources.result.forEach((resource) => {
 					resource['creator'] = userDetails[resource.created_by]?.name || ''
@@ -1270,6 +1272,7 @@ module.exports = class resourceHelper {
 						.map((reviewer_id) => userDetails[reviewer_id]?.name || '')
 						.filter(Boolean) // To remove any empty strings
 						.join(' , ')
+					resource['organisation'] = orgDetails[resource.organization_id] || {}
 					delete resource.created_at
 					result.data.push(resource)
 				})
