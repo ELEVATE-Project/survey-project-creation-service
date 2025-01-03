@@ -568,6 +568,7 @@ const duplicateResources = async (resourceDetails, created_by) => {
 	let projectTemplateIds = []
 	//initialise list of solution templates to create
 	let solutionTemplateIds = []
+	const certificate = resourceDetails?.certificate
 
 	// seggregate templates based on type , all projects should be created in projectTemplates and others in solutions collection
 	if (resourceDetails.type == common.PROJECT) projectTemplateIds.push(ObjectId(resourceDetails.published_id))
@@ -698,6 +699,7 @@ const duplicateResources = async (resourceDetails, created_by) => {
 		// Add a new 'type', 'resource_id' , 'rolloutId' keys to each project
 		const updatedProjectTemplates = projectTemplatesAfterInsert.map((project) => ({
 			...project, // Spread the existing project fields
+			certificate,
 			type: common.PROJECT,
 			resource_id: templateProjectsIdMap[project.externalId].resource_id,
 			rolloutId: templateProjectsIdMap[project.externalId].rollout_id,
@@ -1116,14 +1118,17 @@ const publishProgram = function async(programData) {
 			const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
-				let updateData = _.omit(template, ['_id'])
+				let updateData = template
+				delete updateData._id
 
 				result = await programsCollection.updateOne(
-					{ _id: ObjectId(programId) },
+					{ _id: template?._id },
 					{
 						$set: updateData,
 					}
 				)
+
+				programId = template?._id
 			} else {
 				result = await programsCollection.insertOne(template)
 				// Validate the result of the template creation
@@ -1145,7 +1150,7 @@ const publishProgram = function async(programData) {
 				}
 				const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 				result = await solutionsCollection.updateOne(
-					{ _id: ObjectId(resourceStatus?.published_id) },
+					{ _id: resourceDetailsCreate?.published_id },
 					{
 						$set: updateTemplate,
 					}
@@ -1153,7 +1158,7 @@ const publishProgram = function async(programData) {
 
 				solutions.push(resourceDetailsCreate?.published_id)
 			} else {
-				const duplicateResource = await duplicateResources(resourceDetailsCreate, programData.created_by)
+				let duplicateResource = await duplicateResources(resourceDetailsCreate, programData.created_by)
 				solutions = await createSolutions(duplicateResource, {
 					_id: programId,
 					scope: programScope,
