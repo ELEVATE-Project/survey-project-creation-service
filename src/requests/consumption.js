@@ -14,6 +14,12 @@ const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 const { ObjectId } = require('mongodb')
 const MongoClient = require('mongodb').MongoClient
+const axios = require('axios')
+const cheerio = require('cheerio')
+const path = require('path')
+const fs = require('fs')
+const filesService = require('@services/files')
+const request = require('request')
 let mongoDb
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
@@ -517,8 +523,10 @@ const createSolutions = async (resourceDetails, programDetails) => {
 
 		if (solutionCertificateMap && solutionCertificateMap.length > 0) {
 			solutionCertificateMap.forEach((solutionMap) => {
-				const found = createdSolutions.find((solution) => solution.externalId == solutionMap.externalId)
-				insertCertificateTemplate(found.certificate, found._id, programDetails._id)
+				const found = createdSolutions.find(
+					(solution) => String(solution.externalId).trim() === String(solutionMap.externalId).trim()
+				)
+				insertCertificateTemplate(solutionMap.certificate, found._id, programDetails._id)
 			})
 		}
 		const projectTemplateCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
@@ -982,12 +990,12 @@ async function insertCertificateTemplate(certificateData, solutionId, programId)
 	// update the solution with the certificate template id
 	const solutionTemplateCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 	const resultUpdateSolution = await solutionTemplateCollection.updateOne(
-		({ _id: solutionId },
+		{ _id: solutionId },
 		{
 			$set: {
 				certificateTemplateId: result.insertedId,
 			},
-		})
+		}
 	)
 	// Validate the result of the template creation
 	if (!resultUpdateSolution) {
@@ -1061,7 +1069,7 @@ async function downloadAndConvertToBase64(url) {
 			url,
 			method: 'GET',
 			responseType: 'arraybuffer', // Ensures we receive raw binary data
-			timeout: 40000,
+			timeout: 120000,
 			headers: {
 				Connection: 'close', // Ensures the socket is closed after the request
 			},
