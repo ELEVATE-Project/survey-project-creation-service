@@ -904,7 +904,7 @@ async function createSvg(certificateData) {
 			let updatedSvg = $.xml()
 
 			const uniqueId = utils.generateUniqueId() //generate a unique id for folder
-			let fileName = `./certificate_template_${uniqueId}.svg` //create a unique file name
+			let fileName = `certificate_template_${uniqueId}.svg` //create a unique file name
 			const mainPath = path.join(__dirname, `../temp/certificate/`) //temporary folder path for certificate template
 			let dirPath = path.join(mainPath, `${uniqueId}/`) //create a directory path
 			fs.mkdirSync(dirPath, { recursive: true }) //create directory
