@@ -5364,8 +5364,17 @@ paths:
                       roles:
                         type: array
                         items:
-                          type: string
-                          example: deo
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 66b9df998d2c4516ea1b4494
+                            label:
+                              type: string
+                              example: Block Education Officer
+                            value:
+                              type: string
+                              example: deo
                 viewers:
                   type: array
                   items:
@@ -5471,8 +5480,17 @@ paths:
                       roles:
                         type: array
                         items:
-                          type: string
-                          example: deo
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 66b9df998d2c4516ea1b4494
+                            label:
+                              type: string
+                              example: Block Education Officer
+                            value:
+                              type: string
+                              example: deo
                 viewers:
                   type: array
                   items:
@@ -5741,8 +5759,17 @@ paths:
                       roles:
                         type: array
                         items:
-                          type: string
-                          example: deo
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 66b9df998d2c4516ea1b4494
+                            label:
+                              type: string
+                              example: Block Education Officer
+                            value:
+                              type: string
+                              example: deo
                 resources:
                   type: array
                   items:
@@ -5900,8 +5927,17 @@ paths:
                             roles:
                               type: array
                               items:
-                                type: string
-                                example: deo
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 66b9df998d2c4516ea1b4494
+                                  label:
+                                    type: string
+                                    example: Block Education Officer
+                                  value:
+                                    type: string
+                                    example: deo
       responses:
         '201':
           description: Your program has been saved as draft
@@ -6082,8 +6118,17 @@ paths:
                             roles:
                               type: array
                               items:
-                                type: string
-                                example: deo
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 66b9df998d2c4516ea1b4494
+                                  label:
+                                    type: string
+                                    example: Block Education Officer
+                                  value:
+                                    type: string
+                                    example: deo
                       viewers:
                         type: array
                         items:
@@ -6306,8 +6351,17 @@ paths:
                                   roles:
                                     type: array
                                     items:
-                                      type: string
-                                      example: deo
+                                      type: object
+                                      properties:
+                                        _id:
+                                          type: string
+                                          example: 66b9df998d2c4516ea1b4494
+                                        label:
+                                          type: string
+                                          example: Block Education Officer
+                                        value:
+                                          type: string
+                                          example: deo
                             start_date:
                               type: string
                               format: date-time
