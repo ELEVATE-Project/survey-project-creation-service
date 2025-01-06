@@ -5335,21 +5335,32 @@ paths:
                     type: object
                     properties:
                       state:
-                        type: string
-                        example: 6687b8d38ead9320cf997c65
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: 6687b8d38ead9320cf997c65
+                          name:
+                            type: string
+                            example: Karnataka
                       entity_targeting:
                         type: string
                         example: district
                       district:
                         type: array
                         items:
-                          type: string
-                          example: 671097d667b6747799a761a4
-                      block:
-                        type: array
-                        items:
-                          type: string
-                          example: 6710d01167b6747799a7671d
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 671097d667b6747799a761a4
+                            name:
+                              type: string
+                              example: Bangalore
+                            state:
+                              type: string
+                              example: Karnataka
+
                       roles:
                         type: array
                         items:
@@ -5431,21 +5442,32 @@ paths:
                     type: object
                     properties:
                       state:
-                        type: string
-                        example: 6687b8d38ead9320cf997c65
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: 6687b8d38ead9320cf997c65
+                          name:
+                            type: string
+                            example: Karnataka
                       entity_targeting:
                         type: string
                         example: district
                       district:
                         type: array
                         items:
-                          type: string
-                          example: 671097d667b6747799a761a4
-                      block:
-                        type: array
-                        items:
-                          type: string
-                          example: 6710d01167b6747799a7671d
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 671097d667b6747799a761a4
+                            name:
+                              type: string
+                              example: Bangalore
+                            state:
+                              type: string
+                              example: Karnataka
+
                       roles:
                         type: array
                         items:
@@ -5690,21 +5712,37 @@ paths:
                     type: object
                     properties:
                       state:
-                        type: string
-                        example: '6687b8d38ead9320cf997c65'
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: 6687b8d38ead9320cf997c65
+                          name:
+                            type: string
+                            example: Karnataka
                       entity_targeting:
                         type: string
-                        example: 'district'
+                        example: district
                       district:
                         type: array
                         items:
-                          type: string
-                        example: ['671097d667b6747799a761a4']
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 671097d667b6747799a761a4
+                            name:
+                              type: string
+                              example: Bangalore
+                            state:
+                              type: string
+                              example: Karnataka
+
                       roles:
                         type: array
                         items:
                           type: string
-                        example: ['deo']
+                          example: deo
                 resources:
                   type: array
                   items:
@@ -5833,21 +5871,37 @@ paths:
                           type: object
                           properties:
                             state:
-                              type: string
-                              example: '6687b8d38ead9320cf997c65'
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                  example: 6687b8d38ead9320cf997c65
+                                name:
+                                  type: string
+                                  example: Karnataka
                             entity_targeting:
                               type: string
-                              example: 'district'
+                              example: district
                             district:
                               type: array
                               items:
-                                type: string
-                              example: ['671097d667b6747799a761a4']
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 671097d667b6747799a761a4
+                                  name:
+                                    type: string
+                                    example: Bangalore
+                                  state:
+                                    type: string
+                                    example: Karnataka
+
                             roles:
                               type: array
                               items:
                                 type: string
-                              example: ['deo']
+                                example: deo
       responses:
         '201':
           description: Your program has been saved as draft
@@ -5999,28 +6053,37 @@ paths:
                           type: object
                           properties:
                             state:
-                              type: string
-                              example: '6687b8d38ead9320cf997c65'
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                  example: 6687b8d38ead9320cf997c65
+                                name:
+                                  type: string
+                                  example: Karnataka
                             entity_targeting:
                               type: string
-                              example: 'district'
+                              example: district
                             district:
-                              type: string
-                              example: '671097d667b6747799a761a4'
-                            roles:
                               type: array
                               items:
                                 type: object
                                 properties:
                                   _id:
                                     type: string
-                                    example: '66b9df998d2c4516ea1b4494'
-                                  label:
+                                    example: 671097d667b6747799a761a4
+                                  name:
                                     type: string
-                                    example: 'Block Education Officer'
-                                  value:
+                                    example: Bangalore
+                                  state:
                                     type: string
-                                    example: 'deo'
+                                    example: Karnataka
+
+                            roles:
+                              type: array
+                              items:
+                                type: string
+                                example: deo
                       viewers:
                         type: array
                         items:
@@ -6214,28 +6277,37 @@ paths:
                                 type: object
                                 properties:
                                   state:
-                                    type: string
-                                    example: '6687b8d38ead9320cf997c65'
+                                    type: object
+                                    properties:
+                                      _id:
+                                        type: string
+                                        example: 6687b8d38ead9320cf997c65
+                                      name:
+                                        type: string
+                                        example: Karnataka
                                   entity_targeting:
                                     type: string
-                                    example: 'district'
+                                    example: district
                                   district:
-                                    type: string
-                                    example: '671097d667b6747799a761a4'
-                                  roles:
                                     type: array
                                     items:
                                       type: object
                                       properties:
                                         _id:
                                           type: string
-                                          example: '66b9df998d2c4516ea1b4494'
-                                        label:
+                                          example: 671097d667b6747799a761a4
+                                        name:
                                           type: string
-                                          example: 'Block Education Officer'
-                                        value:
+                                          example: Bangalore
+                                        state:
                                           type: string
-                                          example: 'deo'
+                                          example: Karnataka
+
+                                  roles:
+                                    type: array
+                                    items:
+                                      type: string
+                                      example: deo
                             start_date:
                               type: string
                               format: date-time
