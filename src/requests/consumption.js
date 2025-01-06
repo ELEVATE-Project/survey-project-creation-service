@@ -904,7 +904,7 @@ async function createSvg(certificateData) {
 			let updatedSvg = $.xml()
 
 			const uniqueId = utils.generateUniqueId() //generate a unique id for folder
-			let fileName = `certificate_template_${uniqueId}.svg` //create a unique file name
+			let fileName = `${uniqueId}.svg` //create a unique file name
 			const mainPath = path.join(__dirname, `../temp/certificate/`) //temporary folder path for certificate template
 			let dirPath = path.join(mainPath, `${uniqueId}/`) //create a directory path
 			fs.mkdirSync(dirPath, { recursive: true }) //create directory
@@ -932,18 +932,10 @@ async function createSvg(certificateData) {
 			}
 
 			const fileUploadUrl = getSignedUrl.result['cert']['files'][0].url
-			let uploadedFilePath = getSignedUrl.result['cert']['files'][0].signedUrl
+			let uploadedFilePath = getSignedUrl.result['cert']['files'][0].file
 			const fileData = fs.readFileSync(path.join(dirPath, fileName))
-			//upload file
-			const fileUploadToSingedUrl = await request({
-				url: fileUploadUrl,
-				method: 'put',
-				headers: {
-					'Content-Type': 'application/multipart/form-data',
-				},
-				body: fileData,
-			})
-			console.log('fileUploadToSingedUrl : ', fileUploadToSingedUrl.status)
+
+			await uploadFile(dirPath, fileName, fileUploadUrl)
 			// delete folder after upload
 			await deleteFolderRecursive(path.join(mainPath, uniqueId))
 
@@ -955,6 +947,34 @@ async function createSvg(certificateData) {
 			reject(error)
 		}
 	})
+}
+
+async function uploadFile(dirPath, fileName, fileUploadUrl) {
+	try {
+		// Read the file data
+		const fileData = fs.readFileSync(path.join(dirPath, fileName))
+
+		// Perform the PUT request
+		const fileUploadToSignedUrl = await axios.put(fileUploadUrl, fileData, {
+			headers: {
+				'Content-Type': 'application/octet-stream', // Most commonly required for signed URLs
+			},
+		})
+
+		// Check the response status
+		if (fileUploadToSignedUrl.status === 200) {
+			console.log('File uploaded successfully!')
+			console.log('Response status:', fileUploadToSignedUrl.status)
+		} else {
+			console.error('Unexpected response:', fileUploadToSignedUrl.status)
+		}
+	} catch (error) {
+		console.error('Error uploading file:', error.message)
+		if (error.response) {
+			console.error('Response status:', error.response.status)
+			console.error('Response data:', error.response.data)
+		}
+	}
 }
 
 /**
