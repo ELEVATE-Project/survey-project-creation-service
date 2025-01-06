@@ -932,7 +932,7 @@ async function createSvg(certificateData) {
 			}
 
 			const fileUploadUrl = getSignedUrl.result['cert']['files'][0].url
-			let uploadedFilePath = getSignedUrl.result['cert']['files'][0].file
+			let uploadedFilePath = getSignedUrl.result['cert']['files'][0].signedUrl
 			const fileData = fs.readFileSync(path.join(dirPath, fileName))
 			//upload file
 			const fileUploadToSingedUrl = await request({
