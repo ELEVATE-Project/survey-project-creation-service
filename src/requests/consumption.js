@@ -994,7 +994,7 @@ async function insertCertificateTemplate(certificateData, solutionId, programId)
 		programId,
 		createdAt: new Date(),
 		updatedAt: new Date(),
-		templateUrl: filePath,
+		templateUrl: filePath.filePath,
 		issuer: { name: certificateData.issuer },
 		criteria: certificateData.criteria,
 	}
