@@ -527,7 +527,12 @@ const createSolutions = async (resourceDetails, programDetails) => {
 					(solution) => String(solution.externalId).trim() === String(solutionMap.externalId).trim()
 				)
 				if (targetSolution) {
-					insertCertificateTemplate(solutionMap.certificate, targetSolution._id, programDetails._id)
+					insertCertificateTemplate(
+						solutionMap.certificate,
+						targetSolution._id,
+						programDetails._id,
+						programDetails.created_by
+					)
 				}
 			})
 		}
@@ -863,7 +868,7 @@ const formatProgramTemplate = async (programData) => {
  * @param {Object} certificateData - Certificate data for upload
  */
 
-async function createSvg(certificateData) {
+async function createSvg(certificateData, loggedInUserId) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			// fetch base template from cloud
@@ -911,20 +916,16 @@ async function createSvg(certificateData) {
 			let dirPath = path.join(mainPath, `${uniqueId}/`) //create a directory path
 			fs.mkdirSync(dirPath, { recursive: true }) //create directory
 			fs.writeFileSync(path.join(dirPath, fileName), updatedSvg, { encoding: 'utf8' }) //create file
+
 			// create a file upload payload
 			let payloadData = {
-				cert: {
+				[uniqueId]: {
 					files: [fileName],
 				},
 				ref: common.CERTIFICATE,
 			}
 			// generate signed url
-			const getSignedUrl = await filesService.getSignedUrl(
-				payloadData,
-				common.CERTIFICATE_TEMPLATE,
-				'system',
-				false
-			)
+			const getSignedUrl = await filesService.getSignedUrl(payloadData, common.CERTIFICATE, loggedInUserId, false)
 			if (!getSignedUrl.result) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}
@@ -933,10 +934,8 @@ async function createSvg(certificateData) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}
 
-			const fileUploadUrl = getSignedUrl.result['cert']['files'][0].url
-			let uploadedFilePath = getSignedUrl.result['cert']['files'][0].file
-			const fileData = fs.readFileSync(path.join(dirPath, fileName))
-
+			const fileUploadUrl = getSignedUrl.result[uniqueId]['files'][0].url
+			let uploadedFilePath = getSignedUrl.result[uniqueId]['files'][0].file
 			await uploadFile(dirPath, fileName, fileUploadUrl)
 			// delete folder after upload
 			await deleteFolderRecursive(path.join(mainPath, uniqueId))
@@ -987,8 +986,8 @@ async function uploadFile(dirPath, fileName, fileUploadUrl) {
  * @param {String} solutionId - solutionId of the created solution
  * @param {String} programId - programId of the created program
  */
-async function insertCertificateTemplate(certificateData, solutionId, programId) {
-	const filePath = await createSvg(certificateData)
+async function insertCertificateTemplate(certificateData, solutionId, programId, loggedInUserId) {
+	const svgTemplateCreation = await createSvg(certificateData, loggedInUserId)
 	const certificateDocument = {
 		status: common.STATUS_ACTIVE.toLowerCase(),
 		deleted: false,
@@ -996,7 +995,7 @@ async function insertCertificateTemplate(certificateData, solutionId, programId)
 		programId,
 		createdAt: new Date(),
 		updatedAt: new Date(),
-		templateUrl: filePath.filePath,
+		templateUrl: svgTemplateCreation.filePath,
 		issuer: { name: certificateData.issuer },
 		criteria: certificateData.criteria,
 	}
