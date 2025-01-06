@@ -523,10 +523,12 @@ const createSolutions = async (resourceDetails, programDetails) => {
 
 		if (solutionCertificateMap && solutionCertificateMap.length > 0) {
 			solutionCertificateMap.forEach((solutionMap) => {
-				const found = createdSolutions.find(
+				const targetSolution = createdSolutions.find(
 					(solution) => String(solution.externalId).trim() === String(solutionMap.externalId).trim()
 				)
-				insertCertificateTemplate(solutionMap.certificate, found._id, programDetails._id)
+				if (targetSolution) {
+					insertCertificateTemplate(solutionMap.certificate, targetSolution._id, programDetails._id)
+				}
 			})
 		}
 		const projectTemplateCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
