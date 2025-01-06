@@ -533,8 +533,7 @@ const createSolutions = async (resourceDetails, programDetails) => {
 						solutionMap.certificate,
 						targetSolution._id,
 						programDetails._id,
-						programDetails.created_by,
-						programDetails.orgId
+						programDetails.created_by
 					)
 				}
 			})
@@ -986,10 +985,9 @@ async function uploadFile(dirPath, fileName, fileUploadUrl) {
  * @method
  * @name checkCertificateBaseTemplate
  * @param {Object} baseTemplateDetails - Certificate data for base template creation
- * @param {String} orgId - organization id
  * @returns {Object} result - baseTemplateId
  */
-async function checkCertificateBaseTemplate(baseTemplateDetails, orgId) {
+async function checkCertificateBaseTemplate(baseTemplateDetails) {
 	const certificateBaseTemplateCollection = mongoDb.collection(COLLECTIONS.CERTIFICATE_BASE_TEMPLATE)
 	const certificateBaseTemplate = await certificateBaseTemplateCollection.findOne({
 		code: baseTemplateDetails.code,
@@ -1002,7 +1000,6 @@ async function checkCertificateBaseTemplate(baseTemplateDetails, orgId) {
 			code: baseTemplateDetails.code,
 		})
 		const certificateBaseTemplateDocument = {
-			organization_id: orgId,
 			code: certificateFetched.code,
 			name: certificateFetched.name,
 			url: certificateFetched.url,
@@ -1026,9 +1023,9 @@ async function checkCertificateBaseTemplate(baseTemplateDetails, orgId) {
  * @param {String} solutionId - solutionId of the created solution
  * @param {String} programId - programId of the created program
  */
-async function insertCertificateTemplate(certificateData, solutionId, programId, loggedInUserId, orgId) {
+async function insertCertificateTemplate(certificateData, solutionId, programId, loggedInUserId) {
 	const svgTemplateCreation = await createSvg(certificateData, loggedInUserId)
-	const baseTemplate = await checkCertificateBaseTemplate(certificateData, orgId)
+	const baseTemplate = await checkCertificateBaseTemplate(certificateData)
 	const certificateDocument = {
 		status: common.STATUS_ACTIVE.toLowerCase(),
 		deleted: false,
