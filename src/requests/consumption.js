@@ -8,6 +8,7 @@ const common = require('@constants/common')
 const resourceService = require('@services/resource')
 const rolloutService = require('@services/rollouts')
 const rolloutQueries = require('@database/queries/rollouts')
+const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
 const utils = require('@generics/utils')
 const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST
 const requests = require('@generics/requests')
@@ -52,6 +53,7 @@ const COLLECTIONS = {
 	PROGRAMS: 'programs',
 	SOLUTIONS: 'solutions',
 	CERTIFICATE_TEMPLATE: 'certificateTemplates',
+	CERTIFICATE_BASE_TEMPLATE: 'certificateBaseTemplates',
 }
 
 /**
@@ -531,7 +533,8 @@ const createSolutions = async (resourceDetails, programDetails) => {
 						solutionMap.certificate,
 						targetSolution._id,
 						programDetails._id,
-						programDetails.created_by
+						programDetails.created_by,
+						programDetails.orgId
 					)
 				}
 			})
@@ -979,6 +982,43 @@ async function uploadFile(dirPath, fileName, fileUploadUrl) {
 }
 
 /**
+ * Check and Insert certificate base template
+ * @method
+ * @name checkCertificateBaseTemplate
+ * @param {Object} baseTemplateDetails - Certificate data for base template creation
+ * @param {String} orgId - organization id
+ * @returns {Object} result - baseTemplateId
+ */
+async function checkCertificateBaseTemplate(baseTemplateDetails, orgId) {
+	const certificateBaseTemplateCollection = mongoDb.collection(COLLECTIONS.CERTIFICATE_BASE_TEMPLATE)
+	const certificateBaseTemplate = await certificateBaseTemplateCollection.findOne({
+		code: baseTemplateDetails.code,
+	})
+	let result = {}
+	if (certificateBaseTemplate?._id) {
+		result._id = ObjectId(certificateBaseTemplate?._id)
+	} else {
+		const certificateFetched = await certificateBaseTemplateQueries.findOne({
+			code: baseTemplateDetails.code,
+		})
+		const certificateBaseTemplateDocument = {
+			organization_id: orgId,
+			code: certificateFetched.code,
+			name: certificateFetched.name,
+			url: certificateFetched.url,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+			deleted: false,
+		}
+
+		const insertResult = await certificateBaseTemplateCollection.insertOne(certificateBaseTemplateDocument)
+		result._id = insertResult.insertedId
+	}
+
+	return result
+}
+
+/**
  * Insert certificate templates
  * @method
  * @name insertCertificateTemplate
@@ -986,13 +1026,15 @@ async function uploadFile(dirPath, fileName, fileUploadUrl) {
  * @param {String} solutionId - solutionId of the created solution
  * @param {String} programId - programId of the created program
  */
-async function insertCertificateTemplate(certificateData, solutionId, programId, loggedInUserId) {
+async function insertCertificateTemplate(certificateData, solutionId, programId, loggedInUserId, orgId) {
 	const svgTemplateCreation = await createSvg(certificateData, loggedInUserId)
+	const baseTemplate = await checkCertificateBaseTemplate(certificateData, orgId)
 	const certificateDocument = {
 		status: common.STATUS_ACTIVE.toLowerCase(),
 		deleted: false,
 		solutionId,
 		programId,
+		baseTemplateId: baseTemplate._id,
 		createdAt: new Date(),
 		updatedAt: new Date(),
 		templateUrl: svgTemplateCreation.filePath,
