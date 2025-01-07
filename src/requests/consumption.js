@@ -1057,9 +1057,25 @@ async function insertCertificateTemplate(certificateData, solutionId, programId,
 			},
 		}
 	)
+
 	// Validate the result of the template creation
 	if (!resultUpdateSolution) {
 		throw new Error(`Failed to update the template into the ${COLLECTIONS.SOLUTIONS} collection.`)
+	}
+	// update the template into projectTemplate collection
+	const projectTemplateCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
+	const resultUpdateProjecTemplate = await projectTemplateCollection.updateOne(
+		{ solutionId },
+		{
+			$set: {
+				certificateTemplateId: result.insertedId,
+			},
+		}
+	)
+
+	// Validate the result of the template creation
+	if (!resultUpdateProjecTemplate) {
+		throw new Error(`Failed to update the certificate template into the ${COLLECTIONS.TEMPLATES} collection.`)
 	}
 
 	return true
