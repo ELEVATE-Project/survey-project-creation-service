@@ -990,12 +990,12 @@ async function uploadFile(dirPath, fileName, fileUploadUrl) {
 		// Read the file data
 		const fileData = fs.readFileSync(path.join(dirPath, fileName))
 
+		const headers = {
+			'Content-Type': 'multipart/form-data',
+		}
+
 		// Perform the PUT request
-		const fileUploadToSignedUrl = await axios.put(fileUploadUrl, fileData, {
-			headers: {
-				'Content-Type': 'application/multipart/form-data',
-			},
-		})
+		const fileUploadToSignedUrl = await axios.put(fileUploadUrl, fileData, headers)
 
 		// Check the response status
 		if (fileUploadToSignedUrl.status === 200) {
