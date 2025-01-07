@@ -993,7 +993,7 @@ async function uploadFile(dirPath, fileName, fileUploadUrl) {
 		// Perform the PUT request
 		const fileUploadToSignedUrl = await axios.put(fileUploadUrl, fileData, {
 			headers: {
-				'Content-Type': 'application/octet-stream', // Most commonly required for signed URLs
+				'Content-Type': 'application/multipart/form-data',
 			},
 		})
 
