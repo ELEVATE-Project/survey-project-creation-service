@@ -3665,7 +3665,7 @@ paths:
             type: string
         - name: type
           in: query
-          description: Type of the resource(project, program, observation, survey)
+          description: Type of the resource(project, program, observation, survey, observation_with_rubric)
           required: false
           schema:
             type: string
@@ -3783,7 +3783,7 @@ paths:
          - The API Endpoint for listing resources is `/scp/v1/resource/getPublishedResources` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - Query Param `type` is a non mandatory field which can have values [`'project'`,`'survey'`,`'observation'`,`'observation_with_rubric'`].
+         - Query Param `type` is a non mandatory field which can have values [`'project'`,`'survey'`,`'observation'`,`'observation_with_rubric'`, `'program'`].
       parameters:
         - name: X-auth-token
           in: header
@@ -3813,7 +3813,7 @@ paths:
             type: string
         - name: type
           in: query
-          description: Type of the resource. Type can be coma separated values for multiple types from the above list.
+          description: Type of the resource(project, program, observation, survey, observation_with_rubric). Type can be coma separated values for multiple types from the above list.
           required: false
           schema:
             type: string
@@ -4021,7 +4021,7 @@ paths:
             type: string
         - name: type
           in: query
-          description: Type of the resource(project, program, observation, survey)
+          description: Type of the resource(project, program, observation, survey, observation_with_rubric)
           required: false
           schema:
             type: string
