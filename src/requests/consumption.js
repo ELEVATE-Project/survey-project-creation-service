@@ -443,7 +443,7 @@ async function convertRecommendedRolesForProjects(recommendedFor) {
  * @param {Object} programDetails - Object of program details
  * @returns {Array} Array of objects of solutions
  */
-const createSolutions = async (resourceDetails, programDetails) => {
+const createSolutions = async (resourceDetails, programDetails, userToken) => {
 	try {
 		// array to have objects of solutions to create
 		let solutionsToCreate = []
@@ -533,7 +533,8 @@ const createSolutions = async (resourceDetails, programDetails) => {
 						solutionMap.certificate,
 						targetSolution._id,
 						programDetails._id,
-						programDetails.created_by
+						programDetails.created_by,
+						userToken
 					)
 				}
 			})
@@ -870,7 +871,7 @@ const formatProgramTemplate = async (programData) => {
  * @param {Object} certificateData - Certificate data for upload
  */
 
-async function createSvg(certificateData, loggedInUserId) {
+async function createSvg(certificateData, loggedInUserId, userToken) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			// fetch base template from cloud
@@ -921,23 +922,30 @@ async function createSvg(certificateData, loggedInUserId) {
 
 			// create a file upload payload
 			let payloadData = {
-				[uniqueId]: {
-					files: [fileName],
+				request: {
+					[common.CERTIFICATE]: {
+						files: [fileName],
+					},
 				},
-				ref: common.CERTIFICATE,
 			}
 			// generate signed url
-			const getSignedUrl = await filesService.getSignedUrl(payloadData, common.CERTIFICATE, loggedInUserId, false)
-			if (!getSignedUrl.result) {
+			// const getSignedUrl = await filesService.getSignedUrl(payloadData, common.CERTIFICATE, loggedInUserId, false)
+			const headers = {
+				'X-auth-token': userToken,
+			}
+			const getSignedUrl = await generatePresignedUrlInConsumption(
+				process.env.INTERFACE_SERVICE_HOST +
+					process.env.CONSUMPTION_SERVICE_BASE_URL +
+					process.env.CONSUMPTION_SERVICE_PRESIGNED_URL,
+				payloadData,
+				headers
+			)
+			if (!getSignedUrl.success) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}
 
-			if (!getSignedUrl.result) {
-				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
-			}
-
-			const fileUploadUrl = getSignedUrl.result[uniqueId]['files'][0].url
-			let uploadedFilePath = getSignedUrl.result[uniqueId]['files'][0].file
+			const fileUploadUrl = getSignedUrl.url
+			let uploadedFilePath = getSignedUrl.file
 			await uploadFile(dirPath, fileName, fileUploadUrl)
 			// delete folder after upload
 			await deleteFolderRecursive(path.join(mainPath, uniqueId))
@@ -952,17 +960,43 @@ async function createSvg(certificateData, loggedInUserId) {
 	})
 }
 
+async function generatePresignedUrlInConsumption(url, body, headers) {
+	try {
+		const response = await axios.post(url, body, { headers, timeout: 6000 })
+		let result = { success: false }
+
+		if (response.status === 200) {
+			const files = response?.data?.result?.[common.CERTIFICATE]?.files
+
+			if (Array.isArray(files) && files.length > 0) {
+				result.file = files[0]?.payload?.sourcePath || null
+				result.url = files[0]?.url || null
+				result.success = true
+			} else {
+				console.error('Files array is missing or empty:', files)
+			}
+		} else {
+			console.error('Unexpected response status:', response.status)
+		}
+
+		return result
+	} catch (error) {
+		console.error('Error generating consumption presigned URL:', error.message)
+		throw error // Rethrow the error to be handled by the caller
+	}
+}
+
 async function uploadFile(dirPath, fileName, fileUploadUrl) {
 	try {
 		// Read the file data
 		const fileData = fs.readFileSync(path.join(dirPath, fileName))
 
+		const headers = {
+			'Content-Type': 'multipart/form-data',
+		}
+
 		// Perform the PUT request
-		const fileUploadToSignedUrl = await axios.put(fileUploadUrl, fileData, {
-			headers: {
-				'Content-Type': 'application/octet-stream', // Most commonly required for signed URLs
-			},
-		})
+		const fileUploadToSignedUrl = await axios.put(fileUploadUrl, fileData, { headers })
 
 		// Check the response status
 		if (fileUploadToSignedUrl.status === 200) {
@@ -1023,8 +1057,8 @@ async function checkCertificateBaseTemplate(baseTemplateDetails) {
  * @param {String} solutionId - solutionId of the created solution
  * @param {String} programId - programId of the created program
  */
-async function insertCertificateTemplate(certificateData, solutionId, programId, loggedInUserId) {
-	const svgTemplateCreation = await createSvg(certificateData, loggedInUserId)
+async function insertCertificateTemplate(certificateData, solutionId, programId, loggedInUserId, userToken) {
+	const svgTemplateCreation = await createSvg(certificateData, loggedInUserId, userToken)
 	const baseTemplate = await checkCertificateBaseTemplate(certificateData)
 	const certificateDocument = {
 		status: common.STATUS_ACTIVE.toLowerCase(),
@@ -1057,9 +1091,31 @@ async function insertCertificateTemplate(certificateData, solutionId, programId,
 			},
 		}
 	)
+
 	// Validate the result of the template creation
 	if (!resultUpdateSolution) {
 		throw new Error(`Failed to update the template into the ${COLLECTIONS.SOLUTIONS} collection.`)
+	}
+	// update the template into projectTemplate collection
+	const projectTemplateCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
+	const resultUpdateProjecTemplate = await projectTemplateCollection.updateOne(
+		{ solutionId },
+		{
+			$set: {
+				certificateTemplateId: result.insertedId,
+			},
+		}
+	)
+
+	// Validate the result of the template creation
+	if (!resultUpdateProjecTemplate.matchedCount) {
+		throw new Error(`No document found with solutionId: ${solutionId} in the ${COLLECTIONS.TEMPLATES} collection.`)
+	}
+
+	if (resultUpdateProjecTemplate.modifiedCount === 0) {
+		throw new Error(
+			`Document with solutionId: ${solutionId} was found but not updated in the ${COLLECTIONS.TEMPLATES} collection.`
+		)
 	}
 
 	return true
@@ -1161,6 +1217,7 @@ const publishProgram = function async(programData) {
 	return new Promise(async (resolve, reject) => {
 		const result = { success: false, templateId: null, error: null }
 		try {
+			const userToken = programData.userToken
 			// Format the program template
 			let formattedTemplate = await formatProgramTemplate(programData)
 			if (!formattedTemplate.success) {
@@ -1227,17 +1284,21 @@ const publishProgram = function async(programData) {
 				solutions.push(resourceDetailsCreate?.published_id)
 			} else {
 				let duplicateResource = await duplicateResources(resourceDetailsCreate, programData.created_by)
-				solutions = await createSolutions(duplicateResource, {
-					_id: programId,
-					scope: programScope,
-					externalId: template.externalId,
-					name: template.name,
-					description: template.description ? template.description : '',
-					end_date: template.endDate,
-					start_date: template.startDate,
-					created_by: programData.created_by,
-					orgId: programData.organization_id,
-				})
+				solutions = await createSolutions(
+					duplicateResource,
+					{
+						_id: programId,
+						scope: programScope,
+						externalId: template.externalId,
+						name: template.name,
+						description: template.description ? template.description : '',
+						end_date: template.endDate,
+						start_date: template.startDate,
+						created_by: programData.created_by,
+						orgId: programData.organization_id,
+					},
+					userToken
+				)
 				const solutionIds = solutions.map((solution) => solution._id)
 				// Update Template with tasks and sequence
 				await programsCollection.updateOne(

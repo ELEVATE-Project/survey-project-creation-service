@@ -237,6 +237,16 @@ let environmentVariables = {
 		optional: true,
 		default: true,
 	},
+	CONSUMPTION_SERVICE_PRESIGNED_URL: {
+		message: 'Consumption side pre-signed url for rollout publish required since consumption is not self.',
+		optional: true,
+		default: 'v1/cloud-services/files/preSignedUrls',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE_BASE_URL',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
 }
 
 let success = true
