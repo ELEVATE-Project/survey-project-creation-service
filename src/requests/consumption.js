@@ -943,8 +943,8 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}
 
-			const fileUploadUrl = getSignedUrl.result[uniqueId]['files'][0].url
-			let uploadedFilePath = getSignedUrl.result[uniqueId]['files'][0].file
+			const fileUploadUrl = getSignedUrl.url
+			let uploadedFilePath = getSignedUrl.file
 			await uploadFile(dirPath, fileName, fileUploadUrl)
 			// delete folder after upload
 			await deleteFolderRecursive(path.join(mainPath, uniqueId))
