@@ -122,6 +122,7 @@ module.exports = class rollouts {
 		try {
 			const rollout = await rolloutService.publish(
 				req.params.id,
+				req.userToken,
 				req.decodedToken.id,
 				req.decodedToken.organization_id
 			)

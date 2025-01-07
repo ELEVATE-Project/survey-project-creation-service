@@ -573,12 +573,13 @@ module.exports = class RolloutsHelper {
 	 * @method
 	 * @name publish
 	 * @param {Integer} rolloutId - Rollout Id.
+	 * @param {Integer} userToken - user token for consumption side creations.
 	 * @param {String} loggedInUserId - userId
 	 * @param {String} orgId - organization id
 	 * @returns {JSON} - rollout publish response.
 	 */
 
-	static async publish(rolloutId, loggedInUserId, orgId) {
+	static async publish(rolloutId, userToken, loggedInUserId, orgId) {
 		try {
 			// fetch rollout details
 			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, true)
@@ -652,6 +653,7 @@ module.exports = class RolloutsHelper {
 					...resourceDetails?.result,
 					rolloutId: solutionRolloutId,
 				},
+				userToken,
 			}
 
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {

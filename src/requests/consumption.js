@@ -443,7 +443,7 @@ async function convertRecommendedRolesForProjects(recommendedFor) {
  * @param {Object} programDetails - Object of program details
  * @returns {Array} Array of objects of solutions
  */
-const createSolutions = async (resourceDetails, programDetails) => {
+const createSolutions = async (resourceDetails, programDetails, userToken) => {
 	try {
 		// array to have objects of solutions to create
 		let solutionsToCreate = []
@@ -533,7 +533,8 @@ const createSolutions = async (resourceDetails, programDetails) => {
 						solutionMap.certificate,
 						targetSolution._id,
 						programDetails._id,
-						programDetails.created_by
+						programDetails.created_by,
+						userToken
 					)
 				}
 			})
@@ -870,7 +871,7 @@ const formatProgramTemplate = async (programData) => {
  * @param {Object} certificateData - Certificate data for upload
  */
 
-async function createSvg(certificateData, loggedInUserId) {
+async function createSvg(certificateData, loggedInUserId, userToken) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			// fetch base template from cloud
@@ -921,13 +922,22 @@ async function createSvg(certificateData, loggedInUserId) {
 
 			// create a file upload payload
 			let payloadData = {
-				[uniqueId]: {
+				[common.CERTIFICATE]: {
 					files: [fileName],
 				},
 				ref: common.CERTIFICATE,
 			}
 			// generate signed url
-			const getSignedUrl = await filesService.getSignedUrl(payloadData, common.CERTIFICATE, loggedInUserId, false)
+			// const getSignedUrl = await filesService.getSignedUrl(payloadData, common.CERTIFICATE, loggedInUserId, false)
+			const headers = {
+				'Content-Type': 'multipart-formdata',
+				'X-auth-token': userToken,
+			}
+			const getSignedUrl = await generateConsumptionPresignedUrl(
+				process.env.INTERFACE_SERVICE_HOST + process.env.CONSUMPTION_SERVICE_PRESIGNED_URL,
+				payloadData,
+				headers
+			)
 			if (!getSignedUrl.result) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}
@@ -950,6 +960,21 @@ async function createSvg(certificateData, loggedInUserId) {
 			reject(error)
 		}
 	})
+}
+
+async function generateConsumptionPresignedUrl(url, body, headers) {
+	try {
+		const response = await axios.post(url, body, { headers, timeout: 6000 })
+		let result = { success: false }
+		if (response.status === 200) {
+			result.file = response.result[common.CERTIFICATE].files[0].payload.sourcePath
+			result.url = response.result[common.CERTIFICATE].files[0].url
+			result.success = true
+		}
+		return result
+	} catch (error) {
+		throw error
+	}
 }
 
 async function uploadFile(dirPath, fileName, fileUploadUrl) {
@@ -1023,8 +1048,8 @@ async function checkCertificateBaseTemplate(baseTemplateDetails) {
  * @param {String} solutionId - solutionId of the created solution
  * @param {String} programId - programId of the created program
  */
-async function insertCertificateTemplate(certificateData, solutionId, programId, loggedInUserId) {
-	const svgTemplateCreation = await createSvg(certificateData, loggedInUserId)
+async function insertCertificateTemplate(certificateData, solutionId, programId, loggedInUserId, userToken) {
+	const svgTemplateCreation = await createSvg(certificateData, loggedInUserId, userToken)
 	const baseTemplate = await checkCertificateBaseTemplate(certificateData)
 	const certificateDocument = {
 		status: common.STATUS_ACTIVE.toLowerCase(),
@@ -1177,6 +1202,7 @@ const publishProgram = function async(programData) {
 	return new Promise(async (resolve, reject) => {
 		const result = { success: false, templateId: null, error: null }
 		try {
+			const userToken = programData.userToken
 			// Format the program template
 			let formattedTemplate = await formatProgramTemplate(programData)
 			if (!formattedTemplate.success) {
@@ -1253,6 +1279,7 @@ const publishProgram = function async(programData) {
 					start_date: template.startDate,
 					created_by: programData.created_by,
 					orgId: programData.organization_id,
+					userToken,
 				})
 				const solutionIds = solutions.map((solution) => solution._id)
 				// Update Template with tasks and sequence

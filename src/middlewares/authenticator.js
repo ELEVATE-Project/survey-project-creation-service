@@ -90,6 +90,8 @@ module.exports = async function (req, res, next) {
 			token = authType.toLowerCase() === 'bearer' ? extractedToken?.trim() : authType.trim()
 		}
 
+		req.userToken = token
+
 		if (!token) throw unAuthorizedResponse
 
 		try {
