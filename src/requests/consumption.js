@@ -922,15 +922,16 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 
 			// create a file upload payload
 			let payloadData = {
-				[common.CERTIFICATE]: {
-					files: [fileName],
+				request: {
+					[common.CERTIFICATE]: {
+						files: [fileName],
+					},
 				},
-				ref: common.CERTIFICATE,
 			}
 			// generate signed url
 			// const getSignedUrl = await filesService.getSignedUrl(payloadData, common.CERTIFICATE, loggedInUserId, false)
 			const headers = {
-				'Content-Type': 'multipart-formdata',
+				'internal-access-token': process.env.INTERNAL_ACCESS_TOKEN,
 				'X-auth-token': userToken,
 			}
 			const getSignedUrl = await generateConsumptionPresignedUrl(
@@ -938,11 +939,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				payloadData,
 				headers
 			)
-			if (!getSignedUrl.result) {
-				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
-			}
-
-			if (!getSignedUrl.result) {
+			if (!getSignedUrl.success) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}
 
@@ -967,8 +964,8 @@ async function generateConsumptionPresignedUrl(url, body, headers) {
 		const response = await axios.post(url, body, { headers, timeout: 6000 })
 		let result = { success: false }
 		if (response.status === 200) {
-			result.file = response.result[common.CERTIFICATE].files[0].payload.sourcePath
-			result.url = response.result[common.CERTIFICATE].files[0].url
+			result.file = response.data.result[common.CERTIFICATE].files[0].payload.sourcePath
+			result.url = response.data.result[common.CERTIFICATE].files[0].url
 			result.success = true
 		}
 		return result
@@ -1269,18 +1266,21 @@ const publishProgram = function async(programData) {
 				solutions.push(resourceDetailsCreate?.published_id)
 			} else {
 				let duplicateResource = await duplicateResources(resourceDetailsCreate, programData.created_by)
-				solutions = await createSolutions(duplicateResource, {
-					_id: programId,
-					scope: programScope,
-					externalId: template.externalId,
-					name: template.name,
-					description: template.description ? template.description : '',
-					end_date: template.endDate,
-					start_date: template.startDate,
-					created_by: programData.created_by,
-					orgId: programData.organization_id,
-					userToken,
-				})
+				solutions = await createSolutions(
+					duplicateResource,
+					{
+						_id: programId,
+						scope: programScope,
+						externalId: template.externalId,
+						name: template.name,
+						description: template.description ? template.description : '',
+						end_date: template.endDate,
+						start_date: template.startDate,
+						created_by: programData.created_by,
+						orgId: programData.organization_id,
+					},
+					userToken
+				)
 				const solutionIds = solutions.map((solution) => solution._id)
 				// Update Template with tasks and sequence
 				await programsCollection.updateOne(
