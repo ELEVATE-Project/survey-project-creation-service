@@ -2,21 +2,18 @@ openapi: 3.0.0
 info:
   title: Elevate Survey Project Creation Portal Service
   version: 1.0.0
-  description: >-
+  description: |-
     - The Survey Project Creation Portal Service is a centralized service that supports designing of resources.
-
-    - The URL to access the Creation Portal API(s) is `{context}/scp/v1` -
-    <b>Note:</b> These resources can be used in other services.
+    - The URL to access the Creation Portal API(s) is `{context}/scp/v1` - <b>Note:</b> These resources can be used in other services.
   contact:
     email: tech-infra@shikshalokam.org
 servers:
-  - url: http://localhost:6001
-    description: Local server. NB :- port may vary according to the local setup.
-  - url: https://scp-dev.elevate-apis.shikshalokam.org/
+  - url: 'http://localhost:6001'
+    description: 'Local server. NB :- port may vary according to the local setup.'
+  - url: 'https://scp-dev.elevate-apis.shikshalokam.org/'
     description: DEV server
-  - url: https://scp-qa.elevate-apis.shikshalokam.org/
+  - url: 'https://scp-qa.elevate-apis.shikshalokam.org/'
     description: QA server
-
 paths:
   /scp/v1/modules/create:
     post:
@@ -32,9 +29,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To make use of the API, you require X-auth-token. This is Available
-            in login API Response.
+          description: 'To make use of the API, you require X-auth-token. This is Available in login API Response.'
           required: true
           schema:
             type: string
@@ -112,7 +107,7 @@ paths:
                     meta:
                       correlation: 32016da1-8bf1-4157-afad-34508aa609c8
                     message: module already exists
-  /scp/v1/modules/update/{id}:
+  '/scp/v1/modules/update/{id}':
     post:
       summary: Update modules by id
       tags:
@@ -126,16 +121,13 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
         - name: id
           in: path
-          description: >-
-            Module id
+          description: Module id
           required: true
           example: 6
           schema:
@@ -214,9 +206,7 @@ paths:
         - name: X-auth-token
           required: true
           in: header
-          description: >-
-            You require an X-auth-token to use this API. This token is available
-            in the login API Response.
+          description: You require an X-auth-token to use this API. This token is available in the login API Response.
           schema:
             type: string
         - in: query
@@ -302,7 +292,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/getModuleList400Response'
-  /scp/v1/modules/delete/{id}:
+  '/scp/v1/modules/delete/{id}':
     delete:
       summary: Delete modules by id
       tags:
@@ -316,9 +306,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -394,7 +382,6 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/updateModule400Response'
-
   /scp/v1/permissions/create:
     post:
       summary: Creating new permission
@@ -409,14 +396,12 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To make use of the API, you require X-auth-token. This is Available
-            in login API Response.
+          description: 'To make use of the API, you require X-auth-token. This is Available in login API Response.'
           required: true
           schema:
             type: string
       requestBody:
-        description: 'Request body for create permission'
+        description: Request body for create permission
         content:
           application/json:
             schema:
@@ -424,15 +409,15 @@ paths:
               properties:
                 code:
                   type: string
-                  description: code of the permission, must be unique
+                  description: 'code of the permission, must be unique'
                 module:
                   type: string
-                  description: 'Module name'
+                  description: Module name
                 request_type:
                   type: array
                   items:
                     type: string
-                  description: Array of HTTP request methods of the API like `PUT` , `POST` , `PATCH` , `GET` , `DELETE`.
+                  description: 'Array of HTTP request methods of the API like `PUT` , `POST` , `PATCH` , `GET` , `DELETE`.'
                 api_path:
                   type: string
                   description: URL of the api
@@ -519,9 +504,8 @@ paths:
                     meta:
                       correlation: 32016da1-8bf1-4157-afad-34508aa609c8
                     message: permission already exists
-
     parameters: []
-  /scp/v1/permissions/update/{id}:
+  '/scp/v1/permissions/update/{id}':
     post:
       summary: Update permissions by id
       tags:
@@ -535,9 +519,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -629,7 +611,7 @@ paths:
       summary: Get list of all permissions
       tags:
         - Permissions
-      description: >-
+      description: |-
         You can use this API to get the list of permissions 
 
          - The API Endpoint for getting a list of permissions is `/scp/v1/permissions/getPermissions` 
@@ -639,9 +621,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            You require an X-auth-token to use this API. This token is available
-            in the login API Response.
+          description: You require an X-auth-token to use this API. This token is available in the login API Response.
           required: true
           schema:
             type: string
@@ -714,14 +694,14 @@ paths:
                           request_type:
                             - POST
                           status: ACTIVE
-                          api_path: '/scp/v1/projects/create'
+                          api_path: /scp/v1/projects/create
                       count: 1
   /scp/v1/permissions/list:
     get:
       summary: Get list of permissions based on Role
       tags:
         - Permissions
-      description: >-
+      description: |-
         You can use this API to get the list of permissions 
 
          - The API Endpoint for getting a list of permissions is `/scp/v1/permissions/list` 
@@ -731,9 +711,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            You require an X-auth-token to use this API. This token is available
-            in the login API Response.
+          description: You require an X-auth-token to use this API. This token is available in the login API Response.
           required: true
           schema:
             type: string
@@ -770,7 +748,7 @@ paths:
                         request_type:
                           - POST
                           - GET
-  /scp/v1/permissions/delete/{id}:
+  '/scp/v1/permissions/delete/{id}':
     delete:
       summary: Delete permission by id
       tags:
@@ -784,9 +762,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -831,7 +807,6 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/updatePermission400Response'
-
   /scp/v1/role-permission-mapping/create:
     post:
       summary: Creating new role permission mapping
@@ -846,9 +821,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To make use of the API, you require X-auth-token. This is Available
-            in login API Response.
+          description: 'To make use of the API, you require X-auth-token. This is Available in login API Response.'
           required: true
           schema:
             type: string
@@ -871,7 +844,7 @@ paths:
               example1:
                 value:
                   permission_id: 1
-                  role_title: 'reviewer'
+                  role_title: reviewer
       responses:
         '201':
           description: Created
@@ -908,7 +881,6 @@ paths:
                       module: projects
                       request_type:
                         - POST
-
         '400':
           description: Bad request. Permission for this role already exists
           content:
@@ -935,7 +907,6 @@ paths:
                     responseCode: CLIENT_ERROR
                     error: []
                     message: Permission for this role already exists
-
     parameters: []
   /scp/v1/role-permission-mapping/list:
     get:
@@ -952,9 +923,7 @@ paths:
         - name: X-auth-token
           required: true
           in: header
-          description: >-
-            You require an X-auth-token to use this API. This token is available
-            in the login API Response.
+          description: You require an X-auth-token to use this API. This token is available in the login API Response.
           schema:
             type: string
       responses:
@@ -983,7 +952,6 @@ paths:
                               type: array
                               items:
                                 type: string
-
               examples:
                 example1:
                   value:
@@ -993,12 +961,12 @@ paths:
                       permissions:
                         - module: entity-type
                           request_type:
-                            - POST,
-                            - DELETE,
-                            - GET,
-                            - PUT,
+                            - 'POST,'
+                            - 'DELETE,'
+                            - 'GET,'
+                            - 'PUT,'
                             - PATCH
-  /scp/v1/role-permission-mapping/delete/{role_id}:
+  '/scp/v1/role-permission-mapping/delete/{role_id}':
     post:
       summary: Delete rolePermissionMapping by id
       tags:
@@ -1012,16 +980,13 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
         - name: role_id
           in: path
-          description: >-
-            Pass the `role_id` to add permissions.
+          description: Pass the `role_id` to add permissions.
           required: true
           schema:
             type: number
@@ -1056,21 +1021,18 @@ paths:
                   result:
                     type: object
                     properties: {}
-
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Permission delete from the role
                     result: {}
-
         '400':
           description: Bad Request. Permission for this role is empty.
           content:
             application.json:
               schema:
                 $ref: '#/components/schemas/createMapping400Response'
-
   /scp/v1/entity-types/create:
     post:
       summary: Create entity type
@@ -1085,9 +1047,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -1105,7 +1065,7 @@ paths:
                   description: Descriptive label for the entity type.
                 type:
                   type: string
-                  description: Type of the entity (e.g., SYSTEM, USER).
+                  description: 'Type of the entity (e.g., SYSTEM, USER).'
                 allow_filtering:
                   type: boolean
                   description: Indicates whether filtering is allowed for this entity type.
@@ -1167,7 +1127,6 @@ paths:
                         type: boolean
                   field_0:
                     type: string
-
               examples:
                 example1:
                   value:
@@ -1185,14 +1144,13 @@ paths:
                       updated_by: 1
                       updated_at: '2023-09-22T12:40:19.817Z'
                       created_at: '2023-09-22T12:40:19.817Z'
-
         '400':
           description: Bad Request. Entity-Type already exists.
           content:
             application.json:
               schema:
                 $ref: '#/components/schemas/createUserEntity400Response'
-  /scp/v1/entity-types/update/{id}:
+  '/scp/v1/entity-types/update/{id}':
     post:
       summary: Update entity type
       tags:
@@ -1206,9 +1164,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -1233,7 +1189,7 @@ paths:
                   description: Descriptive label for the entity type.
                 type:
                   type: string
-                  description: Type of the entity (e.g., SYSTEM, USER).
+                  description: 'Type of the entity (e.g., SYSTEM, USER).'
                 allow_filtering:
                   type: boolean
                   description: Indicates whether filtering is allowed for this entity type.
@@ -1297,7 +1253,6 @@ paths:
                         format: date-time
                         nullable: true
                         type: string
-
               examples:
                 example1:
                   value:
@@ -1317,7 +1272,6 @@ paths:
                       created_at: '2023-09-06T12:01:09.025Z'
                       updated_at: '2023-09-22T12:47:42.510Z'
                       deleted_at: null
-
         '400':
           description: Bad Request. Entity type not found
           content:
@@ -1338,9 +1292,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -1357,7 +1309,7 @@ paths:
                     type: string
                 read_user_entity:
                   type: boolean
-                  description: Use this param to get all entities, including user created entities.
+                  description: 'Use this param to get all entities, including user created entities.'
             examples:
               example1:
                 value:
@@ -1453,7 +1405,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/updateUserEntity400Response'
-  /scp/v1/entity-types/delete/{id}:
+  '/scp/v1/entity-types/delete/{id}':
     delete:
       summary: Delete entity type
       tags:
@@ -1467,9 +1419,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -1502,14 +1452,12 @@ paths:
                     responseCode: OK
                     message: Entity type deleted successfully
                     result: []
-
         '400':
           description: Bad Request. Entity-Type not found
           content:
             application.json:
               schema:
                 $ref: '#/components/schemas/updateUserEntityType400Response'
-
   /scp/v1/entities/create:
     post:
       summary: Create Entity
@@ -1524,9 +1472,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -1602,7 +1548,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -1625,14 +1570,13 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-
         '400':
           description: Bad Request. User Entity already exists.
           content:
             application.json:
               schema:
                 $ref: '#/components/schemas/createEntity400Response'
-  /scp/v1/entities/update/{id}:
+  '/scp/v1/entities/update/{id}':
     put:
       summary: Update Entity
       tags:
@@ -1646,14 +1590,12 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token, which is available in
-            the login API response.
+          description: 'To use this API, you require an X-auth-token, which is available in the login API response.'
           required: true
           schema:
             type: string
         - in: path
-          name: 'id'
+          name: id
           description: Please append a valid user entity ID to the Request URL.
           schema:
             type: number
@@ -1727,7 +1669,6 @@ paths:
                         type: array
                         items:
                           type: string
-
               examples:
                 example1:
                   value:
@@ -1747,14 +1688,13 @@ paths:
                       deleted_at: null
                     meta:
                       formsVersion: []
-
         '400':
           description: Bad Request. User Entity Not Found
           content:
             application.json:
               schema:
                 $ref: '#/components/schemas/updateUserEntity400Response'
-  /scp/v1/entities/read/{id}:
+  '/scp/v1/entities/read/{id}':
     post:
       summary: Get entity details
       tags:
@@ -1768,9 +1708,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token, which is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token, which is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -1827,7 +1765,6 @@ paths:
                         type: array
                         items:
                           type: string
-
               examples:
                 example1:
                   value:
@@ -1848,7 +1785,7 @@ paths:
                     meta:
                       formsVersion: []
     parameters: []
-  /scp/v1/entities/delete/{id}:
+  '/scp/v1/entities/delete/{id}':
     delete:
       summary: Delete entity
       tags:
@@ -1862,14 +1799,12 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This token is
-            available in the login API Response.
+          description: 'To use this API, you require an X-auth-token. This token is available in the login API Response.'
           required: true
           schema:
             type: string
         - in: path
-          name: 'id'
+          name: id
           required: true
           description: Please append a valid user entity ID to the Request URL.
           schema:
@@ -1929,9 +1864,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token, which is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token, which is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -2008,12 +1941,10 @@ paths:
                           created_by: 0
                           created_at: '2023-07-21T21:46:41.392Z'
                       count: 1
-
                     meta:
                       formsVersion: []
                       correlation: 0d392602-cb68-4690-8f38-3d3de9f94198
                     parameters: []
-
   /scp/v1/cloud-services/getSignedUrl:
     post:
       summary: Cloud services get signed url
@@ -2027,9 +1958,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            You require an X-auth-token to use this API. This token is available
-            in the login API Response.
+          description: You require an X-auth-token to use this API. This token is available in the login API Response.
           required: true
           schema:
             type: string
@@ -2045,7 +1974,6 @@ paths:
                     Add Resource id inside request, which can be a project id, observation id, etc.
                     Additionally, append the valid file names in the files.
                   type: object
-
                 ref:
                   type: string
                   description: Only add ref as certificate if uploading the certificate templates
@@ -2056,7 +1984,7 @@ paths:
               example1:
                 value:
                   request:
-                    1:
+                    '1':
                       files:
                         - certificsteBase.png
                   ref: certificate
@@ -2074,42 +2002,38 @@ paths:
                     type: string
                   result:
                     type: object
-
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Signed URL Generated Successfully.
                     result:
-                      '5f72f9998925ec7c60f79a91':
+                      5f72f9998925ec7c60f79a91:
                         files:
-                          - file: 'survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/uploadFile.jpg'
+                          - file: survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/uploadFile.jpg
                             url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/uploadFile.jpg?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=w&sig=PBRkJWgXdAPgx4RHSZ6aUevzWo1x2XMMQKBoNHQvBkk%3D'
                             payload:
-                              sourcePath: 'survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/uploadFile.jpg'
-                            cloudStorage: 'AZURE'
-                          - file: 'survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png'
+                              sourcePath: survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/uploadFile.jpg
+                            cloudStorage: AZURE
+                          - file: survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png
                             url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=w&sig=4fERc3ERoruUiA1YXquTWRnOnP9DzaVxn4uFjqBmSF8%3D'
                             payload:
-                              sourcePath: 'survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png'
-                            cloudStorage: 'AZURE'
+                              sourcePath: survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png
+                            cloudStorage: AZURE
   /scp/v1/cloud-services/getDownloadableUrl:
     get:
       summary: Cloud services get download url
       tags:
         - Cloud Services
-      description: >-
-        This API is associated with the cloud services for getting downloadable
-        URL  
+      description: |-
+        This API is associated with the cloud services for getting downloadable URL  
          - Then The API Endpoint forcloud services `/scp/v1/cloud-services/file/getDownloadableUrl` 
          - It is mandatory to provide values for parameters marked with `required` 
          - Mandatory parameter cannot be empty or null
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            You require an X-auth-token to use this API. This token is available
-            in the login API Response.
+          description: You require an X-auth-token to use this API. This token is available in the login API Response.
           required: true
           schema:
             type: string
@@ -2126,9 +2050,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: >-
-                  #/components/schemas/cloudServicesDownloadResponse200
-
+                $ref: '#/components/schemas/cloudServicesDownloadResponse200'
   /scp/v1/form/create:
     post:
       operationId: formCreate
@@ -2143,9 +2065,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This token is
-            available in the login API Response.
+          description: 'To use this API, you require an X-auth-token. This token is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -2236,7 +2156,6 @@ paths:
                           show_select_all: true
                           validators:
                             required: true
-
       responses:
         '201':
           description: Created
@@ -2326,7 +2245,6 @@ paths:
                               type: number
                             type:
                               type: string
-
               examples:
                 example1:
                   value:
@@ -2359,7 +2277,6 @@ paths:
                               show_select_all: true
                               validators:
                                 required: true
-
                       updated_at: '2023-07-18T20:48:10.492Z'
                       created_at: '2023-07-18T20:48:10.492Z'
                       deleted_at: null
@@ -2368,14 +2285,13 @@ paths:
                       formsVersion:
                         - id: 16
                           type: session
-
         '400':
           description: Bad Request. Form already exists
           content:
             application.json:
               schema:
                 $ref: '#/components/schemas/createForm400Response'
-  /scp/v1/form/update/{formId}:
+  '/scp/v1/form/update/{formId}':
     patch:
       operationId: formUpdate
       summary: Update form
@@ -2389,9 +2305,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This token is
-            available in the login API Response.
+          description: 'To use this API, you require an X-auth-token. This token is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -2488,7 +2402,6 @@ paths:
                           show_select_all: true
                           validators:
                             required: true
-
       responses:
         '200':
           description: ok
@@ -2517,7 +2430,6 @@ paths:
                               type: number
                             type:
                               type: string
-
               examples:
                 example1:
                   value:
@@ -2528,7 +2440,6 @@ paths:
                       formsVersion:
                         - id: 16
                           type: project
-
         '400':
           description: Bad Request. Form not found
           content:
@@ -2549,9 +2460,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This token is
-            available in the login API Response.
+          description: 'To use this API, you require an X-auth-token. This token is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -2710,15 +2619,13 @@ paths:
                       formsVersion:
                         - id: 16
                           type: project
-
         '400':
           description: Bad Request.Form not found
           content:
             application.json:
               schema:
                 $ref: '#/components/schemas/updateForm400Response'
-
-  /scp/v1/projects/update/{projectId}:
+  '/scp/v1/projects/update/{projectId}':
     post:
       summary: Create or Update Project
       tags:
@@ -2731,15 +2638,13 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
         - in: path
           name: projectId
-          description: For creating the project, id is not required. For update please append a valid project Id to the Request URL.
+          description: 'For creating the project, id is not required. For update please append a valid project Id to the Request URL.'
           schema:
             type: number
           required: true
@@ -2774,7 +2679,7 @@ paths:
                   properties:
                     type:
                       type: string
-                      description: Type of recommended duration (e.g., "days", "hours").
+                      description: 'Type of recommended duration (e.g., "days", "hours").'
                     number:
                       description: The numeric value representing the recommended duration.
                       type: number
@@ -2933,7 +2838,6 @@ paths:
                                               type: string
                                             value1:
                                               type: string
-
             examples:
               project creation:
                 value:
@@ -2947,7 +2851,8 @@ paths:
                   recommented_duration:
                     - type: week
                       number: 5
-                  keywords: ['test']
+                  keywords:
+                    - test
                   recommeneded_for:
                     - label: HM
                       value: hm
@@ -2962,7 +2867,7 @@ paths:
                       value: cc_by_4.0
                   tasks:
                     - id: 7a8b13fb-c9e1-4296-8abd-8b64b357a128
-                      name: 'task without children'
+                      name: task without children
                       type: content
                       is_mandatory: true
                       allow_evidences: true
@@ -2985,7 +2890,6 @@ paths:
                           allow_evidences: true
                           parent_id: 7a8b13fb-c9e1-4296-8abd-8b64b357a128
                           sequence_no: 1
-
                   certificate: {}
               project without child tasks and certificates:
                 value:
@@ -2996,7 +2900,8 @@ paths:
                   recommented_duration:
                     - type: week
                       number: 5
-                  keywords: ['test']
+                  keywords:
+                    - test
                   recommeneded_for:
                     - label: HM
                       value: hm
@@ -3011,7 +2916,7 @@ paths:
                       value: cc_by_4.0
                   tasks:
                     - id: 7a8b13fb-c9e1-4296-8abd-8b64b357a128
-                      name: 'task without children'
+                      name: task without children
                       type: content
                       is_mandatory: true
                       allow_evidences: true
@@ -3036,7 +2941,8 @@ paths:
                   recommented_duration:
                     - type: week
                       number: 5
-                  keywords: ['test']
+                  keywords:
+                    - test
                   recommeneded_for:
                     - label: HM
                       value: hm
@@ -3049,7 +2955,7 @@ paths:
                   licence: CC BY 4.0
                   tasks:
                     - id: 3a8b13fb-c9e1-4296-8abd-8b64b357a128
-                      name: 'task observation'
+                      name: task observation
                       type: observation
                       is_mandatory: true
                       allow_evidences: true
@@ -3066,22 +2972,22 @@ paths:
                         name: sample observation
                         min_no_of_submissions_required: 2
                         type: observation
-                        link: https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4
+                        link: 'https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4'
                   certificate:
                     base_template_id: 5
-                    base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                    base_template_url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
                     code: two-logo-two-sign
                     name: Two Logo Two Signature
                     logos:
                       no_of_logos: 2
-                      stateLogo1: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
-                      stateLogo2: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
+                      stateLogo1: 'https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI'
+                      stateLogo2: 'https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI'
                     signature:
                       no_of_signature: 2
-                      signatureImg1: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                      signatureImg1: 'https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E'
                       signatureTitleName1: John Doe
                       signatureTitleDesignation1: District Education Officer
-                      signatureImg2: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                      signatureImg2: 'https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E'
                       signatureTitleName2: John Joe
                       signatureTitleDesignation2: Block Education Officer
                     issuer: SPD
@@ -3116,7 +3022,6 @@ paths:
                               value: 4
                               task_details:
                                 - 7a8b13fb-c9e1-4296-8abd-8b64b357a128
-
       responses:
         '201':
           description: Project updated successfully
@@ -3148,7 +3053,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -3161,14 +3065,12 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-
         '400':
           description: Bad Request. Project Update Failed.
           content:
             application.json:
               schema:
                 $ref: '#/components/schemas/createProject400Response'
-
     delete:
       summary: Delete Project
       tags:
@@ -3181,9 +3083,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -3194,7 +3094,6 @@ paths:
             type: number
           required: true
           example: 1
-
       responses:
         '202':
           description: Project deleted successfully
@@ -3207,7 +3106,6 @@ paths:
                     type: string
                   message:
                     type: string
-
                   meta:
                     type: object
                     properties:
@@ -3222,26 +3120,23 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Project deleted successfully
-
                     meta:
                       formsVersion:
                         - id: 3
                           type: projectCreation
                           version: 3
-
         '400':
           description: Bad Request. Project not found
           content:
             application.json:
               schema:
                 $ref: '#/components/schemas/deleteProject400Response'
-  /scp/v1/projects/submitForReview/{projectId}:
+  '/scp/v1/projects/submitForReview/{projectId}':
     post:
       summary: Submit Project for Review
       tags:
@@ -3254,9 +3149,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            The `X-auth-token` is required to use this API. It is available in
-            the login API response.
+          description: The `X-auth-token` is required to use this API. It is available in the login API response.
           required: true
           schema:
             type: string
@@ -3284,18 +3177,15 @@ paths:
             examples:
               example1:
                 summary: Example when specific reviewers are selected
-                description: >-
-                  When specific reviewers are selected, their user IDs are sent
-                  as an array, and the project is assigned to those reviewers.
+                description: 'When specific reviewers are selected, their user IDs are sent as an array, and the project is assigned to those reviewers.'
                 value:
-                  reviewer_ids: [23, 25]
-                  notes: 'Note to the reviewer'
+                  reviewer_ids:
+                    - 23
+                    - 25
+                  notes: Note to the reviewer
               example2:
                 summary: Example when sending to all reviewers
-                description: >-
-                  When the project is sent to all reviewers, the API does not
-                  expect any body parameters, and the project will be available
-                  for all reviewers according to other factors.
+                description: 'When the project is sent to all reviewers, the API does not expect any body parameters, and the project will be available for all reviewers according to other factors.'
                 value: {}
       responses:
         '201':
@@ -3339,7 +3229,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/deleteProject400Response'
-  /scp/v1/projects/details/{projectId}:
+  '/scp/v1/projects/details/{projectId}':
     post:
       summary: Project Details
       tags:
@@ -3352,9 +3242,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -3365,7 +3253,6 @@ paths:
             type: number
           required: true
           example: 2
-
       responses:
         '200':
           description: Project fetched successfully
@@ -3417,7 +3304,6 @@ paths:
                               type: string
                       solution_details:
                         type: object
-
                       licence:
                         type: string
                       task:
@@ -3506,7 +3392,6 @@ paths:
                                                     type: string
                                                   value1:
                                                     type: string
-
                   meta:
                     type: object
                     properties:
@@ -3521,7 +3406,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -3559,7 +3443,7 @@ paths:
                       licence: CC BY 4.0
                       tasks:
                         - id: 3a8b13fb-c9e1-4296-8abd-8b64b357a128
-                          name: 'task observation'
+                          name: task observation
                           type: observation
                           is_mandatory: true
                           allow_evidences: true
@@ -3577,20 +3461,20 @@ paths:
                             name: sample observation
                             min_no_of_submissions_required: 2
                             type: observation
-                            link: https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4
+                            link: 'https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4'
                       certificate:
                         base_template_id: 5
-                        base_template_url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                        base_template_url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
                         code: two-logo-two-sign
                         name: Two Logo Two Signature
                         logos:
                           no_of_logos: 2
-                          stateLogo1: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
-                          stateLogo2: https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI
+                          stateLogo1: 'https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI'
+                          stateLogo2: 'https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI'
                         signature:
                           no_of_signature: 2
-                          signatureImg1: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
-                          signatureImg2: https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E
+                          signatureImg1: 'https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E'
+                          signatureImg2: 'https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E'
                         issuer: SPD
                         criteria:
                           expressions: C1&&C2
@@ -3640,13 +3524,11 @@ paths:
                             id: 25
                             name: Adithya
                           resolved_at: '2024-04-11T06:43:43.995Z'
-
                     meta:
                       formsVersion:
                         - id: 3
                           type: projectCreation
                           version: 3
-
         '400':
           description: Bad Request.
           content:
@@ -3660,19 +3542,16 @@ paths:
         - Projects
       description: |-
         You can use this API to get the list all project reviewers
-         - The API Endpoint for comment list is `/scp/v1/projects/reviewerList` 
+         - The API Endpoint for list all project reviewers is `/scp/v1/projects/reviewerList` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
-
       responses:
         '200':
           description: Reviewer list fetched successfully
@@ -3696,7 +3575,6 @@ paths:
                           type: object
                       count:
                         type: string
-
                   meta:
                     type: object
                     properties:
@@ -3711,7 +3589,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -3746,7 +3623,6 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-
   /scp/v1/resource/list:
     get:
       summary: Resource List
@@ -3763,9 +3639,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -3778,41 +3652,41 @@ paths:
           example: 1
         - name: limit
           in: query
-          description: The limit of projects per page.
+          description: The limit of resources per page.
           required: false
           schema:
             type: integer
           example: 10
         - name: search
           in: query
-          description: The search value to filter projects based on title.
+          description: The search value to filter resource based on title.
           required: false
           schema:
             type: string
         - name: type
           in: query
-          description: Type of the resource
+          description: Type of the resource(project, program, observation, survey, observation_with_rubric)
           required: false
           schema:
             type: string
           example: project
         - name: status
           in: query
-          description: The status of the resource (['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review`. This key is redundant in other cases. )
+          description: "The status of the resource (['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review`. This key is redundant in other cases. )"
           required: false
           schema:
             type: string
           example: DRAFT
         - name: listing
           in: query
-          description: To identify the page from frontend. Values can be ['drafts','submitted_for_review','browse_existing']
+          description: "To identify the page from frontend. Values can be ['drafts','submitted_for_review','browse_existing']"
           required: true
           schema:
             type: string
           example: DRAFT
         - name: sort_by
           in: query
-          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          description: 'Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request'
           required: false
           schema:
             type: string
@@ -3823,9 +3697,10 @@ paths:
           required: false
           schema:
             type: string
-            enum: ['asc', 'desc']
+            enum:
+              - asc
+              - desc
           example: asc
-
       responses:
         '200':
           description: project listed successfully
@@ -3847,7 +3722,6 @@ paths:
                           type: object
                       count:
                         type: number
-
                   meta:
                     type: object
                     properties:
@@ -3862,7 +3736,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -3878,8 +3751,23 @@ paths:
                             name: Shikshalokam
                             code: sl
                           status: DRAFT
+                          created_by: 32
+                          creator: Adithya
+                          organization_id: 1
+                        - id: 5
+                          title: Improve Education Quality
+                          type: program
+                          organization:
+                            id: 25
+                            name: Default Organization
+                            code: default_code
+                          status: DRAFT
+                          start_date: '2024-10-29T11:35:08.694Z'
+                          end_date: '2024-11-29T11:36:31.117Z'
+                          created_by: 33
+                          creator: Priyanka
+                          organization_id: 1
                       count: 1
-
                     meta:
                       formsVersion:
                         - id: 3
@@ -3895,13 +3783,11 @@ paths:
          - The API Endpoint for listing resources is `/scp/v1/resource/getPublishedResources` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - Query Param `type` is a non mandatory field which can have values [`'project'`,`'survey'`,`'observation'`,`'observation_with_rubric'`].
+         - Query Param `type` is a non mandatory field which can have values [`'project'`,`'survey'`,`'observation'`,`'observation_with_rubric'`, `'program'`].
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -3927,7 +3813,7 @@ paths:
             type: string
         - name: type
           in: query
-          description: Type of the resource. Type can be coma separated values for multiple types from the above list.
+          description: Type of the resource(project, program, observation, survey, observation_with_rubric). Type can be coma separated values for multiple types from the above list.
           required: false
           schema:
             type: string
@@ -3945,9 +3831,10 @@ paths:
           required: false
           schema:
             type: string
-            enum: ['asc', 'desc']
+            enum:
+              - asc
+              - desc
           example: asc
-
       responses:
         '200':
           description: Resources listed successfully
@@ -3969,7 +3856,6 @@ paths:
                           type: object
                       count:
                         type: number
-
                   meta:
                     type: object
                     properties:
@@ -3984,7 +3870,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -4000,8 +3885,25 @@ paths:
                             name: Shikshalokam
                             code: sl
                           status: DRAFT
-                      count: 1
-
+                          created_by: 32
+                          published_on: 2025-01-03T10:49:02.318Z
+                          creator: Priyanka
+                          organization_id: 1
+                        - id: 5
+                          title: Improve Education Quality
+                          type: program
+                          organization:
+                            id: 25
+                            name: Default Organization
+                            code: default_code
+                          status: DRAFT
+                          start_date: '2024-10-29T11:35:08.694Z'
+                          end_date: '2024-11-29T11:36:31.117Z'
+                          created_by: 32
+                          published_on: 2025-01-03T10:49:02.318Z
+                          creator: Adithya
+                          organization_id: 1
+                      count: 2
                     meta:
                       formsVersion:
                         - id: 3
@@ -4030,7 +3932,8 @@ paths:
               required:
                 - resource_ids
             example:
-              resource_ids: [2]
+              resource_ids:
+                - 2
       responses:
         '200':
           description: Resources fetched successfully
@@ -4079,7 +3982,6 @@ paths:
                           name: Shikshalokam
                           code: sl
                         status: PUBLISHED
-
   /scp/v1/resource/upForReview:
     get:
       summary: Up For Review Resource List
@@ -4093,9 +3995,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -4121,21 +4021,21 @@ paths:
             type: string
         - name: type
           in: query
-          description: Type of the resource
+          description: Type of the resource(project, program, observation, survey, observation_with_rubric)
           required: false
           schema:
             type: string
           example: project
         - name: status
           in: query
-          description: Pass status =  'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED' to get the resources with curresponding statuses.
+          description: "Pass status =  'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED' to get the resources with curresponding statuses."
           required: false
           schema:
             type: string
           example: INPROGRESS
         - name: sort_by
           in: query
-          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          description: 'Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request'
           required: false
           schema:
             type: string
@@ -4146,12 +4046,13 @@ paths:
           required: false
           schema:
             type: string
-            enum: ['asc', 'desc']
+            enum:
+              - asc
+              - desc
           example: asc
-
       responses:
         '200':
-          description: project listed successfully
+          description: resource listed successfully
           content:
             application/json:
               schema:
@@ -4170,7 +4071,6 @@ paths:
                           type: object
                       count:
                         type: number
-
                   meta:
                     type: object
                     properties:
@@ -4185,7 +4085,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -4201,8 +4100,29 @@ paths:
                             name: Shikshalokam
                             code: sl
                           status: INPROGRESS
-                      count: 1
-
+                          created_by: 32
+                          organization_id: 1
+                          creator: Priyanka
+                          notes: Note to the reviewer,
+                          created_at: 2024-12-26T03:36:45.062Z
+                          stage: REVIEW
+                        - id: 5
+                          title: Improve Education Quality
+                          type: program
+                          organization:
+                            id: 25
+                            name: Default Organization
+                            code: default_code
+                          status: SUBMITTED
+                          start_date: '2024-10-29T11:35:08.694Z'
+                          end_date: '2024-11-29T11:36:31.117Z'
+                          created_by: 33
+                          organization_id: 1
+                          creator: Adithya
+                          notes: Note to the reviewer,
+                          created_at: 2024-12-26T03:36:45.062Z
+                          stage: REVIEW
+                      count: 2
                     meta:
                       formsVersion:
                         - id: 3
@@ -4221,9 +4141,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -4241,7 +4159,6 @@ paths:
           schema:
             type: string
           example: 10
-
       responses:
         '200':
           description: Resource updated successfully
@@ -4254,7 +4171,6 @@ paths:
                     type: string
                   message:
                     type: string
-
                   meta:
                     type: object
                     properties:
@@ -4269,20 +4185,17 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Resource updated successfully
-
                     meta:
                       formsVersion:
                         - id: 3
                           type: projecsuccessfullytCreation
                           version: 3
-
-  /scp/v1/reviews/start/{resourceId}:
+  '/scp/v1/reviews/start/{resourceId}':
     post:
       summary: Start Review
       tags:
@@ -4295,9 +4208,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -4308,7 +4219,6 @@ paths:
             type: number
           required: true
           example: 12
-
       responses:
         '200':
           description: Review started successfully
@@ -4323,7 +4233,6 @@ paths:
                     type: string
                   result:
                     type: object
-
                   meta:
                     type: object
                     properties:
@@ -4338,7 +4247,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -4350,7 +4258,7 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-  /scp/v1/reviews/update/{resourceId}:
+  '/scp/v1/reviews/update/{resourceId}':
     post:
       summary: Request for changes
       tags:
@@ -4366,9 +4274,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -4386,19 +4292,18 @@ paths:
               type: object
               properties:
                 comment:
-                  description: Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.
-
+                  description: 'Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.'
             examples:
               example1:
                 value:
                   comment:
                     id: 10
-                    text: 'Check spelling'
+                    text: Check spelling
                     context: page
                     page: 1
       responses:
         '200':
-          description: project review updated
+          description: resource review updated
           content:
             application/json:
               schema:
@@ -4410,7 +4315,6 @@ paths:
                     type: string
                   result:
                     type: object
-
                   meta:
                     type: object
                     properties:
@@ -4425,7 +4329,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -4437,7 +4340,7 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-  /scp/v1/reviews/approve/{resourceId}:
+  '/scp/v1/reviews/approve/{resourceId}':
     post:
       summary: Approve Resource
       tags:
@@ -4450,9 +4353,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -4463,7 +4364,6 @@ paths:
             type: number
           required: true
           example: 12
-
       responses:
         '200':
           description: You have successfully published the resource
@@ -4478,7 +4378,6 @@ paths:
                     type: string
                   result:
                     type: object
-
                   meta:
                     type: object
                     properties:
@@ -4493,7 +4392,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -4505,7 +4403,7 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-  /scp/v1/reviews/rejectOrReport/{resourceId}:
+  '/scp/v1/reviews/rejectOrReport/{resourceId}':
     post:
       summary: Reject or Report Resource
       tags:
@@ -4518,9 +4416,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -4533,8 +4429,7 @@ paths:
           example: 5
         - in: query
           name: isReported
-          description: If the resource is reported, pass this as true else false or omit this key.
-
+          description: 'If the resource is reported, pass this as true else false or omit this key.'
           schema:
             type: boolean
           required: true
@@ -4548,15 +4443,14 @@ paths:
                 notes:
                   description: Reviewer can add the note if he is reporting the resource
                 comment:
-                  description: Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.
-
+                  description: 'Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.'
             examples:
               example1:
                 value:
-                  notes: 'invalid project'
+                  notes: invalid resource
                   comment:
                     id: 10
-                    text: 'Check spelling'
+                    text: Check spelling
                     context: page
                     page: 1
       responses:
@@ -4573,7 +4467,6 @@ paths:
                     type: string
                   result:
                     type: object
-
                   meta:
                     type: object
                     properties:
@@ -4588,7 +4481,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -4600,8 +4492,7 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-
-  /scp/v1/comments/update/{id}:
+  '/scp/v1/comments/update/{id}':
     post:
       summary: Add or Update Comment
       tags:
@@ -4617,9 +4508,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -4658,16 +4547,16 @@ paths:
                           description: The actual content of the comment
                         parent_id:
                           type: integer
-                          description: ID of the parent comment, if applicable
+                          description: 'ID of the parent comment, if applicable'
                         status:
                           type: string
-                          description: Status of the comment (e.g., "OPEN", "DRAFT", "RESOLVED")
+                          description: 'Status of the comment (e.g., "OPEN", "DRAFT", "RESOLVED")'
                         context:
                           type: string
-                          description: Context of the comment (e.g., "page" or any tag)
+                          description: 'Context of the comment (e.g., "page" or any tag)'
                         page:
                           type: string
-                          description: Page number associated with the comment (e.g., "1")
+                          description: 'Page number associated with the comment (e.g., "1")'
                         is_read:
                           type: boolean
                           description: Whether the comment has been read
@@ -4689,23 +4578,23 @@ paths:
                             description: ID of the user who made the comment
                           parent_id:
                             type: integer
-                            description: ID of the parent comment, if applicable
+                            description: 'ID of the parent comment, if applicable'
                           status:
                             type: string
-                            description: Status of the comment (e.g., "OPEN", "DRAFT", "RESOLVED")
+                            description: 'Status of the comment (e.g., "OPEN", "DRAFT", "RESOLVED")'
                           resolved_by:
                             type: string
-                            description: ID of the user who resolved the comment, if applicable
+                            description: 'ID of the user who resolved the comment, if applicable'
                           resolved_at:
                             type: string
                             format: date-time
                             description: Timestamp when the comment was resolved
                           context:
                             type: string
-                            description: Context of the comment (e.g., "page" or any tag)
+                            description: 'Context of the comment (e.g., "page" or any tag)'
                           page:
                             type: string
-                            description: Page number associated with the comment (e.g., "1")
+                            description: 'Page number associated with the comment (e.g., "1")'
                           is_read:
                             type: boolean
                             description: Whether the comment has been read
@@ -4720,7 +4609,7 @@ paths:
                           deleted_at:
                             type: string
                             format: date-time
-                            description: Timestamp when the comment was deleted, if applicable
+                            description: 'Timestamp when the comment was deleted, if applicable'
                           commenter:
                             type: object
                             properties:
@@ -4732,59 +4621,53 @@ paths:
                                 description: Name of the commenter
                           resolver:
                             type: object
-                            description: Details of the user who resolved the comment, if applicable
+                            description: 'Details of the user who resolved the comment, if applicable'
             examples:
               array_of_comments:
                 value:
                   comment:
-                    [
-                      {
-                        id: 26,
-                        resource_id: 371,
-                        text: 'Check spelling',
-                        user_id: '102',
-                        parent_id: 0,
-                        status: 'RESOLVED',
-                        resolved_by: null,
-                        resolved_at: null,
-                        context: 'page',
-                        page: '1',
-                        is_read: false,
-                      },
-                      {
-                        resource_id: 371,
-                        text: 'Check spelling',
-                        user_id: '102',
-                        parent_id: 0,
-                        status: 'OPEN',
-                        resolved_by: null,
-                        resolved_at: null,
-                        context: 'page',
-                        page: '1',
-                        is_read: false,
-                      },
-                    ]
+                    - id: 26
+                      resource_id: 371
+                      text: Check spelling
+                      user_id: '102'
+                      parent_id: 0
+                      status: RESOLVED
+                      resolved_by: null
+                      resolved_at: null
+                      context: page
+                      page: '1'
+                      is_read: false
+                    - resource_id: 371
+                      text: Check spelling
+                      user_id: '102'
+                      parent_id: 0
+                      status: OPEN
+                      resolved_by: null
+                      resolved_at: null
+                      context: page
+                      page: '1'
+                      is_read: false
               one_comment:
                 value:
                   comment:
-                    {
-                      id: 26,
-                      resource_id: 371,
-                      text: 'Check spelling',
-                      user_id: '102',
-                      parent_id: 0,
-                      status: 'RESOLVED',
-                      resolved_by: null,
-                      resolved_at: null,
-                      context: 'page',
-                      page: '1',
-                      is_read: false,
-                      created_at: '2024-08-27T13:25:02.752Z',
-                      updated_at: '2024-08-27T13:25:02.752Z',
-                      deleted_at: null,
-                      commenter: { id: 102, name: 'Default Org Admin Two' },
-                      resolver: {},
-                    }
+                    id: 26
+                    resource_id: 371
+                    text: Check spelling
+                    user_id: '102'
+                    parent_id: 0
+                    status: RESOLVED
+                    resolved_by: null
+                    resolved_at: null
+                    context: page
+                    page: '1'
+                    is_read: false
+                    created_at: '2024-08-27T13:25:02.752Z'
+                    updated_at: '2024-08-27T13:25:02.752Z'
+                    deleted_at: null
+                    commenter:
+                      id: 102
+                      name: Default Org Admin Two
+                    resolver: {}
       responses:
         '201':
           description: Comment updated successfully
@@ -4811,7 +4694,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -4828,7 +4710,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/updateComment400Response'
-  /scp/v1/comments/update/{commentId}:
+  '/scp/v1/comments/update/{commentId}':
     delete:
       summary: Delete Comment
       tags:
@@ -4843,9 +4725,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -4863,7 +4743,6 @@ paths:
             type: number
           required: true
           example: 1
-
       responses:
         '200':
           description: Comment deleted successfully
@@ -4890,7 +4769,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -4907,7 +4785,6 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/updateComment400Response'
-
   /scp/v1/comments/list:
     get:
       summary: Comment List
@@ -4921,9 +4798,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -4948,7 +4823,6 @@ paths:
             type: string
           required: false
           example: page
-
       responses:
         '200':
           description: Comment fetched successfully
@@ -4976,7 +4850,6 @@ paths:
                           type: object
                       count:
                         type: string
-
                   meta:
                     type: object
                     properties:
@@ -4991,7 +4864,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -4999,10 +4871,11 @@ paths:
                     message: Comment fetched successfully
                     result:
                       resource_id: 1
-                      commented_by: ['Adithya']
+                      commented_by:
+                        - Adithya
                       comments:
                         - id: 2
-                          comment: 'Check spelling'
+                          comment: Check spelling
                           context: page
                           page: 1
                           status: RESOLVED
@@ -5016,7 +4889,7 @@ paths:
                             id: 25
                             name: Adithya
                           resolved_at: '2024-04-11T06:43:43.995Z'
-                        - comment: 'Add valid title'
+                        - comment: Add valid title
                           context: page
                           page: 1
                           status: UNRESOLVED
@@ -5031,7 +4904,6 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-
   /scp/v1/rollouts/list:
     get:
       summary: Rollout List
@@ -5045,9 +4917,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -5080,14 +4950,14 @@ paths:
           example: project
         - name: status
           in: query
-          description: The status of the rollout (['PENDING', 'ROLLED_OUT'])
+          description: "The status of the rollout (['PENDING', 'ROLLED_OUT'])"
           required: false
           schema:
             type: string
           example: PENDING
         - name: sort_by
           in: query
-          description: Sort the response by status or title of the rollout. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          description: 'Sort the response by status or title of the rollout. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request'
           required: false
           schema:
             type: string
@@ -5098,9 +4968,10 @@ paths:
           required: false
           schema:
             type: string
-            enum: ['asc', 'desc']
+            enum:
+              - asc
+              - desc
           example: asc
-
       responses:
         '200':
           description: Rollout Listed successfully
@@ -5141,11 +5012,11 @@ paths:
                             start_date:
                               type: string
                               format: date-time
-                              example: 2024-10-29T11:35:08.694Z
+                              example: '2024-10-29T11:35:08.694Z'
                             end_date:
                               type: string
                               format: date-time
-                              example: 2024-11-29T11:36:31.117Z
+                              example: '2024-11-29T11:36:31.117Z'
                             organization:
                               type: object
                               properties:
@@ -5167,27 +5038,27 @@ paths:
                             created_at:
                               type: string
                               format: date-time
-                              example: 2024-10-28T09:06:19.079Z
+                              example: '2024-10-28T09:06:19.079Z'
                             updated_at:
                               type: string
                               format: date-time
-                              example: 2024-10-29T11:36:31.118Z
+                              example: '2024-10-29T11:36:31.118Z'
                         example:
                           - id: 595
                             title: test rollout
                             resource_id: 2
                             resource_type: project
                             status: PENDING
-                            start_date: 2024-10-29T11:35:08.694Z
-                            end_date: 2024-11-29T11:36:31.117Z
+                            start_date: '2024-10-29T11:35:08.694Z'
+                            end_date: '2024-11-29T11:36:31.117Z'
                             organization:
                               id: 1
                               name: Default Organization
                               code: default_code
                               description: Default Organisation
                             creator: Sumatest
-                            created_at: 2024-10-28T09:06:19.079Z
-                            updated_at: 2024-10-29T11:36:31.118Z
+                            created_at: '2024-10-28T09:06:19.079Z'
+                            updated_at: '2024-10-29T11:36:31.118Z'
                       count:
                         type: number
                         example: 1
@@ -5215,7 +5086,7 @@ paths:
                       correlation:
                         type: string
                         example: fca8dae2-0b87-4f50-a74b-60e2b6d4aa07
-  /scp/v1/rollouts/update/{id}:
+  '/scp/v1/rollouts/update/{id}':
     delete:
       summary: Delete Rollout
       tags:
@@ -5228,9 +5099,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -5241,7 +5110,6 @@ paths:
           schema:
             type: integer
           example: 1
-
       responses:
         '200':
           description: Rollout deleted successfully
@@ -5277,7 +5145,7 @@ paths:
                           - id: 3
                             type: projectCreation
                             version: 3
-  /scp/v1/rollouts/details/{id}:
+  '/scp/v1/rollouts/details/{id}':
     get:
       summary: Rollout Details
       tags:
@@ -5289,8 +5157,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            Required X-auth-token available in the login API response.
+          description: Required X-auth-token available in the login API response.
           required: true
           schema:
             type: string
@@ -5301,7 +5168,6 @@ paths:
           schema:
             type: integer
             example: 1
-
       responses:
         '200':
           description: Rollout fetched successfully.
@@ -5402,11 +5268,11 @@ paths:
                       start_date:
                         type: string
                         format: date-time
-                        example: 2024-10-29T11:35:08.694Z
+                        example: '2024-10-29T11:35:08.694Z'
                       end_date:
                         type: string
                         format: date-time
-                        example: 2024-11-29T11:36:31.117Z
+                        example: '2024-11-29T11:36:31.117Z'
                       organization:
                         type: object
                         properties:
@@ -5428,12 +5294,11 @@ paths:
                       created_at:
                         type: string
                         format: date-time
-                        example: 2024-10-28T09:06:19.079Z
+                        example: '2024-10-28T09:06:19.079Z'
                       updated_at:
                         type: string
                         format: date-time
-                        example: 2024-10-29T11:36:31.118Z
-
+                        example: '2024-10-29T11:36:31.118Z'
   /scp/v1/rollouts/update:
     post:
       summary: Create Rollout
@@ -5447,9 +5312,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -5472,26 +5335,46 @@ paths:
                     type: object
                     properties:
                       state:
-                        type: string
-                        example: 6687b8d38ead9320cf997c65
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: 6687b8d38ead9320cf997c65
+                          name:
+                            type: string
+                            example: Karnataka
                       entity_targeting:
                         type: string
                         example: district
                       district:
                         type: array
                         items:
-                          type: string
-                          example: 671097d667b6747799a761a4
-                      block:
-                        type: array
-                        items:
-                          type: string
-                          example: 6710d01167b6747799a7671d
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 671097d667b6747799a761a4
+                            name:
+                              type: string
+                              example: Bangalore
+                            state:
+                              type: string
+                              example: Karnataka
+
                       roles:
                         type: array
                         items:
-                          type: string
-                          example: deo
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 66b9df998d2c4516ea1b4494
+                            label:
+                              type: string
+                              example: Block Education Officer
+                            value:
+                              type: string
+                              example: deo
                 viewers:
                   type: array
                   items:
@@ -5500,12 +5383,11 @@ paths:
                 start_date:
                   type: string
                   format: date-time
-                  example: 2024-10-29T11:35:08.694Z
+                  example: '2024-10-29T11:35:08.694Z'
                 end_date:
                   type: string
                   format: date-time
-                  example: 2024-11-29T11:36:31.117Z
-
+                  example: '2024-11-29T11:36:31.117Z'
       responses:
         '201':
           description: saved successfully
@@ -5526,7 +5408,7 @@ paths:
                       id:
                         type: number
                         example: 1
-  /scp/v1/rollouts/update/{rolloutid}:
+  '/scp/v1/rollouts/update/{rolloutid}':
     patch:
       summary: Update Rollout
       tags:
@@ -5539,9 +5421,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -5571,26 +5451,46 @@ paths:
                     type: object
                     properties:
                       state:
-                        type: string
-                        example: 6687b8d38ead9320cf997c65
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: 6687b8d38ead9320cf997c65
+                          name:
+                            type: string
+                            example: Karnataka
                       entity_targeting:
                         type: string
                         example: district
                       district:
                         type: array
                         items:
-                          type: string
-                          example: 671097d667b6747799a761a4
-                      block:
-                        type: array
-                        items:
-                          type: string
-                          example: 6710d01167b6747799a7671d
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 671097d667b6747799a761a4
+                            name:
+                              type: string
+                              example: Bangalore
+                            state:
+                              type: string
+                              example: Karnataka
+
                       roles:
                         type: array
                         items:
-                          type: string
-                          example: deo
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 66b9df998d2c4516ea1b4494
+                            label:
+                              type: string
+                              example: Block Education Officer
+                            value:
+                              type: string
+                              example: deo
                 viewers:
                   type: array
                   items:
@@ -5599,12 +5499,11 @@ paths:
                 start_date:
                   type: string
                   format: date-time
-                  example: 2024-10-29T11:35:08.694Z
+                  example: '2024-10-29T11:35:08.694Z'
                 end_date:
                   type: string
                   format: date-time
-                  example: 2024-11-29T11:36:31.117Z
-
+                  example: '2024-11-29T11:36:31.117Z'
       responses:
         '200':
           description: Saved successfully
@@ -5625,7 +5524,7 @@ paths:
                       id:
                         type: number
                         example: 1
-  /scp/v1/rollouts/publish/{id}:
+  '/scp/v1/rollouts/publish/{id}':
     get:
       summary: Publish Rollout
       tags:
@@ -5638,9 +5537,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -5651,7 +5548,6 @@ paths:
           schema:
             type: integer
           example: 1
-
       responses:
         '200':
           description: Resource rolled out successfully
@@ -5685,13 +5581,10 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
-
       responses:
         '200':
           description: Users fetched successfully
@@ -5715,7 +5608,6 @@ paths:
                           type: object
                       count:
                         type: string
-
                   meta:
                     type: object
                     properties:
@@ -5730,7 +5622,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -5765,7 +5656,991 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
+    parameters: []
 
+  /scp/v1/programs/update/{id}:
+    post:
+      summary: Create or Update Program
+      tags:
+        - Programs
+      description: |-
+        You can use this API to create or update program
+         - The API Endpoint for create or update program is `/scp/v1/programs/update` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - Use this endpoint to copy an existing program by providing the `reference_id` of the program you want to duplicate. The `reference_id` corresponds to the ID of the existing program.
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: Pass program Id for updating a program
+          required: true
+          schema:
+            type: integer
+          example: 1
+        - in: query
+          name: reference_id
+          description: Please append a program Id to copy a program
+          schema:
+            type: number
+          required: false
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: 'Improve Education Quality'
+                objective:
+                  type: string
+                  example: 'Improve the education quality'
+                keywords:
+                  type: array
+                  items:
+                    type: string
+                  example: ['education', 'school']
+                viewers:
+                  type: array
+                  items:
+                    type: integer
+                  example: [23]
+                licence:
+                  type: string
+                  example: 'cc_by_4.0'
+                start_date:
+                  type: string
+                  format: date-time
+                  example: '2024-10-29T11:35:08.694Z'
+                end_date:
+                  type: string
+                  format: date-time
+                  example: '2024-11-29T11:36:31.117Z'
+                targeting_criteria:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      state:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: 6687b8d38ead9320cf997c65
+                          name:
+                            type: string
+                            example: Karnataka
+                      entity_targeting:
+                        type: string
+                        example: district
+                      district:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 671097d667b6747799a761a4
+                            name:
+                              type: string
+                              example: Bangalore
+                            state:
+                              type: string
+                              example: Karnataka
+
+                      roles:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 66b9df998d2c4516ea1b4494
+                            label:
+                              type: string
+                              example: Block Education Officer
+                            value:
+                              type: string
+                              example: deo
+                resources:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      resource_id:
+                        type: integer
+                        example: 2
+                      title:
+                        type: string
+                        example: 'Sample Project'
+                      categories:
+                        type: array
+                        items:
+                          type: string
+                        example: ['community']
+                      objective:
+                        type: string
+                        example: 'sample project obj'
+                      keywords:
+                        type: array
+                        items:
+                          type: string
+                        example: ['education', 'school']
+                      recommented_duration:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              example: 'week'
+                            number:
+                              type: integer
+                              example: 5
+                      recommeneded_for:
+                        type: array
+                        items:
+                          type: string
+                        example: ['HM']
+                      languages:
+                        type: array
+                        items:
+                          type: string
+                        example: ['en']
+                      learning_resources:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: 'sample doc'
+                            url:
+                              type: string
+                              format: uri
+                              example: 'http://test.com'
+                      licence:
+                        type: string
+                        example: 'CC BY 4.0'
+                      tasks:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: '3a8b13fb-c9e1-4296-8abd-8b64b357a128'
+                            name:
+                              type: string
+                              example: 'task'
+                            type:
+                              type: string
+                              example: 'content'
+                            is_mandatory:
+                              type: boolean
+                              example: true
+                            allow_evidences:
+                              type: boolean
+                              example: true
+                            children:
+                              type: array
+                              items:
+                                type: object
+                              example: []
+                            evidence_details:
+                              type: object
+                              properties:
+                                file_types:
+                                  type: array
+                                  items:
+                                    type: string
+                                  example: ['Images', 'Document', 'Videos', 'Audio']
+                                min_no_of_evidences:
+                                  type: integer
+                                  example: 5
+                            sequence_no:
+                              type: integer
+                              example: 1
+                            learning_resources:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  name:
+                                    type: string
+                                    example: 'sample doc'
+                                  url:
+                                    type: string
+                                    format: uri
+                                    example: 'http://test.com'
+                            certificate:
+                              type: object
+                              example: {}
+                      start_date:
+                        type: string
+                        format: date-time
+                        example: '2024-10-29T11:35:08.694Z'
+                      end_date:
+                        type: string
+                        format: date-time
+                        example: '2024-11-29T11:36:31.117Z'
+                      targeting_criteria:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            state:
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                  example: 6687b8d38ead9320cf997c65
+                                name:
+                                  type: string
+                                  example: Karnataka
+                            entity_targeting:
+                              type: string
+                              example: district
+                            district:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 671097d667b6747799a761a4
+                                  name:
+                                    type: string
+                                    example: Bangalore
+                                  state:
+                                    type: string
+                                    example: Karnataka
+
+                            roles:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 66b9df998d2c4516ea1b4494
+                                  label:
+                                    type: string
+                                    example: Block Education Officer
+                                  value:
+                                    type: string
+                                    example: deo
+      responses:
+        '201':
+          description: Your program has been saved as draft
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Your program has been saved as draft
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                        example: 1
+    delete:
+      summary: Delete Program
+      tags:
+        - Programs
+      description: |-
+        You can use this API to delete a program 
+         - The API Endpoint for deleting program is `/scp/v1/programs/update` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          description: Please append a valid program Id to the Request URL.
+          schema:
+            type: number
+          required: true
+          example: 1
+
+      responses:
+        '202':
+          description: Program deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Program deleted successfully
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+        '400':
+          description: Bad Request. Program not found
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/deleteProgram400Response'
+  /scp/v1/programs/details/{id}:
+    get:
+      summary: Program Details
+      tags:
+        - Programs
+      description: |-
+        You can use this API to get the details of the program
+         - The API Endpoint for get the details of program is `/scp/v1/programs/details` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: program Id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Program fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'OK'
+                  message:
+                    type: string
+                    example: 'Program fetched successfully'
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      title:
+                        type: string
+                        example: 'Improve Education Quality'
+                      objective:
+                        type: string
+                        example: 'Improve the education quality'
+                      keywords:
+                        type: string
+                        example: 'education, school'
+                      type:
+                        type: string
+                        example: 'program'
+                      status:
+                        type: string
+                        example: 'DRAFT'
+                      targeting_criteria:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            state:
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                  example: 6687b8d38ead9320cf997c65
+                                name:
+                                  type: string
+                                  example: Karnataka
+                            entity_targeting:
+                              type: string
+                              example: district
+                            district:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 671097d667b6747799a761a4
+                                  name:
+                                    type: string
+                                    example: Bangalore
+                                  state:
+                                    type: string
+                                    example: Karnataka
+
+                            roles:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 66b9df998d2c4516ea1b4494
+                                  label:
+                                    type: string
+                                    example: Block Education Officer
+                                  value:
+                                    type: string
+                                    example: deo
+                      viewers:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 23
+                            name:
+                              type: string
+                              example: 'Priyanka'
+                            email:
+                              type: string
+                              example: 'priyanka@tunerlabs.com'
+                            about:
+                              type: string
+                              nullable: true
+                              example: null
+                            image:
+                              type: string
+                              nullable: true
+                              example: null
+                            organization:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 1
+                                code:
+                                  type: string
+                                  example: 'default_code'
+                                name:
+                                  type: string
+                                  example: 'Default Organization'
+                      start_date:
+                        type: string
+                        format: date-time
+                        example: '2024-10-29T11:35:08.694Z'
+                      end_date:
+                        type: string
+                        format: date-time
+                        example: '2024-11-29T11:36:31.117Z'
+                      organization_id:
+                        type: integer
+                        example: 1
+                      organization:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          name:
+                            type: string
+                            example: 'Default Organization'
+                          code:
+                            type: string
+                            example: 'default_code'
+                          description:
+                            type: string
+                            example: 'Default Organisation'
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: '2024-10-28T09:06:19.079Z'
+                      updated_at:
+                        type: string
+                        format: date-time
+                        example: '2024-10-29T11:36:31.118Z'
+                      resources:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                              example: 'Sample Project'
+                            categories:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  label:
+                                    type: string
+                                    example: 'communication'
+                                  value:
+                                    type: string
+                                    example: 'communication'
+                            recommented_duration:
+                              type: object
+                              properties:
+                                type:
+                                  type: string
+                                  example: 'week'
+                                number:
+                                  type: integer
+                                  example: 5
+                            keywords:
+                              type: string
+                              example: 'test'
+                            recommeneded_for:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  label:
+                                    type: string
+                                    example: 'HM'
+                                  value:
+                                    type: string
+                                    example: 'hm'
+                            languages:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  label:
+                                    type: string
+                                    example: 'English'
+                                  value:
+                                    type: string
+                                    example: 'en'
+                            learning_resources:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  name:
+                                    type: string
+                                    example: 'sample doc'
+                                  url:
+                                    type: string
+                                    format: uri
+                                    example: 'http://test.com'
+                            licence:
+                              type: string
+                              example: 'CC BY 4.0'
+                            tasks:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  id:
+                                    type: string
+                                    example: '3a8b13fb-c9e1-4296-8abd-8b64b357a128'
+                                  name:
+                                    type: string
+                                    example: 'task'
+                                  type:
+                                    type: string
+                                    example: 'content'
+                                  is_mandatory:
+                                    type: boolean
+                                    example: true
+                                  allow_evidences:
+                                    type: boolean
+                                    example: true
+                                  children:
+                                    type: array
+                                    items:
+                                      type: object
+                                    example: []
+                                  evidence_details:
+                                    type: object
+                                    properties:
+                                      file_types:
+                                        type: array
+                                        items:
+                                          type: string
+                                        example: ['Images', 'Document', 'videos', 'Audio']
+                                      min_no_of_evidences:
+                                        type: integer
+                                        example: 5
+                                  sequence_no:
+                                    type: integer
+                                    example: 1
+                                  learning_resources:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        name:
+                                          type: string
+                                          example: 'sample doc'
+                                        url:
+                                          type: string
+                                          format: uri
+                                          example: 'http://test.com'
+                            targeting_criteria:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  state:
+                                    type: object
+                                    properties:
+                                      _id:
+                                        type: string
+                                        example: 6687b8d38ead9320cf997c65
+                                      name:
+                                        type: string
+                                        example: Karnataka
+                                  entity_targeting:
+                                    type: string
+                                    example: district
+                                  district:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        _id:
+                                          type: string
+                                          example: 671097d667b6747799a761a4
+                                        name:
+                                          type: string
+                                          example: Bangalore
+                                        state:
+                                          type: string
+                                          example: Karnataka
+
+                                  roles:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        _id:
+                                          type: string
+                                          example: 66b9df998d2c4516ea1b4494
+                                        label:
+                                          type: string
+                                          example: Block Education Officer
+                                        value:
+                                          type: string
+                                          example: deo
+                            start_date:
+                              type: string
+                              format: date-time
+                              example: '2024-10-29T11:35:08.694Z'
+                            end_date:
+                              type: string
+                              format: date-time
+                              example: '2024-11-29T11:36:31.117Z'
+
+  '/scp/v1/programs/submitForReview/{id}':
+    post:
+      summary: Submit Program for Review
+      tags:
+        - Programs
+      description: |-
+        Use this API to submit a program for review.
+        - The API endpoint for submitting the program for review is `/scp/v1/programs/submitForReview/{id}`.
+        - It is mandatory to provide values for parameters marked as `required`.
+        - The `id` parameter is mandatory and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: The `X-auth-token` is required to use this API. It is available in the login API response.
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          description: A valid program ID must be appended to the request URL.
+          schema:
+            type: integer
+          required: true
+          example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reviewer_ids:
+                  description: The IDs of the reviewers assigned to review the project.
+                  type: array
+                  items:
+                    type: string
+                notes:
+                  description: Additional notes for the reviewer.
+                  type: string
+            examples:
+              example1:
+                summary: Example when specific reviewers are selected
+                description: 'When specific reviewers are selected, their user IDs are sent as an array, and the project is assigned to those reviewers.'
+                value:
+                  reviewer_ids:
+                    - 23
+                    - 25
+                  notes: Note to the reviewer
+              example2:
+                summary: Example when sending to all reviewers
+                description: 'When the project is sent to all reviewers, the API does not expect any body parameters, and the project will be available for all reviewers according to other factors.'
+                value: {}
+      responses:
+        '201':
+          description: Your program has been sent for review
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            type:
+                              type: string
+                            version:
+                              type: integer
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Your program has been sent for review
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+        '400':
+          description: Bad Request. Program not found
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/deleteProgram400Response'
+  /scp/v1/programs/reviewerList:
+    get:
+      summary: Program - Reviewer List
+      tags:
+        - Programs
+      description: |-
+        You can use this API to get the list all program reviewers
+         - The API Endpoint for program reviewer list is `/scp/v1/programs/reviewerList` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reviewer list fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      resource_id:
+                        type: string
+                      comments:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: string
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Reviewer list fetched successfully
+                    result:
+                      data:
+                        - id: 1
+                          name: Priyanka
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                        - id: 2
+                          name: Adithya
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                        - id: 3
+                          name: Ankit
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                      count: 3
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+  /scp/v1/programs/getProgramManagers:
+    get:
+      summary: Get Program Manager List
+      tags:
+        - Programs
+      description: |-
+        You can use this API to retrieve a list of all users who have access to the program dashboard.
+         - The API endpoint to retrieve all program managers is `/scp/v1/programs/getProgramManagers`.
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Users fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      resource_id:
+                        type: string
+                      comments:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: string
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: Users fetched successfully
+                    result:
+                      data:
+                        - id: 1
+                          name: Priyanka
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                        - id: 2
+                          name: Adithya
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                        - id: 3
+                          name: Ankit
+                          organization_id: 2
+                          organization:
+                            id: 2
+                            name: Shikshalokam
+                            code: sl
+                      count: 3
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+    parameters: []
   /scp/v1/organization-extensions/createConfig:
     post:
       summary: Create the organization configurations
@@ -5781,9 +6656,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -5810,7 +6683,6 @@ paths:
                         type: string
                       level:
                         type: number
-
             examples:
               review type parallel:
                 value:
@@ -5829,7 +6701,6 @@ paths:
                       level: 1
                     - role: reviewer_level_2
                       level: 2
-
       responses:
         '201':
           description: Config added successfully
@@ -5847,7 +6718,6 @@ paths:
                     properties:
                       organization_id:
                         type: string
-
                   meta:
                     type: object
                     properties:
@@ -5862,7 +6732,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -5873,7 +6742,6 @@ paths:
                       show_reviewer_list: true
                       min_approval: 2
                       resource_type: s
-
                     meta:
                       formsVersion:
                         - id: 3
@@ -5885,7 +6753,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/createConfig400Response'
-  /scp/v1/organization-extensions/updateConfig/{id}:
+  '/scp/v1/organization-extensions/updateConfig/{id}':
     post:
       summary: Update the organization configurations
       tags:
@@ -5901,9 +6769,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -5931,13 +6797,11 @@ paths:
                   type: boolean
                 min_approval:
                   type: string
-
             examples:
               example1:
                 value:
                   show_reviewer_list: true
                   min_approval: 2
-
       responses:
         '201':
           description: Config updated successfully
@@ -5955,7 +6819,6 @@ paths:
                     properties:
                       organization_id:
                         type: string
-
                   meta:
                     type: object
                     properties:
@@ -5970,7 +6833,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -5981,7 +6843,6 @@ paths:
                       show_reviewer_list: true
                       min_approval: 2
                       resource_type: project
-
                     meta:
                       formsVersion:
                         - id: 3
@@ -5993,7 +6854,6 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/updateConfig400Response'
-
   /scp/v1/config/list:
     get:
       summary: List configurations
@@ -6007,13 +6867,10 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
-
       responses:
         '201':
           description: Config fetched successfully
@@ -6054,61 +6911,62 @@ paths:
                             type: integer
                           note_length:
                             type: integer
-
+                          is_auth_token_bearer:
+                            type: boolean
               examples:
                 example1:
                   value:
-                    responseCode: 'OK'
-                    message: 'Config fetched successfully'
+                    responseCode: OK
+                    message: Config fetched successfully
                     result:
                       resource:
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
-                          review_type: 'SEQUENTIAL'
-                          resource_type: 'project'
+                          review_type: SEQUENTIAL
+                          resource_type: project
                           max_task_count: 10
-                          observation_link_regex: ^https?:\/\/[a-zA-Z0-9\-_]+\.[a-zA-Z]{2,}(/[a-zA-Z0-9\-\._~:/?#[\]@!$&\'()*+,;=]*)?$
+                          observation_link_regex: '^https?:\/\/[a-zA-Z0-9\-_]+\.[a-zA-Z]{2,}(/[a-zA-Z0-9\-\._~:/?#[\]@!$&\''()*+,;=]*)?$'
                           open_external_link: true
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
-                          review_type: 'SEQUENTIAL'
-                          resource_type: 'observation'
+                          review_type: SEQUENTIAL
+                          resource_type: observation
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
-                          review_type: 'SEQUENTIAL'
-                          resource_type: 'observation_with_rubric'
+                          review_type: SEQUENTIAL
+                          resource_type: observation_with_rubric
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
-                          review_type: 'SEQUENTIAL'
-                          resource_type: 'survey'
+                          review_type: SEQUENTIAL
+                          resource_type: survey
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
-                          review_type: 'SEQUENTIAL'
-                          resource_type: 'program'
+                          review_type: SEQUENTIAL
+                          resource_type: program
                       instance:
                         auto_save_interval: 30000
                         note_length: 200
+                        is_auth_token_bearer: false
                     meta:
                       formsVersion:
                         - id: 2
-                          type: 'sidenavData'
+                          type: sidenavData
                           version: 23
                         - id: 3
-                          type: 'solutionlist'
+                          type: solutionlist
                           version: 20
                         - id: 4
-                          type: 'tasksDetails'
+                          type: tasksDetails
                           version: 20
                         - id: 1
-                          type: 'projectDetails'
+                          type: projectDetails
                           version: 49
-                      correlation: 'c1f40d2c-a883-4f51-a17d-7b0730ccd433'
-
+                      correlation: c1f40d2c-a883-4f51-a17d-7b0730ccd433
   /scp/v1/certificates/list:
     get:
       summary: List Certificate Templates
@@ -6122,9 +6980,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -6152,7 +7008,6 @@ paths:
           schema:
             type: string
           example: one logo
-
       responses:
         '201':
           description: Certificate template listed successfully
@@ -6175,7 +7030,6 @@ paths:
                           properties:
                             url:
                               type: string
-
                   meta:
                     type: object
                     properties:
@@ -6190,7 +7044,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -6202,22 +7055,21 @@ paths:
                           code: two_logo_two_sign
                           name: Two Logo Two Signature
                           resource_type: project
-                          url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                          url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
                           meta:
                             logos:
                               no_of_logos: 2
-                              stateLogo1:
-                              stateLogo2:
+                              stateLogo1: null
+                              stateLogo2: null
                             signature:
                               no_of_signature: 2
-                              signatureImg1:
-                              signatureTitleName1:
-                              signatureTitleDesignation1:
-                              signatureImg2:
-                              signatureTitleName2:
-                              signatureTitleDesignation2:
+                              signatureImg1: null
+                              signatureTitleName1: null
+                              signatureTitleDesignation1: null
+                              signatureImg2: null
+                              signatureTitleName2: null
+                              signatureTitleDesignation2: null
                       count: 1
-
                     meta:
                       formsVersion:
                         - id: 3
@@ -6236,13 +7088,10 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
-
       requestBody:
         content:
           application/json:
@@ -6259,24 +7108,22 @@ paths:
                   type: object
                 resource_type:
                   type: string
-
             examples:
               example1:
                 value:
                   code: two_logo_two_sign
                   name: Two Logo Two Signature
                   resource_type: project
-                  url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                  url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
                   meta:
                     logos:
                       no_of_logos: 2
-                      stateLogo1:
-                      stateLogo2:
+                      stateLogo1: null
+                      stateLogo2: null
                     signature:
                       no_of_signature: 2
-                      signatureImg1:
-                      signatureImg2:
-
+                      signatureImg1: null
+                      signatureImg2: null
       responses:
         '201':
           description: Template created successfully
@@ -6299,7 +7146,6 @@ paths:
                           properties:
                             url:
                               type: string
-
                   meta:
                     type: object
                     properties:
@@ -6314,7 +7160,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -6325,17 +7170,16 @@ paths:
                       code: one_logo_one_sign
                       name: One Logo One Signature
                       resource_type: project
-                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                      url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
                       meta:
                         logos:
                           no_of_logos: 2
-                          stateLogo1:
-                          stateLogo2:
+                          stateLogo1: null
+                          stateLogo2: null
                         signature:
                           no_of_signature: 2
-                          signatureImg1:
-                          signatureImg2:
-
+                          signatureImg1: null
+                          signatureImg2: null
                     meta:
                       formsVersion:
                         - id: 3
@@ -6347,7 +7191,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/createCertificate400Response'
-  /scp/v1/certificates/update/{id}:
+  '/scp/v1/certificates/update/{id}':
     post:
       summary: Update certificate base template
       tags:
@@ -6360,9 +7204,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -6373,7 +7215,6 @@ paths:
             type: string
           required: true
           example: 3
-
       requestBody:
         content:
           application/json:
@@ -6382,12 +7223,10 @@ paths:
               properties:
                 name:
                   type: string
-
             examples:
               example1:
                 value:
                   name: Two Logo Two Signature
-
       responses:
         '201':
           description: Template updated successfully
@@ -6410,7 +7249,6 @@ paths:
                           properties:
                             url:
                               type: string
-
                   meta:
                     type: object
                     properties:
@@ -6425,7 +7263,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -6436,17 +7273,16 @@ paths:
                       code: two_logo_two_sign
                       name: Two Logo Two Signature
                       resource_type: project
-                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
+                      url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
                       meta:
                         logos:
                           no_of_logos: 2
-                          stateLogo1:
-                          stateLogo2:
+                          stateLogo1: null
+                          stateLogo2: null
                         signature:
                           no_of_signature: 2
-                          signatureImg1:
-                          signatureImg2:
-
+                          signatureImg1: null
+                          signatureImg2: null
                     meta:
                       formsVersion:
                         - id: 3
@@ -6471,13 +7307,10 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
-
       requestBody:
         content:
           application/json:
@@ -6494,7 +7327,6 @@ paths:
                   type: string
                 signature_title_designation1:
                   type: string
-
             examples:
               example1:
                 value:
@@ -6503,7 +7335,6 @@ paths:
                   signature_img1: /user/sign.png
                   signature_title_name1: Director
                   signature_title_designation1: SPD
-
       responses:
         '201':
           description: Template edited successfully
@@ -6526,7 +7357,6 @@ paths:
                           properties:
                             url:
                               type: string
-
                   meta:
                     type: object
                     properties:
@@ -6541,22 +7371,19 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Template edited successfully
                     result:
-                      url: https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D
-
+                      url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
                     meta:
                       formsVersion:
                         - id: 3
                           type: projectCreation
                           version: 3
-
-  /review-stages/update/{id}:
+  '/review-stages/update/{id}':
     post:
       summary: Update Review Stage
       tags:
@@ -6715,7 +7542,6 @@ paths:
                       count: 1
                     meta:
                       formsVersion: []
-
   /user/v1/user-role/create:
     post:
       summary: Create User Roles
@@ -6738,7 +7564,7 @@ paths:
                   description: Title of the user role.
                 user_type:
                   type: number
-                  description: The type of user. Expected values - 0 for SYSTEM roles, 1 for other roles (default).
+                  description: 'The type of user. Expected values - 0 for SYSTEM roles, 1 for other roles (default).'
                 status:
                   type: string
                   description: status of the user role.  `ACTIVE` (default)
@@ -6809,7 +7635,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/createRole400Response'
-  /user/v1/user-role/update/{id}:
+  '/user/v1/user-role/update/{id}':
     post:
       summary: Update User Roles
       tags:
@@ -6823,9 +7649,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -6915,7 +7739,7 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/updateRole400Response'
-  /user/user/v1/org-admin/updateUser/{id}:
+  '/user/user/v1/org-admin/updateUser/{id}':
     post:
       summary: Update User Role and Organization
       tags:
@@ -6929,9 +7753,7 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
@@ -6962,7 +7784,8 @@ paths:
             examples:
               example1:
                 value:
-                  roles: [content_creator]
+                  roles:
+                    - content_creator
                   organization_id: 1
       responses:
         '201':
@@ -6976,7 +7799,6 @@ paths:
                     type: string
                   message:
                     type: string
-
                   meta:
                     type: object
                     properties:
@@ -6984,7 +7806,6 @@ paths:
                         type: array
                         items:
                           type: string
-
               examples:
                 example1:
                   value:
@@ -6998,7 +7819,6 @@ paths:
             application.json:
               schema:
                 $ref: '#/components/schemas/updateUser400Response'
-
   /scp/v1/observation/list:
     get:
       summary: Observations list
@@ -7012,15 +7832,13 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: >-
-            To use this API, you require an X-auth-token. This is available in
-            the login API Response.
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
           schema:
             type: string
         - name: sort_by
           in: query
-          description: Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request
+          description: 'Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request'
           required: false
           schema:
             type: string
@@ -7031,9 +7849,10 @@ paths:
           required: false
           schema:
             type: string
-            enum: ['asc', 'desc']
+            enum:
+              - asc
+              - desc
           example: asc
-
       responses:
         '201':
           description: observation listed successfully
@@ -7055,7 +7874,6 @@ paths:
                           type: object
                       count:
                         type: number
-
                   meta:
                     type: object
                     properties:
@@ -7070,7 +7888,6 @@ paths:
                               type: string
                             version:
                               type: number
-
               examples:
                 example1:
                   value:
@@ -7087,7 +7904,6 @@ paths:
                             code: sl
                           status: DRAFT
                       count: 1
-
                     meta:
                       formsVersion:
                         - id: 3
@@ -7129,10 +7945,10 @@ components:
                 properties:
                   moduleId:
                     type: string
-                    example: 'module123'
+                    example: module123
                   moduleName:
                     type: string
-                    example: 'Sample Module'
+                    example: Sample Module
             count:
               type: integer
               example: 0
@@ -7225,8 +8041,7 @@ components:
           example: Download URL Generated Successfully.
         result:
           type: string
-          example: >-
-            https://aws-bucket-storage-name.s3.ap-south-1.amazonaws.com/users/62832531a05cbd57b273aebb-1654149589875-image.jpg
+          example: 'https://aws-bucket-storage-name.s3.ap-south-1.amazonaws.com/users/62832531a05cbd57b273aebb-1654149589875-image.jpg'
     createForm400Response:
       description: Bad Request. Form Already Exist
       type: object
@@ -7433,7 +8248,20 @@ components:
           items:
             type: string
           example: []
-
+    deleteProgram400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: program not found
+        error:
+          type: array
+          items:
+            type: string
+          example: []
     config:
       type: object
       properties:

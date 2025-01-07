@@ -8,12 +8,19 @@ const common = require('@constants/common')
 const resourceService = require('@services/resource')
 const rolloutService = require('@services/rollouts')
 const rolloutQueries = require('@database/queries/rollouts')
+const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
 const utils = require('@generics/utils')
 const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 const { ObjectId } = require('mongodb')
 const MongoClient = require('mongodb').MongoClient
+const axios = require('axios')
+const cheerio = require('cheerio')
+const path = require('path')
+const fs = require('fs')
+const filesService = require('@services/files')
+const request = require('request')
 let mongoDb
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
@@ -46,6 +53,7 @@ const COLLECTIONS = {
 	PROGRAMS: 'programs',
 	SOLUTIONS: 'solutions',
 	CERTIFICATE_TEMPLATE: 'certificateTemplates',
+	CERTIFICATE_BASE_TEMPLATE: 'certificateBaseTemplates',
 }
 
 /**
@@ -517,8 +525,17 @@ const createSolutions = async (resourceDetails, programDetails) => {
 
 		if (solutionCertificateMap && solutionCertificateMap.length > 0) {
 			solutionCertificateMap.forEach((solutionMap) => {
-				const found = createdSolutions.find((solution) => solution.externalId == solutionMap.externalId)
-				insertCertificateTemplate(found.certificate, found._id, programDetails._id)
+				const targetSolution = createdSolutions.find(
+					(solution) => String(solution.externalId).trim() === String(solutionMap.externalId).trim()
+				)
+				if (targetSolution) {
+					insertCertificateTemplate(
+						solutionMap.certificate,
+						targetSolution._id,
+						programDetails._id,
+						programDetails.created_by
+					)
+				}
 			})
 		}
 		const projectTemplateCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
@@ -568,6 +585,7 @@ const duplicateResources = async (resourceDetails, created_by) => {
 	let projectTemplateIds = []
 	//initialise list of solution templates to create
 	let solutionTemplateIds = []
+	const certificate = resourceDetails?.certificate
 
 	// seggregate templates based on type , all projects should be created in projectTemplates and others in solutions collection
 	if (resourceDetails.type == common.PROJECT) projectTemplateIds.push(ObjectId(resourceDetails.published_id))
@@ -698,6 +716,7 @@ const duplicateResources = async (resourceDetails, created_by) => {
 		// Add a new 'type', 'resource_id' , 'rolloutId' keys to each project
 		const updatedProjectTemplates = projectTemplatesAfterInsert.map((project) => ({
 			...project, // Spread the existing project fields
+			certificate,
 			type: common.PROJECT,
 			resource_id: templateProjectsIdMap[project.externalId].resource_id,
 			rolloutId: templateProjectsIdMap[project.externalId].rollout_id,
@@ -851,7 +870,7 @@ const formatProgramTemplate = async (programData) => {
  * @param {Object} certificateData - Certificate data for upload
  */
 
-async function createSvg(certificateData) {
+async function createSvg(certificateData, loggedInUserId) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			// fetch base template from cloud
@@ -894,25 +913,21 @@ async function createSvg(certificateData) {
 			let updatedSvg = $.xml()
 
 			const uniqueId = utils.generateUniqueId() //generate a unique id for folder
-			let fileName = `./certificate_template_${uniqueId}.svg` //create a unique file name
+			let fileName = `${uniqueId}.svg` //create a unique file name
 			const mainPath = path.join(__dirname, `../temp/certificate/`) //temporary folder path for certificate template
 			let dirPath = path.join(mainPath, `${uniqueId}/`) //create a directory path
 			fs.mkdirSync(dirPath, { recursive: true }) //create directory
 			fs.writeFileSync(path.join(dirPath, fileName), updatedSvg, { encoding: 'utf8' }) //create file
+
 			// create a file upload payload
 			let payloadData = {
-				cert: {
+				[uniqueId]: {
 					files: [fileName],
 				},
 				ref: common.CERTIFICATE,
 			}
 			// generate signed url
-			const getSignedUrl = await filesService.getSignedUrl(
-				payloadData,
-				common.CERTIFICATE_TEMPLATE,
-				'system',
-				false
-			)
+			const getSignedUrl = await filesService.getSignedUrl(payloadData, common.CERTIFICATE, loggedInUserId, false)
 			if (!getSignedUrl.result) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}
@@ -921,19 +936,9 @@ async function createSvg(certificateData) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}
 
-			const fileUploadUrl = getSignedUrl.result['cert']['files'][0].url
-			let uploadedFilePath = getSignedUrl.result['cert']['files'][0].file
-			const fileData = fs.readFileSync(path.join(dirPath, fileName))
-			//upload file
-			const fileUploadToSingedUrl = await request({
-				url: fileUploadUrl,
-				method: 'put',
-				headers: {
-					'Content-Type': 'application/multipart/form-data',
-				},
-				body: fileData,
-			})
-			console.log('fileUploadToSingedUrl : ', fileUploadToSingedUrl.status)
+			const fileUploadUrl = getSignedUrl.result[uniqueId]['files'][0].url
+			let uploadedFilePath = getSignedUrl.result[uniqueId]['files'][0].file
+			await uploadFile(dirPath, fileName, fileUploadUrl)
 			// delete folder after upload
 			await deleteFolderRecursive(path.join(mainPath, uniqueId))
 
@@ -947,6 +952,69 @@ async function createSvg(certificateData) {
 	})
 }
 
+async function uploadFile(dirPath, fileName, fileUploadUrl) {
+	try {
+		// Read the file data
+		const fileData = fs.readFileSync(path.join(dirPath, fileName))
+
+		// Perform the PUT request
+		const fileUploadToSignedUrl = await axios.put(fileUploadUrl, fileData, {
+			headers: {
+				'Content-Type': 'application/octet-stream', // Most commonly required for signed URLs
+			},
+		})
+
+		// Check the response status
+		if (fileUploadToSignedUrl.status === 200) {
+			console.log('File uploaded successfully!')
+			console.log('Response status:', fileUploadToSignedUrl.status)
+		} else {
+			console.error('Unexpected response:', fileUploadToSignedUrl.status)
+		}
+	} catch (error) {
+		console.error('Error uploading file:', error.message)
+		if (error.response) {
+			console.error('Response status:', error.response.status)
+			console.error('Response data:', error.response.data)
+		}
+	}
+}
+
+/**
+ * Check and Insert certificate base template
+ * @method
+ * @name checkCertificateBaseTemplate
+ * @param {Object} baseTemplateDetails - Certificate data for base template creation
+ * @returns {Object} result - baseTemplateId
+ */
+async function checkCertificateBaseTemplate(baseTemplateDetails) {
+	const certificateBaseTemplateCollection = mongoDb.collection(COLLECTIONS.CERTIFICATE_BASE_TEMPLATE)
+	const certificateBaseTemplate = await certificateBaseTemplateCollection.findOne({
+		code: baseTemplateDetails.code,
+	})
+	let result = {}
+	if (certificateBaseTemplate?._id) {
+		result._id = ObjectId(certificateBaseTemplate?._id)
+	} else {
+		const certificateFetched = await certificateBaseTemplateQueries.findOne({
+			code: baseTemplateDetails.code,
+		})
+		const certificateBaseTemplateDocument = {
+			code: certificateFetched.code,
+			name: certificateFetched.name,
+			url: certificateFetched.url,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+			deleted: false,
+		}
+
+		const insertResult = await certificateBaseTemplateCollection.insertOne(certificateBaseTemplateDocument)
+		result._id = insertResult.insertedId
+	}
+
+	return result
+}
+
 /**
  * Insert certificate templates
  * @method
@@ -955,16 +1023,18 @@ async function createSvg(certificateData) {
  * @param {String} solutionId - solutionId of the created solution
  * @param {String} programId - programId of the created program
  */
-async function insertCertificateTemplate(certificateData, solutionId, programId) {
-	const filePath = await createSvg(certificateData)
+async function insertCertificateTemplate(certificateData, solutionId, programId, loggedInUserId) {
+	const svgTemplateCreation = await createSvg(certificateData, loggedInUserId)
+	const baseTemplate = await checkCertificateBaseTemplate(certificateData)
 	const certificateDocument = {
 		status: common.STATUS_ACTIVE.toLowerCase(),
 		deleted: false,
 		solutionId,
 		programId,
+		baseTemplateId: baseTemplate._id,
 		createdAt: new Date(),
 		updatedAt: new Date(),
-		templateUrl: filePath,
+		templateUrl: svgTemplateCreation.filePath,
 		issuer: { name: certificateData.issuer },
 		criteria: certificateData.criteria,
 	}
@@ -980,12 +1050,12 @@ async function insertCertificateTemplate(certificateData, solutionId, programId)
 	// update the solution with the certificate template id
 	const solutionTemplateCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 	const resultUpdateSolution = await solutionTemplateCollection.updateOne(
-		({ _id: solutionId },
+		{ _id: solutionId },
 		{
 			$set: {
 				certificateTemplateId: result.insertedId,
 			},
-		})
+		}
 	)
 	// Validate the result of the template creation
 	if (!resultUpdateSolution) {
@@ -1059,7 +1129,7 @@ async function downloadAndConvertToBase64(url) {
 			url,
 			method: 'GET',
 			responseType: 'arraybuffer', // Ensures we receive raw binary data
-			timeout: 40000,
+			timeout: 120000,
 			headers: {
 				Connection: 'close', // Ensures the socket is closed after the request
 			},
@@ -1116,14 +1186,17 @@ const publishProgram = function async(programData) {
 			const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
-				let updateData = _.omit(template, ['_id'])
+				let updateData = template
+				delete updateData._id
 
 				result = await programsCollection.updateOne(
-					{ _id: ObjectId(programId) },
+					{ _id: template?._id },
 					{
 						$set: updateData,
 					}
 				)
+
+				programId = template?._id
 			} else {
 				result = await programsCollection.insertOne(template)
 				// Validate the result of the template creation
@@ -1145,7 +1218,7 @@ const publishProgram = function async(programData) {
 				}
 				const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 				result = await solutionsCollection.updateOne(
-					{ _id: ObjectId(resourceStatus?.published_id) },
+					{ _id: resourceDetailsCreate?.published_id },
 					{
 						$set: updateTemplate,
 					}
@@ -1153,7 +1226,7 @@ const publishProgram = function async(programData) {
 
 				solutions.push(resourceDetailsCreate?.published_id)
 			} else {
-				const duplicateResource = await duplicateResources(resourceDetailsCreate, programData.created_by)
+				let duplicateResource = await duplicateResources(resourceDetailsCreate, programData.created_by)
 				solutions = await createSolutions(duplicateResource, {
 					_id: programId,
 					scope: programScope,
