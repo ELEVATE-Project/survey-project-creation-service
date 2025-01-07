@@ -123,7 +123,8 @@ module.exports = class rollouts {
 			const rollout = await rolloutService.publish(
 				req.params.id,
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_id,
+				req.userToken
 			)
 			return rollout
 		} catch (error) {
