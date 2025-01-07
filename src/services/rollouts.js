@@ -579,7 +579,7 @@ module.exports = class RolloutsHelper {
 	 * @returns {JSON} - rollout publish response.
 	 */
 
-	static async publish(rolloutId, userToken, loggedInUserId, orgId) {
+	static async publish(rolloutId, loggedInUserId, orgId, userToken) {
 		try {
 			// fetch rollout details
 			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, true)

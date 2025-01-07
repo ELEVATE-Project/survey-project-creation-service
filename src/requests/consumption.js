@@ -931,11 +931,12 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 			// generate signed url
 			// const getSignedUrl = await filesService.getSignedUrl(payloadData, common.CERTIFICATE, loggedInUserId, false)
 			const headers = {
-				'internal-access-token': process.env.INTERNAL_ACCESS_TOKEN,
 				'X-auth-token': userToken,
 			}
-			const getSignedUrl = await generateConsumptionPresignedUrl(
-				process.env.INTERFACE_SERVICE_HOST + process.env.CONSUMPTION_SERVICE_PRESIGNED_URL,
+			const getSignedUrl = await generatePresignedUrlInConsumption(
+				process.env.INTERFACE_SERVICE_HOST +
+					process.env.CONSUMPTION_SERVICE_BASE_URL +
+					process.env.CONSUMPTION_SERVICE_PRESIGNED_URL,
 				payloadData,
 				headers
 			)
@@ -959,7 +960,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 	})
 }
 
-async function generateConsumptionPresignedUrl(url, body, headers) {
+async function generatePresignedUrlInConsumption(url, body, headers) {
 	try {
 		const response = await axios.post(url, body, { headers, timeout: 6000 })
 		let result = { success: false }
@@ -1107,8 +1108,14 @@ async function insertCertificateTemplate(certificateData, solutionId, programId,
 	)
 
 	// Validate the result of the template creation
-	if (!resultUpdateProjecTemplate) {
-		throw new Error(`Failed to update the certificate template into the ${COLLECTIONS.TEMPLATES} collection.`)
+	if (!resultUpdateProjecTemplate.matchedCount) {
+		throw new Error(`No document found with solutionId: ${solutionId} in the ${COLLECTIONS.TEMPLATES} collection.`)
+	}
+
+	if (resultUpdateProjecTemplate.modifiedCount === 0) {
+		throw new Error(
+			`Document with solutionId: ${solutionId} was found but not updated in the ${COLLECTIONS.TEMPLATES} collection.`
+		)
 	}
 
 	return true
