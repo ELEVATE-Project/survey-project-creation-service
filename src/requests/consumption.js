@@ -963,14 +963,25 @@ async function generateConsumptionPresignedUrl(url, body, headers) {
 	try {
 		const response = await axios.post(url, body, { headers, timeout: 6000 })
 		let result = { success: false }
+
 		if (response.status === 200) {
-			result.file = response.data.result[common.CERTIFICATE].files[0].payload.sourcePath
-			result.url = response.data.result[common.CERTIFICATE].files[0].url
-			result.success = true
+			const files = response?.data?.result?.[common.CERTIFICATE]?.files
+
+			if (Array.isArray(files) && files.length > 0) {
+				result.file = files[0]?.payload?.sourcePath || null
+				result.url = files[0]?.url || null
+				result.success = true
+			} else {
+				console.error('Files array is missing or empty:', files)
+			}
+		} else {
+			console.error('Unexpected response status:', response.status)
 		}
+
 		return result
 	} catch (error) {
-		throw error
+		console.error('Error generating consumption presigned URL:', error.message)
+		throw error // Rethrow the error to be handled by the caller
 	}
 }
 
