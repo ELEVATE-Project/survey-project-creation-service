@@ -996,7 +996,7 @@ async function uploadFile(dirPath, fileName, fileUploadUrl) {
 		}
 
 		// Perform the PUT request
-		const fileUploadToSignedUrl = await axios.put(fileUploadUrl, fileData, headers)
+		const fileUploadToSignedUrl = await axios.put(fileUploadUrl, fileData, { headers })
 
 		// Check the response status
 		if (fileUploadToSignedUrl.status === 200) {
