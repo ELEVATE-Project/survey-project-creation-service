@@ -692,6 +692,8 @@ module.exports = class RolloutsHelper {
 			['value', 'validations']
 		)
 
+		let basePath = ''
+
 		rolloutEntityTypes.forEach((entityType) => {
 			let requiredValidation = entityType.validations.find(
 				(validation) => validation.type == common.REQUIRED_VALIDATION
@@ -700,11 +702,7 @@ module.exports = class RolloutsHelper {
 				const required = utils.checkRequired(requiredValidation, rollout[entityType.value])
 				if (!required) {
 					validationErrors.push(
-						utils.errorObject(
-							common.ROLL_OUT_MODEL,
-							entityType.value,
-							`Rollout ${entityType.value} is required`
-						)
+						utils.errorObject(basePath, entityType.value, `Rollout ${entityType.value} is required`)
 					)
 				}
 			}
@@ -724,7 +722,7 @@ module.exports = class RolloutsHelper {
 				if (!lengthCheck) {
 					validationErrors.push(
 						utils.errorObject(
-							common.ROLL_OUT_MODEL,
+							basePath,
 							entityType.value,
 							`${rolloutEntityTypes.value} must not exceed ${maxLengthValidation.value} characters `
 						)
@@ -744,9 +742,9 @@ module.exports = class RolloutsHelper {
 				if (!validateRegex) {
 					validationErrors.push(
 						utils.errorObject(
-							common.ROLL_OUT_MODEL,
+							basePath,
 							entityType.value,
-							`Rollout title ${entityType.value} can only include alphanumeric characters with spaces, -, _, &, <>`
+							`Rollout ${entityType.value} can only include alphanumeric characters with spaces, -, _, &, ', <>`
 						)
 					)
 				}
@@ -764,7 +762,7 @@ module.exports = class RolloutsHelper {
 				if (!validateEndDate) {
 					validationErrors.push(
 						utils.errorObject(
-							common.ROLL_OUT_MODEL,
+							basePath,
 							entityType.value,
 							validateEndDate.message || 'End date should be greater than the start date.'
 						)
