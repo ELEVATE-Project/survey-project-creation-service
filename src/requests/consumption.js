@@ -487,6 +487,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				programId: programDetails._id,
 				programName: programDetails.name,
 				programDescription: programDetails.description,
+				description: programDetails.description,
 				status: common.STATUS_ACTIVE.toLowerCase(),
 				updatedAt: new Date(),
 				createdAt: new Date(),
