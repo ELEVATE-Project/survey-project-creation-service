@@ -585,6 +585,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
  */
 const duplicateResources = async (resourceDetails, created_by) => {
 	try {
+		console.log('=-=-=-=--==--=-=-=-==-=-=----= duplicateResources ')
 		// initialise list of project templates to create
 		let projectTemplateIds = []
 		//initialise list of solution templates to create
@@ -603,6 +604,11 @@ const duplicateResources = async (resourceDetails, created_by) => {
 				})
 			})
 		}
+		console.log(
+			'=-=-=-=--==--=-=-=-==-=-=----= certificate , resourceDetails.published_id ',
+			certificate,
+			resourceDetails.published_id
+		)
 
 		// seggregate templates based on type , all projects should be created in projectTemplates and others in solutions collection
 		if (resourceDetails.type == common.PROJECT) projectTemplateIds.push(ObjectId(resourceDetails.published_id))
@@ -623,6 +629,7 @@ const duplicateResources = async (resourceDetails, created_by) => {
 			// 	projectExternalId : [ list of last ids]
 			// }
 			let templateProjectsTaskMap = {}
+			console.log('=-=-=-=--==--=-=-=-==-=-=----= projectTemplates ', projectTemplates)
 			//templateProjectsIdMap = {
 			// resource_id: resource id in the resource table,
 			// rollout_id: rollout id in the rollout table,
@@ -679,6 +686,7 @@ const duplicateResources = async (resourceDetails, created_by) => {
 					let oldTaskExtId = projectTask.externalId
 					projectTask.externalId = utils.generateUniqueId()
 					if (certificate) {
+						console.log('=-=-=-=--==--=-=-=-==-=-=----= certificate ', certificate)
 						const conditionsList = Object.keys(certificate.criteria.conditions)
 						conditionsList.forEach((condition) => {
 							Object.keys(certificate.criteria.conditions[condition].conditions).forEach(
@@ -690,6 +698,20 @@ const duplicateResources = async (resourceDetails, created_by) => {
 											subCondition
 										].taskName.toLowerCase() == projectTask.name.toLowerCase()
 									) {
+										console.log(
+											'=-=-=-=--==--=-=-=-==-=-=----= IFFF ',
+											certificate.criteria.conditions[condition].conditions[subCondition].scope ==
+												common.TASK,
+											certificate.criteria.conditions[condition].conditions[subCondition].scope,
+											common.TASK,
+											certificate.criteria.conditions[condition].conditions[
+												subCondition
+											].taskName.toLowerCase() == projectTask.name.toLowerCase(),
+											certificate.criteria.conditions[condition].conditions[
+												subCondition
+											].taskName.toLowerCase(),
+											projectTask.name.toLowerCase()
+										)
 										certificate.criteria.conditions[condition].conditions[projectTask.externalId] =
 											_.omit(
 												certificate.criteria.conditions[condition].conditions[subCondition],
@@ -850,6 +872,7 @@ const processTargetingCriteria = async (targetingData) => {
  */
 const formatProgramTemplate = async (programData) => {
 	try {
+		console.log('=-=-=-=--==--=-=-=-==-=-=----= formatProgramTemplate ')
 		let programDocument = {}
 		if (programData?.targeting_criteria) {
 			const targeting = await processTargetingCriteria(programData?.targeting_criteria)
@@ -908,7 +931,7 @@ const formatProgramTemplate = async (programData) => {
 				},
 			}
 		}
-
+		console.log('=-=-=-=--==--=-=-=-==-=-=----= formatProgramTemplate ', programDocument)
 		return { success: true, programDocument }
 	} catch (error) {
 		console.error('Error in formatTemplate:', error.message)
@@ -1269,6 +1292,7 @@ const publishProgram = function async(programData) {
 	return new Promise(async (resolve, reject) => {
 		const result = { success: false, templateId: null, error: null }
 		try {
+			console.log('=-=-=-=--==--=-=-=-==-=-=----= publishProgram')
 			const userToken = programData.userToken
 			// Format the program template
 			let formattedTemplate = await formatProgramTemplate(programData)
@@ -1334,6 +1358,7 @@ const publishProgram = function async(programData) {
 
 				solutions.push({ rolloutId: resourceDetailsCreate?.rolloutId })
 			} else {
+				console.log('=-=-=-=--==--=-=-=-==-=-=----= publish program before duplicate ')
 				let duplicateResource = await duplicateResources(resourceDetailsCreate, programData.created_by)
 				solutions = await createSolutions(
 					duplicateResource,
