@@ -123,6 +123,7 @@ module.exports = {
 	TRUE: true,
 	FALSE: false,
 	TASKS: 'tasks',
+	TASK: 'task',
 	COMMENT: 'comment',
 	SUBTASKS: 'subTasks',
 	ROLLOUT: 'rollouts',

@@ -21,6 +21,7 @@ const path = require('path')
 const fs = require('fs')
 const filesService = require('@services/files')
 const request = require('request')
+const _ = require('lodash')
 let mongoDb
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
@@ -587,7 +588,17 @@ const duplicateResources = async (resourceDetails, created_by) => {
 	let projectTemplateIds = []
 	//initialise list of solution templates to create
 	let solutionTemplateIds = []
-	const certificate = resourceDetails?.certificate
+	let certificate = resourceDetails?.certificate
+	const certificateCriteriaConditions = Object.keys(certificate.criteria.conditions)
+	certificateCriteriaConditions.forEach((criteriaId) => {
+		Object.keys(certificate.criteria.conditions[criteriaId].conditions).forEach((eachCriteria) => {
+			if (certificate.criteria.conditions[criteriaId].condition[eachCriteria].scope == common.TASK) {
+				const foundTask = resourceDetails.tasks.find((eachTask) => eachTask.id == eachCriteria)
+				certificate.criteria.conditions[criteriaId].condition[eachCriteria].taskName = foundTask.name
+				certificate.criteria.conditions[criteriaId].condition[eachCriteria].sequence_no = foundTask.sequence_no
+			}
+		})
+	})
 
 	// seggregate templates based on type , all projects should be created in projectTemplates and others in solutions collection
 	if (resourceDetails.type == common.PROJECT) projectTemplateIds.push(ObjectId(resourceDetails.published_id))
@@ -663,6 +674,29 @@ const duplicateResources = async (resourceDetails, created_by) => {
 			projectsTasksDetails.forEach((projectTask) => {
 				let oldTaskExtId = projectTask.externalId
 				projectTask.externalId = utils.generateUniqueId()
+				const conditionsList = Object.keys(certificate.criteria.conditions)
+				conditionsList.forEach((condition) => {
+					Object.keys(certificate.criteria.conditions[condition].conditions).forEach((subCondition) => {
+						if (
+							certificate.criteria.conditions[condition].conditions[subCondition].scope == common.TASK &&
+							certificate.criteria.conditions[condition].conditions[
+								subCondition
+							].taskName.toLowerCase() == projectTask.name.toLowerCase()
+						) {
+							certificate.criteria.conditions[condition].conditions[projectTask.externalId] = _.omit(
+								certificate.criteria.conditions[condition].conditions[subCondition],
+								'taskName',
+								'sequence_no'
+							)
+							delete certificate.criteria.conditions[condition].conditions[subCondition]
+							certificate.criteria.conditions[condition].conditions[projectTask.externalId].taskDetails =
+								[projectTask.externalId]
+							certificate.criteria.conditions[condition].expression = certificate.criteria.conditions[
+								condition
+							].expression.replace(subCondition, externalId)
+						}
+					})
+				})
 				// replace old task id by new task id in sequence
 				_.update(taskSeqMap, projectTask.projectTemplateExternalId + externalId_suffixing, (tasks) =>
 					tasks.map((task) => (task === oldTaskExtId ? projectTask.externalId : task))
@@ -1238,14 +1272,13 @@ const publishProgram = function async(programData) {
 			const programScope = template.scope
 
 			let result = {}
-			let programId = template?._id
+			let programId = template?._id ? ObjectId(template?._id) : null
 
 			// Insert the template into the database
 			const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
-				let updateData = template
-				delete updateData._id
+				let updateData = _.omit(template, '_id', 'published_id')
 
 				result = await programsCollection.updateOne(
 					{ _id: template?._id },
@@ -1276,13 +1309,13 @@ const publishProgram = function async(programData) {
 				}
 				const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 				result = await solutionsCollection.updateOne(
-					{ _id: resourceDetailsCreate?.published_id },
+					{ projectTemplateId: ObjectId(resourceDetailsCreate?.published_id) },
 					{
 						$set: updateTemplate,
 					}
 				)
 
-				solutions.push(resourceDetailsCreate?.published_id)
+				solutions.push({ rolloutId: resourceDetailsCreate?.rolloutId })
 			} else {
 				let duplicateResource = await duplicateResources(resourceDetailsCreate, programData.created_by)
 				solutions = await createSolutions(
