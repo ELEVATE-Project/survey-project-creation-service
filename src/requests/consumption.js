@@ -765,7 +765,7 @@ const duplicateResources = async (resourceDetails, created_by) => {
 			return [...updatedProjectTemplates]
 		}
 	} catch (error) {
-		console.log(error)
+		console.log('ERROR in DUPLICATING TEMPLATE : ', error)
 		throw error
 	}
 }
