@@ -590,17 +590,19 @@ const duplicateResources = async (resourceDetails, created_by) => {
 		//initialise list of solution templates to create
 		let solutionTemplateIds = []
 		let certificate = resourceDetails?.certificate
-		const certificateCriteriaConditions = Object.keys(certificate.criteria.conditions)
-		certificateCriteriaConditions.forEach((criteriaId) => {
-			Object.keys(certificate.criteria.conditions[criteriaId].conditions).forEach((eachCriteria) => {
-				const foundTask = resourceDetails.tasks.find((eachTask) => eachTask.id == eachCriteria)
-				if (foundTask) {
-					certificate.criteria.conditions[criteriaId].conditions[eachCriteria].taskName = foundTask.name
-					certificate.criteria.conditions[criteriaId].conditions[eachCriteria].sequence_no =
-						foundTask.sequence_no
-				}
+		if (certificate) {
+			const certificateCriteriaConditions = Object.keys(certificate.criteria.conditions)
+			certificateCriteriaConditions.forEach((criteriaId) => {
+				Object.keys(certificate.criteria.conditions[criteriaId].conditions).forEach((eachCriteria) => {
+					const foundTask = resourceDetails.tasks.find((eachTask) => eachTask.id == eachCriteria)
+					if (foundTask) {
+						certificate.criteria.conditions[criteriaId].conditions[eachCriteria].taskName = foundTask.name
+						certificate.criteria.conditions[criteriaId].conditions[eachCriteria].sequence_no =
+							foundTask.sequence_no
+					}
+				})
 			})
-		})
+		}
 
 		// seggregate templates based on type , all projects should be created in projectTemplates and others in solutions collection
 		if (resourceDetails.type == common.PROJECT) projectTemplateIds.push(ObjectId(resourceDetails.published_id))
@@ -676,31 +678,38 @@ const duplicateResources = async (resourceDetails, created_by) => {
 				projectsTasksDetails.forEach((projectTask) => {
 					let oldTaskExtId = projectTask.externalId
 					projectTask.externalId = utils.generateUniqueId()
-					const conditionsList = Object.keys(certificate.criteria.conditions)
-					conditionsList.forEach((condition) => {
-						Object.keys(certificate.criteria.conditions[condition].conditions).forEach((subCondition) => {
-							if (
-								certificate.criteria.conditions[condition].conditions[subCondition].scope ==
-									common.TASK &&
-								certificate.criteria.conditions[condition].conditions[
-									subCondition
-								].taskName.toLowerCase() == projectTask.name.toLowerCase()
-							) {
-								certificate.criteria.conditions[condition].conditions[projectTask.externalId] = _.omit(
-									certificate.criteria.conditions[condition].conditions[subCondition],
-									'taskName',
-									'sequence_no'
-								)
-								delete certificate.criteria.conditions[condition].conditions[subCondition]
-								certificate.criteria.conditions[condition].conditions[
-									projectTask.externalId
-								].taskDetails = [projectTask.externalId]
-								certificate.criteria.conditions[condition].expression = certificate.criteria.conditions[
-									condition
-								].expression.replace(subCondition, externalId)
-							}
+					if (certificate) {
+						const conditionsList = Object.keys(certificate.criteria.conditions)
+						conditionsList.forEach((condition) => {
+							Object.keys(certificate.criteria.conditions[condition].conditions).forEach(
+								(subCondition) => {
+									if (
+										certificate.criteria.conditions[condition].conditions[subCondition].scope ==
+											common.TASK &&
+										certificate.criteria.conditions[condition].conditions[
+											subCondition
+										].taskName.toLowerCase() == projectTask.name.toLowerCase()
+									) {
+										certificate.criteria.conditions[condition].conditions[projectTask.externalId] =
+											_.omit(
+												certificate.criteria.conditions[condition].conditions[subCondition],
+												'taskName',
+												'sequence_no'
+											)
+										delete certificate.criteria.conditions[condition].conditions[subCondition]
+										certificate.criteria.conditions[condition].conditions[
+											projectTask.externalId
+										].taskDetails = [projectTask.externalId]
+										certificate.criteria.conditions[condition].expression =
+											certificate.criteria.conditions[condition].expression.replace(
+												subCondition,
+												externalId
+											)
+									}
+								}
+							)
 						})
-					})
+					}
 					// replace old task id by new task id in sequence
 					_.update(taskSeqMap, projectTask.projectTemplateExternalId + externalId_suffixing, (tasks) =>
 						tasks.map((task) => (task === oldTaskExtId ? projectTask.externalId : task))
