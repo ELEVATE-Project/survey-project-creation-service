@@ -694,9 +694,11 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 									if (
 										certificate.criteria.conditions[condition].conditions[subCondition].scope ==
 											common.TASK &&
-										certificate.criteria.conditions[condition].conditions[
+										certificate?.criteria?.conditions[condition].conditions[subCondition]
+											?.taskName &&
+										certificate?.criteria?.conditions[condition]?.conditions[
 											subCondition
-										].taskName.toLowerCase() == projectTask.name.toLowerCase()
+										]?.taskName.toLowerCase() == projectTask.name.toLowerCase()
 									) {
 										console.log(
 											'=-=-=-=--==--=-=-=-==-=-=----= IFFF ',
