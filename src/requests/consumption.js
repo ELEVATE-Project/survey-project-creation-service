@@ -1358,7 +1358,10 @@ const publishProgram = function async(programData) {
 
 				solutions.push({ rolloutId: resourceDetailsCreate?.rolloutId })
 			} else {
-				console.log('=-=-=-=--==--=-=-=-==-=-=----= publish program before duplicate ')
+				console.log(
+					'=-=-=-=--==--=-=-=-==-=-=----= publish program before duplicate programData?.resource ',
+					programData?.resource
+				)
 				const certificate = programData?.resource?.certificate
 				let duplicateResource = await duplicateResources(
 					resourceDetailsCreate,
