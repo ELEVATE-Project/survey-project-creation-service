@@ -90,7 +90,7 @@ To set up the Self Creation Portal application, ensure you have Docker and Docke
 > **Caution:** Before proceeding, please ensure that the ports given here are available and open. It is essential to verify their availability prior to moving forward. You can run below command in your teminal to check this
 
 ```
-for port in 6001 3569 3001 3002 4000 9092 5432 7008 2181 2707 ; do
+for port in 6001 3569 3001 3002 4000 5432 2181 9092 ; do
     if lsof -iTCP:$port -sTCP:LISTEN &>/dev/null; then
         echo "Port $port is in use"
     else
@@ -110,18 +110,18 @@ done
 
     **General Instructions :**
 
-        1. All containers which are part of the docker-compose can be gracefully stopped by pressing Ctrl + c in the same terminal where the services are running.
+    1. All containers which are part of the docker-compose can be gracefully stopped by pressing Ctrl + c in the same terminal where the services are running.
 
-        2. All docker containers can be stopped and removed by using below command.
-            ```
-            ./docker-compose-down.sh
-            ```
-        3. All services and dependencies can be started using below command.
-            ```
-             ./docker-compose-up.sh
-            ```
+    2. All docker containers can be stopped and removed by using below command.
+        ```
+        ./docker-compose-down.sh
+        ```
+    3. All services and dependencies can be started using below command.
+        ```
+            ./docker-compose-up.sh
+        ```
 
-    **Keep the current terminal session active, and kindly open a new terminal window within the survey-project-creation directory.**
+**Keep the current terminal session active, and kindly open a new terminal window within the survey-project-creation directory.**
 
 **After successfully completing this, please move to the next section: [Enable Citus Extension](#enable-citus-extension-optional)**
 
