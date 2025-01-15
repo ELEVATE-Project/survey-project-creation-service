@@ -35,7 +35,18 @@ module.exports = {
 			.withMessage('data_type field is empty')
 			.matches(/^[A-Za-z\[\]]+$/)
 			.withMessage('data_type is invalid, must not contain spaces')
-
+		req.checkBody('is_external')
+			.trim()
+			.optional({ checkFalsy: true })
+			.withMessage('is_external field is empty')
+			.isBoolean()
+			.withMessage('is_external is invalid, must be a boolean')
+		req.checkBody('depended_on')
+			.trim()
+			.optional({ checkFalsy: true })
+			.withMessage('depended_on field is empty')
+			.isNumeric()
+			.withMessage('depended_on is invalid, must be an integer')
 		req.checkBody('allow_filtering').optional().isEmpty().withMessage('allow_filtering is not allowed in create')
 	},
 
@@ -46,6 +57,8 @@ module.exports = {
 			.withMessage('id param is empty')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('Id is not valid')
 
 		req.checkBody('value')
 			.optional()
@@ -68,6 +81,19 @@ module.exports = {
 			.withMessage('data_type field is empty')
 			.matches(/^[A-Za-z\[\]]+$/)
 			.withMessage('data_type is invalid, must not contain spaces')
+
+		req.checkBody('is_external')
+			.trim()
+			.optional({ checkFalsy: true })
+			.withMessage('is_external field is empty')
+			.isBoolean()
+			.withMessage('is_external is invalid, must be a boolean')
+		req.checkBody('depended_on')
+			.trim()
+			.optional({ checkFalsy: true })
+			.withMessage('depended_on field is empty')
+			.isNumeric()
+			.withMessage('depended_on is invalid, must be an integer')
 	},
 
 	delete: (req) => {
@@ -76,5 +102,7 @@ module.exports = {
 			.withMessage('id param is empty')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('Id is not valid')
 	},
 }

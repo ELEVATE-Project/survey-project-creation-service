@@ -401,13 +401,13 @@ module.exports = class resourceHelper {
 	 * @param {Object} queryParams -  queryParams contain sort details like sort_by, sort_order
 	 * @returns {JSON} - Response contain sort filter
 	 */
-	static async constructSortOptions(sort_by, sort_order) {
+	static async constructSortOptions(sort_by, sort_order, defaultSortBy = common.CREATED_AT) {
 		let sort = {}
 		if (sort_by && sort_order) {
 			sort.sort_by = sort_by
 			sort.order = sort_order.toUpperCase() == common.SORT_DESC.toUpperCase() ? common.SORT_DESC : common.SORT_ASC
 		} else {
-			sort.sort_by = common.CREATED_AT
+			sort.sort_by = defaultSortBy
 			sort.order = common.SORT_DESC
 		}
 		return sort
@@ -1197,14 +1197,14 @@ module.exports = class resourceHelper {
 	 * Get resources from consumption service
 	 * @name browseExistingList
 	 * @param {String} organization_id - Org Id of the user
-	 * @param {String} token - Token of the user
+	 * @param {Array} resourceIds - Resource Ids
 	 * @param {Object} query - Query object passed by user
 	 * @param {String} searchText - Title to search
 	 * @param {Integer} pageNo -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
 	 * @param {Integer} pageSize -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {Object} - Response contain object of resources
 	 */
-	static async browseExistingList(organization_id, token, query, searchText = '', pageNo, pageSize) {
+	static async browseExistingList(organization_id, resourceIds = [], query, searchText = '', pageNo, pageSize) {
 		try {
 			let result = {
 				data: [],
@@ -1218,24 +1218,33 @@ module.exports = class resourceHelper {
 				status: common.RESOURCE_STATUS_PUBLISHED,
 			}
 			// construct sort object
-			const sort = await this.constructSortOptions(query.sort_by, query.sort_order)
+			const sort = await this.constructSortOptions(query.sort_by, query.sort_order, common.UPDATED_AT)
 			if (resourceType)
 				filterQuery.type = {
 					[Op.in]: resourceType,
 				}
-			if (search)
+			if (search) {
 				filterQuery.title = {
 					[Op.iLike]: `%${search}%`,
 				}
+			}
+
+			if (resourceIds.length > 0) {
+				filterQuery.id = {
+					[Op.in]: resourceIds,
+				}
+			}
 
 			const internalResources = await resourceQueries.resourceList(
 				filterQuery,
-				['id', 'title', 'type', 'created_by', 'created_at', 'published_on'],
+				['id', 'title', 'type', 'created_by', 'created_at', 'published_on', 'organization_id'],
 				sort,
 				pageNo,
 				pageSize
 			)
+
 			let userIds = internalResources.result.map((item) => item.created_by)
+			let organizationIds = internalResources.result.map((item) => item.organization_id)
 			const internalResourcesIds = internalResources.result.map((item) => item.id)
 
 			const reviewerDetails = await reviewsQueries.findAll(
@@ -1255,6 +1264,7 @@ module.exports = class resourceHelper {
 			if (internalResources.result.length > 0) {
 				// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
 				const userDetails = await this.fetchUserDetails(utils.getUniqueElements(userIds))
+				const orgDetails = await orgExtension.fetchOrganizationDetails(utils.getUniqueElements(organizationIds))
 				result.count = internalResources.count
 				internalResources.result.forEach((resource) => {
 					resource['creator'] = userDetails[resource.created_by]?.name || ''
@@ -1262,6 +1272,7 @@ module.exports = class resourceHelper {
 						.map((reviewer_id) => userDetails[reviewer_id]?.name || '')
 						.filter(Boolean) // To remove any empty strings
 						.join(' , ')
+					resource['organization'] = orgDetails[resource.organization_id] || {}
 					delete resource.created_at
 					result.data.push(resource)
 				})

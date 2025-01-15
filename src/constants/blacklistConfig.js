@@ -101,6 +101,26 @@ const certificates = {
 	update: ['id', 'organization_id', 'created_by', 'updated_by', 'created_at', 'updated_at'],
 }
 
+const rollouts = {
+	update: [
+		'id',
+		'user_id',
+		'organization_id',
+		'created_by',
+		'updated_by',
+		'resource_type',
+		'type',
+		'blob_path',
+		'status',
+		'rollout_date',
+		'published_id',
+		'parent_id',
+		'type',
+		'duplicate_template_id',
+		'organizations',
+	],
+}
+
 module.exports = {
 	entityType,
 	entities,
@@ -113,4 +133,5 @@ module.exports = {
 	projects,
 	reviewStages,
 	certificates,
+	rollouts,
 }

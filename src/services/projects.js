@@ -95,10 +95,9 @@ module.exports = class ProjectsHelper {
 
 				// upload to blob
 				const resourceId = projectCreate.id
-				const fileName = `${loggedInUserId}${resourceId}project.json`
 
 				const projectUploadStatus = await resourceService.uploadToCloud(
-					fileName,
+					common.PROJECT_UPLOAD_FILE_NAME,
 					projectCreate.id,
 					common.PROJECT,
 					loggedInUserId,
@@ -220,9 +219,8 @@ module.exports = class ProjectsHelper {
 			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id', 'user_id'])
 
 			//upload to blob
-			const fileName = `${loggedInUserId}${resourceId}project.json`
 			const projectUploadStatus = await resourceService.uploadToCloud(
-				fileName,
+				common.PROJECT_UPLOAD_FILE_NAME,
 				resourceId,
 				common.PROJECT,
 				loggedInUserId,
@@ -790,7 +788,6 @@ module.exports = class ProjectsHelper {
 				result: { id: projectData.id },
 			})
 		} catch (error) {
-			// console.log(error, 'error ')
 			return responses.failureResponse({
 				message: error.message || 'RESOURCE_VALIDATION_FAILED',
 				statusCode: httpStatusCode.bad_request,
@@ -881,7 +878,8 @@ module.exports = class ProjectsHelper {
 								? entityType.value
 								: sourceType,
 							model === common.PROJECT ? '' : entityType.value,
-							maxLengthValidation.message || `${entityType.value} is required`
+							maxLengthValidation.message ||
+								`${entityType.value} must not exceed ${maxLengthValidation.value} characters `
 						)
 					)
 				}
@@ -937,27 +935,10 @@ module.exports = class ProjectsHelper {
 							)
 						}
 
-						// Validate the name against the regex pattern
-						if (eachResource.name) {
-							const validateName = utils.checkRegexPattern(
-								entityMapping.learning_resource_name.validations,
-								eachResource.name
-							)
-							if (!validateName) {
-								validationErrors.push(
-									utils.errorObject(
-										learningResourcePath,
-										common.NAME,
-										'Name can only include alphanumeric characters with spaces, -, _, &, <>'
-									)
-								)
-							}
-						}
-
 						// Validate the URL against the regex pattern
-						if (eachResource.url) {
+						if (eachResource.url && entityMapping[common.LEARNING_RESOURCE]?.validations) {
 							const validateURL = utils.checkRegexPattern(
-								entityMapping[common.LEARNING_RESOURCE],
+								entityMapping[common.LEARNING_RESOURCE].validations,
 								eachResource.url
 							)
 							if (!validateURL) {
@@ -1004,18 +985,6 @@ module.exports = class ProjectsHelper {
 					Object.keys(fieldData).length > 0 &&
 					JSON.parse(process.env.ENABLE_OBSERVATION_IN_PROJECTS)
 				) {
-					//validate the observation name
-					let checkRegex = utils.checkRegexPattern(regexValidation, fieldData.name)
-					if (!checkRegex) {
-						validationErrors.push(
-							utils.errorObject(
-								solutionDetailsPath,
-								common.NAME,
-								regexValidation.message ||
-									`${entityType.value} name is invalid, please ensure it contains no special characters and does not exceed the character limit`
-							)
-						)
-					}
 					//validate the observation url
 					let regex = new RegExp(process.env.OBSERVATION_DEEP_LINK_REGEX)
 					let validateURL = regex.test(fieldData.link)

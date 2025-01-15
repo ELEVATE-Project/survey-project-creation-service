@@ -194,6 +194,59 @@ let environmentVariables = {
 			value: 'true',
 		},
 	},
+	DEFAULT_DATA_MANAGERS: {
+		message: 'Default data managers required.',
+		optional: true,
+		default: 'program_manager,program_designer',
+	},
+	DEFAULT_ROLLOUT_ROLES: {
+		message: 'Default rollout role is required',
+		optional: true,
+		default: 'rollout_manager',
+	},
+	ROLLOUT_PUBLISH_KAFKA_TOPIC: {
+		message: 'Default Kafka topic for rollout publish required',
+		optional: true,
+		default: 'dev.rolloutpublish',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE_BASE_URL',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
+	CONSUMPTION_SERVICE_BASE_URL: {
+		message: 'Consumption service base name required',
+		optional: true,
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
+	PROJECT_PUBLISH_END_POINT: {
+		message: 'Required project publish endpoint',
+		optional: true,
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
+	IS_AUTH_TOKEN_BEARER: {
+		message: 'Required specification: If auth token is bearer or not',
+		optional: true,
+		default: true,
+	},
+	CONSUMPTION_SERVICE_PRESIGNED_URL: {
+		message: 'Consumption side pre-signed url for rollout publish required since consumption is not self.',
+		optional: true,
+		default: 'v1/cloud-services/files/preSignedUrls',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE_BASE_URL',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
 }
 
 let success = true

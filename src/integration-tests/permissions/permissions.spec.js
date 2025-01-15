@@ -4,8 +4,15 @@ jest.setTimeout(10000)
 
 describe('Permission Apis', function () {
 	let userDetails
+
 	beforeAll(async () => {
-		userDetails = await commonHelper.logIn()
+		try {
+			userDetails = await commonHelper.logIn()
+			console.log('Logged in User:', userDetails.id, userDetails.roles)
+		} catch (error) {
+			console.error('Error in beforeAll setup:', error)
+			throw error // Ensure the error is thrown to fail the tests
+		}
 	})
 
 	it('List user permissions', async () => {
@@ -16,7 +23,6 @@ describe('Permission Apis', function () {
 
 	it('Get list of all permissions', async () => {
 		let res = await request.get('/scp/v1/permissions/getPermissions').query({ page: 1, limit: 10 })
-		// console.log(JSON.stringify(res.body, null, 2))
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.getPermissionSchema)
 	})

@@ -15,6 +15,8 @@ module.exports = {
 			.withMessage('id param is empty')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('Id is not valid')
 	},
 	update: (req) => {
 		req.body = filterRequestBody(req.body, projects.update)
@@ -34,6 +36,8 @@ module.exports = {
 			.withMessage('id param is empty')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('Id is not valid')
 
 		req.checkParams('reference_id')
 			.trim()
@@ -51,6 +55,8 @@ module.exports = {
 			.withMessage('id param is empty')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('Id is not valid')
 
 		req.checkBody('notes').optional({ checkFalsy: true }).notEmpty().withMessage('notes is empty')
 

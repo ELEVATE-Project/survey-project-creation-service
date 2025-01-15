@@ -43,14 +43,20 @@ var get = function (url, token = '', internal_access_token = false) {
 	})
 }
 
-var post = function (url, body, token = '', internal_access_token = false) {
+var post = function (
+	url,
+	body,
+	token = '',
+	internal_access_token = false,
+	internalAccessTokenKey = 'internal_access_token'
+) {
 	return new Promise((resolve, reject) => {
 		try {
 			let headers = {
 				'content-type': 'application/json',
 			}
 			if (internal_access_token) {
-				headers['internal_access_token'] = process.env.INTERNAL_ACCESS_TOKEN
+				headers[internalAccessTokenKey] = process.env.INTERNAL_ACCESS_TOKEN
 			}
 
 			if (token) {

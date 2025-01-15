@@ -5,19 +5,12 @@
  * Description : Utils helper function.
  */
 
-const bcryptJs = require('bcryptjs')
-const momentTimeZone = require('moment-timezone')
-const moment = require('moment')
-const path = require('path')
-// const md5 = require('md5')
 const { RedisCache, InternalCache } = require('elevate-node-cache')
 const startCase = require('lodash/startCase')
 const common = require('@constants/common')
-const crypto = require('crypto')
-const { cloudClient } = require('@configs/cloud-service')
 const { v4: uuidV4 } = require('uuid')
-const unidecode = require('unidecode')
 const _ = require('lodash')
+const { transliterate: tr } = require('transliteration')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -424,12 +417,10 @@ const checkRegexPattern = (entityType, entityData) => {
 			// Find the object where type is "regex"
 			entityType = entityType.find((item) => item.type === common.REGEX_VALIDATION)
 		}
-
 		// Proceed if a regex validation object is found
 		if (entityType && entityType.type === common.REGEX_VALIDATION) {
 			// Normalize the entityData
-			let normalizedValue =
-				typeof entityData === common.DATA_TYPE_NUMBER ? entityData.toString() : unidecode(entityData)
+			let normalizedValue = typeof entityData === 'number' ? entityData.toString() : tr(entityData)
 
 			// Handle array of regex patterns
 			if (Array.isArray(entityType.regex)) {
@@ -442,7 +433,7 @@ const checkRegexPattern = (entityType, entityData) => {
 				return false
 			} else {
 				// Handle the case where regex is a single pattern
-				let regex = new RegExp(entityType.value) // Use entityType.value for regex
+				let regex = new RegExp(entityType.value)
 				return regex.test(normalizedValue)
 			}
 		}
@@ -463,6 +454,24 @@ const checkRequired = (entityType, entityData) => {
 			}
 		}
 		return true
+	} catch (error) {
+		return error
+	}
+}
+
+/**
+ * Check if end date is greater than start date
+ * @method
+ * @name checkEndDate
+ * @param {String} start_date
+ * @param {String} end_date
+ * @returns {Boolean} - true / false based on the start and end date
+ */
+const checkEndDate = (start_date, end_date) => {
+	try {
+		start_date = new Date(start_date)
+		end_date = new Date(end_date)
+		return !isNaN(start_date) && !isNaN(end_date) && end_date > start_date
 	} catch (error) {
 		return error
 	}
@@ -497,7 +506,7 @@ const checkEntities = (entityType, entityData) => {
 const checkLength = (entityType, entityData) => {
 	try {
 		if (entityType.type === common.MAX_LENGTH_VALIDATION && entityType.value) {
-			return entityData.length <= entityType.value
+			return entityData.length < entityType.value
 		}
 	} catch (error) {
 		return error
@@ -534,9 +543,8 @@ const isLabelValuePair = (item) => {
 }
 
 const validateTitle = (title) => {
-	// Regex to match titles longer than 256 characters
-	const regex = /^.{257,}$/
-	return regex.test(title)
+	//check for titles longer than 256 characters
+	return title.length > 257
 }
 const validateComment = (comments) => {
 	// check if the comment passed to the resource is valid or not
@@ -597,6 +605,134 @@ const isEmpty = (obj) => {
 	return true
 }
 
+/**
+ * Format Name to title case
+ * @name formatToTitleCase
+ * @param {String} value - category
+ * @returns {String} - Category
+ */
+function formatToTitleCase(value) {
+	return value
+		.replace(/_/g, ' ') // Replace underscores with spaces
+		.replace(/\b\w/g, (char) => char.toUpperCase()) // Capitalize the first letter of each word
+		.trim() // Ensure no leading or trailing spaces
+}
+
+/**
+ * Generate externalId from title
+ * @name generateExternalId
+ * @param {String} title - title
+ * @returns {String} - ExternalId
+ */
+
+function generateExternalId(title) {
+	const words = title.split(/[\s-]+/)
+	const abbreviation = words.map((word) => (word[0] || '').toUpperCase()).join('')
+	const uniqueSuffix = Date.now()
+	return `${abbreviation}-${uniqueSuffix}`
+}
+
+/**
+ * Convert Learning Resource
+ * @name convertResources
+ * @param {Array} resources - learning resource data
+ * @returns {Object} - Response contains formatted learning resource
+ */
+const convertResources = (resources) =>
+	resources
+		.filter((resource) => resource.url) // Ensure `url` exists
+		.map((resource) => ({
+			name: resource.name || 'resource',
+			link: resource.url,
+			app: process.env.CONSUMPTION_SERVICE,
+			id: resource.url.split('/').pop(), // Extract the last part of the URL
+		}))
+
+/**
+ * Format keywords
+ * @param {Array|String} keywords - Keywords
+ * @returns {Array} - Formatted keywords
+ */
+function formatKeywords(keywords) {
+	if (Array.isArray(keywords)) return keywords.map((k) => k.trim())
+	if (typeof keywords === 'string') return keywords.split(',').map((k) => k.trim())
+	return []
+}
+
+/**
+ * Format meta-information
+ * @param {Object} templateData - Template data
+ * @returns {Object} - Meta-information
+ */
+function formatProjectMetaInformation(templateData) {
+	return {
+		duration: `${templateData.recommended_duration.number} ${templateData.recommended_duration.duration}`,
+		goal: '',
+		rationale: '',
+		primaryAudience: '',
+		successIndicators: '',
+		risks: '',
+		approaches: '',
+	}
+}
+
+/**
+ * Converts a duration object to the desired format.
+ * name convertDuration
+ * @param {Object} input - The input duration object.
+ * @returns {Object} - The converted duration object or null if input is invalid.
+ */
+function convertDuration(durationObj) {
+	// Validate input
+	if (!durationObj || typeof durationObj !== 'object') {
+		return null
+	}
+
+	const number = durationObj?.number
+	const unit = durationObj?.duration
+
+	// Check if both number and unit are present
+	if (!number || !unit) {
+		return {}
+	}
+
+	// Define a map for unit abbreviations
+	const unitAbbreviations = {
+		weeks: 'W',
+		days: 'D',
+		hours: 'H',
+		minutes: 'M',
+		seconds: 'S',
+	}
+
+	// Get the abbreviation for the unit
+	const abbreviation = unitAbbreviations[unit.toLowerCase()]
+
+	if (!abbreviation) {
+		return {}
+	}
+
+	return {
+		value: `${number}${abbreviation}`,
+		label: `${number} ${unit.charAt(0).toUpperCase() + unit.slice(1)}`,
+	}
+}
+
+/**
+ * Converts charachters which can cause issues in xml file to accepted values
+ * name escapeXml
+ * @param {String} inputElement - The input duration object.
+ * @returns {String} - Converted xml with accepted charecters.
+ */
+const escapeXml = (inputElement) => {
+	return inputElement
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&apos;')
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -633,4 +769,12 @@ module.exports = {
 	sort,
 	isEmpty,
 	checkLength,
+	checkEndDate,
+	formatToTitleCase,
+	generateExternalId,
+	convertResources,
+	formatKeywords,
+	formatProjectMetaInformation,
+	convertDuration,
+	escapeXml,
 }

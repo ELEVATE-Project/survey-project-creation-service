@@ -133,5 +133,18 @@
 	"RESOURCE_ID_REQUIRED": "Resource Id is required",
 	"PROJECT_SAVED_SUCCESSFULLY": "Your changes have been saved",
 	"FAILED_TO_CREATE_CONFIG": "Organization config creation failed",
-	"RESOURCE_STAGE_FETCHED": "Resource stage fetched"
+	"RESOURCE_STAGE_FETCHED": "Resource stage fetched",
+	"ROLLOUT_NOT_FOUND": "Rollout not found",
+	"DEPENDED_ENTITY_TYPE_NOT_FOUND": "Invalid depended entity type value.",
+	"DATA_MANAGER_LIST_FETCHED": "Data Manager list fetched successfully.",
+	"ROLLOUT_LISTED_SUCCESSFULLY": "Rollout Listed successfully",
+	"ROLLOUT_SAVED_SUCCESSFULLY": "Saved successfully",
+	"CANT_CHANGE_RESOURCE": "You cant change the resource of published rollout",
+	"DONT_HAVE_ROLLOUT_ACCESS": "You don't have permission to access this rollout",
+	"ROLLOUT_FETCHED_SUCCESSFULLY": "Project fetched successfully",
+	"ROLLOUT_DELETED_SUCCESSFULLY": "Rollout deleted successfully",
+	"ROLLOUT_VALIDATION_FAILED": "Rollout Failed. Try again.",
+	"ROLLOUT_PUBLISHED": "Your changes have been published.",
+	"ROLLOUT_PUBLISH_FAILED": "Rollout Publish Failed.",
+	"ROLLOUT_UPDATED_SUCCESSFULLY": "Rollout updated successfully"
 }
