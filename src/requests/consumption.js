@@ -746,7 +746,8 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 					duplicateTasks.push(projectTask)
 				})
 
-				await projectsTaskCollection.insertMany(duplicateTasks)
+				const createDuplicate = await projectsTaskCollection.insertMany(duplicateTasks)
+				console.log('createDuplicate :  : : ----->>>> ', createDuplicate)
 
 				const projectsTasksDetailsAfterInsert = await projectsTaskCollection
 					.find({
