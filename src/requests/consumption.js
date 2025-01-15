@@ -859,7 +859,7 @@ const processTargetingCriteria = async (targetingData) => {
 	})
 
 	// convert the 'entityType' array to coma separated string
-	scope.entityType = scope?.entityType ? scope?.entityType.join(',') : ''
+	scope.entityType = scope?.entityType ? [...new Set(scope.entityType)].join(',') : ''
 	// refactor metaInformation to remove duplicates
 	Object.keys(metaInformation).forEach((key) => {
 		if (Array.isArray(metaInformation[key] && metaInformation[key].length > 0)) {
