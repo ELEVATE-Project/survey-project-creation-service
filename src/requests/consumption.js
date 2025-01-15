@@ -759,6 +759,38 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 					})
 					.toArray()
 
+				if (certificate) {
+					console.log('=-=-=-=--==--=-=-=-==-=-=----= TASK DETAIL ')
+					const conditionsList = Object.keys(certificate.criteria.conditions)
+					conditionsList.forEach((condition) => {
+						Object.keys(certificate.criteria.conditions[condition].conditions).forEach((subCondition) => {
+							if (
+								certificate.criteria.conditions[condition].conditions[subCondition].scope ==
+									common.TASK &&
+								certificate?.criteria?.conditions[condition].conditions[subCondition]?.taskDetails &&
+								certificate?.criteria?.conditions[condition].conditions[subCondition]?.taskDetails
+									.length > 0
+							) {
+								let taskDetailObjectIds = []
+								certificate?.criteria?.conditions[condition].conditions[
+									subCondition
+								]?.taskDetails.forEach((taskDetail) => {
+									const taskFound = projectsTasksDetailsAfterInsert.find(
+										(task) => task.externalId == taskDetail
+									)
+									if (taskFound) taskDetailObjectIds.push(taskFound._id)
+								})
+								certificate.criteria.conditions[condition].conditions[subCondition].taskDetails =
+									taskDetailObjectIds ? taskDetailObjectIds : []
+								console.log(
+									'=-=-=-=--==--=-=-=-==-=-=----= TASK DETAIL taskDetailObjectIds ',
+									taskDetailObjectIds
+								)
+							}
+						})
+					})
+				}
+
 				taskMap = _.mapValues(taskMap, (externalId) => {
 					// Find the corresponding object from projectsTasksDetailsAfterInsert
 					const task = _.find(projectsTasksDetailsAfterInsert, { externalId: externalId })
