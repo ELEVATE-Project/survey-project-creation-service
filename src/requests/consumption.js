@@ -1346,11 +1346,7 @@ const publishProgram = function async(programData) {
 				resourceStatus?.status == common.ROLLOUT_STATUS_ROLLED_OUT &&
 				resourceStatus?.published_id != undefined
 			) {
-				const updateTemplate = {
-					scope: formattedTemplate.programDocument.scope,
-					endDate: formattedTemplate.programDocument.endDate,
-					startDate: formattedTemplate.programDocument.startDate,
-				}
+				const updateTemplate = _.omit(template, '_id', 'published_id')
 				const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 				result = await solutionsCollection.updateOne(
 					{ projectTemplateId: ObjectId(resourceDetailsCreate?.published_id) },
