@@ -71,7 +71,7 @@ services:
       - elevate_net
 
   user:
-    image: shikshalokamqa/elevate-user:3.1.2
+    image: shikshalokamqa/elevate-user:3.1.3
     ports:
       - '3001:3001'
     command: >
