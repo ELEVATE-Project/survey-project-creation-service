@@ -583,14 +583,14 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
  * @param {String} created_by - created by user id
  * @returns {Array} Array of objects of duplicate templates
  */
-const duplicateResources = async (resourceDetails, created_by) => {
+const duplicateResources = async (resourceDetails, resourceCertificate, created_by) => {
 	try {
 		console.log('=-=-=-=--==--=-=-=-==-=-=----= duplicateResources ')
 		// initialise list of project templates to create
 		let projectTemplateIds = []
 		//initialise list of solution templates to create
 		let solutionTemplateIds = []
-		let certificate = resourceDetails?.certificate
+		let certificate = resourceCertificate
 		if (certificate) {
 			const certificateCriteriaConditions = Object.keys(certificate.criteria.conditions)
 			certificateCriteriaConditions.forEach((criteriaId) => {
@@ -1359,7 +1359,12 @@ const publishProgram = function async(programData) {
 				solutions.push({ rolloutId: resourceDetailsCreate?.rolloutId })
 			} else {
 				console.log('=-=-=-=--==--=-=-=-==-=-=----= publish program before duplicate ')
-				let duplicateResource = await duplicateResources(resourceDetailsCreate, programData.created_by)
+				const certificate = programData?.resource?.certificate
+				let duplicateResource = await duplicateResources(
+					resourceDetailsCreate,
+					certificate,
+					programData.created_by
+				)
 				solutions = await createSolutions(
 					duplicateResource,
 					{
