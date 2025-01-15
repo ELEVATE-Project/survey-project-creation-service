@@ -725,7 +725,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 										certificate.criteria.conditions[condition].expression =
 											certificate.criteria.conditions[condition].expression.replace(
 												subCondition,
-												externalId
+												projectTask.externalId
 											)
 									}
 								}
