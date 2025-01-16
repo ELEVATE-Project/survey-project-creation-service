@@ -21,6 +21,7 @@ const path = require('path')
 const fs = require('fs')
 const filesService = require('@services/files')
 const request = require('request')
+const _ = require('lodash')
 let mongoDb
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
@@ -582,149 +583,227 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
  * @param {String} created_by - created by user id
  * @returns {Array} Array of objects of duplicate templates
  */
-const duplicateResources = async (resourceDetails, created_by) => {
-	// initialise list of project templates to create
-	let projectTemplateIds = []
-	//initialise list of solution templates to create
-	let solutionTemplateIds = []
-	const certificate = resourceDetails?.certificate
-
-	// seggregate templates based on type , all projects should be created in projectTemplates and others in solutions collection
-	if (resourceDetails.type == common.PROJECT) projectTemplateIds.push(ObjectId(resourceDetails.published_id))
-	else solutionTemplateIds.push(ObjectId(resourceDetails.published_id))
-
-	// handling only project creation now. Make changes here for observation , survey etc...
-	if (projectTemplateIds.length > 0) {
-		const projectsCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
-		const projectTemplates = await projectsCollection
-			.find({
-				_id: {
-					$in: projectTemplateIds,
-				},
-			})
-			.toArray()
-
-		//templateProjectsTaskMap = {
-		// 	projectExternalId : [ list of last ids]
-		// }
-		let templateProjectsTaskMap = {}
-		//templateProjectsIdMap = {
-		// resource_id: resource id in the resource table,
-		// rollout_id: rollout id in the rollout table,
-		// }
-		let templateProjectsIdMap = {}
-		// array of project templates to create
-		let templateProjects = []
-		// array of template tasks to create
-		let templateTaskIds = []
-		// array of created template tasks
-		let duplicateTasks = []
-
-		//taskMap = {
-		// 	projectTaskId : duplicateProjectTaskId
-		// }
-		let taskMap = {}
-		let taskSeqMap = {}
-		const externalId_suffixing = `${Date.now()}${common.SUFFIX_CHILD}`
-
-		if (projectTemplates.length > 0) {
-			// create project duplicate template to create
-			projectTemplates.forEach((project) => {
-				project.externalId = project.externalId + externalId_suffixing
-				taskSeqMap[project.externalId] = project.taskSequence
-				delete project._id
-				project.updatedAt = new Date()
-				project.createdAt = new Date()
-				project.createdBy = created_by
-				project.updatedBy = created_by
-				project.isReusable = false
-				templateProjectsTaskMap[project.externalId] = project.tasks
-				templateProjectsIdMap[project.externalId] = {
-					resource_id: resourceDetails.resource_id,
-					rollout_id: resourceDetails.rolloutId,
-				}
-
-				templateProjects.push(project)
-			})
-			// array of tasks to create
-			Object.keys(templateProjectsTaskMap).forEach(async (projectExtId) => {
-				templateTaskIds = [...templateTaskIds, ...templateProjectsTaskMap[projectExtId]]
-			})
-			templateTaskIds = [...new Set(templateTaskIds)]
-			const projectsTaskCollection = mongoDb.collection(COLLECTIONS.TASKS)
-			const projectsTasksDetails = await projectsTaskCollection
-				.find({
-					_id: {
-						$in: templateTaskIds,
-					},
+const duplicateResources = async (resourceDetails, resourceCertificate, created_by) => {
+	try {
+		// initialise list of project templates to create
+		let projectTemplateIds = []
+		//initialise list of solution templates to create
+		let solutionTemplateIds = []
+		let certificate = resourceCertificate
+		if (certificate) {
+			// append task name in each task certificate criterias
+			const certificateCriteriaConditions = Object.keys(certificate.criteria.conditions)
+			certificateCriteriaConditions.forEach((criteriaId) => {
+				Object.keys(certificate.criteria.conditions[criteriaId].conditions).forEach((eachCriteria) => {
+					const foundTask = resourceDetails.tasks.find((eachTask) => eachTask.id == eachCriteria)
+					if (foundTask) {
+						certificate.criteria.conditions[criteriaId].conditions[eachCriteria].taskName = foundTask.name
+					}
 				})
-				.toArray()
-			// duplicate project task details to create
-			projectsTasksDetails.forEach((projectTask) => {
-				let oldTaskExtId = projectTask.externalId
-				projectTask.externalId = utils.generateUniqueId()
-				// replace old task id by new task id in sequence
-				_.update(taskSeqMap, projectTask.projectTemplateExternalId + externalId_suffixing, (tasks) =>
-					tasks.map((task) => (task === oldTaskExtId ? projectTask.externalId : task))
-				)
-				taskMap[projectTask._id] = projectTask.externalId
-				projectTask.updatedAt = new Date()
-				projectTask.createdAt = new Date()
-				projectTask.createdBy = created_by
-				projectTask.updatedBy = created_by
-				projectTask.projectTemplateExternalId = projectTask.projectTemplateExternalId + externalId_suffixing
-				delete projectTask._id
-				duplicateTasks.push(projectTask)
 			})
-
-			await projectsTaskCollection.insertMany(duplicateTasks)
-
-			const projectsTasksDetailsAfterInsert = await projectsTaskCollection
-				.find({
-					externalId: {
-						$in: duplicateTasks.map((tasks) => tasks.externalId),
-					},
-				})
-				.toArray()
-
-			taskMap = _.mapValues(taskMap, (externalId) => {
-				// Find the corresponding object from projectsTasksDetailsAfterInsert
-				const task = _.find(projectsTasksDetailsAfterInsert, { externalId: externalId })
-
-				// If found, replace externalId with _id; otherwise, keep the externalId
-				return task ? ObjectId(task._id) : externalId
-			})
-			// update the project template after tasks created
-			templateProjects.forEach((project) => {
-				let projectTasks = []
-				project.tasks.forEach((task) => {
-					projectTasks.push(taskMap[task])
-				})
-				project.tasks = projectTasks
-				project.taskSequence = taskSeqMap[project.externalId]
-			})
-			// create project templates
-			await projectsCollection.insertMany(templateProjects)
 		}
 
-		const projectTemplatesAfterInsert = await projectsCollection
-			.find({
-				externalId: {
-					$in: templateProjects.map((projects) => projects.externalId),
-				},
-			})
-			.toArray()
+		// seggregate templates based on type , all projects should be created in projectTemplates and others in solutions collection
+		if (resourceDetails.type == common.PROJECT) projectTemplateIds.push(ObjectId(resourceDetails.published_id))
+		else solutionTemplateIds.push(ObjectId(resourceDetails.published_id))
 
-		// Add a new 'type', 'resource_id' , 'rolloutId' keys to each project
-		const updatedProjectTemplates = projectTemplatesAfterInsert.map((project) => ({
-			...project, // Spread the existing project fields
-			certificate,
-			type: common.PROJECT,
-			resource_id: templateProjectsIdMap[project.externalId].resource_id,
-			rolloutId: templateProjectsIdMap[project.externalId].rollout_id,
-		}))
+		// handling only project creation now. Make changes here for observation , survey etc...
+		if (projectTemplateIds.length > 0) {
+			const projectsCollection = mongoDb.collection(COLLECTIONS.TEMPLATES)
+			const projectTemplates = await projectsCollection
+				.find({
+					_id: {
+						$in: projectTemplateIds,
+					},
+				})
+				.toArray()
 
-		return [...updatedProjectTemplates]
+			//templateProjectsTaskMap = {
+			// 	projectExternalId : [ list of last ids]
+			// }
+			let templateProjectsTaskMap = {}
+			//templateProjectsIdMap = {
+			// resource_id: resource id in the resource table,
+			// rollout_id: rollout id in the rollout table,
+			// }
+			let templateProjectsIdMap = {}
+			// array of project templates to create
+			let templateProjects = []
+			// array of template tasks to create
+			let templateTaskIds = []
+			// array of created template tasks
+			let duplicateTasks = []
+
+			//taskMap = {
+			// 	projectTaskId : duplicateProjectTaskId
+			// }
+			let taskMap = {}
+			let taskSeqMap = {}
+			const externalId_suffixing = `${Date.now()}${common.SUFFIX_CHILD}`
+
+			if (projectTemplates.length > 0) {
+				// create project duplicate template to create
+				projectTemplates.forEach((project) => {
+					project.externalId = project.externalId + externalId_suffixing
+					taskSeqMap[project.externalId] = project.taskSequence
+					delete project._id
+					project.updatedAt = new Date()
+					project.createdAt = new Date()
+					project.createdBy = created_by
+					project.updatedBy = created_by
+					project.isReusable = false
+					templateProjectsTaskMap[project.externalId] = project.tasks
+					templateProjectsIdMap[project.externalId] = {
+						resource_id: resourceDetails.resource_id,
+						rollout_id: resourceDetails.rolloutId,
+					}
+
+					templateProjects.push(project)
+				})
+				// array of tasks to create
+				Object.keys(templateProjectsTaskMap).forEach(async (projectExtId) => {
+					templateTaskIds = [...templateTaskIds, ...templateProjectsTaskMap[projectExtId]]
+				})
+				templateTaskIds = [...new Set(templateTaskIds)]
+				const projectsTaskCollection = mongoDb.collection(COLLECTIONS.TASKS)
+				const projectsTasksDetails = await projectsTaskCollection
+					.find({
+						_id: {
+							$in: templateTaskIds,
+						},
+					})
+					.toArray()
+				// duplicate project task details to create
+				projectsTasksDetails.forEach((projectTask) => {
+					let oldTaskExtId = projectTask.externalId
+					projectTask.externalId = utils.generateUniqueId()
+					if (certificate) {
+						const conditionsList = Object.keys(certificate.criteria.conditions)
+						conditionsList.forEach((condition) => {
+							Object.keys(certificate.criteria.conditions[condition].conditions).forEach(
+								(subCondition) => {
+									if (
+										certificate.criteria.conditions[condition].conditions[subCondition].scope ==
+											common.TASK &&
+										certificate?.criteria?.conditions[condition].conditions[subCondition]
+											?.taskName &&
+										certificate?.criteria?.conditions[condition]?.conditions[
+											subCondition
+										]?.taskName.toLowerCase() == projectTask.name.toLowerCase()
+									) {
+										certificate.criteria.conditions[condition].conditions[projectTask.externalId] =
+											_.omit(
+												certificate.criteria.conditions[condition].conditions[subCondition],
+												'taskName',
+												'sequence_no'
+											)
+										delete certificate.criteria.conditions[condition].conditions[subCondition]
+										certificate.criteria.conditions[condition].conditions[
+											projectTask.externalId
+										].taskDetails = [projectTask.externalId]
+										certificate.criteria.conditions[condition].expression =
+											certificate.criteria.conditions[condition].expression.replace(
+												subCondition,
+												projectTask.externalId
+											)
+									}
+								}
+							)
+						})
+					}
+					// replace old task id by new task id in sequence
+					_.update(taskSeqMap, projectTask.projectTemplateExternalId + externalId_suffixing, (tasks) =>
+						tasks.map((task) => (task === oldTaskExtId ? projectTask.externalId : task))
+					)
+					taskMap[projectTask._id] = projectTask.externalId
+					projectTask.updatedAt = new Date()
+					projectTask.createdAt = new Date()
+					projectTask.createdBy = created_by
+					projectTask.updatedBy = created_by
+					projectTask.projectTemplateExternalId = projectTask.projectTemplateExternalId + externalId_suffixing
+					delete projectTask._id
+					duplicateTasks.push(projectTask)
+				})
+
+				await projectsTaskCollection.insertMany(duplicateTasks)
+
+				const projectsTasksDetailsAfterInsert = await projectsTaskCollection
+					.find({
+						externalId: {
+							$in: duplicateTasks.map((tasks) => tasks.externalId),
+						},
+					})
+					.toArray()
+
+				if (certificate) {
+					const conditionsList = Object.keys(certificate.criteria.conditions)
+					conditionsList.forEach((condition) => {
+						Object.keys(certificate.criteria.conditions[condition].conditions).forEach((subCondition) => {
+							if (
+								certificate.criteria.conditions[condition].conditions[subCondition].scope ==
+									common.TASK &&
+								certificate?.criteria?.conditions[condition].conditions[subCondition]?.taskDetails &&
+								certificate?.criteria?.conditions[condition].conditions[subCondition]?.taskDetails
+									.length > 0
+							) {
+								let taskDetailObjectIds = []
+								certificate?.criteria?.conditions[condition].conditions[
+									subCondition
+								]?.taskDetails.forEach((taskDetail) => {
+									const taskFound = projectsTasksDetailsAfterInsert.find(
+										(task) => task.externalId == taskDetail
+									)
+									if (taskFound) taskDetailObjectIds.push(taskFound._id)
+								})
+								certificate.criteria.conditions[condition].conditions[subCondition].taskDetails =
+									taskDetailObjectIds ? taskDetailObjectIds : []
+							}
+						})
+					})
+				}
+
+				taskMap = _.mapValues(taskMap, (externalId) => {
+					// Find the corresponding object from projectsTasksDetailsAfterInsert
+					const task = _.find(projectsTasksDetailsAfterInsert, { externalId: externalId })
+
+					// If found, replace externalId with _id; otherwise, keep the externalId
+					return task ? ObjectId(task._id) : externalId
+				})
+				// update the project template after tasks created
+				templateProjects.forEach((project) => {
+					let projectTasks = []
+					project.tasks.forEach((task) => {
+						projectTasks.push(taskMap[task])
+					})
+					project.tasks = projectTasks
+					project.taskSequence = taskSeqMap[project.externalId]
+				})
+				// create project templates
+				await projectsCollection.insertMany(templateProjects)
+			}
+
+			const projectTemplatesAfterInsert = await projectsCollection
+				.find({
+					externalId: {
+						$in: templateProjects.map((projects) => projects.externalId),
+					},
+				})
+				.toArray()
+
+			// Add a new 'type', 'resource_id' , 'rolloutId' keys to each project
+			const updatedProjectTemplates = projectTemplatesAfterInsert.map((project) => ({
+				...project, // Spread the existing project fields
+				certificate,
+				type: common.PROJECT,
+				resource_id: templateProjectsIdMap[project.externalId].resource_id,
+				rolloutId: templateProjectsIdMap[project.externalId].rollout_id,
+			}))
+
+			return [...updatedProjectTemplates]
+		}
+	} catch (error) {
+		console.log('ERROR in DUPLICATING TEMPLATE : ', error)
+		throw error
 	}
 }
 
@@ -780,7 +859,7 @@ const processTargetingCriteria = async (targetingData) => {
 	})
 
 	// convert the 'entityType' array to coma separated string
-	scope.entityType = scope?.entityType ? scope?.entityType.join(',') : ''
+	scope.entityType = scope?.entityType ? [...new Set(scope.entityType)] : []
 	// refactor metaInformation to remove duplicates
 	Object.keys(metaInformation).forEach((key) => {
 		if (Array.isArray(metaInformation[key] && metaInformation[key].length > 0)) {
@@ -857,7 +936,6 @@ const formatProgramTemplate = async (programData) => {
 				},
 			}
 		}
-
 		return { success: true, programDocument }
 	} catch (error) {
 		console.error('Error in formatTemplate:', error.message)
@@ -1238,14 +1316,13 @@ const publishProgram = function async(programData) {
 			const programScope = template.scope
 
 			let result = {}
-			let programId = template?._id
+			let programId = template?._id ? ObjectId(template?._id) : null
 
 			// Insert the template into the database
 			const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
-				let updateData = template
-				delete updateData._id
+				let updateData = _.omit(template, '_id', 'published_id')
 
 				result = await programsCollection.updateOne(
 					{ _id: template?._id },
@@ -1269,22 +1346,23 @@ const publishProgram = function async(programData) {
 				resourceStatus?.status == common.ROLLOUT_STATUS_ROLLED_OUT &&
 				resourceStatus?.published_id != undefined
 			) {
-				const updateTemplate = {
-					scope: formattedTemplate.programDocument.scope,
-					endDate: formattedTemplate.programDocument.endDate,
-					startDate: formattedTemplate.programDocument.startDate,
-				}
+				const updateTemplate = _.omit(template, '_id', 'published_id')
 				const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 				result = await solutionsCollection.updateOne(
-					{ _id: resourceDetailsCreate?.published_id },
+					{ _id: ObjectId(resourceStatus?.published_id) },
 					{
 						$set: updateTemplate,
 					}
 				)
 
-				solutions.push(resourceDetailsCreate?.published_id)
+				solutions.push({ rolloutId: resourceDetailsCreate?.rolloutId })
 			} else {
-				let duplicateResource = await duplicateResources(resourceDetailsCreate, programData.created_by)
+				const certificate = programData?.resource?.certificate
+				let duplicateResource = await duplicateResources(
+					resourceDetailsCreate,
+					certificate,
+					programData.created_by
+				)
 				solutions = await createSolutions(
 					duplicateResource,
 					{
