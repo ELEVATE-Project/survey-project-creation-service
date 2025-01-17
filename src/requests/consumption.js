@@ -967,9 +967,13 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 			const issuerNameElement = $(`#${issuerNameTag}`)
 			issuerNameElement.text(utils.escapeXml(certificateData.issuer))
 
+			const issuedDateElement = $(`svg_101`)
+
+			issuedDateElement.text(`on {{dateFormat issuanceDate "DD MMMM  YYYY"}}`)
+
 			// update signature
 			for (let index = 1; index <= certificateData.signature.no_of_signature; index++) {
-				const signatureNameTag = `signatureTitleName${index}`
+				const signatureNameTag = `signatureTitle${index}a`
 				const signatureDesignationTag = `signatureTitleDesignation${index}`
 				const signatureImgTag = `signatureImg${index}`
 				const imageData = await downloadAndConvertToBase64(certificateData.signature[signatureImgTag])
