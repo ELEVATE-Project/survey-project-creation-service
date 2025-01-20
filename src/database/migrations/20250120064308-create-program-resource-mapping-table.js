@@ -10,6 +10,7 @@ module.exports = {
 			},
 			program_id: {
 				type: Sequelize.INTEGER,
+				primaryKey: true,
 				allowNull: false,
 			},
 			resource_id: {

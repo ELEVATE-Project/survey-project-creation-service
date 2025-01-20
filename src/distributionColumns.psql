@@ -15,3 +15,4 @@ SELECT create_distributed_table('organization_configs', 'organization_id');
 
 
 SELECT create_distributed_table('rollouts', 'organization_id');
+SELECT create_distributed_table('program_resource_mapping', 'program_id');
