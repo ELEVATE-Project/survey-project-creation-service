@@ -90,6 +90,10 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.BOOLEAN,
 				defaultValue: false,
 			},
+			is_reusable: {
+				type: DataTypes.BOOLEAN,
+				defaultValue: true,
+			},
 		},
 		{
 			modelName: 'Resource',
