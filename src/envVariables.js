@@ -247,6 +247,11 @@ let environmentVariables = {
 			value: 'self',
 		},
 	},
+	DEFAULT_PROGRAM_DESIGNER_ROLES: {
+		message: 'Default program designer role required',
+		optional: true,
+		default: 'program_designer',
+	},
 }
 
 let success = true
