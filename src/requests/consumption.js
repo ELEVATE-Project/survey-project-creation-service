@@ -967,9 +967,9 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 			const issuerNameElement = $(`#${issuerNameTag}`)
 			issuerNameElement.text(utils.escapeXml(certificateData.issuer))
 
-			const issuedDateElement = $(`svg_101`)
+			// const issuedDateElement = $(`svg_101`)
 
-			issuedDateElement.text(`on {{dateFormat issuanceDate "DD MMMM  YYYY"}}`)
+			// issuedDateElement.text(`on {{dateFormat issuanceDate "DD MMMM  YYYY"}}`)
 
 			// update signature
 			for (let index = 1; index <= certificateData.signature.no_of_signature; index++) {
@@ -978,11 +978,15 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				const signatureImgTag = `signatureImg${index}`
 				const imageData = await downloadAndConvertToBase64(certificateData.signature[signatureImgTag])
 				const signatureNameElement = $(`#${signatureNameTag}`)
-				const signatureDesignationElement = $(`#${signatureDesignationTag}`)
+				// const signatureDesignationElement = $(`#${signatureDesignationTag}`)
 				const signatureImgElement = $(`#${signatureImgTag}`)
 				signatureImgElement.attr('xlink:href', utils.escapeXml(imageData))
-				signatureNameElement.text(utils.escapeXml(certificateData.signature[signatureImgTag]))
-				signatureDesignationElement.text(utils.escapeXml(certificateData.signature[signatureDesignationTag]))
+				signatureNameElement.text(
+					`${utils.escapeXml(certificateData.signature[signatureImgTag])} , ${utils.escapeXml(
+						certificateData.signature[signatureDesignationTag]
+					)}`
+				)
+				// signatureDesignationElement.text()
 			}
 
 			// update logos
