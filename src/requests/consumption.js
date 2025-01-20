@@ -967,16 +967,6 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 			const issuerNameElement = $(`#${issuerNameTag}`)
 			issuerNameElement.text(utils.escapeXml(certificateData.issuer))
 
-			const issuedDateElement = $(`svg_101`)
-
-			const decodeHtmlEntities = (str) => {
-				const textArea = document.createElement('textarea')
-				textArea.innerHTML = str
-				return textArea.value
-			}
-
-			issuedDateElement.text(decodeHtmlEntities(`on {{dateFormat issuanceDate "DD MMMM YYYY"}}`))
-
 			// update signature
 			for (let index = 1; index <= certificateData.signature.no_of_signature; index++) {
 				const signatureNameTag = `signatureTitle${index}a`
@@ -1005,6 +995,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 
 			// updated svg
 			let updatedSvg = $.xml()
+			updatedSvg = updatedSvg.replace(/&quot;/g, '"')
 
 			const uniqueId = utils.generateUniqueId() //generate a unique id for folder
 			let fileName = `${uniqueId}.svg` //create a unique file name
