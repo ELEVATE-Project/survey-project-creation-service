@@ -6023,7 +6023,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/addResource400Response'
+                $ref: '#/components/schemas/deleteProgram400Response'
   /scp/v1/programs/details/{id}:
     get:
       summary: Program Details
@@ -8324,21 +8324,6 @@ components:
           items:
             type: string
           example: []
-
-    addResource400Response:
-      type: object
-      properties:
-        responseCode:
-          type: string
-          example: CLIENT_ERROR
-        message:
-          type: string
-          example: Invalid request. Resource IDs are missing or invalid.
-        error:
-          type: array
-          items:
-            type: string
-          example: ['resource_ids is a required field', 'program_id must be a valid number']
 
     config:
       type: object
