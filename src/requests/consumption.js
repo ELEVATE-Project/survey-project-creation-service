@@ -974,7 +974,6 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				const signatureImgTag = `signatureImg${index}`
 				const imageData = await downloadAndConvertToBase64(certificateData.signature[signatureImgTag])
 				const signatureNameElement = $(`#${signatureNameTag}`)
-				// const signatureDesignationElement = $(`#${signatureDesignationTag}`)
 				const signatureImgElement = $(`#${signatureImgTag}`)
 				signatureImgElement.attr('xlink:href', utils.escapeXml(imageData))
 				signatureNameElement.text(
@@ -982,7 +981,6 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 						certificateData.signature[signatureDesignationTag]
 					)}`
 				)
-				// signatureDesignationElement.text()
 			}
 
 			// update logos
@@ -995,6 +993,8 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 
 			// updated svg
 			let updatedSvg = $.xml()
+
+			// replace quote escape charecters with "
 			updatedSvg = updatedSvg.replace(/&quot;/g, '"')
 
 			const uniqueId = utils.generateUniqueId() //generate a unique id for folder
