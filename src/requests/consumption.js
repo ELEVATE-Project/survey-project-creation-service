@@ -982,7 +982,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				const signatureImgElement = $(`#${signatureImgTag}`)
 				signatureImgElement.attr('xlink:href', utils.escapeXml(imageData))
 				signatureNameElement.text(
-					`${utils.escapeXml(certificateData.signature[`signatureTitle${index}`])} , ${utils.escapeXml(
+					`${utils.escapeXml(certificateData.signature[`signatureTitleName${index}`])} , ${utils.escapeXml(
 						certificateData.signature[signatureDesignationTag]
 					)}`
 				)
