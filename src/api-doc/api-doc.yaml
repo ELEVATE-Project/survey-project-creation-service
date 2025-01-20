@@ -6023,7 +6023,7 @@ paths:
           content:
             application.json:
               schema:
-                $ref: '#/components/schemas/deleteProgram400Response'
+                $ref: '#/components/schemas/addResource400Response'
   /scp/v1/programs/details/{id}:
     get:
       summary: Program Details
@@ -6370,7 +6370,6 @@ paths:
                               type: string
                               format: date-time
                               example: '2024-11-29T11:36:31.117Z'
-
   /scp/v1/programs/addResource/{program_id}:
     post:
       summary: Add resources to program
@@ -6378,8 +6377,8 @@ paths:
         - Programs
       description: |-
         You can use this API to add resource to program
-         - The API Endpoint  to add resource to program is `/scp/v1/programs/addResource` 
-         - It is mandatory to provide values for parameters which are marked as `required`
+        - The API Endpoint to add resource to program is `/scp/v1/programs/addResource` 
+        - It is mandatory to provide values for parameters which are marked as `required`
       parameters:
         - name: X-auth-token
           in: header
@@ -6392,7 +6391,7 @@ paths:
           description: Mention the program id to append resources.
           schema:
             type: number
-          required: false
+          required: true
           example: 123
       requestBody:
         required: true
@@ -6400,15 +6399,17 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - resource_ids
               properties:
-                reource_ids:
+                resource_ids:
                   type: array
                   items:
                     type: integer
                   example: [2, 12, 200, 1]
       responses:
         '200':
-          description: Resource added successfully
+          description: Resource added to program successfully
           content:
             application/json:
               schema:
@@ -6419,14 +6420,19 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: Resource added successfully
+                    example: Resource added to program successfully
                   result:
                     type: object
                     properties:
                       id:
                         type: number
                         example: 123
-
+        '400':
+          description: Bad Request. Program not found
+          content:
+            application.json:
+              schema:
+                $ref: '#/components/schemas/deleteProgram400Response'
   '/scp/v1/programs/submitForReview/{id}':
     post:
       summary: Submit Program for Review
@@ -8318,6 +8324,22 @@ components:
           items:
             type: string
           example: []
+
+    addResource400Response:
+      type: object
+      properties:
+        responseCode:
+          type: string
+          example: CLIENT_ERROR
+        message:
+          type: string
+          example: Invalid request. Resource IDs are missing or invalid.
+        error:
+          type: array
+          items:
+            type: string
+          example: ['resource_ids is a required field', 'program_id must be a valid number']
+
     config:
       type: object
       properties:
