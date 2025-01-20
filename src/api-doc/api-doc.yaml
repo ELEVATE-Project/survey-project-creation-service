@@ -6371,6 +6371,62 @@ paths:
                               format: date-time
                               example: '2024-11-29T11:36:31.117Z'
 
+  /scp/v1/programs/addResource/{program_id}:
+    post:
+      summary: Add resources to program
+      tags:
+        - Programs
+      description: |-
+        You can use this API to add resource to program
+         - The API Endpoint  to add resource to program is `/scp/v1/programs/addResource` 
+         - It is mandatory to provide values for parameters which are marked as `required`
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: program_id
+          description: Mention the program id to append resources.
+          schema:
+            type: number
+          required: false
+          example: 123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reource_ids:
+                  type: array
+                  items:
+                    type: integer
+                  example: [2, 12, 200, 1]
+      responses:
+        '200':
+          description: Resource added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Resource added successfully
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                        example: 123
+
   '/scp/v1/programs/submitForReview/{id}':
     post:
       summary: Submit Program for Review
