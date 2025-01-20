@@ -969,7 +969,13 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 
 			const issuedDateElement = $(`svg_101`)
 
-			issuedDateElement.text(`on {{{dateFormat issuanceDate "DD MMMM YYYY"}}}`)
+			const decodeHtmlEntities = (str) => {
+				const textArea = document.createElement('textarea')
+				textArea.innerHTML = str
+				return textArea.value
+			}
+
+			issuedDateElement.text(decodeHtmlEntities(`on {{dateFormat issuanceDate "DD MMMM YYYY"}}`))
 
 			// update signature
 			for (let index = 1; index <= certificateData.signature.no_of_signature; index++) {
