@@ -627,7 +627,11 @@ function formatToTitleCase(value) {
 
 function generateExternalId(title) {
 	const words = title.split(/[\s-]+/)
-	const abbreviation = words.map((word) => (word[0] || '').toUpperCase()).join('')
+	const abbreviation =
+		words
+			.filter((word) => /^[a-zA-Z0-9]+$/.test(word)) // Filter only alphanumeric words
+			.map((word) => (word[0] || '').toUpperCase())
+			.join('') || 'IMP' //append word 'IMP' if abbreviation is empty
 	const uniqueSuffix = Date.now()
 	return `${abbreviation}-${uniqueSuffix}`
 }
