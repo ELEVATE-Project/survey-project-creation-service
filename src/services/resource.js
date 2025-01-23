@@ -335,11 +335,9 @@ module.exports = class resourceHelper {
 			res.organization = orgDetails[res.organization_id] ? orgDetails[res.organization_id] : {}
 			res.creator = userDetails[res.user_id] && userDetails[res.user_id].name ? userDetails[res.user_id].name : ''
 			res.notes = res?.meta?.notes ? res.meta.notes : ''
-			if (res?.type == common.RESOURCE_TYPE_PROGRAM && res?.meta?.start_date) {
-				res.start_date = res?.meta?.start_date
-			}
-			if (res?.type == common.RESOURCE_TYPE_PROGRAM && res?.meta?.end_date) {
-				res.end_date = res?.meta?.end_date
+			if (res?.type == common.RESOURCE_TYPE_PROGRAM) {
+				res.start_date = res?.meta?.start_date ? res?.meta?.start_date : ''
+				res.end_date = res?.meta?.end_date ? res?.meta?.end_date : ''
 			}
 
 			if (additionalResourceInformation[res.id]) {
