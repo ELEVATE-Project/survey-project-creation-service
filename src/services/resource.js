@@ -280,7 +280,18 @@ module.exports = class resourceHelper {
 		// fetches data from resource table with the passed filters
 		const response = await resourceQueries.resourceList(
 			filter,
-			['id', 'title', 'organization_id', 'type', 'status', 'user_id', 'created_at', 'updated_at', 'stage'],
+			[
+				'id',
+				'title',
+				'organization_id',
+				'type',
+				'status',
+				'user_id',
+				'created_at',
+				'updated_at',
+				'stage',
+				'meta',
+			],
 			sort,
 			page,
 			limit
@@ -324,6 +335,12 @@ module.exports = class resourceHelper {
 			res.organization = orgDetails[res.organization_id] ? orgDetails[res.organization_id] : {}
 			res.creator = userDetails[res.user_id] && userDetails[res.user_id].name ? userDetails[res.user_id].name : ''
 			res.notes = res?.meta?.notes ? res.meta.notes : ''
+			if (res?.type == common.RESOURCE_TYPE_PROGRAM && res?.meta?.start_date) {
+				res.start_date = res?.meta?.start_date
+			}
+			if (res?.type == common.RESOURCE_TYPE_PROGRAM && res?.meta?.end_date) {
+				res.end_date = res?.meta?.end_date
+			}
 
 			if (additionalResourceInformation[res.id]) {
 				res = {
