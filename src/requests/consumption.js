@@ -814,71 +814,79 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
  * @returns {Object} - Response contains scope and metaInformation
  */
 const processTargetingCriteria = async (targetingData) => {
-	let scope = {
-		roles: [],
-		entityType: [],
-	}
-	let metaInformation = {
-		recommendedFor: [],
-	}
-	// metaInformation[common.STATE] = [] //for program listing
+	try {
+		let scope = {
+			roles: [],
+			entityType: [],
+		}
+		let metaInformation = {
+			recommendedFor: [],
+		}
+		// metaInformation[common.STATE] = [] //for program listing
 
-	if (targetingData) {
-		// Iterate through each targeting criterion
-		targetingData.forEach((targeting) => {
-			const targetingEntity = targeting?.entity_targeting?.value
+		if (targetingData) {
+			// Iterate through each targeting criterion
+			targetingData.forEach((targeting) => {
+				const targetingEntity = targeting?.entity_targeting?.value
 
-			scope.entityType.push(targetingEntity)
+				scope.entityType.push(targetingEntity)
 
-			if (targeting?.roles?.length) {
-				// Add unique roles to scope and metaInformation
-				targeting.roles.forEach(({ code, label }) => {
-					scope.roles.push(code)
-					metaInformation.recommendedFor.push(label)
-				})
-			} else {
-				// Reset roles and recommendedFor if no roles are present
-				scope.roles = []
-				metaInformation.recommendedFor = []
-			}
-			Object.keys(targeting).map((targetingKeys) => {
-				const targetingEntity = targeting.hasOwnProperty(targetingKeys)
-					? targeting[targetingKeys].filter((target) => target?.name != null).map((target) => target?.name)
-					: []
-				if (metaInformation.hasOwnProperty(targetingKeys)) {
-					metaInformation[targetingKeys] = [...metaInformation[targetingKeys], ...targetingEntity]
+				if (targeting?.roles?.length) {
+					// Add unique roles to scope and metaInformation
+					targeting.roles.forEach(({ code, label }) => {
+						scope.roles.push(code)
+						metaInformation.recommendedFor.push(label)
+					})
 				} else {
-					metaInformation[targetingKeys] = targetingEntity
+					// Reset roles and recommendedFor if no roles are present
+					scope.roles = []
+					metaInformation.recommendedFor = []
 				}
-			})
+				Object.keys(targeting).map((targetingKeys) => {
+					const targetingEntity = Array.isArray(targeting[targetingKeys])
+						? targeting[targetingKeys].reduce((acc, target) => {
+								if (target?.name) acc.push(target.name) // Add only if target?.name exists
+								return acc
+						  }, [])
+						: []
+					if (metaInformation.hasOwnProperty(targetingKeys)) {
+						metaInformation[targetingKeys] = [...metaInformation[targetingKeys], ...targetingEntity]
+					} else {
+						metaInformation[targetingKeys] = targetingEntity
+					}
+				})
 
-			// Add entity-specific targets to scope and metaInformation
-			targeting[targetingEntity]?.forEach(({ name, _id }) => {
-				scope[targetingEntity] = scope[targetingEntity] || []
-				scope[targetingEntity].push(_id)
-				// const targetingState = targeting?.state ? targeting?.state.map((target) => target.name) : []
-				// metaInformation[common.STATE] = [...new Set([...targetingState, ...metaInformation[common.STATE]])]
+				// Add entity-specific targets to scope and metaInformation
+				targeting[targetingEntity]?.forEach(({ name, _id }) => {
+					scope[targetingEntity] = scope[targetingEntity] || []
+					scope[targetingEntity].push(_id)
+					// const targetingState = targeting?.state ? targeting?.state.map((target) => target.name) : []
+					// metaInformation[common.STATE] = [...new Set([...targetingState, ...metaInformation[common.STATE]])]
+				})
 			})
+		}
+
+		// refactor scope to remove duplicates
+		Object.keys(scope).forEach((key) => {
+			if (Array.isArray(scope[key] && scope[key].length > 0)) {
+				scope[key] = [...new Set(scope[key])] // Remove duplicates while preserving array structure
+			}
 		})
+
+		// convert the 'entityType' array to coma separated string
+		scope.entityType = scope?.entityType ? [...new Set(scope.entityType)] : []
+		// refactor metaInformation to remove duplicates
+		Object.keys(metaInformation).forEach((key) => {
+			if (Array.isArray(metaInformation[key] && metaInformation[key].length > 0)) {
+				metaInformation[key] = [...new Set(metaInformation[key])] // Remove duplicates while preserving array structure
+			}
+		})
+
+		return { scope, metaInformation }
+	} catch (error) {
+		console.log('Error in creating targeting : ', error)
+		throw error
 	}
-
-	// refactor scope to remove duplicates
-	Object.keys(scope).forEach((key) => {
-		if (Array.isArray(scope[key] && scope[key].length > 0)) {
-			scope[key] = [...new Set(scope[key])] // Remove duplicates while preserving array structure
-		}
-	})
-
-	// convert the 'entityType' array to coma separated string
-	scope.entityType = scope?.entityType ? [...new Set(scope.entityType)] : []
-	// refactor metaInformation to remove duplicates
-	Object.keys(metaInformation).forEach((key) => {
-		if (Array.isArray(metaInformation[key] && metaInformation[key].length > 0)) {
-			metaInformation[key] = [...new Set(metaInformation[key])] // Remove duplicates while preserving array structure
-		}
-	})
-
-	return { scope, metaInformation }
 }
 
 /**
