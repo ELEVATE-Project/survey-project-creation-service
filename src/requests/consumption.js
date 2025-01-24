@@ -860,8 +860,6 @@ const processTargetingCriteria = async (targetingData) => {
 				targeting[targetingEntity]?.forEach(({ name, _id }) => {
 					scope[targetingEntity] = scope[targetingEntity] || []
 					scope[targetingEntity].push(_id)
-					// const targetingState = targeting?.state ? targeting?.state.map((target) => target.name) : []
-					// metaInformation[common.STATE] = [...new Set([...targetingState, ...metaInformation[common.STATE]])]
 				})
 			})
 		}
@@ -877,7 +875,7 @@ const processTargetingCriteria = async (targetingData) => {
 		scope.entityType = scope?.entityType ? [...new Set(scope.entityType)] : []
 		// refactor metaInformation to remove duplicates
 		Object.keys(metaInformation).forEach((key) => {
-			if (Array.isArray(metaInformation[key] && metaInformation[key].length > 0)) {
+			if (Array.isArray(metaInformation[key]) && metaInformation[key].length > 0) {
 				metaInformation[key] = [...new Set(metaInformation[key])] // Remove duplicates while preserving array structure
 			}
 		})
