@@ -51,13 +51,14 @@ module.exports = class ProgramsHelper {
 
 			// Create program and handle resource mapping
 			let programCreate = await resourceQueries.create(programData)
+			const programId = programCreate?.id
+
 			const mappingData = {
-				resource_id: programCreate.id,
+				resource_id: programId,
 				creator_id: loggedInUserId,
 				organization_id: orgId,
 			}
 			await resourceCreatorMappingQueries.create(mappingData)
-			const programId = programCreate?.id
 
 			// Handle resources if present in the request
 			if (bodyData?.resources?.length > 0) {
@@ -67,43 +68,14 @@ module.exports = class ProgramsHelper {
 			try {
 				// Upload program to cloud
 				if (programId) {
-					const programUploadStatus = await resourceService.uploadToCloud(
-						common.PROGRAM_UPLOAD_FILE_NAME,
+					await uploadAndUpdateResource(
 						programId,
-						common.RESOURCE_TYPE_PROGRAM,
+						orgId,
 						loggedInUserId,
-						bodyData
+						bodyData,
+						common.PROGRAM_UPLOAD_FILE_NAME,
+						common.RESOURCE_TYPE_PROGRAM
 					)
-
-					if (
-						programUploadStatus.result.status == httpStatusCode.ok ||
-						programUploadStatus.result.status == httpStatusCode.created
-					) {
-						let filter = {
-							id: programId,
-							organization_id: orgId,
-						}
-
-						let updateData = {
-							updated_by: loggedInUserId,
-							blob_path: programUploadStatus.blob_path,
-						}
-
-						const [updateCount] = await resourceQueries.updateOne(filter, updateData, {
-							returning: true,
-							raw: true,
-						})
-
-						if (updateCount === 0) {
-							return responses.failureResponse({
-								message: 'PROGRAM_NOT_FOUND',
-								statusCode: httpStatusCode.bad_request,
-								responseCode: 'CLIENT_ERROR',
-							})
-						}
-					} else {
-						throw new Error('FILE_UPLOADED_FAILED')
-					}
 				}
 			} catch (error) {
 				return responses.failureResponse({
@@ -132,90 +104,74 @@ module.exports = class ProgramsHelper {
  * @param {string} loggedInUserId - The ID of the logged-in user.
  */
 async function handleResources(resources, programId, orgId, loggedInUserId) {
-	// Extract resource IDs from the input resources
-	const resourceIds = resources.map((res) => res.id)
-	if (resourceIds.length === 0) return
+	try {
+		// Extract resource IDs from the input resources
+		const resourceIds = resources.map((res) => res.id)
+		if (resourceIds.length === 0) return
 
-	// Fetch resources from the database
-	const resourceList = await resourceQueries.findAll({
-		id: { [Op.in]: resourceIds },
-		organization_id: orgId,
-	})
+		// Fetch resources from the database
+		const resourceList = await resourceQueries.findAll({
+			id: { [Op.in]: resourceIds },
+			organization_id: orgId,
+		})
 
-	if (!resourceList || resourceList.length === 0) {
-		return
-	}
+		if (!resourceList || resourceList.length === 0) {
+			return
+		}
 
-	// Process each resource
-	for (let resource of resourceList) {
-		if (resource.is_reusable) {
-			let resourceDetails = await resourceService.getDetails(resource.id, resource.organization_id)
-			if (resourceDetails?.result) {
-				let matchingResource = resources.find((res) => res.id === resource.id)
-				let duplicatedResourceData = {
-					..._.omit(resourceDetails.result, ['created_at', 'updated_at']),
-					...matchingResource,
-					is_resuable: false,
-					user_id: loggedInUserId,
-					created_by: loggedInUserId,
-					updated_by: loggedInUserId,
-					status: common.RESOURCE_STATUS_PUBLISHED,
-					stage: common.RESOURCE_STAGE_COMPLETION,
-					published_id: null,
-					published_on: null,
-					organization_id: orgId,
+		// Create a map of resource details for quick lookup
+		const resourceDetailsMap = new Map()
+		for (const resource of resourceList) {
+			if (resource.is_reusable) {
+				const resourceDetails = await resourceService.getDetails(resource.id, resource.organization_id)
+				if (resourceDetails?.result) {
+					resourceDetailsMap.set(resource.id, resourceDetails.result)
 				}
-				delete duplicatedResourceData.id
-				// Create the duplicated resource in the database
-				const duplicateResource = await resourceQueries.create(duplicatedResourceData)
+			}
+		}
 
-				// Map the duplicated resource to the creator
-				await resourceCreatorMappingQueries.create({
-					resource_id: duplicateResource.id,
-					creator_id: loggedInUserId,
-					organization_id: orgId,
-				})
-
-				//Upload the duplicate resource details to cloud
-				let resourceUploadStatus = await resourceService.uploadToCloud(
-					common.UPLOAD_FILE_NAME[resource.type],
-					duplicateResource.id,
-					duplicateResource.type,
-					loggedInUserId,
-					_.omit(duplicatedResourceData, [
-						'id',
-						'is_resuable',
-						'user_id',
-						'created_by',
-						'updated_by',
-						'status',
-						'stage',
-						'',
-					])
-				)
-
-				if (
-					resourceUploadStatus.result.status == httpStatusCode.ok ||
-					resourceUploadStatus.result.status == httpStatusCode.created
-				) {
-					let filter = {
-						id: duplicateResource.id,
-						organization_id: duplicateResource.organization_id,
-					}
-
-					let updateData = {
+		// Process each resource in the input array
+		await Promise.all(
+			resources.map(async (resource) => {
+				const resourceDetails = resourceDetailsMap.get(resource.id)
+				if (resourceDetails) {
+					const duplicatedResourceData = {
+						..._.omit(resourceDetails, ['created_at', 'updated_at']),
+						...resource,
+						is_resuable: false,
+						user_id: loggedInUserId,
+						created_by: loggedInUserId,
 						updated_by: loggedInUserId,
-						blob_path: resourceUploadStatus.blob_path,
+						status: common.RESOURCE_STATUS_PUBLISHED,
+						stage: common.RESOURCE_STAGE_COMPLETION,
+						published_id: null,
+						published_on: null,
+						organization_id: orgId,
 					}
+					delete duplicatedResourceData.id
 
-					const [updateCount] = await resourceQueries.updateOne(filter, updateData, {
-						returning: true,
-						raw: true,
+					// Create the duplicated resource in the database
+					const duplicateResource = await resourceQueries.create(duplicatedResourceData)
+
+					// Map the duplicated resource to the creator
+					await resourceCreatorMappingQueries.create({
+						resource_id: duplicateResource.id,
+						creator_id: loggedInUserId,
+						organization_id: orgId,
 					})
 
-					if (matchingResource) {
-						matchingResource.id = duplicateResource.id
-					}
+					// Upload the duplicated resource to the cloud
+					await uploadAndUpdateResource(
+						duplicateResource.id,
+						orgId,
+						loggedInUserId,
+						duplicatedResourceData,
+						common.UPLOAD_FILE_NAME[duplicateResource.type],
+						duplicateResource.type
+					)
+
+					// Update the resource ID in the input array
+					resource.id = duplicateResource.id
 
 					// Map the duplicated resource to the program
 					await programResourceMappingQueries.create({
@@ -224,7 +180,50 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 						organization_id: orgId,
 					})
 				}
+			})
+		)
+	} catch (error) {
+		throw error
+	}
+}
+/**
+ * Uploads a resource to the cloud and updates its metadata in the database.
+ * @param {string} resourceId - The ID of the resource to upload and update.
+ * @param {string} orgId - The ID of the organization associated with the resource.
+ * @param {string} loggedInUserId - The ID of the user performing the operation.
+ * @param {Object} data - The data to be uploaded to the cloud.
+ * @param {string} fileName - The name of the file to be uploaded.
+ * @param {string} resourceType - The type of the resource (e.g., 'program', 'project').
+ * @returns {Promise<void>} - Resolves when the upload and update are successful.
+ */
+async function uploadAndUpdateResource(resourceId, orgId, loggedInUserId, data, fileName, resourceType) {
+	try {
+		const uploadStatus = await resourceService.uploadToCloud(
+			fileName,
+			resourceId,
+			resourceType,
+			loggedInUserId,
+			data
+		)
+
+		if (uploadStatus.result.status === httpStatusCode.ok || uploadStatus.result.status === httpStatusCode.created) {
+			const filter = { id: resourceId, organization_id: orgId }
+			const updateData = { updated_by: loggedInUserId, blob_path: uploadStatus.blob_path }
+
+			const [updateCount, updatedResource] = await resourceQueries.updateOne(filter, updateData, {
+				returning: true,
+				raw: true,
+			})
+
+			if (updateCount === 0) {
+				throw new Error('RESOURCE_NOT_FOUND')
 			}
+
+			return updatedResource
+		} else {
+			throw new Error('FILE_UPLOADED_FAILED')
 		}
+	} catch (error) {
+		throw error
 	}
 }
