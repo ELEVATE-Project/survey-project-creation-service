@@ -846,7 +846,11 @@ const processTargetingCriteria = async (targetingData) => {
 				scope[targetingEntity] = scope[targetingEntity] || []
 				metaInformation[targetingEntity] = metaInformation[targetingEntity] || []
 				scope[targetingEntity].push(_id)
-				metaInformation[common.STATE] = targeting?.state ? targeting?.state.map((target) => target.name) : []
+				const targetingState = targeting?.state ? targeting?.state.map((target) => target.name) : []
+				metaInformation[common.STATE] =
+					metaInformation[common.STATE].length > 0
+						? [...metaInformation[common.STATE], ...targetingState]
+						: []
 			})
 		})
 	}
