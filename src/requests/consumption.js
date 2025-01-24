@@ -821,6 +821,7 @@ const processTargetingCriteria = async (targetingData) => {
 	let metaInformation = {
 		recommendedFor: [],
 	}
+	metaInformation[common.STATE] = [] //for program listing
 
 	if (targetingData) {
 		// Iterate through each targeting criterion
@@ -847,10 +848,7 @@ const processTargetingCriteria = async (targetingData) => {
 				metaInformation[targetingEntity] = metaInformation[targetingEntity] || []
 				scope[targetingEntity].push(_id)
 				const targetingState = targeting?.state ? targeting?.state.map((target) => target.name) : []
-				metaInformation[common.STATE] =
-					metaInformation[common.STATE].length > 0
-						? [...metaInformation[common.STATE], ...targetingState]
-						: []
+				metaInformation[common.STATE] = [...targetingState, ...metaInformation[common.STATE]]
 			})
 		})
 	}
