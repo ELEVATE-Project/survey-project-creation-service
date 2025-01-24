@@ -9,6 +9,7 @@ const _ = require('lodash')
 const { Op } = require('sequelize')
 const resourceService = require('@services/resource')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
+const reviewsQueries = require('@database/queries/reviews')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -89,6 +90,147 @@ module.exports = class ProgramsHelper {
 				statusCode: httpStatusCode.ok,
 				message: 'PROGRAM_CREATED_SUCCESSFULLY',
 				result: { id: programId },
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Program update
+	 * @method
+	 * @name update
+	 * @param {Object} bodyData - Request body data.
+	 * @param {string} loggedInUserId - The ID of the logged-in user.
+	 * @param {string} orgId - The ID of the organization.
+	 * @returns {JSON} - Program ID or error response.
+	 */
+	static async update(resourceId, bodyData, loggedInUserId, orgId) {
+		try {
+			const forbidden_resource_statuses = [
+				common.RESOURCE_STATUS_PUBLISHED,
+				common.RESOURCE_STATUS_REJECTED,
+				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+				common.RESOURCE_STATUS_SUBMITTED,
+				common.REVIEW_STATUS_INPROGRESS,
+			]
+
+			// Fetch the program to be updated
+			const fetchResource = await resourceQueries.findOne({
+				id: resourceId,
+				organization_id: orgId,
+				status: {
+					[Op.notIn]: forbidden_resource_statuses,
+				},
+				stage: {
+					[Op.notIn]: [common.RESOURCE_STAGE_COMPLETION],
+				},
+			})
+
+			let programId = fetchResource?.id
+			if (!programId) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			// Check if the program is in the review stage and has no requested changes
+			const countReviews = await reviewsQueries.distinctResources(
+				{
+					organization_id: orgId,
+					resource_id: resourceId,
+					status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
+				},
+				['resource_id']
+			)
+
+			if (fetchResource.stage === common.RESOURCE_STAGE_REVIEW && countReviews.count == 0) {
+				return responses.failureResponse({
+					message: {
+						key: 'FORBIDDEN_RESOURCE_UPDATE',
+						interpolation: { resourceTitle: fetchResource.title, reviewer_count: countReviews },
+					},
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			// Omit fields that should not be updated
+			bodyData = _.omit(bodyData, [
+				'review_type',
+				'type',
+				'organization_id',
+				'user_id',
+				'is_resuable',
+				'stage',
+				'status',
+			])
+
+			// Fetch existing resource mappings for the program
+			const existingMappings = await programResourceMappingQueries.findAll({
+				program_id: programId,
+				organization_id: fetchResource.organization_id,
+			})
+
+			// Delete removed resources from programResourceMapping
+			const existingResourceIds = existingMappings.map((mapping) => mapping.resource_id)
+			const updatedResourceIds = bodyData.resources?.map((res) => res.id) || []
+			const resourcesToRemove = existingResourceIds.filter((id) => !updatedResourceIds.includes(id))
+
+			if (resourcesToRemove.length > 0) {
+				await programResourceMappingQueries.deleteMany(resourceId, resourcesToRemove)
+			}
+
+			// Identify new resources to be added
+			const newResources = bodyData.resources?.filter((res) => !existingResourceIds.includes(res.id)) || []
+			// Handle new resources (create duplicates, upload to cloud, and map to program)
+			if (newResources.length > 0) {
+				await handleResources(newResources, resourceId, orgId, loggedInUserId)
+			}
+
+			//Upload program information to cloud
+			await uploadAndUpdateResource(
+				programId,
+				orgId,
+				loggedInUserId,
+				bodyData,
+				common.PROGRAM_UPLOAD_FILE_NAME,
+				common.RESOURCE_TYPE_PROGRAM
+			)
+
+			// Update the program details
+			const updateData = {
+				...bodyData,
+				updated_by: loggedInUserId,
+				meta: {
+					start_date: bodyData.start_date || '',
+					end_date: bodyData.end_date || '',
+				},
+			}
+
+			const [updateCount, updatedProgram] = await resourceQueries.updateOne(
+				{ id: resourceId, organization_id: orgId },
+				updateData,
+				{ returning: true, raw: true }
+			)
+
+			if (updateCount === 0) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message:
+					fetchResource.stage == common.RESOURCE_STAGE_REVIEW
+						? 'PROGRAM_SAVED_SUCCESSFULLY'
+						: 'PROGRAM_UPDATED_SUCCESSFUL',
+				result: updatedProgram[0].id,
 			})
 		} catch (error) {
 			throw error
