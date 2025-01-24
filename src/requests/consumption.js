@@ -821,7 +821,7 @@ const processTargetingCriteria = async (targetingData) => {
 	let metaInformation = {
 		recommendedFor: [],
 	}
-	metaInformation[common.STATE] = [] //for program listing
+	// metaInformation[common.STATE] = [] //for program listing
 
 	if (targetingData) {
 		// Iterate through each targeting criterion
@@ -841,14 +841,23 @@ const processTargetingCriteria = async (targetingData) => {
 				scope.roles = []
 				metaInformation.recommendedFor = []
 			}
+			Object.keys(targeting).map((targetingKeys) => {
+				const targetingEntity = targeting.hasOwnProperty(targetingKeys)
+					? targeting[targetingKeys].filter((target) => target?.name != null).map((target) => target?.name)
+					: []
+				if (metaInformation.hasOwnProperty(targetingKeys)) {
+					metaInformation[targetingKeys] = [...metaInformation[targetingKeys], ...targetingEntity]
+				} else {
+					metaInformation[targetingKeys] = targetingEntity
+				}
+			})
 
 			// Add entity-specific targets to scope and metaInformation
 			targeting[targetingEntity]?.forEach(({ name, _id }) => {
 				scope[targetingEntity] = scope[targetingEntity] || []
-				metaInformation[targetingEntity] = metaInformation[targetingEntity] || []
 				scope[targetingEntity].push(_id)
-				const targetingState = targeting?.state ? targeting?.state.map((target) => target.name) : []
-				metaInformation[common.STATE] = [...new Set([...targetingState, ...metaInformation[common.STATE]])]
+				// const targetingState = targeting?.state ? targeting?.state.map((target) => target.name) : []
+				// metaInformation[common.STATE] = [...new Set([...targetingState, ...metaInformation[common.STATE]])]
 			})
 		})
 	}
