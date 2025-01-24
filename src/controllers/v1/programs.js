@@ -36,8 +36,7 @@ module.exports = class Programs {
 				const program = await programService.create(
 					req.body,
 					req.decodedToken.id,
-					req.decodedToken.organization_id,
-					req.query.reference_id ? parseInt(req.query.reference_id) : null
+					req.decodedToken.organization_id
 				)
 				return program
 			}
