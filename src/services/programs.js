@@ -40,7 +40,7 @@ module.exports = class ProgramsHelper {
 				status: common.RESOURCE_STATUS_DRAFT,
 				stage: common.RESOURCE_STAGE_CREATION,
 				user_id: loggedInUserId,
-				review_type: orgConfigList[common.PROJECT],
+				review_type: orgConfigList[common.RESOURCE_TYPE_PROGRAM],
 				organization_id: orgId,
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
