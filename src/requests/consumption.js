@@ -819,10 +819,11 @@ const processTargetingCriteria = async (targetingData) => {
 			roles: [],
 			entityType: [],
 		}
-		let metaInformation = {
-			recommendedFor: [],
-		}
-		// metaInformation[common.STATE] = [] //for program listing
+
+		let metaInformation = process.env.PROGRAM_META_INFO_KEYS.split(',').reduce((acc, key) => {
+			acc[key] = []
+			return acc
+		}, {})
 
 		if (targetingData) {
 			// Iterate through each targeting criterion
@@ -835,31 +836,22 @@ const processTargetingCriteria = async (targetingData) => {
 					// Add unique roles to scope and metaInformation
 					targeting.roles.forEach(({ code, label }) => {
 						scope.roles.push(code)
-						metaInformation.recommendedFor.push(label)
+						if (metaInformation.hasOwnProperty('recommendedFor')) {
+							metaInformation.recommendedFor.push(label)
+						}
 					})
 				} else {
 					// Reset roles and recommendedFor if no roles are present
 					scope.roles = []
 					metaInformation.recommendedFor = []
 				}
-				Object.keys(targeting).map((targetingKeys) => {
-					const targetingEntity = Array.isArray(targeting[targetingKeys])
-						? targeting[targetingKeys].reduce((acc, target) => {
-								if (target?.name) acc.push(target.name) // Add only if target?.name exists
-								return acc
-						  }, [])
-						: []
-					if (metaInformation.hasOwnProperty(targetingKeys)) {
-						metaInformation[targetingKeys] = [...metaInformation[targetingKeys], ...targetingEntity]
-					} else {
-						metaInformation[targetingKeys] = targetingEntity
-					}
-				})
 
-				// Add entity-specific targets to scope and metaInformation
-				targeting[targetingEntity]?.forEach(({ name, _id }) => {
+				targeting[targetingEntity]?.forEach(({ _id, name }) => {
 					scope[targetingEntity] = scope[targetingEntity] || []
 					scope[targetingEntity].push(_id)
+					if (process.env.PROGRAM_META_INFO_KEYS.split(',').includes(targetingEntity)) {
+						metaInformation[targetingEntity].push(name)
+					}
 				})
 			})
 		}
