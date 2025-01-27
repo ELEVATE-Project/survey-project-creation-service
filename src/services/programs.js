@@ -10,6 +10,8 @@ const { Op } = require('sequelize')
 const resourceService = require('@services/resource')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
 const reviewsQueries = require('@database/queries/reviews')
+const filesService = require('@services/files')
+const userRequests = require('@requests/user')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -236,6 +238,136 @@ module.exports = class ProgramsHelper {
 			throw error
 		}
 	}
+
+	/**
+	 * Program details
+	 * @method
+	 * @name details
+	 * @param {String} programId - Program id
+	 * @param {String} orgId - Organization id
+	 * @param {String} loggedInUserId - User id
+	 * @returns {JSON} - Program Details
+	 */
+	static async details(programId, orgId, loggedInUserId) {
+		try {
+			let result = {
+				organization: {},
+			}
+
+			const program = await resourceQueries.findOne({
+				id: programId,
+				organization_id: orgId,
+				user_id: loggedInUserId,
+			})
+
+			if (!program?.id) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			//get the data from storage
+			if (program.blob_path) {
+				const response = await filesService.fetchJsonFromCloud(program.blob_path)
+
+				if (
+					response.statusCode === httpStatusCode.ok &&
+					response.result &&
+					Object.keys(response.result).length > 0
+				) {
+					let resultData = {
+						...program,
+						...response.result,
+					}
+
+					resultData.viewers = []
+
+					// fetch the user if viewer is present
+					if (response?.result?.viewers?.length > 0) {
+						const viewerUserIds = response.result.viewers
+						const userDetails = await this.fetchUserDetails(viewerUserIds)
+
+						if (userDetails && Object.keys(userDetails).length > 0) {
+							resultData.viewers = viewerUserIds.map((user) => {
+								return userDetails[user]
+							})
+						}
+					}
+
+					// fetch the org details from user service
+					const organizationDetails = await orgExtensionService.fetchOrganizationDetails([
+						program.organization_id,
+					])
+					if (organizationDetails?.[program.organization_id]) {
+						resultData.organization = _.pick(organizationDetails[program.organization_id], [
+							'id',
+							'name',
+							'code',
+						])
+					}
+					result = { ...resultData, resources: [] }
+				}
+			}
+
+			//get resource details
+			const associatedResources = await programResourceMappingQueries.findAll({
+				program_id: programId,
+				organization_id: program.organization_id,
+			})
+
+			if (associatedResources.length > 0) {
+				const resourceIds = associatedResources.map((resource) => resource.resource_id)
+
+				const resources = await resourceQueries.findAll({
+					id: { [Op.in]: resourceIds },
+					organization_id: orgId,
+				})
+
+				if (resources.length > 0) {
+					// Process each resource and store in result.resources
+					await Promise.all(
+						resources.map(async (resource) => {
+							const resourceDetails = await resourceService.getDetails(
+								resource.id,
+								resource.organization_id
+							)
+							console.log(resourceDetails, 'resourceDetails')
+							// If the resource details are fetched successfully, add them to result.resources
+							if (resourceDetails.statusCode === httpStatusCode.ok) {
+								result.resources.push(resourceDetails.result)
+							}
+						})
+					)
+				}
+			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'PROGRAM_FETCHED_SUCCESSFULLY',
+				result: result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Get all details of users from the user service.
+	 * @name fetchUserDetails
+	 * @param {Array} userIds - array of userIds.
+	 * @returns {Object} - Response contain object of user details
+	 */
+	static async fetchUserDetails(userIds) {
+		const userDetailsResponse = await userRequests.list(common.FILTER_ALL.toLowerCase(), '', '', '', '', {
+			user_ids: userIds,
+		})
+		let userDetails = {}
+		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
+			userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
+		}
+		return userDetails
+	}
 }
 
 /**
@@ -247,6 +379,9 @@ module.exports = class ProgramsHelper {
  */
 async function handleResources(resources, programId, orgId, loggedInUserId) {
 	try {
+		// Return early if no resources are provided
+		if (!resources?.length) return
+
 		// Extract resource IDs from the input resources
 		const resourceIds = resources.map((res) => res.id)
 		if (resourceIds.length === 0) return
@@ -257,9 +392,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 			organization_id: orgId,
 		})
 
-		if (!resourceList || resourceList.length === 0) {
-			return
-		}
+		if (!resourceList?.length) return
 
 		// Create a map of resource details for quick lookup
 		const resourceDetailsMap = new Map()
@@ -276,51 +409,80 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 		await Promise.all(
 			resources.map(async (resource) => {
 				const resourceDetails = resourceDetailsMap.get(resource.id)
+				const isReusable = resourceDetails?.is_reusable
+
+				const commonFields = {
+					user_id: loggedInUserId,
+					organization_id: orgId,
+					updated_by: loggedInUserId,
+					updated_at: new Date(),
+				}
+
 				if (resourceDetails) {
-					const duplicatedResourceData = {
-						..._.omit(resourceDetails, ['created_at', 'updated_at']),
-						...resource,
-						is_resuable: false,
-						user_id: loggedInUserId,
-						created_by: loggedInUserId,
-						updated_by: loggedInUserId,
-						status: common.RESOURCE_STATUS_PUBLISHED,
-						stage: common.RESOURCE_STAGE_COMPLETION,
-						published_id: null,
-						published_on: null,
-						organization_id: orgId,
+					// Prepare data for duplicating reusable resource
+					if (isReusable) {
+						// Create a duplicate of the reusable resource
+						const duplicatedResourceData = {
+							..._.omit(resourceDetails, ['created_at', 'updated_at']),
+							...resource,
+							...commonFields,
+							is_reusable: false,
+							created_by: loggedInUserId,
+							status: common.RESOURCE_STATUS_PUBLISHED,
+							stage: common.RESOURCE_STAGE_COMPLETION,
+							published_id: null,
+							published_on: null,
+						}
+						delete duplicatedResourceData.id // Remove the ID to create a new resource
+
+						// Create the duplicated resource in the database
+						const duplicateResource = await resourceQueries.create(duplicatedResourceData)
+
+						// Map the duplicated resource to the creator and program
+						await Promise.all([
+							// Map the duplicated resource to the creator
+							resourceCreatorMappingQueries.create({
+								resource_id: duplicateResource.id,
+								creator_id: loggedInUserId,
+								organization_id: orgId,
+							}),
+							// Map the duplicated resource to the program
+							programResourceMappingQueries.create({
+								program_id: programId,
+								resource_id: duplicateResource.id,
+								organization_id: orgId,
+							}),
+						])
+
+						// Upload the duplicated resource to the cloud
+						await uploadAndUpdateResource(
+							duplicateResource.id,
+							orgId,
+							loggedInUserId,
+							duplicatedResourceData,
+							common.UPLOAD_FILE_NAME[duplicateResource.type],
+							duplicateResource.type
+						)
+
+						// Update the resource ID in the input array
+						resource.id = duplicateResource.id
+					} else {
+						// Update the existing resource
+						const updatedResourceData = {
+							...resourceDetails,
+							...resource,
+							...commonFields,
+						}
+
+						await uploadAndUpdateResource(
+							updatedResourceData.id,
+							orgId,
+							loggedInUserId,
+							updatedResourceData,
+							common.UPLOAD_FILE_NAME[updatedResourceData.type],
+							updatedResourceData.type
+						)
 					}
-					delete duplicatedResourceData.id
-
-					// Create the duplicated resource in the database
-					const duplicateResource = await resourceQueries.create(duplicatedResourceData)
-
-					// Map the duplicated resource to the creator
-					await resourceCreatorMappingQueries.create({
-						resource_id: duplicateResource.id,
-						creator_id: loggedInUserId,
-						organization_id: orgId,
-					})
-
-					// Upload the duplicated resource to the cloud
-					await uploadAndUpdateResource(
-						duplicateResource.id,
-						orgId,
-						loggedInUserId,
-						duplicatedResourceData,
-						common.UPLOAD_FILE_NAME[duplicateResource.type],
-						duplicateResource.type
-					)
-
-					// Update the resource ID in the input array
-					resource.id = duplicateResource.id
-
-					// Map the duplicated resource to the program
-					await programResourceMappingQueries.create({
-						program_id: programId,
-						resource_id: duplicateResource.id,
-						organization_id: orgId,
-					})
 				}
 			})
 		)
