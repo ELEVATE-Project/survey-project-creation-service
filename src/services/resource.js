@@ -414,19 +414,20 @@ module.exports = class resourceHelper {
 		)
 
 		const commentMapping = await comments.reduce((acc, item) => {
-			const programIds = programResourceObj?.programResourceMapping[item.resource_id]
-				? programResourceObj?.programResourceMapping[item.resource_id]
-				: []
+			const programIds = programResourceObj?.programResourceMapping[item.resource_id] || []
+			const hasComments = parseInt(item.comment_count, 10) > 0
+
 			if (programIds.length > 0) {
 				programIds.forEach((programId) => {
-					acc[programId] = parseInt(item.comment_count, 10) > 0 ? true : false
+					acc[programId] = hasComments
 				})
 			} else {
-				acc[item.resource_id] = parseInt(item.comment_count, 10) > 0 ? true : false
+				acc[item.resource_id] = hasComments
 			}
 
 			return acc
 		}, {})
+
 		return commentMapping
 	}
 
@@ -454,46 +455,41 @@ module.exports = class resourceHelper {
 				['id']
 			)
 			// seggregate program ids from the db response to an array
-			const programIds =
-				Array.isArray(fetchProgramIds) && fetchProgramIds.length > 0
-					? fetchProgramIds.map((program) => program.id)
-					: []
-
-			if (programIds.length > 0) {
-				// fetch the resources mapped to the program
-				const fetchProgramResourceMapping = await programResourceMappingQueries.findAll(
-					{
-						program_id: {
-							[Op.in]: programIds,
-						},
-					},
-					['program_id', 'resource_id']
-				)
-				// get the resource ids from the mapping
-				const reourcesWithInProgram =
-					Array.isArray(fetchProgramResourceMapping) && fetchProgramResourceMapping.length > 0
-						? fetchProgramResourceMapping.map((resource) => resource.resource_id)
-						: []
-
-				// create a mapping with resource ids and program ids
-				/*
-					programResourceMapping = {
-						resource_id : program_id
-					}
-				*/
-				const programResourceMapping =
-					Array.isArray(fetchProgramResourceMapping) && fetchProgramResourceMapping.length > 0
-						? fetchProgramResourceMapping.reduce((acc, resource) => {
-								if (!acc[resource.resource_id]) {
-									acc[resource.resource_id] = [] // Initialize with an empty array if the key doesn't exist
-								}
-								acc[resource.resource_id].push(resource.program_id)
-								return acc
-						  }, {})
-						: {}
-
-				return { reourcesWithInProgram, programResourceMapping }
+			const programIds = fetchProgramIds.map((program) => program.id) || []
+			if (programIds.length === 0) {
+				return { reourcesWithInProgram: [], programResourceMapping: {} }
 			}
+
+			// fetch the resources mapped to the program
+			const fetchProgramResourceMapping = await programResourceMappingQueries.findAll(
+				{
+					program_id: {
+						[Op.in]: programIds,
+					},
+				},
+				['program_id', 'resource_id']
+			)
+			// get the resource ids from the mapping
+			const reourcesWithInProgram = fetchProgramResourceMapping.map((resource) => resource.resource_id) || []
+
+			// create a mapping with resource ids and program ids
+			/*
+				programResourceMapping = {
+					resource_id : program_id
+				}
+			*/
+			const programResourceMapping =
+				Array.isArray(fetchProgramResourceMapping) && fetchProgramResourceMapping.length > 0
+					? fetchProgramResourceMapping.reduce((acc, resource) => {
+							if (!acc[resource.resource_id]) {
+								acc[resource.resource_id] = [] // Initialize with an empty array if the key doesn't exist
+							}
+							acc[resource.resource_id].push(resource.program_id)
+							return acc
+					  }, {})
+					: {}
+
+			return { reourcesWithInProgram, programResourceMapping }
 		}
 	}
 	/**
