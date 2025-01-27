@@ -20,6 +20,7 @@ const filesService = require('@services/files')
 const orgExtensionService = require('@services/organization-extension')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const commentQueries = require('@database/queries/comments')
+const programResourceMappingQueries = require('@database/queries/programResourceMapping')
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
 const interfaceRequests = require('@requests/interface')
@@ -280,7 +281,18 @@ module.exports = class resourceHelper {
 		// fetches data from resource table with the passed filters
 		const response = await resourceQueries.resourceList(
 			filter,
-			['id', 'title', 'organization_id', 'type', 'status', 'user_id', 'created_at', 'updated_at', 'stage'],
+			[
+				'id',
+				'title',
+				'organization_id',
+				'type',
+				'status',
+				'user_id',
+				'created_at',
+				'updated_at',
+				'stage',
+				'meta',
+			],
 			sort,
 			page,
 			limit
@@ -324,6 +336,10 @@ module.exports = class resourceHelper {
 			res.organization = orgDetails[res.organization_id] ? orgDetails[res.organization_id] : {}
 			res.creator = userDetails[res.user_id] && userDetails[res.user_id].name ? userDetails[res.user_id].name : ''
 			res.notes = res?.meta?.notes ? res.meta.notes : ''
+			if (res?.type == common.RESOURCE_TYPE_PROGRAM) {
+				res.start_date = res?.meta?.start_date ? res?.meta?.start_date : ''
+				res.end_date = res?.meta?.end_date ? res?.meta?.end_date : ''
+			}
 
 			if (additionalResourceInformation[res.id]) {
 				res = {
@@ -377,6 +393,15 @@ module.exports = class resourceHelper {
 	 * @returns {Object} - Object of resource ids which has comments and true value.
 	 */
 	static async fetchOpenComments(resourceIds) {
+		let programResourceObj = {}
+		if (resourceIds.length > 0) {
+			// fetch all the resource ids from the list of programs
+			programResourceObj = await this.fetchProgramResources(resourceIds)
+			// append the list of resources with in program
+			if (programResourceObj.reourcesWithInProgram.length > 0)
+				resourceIds = [...new Set([...resourceIds, ...programResourceObj.reourcesWithInProgram])]
+		}
+
 		let comments = await commentQueries.findAll(
 			{
 				resource_id: {
@@ -389,12 +414,84 @@ module.exports = class resourceHelper {
 		)
 
 		const commentMapping = await comments.reduce((acc, item) => {
-			acc[item.resource_id] = parseInt(item.comment_count, 10) > 0 ? true : false
+			const programIds = programResourceObj?.programResourceMapping[item.resource_id] || []
+			const hasComments = parseInt(item.comment_count, 10) > 0
+
+			if (programIds.length > 0) {
+				programIds.forEach((programId) => {
+					acc[programId] = hasComments
+				})
+			} else {
+				acc[item.resource_id] = hasComments
+			}
+
 			return acc
 		}, {})
+
 		return commentMapping
 	}
 
+	/**
+	 * fetch Program Resources
+	 * @name fetchProgramResources
+	 * @param {Array} resourceIds - List of resources
+	 * @returns {Object} - Object of reourcesWithInProgram and programResourceMapping
+	 * {
+	 * 		reourcesWithInProgram : [ list of reources / solutions with in the passed program ids] ,
+	 * 		programResourceMapping : { obj of resource id with an array of program id  }
+	 *  }
+	 */
+
+	static async fetchProgramResources(resourceIds) {
+		{
+			// fetch all program details from the resource id list
+			const fetchProgramIds = await resourceQueries.findAll(
+				{
+					id: {
+						[Op.in]: resourceIds,
+					},
+					type: common.RESOURCE_TYPE_PROGRAM,
+				},
+				['id']
+			)
+			// seggregate program ids from the db response to an array
+			const programIds = fetchProgramIds.map((program) => program.id) || []
+			if (programIds.length === 0) {
+				return { reourcesWithInProgram: [], programResourceMapping: {} }
+			}
+
+			// fetch the resources mapped to the program
+			const fetchProgramResourceMapping = await programResourceMappingQueries.findAll(
+				{
+					program_id: {
+						[Op.in]: programIds,
+					},
+				},
+				['program_id', 'resource_id']
+			)
+			// get the resource ids from the mapping
+			const reourcesWithInProgram = fetchProgramResourceMapping.map((resource) => resource.resource_id) || []
+
+			// create a mapping with resource ids and program ids
+			/*
+				programResourceMapping = {
+					resource_id : program_id
+				}
+			*/
+			const programResourceMapping =
+				Array.isArray(fetchProgramResourceMapping) && fetchProgramResourceMapping.length > 0
+					? fetchProgramResourceMapping.reduce((acc, resource) => {
+							if (!acc[resource.resource_id]) {
+								acc[resource.resource_id] = [] // Initialize with an empty array if the key doesn't exist
+							}
+							acc[resource.resource_id].push(resource.program_id)
+							return acc
+					  }, {})
+					: {}
+
+			return { reourcesWithInProgram, programResourceMapping }
+		}
+	}
 	/**
 	 * Generate sort filter
 	 * @name constructSortOptions
