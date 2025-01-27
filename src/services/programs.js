@@ -107,6 +107,14 @@ module.exports = class ProgramsHelper {
 	 */
 	static async update(resourceId, bodyData, loggedInUserId, orgId) {
 		try {
+			const forbidden_resource_statuses = [
+				common.RESOURCE_STATUS_PUBLISHED,
+				common.RESOURCE_STATUS_REJECTED,
+				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+				common.RESOURCE_STATUS_SUBMITTED,
+				common.REVIEW_STATUS_INPROGRESS,
+			]
+
 			// Fetch the program to be updated
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
@@ -228,30 +236,6 @@ module.exports = class ProgramsHelper {
 			throw error
 		}
 	}
-
-	static async addResource(resourceId, body, loggedInUserId, orgId) {
-		const resourcesToAppend = body.resource_ids
-		// Fetch the program to be updated
-		const fetchResource = await resourceQueries.findOne({
-			id: resourceId,
-			organization_id: orgId,
-			status: {
-				[Op.notIn]: forbidden_resource_statuses,
-			},
-			stage: {
-				[Op.notIn]: [common.RESOURCE_STAGE_COMPLETION],
-			},
-		})
-		// fetch program id from db
-		let programId = fetchResource?.id
-		if (!programId) {
-			return responses.failureResponse({
-				message: 'PROGRAM_NOT_FOUND',
-				statusCode: httpStatusCode.bad_request,
-				responseCode: 'CLIENT_ERROR',
-			})
-		}
-	}
 }
 
 /**
@@ -263,6 +247,9 @@ module.exports = class ProgramsHelper {
  */
 async function handleResources(resources, programId, orgId, loggedInUserId) {
 	try {
+		// Return early if no resources are provided
+		if (!resources?.length) return
+
 		// Extract resource IDs from the input resources
 		const resourceIds = resources.map((res) => res.id)
 		if (resourceIds.length === 0) return
@@ -273,9 +260,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 			organization_id: orgId,
 		})
 
-		if (!resourceList || resourceList.length === 0) {
-			return
-		}
+		if (!resourceList?.length) return
 
 		// Create a map of resource details for quick lookup
 		const resourceDetailsMap = new Map()
@@ -292,51 +277,80 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 		await Promise.all(
 			resources.map(async (resource) => {
 				const resourceDetails = resourceDetailsMap.get(resource.id)
+				const isReusable = resourceDetails?.is_reusable
+
+				const commonFields = {
+					user_id: loggedInUserId,
+					organization_id: orgId,
+					updated_by: loggedInUserId,
+					updated_at: new Date(),
+				}
+
 				if (resourceDetails) {
-					const duplicatedResourceData = {
-						..._.omit(resourceDetails, ['created_at', 'updated_at']),
-						...resource,
-						is_resuable: false,
-						user_id: loggedInUserId,
-						created_by: loggedInUserId,
-						updated_by: loggedInUserId,
-						status: common.RESOURCE_STATUS_PUBLISHED,
-						stage: common.RESOURCE_STAGE_COMPLETION,
-						published_id: null,
-						published_on: null,
-						organization_id: orgId,
+					// Prepare data for duplicating reusable resource
+					if (isReusable) {
+						// Create a duplicate of the reusable resource
+						const duplicatedResourceData = {
+							..._.omit(resourceDetails, ['created_at', 'updated_at']),
+							...resource,
+							...commonFields,
+							is_reusable: false,
+							created_by: loggedInUserId,
+							status: common.RESOURCE_STATUS_PUBLISHED,
+							stage: common.RESOURCE_STAGE_COMPLETION,
+							published_id: null,
+							published_on: null,
+						}
+						delete duplicatedResourceData.id // Remove the ID to create a new resource
+
+						// Create the duplicated resource in the database
+						const duplicateResource = await resourceQueries.create(duplicatedResourceData)
+
+						// Map the duplicated resource to the creator and program
+						await Promise.all([
+							// Map the duplicated resource to the creator
+							resourceCreatorMappingQueries.create({
+								resource_id: duplicateResource.id,
+								creator_id: loggedInUserId,
+								organization_id: orgId,
+							}),
+							// Map the duplicated resource to the program
+							programResourceMappingQueries.create({
+								program_id: programId,
+								resource_id: duplicateResource.id,
+								organization_id: orgId,
+							}),
+						])
+
+						// Upload the duplicated resource to the cloud
+						await uploadAndUpdateResource(
+							duplicateResource.id,
+							orgId,
+							loggedInUserId,
+							duplicatedResourceData,
+							common.UPLOAD_FILE_NAME[duplicateResource.type],
+							duplicateResource.type
+						)
+
+						// Update the resource ID in the input array
+						resource.id = duplicateResource.id
+					} else {
+						// Update the existing resource
+						const updatedResourceData = {
+							...resourceDetails,
+							...resource,
+							...commonFields,
+						}
+
+						await uploadAndUpdateResource(
+							updatedResourceData.id,
+							orgId,
+							loggedInUserId,
+							updatedResourceData,
+							common.UPLOAD_FILE_NAME[updatedResourceData.type],
+							updatedResourceData.type
+						)
 					}
-					delete duplicatedResourceData.id
-
-					// Create the duplicated resource in the database
-					const duplicateResource = await resourceQueries.create(duplicatedResourceData)
-
-					// Map the duplicated resource to the creator
-					await resourceCreatorMappingQueries.create({
-						resource_id: duplicateResource.id,
-						creator_id: loggedInUserId,
-						organization_id: orgId,
-					})
-
-					// Upload the duplicated resource to the cloud
-					await uploadAndUpdateResource(
-						duplicateResource.id,
-						orgId,
-						loggedInUserId,
-						duplicatedResourceData,
-						common.UPLOAD_FILE_NAME[duplicateResource.type],
-						duplicateResource.type
-					)
-
-					// Update the resource ID in the input array
-					resource.id = duplicateResource.id
-
-					// Map the duplicated resource to the program
-					await programResourceMappingQueries.create({
-						program_id: programId,
-						resource_id: duplicateResource.id,
-						organization_id: orgId,
-					})
 				}
 			})
 		)
@@ -385,11 +399,3 @@ async function uploadAndUpdateResource(resourceId, orgId, loggedInUserId, data, 
 		throw error
 	}
 }
-
-const forbidden_resource_statuses = [
-	common.RESOURCE_STATUS_PUBLISHED,
-	common.RESOURCE_STATUS_REJECTED,
-	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
-	common.RESOURCE_STATUS_SUBMITTED,
-	common.REVIEW_STATUS_INPROGRESS,
-]

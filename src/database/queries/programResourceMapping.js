@@ -1,5 +1,6 @@
 'use strict'
 const ProgramResourceMapping = require('../models/index').ProgramResourceMapping
+const { Op } = require('sequelize')
 
 exports.create = async (data) => {
 	try {
@@ -56,15 +57,21 @@ exports.updateOne = async (filter, update, options = {}) => {
 	}
 }
 
-exports.deleteOne = async (id, program_id) => {
+exports.deleteMany = async (programId, resourceIds) => {
 	try {
-		return await ProgramResourceMapping.destroy({
+		if (!Array.isArray(resourceIds) || resourceIds.length === 0) {
+			throw new Error('Invalid or empty IDs array')
+		}
+
+		const res = await ProgramResourceMapping.destroy({
 			where: {
-				id,
-				program_id,
+				program_id: programId,
+				resource_id: { [Op.in]: resourceIds },
 			},
 			individualHooks: true,
 		})
+
+		return res
 	} catch (error) {
 		throw error
 	}
