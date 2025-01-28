@@ -44,4 +44,17 @@ module.exports = class Programs {
 			return error
 		}
 	}
+
+	async addResource(req) {
+		try {
+			return await programService.addResource(
+				req.params.id,
+				req.body,
+				req.decodedToken.id,
+				req.decodedToken.organization_id
+			)
+		} catch (error) {
+			return error
+		}
+	}
 }

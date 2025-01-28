@@ -114,7 +114,6 @@ module.exports = class ProgramsHelper {
 				common.RESOURCE_STATUS_SUBMITTED,
 				common.REVIEW_STATUS_INPROGRESS,
 			]
-
 			// Fetch the program to be updated
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
@@ -234,6 +233,30 @@ module.exports = class ProgramsHelper {
 			})
 		} catch (error) {
 			throw error
+		}
+	}
+
+	static async addResource(programId, updateBody, loggedInUserId, orgId) {
+		// Fetch the program to be updated
+		const fetchProgram = await resourceQueries.findOne({
+			id: programId,
+			organization_id: orgId,
+			status: {
+				[Op.notIn]: forbidden_resource_statuses,
+			},
+			stage: {
+				[Op.notIn]: [common.RESOURCE_STAGE_COMPLETION],
+			},
+			type: common.RESOURCE_TYPE_PROGRAM,
+		})
+
+		let fetchedProgramId = fetchProgram?.id
+		if (!fetchedProgramId) {
+			return responses.failureResponse({
+				message: 'PROGRAM_NOT_FOUND',
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 }
