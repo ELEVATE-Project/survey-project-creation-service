@@ -252,6 +252,11 @@ let environmentVariables = {
 		optional: true,
 		default: 'program_designer',
 	},
+	PROGRAM_META_INFO_KEYS: {
+		message: 'Default program meta information required',
+		optional: true,
+		default: 'state,recommendedFor',
+	},
 }
 
 let success = true

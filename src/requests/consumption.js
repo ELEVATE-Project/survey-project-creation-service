@@ -814,60 +814,74 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
  * @returns {Object} - Response contains scope and metaInformation
  */
 const processTargetingCriteria = async (targetingData) => {
-	let scope = {
-		roles: [],
-		entityType: [],
-	}
-	let metaInformation = {
-		recommendedFor: [],
-	}
+	try {
+		let scope = {
+			roles: [],
+			entityType: [],
+		}
 
-	if (targetingData) {
-		// Iterate through each targeting criterion
-		targetingData.forEach((targeting) => {
-			const targetingEntity = targeting?.entity_targeting?.value
+		let metaInformation = process.env.PROGRAM_META_INFO_KEYS.split(',').reduce((acc, key) => {
+			acc[key] = []
+			return acc
+		}, {})
 
-			scope.entityType.push(targetingEntity)
+		if (targetingData) {
+			// Iterate through each targeting criterion
+			targetingData.forEach((targeting) => {
+				const targetingEntity = targeting?.entity_targeting?.value
 
-			if (targeting?.roles?.length) {
-				// Add unique roles to scope and metaInformation
-				targeting.roles.forEach(({ code, label }) => {
-					scope.roles.push(code)
-					metaInformation.recommendedFor.push(label)
+				scope.entityType.push(targetingEntity)
+
+				if (targeting?.roles?.length) {
+					// Add unique roles to scope and metaInformation
+					targeting.roles.forEach(({ code, label }) => {
+						scope.roles.push(code)
+						if (metaInformation.hasOwnProperty('recommendedFor')) {
+							metaInformation.recommendedFor.push(label)
+						}
+					})
+				} else {
+					// Reset roles and recommendedFor if no roles are present
+					scope.roles = []
+					metaInformation.recommendedFor = []
+				}
+
+				process.env.PROGRAM_META_INFO_KEYS.split(',').forEach((metaKey) => {
+					if (targeting[metaKey]) {
+						targeting[metaKey].forEach((eachKeys) => {
+							metaInformation[metaKey].push(eachKeys.name)
+						})
+					}
 				})
-			} else {
-				// Reset roles and recommendedFor if no roles are present
-				scope.roles = []
-				metaInformation.recommendedFor = []
-			}
 
-			// Add entity-specific targets to scope and metaInformation
-			targeting[targetingEntity]?.forEach(({ name, _id }) => {
-				scope[targetingEntity] = scope[targetingEntity] || []
-				metaInformation[targetingEntity] = metaInformation[targetingEntity] || []
-				scope[targetingEntity].push(_id)
-				metaInformation[targetingEntity].push(name)
+				targeting[targetingEntity]?.forEach(({ _id }) => {
+					scope[targetingEntity] = scope[targetingEntity] || []
+					scope[targetingEntity].push(_id)
+				})
 			})
+		}
+
+		// refactor scope to remove duplicates
+		Object.keys(scope).forEach((key) => {
+			if (Array.isArray(scope[key] && scope[key].length > 0)) {
+				scope[key] = [...new Set(scope[key])] // Remove duplicates while preserving array structure
+			}
 		})
+
+		// convert the 'entityType' array to coma separated string
+		scope.entityType = scope?.entityType ? [...new Set(scope.entityType)] : []
+		// refactor metaInformation to remove duplicates
+		Object.keys(metaInformation).forEach((key) => {
+			if (Array.isArray(metaInformation[key]) && metaInformation[key].length > 0) {
+				metaInformation[key] = [...new Set(metaInformation[key])] // Remove duplicates while preserving array structure
+			}
+		})
+
+		return { scope, metaInformation }
+	} catch (error) {
+		console.log('Error in creating targeting : ', error)
+		throw error
 	}
-
-	// refactor scope to remove duplicates
-	Object.keys(scope).forEach((key) => {
-		if (Array.isArray(scope[key] && scope[key].length > 0)) {
-			scope[key] = [...new Set(scope[key])] // Remove duplicates while preserving array structure
-		}
-	})
-
-	// convert the 'entityType' array to coma separated string
-	scope.entityType = scope?.entityType ? [...new Set(scope.entityType)] : []
-	// refactor metaInformation to remove duplicates
-	Object.keys(metaInformation).forEach((key) => {
-		if (Array.isArray(metaInformation[key] && metaInformation[key].length > 0)) {
-			metaInformation[key] = [...new Set(metaInformation[key])] // Remove duplicates while preserving array structure
-		}
-	})
-
-	return { scope, metaInformation }
 }
 
 /**
