@@ -182,6 +182,7 @@ module.exports = {
 		project: getResourceActions('PROJECT'),
 		rollout_program: getResourceActions('PROGRAM_ROLLOUT'),
 		rollout_solution: getResourceActions('SOLUTION_ROLLOUT'),
+		program: getResourceActions('PROGRAM'),
 	},
 	EVENT_ADD_USER_ACTION: 'addUserAction',
 	REQUEST_TIMEOUT_MS: 3000,
@@ -219,6 +220,7 @@ module.exports = {
 	ROLL_OUT_PATH: 'rollout/',
 	PROJECT_UPLOAD_FILE_NAME: 'project.json',
 	ROLLOUT_UPLOAD_FILE_NAME: 'rollout.json',
+	PROGRAM_UPLOAD_FILE_NAME: 'program.json',
 	SUFFIX_CHILD: '_CHILD',
 	SOLUTIONS_RESOURCE_TYPE: {
 		project: 'Improvement Project Solution',
@@ -226,9 +228,12 @@ module.exports = {
 	SOLUTIONS_TYPE: {
 		project: 'improvementProject',
 	},
-	ROLLOUT_STATUS_PUBLISHED: 'ROLLED_OUT',
 	PUBLISHED_STATUS: 'published',
 	CONSUMPTION_SERVICE_SELF: 'self',
 	INTERNAL_ACCESS_TOKEN: 'internal-access-token',
 	DIKSHA: 'diksha',
+	UPLOAD_FILE_NAME: {
+		project: 'project.json',
+		program: 'program.json',
+	},
 }
