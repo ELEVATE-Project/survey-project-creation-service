@@ -53,11 +53,7 @@ module.exports = class Programs {
 	 */
 	async details(req) {
 		try {
-			const rollout = await programService.details(
-				req.params.id,
-				req.decodedToken.organization_id,
-				req.decodedToken.id
-			)
+			const rollout = await programService.details(req.params.id, req.decodedToken.organization_id)
 			return rollout
 		} catch (error) {
 			return error

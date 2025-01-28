@@ -173,6 +173,7 @@ module.exports = {
 	KAFKA_ON: 'ON',
 	ENTITY_TYPE_MODELS: {
 		project: ['project', 'tasks', 'subTasks'],
+		program: ['program'],
 	},
 	MODEL_NAMES: {
 		RESOURCE: 'Resource',
