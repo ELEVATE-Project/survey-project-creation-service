@@ -846,13 +846,19 @@ const processTargetingCriteria = async (targetingData) => {
 					metaInformation.recommendedFor = []
 				}
 
-				targeting[targetingEntity]?.forEach(({ _id, name }) => {
-					scope[targetingEntity] = scope[targetingEntity] || []
-					scope[targetingEntity].push(_id)
-					if (process.env.PROGRAM_META_INFO_KEYS.split(',').includes(targetingEntity)) {
-						metaInformation[targetingEntity].push(name)
-					}
-				})
+				if (
+					process.env.PROGRAM_META_INFO_KEYS.split(',').forEach((metaKey) => {
+						if (targeting[metaKey]) {
+							targeting[metaKey].forEach((eachKeys) => {
+								metaInformation[metaKey].push(eachKeys.name)
+							})
+						}
+					})
+				)
+					targeting[targetingEntity]?.forEach(({ _id }) => {
+						scope[targetingEntity] = scope[targetingEntity] || []
+						scope[targetingEntity].push(_id)
+					})
 			})
 		}
 
