@@ -1293,10 +1293,10 @@ async function downloadAndConvertToBase64(url) {
 		const base64 = Buffer.from(response.data, 'binary').toString('base64')
 
 		// Get the content type (e.g., image/jpeg) from the response headers
-		const contentType = response.headers['content-type']
+		// const contentType = response.headers['content-type']
 
 		// Create the Base64 Data URL
-		const base64DataUrl = `data:${contentType};base64,${base64}`
+		const base64DataUrl = `data:image/png;base64,${base64}`
 
 		return base64DataUrl
 	} catch (error) {
