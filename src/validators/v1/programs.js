@@ -36,8 +36,6 @@ module.exports = {
 			.withMessage('Id is not valid')
 	},
 	addResources: (req) => {
-		req.body = filterRequestBody(req.body, programs.addResources)
-
 		req.checkParams('id')
 			.trim()
 			.notEmpty()

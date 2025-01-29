@@ -236,20 +236,29 @@ module.exports = class ProgramsHelper {
 		}
 	}
 
+	/**
+	 * add Resources to Program
+	 * @method
+	 * @name addResources
+	 * @param {string} programId - resource id of the program to add resources
+	 * @param {Object} bodyData - Request body data.
+	 * @param {string} loggedInUserId - The ID of the logged-in user.
+	 * @param {string} orgId - The ID of the organization.
+	 * @returns {JSON} - Program ID or error response.
+	 */
 	static async addResources(programId, updateBody, loggedInUserId, orgId) {
 		try {
 			// combine all ids to fetch from resources table
-			const allResources = [programId, ...updateBody.resource_ids.map((resourceId) => parseInt(resourceId))]
+			const resourceIds = [programId, ...updateBody.resource_ids.map((resourceId) => parseInt(resourceId))]
 			// Fetch the program to be updated
-			const fetchProgram = await resourceQueries.findAll({
-				id: { [Op.in]: allResources },
-				organization_id: orgId,
+			const fetchProgramAndResources = await resourceQueries.findAll({
+				id: { [Op.in]: resourceIds },
 			})
 
 			let programDetails,
 				resourceToCreate = []
 
-			fetchProgram.forEach((resource) => {
+			fetchProgramAndResources.forEach((resource) => {
 				// find program from the resources
 				if (resource.id == programId && resource.type == common.RESOURCE_TYPE_PROGRAM) {
 					if (resource.created_by != loggedInUserId) {
