@@ -141,6 +141,25 @@ const programs = {
 		'created_at',
 		'updated_at',
 	],
+	addResources: [
+		'id',
+		'user_id',
+		'organization_id',
+		'created_by',
+		'updated_by',
+		'review_type',
+		'type',
+		'blob_path',
+		'status',
+		'last_reviewed_on',
+		'published_on',
+		'submitted_on',
+		'published_id',
+		'reference_id',
+		'next_stage',
+		'created_at',
+		'updated_at',
+	],
 }
 
 module.exports = {

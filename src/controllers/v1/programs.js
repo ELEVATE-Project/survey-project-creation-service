@@ -45,10 +45,10 @@ module.exports = class Programs {
 		}
 	}
 
-	async addResource(req) {
+	async addResources(req) {
 		try {
-			return await programService.addResource(
-				req.params.id,
+			return await programService.addResources(
+				parseInt(req.params.id),
 				req.body,
 				req.decodedToken.id,
 				req.decodedToken.organization_id

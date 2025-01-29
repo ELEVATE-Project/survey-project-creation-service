@@ -35,4 +35,28 @@ module.exports = {
 			.isInt({ min: 1, max: 2147483647 })
 			.withMessage('Id is not valid')
 	},
+	addResources: (req) => {
+		req.body = filterRequestBody(req.body, programs.addResources)
+
+		req.checkParams('id')
+			.trim()
+			.notEmpty()
+			.withMessage('id param is empty')
+			.isNumeric()
+			.withMessage('id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('Id is not valid')
+
+		req.checkBody('resource_ids')
+			.notEmpty()
+			.withMessage('resource_ids is required')
+			.isArray()
+			.withMessage('resource_ids must be an array')
+			.custom((value) => Array.isArray(value) && value.every(Number.isInteger))
+			.withMessage('resource_ids must contain only integers')
+
+		req.checkBody()
+			.custom((body) => Object.keys(body).length === 1 && 'resource_ids' in body)
+			.withMessage('Body must contain only resource_ids and no other keys')
+	},
 }

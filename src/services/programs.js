@@ -236,27 +236,74 @@ module.exports = class ProgramsHelper {
 		}
 	}
 
-	static async addResource(programId, updateBody, loggedInUserId, orgId) {
-		// Fetch the program to be updated
-		const fetchProgram = await resourceQueries.findOne({
-			id: programId,
-			organization_id: orgId,
-			status: {
-				[Op.notIn]: forbidden_resource_statuses,
-			},
-			stage: {
-				[Op.notIn]: [common.RESOURCE_STAGE_COMPLETION],
-			},
-			type: common.RESOURCE_TYPE_PROGRAM,
-		})
-
-		let fetchedProgramId = fetchProgram?.id
-		if (!fetchedProgramId) {
-			return responses.failureResponse({
-				message: 'PROGRAM_NOT_FOUND',
-				statusCode: httpStatusCode.bad_request,
-				responseCode: 'CLIENT_ERROR',
+	static async addResources(programId, updateBody, loggedInUserId, orgId) {
+		try {
+			// combine all ids to fetch from resources table
+			const allResources = [programId, ...updateBody.resource_ids.map((resourceId) => parseInt(resourceId))]
+			// Fetch the program to be updated
+			const fetchProgram = await resourceQueries.findAll({
+				id: { [Op.in]: allResources },
+				organization_id: orgId,
 			})
+
+			let programDetails,
+				resourceToCreate = []
+
+			fetchProgram.forEach((resource) => {
+				// find program from the resources
+				if (resource.id == programId && resource.type == common.RESOURCE_TYPE_PROGRAM) {
+					if (resource.created_by != loggedInUserId) {
+						throw new Error('PROGRAM_NOT_FOUND')
+					}
+					programDetails = resource
+					return
+				}
+
+				// seggregate resources to create a copy
+				if (resource.type != common.RESOURCE_TYPE_PROGRAM && resource.is_reusable == true) {
+					resourceToCreate.push(resource)
+					return
+				}
+				// find if any isReusable false resources are added
+				if (resource.type != common.RESOURCE_TYPE_PROGRAM && resource.is_reusable == false) {
+					throw new Error('FORBIDDEN_RESOURCE_IN_PROGRAM')
+				}
+			})
+
+			if (!programDetails?.id) {
+				throw new Error('PROGRAM_NOT_FOUND')
+			}
+
+			let createdResources = []
+
+			if (resourceToCreate.length > 0) {
+				createdResources = await handleResources(resourceToCreate, programId, orgId, loggedInUserId)
+			}
+			const fetchProgramDetails = await resourceService.getDetails(programId, orgId)
+			const programData = _.omit(fetchProgramDetails.result, [
+				'created_at',
+				'updated_at',
+				'created_by',
+				'updated_by',
+				'status',
+				'organization',
+			])
+			await uploadAndUpdateResource(
+				programId,
+				orgId,
+				loggedInUserId,
+				programData,
+				common.PROGRAM_UPLOAD_FILE_NAME,
+				common.RESOURCE_TYPE_PROGRAM
+			)
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCE_ADDED_TO_PROGRAM',
+				result: programId,
+			})
+		} catch (error) {
+			throw error
 		}
 	}
 }
@@ -282,6 +329,8 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 			id: { [Op.in]: resourceIds },
 			organization_id: orgId,
 		})
+
+		let duplicateResourceIds = []
 
 		if (!resourceList?.length) return
 
@@ -328,6 +377,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 
 						// Create the duplicated resource in the database
 						const duplicateResource = await resourceQueries.create(duplicatedResourceData)
+						duplicateResourceIds.push(duplicateResource.id)
 
 						// Map the duplicated resource to the creator and program
 						await Promise.all([
@@ -377,6 +427,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 				}
 			})
 		)
+		return duplicateResourceIds
 	} catch (error) {
 		throw error
 	}
