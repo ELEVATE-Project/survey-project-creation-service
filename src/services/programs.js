@@ -248,47 +248,45 @@ module.exports = class ProgramsHelper {
 	 */
 	static async addResources(programId, updateBody, loggedInUserId, orgId) {
 		try {
-			// combine all ids to fetch from resources table
+			// Combine all IDs to fetch from the resources table
 			const resourceIds = [programId, ...updateBody.resource_ids.map((resourceId) => parseInt(resourceId))]
-			// Fetch the program to be updated
+
+			// Fetch all resources in a single query
 			const fetchProgramAndResources = await resourceQueries.findAll({
 				id: { [Op.in]: resourceIds },
 			})
 
-			let programDetails,
-				resourceToCreate = []
+			// Early validation: Check if the program exists and belongs to the logged-in user
+			const programDetails = fetchProgramAndResources.find(
+				(resource) => resource.id === programId && resource.type === common.RESOURCE_TYPE_PROGRAM
+			)
 
-			fetchProgramAndResources.forEach((resource) => {
-				// find program from the resources
-				if (resource.id == programId && resource.type == common.RESOURCE_TYPE_PROGRAM) {
-					if (resource.created_by != loggedInUserId) {
-						throw new Error('PROGRAM_NOT_FOUND')
-					}
-					programDetails = resource
-					return
-				}
-
-				// seggregate resources to create a copy
-				if (resource.type != common.RESOURCE_TYPE_PROGRAM && resource.is_reusable == true) {
-					resourceToCreate.push(resource)
-					return
-				}
-				// find if any isReusable false resources are added
-				if (resource.type != common.RESOURCE_TYPE_PROGRAM && resource.is_reusable == false) {
-					throw new Error('FORBIDDEN_RESOURCE_IN_PROGRAM')
-				}
-			})
-
-			if (!programDetails?.id) {
+			if (!programDetails || programDetails.created_by !== loggedInUserId) {
 				throw new Error('PROGRAM_NOT_FOUND')
 			}
 
-			let createdResources = []
+			// Segregate reusable and non-reusable resources
+			const resourceToCreate = fetchProgramAndResources
+				.filter((resource) => resource.id !== programId && resource.type !== common.RESOURCE_TYPE_PROGRAM)
+				.map((resource) => {
+					if (!resource.is_reusable) {
+						throw new Error('FORBIDDEN_RESOURCE_IN_PROGRAM')
+					}
+					return resource
+				})
 
-			if (resourceToCreate.length > 0) {
-				createdResources = await handleResources(resourceToCreate, programId, orgId, loggedInUserId)
-			}
-			const fetchProgramDetails = await resourceService.getDetails(programId, orgId)
+			// Run tasks in parallel
+			const [createdResources, fetchProgramDetails] = await Promise.all([
+				// Create copies of reusable resources in parallel
+				resourceToCreate.length > 0
+					? handleResources(resourceToCreate, programId, orgId, loggedInUserId)
+					: Promise.resolve([]),
+
+				// Fetch program details in parallel
+				resourceService.getDetails(programId, orgId),
+			])
+
+			// Prepare data for upload
 			const programData = _.omit(fetchProgramDetails.result, [
 				'created_at',
 				'updated_at',
@@ -297,6 +295,8 @@ module.exports = class ProgramsHelper {
 				'status',
 				'organization',
 			])
+
+			// Upload and update the program resource
 			await uploadAndUpdateResource(
 				programId,
 				orgId,
@@ -312,7 +312,9 @@ module.exports = class ProgramsHelper {
 				result: programId,
 			})
 		} catch (error) {
-			throw error
+			// Log the error for debugging
+			console.error('Error in addResources:', error.message)
+			throw error // Re-throw the error for the caller to handle
 		}
 	}
 }
