@@ -150,5 +150,6 @@
 	"PROGRAM_CREATED_SUCCESSFULLY": "Program created successfully",
 	"PROGRAM_NOT_FOUND": "Program not found",
 	"PROGRAM_SAVED_SUCCESSFULLY": "Your changes have been saved",
-	"PROGRAM_UPDATED_SUCCESSFUL": "Your program has been saved as draft"
+	"PROGRAM_UPDATED_SUCCESSFUL": "Your program has been saved as draft",
+	"PROGRAM_FETCHED_SUCCESSFULLY": "Program fetched successfully"
 }

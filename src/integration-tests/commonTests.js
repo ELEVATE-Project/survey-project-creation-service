@@ -58,21 +58,27 @@ const verifyUserRole = async () => {
 			}
 
 			// Run role checks concurrently for content_creator and reviewer roles
-			const [existingCreatorRole, existingReviewerRole, existingRolloutManagerRole] = await Promise.all([
-				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-					title: 'content_creator',
-					organization_id: 1,
-				}),
-				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-					title: 'reviewer',
-					organization_id: 1,
-				}),
+			const [existingCreatorRole, existingReviewerRole, existingRolloutManagerRole, existingProgramDesignerRole] =
+				await Promise.all([
+					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+						title: 'content_creator',
+						organization_id: 1,
+					}),
+					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+						title: 'reviewer',
+						organization_id: 1,
+					}),
 
-				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-					title: 'rollout_manager',
-					organization_id: 1,
-				}),
-			])
+					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+						title: 'rollout_manager',
+						organization_id: 1,
+					}),
+
+					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+						title: 'program_designer',
+						organization_id: 1,
+					}),
+				])
 
 			// Create role creation promises
 			let roleCreationPromises = []
@@ -114,6 +120,21 @@ const verifyUserRole = async () => {
 					visibility: 'PUBLIC',
 				})
 				roleCreationPromises.push(createRolloutManagerRole)
+			}
+
+			//add program_designer role
+			if (
+				existingProgramDesignerRole.statusCode === 400 ||
+				!existingProgramDesignerRole.body.result?.data?.length
+			) {
+				const createProgramDesignerRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+					title: 'program_designer',
+					user_type: 0,
+					organization_id: 1,
+					label: 'Program Designer',
+					visibility: 'PUBLIC',
+				})
+				roleCreationPromises.push(createProgramDesignerRole)
 			}
 
 			// Wait for both role creation requests to complete
