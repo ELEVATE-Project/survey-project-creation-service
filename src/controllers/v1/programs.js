@@ -45,6 +45,21 @@ module.exports = class Programs {
 		}
 	}
 
+	/* Details Program.
+	 * @method
+	 * @name details
+	 * @param {Object} req  user request.
+	 * @returns {JSON} - Detail of program as response.
+	 */
+	async details(req) {
+		try {
+			const rollout = await programService.details(req.params.id, req.decodedToken.organization_id)
+			return rollout
+		} catch (error) {
+			return error
+		}
+	}
+
 	async addResources(req) {
 		try {
 			return await programService.addResources(

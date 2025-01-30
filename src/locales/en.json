@@ -151,6 +151,7 @@
 	"PROGRAM_NOT_FOUND": "Program not found.",
 	"PROGRAM_SAVED_SUCCESSFULLY": "Your changes have been saved",
 	"PROGRAM_UPDATED_SUCCESSFUL": "Your program has been saved as draft",
+	"PROGRAM_FETCHED_SUCCESSFULLY": "Program fetched successfully",
 	"FORBIDDEN_RESOURCE_IN_PROGRAM": "Add Resource to Program failed.",
 	"RESOURCE_ADDED_TO_PROGRAM": "Resources have been added to the program successfully."
 }

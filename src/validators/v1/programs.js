@@ -35,6 +35,16 @@ module.exports = {
 			.isInt({ min: 1, max: 2147483647 })
 			.withMessage('Id is not valid')
 	},
+	details: (req) => {
+		req.checkParams('id')
+			.trim()
+			.notEmpty()
+			.withMessage('id param is empty')
+			.isNumeric()
+			.withMessage('id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('Id is not valid')
+	},
 	addResources: (req) => {
 		req.checkParams('id')
 			.trim()

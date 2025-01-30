@@ -10,6 +10,10 @@ const { Op } = require('sequelize')
 const resourceService = require('@services/resource')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
 const reviewsQueries = require('@database/queries/reviews')
+const filesService = require('@services/files')
+const userRequests = require('@requests/user')
+const entityModelMappingQuery = require('@database/queries/entityModelMapping')
+const utils = require('@generics/utils')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -234,6 +238,186 @@ module.exports = class ProgramsHelper {
 		} catch (error) {
 			throw error
 		}
+	}
+
+	/**
+	 * Program details
+	 * @method
+	 * @name details
+	 * @param {String} programId - Program id
+	 * @param {String} orgId - Organization id
+	 * @param {String} loggedInUserId - User id
+	 * @returns {JSON} - Program Details
+	 */
+	static async details(programId, orgId) {
+		try {
+			// Fetch the program details
+			const program = await resourceQueries.findOne({
+				id: programId,
+				organization_id: orgId,
+			})
+
+			if (!program?.id) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			// Initialize the result object
+			let result = {
+				...program,
+				organization: {},
+				viewers: [],
+				resources: [],
+			}
+
+			// Fetch the data from storage if blob_path exists
+			if (program.blob_path) {
+				const response = await filesService.fetchJsonFromCloud(program.blob_path)
+
+				if (
+					response.statusCode === httpStatusCode.ok &&
+					response.result &&
+					Object.keys(response.result).length > 0
+				) {
+					Object.assign(result, response.result)
+
+					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+						{
+							model: common.ENTITY_TYPE_MODELS[program.type],
+							status: common.STATUS_ACTIVE,
+						},
+						program.organization_id,
+						['id', 'value', 'label', 'has_entities']
+					)
+
+					if (entityTypes.length > 0) {
+						//create label value pair map
+						const entityTypeMap = entityTypes.reduce((map, type) => {
+							if (type.has_entities && Array.isArray(type.entities) && type.entities.length > 0) {
+								map[type.value] = type.entities
+									.filter((entity) => entity.status === common.STATUS_ACTIVE)
+									.map((entity) => ({ label: entity.label, value: entity.value.toLowerCase() }))
+							}
+							return map
+						}, {})
+
+						await Promise.all(
+							entityTypes.map(async (entityType) => {
+								const key = entityType.value
+								// Skip the entity type if entities are not available
+								if (
+									entityType.has_entities &&
+									entityType.entities?.length > 0 &&
+									result.hasOwnProperty(key) &&
+									entityType.value != common.DURATION
+								) {
+									const value = result[key]
+									// If the value is already in label-value pair format, skip processing
+									if (utils.isLabelValuePair(value) || value === '') {
+										return
+									}
+
+									// Get the entities
+									const validEntities = entityTypeMap[key] || []
+
+									if (Array.isArray(value)) {
+										// Map each item in the array to a label-value pair, if it exists in validEntities
+										result[key] = value.map((item) => {
+											const match = validEntities.find(
+												(entity) => entity.value === item.toLowerCase()
+											)
+											return match || { label: item, value: item.toLowerCase() }
+										})
+									} else {
+										// If the value is a single item, find it in validEntities
+										const match = validEntities.find(
+											(entity) => entity.value === value.toLowerCase()
+										)
+										result[key] = match || { label: value, value: value.toLowerCase() }
+									}
+								}
+							})
+						)
+					}
+					// fetch the user if viewer is present
+					if (response?.result?.viewers?.length > 0) {
+						const userDetails = await this.fetchUserDetails(response.result.viewers)
+
+						if (userDetails && Object.keys(userDetails).length > 0) {
+							result.viewers = response.result.viewers.map((userId) => userDetails[userId])
+						}
+					}
+				}
+			}
+
+			// Fetch organization details and associated resources
+			const [organizationDetails, associatedResources] = await Promise.all([
+				orgExtensionService.fetchOrganizationDetails([program.organization_id]),
+				programResourceMappingQueries.findAll({
+					program_id: programId,
+					organization_id: program.organization_id,
+				}),
+			])
+
+			if (organizationDetails?.[program.organization_id]) {
+				result.organization = _.pick(organizationDetails[program.organization_id], ['id', 'name', 'code'])
+			}
+
+			// Fetch resource details if associated resources exist
+			if (associatedResources.length > 0) {
+				const resourceIds = associatedResources.map((resource) => resource.resource_id)
+
+				const resources = await resourceQueries.findAll({
+					id: { [Op.in]: resourceIds },
+					organization_id: orgId,
+				})
+
+				if (resources.length > 0) {
+					// Process each resource and store in result.resources
+					const resourceDetailsPromises = resources.map((resource) =>
+						resourceService.getDetails(resource.id, resource.organization_id)
+					)
+					const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
+					// console.log(resourceDetailsResults, 'resourceDetailsResults')
+					result.resources = resourceDetailsResults
+						.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
+						.map((resourceDetail) => resourceDetail.result)
+				}
+			}
+
+			if (result.meta) {
+				Object.assign(result, result.meta)
+			}
+			delete result.blob_path, delete result.meta
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'PROGRAM_FETCHED_SUCCESSFULLY',
+				result: result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Get all details of users from the user service.
+	 * @name fetchUserDetails
+	 * @param {Array} userIds - array of userIds.
+	 * @returns {Object} - Response contain object of user details
+	 */
+	static async fetchUserDetails(userIds) {
+		const userDetailsResponse = await userRequests.list(common.FILTER_ALL.toLowerCase(), '', '', '', '', {
+			user_ids: userIds,
+		})
+		let userDetails = {}
+		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
+			userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
+		}
+		return userDetails
 	}
 
 	/**

@@ -902,8 +902,8 @@
 			]
 		},
 		{
-			"sourceRoute": "/scp/v1/programs/addResources/:id",
-			"type": "POST",
+			"sourceRoute": "/scp/v1/programs/details/:id",
+			"type": "GET",
 			"priority": "MUST_HAVE",
 			"inSequence": false,
 			"orchestrated": false,
@@ -915,8 +915,8 @@
 			]
 		},
 		{
-			"sourceRoute": "/scp/v1/programs/details/:id",
-			"type": "GET",
+			"sourceRoute": "/scp/v1/programs/addResources/:id",
+			"type": "POST",
 			"priority": "MUST_HAVE",
 			"inSequence": false,
 			"orchestrated": false,
