@@ -23,7 +23,6 @@ const commentQueries = require('@database/queries/comments')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
-const interfaceRequests = require('@requests/interface')
 const defaultOrgId = process.env.DEFAULT_ORG_ID
 module.exports = class resourceHelper {
 	/**
@@ -897,8 +896,8 @@ module.exports = class resourceHelper {
 				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
 			}
 
-			delete resource.blob_path
 			result = { ...result, ...resource }
+			delete result.blob_path
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -1313,6 +1312,7 @@ module.exports = class resourceHelper {
 			let filterQuery = {
 				organization_id,
 				status: common.RESOURCE_STATUS_PUBLISHED,
+				is_reusable: true,
 			}
 			// construct sort object
 			const sort = await this.constructSortOptions(query.sort_by, query.sort_order, common.UPDATED_AT)

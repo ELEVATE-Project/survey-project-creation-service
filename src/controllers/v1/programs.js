@@ -44,4 +44,38 @@ module.exports = class Programs {
 			return error
 		}
 	}
+
+	/* Details Program.
+	 * @method
+	 * @name details
+	 * @param {Object} req  user request.
+	 * @returns {JSON} - Detail of program as response.
+	 */
+	async details(req) {
+		try {
+			const rollout = await programService.details(req.params.id, req.decodedToken.organization_id)
+			return rollout
+		} catch (error) {
+			return error
+		}
+	}
+
+	/* add Resources to program.
+	 * @method
+	 * @name addResources
+	 * @param {Object} req  user request.
+	 * @returns {JSON} - success / error response.
+	 */
+	async addResources(req) {
+		try {
+			return await programService.addResources(
+				parseInt(req.params.id),
+				req.body,
+				req.decodedToken.id,
+				req.decodedToken.organization_id
+			)
+		} catch (error) {
+			return error
+		}
+	}
 }

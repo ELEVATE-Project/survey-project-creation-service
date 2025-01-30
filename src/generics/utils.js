@@ -729,6 +729,7 @@ function convertDuration(durationObj) {
  * @returns {String} - Converted xml with accepted charecters.
  */
 const escapeXml = (inputElement) => {
+	if (typeof inputElement !== 'string') return inputElement
 	return inputElement
 		.replace(/&/g, '&amp;')
 		.replace(/</g, '&lt;')
