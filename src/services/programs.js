@@ -446,7 +446,11 @@ module.exports = class ProgramsHelper {
 			)
 
 			if (!programDetails || programDetails.created_by !== loggedInUserId) {
-				throw new Error('PROGRAM_NOT_FOUND')
+				responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
 			// Segregate reusable and non-reusable resources
@@ -454,7 +458,11 @@ module.exports = class ProgramsHelper {
 				.filter((resource) => resource.id !== programId && resource.type !== common.RESOURCE_TYPE_PROGRAM)
 				.map((resource) => {
 					if (!resource.is_reusable) {
-						throw new Error('FORBIDDEN_RESOURCE_IN_PROGRAM')
+						responses.failureResponse({
+							message: 'FORBIDDEN_RESOURCE_IN_PROGRAM',
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+						})
 					}
 					return resource
 				})

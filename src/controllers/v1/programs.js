@@ -60,6 +60,12 @@ module.exports = class Programs {
 		}
 	}
 
+	/* add Resources to program.
+	 * @method
+	 * @name addResources
+	 * @param {Object} req  user request.
+	 * @returns {JSON} - success / error response.
+	 */
 	async addResources(req) {
 		try {
 			return await programService.addResources(
