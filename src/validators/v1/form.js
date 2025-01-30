@@ -39,9 +39,8 @@ module.exports = {
 	update: (req) => {
 		req.body = filterRequestBody(req.body, form.update)
 		req.checkParams('id')
+			.optional()
 			.trim()
-			.notEmpty()
-			.withMessage('id param is empty')
 			.isNumeric()
 			.withMessage('id param is invalid, must be an integer')
 			.isInt({ min: 1, max: 2147483647 })
