@@ -39,9 +39,10 @@ describe('Program APIs ', function () {
 				resource_ids: [res.body.result.data[0]],
 			})
 			expect(addResourceRes.statusCode).toBe(200)
-			expect(res.body).toMatchSchema(schema.addResourceSuccessSchema)
+			expect(res.body).toMatchSchema(schema.addOrRemoveResourceSchema)
 		} else {
-			expect(res.body).toMatchSchema(schema.addResourceFailureSchema)
+			expect(res.statusCode).toBe(400)
+			expect(res.body).toMatchSchema(schema.addOrRemoveResourceFailtureSchema)
 		}
 	})
 
@@ -49,8 +50,8 @@ describe('Program APIs ', function () {
 		let res = await request.post('/scp/v1/programs/removeResources/' + 1).send({
 			resource_ids: [2],
 		})
-		expect(removeResourceRes.statusCode).toBe(400)
-		expect(res.body).toMatchSchema(schema.removeResourceSchema)
+		expect(res.statusCode).toBe(400)
+		expect(res.body).toMatchSchema(schema.addOrRemoveResourceFailtureSchema)
 	})
 })
 
