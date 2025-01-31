@@ -153,5 +153,8 @@
 	"PROGRAM_UPDATED_SUCCESSFUL": "Your program has been saved as draft",
 	"PROGRAM_FETCHED_SUCCESSFULLY": "Program fetched successfully",
 	"FORBIDDEN_RESOURCE_IN_PROGRAM": "Add Resource to Program failed.",
-	"RESOURCE_ADDED_TO_PROGRAM": "Resources have been added to the program successfully."
+	"RESOURCE_ADDED_TO_PROGRAM": "Resources have been added to the program successfully.",
+	"CANNOT_REMOVE_RESOURCE_FROM_PUBLISHED_PROGRAM": "Cannot remove resources from a published program.",
+	"NO_RESOURCES_FOUND_TO_REMOVE": "No resources found to remove.",
+	"RESOURCES_REMOVED_FROM_PROGRAM": "Resources removed successfully."
 }

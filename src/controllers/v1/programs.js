@@ -78,4 +78,23 @@ module.exports = class Programs {
 			return error
 		}
 	}
+
+	/* remove Resources from program.
+	 * @method
+	 * @name removeResources
+	 * @param {Object} req  user request.
+	 * @returns {JSON} - success / error response.
+	 */
+	async removeResources(req) {
+		try {
+			return await programService.removeResources(
+				parseInt(req.params.id),
+				req.body,
+				req.decodedToken.id,
+				req.decodedToken.organization_id
+			)
+		} catch (error) {
+			return error
+		}
+	}
 }
