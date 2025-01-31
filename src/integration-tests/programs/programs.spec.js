@@ -29,6 +29,29 @@ describe('Program APIs ', function () {
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.detailSchema)
 	})
+
+	it('Add Resource to program', async () => {
+		const res = await request.get('/scp/v1/resource/getPublishedResources?page=1&limit=5')
+		if (res?.body?.result?.data?.length > 0) {
+			let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
+			const programId = createProgram.body?.result?.id
+			let addResourceRes = await request.post('/scp/v1/programs/addResources/' + programId).send({
+				resource_ids: [res.body.result.data[0]],
+			})
+			expect(addResourceRes.statusCode).toBe(200)
+			expect(res.body).toMatchSchema(schema.addResourceSuccessSchema)
+		} else {
+			expect(res.body).toMatchSchema(schema.addResourceFailureSchema)
+		}
+	})
+
+	it('Remove Resource from program', async () => {
+		let res = await request.post('/scp/v1/programs/removeResources/' + 1).send({
+			resource_ids: [2],
+		})
+		expect(removeResourceRes.statusCode).toBe(400)
+		expect(res.body).toMatchSchema(schema.removeResourceSchema)
+	})
 })
 
 function insertProgramData() {
