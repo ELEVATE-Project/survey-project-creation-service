@@ -544,7 +544,7 @@ module.exports = class ProgramsHelper {
 			if (!program?.id) {
 				return responses.failureResponse({
 					message: 'PROGRAM_NOT_FOUND',
-					statusCode: httpStatusCode.not_found,
+					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
@@ -568,7 +568,7 @@ module.exports = class ProgramsHelper {
 			if (!deletedCount) {
 				return responses.failureResponse({
 					message: 'NO_RESOURCES_FOUND_TO_REMOVE',
-					statusCode: httpStatusCode.not_found,
+					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
