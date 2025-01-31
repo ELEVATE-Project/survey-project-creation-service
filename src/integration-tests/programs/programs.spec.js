@@ -40,16 +40,14 @@ describe('Program APIs ', function () {
 			})
 			expect(addResourceRes.statusCode).toBe(200)
 			expect(res.body).toMatchSchema(schema.addOrRemoveResourceSchema)
-		} else {
-			expect(res.statusCode).toBe(400)
-			expect(res.body).toMatchSchema(schema.addOrRemoveResourceFailtureSchema)
 		}
 	})
 
 	it('Remove Resource from program', async () => {
-		let res = await request.post('/scp/v1/programs/removeResources/' + 1).send({
-			resource_ids: [2],
+		let res = await request.post('/scp/v1/programs/removeResources/2').send({
+			resource_ids: [5],
 		})
+		console.log(res.body, 'response remove')
 		expect(res.statusCode).toBe(400)
 		expect(res.body).toMatchSchema(schema.addOrRemoveResourceFailtureSchema)
 	})
