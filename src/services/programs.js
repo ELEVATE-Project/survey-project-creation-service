@@ -267,7 +267,7 @@ module.exports = class ProgramsHelper {
 
 			// Initialize the result object
 			let result = {
-				program,
+				...program,
 				organization: {},
 				viewers: [],
 			}
@@ -432,7 +432,7 @@ module.exports = class ProgramsHelper {
 	 */
 	static async addResources(programId, updateBody, loggedInUserId, orgId) {
 		try {
-			// Convert resource IDs to integers and store in a Set for faster lookups later
+			// Convert resource IDs to integers
 			const resourceIds = updateBody.resource_ids.map(Number)
 
 			// Fetch all resources in a single query
@@ -533,7 +533,7 @@ module.exports = class ProgramsHelper {
 	static async removeResources(programId, bodyData, loggedInUserId, orgId) {
 		try {
 			// Fetch program details
-			const programDetails = await resourceQueries.findOne(
+			const program = await resourceQueries.findOne(
 				{ id: programId, organization_id: orgId },
 				{
 					attributes: ['id', 'status', 'published_id'],
@@ -541,7 +541,7 @@ module.exports = class ProgramsHelper {
 			)
 
 			// Validate if the program exists
-			if (!programDetails) {
+			if (!program?.id) {
 				return responses.failureResponse({
 					message: 'PROGRAM_NOT_FOUND',
 					statusCode: httpStatusCode.not_found,
@@ -550,7 +550,7 @@ module.exports = class ProgramsHelper {
 			}
 
 			// Check if the program is published
-			if (programDetails.status === common.PROGRAM_STATUS_PUBLISHED || programDetails.published_id) {
+			if (program.status === common.PROGRAM_STATUS_PUBLISHED || program.published_id) {
 				return responses.failureResponse({
 					message: 'CANNOT_REMOVE_RESOURCE_FROM_PUBLISHED_PROGRAM',
 					statusCode: httpStatusCode.bad_request,
