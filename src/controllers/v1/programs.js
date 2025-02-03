@@ -102,6 +102,7 @@ module.exports = class Programs {
 	 * submit program for review
 	 * @method
 	 * @name submitForReview
+	 * @param {Object} req - user request
 	 * @returns {JSON} - submitted program id.
 	 */
 

@@ -221,7 +221,7 @@ const programSubmitForReview = {
 			type: 'string',
 		},
 	},
-	required: ['responseCode', 'error', 'meta', 'message'],
+	required: ['responseCode', 'error', 'message'],
 }
 module.exports = {
 	createSchema,

@@ -1332,7 +1332,7 @@
 					"response": []
 				},
 				{
-					"name": "Remove Resource from Program Copy",
+					"name": "Remove Resource from Program",
 					"request": {
 						"method": "POST",
 						"header": [

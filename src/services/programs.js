@@ -587,6 +587,9 @@ module.exports = class ProgramsHelper {
 	 * Submit the program for review
 	 * @method
 	 * @name submitForReview
+	 * @param {string} programId - The ID of the program for submitting for review.
+	 * @param {Object} bodyData - Request body data.
+	 * @param {Object} userDetails - user details of the loggedIn user.
 	 * @returns {JSON} - Response status of the submission
 	 */
 	static async submitForReview(programId, bodyData, userDetails) {
@@ -605,23 +608,6 @@ module.exports = class ProgramsHelper {
 			const resourceIds = resourceData.map((resource) => resource.id)
 			const programTargeting = programData?.targeting_criteria
 			let validationErrors = []
-			if (programTargeting == undefined || Object.keys(programTargeting).length <= 0) {
-				validationErrors.push(
-					utils.errorObject(
-						`${common.PROGRAM}.targeting_criteria`,
-						'',
-						`Target your Program to any targeting criteria.`
-					)
-				)
-			}
-
-			if (resourceIds.length == 0) {
-				return responses.failureResponse({
-					message: 'NO_RESOURCE_ADDED',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
 
 			//check the creator is valid
 			if (programData.user_id !== userDetails.id) {
@@ -635,6 +621,16 @@ module.exports = class ProgramsHelper {
 			//Restrict the user to submit the program
 			if (_nonReviewableResourceStatuses.includes(programData.status)) {
 				throw new Error(`Program is already ${programData.status}. You cannot submit it`)
+			}
+
+			if (programTargeting == undefined || Object.keys(programTargeting).length <= 0) {
+				validationErrors.push(
+					utils.errorObject(
+						`${common.RESOURCE_TYPE_PROGRAM}.targeting_criteria`,
+						'',
+						`Target your Program to any targeting criteria.`
+					)
+				)
 			}
 
 			// check any open comments are there for this program
@@ -690,10 +686,18 @@ module.exports = class ProgramsHelper {
 				}
 			}
 
+			// Check if any resources are added to program
+			if (resourceIds.length == 0) {
+				return responses.failureResponse({
+					message: 'NO_RESOURCE_ADDED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 			//get all entity type validations for project
 			let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 				{
-					model: common.PROGRAM,
+					model: common.RESOURCE_TYPE_PROGRAM,
 					status: common.STATUS_ACTIVE,
 				},
 				programData.organization_id,
@@ -703,7 +707,7 @@ module.exports = class ProgramsHelper {
 			let basePath = ''
 			//validate program data
 			const programValidationPromises = entityTypes.map((entityType) =>
-				validateEntityData(programData, entityType, common.PROGRAM, basePath, validationErrors)
+				validateEntityData(programData, entityType, common.RESOURCE_TYPE_PROGRAM, basePath, validationErrors)
 			)
 
 			await Promise.all(programValidationPromises)
@@ -729,6 +733,76 @@ module.exports = class ProgramsHelper {
 									`${common.RESOURCES}[${index}].targeting_criteria`,
 									'',
 									'Resource targeting should be under Program Scope.'
+								)
+							)
+						}
+					}
+
+					// check resource start date
+					if (resource?.[common.START_DATE] == undefined) {
+						validationErrors.push(
+							utils.errorObject(
+								`${common.RESOURCES}[${index}].resources`,
+								'',
+								'Resource start date cannot be empty.'
+							)
+						)
+					}
+					// check resource end date
+					if (resource?.[common.END_DATE] == undefined) {
+						validationErrors.push(
+							utils.errorObject(
+								`${common.RESOURCES}[${index}].resources`,
+								'',
+								'Resource end date cannot be empty.'
+							)
+						)
+					}
+					// check resource start date , end date
+					if (resource?.[common.START_DATE] != undefined && resource?.[common.END_DATE] != undefined) {
+						const validateEndDate = utils.checkEndDate(
+							resource[common.START_DATE],
+							resource[common.END_DATE]
+						)
+						if (!validateEndDate) {
+							validationErrors.push(
+								utils.errorObject(
+									`${common.RESOURCES}[${index}].resources`,
+									'',
+									'End date should be greater than the start date.'
+								)
+							)
+						}
+					}
+
+					// check if the resource start date lies with-in the program date range
+					if (resource?.[common.START_DATE] != undefined && programData?.[common.START_DATE] != undefined) {
+						const validateProgramResourceStartDate = utils.checkEndDate(
+							programData?.[common.START_DATE],
+							resource?.[common.START_DATE]
+						)
+						if (!validateProgramResourceStartDate) {
+							validationErrors.push(
+								utils.errorObject(
+									`${common.RESOURCES}[${index}].resources`,
+									'',
+									'Resource Start date should be within program Date Range.'
+								)
+							)
+						}
+					}
+					// check if the resource end date lies with-in the program date range
+					if (resource?.[common.END_DATE] != undefined && programData?.[common.END_DATE] != undefined) {
+						const validateProgramResourceStartDate = utils.checkEndDate(
+							resource[common.END_DATE],
+							programData?.[common.END_DATE]
+						)
+						if (!validateProgramResourceStartDate) {
+							validationErrors.push(
+								utils.errorObject(
+									`${common.RESOURCES}[${index}].resources`,
+									'',
+									'Resource End date should be within program Date Range.'
 								)
 							)
 						}
@@ -1005,7 +1079,6 @@ async function uploadAndUpdateResource(resourceId, orgId, loggedInUserId, data, 
 const _nonReviewableResourceStatuses = [
 	common.RESOURCE_STATUS_REJECTED,
 	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
-	common.RESOURCE_STATUS_PUBLISHED,
 	common.RESOURCE_STATUS_SUBMITTED,
 	common.REVIEW_STATUS_CHANGES_UPDATED,
 	common.REVIEW_STATUS_INPROGRESS,
@@ -1034,8 +1107,8 @@ async function validateEntityData(entityData, entityType, model, sourceType, val
 			if (!required) {
 				validationErrors.push(
 					utils.errorObject(
-						model == common.PROGRAM ? entityType.value : sourceType,
-						model === common.PROGRAM ? '' : entityType.value,
+						model == common.RESOURCE_TYPE_PROGRAM ? entityType.value : sourceType,
+						model === common.RESOURCE_TYPE_PROGRAM ? '' : entityType.value,
 						`${entityType.value} is required`
 					)
 				)
@@ -1053,7 +1126,7 @@ async function validateEntityData(entityData, entityType, model, sourceType, val
 			if (!lengthCheck) {
 				validationErrors.push(
 					utils.errorObject(
-						common.PROGRAM,
+						common.RESOURCE_TYPE_PROGRAM,
 						entityType.value,
 						`${entityType.value} must not exceed ${maxLengthValidation.value} characters `
 					)
@@ -1065,7 +1138,9 @@ async function validateEntityData(entityData, entityType, model, sourceType, val
 		if (entityType.has_entities) {
 			let checkEntities = utils.checkEntities(entityType, fieldData)
 			if (!checkEntities.status) {
-				validationErrors.push(utils.errorObject(common.PROGRAM, entityType.value, checkEntities.message))
+				validationErrors.push(
+					utils.errorObject(common.RESOURCE_TYPE_PROGRAM, entityType.value, checkEntities.message)
+				)
 			}
 		}
 
@@ -1076,7 +1151,7 @@ async function validateEntityData(entityData, entityType, model, sourceType, val
 			if (!checkRegex) {
 				validationErrors.push(
 					utils.errorObject(
-						common.PROGRAM,
+						common.RESOURCE_TYPE_PROGRAM,
 						entityType.value,
 						`${entityType.value} can only include alphanumeric characters with spaces, -, _, &, <>`
 					)
