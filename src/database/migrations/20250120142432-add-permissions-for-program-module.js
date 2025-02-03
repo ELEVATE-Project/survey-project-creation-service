@@ -125,6 +125,12 @@ const newPermissions = [
 		request_type: ['GET'],
 		api_path: '/scp/v1/programs/reviewerList',
 	},
+	{
+		code: 'program_manager_list_program_permissions',
+		module: 'programs',
+		request_type: ['GET'],
+		api_path: '/scp/v1/programs/getProgramManagers',
+	},
 ]
 
 // Existing permissions for program designer
