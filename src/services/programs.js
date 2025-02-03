@@ -582,6 +582,75 @@ module.exports = class ProgramsHelper {
 			throw error
 		}
 	}
+
+	/**
+	 * program delete
+	 * @method
+	 * @name delete
+	 * @param {Object} req.id - program id
+	 * @returns {JSON} - program delete response.
+	 */
+
+	static async delete(resourceId, loggedInUserId) {
+		try {
+			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
+				{
+					resource_id: resourceId,
+					creator_id: loggedInUserId,
+				},
+				['id', 'organization_id']
+			)
+
+			if (!resourceCreatorMapping?.id) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+					type: common.RESOURCE_TYPE_PROGRAM,
+					organization_id: resourceCreatorMapping.organization_id,
+					[Op.or]: [{ published_id: { [Op.is]: null } }, { published_id: { [Op.eq]: '' } }],
+					stage: { [Op.ne]: common.RESOURCE_STAGE_COMPLETION },
+				},
+				{ attributes: ['id', 'organization_id', 'published_id'] }
+			)
+
+			if (!resource?.id) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			let updatedResource = await resourceQueries.deleteOne(resourceId, resource.organization_id)
+			let updatedResourceCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
+				resourceCreatorMapping.id,
+				loggedInUserId
+			)
+
+			if (updatedResource === 0 && updatedResourceCreatorMapping === 0) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'PROGRAM_DELETED_SUCCESSFUL',
+				result: {},
+			})
+		} catch (error) {
+			return error
+		}
+	}
 }
 
 /**

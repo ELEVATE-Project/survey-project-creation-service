@@ -51,6 +51,11 @@ describe('Program APIs ', function () {
 		expect(res.statusCode).toBe(400)
 		expect(res.body).toMatchSchema(schema.addOrRemoveResourceFailtureSchema)
 	})
+
+	it('Delete Program', async () => {
+		const res = await request.delete('/scp/v1/programs/update/999999')
+		expect(res.statusCode).toBe(400)
+	})
 })
 
 function insertProgramData() {
