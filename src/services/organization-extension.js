@@ -22,13 +22,23 @@ module.exports = class orgExtensionsHelper {
 	static async createConfig(bodyData, organization_id) {
 		try {
 			bodyData.organization_id = organization_id
-			const { resource_type, review_stages, review_type, data_managers } = bodyData
+			const { resource_type, review_stages, review_type, data_managers, program_managers } = bodyData
 			// check if body have data_managers
 			if (data_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
 						organization_id,
 						meta: { data_managers },
+						updated_at: new Date(),
+					},
+					{ organization_id }
+				)
+			}
+			if (program_managers?.length) {
+				await organizationConfigQueries.upsert(
+					{
+						organization_id,
+						meta: { program_managers },
 						updated_at: new Date(),
 					},
 					{ organization_id }
@@ -130,7 +140,7 @@ module.exports = class orgExtensionsHelper {
 				})
 			}
 
-			const { review_stages, review_type, data_managers } = bodyData
+			const { review_stages, review_type, data_managers, program_managers } = bodyData
 
 			// check if body have data_managers
 			if (data_managers?.length) {
@@ -138,6 +148,18 @@ module.exports = class orgExtensionsHelper {
 					{
 						organization_id,
 						meta: { data_managers },
+						updated_at: new Date(),
+					},
+					{ organization_id }
+				)
+			}
+
+			// check if body have program_managers
+			if (program_managers?.length) {
+				await organizationConfigQueries.upsert(
+					{
+						organization_id,
+						meta: { program_managers },
 						updated_at: new Date(),
 					},
 					{ organization_id }
@@ -287,6 +309,13 @@ module.exports = class orgExtensionsHelper {
 
 			if (orgConfig?.meta?.data_managers?.length == 0 || orgConfig?.meta?.data_managers?.length == undefined) {
 				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
+			}
+
+			if (
+				orgConfig?.meta?.program_managers?.length == 0 ||
+				orgConfig?.meta?.program_managers?.length == undefined
+			) {
+				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',')
 			}
 
 			// attributes to fetch from organisation Extenstion

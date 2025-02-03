@@ -582,6 +582,47 @@ module.exports = class ProgramsHelper {
 			throw error
 		}
 	}
+
+	/**
+	 * Get Program Managers list
+	 * @method
+	 * @name getProgramManagers
+	 * @param orgId  - Organization Id
+	 * @param pageNo - Page number
+	 * @param pageSize - Page size
+	 * @returns {JSON} - List of program managers
+	 */
+	static async getProgramManagers(orgId, pageNo, pageSize) {
+		try {
+			// get org config based on orgId
+			const orgConfigs = await orgExtensionService.getConfig(orgId)
+			const programManagerRoles = orgConfigs?.result?.config?.program_managers
+			// fetch the users from user service
+			const programManagersList = await userRequests.list(
+				programManagerRoles.join(','),
+				pageNo,
+				pageSize,
+				'',
+				orgId
+			)
+			let result = {
+				data: [],
+				count: 0,
+			}
+
+			if (programManagersList.success && programManagersList?.data?.result?.data.length) {
+				result = programManagersList?.data?.result
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'PROGRAM_MANAGER_LIST_FETCHED',
+				result,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
 }
 
 /**

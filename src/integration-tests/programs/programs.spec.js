@@ -51,6 +51,15 @@ describe('Program APIs ', function () {
 		expect(res.statusCode).toBe(400)
 		expect(res.body).toMatchSchema(schema.addOrRemoveResourceFailtureSchema)
 	})
+
+	it('Get list of program managers', async () => {
+		let res = await request.get('/scp/v1/programs/getProgramManagers').query({ page: 1, limit: 10 })
+		expect(res.statusCode).toBe(200)
+		if (res.body?.result.length == 0) {
+			expect(res.body).toMatchSchema(schema.getProgramManagersEmptyResponseSchema)
+		}
+		expect(res.body).toMatchSchema(schema.getProgramManagersSchema)
+	})
 })
 
 function insertProgramData() {
