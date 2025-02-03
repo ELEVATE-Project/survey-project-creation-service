@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "6b394df6-e8d2-4d8d-b1e7-f998821d3b38",
+		"_postman_id": "8f4c6931-ac54-44f4-9d8b-b2a6eb0ab679",
 		"name": "Self Creation Portal",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "40647259"
+		"_exporter_id": "41751792"
 	},
 	"item": [
 		{
@@ -1227,6 +1227,232 @@
 								{
 									"key": "limit",
 									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Program",
+			"item": [
+				{
+					"name": "Create Program",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Improvement\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/programs/update",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "programs", "update"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Program",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Program name!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/programs/update/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "programs", "update", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Resource to Program",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"resource_ids\" : [390]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/programs/addResources/:programId",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "programs", "addResources", ":programId"],
+							"variable": [
+								{
+									"key": "programId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Resource from Program Copy",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"resource_ids\" : [390]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/programs/removeResources/:programId",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "programs", "removeResources", ":programId"],
+							"variable": [
+								{
+									"key": "programId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Program",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/programs/update/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "programs", "update", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Program Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/programs/details/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "programs", "details", ":id"],
+							"query": [
+								{
+									"key": "search",
+									"value": "s",
+									"disabled": true
+								},
+								{
+									"key": "actions",
+									"value": "",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Project For Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reviewer_ids\": [228,228]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/programs/submitForReview/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "programs", "submitForReview", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
 								}
 							]
 						}
