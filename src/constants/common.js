@@ -73,6 +73,8 @@ module.exports = {
 	STATUS_ACTIVE: 'ACTIVE',
 	CREATED_BY_SYSTEM: '0',
 	PROJECT: 'project',
+	PROGRAM: 'program',
+	RESOURCES: 'resources',
 	FILTER_ALL: 'ALL',
 	SORT_DESC: 'DESC',
 	SORT_ASC: 'ASC',

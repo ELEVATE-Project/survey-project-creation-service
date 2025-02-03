@@ -153,5 +153,8 @@
 	"PROGRAM_UPDATED_SUCCESSFUL": "Your program has been saved as draft",
 	"PROGRAM_FETCHED_SUCCESSFULLY": "Program fetched successfully",
 	"FORBIDDEN_RESOURCE_IN_PROGRAM": "Add Resource to Program failed.",
-	"RESOURCE_ADDED_TO_PROGRAM": "Resources have been added to the program successfully."
+	"RESOURCE_ADDED_TO_PROGRAM": "Resources have been added to the program successfully.",
+	"DONT_HAVE_PROGRAM_ACCESS": "You don't have permission to access this Program.",
+	"NO_RESOURCE_ADDED": "Atleast one resource is mandatory.",
+	"PROGRAM_SUBMITTED_SUCCESSFULLY": "Your program has been sent for review"
 }
