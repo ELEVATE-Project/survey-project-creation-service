@@ -198,9 +198,35 @@ const addOrRemoveResourceSchema = {
 	},
 	required: ['responseCode', 'error', 'message'],
 }
+const programSubmitForReview = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		error: {
+			type: 'array',
+			items: {},
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				correlation: {
+					type: 'string',
+				},
+			},
+			required: ['correlation'],
+		},
+		message: {
+			type: 'string',
+		},
+	},
+	required: ['responseCode', 'error', 'meta', 'message'],
+}
 module.exports = {
 	createSchema,
 	detailSchema,
 	addOrRemoveResourceFailtureSchema,
 	addOrRemoveResourceSchema,
+	programSubmitForReview,
 }
