@@ -594,7 +594,76 @@ module.exports = class ProgramsHelper {
 	}
 
 	/**
-	 * Get Program Managers list
+	 * Program delete
+	 * @method
+	 * @name delete
+	 * @param {Integer} resourceId - Program id
+	 * @param {String} loggedInUserId - User id
+	 * @returns {JSON} - program delete response.
+	 */
+
+	static async delete(resourceId, loggedInUserId) {
+		try {
+			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
+				{
+					resource_id: resourceId,
+					creator_id: loggedInUserId,
+				},
+				['id', 'organization_id']
+			)
+
+			if (!resourceCreatorMapping?.id) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+					type: common.RESOURCE_TYPE_PROGRAM,
+					organization_id: resourceCreatorMapping.organization_id,
+					status: common.RESOURCE_STATUS_DRAFT,
+					stage: common.RESOURCE_STAGE_CREATION,
+				},
+				{ attributes: ['id', 'organization_id', 'published_id'] }
+			)
+
+			if (!resource?.id) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			let updatedResource = await resourceQueries.deleteOne(resourceId, resource.organization_id)
+			let updatedResourceCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
+				resourceCreatorMapping.id,
+				loggedInUserId
+			)
+
+			if (updatedResource === 0 && updatedResourceCreatorMapping === 0) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'PROGRAM_DELETED_SUCCESSFUL',
+				result: {},
+			})
+		} catch (error) {
+			return error
+		}
+	}
+
+	/* Get Program Managers list
 	 * @method
 	 * @name getProgramManagers
 	 * @param orgId  - Organization Id
