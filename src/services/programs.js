@@ -15,6 +15,7 @@ const userRequests = require('@requests/user')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const commentQueries = require('@database/queries/comments')
+const projectService = require('@services/projects')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -645,10 +646,6 @@ module.exports = class ProgramsHelper {
 			}
 
 			let programData = programDetails.result
-			const resourceData = programData.resources
-			const resourceIds = resourceData.map((resource) => resource.id)
-			const programTargeting = programData?.targeting_criteria
-			let validationErrors = []
 
 			//check the creator is valid
 			if (programData.user_id !== userDetails.id) {
@@ -664,11 +661,17 @@ module.exports = class ProgramsHelper {
 				throw new Error(`Program is already ${programData.status}. You cannot submit it`)
 			}
 
+			const resourceData = programData.resources
+			const resourceIds = resourceData.map((resource) => resource.id)
+			const resourceTypes = resourceData.map((resource) => resource.type)
+			const programTargeting = programData?.targeting_criteria
+			let validationErrors = []
+
 			if (programTargeting == undefined || Object.keys(programTargeting).length <= 0) {
 				validationErrors.push(
 					utils.errorObject(
 						`${common.RESOURCE_TYPE_PROGRAM}.targeting_criteria`,
-						'',
+						'targeting_criteria',
 						`Target your Program to any targeting criteria.`
 					)
 				)
@@ -735,6 +738,7 @@ module.exports = class ProgramsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
 			//get all entity type validations for project
 			let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 				{
@@ -747,109 +751,137 @@ module.exports = class ProgramsHelper {
 
 			let basePath = ''
 			//validate program data
-			const programValidationPromises = entityTypes.map((entityType) =>
+			const programValidationPromises = entityTypes.map((entityType) => {
 				validateEntityData(programData, entityType, common.RESOURCE_TYPE_PROGRAM, basePath, validationErrors)
-			)
+			})
 
 			await Promise.all(programValidationPromises)
 
-			await Promise.all(
-				resourceData.map(async (resource, index) => {
-					if (!resource?.targeting_criteria || Object.keys(resource.targeting_criteria).length === 0) {
+			let resourceValidationErrors = []
+
+			let resourceEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+				{
+					model: {
+						[Op.in]: resourceTypes,
+					},
+					status: common.STATUS_ACTIVE,
+				},
+				programData.organization_id,
+				['id', 'value', 'has_entities', 'validations']
+			)
+
+			const resourcesValidationPromise = resourceData.map(async (resource, index) => {
+				const basePath = `${common.RESOURCES}[${index}].resources`
+				if (!resource?.targeting_criteria || Object.keys(resource.targeting_criteria).length === 0) {
+					validationErrors.push(
+						utils.errorObject(
+							`${common.RESOURCES}[${index}].targeting_criteria`,
+							'targeting_criteria',
+							`Target your Resource to any targeting criteria under program scope.`
+						)
+					)
+				} else {
+					const validateResourceScope = await validateTargetingCriteria(
+						programTargeting,
+						resource.targeting_criteria
+					)
+					if (!validateResourceScope) {
 						validationErrors.push(
 							utils.errorObject(
 								`${common.RESOURCES}[${index}].targeting_criteria`,
-								'',
-								`Target your Resource to any targeting criteria under program scope.`
+								'targeting_criteria',
+								'Resource targeting should be under Program Scope.'
 							)
 						)
-					} else {
-						const validateResourceScope = await validateTargetingCriteria(
-							programTargeting,
-							resource.targeting_criteria
-						)
-						if (!validateResourceScope) {
-							validationErrors.push(
-								utils.errorObject(
-									`${common.RESOURCES}[${index}].targeting_criteria`,
-									'',
-									'Resource targeting should be under Program Scope.'
-								)
-							)
-						}
 					}
+				}
 
-					// check resource start date
-					if (resource?.[common.START_DATE] == undefined) {
-						validationErrors.push(
-							utils.errorObject(
-								`${common.RESOURCES}[${index}].resources`,
-								'',
-								'Resource start date cannot be empty.'
+				resourceEntityTypes.map((entityType) => {
+					if (resource.type == common.PROJECT) {
+						resourceValidationErrors.push(
+							projectService.validateEntityData(
+								resource,
+								entityType,
+								common.RESOURCE_TYPE_PROGRAM,
+								basePath,
+								resourceValidationErrors
 							)
 						)
-					}
-					// check resource end date
-					if (resource?.[common.END_DATE] == undefined) {
-						validationErrors.push(
-							utils.errorObject(
-								`${common.RESOURCES}[${index}].resources`,
-								'',
-								'Resource end date cannot be empty.'
-							)
-						)
-					}
-					// check resource start date , end date
-					if (resource?.[common.START_DATE] != undefined && resource?.[common.END_DATE] != undefined) {
-						const validateEndDate = utils.checkEndDate(
-							resource[common.START_DATE],
-							resource[common.END_DATE]
-						)
-						if (!validateEndDate) {
-							validationErrors.push(
-								utils.errorObject(
-									`${common.RESOURCES}[${index}].resources`,
-									'',
-									'End date should be greater than the start date.'
-								)
-							)
-						}
-					}
-
-					// check if the resource start date lies with-in the program date range
-					if (resource?.[common.START_DATE] != undefined && programData?.[common.START_DATE] != undefined) {
-						const validateProgramResourceStartDate = utils.checkEndDate(
-							programData?.[common.START_DATE],
-							resource?.[common.START_DATE]
-						)
-						if (!validateProgramResourceStartDate) {
-							validationErrors.push(
-								utils.errorObject(
-									`${common.RESOURCES}[${index}].resources`,
-									'',
-									'Resource Start date should be within program Date Range.'
-								)
-							)
-						}
-					}
-					// check if the resource end date lies with-in the program date range
-					if (resource?.[common.END_DATE] != undefined && programData?.[common.END_DATE] != undefined) {
-						const validateProgramResourceStartDate = utils.checkEndDate(
-							resource[common.END_DATE],
-							programData?.[common.END_DATE]
-						)
-						if (!validateProgramResourceStartDate) {
-							validationErrors.push(
-								utils.errorObject(
-									`${common.RESOURCES}[${index}].resources`,
-									'',
-									'Resource End date should be within program Date Range.'
-								)
-							)
-						}
 					}
 				})
-			)
+				//rest of the resource type validations will be added incrementally.
+
+				// check resource start date
+				if (resource?.[common.START_DATE] == undefined) {
+					validationErrors.push(
+						utils.errorObject(basePath, common.START_DATE, 'Resource start date cannot be empty.')
+					)
+				}
+				// check resource end date
+				if (resource?.[common.END_DATE] == undefined) {
+					validationErrors.push(
+						utils.errorObject(basePath, common.END_DATE, 'Resource end date cannot be empty.')
+					)
+				}
+				// check resource start date , end date
+				if (resource?.[common.START_DATE] != undefined && resource?.[common.END_DATE] != undefined) {
+					const validateEndDate = utils.checkEndDate(resource[common.START_DATE], resource[common.END_DATE])
+					if (!validateEndDate) {
+						validationErrors.push(
+							utils.errorObject(
+								basePath,
+								common.START_DATE,
+								'End date should be greater than the start date.'
+							)
+						)
+					}
+				}
+
+				// check if the resource start date lies with-in the program date range
+				if (resource?.[common.START_DATE] != undefined && programData?.[common.START_DATE] != undefined) {
+					const validateProgramResourceStartDate = utils.checkEndDate(
+						programData?.[common.START_DATE],
+						resource?.[common.START_DATE]
+					)
+					if (!validateProgramResourceStartDate) {
+						validationErrors.push(
+							utils.errorObject(
+								basePath,
+								common.START_DATE,
+								'Resource Start date should be within program Date Range.'
+							)
+						)
+					}
+				}
+				// check if the resource end date lies with-in the program date range
+				if (resource?.[common.END_DATE] != undefined && programData?.[common.END_DATE] != undefined) {
+					const validateProgramResourceStartDate = utils.checkEndDate(
+						resource[common.END_DATE],
+						programData?.[common.END_DATE]
+					)
+					if (!validateProgramResourceStartDate) {
+						validationErrors.push(
+							utils.errorObject(
+								basePath,
+								common.END_DATE,
+								'Resource End date should be within program Date Range.'
+							)
+						)
+					}
+				}
+			})
+			await Promise.all(resourcesValidationPromise)
+			const resourceErrors = await Promise.all(resourceValidationErrors)
+
+			resourceErrors.map((error) => {
+				if (error.hasError) {
+					if (Array.isArray(error.validationErrors)) {
+						validationErrors.push(...error.validationErrors)
+					} else {
+						validationErrors.push(error.validationErrors)
+					}
+				}
+			})
 
 			if (validationErrors.length > 0) {
 				const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
@@ -896,10 +928,10 @@ module.exports = class ProgramsHelper {
 			}
 
 			//check review is required or not
-			const isReviewMandatory = await resourceService.isReviewMandatory(
-				programData.type,
-				programData.organization_id
-			)
+			// const isReviewMandatory = await resourceService.isReviewMandatory(
+			// 	programData.type,
+			// 	programData.organization_id
+			// )
 
 			// this will be handled while taking up program publish
 			// if (!isReviewMandatory) {
