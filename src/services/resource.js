@@ -1330,6 +1330,7 @@ module.exports = class resourceHelper {
 				filterQuery.id = {
 					[Op.in]: resourceIds,
 				}
+				delete filterQuery.is_reusable
 			}
 
 			const internalResources = await resourceQueries.resourceList(
