@@ -624,8 +624,8 @@ module.exports = class ProgramsHelper {
 					id: resourceId,
 					type: common.RESOURCE_TYPE_PROGRAM,
 					organization_id: resourceCreatorMapping.organization_id,
-					[Op.or]: [{ published_id: { [Op.is]: null } }, { published_id: { [Op.eq]: '' } }],
-					stage: { [Op.ne]: common.RESOURCE_STAGE_COMPLETION },
+					status: common.RESOURCE_STATUS_DRAFT,
+					stage: common.RESOURCE_STAGE_CREATION,
 				},
 				{ attributes: ['id', 'organization_id', 'published_id'] }
 			)
