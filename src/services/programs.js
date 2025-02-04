@@ -594,10 +594,11 @@ module.exports = class ProgramsHelper {
 	}
 
 	/**
-	 * program delete
+	 * Program delete
 	 * @method
 	 * @name delete
-	 * @param {Object} req.id - program id
+	 * @param {Integer} resourceId - Program id
+	 * @param {String} loggedInUserId - User id
 	 * @returns {JSON} - program delete response.
 	 */
 
