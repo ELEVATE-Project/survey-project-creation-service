@@ -257,6 +257,11 @@ let environmentVariables = {
 		optional: true,
 		default: 'state,recommendedFor',
 	},
+	DEFAULT_PROGRAM_MANAGERS: {
+		message: 'Default program managers required.',
+		optional: true,
+		default: 'program_manager',
+	},
 }
 
 let success = true

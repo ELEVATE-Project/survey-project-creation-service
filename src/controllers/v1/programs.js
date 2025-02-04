@@ -97,4 +97,25 @@ module.exports = class Programs {
 			return error
 		}
 	}
+
+	/**
+	 * getProgramManagers list.
+	 * @method
+	 * @name getProgramManagers
+	 * @param {String} orgId - organization id
+	 * @returns {JSON} - get the list of program managers
+	 */
+
+	async getProgramManagers(req) {
+		try {
+			const dataManagers = await programService.getProgramManagers(
+				req.decodedToken.organization_id,
+				req.pageNo,
+				req.pageSize
+			)
+			return dataManagers
+		} catch (error) {
+			return error
+		}
+	}
 }

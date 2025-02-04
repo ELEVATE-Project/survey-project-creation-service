@@ -157,5 +157,6 @@
 	"CANNOT_REMOVE_RESOURCE_FROM_PUBLISHED_PROGRAM": "Cannot remove resources from a published program.",
 	"NO_RESOURCES_FOUND_TO_REMOVE": "No resources found to remove.",
 	"RESOURCES_REMOVED_FROM_PROGRAM": "Resources removed successfully.",
-	"PROGRAM_DELETED_SUCCESSFUL": "Program deleted successfully"
+	"PROGRAM_DELETED_SUCCESSFUL": "Program deleted successfully",
+	"PROGRAM_MANAGER_LIST_FETCHED": "Data Manager list fetched successfully."
 }
