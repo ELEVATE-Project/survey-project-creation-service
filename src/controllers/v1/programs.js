@@ -78,4 +78,44 @@ module.exports = class Programs {
 			return error
 		}
 	}
+
+	/* remove Resources from program.
+	 * @method
+	 * @name removeResources
+	 * @param {Object} req  user request.
+	 * @returns {JSON} - success / error response.
+	 */
+	async removeResources(req) {
+		try {
+			return await programService.removeResources(
+				parseInt(req.params.id),
+				req.body,
+				req.decodedToken.id,
+				req.decodedToken.organization_id
+			)
+		} catch (error) {
+			return error
+		}
+	}
+
+	/**
+	 * getProgramManagers list.
+	 * @method
+	 * @name getProgramManagers
+	 * @param {String} orgId - organization id
+	 * @returns {JSON} - get the list of program managers
+	 */
+
+	async getProgramManagers(req) {
+		try {
+			const dataManagers = await programService.getProgramManagers(
+				req.decodedToken.organization_id,
+				req.pageNo,
+				req.pageSize
+			)
+			return dataManagers
+		} catch (error) {
+			return error
+		}
+	}
 }

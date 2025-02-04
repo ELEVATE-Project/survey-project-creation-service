@@ -29,6 +29,43 @@ describe('Program APIs ', function () {
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.detailSchema)
 	})
+
+	it('Add Resource to program', async () => {
+		const res = await request.get('/scp/v1/resource/getPublishedResources?page=1&limit=5')
+		if (res?.body?.result?.data?.length > 0) {
+			let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
+			const programId = createProgram.body?.result?.id
+			let addResourceRes = await request.post('/scp/v1/programs/addResources/' + programId).send({
+				resource_ids: [res.body.result.data[0]],
+			})
+			expect(addResourceRes.statusCode).toBe(200)
+			expect(res.body).toMatchSchema(schema.addOrRemoveResourceSchema)
+		}
+	})
+
+	it('Remove Resource from program', async () => {
+		let res = await request.post('/scp/v1/programs/removeResources/2').send({
+			resource_ids: [5],
+		})
+		expect(res.statusCode).toBe(400)
+		expect(res.body).toMatchSchema(schema.addOrRemoveResourceFailtureSchema)
+	})
+
+	it('Delete Program', async () => {
+		let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
+		const programId = createProgram.body?.result?.id
+		const res = await request.delete('/scp/v1/programs/update/' + programId)
+		expect(res.statusCode).toBe(202)
+	})
+
+	it('Get list of program managers', async () => {
+		let res = await request.get('/scp/v1/programs/getProgramManagers').query({ page: 1, limit: 10 })
+		expect(res.statusCode).toBe(200)
+		if (res.body?.result.length == 0) {
+			expect(res.body).toMatchSchema(schema.getProgramManagersEmptyResponseSchema)
+		}
+		expect(res.body).toMatchSchema(schema.getProgramManagersSchema)
+	})
 })
 
 function insertProgramData() {

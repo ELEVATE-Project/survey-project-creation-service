@@ -177,11 +177,21 @@ module.exports = class ProgramsHelper {
 				organization_id: fetchResource.organization_id,
 			})
 
-			// Delete removed resources from programResourceMapping
 			const existingResourceIds = existingMappings.map((mapping) => mapping.resource_id)
 			const updatedResourceIds = bodyData.resources?.map((res) => res.id) || []
-			const resourcesToRemove = existingResourceIds.filter((id) => !updatedResourceIds.includes(id))
 
+			//update the existing resource
+			const existingResourcesToUpdate =
+				bodyData.resources?.filter(
+					(res) => existingResourceIds.includes(res.id) && updatedResourceIds.includes(res.id)
+				) || []
+
+			if (existingResourcesToUpdate.length > 0) {
+				await handleResources(existingResourcesToUpdate, resourceId, orgId, loggedInUserId)
+			}
+
+			// Delete removed resources from programResourceMapping
+			const resourcesToRemove = existingResourceIds.filter((id) => !updatedResourceIds.includes(id))
 			if (resourcesToRemove.length > 0) {
 				await programResourceMappingQueries.deleteMany(resourceId, resourcesToRemove)
 			}
@@ -270,7 +280,6 @@ module.exports = class ProgramsHelper {
 				...program,
 				organization: {},
 				viewers: [],
-				resources: [],
 			}
 
 			// Fetch the data from storage if blob_path exists
@@ -283,6 +292,7 @@ module.exports = class ProgramsHelper {
 					Object.keys(response.result).length > 0
 				) {
 					Object.assign(result, response.result)
+					result.resources = []
 
 					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 						{
@@ -432,12 +442,12 @@ module.exports = class ProgramsHelper {
 	 */
 	static async addResources(programId, updateBody, loggedInUserId, orgId) {
 		try {
-			// Combine all IDs to fetch from the resources table
-			const resourceIds = [programId, ...updateBody.resource_ids.map((resourceId) => parseInt(resourceId))]
+			// Convert resource IDs to integers
+			const resourceIds = updateBody.resource_ids.map(Number)
 
 			// Fetch all resources in a single query
 			const fetchProgramAndResources = await resourceQueries.findAll({
-				id: { [Op.in]: resourceIds },
+				id: { [Op.in]: [programId, ...resourceIds] },
 			})
 
 			// Early validation: Check if the program exists and belongs to the logged-in user
@@ -448,6 +458,18 @@ module.exports = class ProgramsHelper {
 			if (!programDetails || programDetails.created_by !== loggedInUserId) {
 				responses.failureResponse({
 					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			// Check for missing resource IDs
+			const fetchedResourceIds = new Set(fetchProgramAndResources.map((resource) => resource.id))
+			const invalidResourceIds = resourceIds.filter((resourceId) => !fetchedResourceIds.has(resourceId))
+
+			if (invalidResourceIds.length > 0) {
+				return responses.failureResponse({
+					message: `Invalid resource IDs provided ${invalidResourceIds.join(', ')}`,
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
@@ -504,9 +526,180 @@ module.exports = class ProgramsHelper {
 				result: programId,
 			})
 		} catch (error) {
-			// Log the error for debugging
-			console.error('Error in addResources:', error.message)
-			throw error // Re-throw the error for the caller to handle
+			throw error
+		}
+	}
+
+	/**
+	 * Remove resources from a program.
+	 * @method
+	 * @name removeResources
+	 * @param {string} programId - The ID of the program from which resources will be removed.
+	 * @param {Object} bodyData - Request body data containing resource IDs.
+	 * @param {string} loggedInUserId - The ID of the logged-in user.
+	 * @param {string} orgId - The ID of the organization.
+	 * @returns {JSON} - Success response or error response.
+	 */
+	static async removeResources(programId, bodyData, loggedInUserId, orgId) {
+		try {
+			// Fetch program details
+			const program = await resourceQueries.findOne(
+				{ id: programId, organization_id: orgId },
+				{
+					attributes: ['id', 'status', 'published_id'],
+				}
+			)
+
+			// Validate if the program exists
+			if (!program?.id) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			// Check if the program is published
+			if (program.status === common.PROGRAM_STATUS_PUBLISHED || program.published_id) {
+				return responses.failureResponse({
+					message: 'CANNOT_REMOVE_RESOURCE_FROM_PUBLISHED_PROGRAM',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			// Convert resource IDs to numbers
+			const resourceIdsToRemove = bodyData.resource_ids.map(Number)
+
+			// Remove resources
+			const deletedCount = await programResourceMappingQueries.deleteMany(programId, resourceIdsToRemove)
+
+			// Check if any resources were removed
+			if (!deletedCount) {
+				return responses.failureResponse({
+					message: 'NO_RESOURCES_FOUND_TO_REMOVE',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCES_REMOVED_FROM_PROGRAM',
+				result: programId,
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Program delete
+	 * @method
+	 * @name delete
+	 * @param {Integer} resourceId - Program id
+	 * @param {String} loggedInUserId - User id
+	 * @returns {JSON} - program delete response.
+	 */
+
+	static async delete(resourceId, loggedInUserId) {
+		try {
+			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
+				{
+					resource_id: resourceId,
+					creator_id: loggedInUserId,
+				},
+				['id', 'organization_id']
+			)
+
+			if (!resourceCreatorMapping?.id) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+					type: common.RESOURCE_TYPE_PROGRAM,
+					organization_id: resourceCreatorMapping.organization_id,
+					status: common.RESOURCE_STATUS_DRAFT,
+					stage: common.RESOURCE_STAGE_CREATION,
+				},
+				{ attributes: ['id', 'organization_id', 'published_id'] }
+			)
+
+			if (!resource?.id) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			let updatedResource = await resourceQueries.deleteOne(resourceId, resource.organization_id)
+			let updatedResourceCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
+				resourceCreatorMapping.id,
+				loggedInUserId
+			)
+
+			if (updatedResource === 0 && updatedResourceCreatorMapping === 0) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'PROGRAM_DELETED_SUCCESSFUL',
+				result: {},
+			})
+		} catch (error) {
+			return error
+		}
+	}
+
+	/* Get Program Managers list
+	 * @method
+	 * @name getProgramManagers
+	 * @param orgId  - Organization Id
+	 * @param pageNo - Page number
+	 * @param pageSize - Page size
+	 * @returns {JSON} - List of program managers
+	 */
+	static async getProgramManagers(orgId, pageNo, pageSize) {
+		try {
+			// get org config based on orgId
+			const orgConfigs = await orgExtensionService.getConfig(orgId)
+			const programManagerRoles = orgConfigs?.result?.config?.program_managers
+			// fetch the users from user service
+			const programManagersList = await userRequests.list(
+				programManagerRoles.join(','),
+				pageNo,
+				pageSize,
+				'',
+				orgId
+			)
+			let result = {
+				data: [],
+				count: 0,
+			}
+
+			if (programManagersList.success && programManagersList?.data?.result?.data.length) {
+				result = programManagersList?.data?.result
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'PROGRAM_MANAGER_LIST_FETCHED',
+				result,
+			})
+		} catch (error) {
+			throw error
 		}
 	}
 }
@@ -540,11 +733,9 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 		// Create a map of resource details for quick lookup
 		const resourceDetailsMap = new Map()
 		for (const resource of resourceList) {
-			if (resource.is_reusable) {
-				const resourceDetails = await resourceService.getDetails(resource.id, resource.organization_id)
-				if (resourceDetails?.result) {
-					resourceDetailsMap.set(resource.id, resourceDetails.result)
-				}
+			const resourceDetails = await resourceService.getDetails(resource.id, resource.organization_id)
+			if (resourceDetails?.result) {
+				resourceDetailsMap.set(resource.id, resourceDetails.result)
 			}
 		}
 
@@ -658,6 +849,9 @@ async function uploadAndUpdateResource(resourceId, orgId, loggedInUserId, data, 
 		if (uploadStatus.result.status === httpStatusCode.ok || uploadStatus.result.status === httpStatusCode.created) {
 			const filter = { id: resourceId, organization_id: orgId }
 			const updateData = { updated_by: loggedInUserId, blob_path: uploadStatus.blob_path }
+			if (data.title) {
+				updateData.title = data.title
+			}
 
 			const [updateCount, updatedResource] = await resourceQueries.updateOne(filter, updateData, {
 				returning: true,

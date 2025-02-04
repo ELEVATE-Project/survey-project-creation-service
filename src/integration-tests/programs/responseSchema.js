@@ -160,7 +160,162 @@ const detailSchema = {
 	required: ['responseCode', 'message', 'result'],
 }
 
+const addOrRemoveResourceFailtureSchema = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		error: {
+			type: 'array',
+			items: {},
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				correlation: {
+					type: 'string',
+				},
+			},
+			required: ['correlation'],
+		},
+		message: {
+			type: 'string',
+		},
+	},
+	required: ['responseCode', 'error', 'message'],
+}
+
+const addOrRemoveResourceSchema = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		message: {
+			type: 'string',
+		},
+	},
+	required: ['responseCode', 'error', 'message'],
+}
+const getProgramManagersEmptyResponseSchema = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		message: {
+			type: 'string',
+		},
+		result: {
+			type: 'object',
+			properties: {
+				data: {
+					type: 'array',
+					items: {},
+				},
+				count: {
+					type: 'integer',
+				},
+			},
+			required: ['data', 'count'],
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					type: 'array',
+					items: {},
+				},
+				correlation: {
+					type: 'string',
+				},
+			},
+			required: [],
+		},
+	},
+	required: ['responseCode', 'message', 'result'],
+}
+const getProgramManagersSchema = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		message: {
+			type: 'string',
+		},
+		result: {
+			type: 'object',
+			properties: {
+				data: {
+					type: 'array',
+					items: [
+						{
+							type: 'object',
+							properties: {
+								id: {
+									type: 'integer',
+								},
+								name: {
+									type: 'string',
+								},
+								email: {
+									type: 'string',
+								},
+								about: {
+									type: 'null',
+								},
+								image: {
+									type: 'null',
+								},
+								organization: {
+									type: 'object',
+									properties: {
+										id: {
+											type: 'integer',
+										},
+										code: {
+											type: 'string',
+										},
+										name: {
+											type: 'string',
+										},
+									},
+									required: ['id', 'code', 'name'],
+								},
+							},
+							required: ['id', 'name', 'email', 'about', 'image', 'organization'],
+						},
+					],
+				},
+				count: {
+					type: 'integer',
+				},
+			},
+			required: ['data', 'count'],
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					type: 'array',
+					items: {},
+				},
+				correlation: {
+					type: 'string',
+				},
+			},
+			required: [],
+		},
+	},
+	required: ['responseCode', 'message', 'result'],
+}
 module.exports = {
 	createSchema,
 	detailSchema,
+	addOrRemoveResourceFailtureSchema,
+	addOrRemoveResourceSchema,
+	getProgramManagersEmptyResponseSchema,
+	getProgramManagersSchema,
 }
