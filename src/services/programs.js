@@ -179,11 +179,21 @@ module.exports = class ProgramsHelper {
 				organization_id: fetchResource.organization_id,
 			})
 
-			// Delete removed resources from programResourceMapping
 			const existingResourceIds = existingMappings.map((mapping) => mapping.resource_id)
 			const updatedResourceIds = bodyData.resources?.map((res) => res.id) || []
-			const resourcesToRemove = existingResourceIds.filter((id) => !updatedResourceIds.includes(id))
 
+			//update the existing resource
+			const existingResourcesToUpdate =
+				bodyData.resources?.filter(
+					(res) => existingResourceIds.includes(res.id) && updatedResourceIds.includes(res.id)
+				) || []
+
+			if (existingResourcesToUpdate.length > 0) {
+				await handleResources(existingResourcesToUpdate, resourceId, orgId, loggedInUserId)
+			}
+
+			// Delete removed resources from programResourceMapping
+			const resourcesToRemove = existingResourceIds.filter((id) => !updatedResourceIds.includes(id))
 			if (resourcesToRemove.length > 0) {
 				await programResourceMappingQueries.deleteMany(resourceId, resourcesToRemove)
 			}
@@ -999,11 +1009,9 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 		// Create a map of resource details for quick lookup
 		const resourceDetailsMap = new Map()
 		for (const resource of resourceList) {
-			if (resource.is_reusable) {
-				const resourceDetails = await resourceService.getDetails(resource.id, resource.organization_id)
-				if (resourceDetails?.result) {
-					resourceDetailsMap.set(resource.id, resourceDetails.result)
-				}
+			const resourceDetails = await resourceService.getDetails(resource.id, resource.organization_id)
+			if (resourceDetails?.result) {
+				resourceDetailsMap.set(resource.id, resourceDetails.result)
 			}
 		}
 
@@ -1117,6 +1125,9 @@ async function uploadAndUpdateResource(resourceId, orgId, loggedInUserId, data, 
 		if (uploadStatus.result.status === httpStatusCode.ok || uploadStatus.result.status === httpStatusCode.created) {
 			const filter = { id: resourceId, organization_id: orgId }
 			const updateData = { updated_by: loggedInUserId, blob_path: uploadStatus.blob_path }
+			if (data.title) {
+				updateData.title = data.title
+			}
 
 			const [updateCount, updatedResource] = await resourceQueries.updateOne(filter, updateData, {
 				returning: true,
