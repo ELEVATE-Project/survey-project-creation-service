@@ -663,7 +663,8 @@ module.exports = class ProgramsHelper {
 
 			const resourceData = programData.resources
 			const resourceIds = resourceData.map((resource) => resource.id)
-			const resourceTypes = resourceData.map((resource) => resource.type)
+			const resourceTypes = [...resourceData.map((resource) => resource.type), 'resource']
+
 			const programTargeting = programData?.targeting_criteria
 			let validationErrors = []
 
@@ -732,14 +733,12 @@ module.exports = class ProgramsHelper {
 
 			// Check if any resources are added to program
 			if (resourceIds.length == 0) {
-				return responses.failureResponse({
-					message: 'NO_RESOURCE_ADDED',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				validationErrors.push(
+					utils.errorObject(common.RESOURCE_TYPE_PROGRAM, 'resources', `Atleast one resource is mandatory.`)
+				)
 			}
 
-			//get all entity type validations for project
+			//get all entity type validations for program
 			let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 				{
 					model: common.RESOURCE_TYPE_PROGRAM,
@@ -811,18 +810,6 @@ module.exports = class ProgramsHelper {
 				})
 				//rest of the resource type validations will be added incrementally.
 
-				// check resource start date
-				if (resource?.[common.START_DATE] == undefined) {
-					validationErrors.push(
-						utils.errorObject(basePath, common.START_DATE, 'Resource start date cannot be empty.')
-					)
-				}
-				// check resource end date
-				if (resource?.[common.END_DATE] == undefined) {
-					validationErrors.push(
-						utils.errorObject(basePath, common.END_DATE, 'Resource end date cannot be empty.')
-					)
-				}
 				// check resource start date , end date
 				if (resource?.[common.START_DATE] != undefined && resource?.[common.END_DATE] != undefined) {
 					const validateEndDate = utils.checkEndDate(resource[common.START_DATE], resource[common.END_DATE])
