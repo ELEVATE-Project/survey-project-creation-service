@@ -14,6 +14,7 @@ const filesService = require('@services/files')
 const userRequests = require('@requests/user')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
+const commentQueries = require('@database/queries/comments')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -380,12 +381,19 @@ module.exports = class ProgramsHelper {
 			if (associatedResources.length > 0) {
 				const resourceIds = associatedResources.map((resource) => resource.resource_id)
 
-				const resources = await resourceQueries.findAll({
-					id: { [Op.in]: resourceIds },
-					organization_id: orgId,
-				})
+				const [resources, openComments] = await Promise.all([
+					resourceQueries.findAll({
+						id: { [Op.in]: resourceIds },
+						organization_id: orgId,
+					}),
+					commentQueries.findAll({
+						resource_id: { [Op.in]: resourceIds },
+						status: common.COMMENT_STATUS_OPEN,
+					}),
+				])
 
 				if (resources.length > 0) {
+					const resourceCommentSet = new Set(openComments.map((comment) => comment.resource_id))
 					// Process each resource and store in result.resources
 					const resourceDetailsPromises = resources.map((resource) =>
 						resourceService.getDetails(resource.id, resource.organization_id)
@@ -394,7 +402,10 @@ module.exports = class ProgramsHelper {
 					// console.log(resourceDetailsResults, 'resourceDetailsResults')
 					result.resources = resourceDetailsResults
 						.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
-						.map((resourceDetail) => resourceDetail.result)
+						.map((resourceDetail) => ({
+							...resourceDetail.result,
+							is_comments: resourceCommentSet.has(resourceDetail.result.id),
+						}))
 				}
 			}
 
@@ -429,7 +440,6 @@ module.exports = class ProgramsHelper {
 		}
 		return userDetails
 	}
-
 	/**
 	 * add Resources to Program
 	 * @method
