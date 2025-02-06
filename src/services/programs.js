@@ -382,12 +382,19 @@ module.exports = class ProgramsHelper {
 			if (associatedResources.length > 0) {
 				const resourceIds = associatedResources.map((resource) => resource.resource_id)
 
-				const resources = await resourceQueries.findAll({
-					id: { [Op.in]: resourceIds },
-					organization_id: orgId,
-				})
+				const [resources, openComments] = await Promise.all([
+					resourceQueries.findAll({
+						id: { [Op.in]: resourceIds },
+						organization_id: orgId,
+					}),
+					commentQueries.findAll({
+						resource_id: { [Op.in]: resourceIds },
+						status: common.COMMENT_STATUS_OPEN,
+					}),
+				])
 
 				if (resources.length > 0) {
+					const resourceCommentSet = new Set(openComments.map((comment) => comment.resource_id))
 					// Process each resource and store in result.resources
 					const resourceDetailsPromises = resources.map((resource) =>
 						resourceService.getDetails(resource.id, resource.organization_id)
@@ -396,7 +403,10 @@ module.exports = class ProgramsHelper {
 					// console.log(resourceDetailsResults, 'resourceDetailsResults')
 					result.resources = resourceDetailsResults
 						.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
-						.map((resourceDetail) => resourceDetail.result)
+						.map((resourceDetail) => ({
+							...resourceDetail.result,
+							is_comments: resourceCommentSet.has(resourceDetail.result.id),
+						}))
 				}
 			}
 
@@ -431,7 +441,6 @@ module.exports = class ProgramsHelper {
 		}
 		return userDetails
 	}
-
 	/**
 	 * add Resources to Program
 	 * @method
@@ -596,7 +605,76 @@ module.exports = class ProgramsHelper {
 	}
 
 	/**
-	 * Get Program Managers list
+	 * Program delete
+	 * @method
+	 * @name delete
+	 * @param {Integer} resourceId - Program id
+	 * @param {String} loggedInUserId - User id
+	 * @returns {JSON} - program delete response.
+	 */
+
+	static async delete(resourceId, loggedInUserId) {
+		try {
+			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
+				{
+					resource_id: resourceId,
+					creator_id: loggedInUserId,
+				},
+				['id', 'organization_id']
+			)
+
+			if (!resourceCreatorMapping?.id) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			const resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+					type: common.RESOURCE_TYPE_PROGRAM,
+					organization_id: resourceCreatorMapping.organization_id,
+					status: common.RESOURCE_STATUS_DRAFT,
+					stage: common.RESOURCE_STAGE_CREATION,
+				},
+				{ attributes: ['id', 'organization_id', 'published_id'] }
+			)
+
+			if (!resource?.id) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			let updatedResource = await resourceQueries.deleteOne(resourceId, resource.organization_id)
+			let updatedResourceCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
+				resourceCreatorMapping.id,
+				loggedInUserId
+			)
+
+			if (updatedResource === 0 && updatedResourceCreatorMapping === 0) {
+				return responses.failureResponse({
+					message: 'PROGRAM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.accepted,
+				message: 'PROGRAM_DELETED_SUCCESSFUL',
+				result: {},
+			})
+		} catch (error) {
+			return error
+		}
+	}
+
+	/* Get Program Managers list
 	 * @method
 	 * @name getProgramManagers
 	 * @param orgId  - Organization Id
