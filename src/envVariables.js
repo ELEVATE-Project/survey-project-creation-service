@@ -272,6 +272,15 @@ let environmentVariables = {
 		optional: false,
 		default: true,
 	},
+	PROGRAM_PUBLISH_KAFKA_TOPIC: {
+		message: 'Default Kafka topic for program publish required',
+		optional: true,
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
 }
 
 let success = true

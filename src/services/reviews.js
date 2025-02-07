@@ -212,7 +212,7 @@ module.exports = class reviewsHelper {
 	 * @param {String} orgId - The ID of the organization that owns the resource.
 	 * @returns {JSON} - The response indicating the result of the resource approval.
 	 */
-	static async approveResource(resourceId, bodyData, userId, orgId) {
+	static async approveResource(resourceId, bodyData, userId, orgId, userToken) {
 		try {
 			// Retrieve resource details based on the provided resourceId.
 			const resource = await resourceQueries.findOne(
@@ -265,7 +265,7 @@ module.exports = class reviewsHelper {
 
 			// Publish resource if isPublishResource is true
 			if (isPublishResource) {
-				const publishResource = await this.publishResource(resourceId, resource.user_id)
+				const publishResource = await this.publishResource(resourceId, resource.user_id, userToken)
 				return publishResource
 			}
 
@@ -686,7 +686,7 @@ module.exports = class reviewsHelper {
 	 * @param {String} userId - The ID of the user
 	 * @returns {JSON} - Publish Response
 	 */
-	static async publishResource(resourceId, userId) {
+	static async publishResource(resourceId, userId, userToken = null) {
 		try {
 			// Fetch the resource creator mapping
 			const resource = await resourceCreatorMappingQueries.findOne(
@@ -713,6 +713,7 @@ module.exports = class reviewsHelper {
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
 				//resource creation through kafka
 				if (process.env.RESOURCE_KAFKA_PUSH_ON_OFF == common.KAFKA_ON) {
+					resourceData.userToken = userToken
 					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
 					//resource creation through api

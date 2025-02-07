@@ -113,7 +113,6 @@ module.exports = class ProgramsHelper {
 	static async update(resourceId, bodyData, loggedInUserId, orgId) {
 		try {
 			const forbidden_resource_statuses = [
-				common.RESOURCE_STATUS_PUBLISHED,
 				common.RESOURCE_STATUS_REJECTED,
 				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 				common.RESOURCE_STATUS_SUBMITTED,
@@ -125,9 +124,6 @@ module.exports = class ProgramsHelper {
 				organization_id: orgId,
 				status: {
 					[Op.notIn]: forbidden_resource_statuses,
-				},
-				stage: {
-					[Op.notIn]: [common.RESOURCE_STAGE_COMPLETION],
 				},
 			})
 
@@ -240,10 +236,9 @@ module.exports = class ProgramsHelper {
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
-				message:
-					fetchResource.stage == common.RESOURCE_STAGE_REVIEW
-						? 'PROGRAM_SAVED_SUCCESSFULLY'
-						: 'PROGRAM_UPDATED_SUCCESSFUL',
+				message: [common.RESOURCE_STAGE_REVIEW, common.RESOURCE_STAGE_COMPLETION].includes(fetchResource.stage)
+					? 'PROGRAM_SAVED_SUCCESSFULLY'
+					: 'PROGRAM_UPDATED_SUCCESSFUL',
 				result: updatedProgram[0].id,
 			})
 		} catch (error) {

@@ -66,7 +66,8 @@ module.exports = class reviews {
 				req.params.id,
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_id,
+				req.userToken
 			)
 			return updateReview
 		} catch (error) {
