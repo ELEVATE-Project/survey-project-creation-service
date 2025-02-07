@@ -66,6 +66,11 @@ describe('Program APIs ', function () {
 		}
 		expect(res.body).toMatchSchema(schema.getProgramManagersSchema)
 	})
+
+	it('Reviewer List', async () => {
+		const res = await request.get('/scp/v1/programs/reviewerList')
+		expect(res.statusCode).toBe(200)
+	})
 })
 
 function insertProgramData() {

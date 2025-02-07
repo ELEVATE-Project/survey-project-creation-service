@@ -8,6 +8,7 @@
 // Dependencies
 const common = require('@constants/common')
 const programService = require('@services/programs')
+const resourceService = require('@services/resource')
 module.exports = class Programs {
 	/**
 	 * create or update program
@@ -114,6 +115,28 @@ module.exports = class Programs {
 				req.pageSize
 			)
 			return dataManagers
+		} catch (error) {
+			return error
+		}
+	}
+
+	/**
+	 * List reviewers based on Org Id
+	 * @method
+	 * @name reviewerList
+	 * @returns {JSON} - reviewer list
+	 */
+
+	async reviewerList(req) {
+		try {
+			const reviewerList = await resourceService.reviewerList(
+				process.env.DEFAULT_REVIEWER_ROLE || common.REVIEWER,
+				req.decodedToken.id,
+				req.decodedToken.organization_id,
+				req.pageNo,
+				req.pageSize
+			)
+			return reviewerList
 		} catch (error) {
 			return error
 		}

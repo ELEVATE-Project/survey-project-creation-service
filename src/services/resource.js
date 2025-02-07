@@ -1392,4 +1392,50 @@ module.exports = class resourceHelper {
 			})
 		}
 	}
+
+	/**
+	 * List reviewers based on Org Id
+	 * @method
+	 * @name reviewerList
+	 * @returns {JSON} - List of reviewers from the org
+	 */
+
+	static async reviewerList(role, user_id, organization_id, pageNo, limit) {
+		try {
+			let result = {
+				data: [],
+				count: 0,
+			}
+
+			let reviewers = await userRequests.list(role, pageNo, limit, '', organization_id, {
+				excluded_user_ids: [user_id],
+			})
+
+			let userList = []
+
+			if (!reviewers.success) {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'REVIEWER_LIST_FETCHED_SUCCESSFULLY',
+					result,
+				})
+			}
+
+			//written as a beckup will remove once the user service PR merged
+			if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
+				userList = reviewers.data.result.data.filter((user) => user.id != user_id)
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'REVIEWER_LIST_FETCHED_SUCCESSFULLY',
+				result: {
+					data: userList,
+					count: userList.length,
+				},
+			})
+		} catch (error) {
+			throw error
+		}
+	}
 }
