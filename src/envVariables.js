@@ -262,6 +262,16 @@ let environmentVariables = {
 		optional: true,
 		default: 'program_manager',
 	},
+	NON_REJECTABLE_RESOURCE_TYPES: {
+		message: 'Resource types that cannot be rejected in a review required.',
+		optional: true,
+		default: 'program',
+	},
+	REVIEW_REQUIRED_AFTER_PUBLISH: {
+		message: 'Required Review Required field',
+		optional: false,
+		default: true,
+	},
 }
 
 let success = true

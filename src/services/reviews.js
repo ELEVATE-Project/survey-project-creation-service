@@ -305,8 +305,11 @@ module.exports = class reviewsHelper {
 			// If no resource is found return error
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
 
-			//program cannot reject or report
-			if (resource.type === common.RESOURCE_TYPE_PROGRAM) throw new Error('PROGRAM_REJECTION_NOT_ALLOWED')
+			//Rejection not allowed check
+			let nonRejectedResourceTypes = process.env.NON_REJECTABLE_RESOURCE_TYPES.split(',') || []
+			if (nonRejectedResourceTypes.includes(resource.type)) {
+				throw new Error(`The ${resource.type} cannot be rejected or reported`)
+			}
 
 			// Validate if there is an ongoing review for the given resourceId, userId, resource status, and orgId.
 			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgId)

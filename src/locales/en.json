@@ -98,7 +98,6 @@
 	"RESOURCE_FETCHED": "Resource fetched successfully",
 	"COMMENT_RESOLVED": "All comments have been resolved",
 	"COMMENT_UPDATED_SUCCESSFULLY": "Your changes have been saved",
-	"PROGRAM_REJECTION_NOT_ALLOWED": "The program cannot be rejected or reported",
 	"RESOURCE_UPDATED_SUCCESSFULLY": "Resource updated successfully",
 	"REVIEW_NOT_FOUND": "Error fetching review details",
 	"REVIEW_SUBMIT_FAILED": "Comment Update Failed.",
