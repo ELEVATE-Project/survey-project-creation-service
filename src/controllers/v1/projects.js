@@ -8,6 +8,7 @@
 // Dependencies
 const common = require('@constants/common')
 const projectService = require('@services/projects')
+const resourceService = require('@services/resource')
 module.exports = class Projects {
 	/**
 	 * create or update project details
@@ -74,7 +75,8 @@ module.exports = class Projects {
 
 	async reviewerList(req) {
 		try {
-			const reviewerList = await projectService.reviewerList(
+			const reviewerList = await resourceService.reviewerList(
+				process.env.DEFAULT_REVIEWER_ROLE || common.REVIEWER,
 				req.decodedToken.id,
 				req.decodedToken.organization_id,
 				req.pageNo,

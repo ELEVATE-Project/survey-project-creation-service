@@ -67,6 +67,11 @@ describe('Program APIs ', function () {
 		expect(res.body).toMatchSchema(schema.getProgramManagersSchema)
 	})
 
+	it('Reviewer List', async () => {
+		const res = await request.get('/scp/v1/programs/reviewerList')
+		expect(res.statusCode).toBe(200)
+	})
+
 	it('Program Send For Review', async () => {
 		let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
 		const programId = createProgram.body?.result?.id
