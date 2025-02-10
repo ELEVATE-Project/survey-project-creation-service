@@ -123,11 +123,11 @@ module.exports = {
 			},
 			{
 				entityType: 'start_date',
-				model: ['program'],
+				model: ['program', 'resource'],
 			},
 			{
 				entityType: 'end_date',
-				model: ['program'],
+				model: ['program', 'resource'],
 			},
 			{
 				entityType: 'viewers',

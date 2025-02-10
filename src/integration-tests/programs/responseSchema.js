@@ -311,6 +311,31 @@ const getProgramManagersSchema = {
 	},
 	required: ['responseCode', 'message', 'result'],
 }
+const programSubmitForReview = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		error: {
+			type: 'array',
+			items: {},
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				correlation: {
+					type: 'string',
+				},
+			},
+			required: ['correlation'],
+		},
+		message: {
+			type: 'string',
+		},
+	},
+	required: ['responseCode', 'error', 'message'],
+}
 module.exports = {
 	createSchema,
 	detailSchema,
@@ -318,4 +343,5 @@ module.exports = {
 	addOrRemoveResourceSchema,
 	getProgramManagersEmptyResponseSchema,
 	getProgramManagersSchema,
+	programSubmitForReview,
 }

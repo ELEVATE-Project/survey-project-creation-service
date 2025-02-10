@@ -965,7 +965,12 @@ module.exports = class ProjectsHelper {
 					}
 				}
 			}
-
+			if (validationErrors.length > 0)
+				return {
+					hasError: true,
+					error: [],
+					validationErrors,
+				}
 			// No errors, return null
 			return {
 				hasError: false,

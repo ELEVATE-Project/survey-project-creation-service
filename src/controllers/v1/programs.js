@@ -141,4 +141,20 @@ module.exports = class Programs {
 			return error
 		}
 	}
+
+	/* submit program for review
+	 * @method
+	 * @name submitForReview
+	 * @param {Object} req - user request
+	 * @returns {JSON} - submitted program id.
+	 */
+
+	async submitForReview(req) {
+		try {
+			const submitForReview = await programService.submitForReview(req.params.id, req.body, req.decodedToken)
+			return submitForReview
+		} catch (error) {
+			return error
+		}
+	}
 }

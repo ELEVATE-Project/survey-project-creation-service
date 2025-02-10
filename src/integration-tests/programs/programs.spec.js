@@ -71,6 +71,16 @@ describe('Program APIs ', function () {
 		const res = await request.get('/scp/v1/programs/reviewerList')
 		expect(res.statusCode).toBe(200)
 	})
+
+	it('Program Send For Review', async () => {
+		let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
+		const programId = createProgram.body?.result?.id
+		let res = await request.post('/scp/v1/programs/submitForReview/' + programId).send({
+			reviewer_ids: [5],
+		})
+		expect(res.statusCode).toBe(400)
+		expect(res.body).toMatchSchema(schema.programSubmitForReview)
+	})
 })
 
 function insertProgramData() {
