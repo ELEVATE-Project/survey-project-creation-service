@@ -15,6 +15,7 @@ const userRequests = require('@requests/user')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const commentQueries = require('@database/queries/comments')
+const projectService = require('@services/projects')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -74,7 +75,7 @@ module.exports = class ProgramsHelper {
 			try {
 				// Upload program to cloud
 				if (programId) {
-					await uploadAndUpdateResource(
+					await utils.uploadAndUpdateResource(
 						programId,
 						orgId,
 						loggedInUserId,
@@ -201,7 +202,7 @@ module.exports = class ProgramsHelper {
 			}
 
 			//Upload program information to cloud
-			await uploadAndUpdateResource(
+			await utils.uploadAndUpdateResource(
 				programId,
 				orgId,
 				loggedInUserId,
@@ -516,7 +517,7 @@ module.exports = class ProgramsHelper {
 			])
 
 			// Upload and update the program resource
-			await uploadAndUpdateResource(
+			await utils.uploadAndUpdateResource(
 				programId,
 				orgId,
 				loggedInUserId,
@@ -707,6 +708,247 @@ module.exports = class ProgramsHelper {
 			throw error
 		}
 	}
+	/**
+	 * Submit the program for review
+	 * @method
+	 * @name submitForReview
+	 * @param {string} programId - The ID of the program for submitting for review.
+	 * @param {Object} bodyData - Request body data.
+	 * @param {Object} userDetails - user details of the loggedIn user.
+	 * @returns {JSON} - Response status of the submission
+	 */
+	static async submitForReview(programId, bodyData, userDetails) {
+		try {
+			let programDetails = await this.details(programId, userDetails.organization_id, userDetails.id)
+			if (programDetails.statusCode !== httpStatusCode.ok) {
+				return responses.failureResponse({
+					message: 'DONT_HAVE_PROGRAM_ACCESS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			let programData = programDetails.result
+
+			//check the creator is valid
+			if (programData.user_id !== userDetails.id) {
+				return responses.failureResponse({
+					message: 'DONT_HAVE_PROGRAM_ACCESS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			//Restrict the user to submit the program
+			if (_nonReviewableResourceStatuses.includes(programData.status)) {
+				throw new Error(`Program is already ${programData.status}. You cannot submit it`)
+			}
+
+			const resourceData = programData.resources
+			const resourceIds = resourceData.map((resource) => resource.id)
+			const resourceTypes = [...resourceData.map((resource) => resource.type), 'resource']
+
+			const programTargeting = programData?.targeting_criteria
+			let validationErrors = []
+
+			if (programTargeting == undefined || Object.keys(programTargeting).length <= 0) {
+				validationErrors.push(
+					utils.errorObject(
+						`${common.RESOURCE_TYPE_PROGRAM}.targeting_criteria`,
+						'targeting_criteria',
+						`Target your Program to any targeting criteria.`
+					)
+				)
+			}
+
+			// check any open comments are there for this program
+			const comments = await commentQueries.findAndCountAll({
+				user_id: {
+					[Op.notIn]: [userDetails.id],
+				},
+				resource_id: {
+					[Op.in]: [programId, ...resourceIds],
+				},
+				status: common.COMMENT_STATUS_OPEN,
+			})
+
+			if (comments.count > 0) {
+				return responses.failureResponse({
+					message: 'ALL_COMMENTS_NOT_RESOLVED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			// Check that the note character limit does not exceed the maximum limit
+			if (bodyData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
+				return responses.failureResponse({
+					message: 'RESOURCE_NOTE_LENGTH_EXCEEDED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			//validate reviewers
+			let reviewerIds = []
+			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
+				reviewerIds = validateReviewers(bodyData.reviewer_ids, userDetails)
+			}
+
+			// Check if any resources are added to program
+			if (resourceIds.length == 0) {
+				validationErrors.push(
+					utils.errorObject(common.RESOURCE_TYPE_PROGRAM, 'resources', `Atleast one resource is mandatory.`)
+				)
+			}
+
+			//get all entity type validations for program
+			let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+				{
+					model: common.RESOURCE_TYPE_PROGRAM,
+					status: common.STATUS_ACTIVE,
+				},
+				programData.organization_id,
+				['id', 'value', 'has_entities', 'validations']
+			)
+
+			let basePath = ''
+			//validate program data
+			const programValidationPromises = entityTypes.map((entityType) => {
+				validateEntityData(programData, entityType, common.RESOURCE_TYPE_PROGRAM, basePath, validationErrors)
+			})
+
+			await Promise.all(programValidationPromises)
+
+			let resourceValidationErrors = []
+
+			let resourceEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+				{
+					model: {
+						[Op.in]: resourceTypes,
+					},
+					status: common.STATUS_ACTIVE,
+				},
+				programData.organization_id,
+				['id', 'value', 'has_entities', 'validations']
+			)
+
+			const resourcesValidationPromise = resourceData.map(async (resource, index) => {
+				const basePath = `${common.RESOURCES}[${index}]`
+				validateResources(resource, resourceEntityTypes, basePath, (resourceValidationErrors = []))
+			})
+
+			await Promise.all(resourcesValidationPromise)
+			const resourceErrors = await Promise.all(resourceValidationErrors)
+
+			resourceErrors.map((error) => {
+				if (error.hasError) {
+					if (Array.isArray(error.validationErrors)) {
+						validationErrors.push(...error.validationErrors)
+					} else {
+						validationErrors.push(error.validationErrors)
+					}
+				}
+			})
+
+			if (validationErrors.length > 0) {
+				const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
+				return responses.failureResponse({
+					responseCode: 'CLIENT_ERROR',
+					statusCode: httpStatusCode.bad_request,
+					result: result,
+					message: 'RESOURCE_VALIDATION_FAILED',
+				})
+			}
+
+			//create the review entry
+			if (reviewerIds.length > 0) {
+				//create entry in reviews table
+				let reviewsData = reviewerIds.map((reviewer_id) => ({
+					resource_id: programData.id,
+					reviewer_id,
+					status: common.REVIEW_STATUS_NOT_STARTED,
+					organization_id: userDetails.organization_id,
+				}))
+
+				await reviewsQueries.bulkCreate(reviewsData)
+				delete reviewsData.status
+				await reviewsResourcesQueries.bulkCreate(reviewsData)
+			}
+
+			//update the reviews and resource status
+			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
+			if (
+				programData.stage === common.RESOURCE_STAGE_REVIEW ||
+				programData.status === common.RESOURCE_STATUS_SUBMITTED
+			) {
+				//Update the review status if the resource has been submitted before
+				await reviewsQueries.update(
+					{
+						organization_id: programData.organization_id,
+						resource_id: programData.id,
+						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+					},
+					{
+						status: common.REVIEW_STATUS_CHANGES_UPDATED,
+					}
+				)
+			}
+
+			//check review is required or not
+			// const isReviewMandatory = await resourceService.isReviewMandatory(
+			// 	programData.type,
+			// 	programData.organization_id
+			// )
+
+			// this will be handled while taking up program publish
+			// if (!isReviewMandatory) {
+			// 	const publishResource = await reviewService.publishResource(
+			// 		programData.id,
+			// 		programData.user_id,
+			// 		programData.organization_id
+			// 	)
+			// 	return publishResource
+			// }
+
+			//update resource
+			let resourcesUpdate = {
+				status: resourceStatus,
+				submitted_on: new Date(),
+				is_under_edit: false,
+				stage: common.RESOURCE_STAGE_REVIEW,
+			}
+
+			if (bodyData.notes) {
+				resourcesUpdate.meta = {
+					notes: bodyData.notes,
+				}
+			}
+
+			await resourceQueries.updateOne({ id: programData.id }, resourcesUpdate)
+			// add user action
+			eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
+				actionCode: common.USER_ACTIONS[programData.type].RESOURCE_SUBMITTED,
+				userId: userDetails.id,
+				objectId: programData.id,
+				objectType: common.MODEL_NAMES.RESOURCE,
+				orgId: userDetails.organization_id,
+			})
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'PROGRAM_SUBMITTED_SUCCESSFULLY',
+				result: { id: programData.id },
+			})
+		} catch (error) {
+			return responses.failureResponse({
+				message: error.message || 'RESOURCE_VALIDATION_FAILED',
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+				result: error.error || [],
+			})
+		}
+	}
 }
 
 /**
@@ -795,7 +1037,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 						])
 
 						// Upload the duplicated resource to the cloud
-						await uploadAndUpdateResource(
+						await utils.uploadAndUpdateResource(
 							duplicateResource.id,
 							orgId,
 							loggedInUserId,
@@ -814,7 +1056,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 							...commonFields,
 						}
 
-						await uploadAndUpdateResource(
+						await utils.uploadAndUpdateResource(
 							updatedResourceData.id,
 							orgId,
 							loggedInUserId,
@@ -831,47 +1073,275 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 		throw error
 	}
 }
+
+const _nonReviewableResourceStatuses = [
+	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+	common.RESOURCE_STATUS_SUBMITTED,
+	common.REVIEW_STATUS_CHANGES_UPDATED,
+	common.REVIEW_STATUS_INPROGRESS,
+]
+
 /**
- * Uploads a resource to the cloud and updates its metadata in the database.
- * @param {string} resourceId - The ID of the resource to upload and update.
- * @param {string} orgId - The ID of the organization associated with the resource.
- * @param {string} loggedInUserId - The ID of the user performing the operation.
- * @param {Object} data - The data to be uploaded to the cloud.
- * @param {string} fileName - The name of the file to be uploaded.
- * @param {string} resourceType - The type of the resource (e.g., 'program', 'project').
- * @returns {Promise<void>} - Resolves when the upload and update are successful.
+ * Validates the given program data
+ * @method
+ * @name validateEntityData
+ * @param {Object} entityData - Data which needs to validate
+ * @param {Object} entityType - Each entityType which have models
+ * @param {string} model - The model needs to validate ex: program
+ * @param {string} sourceType - Specifies the source of the input, which can be 'body', 'param', or 'query'.
+ * @returns {JSON} - Response containing error details, if any.
  */
-async function uploadAndUpdateResource(resourceId, orgId, loggedInUserId, data, fileName, resourceType) {
+async function validateEntityData(entityData, entityType, model, sourceType, validationErrors = []) {
 	try {
-		const uploadStatus = await resourceService.uploadToCloud(
-			fileName,
-			resourceId,
-			resourceType,
-			loggedInUserId,
-			data
+		let fieldData = entityData[entityType.value]
+
+		// Check if the field is required
+		let requiredValidation = entityType.validations.find(
+			(validation) => validation.type == common.REQUIRED_VALIDATION
+		)
+		if (requiredValidation) {
+			let required = utils.checkRequired(requiredValidation, fieldData)
+			if (!required) {
+				validationErrors.push(
+					utils.errorObject(
+						model == common.RESOURCE_TYPE_PROGRAM ? entityType.value : sourceType,
+						model === common.RESOURCE_TYPE_PROGRAM ? '' : entityType.value,
+						`${entityType.value} is required`
+					)
+				)
+			}
+		}
+
+		//length check validation
+		let maxLengthValidation = entityType.validations.find(
+			(validation) => validation.type == common.MAX_LENGTH_VALIDATION
 		)
 
-		if (uploadStatus.result.status === httpStatusCode.ok || uploadStatus.result.status === httpStatusCode.created) {
-			const filter = { id: resourceId, organization_id: orgId }
-			const updateData = { updated_by: loggedInUserId, blob_path: uploadStatus.blob_path }
-			if (data.title) {
-				updateData.title = data.title
-			}
+		if (maxLengthValidation && typeof fieldData === common.STRING && fieldData !== null) {
+			let lengthCheck = utils.checkLength(maxLengthValidation, fieldData)
 
-			const [updateCount, updatedResource] = await resourceQueries.updateOne(filter, updateData, {
-				returning: true,
-				raw: true,
+			if (!lengthCheck) {
+				validationErrors.push(
+					utils.errorObject(
+						common.RESOURCE_TYPE_PROGRAM,
+						entityType.value,
+						`${entityType.value} must not exceed ${maxLengthValidation.value} characters `
+					)
+				)
+			}
+		}
+
+		// Check if the entity has sub-entities
+		if (entityType.has_entities) {
+			let checkEntities = utils.checkEntities(entityType, fieldData)
+			if (!checkEntities.status) {
+				validationErrors.push(
+					utils.errorObject(common.RESOURCE_TYPE_PROGRAM, entityType.value, checkEntities.message)
+				)
+			}
+		}
+
+		// Check regex pattern will check max length and special characters
+		let regexValidation = entityType.validations.find((validation) => validation.type == common.REGEX_VALIDATION)
+		if (regexValidation && fieldData) {
+			let checkRegex = utils.checkRegexPattern(regexValidation, fieldData)
+			if (!checkRegex) {
+				validationErrors.push(
+					utils.errorObject(
+						common.RESOURCE_TYPE_PROGRAM,
+						entityType.value,
+						`${entityType.value} can only include alphanumeric characters with spaces, -, _, &, <>`
+					)
+				)
+			}
+		}
+
+		let endDateCheck = entityType.validations.find((validation) => validation.type == common.END_DATE_VALIDATION)
+		if (endDateCheck && typeof rollout[entityType.value] === common.STRING && rollout[entityType.value] !== null) {
+			const validateEndDate = utils.checkEndDate(rollout[common.START_DATE], rollout[entityType.value])
+			if (!validateEndDate) {
+				validationErrors.push(
+					utils.errorObject(
+						basePath,
+						entityType.value,
+						validateEndDate.message || 'End date should be greater than the start date.'
+					)
+				)
+			}
+		}
+		if (validationErrors.length > 0) {
+			const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
+			return responses.failureResponse({
+				responseCode: 'CLIENT_ERROR',
+				statusCode: httpStatusCode.bad_request,
+				result: result,
+				message: 'RESOURCE_VALIDATION_FAILED',
 			})
+		}
 
-			if (updateCount === 0) {
-				throw new Error('RESOURCE_NOT_FOUND')
-			}
-
-			return updatedResource
-		} else {
-			throw new Error('FILE_UPLOADED_FAILED')
+		// No errors, return null
+		return {
+			hasError: false,
+			error: [],
 		}
 	} catch (error) {
-		throw error
+		return error
+	}
+}
+
+/**
+ * Validates whether the resource targeting criteria is a subset of the program targeting criteria.
+ * @method
+ * @name validateTargetingCriteria
+ * @param {Array<Object>} programTargetring - The program targeting criteria containing various targeting keys with `_id` values.
+ * @param {Array<Object>} resourceTargeting - The resource targeting criteria that needs to be validated against the program targeting.
+ * @returns {Promise<boolean>} - A promise that resolves to `true` if resourceTargeting is a subset of programTargetring, otherwise `false`.
+ */
+async function validateTargetingCriteria(programTargetring, resourceTargeting) {
+	// Extract _id values for each key using lodash reduce
+	const programTargetings = _.reduce(
+		programTargetring,
+		(acc, targeting) => {
+			_.forEach(targeting, (value, key) => {
+				if (_.isArray(value)) {
+					acc[key] = (acc[key] || []).concat(_.map(value, '_id'))
+				}
+			})
+			return acc
+		},
+		{}
+	)
+
+	const resourceTargetings = _.reduce(
+		resourceTargeting,
+		(acc, targeting) => {
+			_.forEach(targeting, (value, key) => {
+				if (_.isArray(value)) {
+					acc[key] = (acc[key] || []).concat(_.map(value, '_id'))
+				}
+			})
+			return acc
+		},
+		{}
+	)
+
+	// Check if resourceTargetings is a subset of programTargetings
+	const isSubset = _.every(
+		resourceTargetings,
+		(ids, key) => _.isArray(programTargetings[key]) && _.difference(ids, programTargetings[key]).length === 0
+	)
+
+	return isSubset
+}
+
+/**
+ * Validates whether the Reviewers list given is valid or not
+ * @method
+ * @name validateReviewers
+ * @param {Array} reviewerIds - Array of reviewer ids
+ * @param {Object} userDetails - Logged in user details.
+ * @returns {Array} - Array of valid reviewer ids or error.
+ */
+async function validateReviewers(reviewerIds, userDetails) {
+	if (!reviewerIds || reviewerIds.length === 0) return []
+
+	const uniqueReviewerIds = utils.getUniqueElements(reviewerIds)
+	const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
+		user_ids: uniqueReviewerIds,
+		excluded_user_ids: [userDetails.id],
+	})
+
+	if (!reviewers.success || uniqueReviewerIds.length > reviewers.data.result.data.length) {
+		throw new Error('REVIEWER_IDS_NOT_FOUND')
+	}
+
+	return reviewers.data.result.data.map((item) => item.id)
+}
+
+/**
+ * Validates whether the resources have any error before submiting
+ * @method
+ * @name validateResources
+ * @param {Object} resource - Array of reviewer ids
+ * @param {Object} resourceEntityTypes - Entity type details and validations for resources
+ * @param {String} basePath - Base bath of the resource in the program
+ * @param {Array} resourceValidationErrors - Array of resource level validation error.
+ * @returns {Promise<void>} - Returns a promise of errors.
+ */
+async function validateResources(resource, resourceEntityTypes, basePath, resourceValidationErrors = []) {
+	if (!resource?.targeting_criteria || Object.keys(resource.targeting_criteria).length === 0) {
+		resourceValidationErrors.push(
+			utils.errorObject(
+				`${basePath}.targeting_criteria`,
+				'targeting_criteria',
+				`Target your Resource to any targeting criteria under program scope.`
+			)
+		)
+	} else {
+		const validateResourceScope = await validateTargetingCriteria(programTargeting, resource.targeting_criteria)
+		if (!validateResourceScope) {
+			resourceValidationErrors.push(
+				utils.errorObject(
+					`${basePath}.targeting_criteria`,
+					'targeting_criteria',
+					'Resource targeting should be under Program Scope.'
+				)
+			)
+		}
+	}
+
+	resourceEntityTypes.map((entityType) => {
+		if (resource.type == common.PROJECT) {
+			resourceValidationErrors.push(
+				projectService.validateEntityData(
+					resource,
+					entityType,
+					common.RESOURCE_TYPE_PROGRAM,
+					basePath,
+					resourceValidationErrors
+				)
+			)
+		}
+	})
+	//rest of the resource type validations will be added incrementally.
+
+	// check resource start date , end date
+	if (resource?.[common.START_DATE] != undefined && resource?.[common.END_DATE] != undefined) {
+		const validateEndDate = utils.checkEndDate(resource[common.START_DATE], resource[common.END_DATE])
+		if (!validateEndDate) {
+			resourceValidationErrors.push(
+				utils.errorObject(basePath, common.START_DATE, 'End date should be greater than the start date.')
+			)
+		}
+	}
+
+	// check if the resource start date lies with-in the program date range
+	if (resource?.[common.START_DATE] != undefined && programData?.[common.START_DATE] != undefined) {
+		const validateProgramResourceStartDate = utils.checkEndDate(
+			programData?.[common.START_DATE],
+			resource?.[common.START_DATE]
+		)
+		if (!validateProgramResourceStartDate) {
+			resourceValidationErrors.push(
+				utils.errorObject(
+					basePath,
+					common.START_DATE,
+					'Resource Start date should be within program Date Range.'
+				)
+			)
+		}
+	}
+	// check if the resource end date lies with-in the program date range
+	if (resource?.[common.END_DATE] != undefined && programData?.[common.END_DATE] != undefined) {
+		const validateProgramResourceStartDate = utils.checkEndDate(
+			resource[common.END_DATE],
+			programData?.[common.END_DATE]
+		)
+		if (!validateProgramResourceStartDate) {
+			resourceValidationErrors.push(
+				utils.errorObject(basePath, common.END_DATE, 'Resource End date should be within program Date Range.')
+			)
+		}
 	}
 }
