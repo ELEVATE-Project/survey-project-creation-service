@@ -75,7 +75,7 @@ module.exports = class ProgramsHelper {
 			try {
 				// Upload program to cloud
 				if (programId) {
-					await uploadAndUpdateResource(
+					await utils.uploadAndUpdateResource(
 						programId,
 						orgId,
 						loggedInUserId,
@@ -206,7 +206,7 @@ module.exports = class ProgramsHelper {
 			}
 
 			//Upload program information to cloud
-			await uploadAndUpdateResource(
+			await utils.uploadAndUpdateResource(
 				programId,
 				orgId,
 				loggedInUserId,
@@ -522,7 +522,7 @@ module.exports = class ProgramsHelper {
 			])
 
 			// Upload and update the program resource
-			await uploadAndUpdateResource(
+			await utils.uploadAndUpdateResource(
 				programId,
 				orgId,
 				loggedInUserId,
@@ -1042,7 +1042,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 						])
 
 						// Upload the duplicated resource to the cloud
-						await uploadAndUpdateResource(
+						await utils.uploadAndUpdateResource(
 							duplicateResource.id,
 							orgId,
 							loggedInUserId,
@@ -1061,7 +1061,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 							...commonFields,
 						}
 
-						await uploadAndUpdateResource(
+						await utils.uploadAndUpdateResource(
 							updatedResourceData.id,
 							orgId,
 							loggedInUserId,
@@ -1074,50 +1074,6 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 			})
 		)
 		return duplicateResourceIds
-	} catch (error) {
-		throw error
-	}
-}
-/**
- * Uploads a resource to the cloud and updates its metadata in the database.
- * @param {string} resourceId - The ID of the resource to upload and update.
- * @param {string} orgId - The ID of the organization associated with the resource.
- * @param {string} loggedInUserId - The ID of the user performing the operation.
- * @param {Object} data - The data to be uploaded to the cloud.
- * @param {string} fileName - The name of the file to be uploaded.
- * @param {string} resourceType - The type of the resource (e.g., 'program', 'project').
- * @returns {Promise<void>} - Resolves when the upload and update are successful.
- */
-async function uploadAndUpdateResource(resourceId, orgId, loggedInUserId, data, fileName, resourceType) {
-	try {
-		const uploadStatus = await resourceService.uploadToCloud(
-			fileName,
-			resourceId,
-			resourceType,
-			loggedInUserId,
-			data
-		)
-
-		if (uploadStatus.result.status === httpStatusCode.ok || uploadStatus.result.status === httpStatusCode.created) {
-			const filter = { id: resourceId, organization_id: orgId }
-			const updateData = { updated_by: loggedInUserId, blob_path: uploadStatus.blob_path }
-			if (data.title) {
-				updateData.title = data.title
-			}
-
-			const [updateCount, updatedResource] = await resourceQueries.updateOne(filter, updateData, {
-				returning: true,
-				raw: true,
-			})
-
-			if (updateCount === 0) {
-				throw new Error('RESOURCE_NOT_FOUND')
-			}
-
-			return updatedResource
-		} else {
-			throw new Error('FILE_UPLOADED_FAILED')
-		}
 	} catch (error) {
 		throw error
 	}
