@@ -16,6 +16,7 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const commentQueries = require('@database/queries/comments')
 const projectService = require('@services/projects')
+const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -756,7 +757,7 @@ module.exports = class ProgramsHelper {
 					utils.errorObject(
 						`${common.RESOURCE_TYPE_PROGRAM}.targeting_criteria`,
 						'targeting_criteria',
-						`Target your Program to any targeting criteria.`
+						'Target your Program to any targeting criteria.'
 					)
 				)
 			}
@@ -871,9 +872,35 @@ module.exports = class ProgramsHelper {
 					organization_id: userDetails.organization_id,
 				}))
 
-				await reviewsQueries.bulkCreate(reviewsData)
-				delete reviewsData.status
-				await reviewsResourcesQueries.bulkCreate(reviewsData)
+				//find existing reviews
+				const existingReviews = await reviewsQueries.findAll({
+					resource_id: programData.id,
+					reviewer_id: reviewerIds,
+				})
+
+				const existingReviewerIds = new Set(existingReviews.map((r) => r.reviewer_id))
+				// Separate updates and inserts
+				const inserts = reviewsData.filter((review) => !existingReviewerIds.has(review.reviewer_id))
+				const updates = reviewsData.filter((review) => existingReviewerIds.has(review.reviewer_id))
+
+				// Execute updates and inserts in parallel
+				await Promise.all(
+					[
+						// Update existing reviews
+						updates.length > 0 &&
+							reviewsQueries.update(
+								{ resource_id: programData.id, reviewer_id: updates.map((r) => r.reviewer_id) },
+								{ status: common.REVIEW_STATUS_NOT_STARTED }
+							),
+
+						// Insert new reviews and related resources
+						inserts.length > 0 &&
+							Promise.all([
+								reviewsResourcesQueries.bulkCreate(inserts.map(({ status, ...rest }) => rest)),
+								reviewsQueries.bulkCreate(inserts),
+							]),
+					].filter(Boolean)
+				)
 			}
 
 			//update the reviews and resource status
