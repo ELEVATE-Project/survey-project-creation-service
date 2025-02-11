@@ -75,7 +75,7 @@ module.exports = class ProgramsHelper {
 			try {
 				// Upload program to cloud
 				if (programId) {
-					await utils.uploadAndUpdateResource(
+					await resourceService.uploadAndUpdateResource(
 						programId,
 						orgId,
 						loggedInUserId,
@@ -206,7 +206,7 @@ module.exports = class ProgramsHelper {
 			}
 
 			//Upload program information to cloud
-			await utils.uploadAndUpdateResource(
+			await resourceService.uploadAndUpdateResource(
 				programId,
 				orgId,
 				loggedInUserId,
@@ -522,7 +522,7 @@ module.exports = class ProgramsHelper {
 			])
 
 			// Upload and update the program resource
-			await utils.uploadAndUpdateResource(
+			await resourceService.uploadAndUpdateResource(
 				programId,
 				orgId,
 				loggedInUserId,
@@ -1042,7 +1042,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 						])
 
 						// Upload the duplicated resource to the cloud
-						await utils.uploadAndUpdateResource(
+						await resourceService.uploadAndUpdateResource(
 							duplicateResource.id,
 							orgId,
 							loggedInUserId,
@@ -1061,7 +1061,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 							...commonFields,
 						}
 
-						await utils.uploadAndUpdateResource(
+						await resourceService.uploadAndUpdateResource(
 							updatedResourceData.id,
 							orgId,
 							loggedInUserId,
