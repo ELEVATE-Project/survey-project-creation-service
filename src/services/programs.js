@@ -16,6 +16,7 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const commentQueries = require('@database/queries/comments')
 const projectService = require('@services/projects')
+const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -75,7 +76,7 @@ module.exports = class ProgramsHelper {
 			try {
 				// Upload program to cloud
 				if (programId) {
-					await utils.uploadAndUpdateResource(
+					await resourceService.uploadAndUpdateResource(
 						programId,
 						orgId,
 						loggedInUserId,
@@ -206,7 +207,7 @@ module.exports = class ProgramsHelper {
 			}
 
 			//Upload program information to cloud
-			await utils.uploadAndUpdateResource(
+			await resourceService.uploadAndUpdateResource(
 				programId,
 				orgId,
 				loggedInUserId,
@@ -522,7 +523,7 @@ module.exports = class ProgramsHelper {
 			])
 
 			// Upload and update the program resource
-			await utils.uploadAndUpdateResource(
+			await resourceService.uploadAndUpdateResource(
 				programId,
 				orgId,
 				loggedInUserId,
@@ -797,7 +798,7 @@ module.exports = class ProgramsHelper {
 			//validate reviewers
 			let reviewerIds = []
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
-				reviewerIds = validateReviewers(bodyData.reviewer_ids, userDetails)
+				reviewerIds = await validateReviewers(bodyData.reviewer_ids, userDetails)
 			}
 
 			// Check if any resources are added to program
@@ -1042,7 +1043,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 						])
 
 						// Upload the duplicated resource to the cloud
-						await utils.uploadAndUpdateResource(
+						await resourceService.uploadAndUpdateResource(
 							duplicateResource.id,
 							orgId,
 							loggedInUserId,
@@ -1061,7 +1062,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 							...commonFields,
 						}
 
-						await utils.uploadAndUpdateResource(
+						await resourceService.uploadAndUpdateResource(
 							updatedResourceData.id,
 							orgId,
 							loggedInUserId,
