@@ -797,7 +797,7 @@ module.exports = class ProgramsHelper {
 			//validate reviewers
 			let reviewerIds = []
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
-				reviewerIds = validateReviewers(bodyData.reviewer_ids, userDetails)
+				reviewerIds = await validateReviewers(bodyData.reviewer_ids, userDetails)
 			}
 
 			// Check if any resources are added to program
