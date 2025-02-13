@@ -732,13 +732,13 @@ module.exports = class ProgramsHelper {
 			let programData = programDetails.result
 
 			//check the creator is valid
-			if (programData.user_id !== userDetails.id) {
-				return responses.failureResponse({
-					message: 'DONT_HAVE_PROGRAM_ACCESS',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
+			// if (programData.user_id !== userDetails.id) {
+			// 	return responses.failureResponse({
+			// 		message: 'DONT_HAVE_PROGRAM_ACCESS',
+			// 		statusCode: httpStatusCode.bad_request,
+			// 		responseCode: 'CLIENT_ERROR',
+			// 	})
+			// }
 
 			//Restrict the user to submit the program
 			if (_nonReviewableResourceStatuses.includes(programData.status)) {
@@ -1363,7 +1363,7 @@ async function validateResources(
 	let roleValidationFlag = true
 	resource.targeting_criteria.forEach((targeting) => {
 		targeting.roles.forEach((role) => {
-			if (!programLevelRoles.includes(role)) roleValidationFlag = false
+			if (!programLevelRoles.includes(role._id)) roleValidationFlag = false
 		})
 	})
 
