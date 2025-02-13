@@ -750,9 +750,21 @@ module.exports = class ProgramsHelper {
 			const resourceTypes = [...resourceData.map((resource) => resource.type), 'resource']
 
 			const programTargeting = programData?.targeting_criteria
+			let programTopLevelTargetingEntities = []
+			let programLevelRoles = []
+			programTargeting.forEach((targeting) => {
+				targeting?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY].forEach((eachTarget) => {
+					programTopLevelTargetingEntities.push(eachTarget._id)
+				})
+				programLevelRoles = [...programLevelRoles, ...targeting['roles'].map((roles) => roles._id)]
+			})
 			let validationErrors = []
 
-			if (programTargeting == undefined || Object.keys(programTargeting).length <= 0) {
+			if (
+				programTargeting == undefined ||
+				Object.keys(programTargeting).length <= 0 ||
+				programTopLevelTargetingEntities.length <= 0
+			) {
 				validationErrors.push(
 					utils.errorObject(
 						`${common.RESOURCE_TYPE_PROGRAM}.targeting_criteria`,
@@ -836,21 +848,30 @@ module.exports = class ProgramsHelper {
 
 			const resourcesValidationPromise = resourceData.map(async (resource, index) => {
 				const basePath = `${common.RESOURCES}[${index}]`
-				validateResources(resource, resourceEntityTypes, basePath, (resourceValidationErrors = []))
+				validateResources(
+					resource,
+					programTopLevelTargetingEntities,
+					programTargeting,
+					programLevelRoles,
+					programData,
+					resourceEntityTypes,
+					basePath,
+					(resourceValidationErrors = [])
+				)
 			})
 
 			await Promise.all(resourcesValidationPromise)
 			const resourceErrors = await Promise.all(resourceValidationErrors)
 
-			resourceErrors.map((error) => {
-				if (error.hasError) {
-					if (Array.isArray(error.validationErrors)) {
-						validationErrors.push(...error.validationErrors)
-					} else {
-						validationErrors.push(error.validationErrors)
+			resourceErrors
+				.filter((error) => !(error?.hasError === false))
+				.forEach((error) => {
+					if (Array.isArray(error)) {
+						validationErrors.push(error)
+					} else if (error?.hasError && Array.isArray(error.error)) {
+						validationErrors.push(...error.error)
 					}
-				}
-			})
+				})
 
 			if (validationErrors.length > 0) {
 				const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
@@ -1225,7 +1246,16 @@ async function validateEntityData(entityData, entityType, model, sourceType, val
  * @param {Array<Object>} resourceTargeting - The resource targeting criteria that needs to be validated against the program targeting.
  * @returns {Promise<boolean>} - A promise that resolves to `true` if resourceTargeting is a subset of programTargetring, otherwise `false`.
  */
-async function validateTargetingCriteria(programTargetring, resourceTargeting) {
+async function validateTargetingCriteria(programTargetring, programTopLevelTargetingEntities, resourceTargeting) {
+	const isValid = resourceTargeting.every((resourceTarget) =>
+		resourceTarget?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY]?.every((entity) =>
+			programTopLevelTargetingEntities.includes(entity._id)
+		)
+	)
+
+	if (!isValid) {
+		return false
+	}
 	// Extract _id values for each key using lodash reduce
 	const programTargetings = _.reduce(
 		programTargetring,
@@ -1296,7 +1326,16 @@ async function validateReviewers(reviewerIds, userDetails) {
  * @param {Array} resourceValidationErrors - Array of resource level validation error.
  * @returns {Promise<void>} - Returns a promise of errors.
  */
-async function validateResources(resource, resourceEntityTypes, basePath, resourceValidationErrors = []) {
+async function validateResources(
+	resource,
+	programTopLevelTargetingEntities,
+	programTargeting,
+	programLevelRoles,
+	programData,
+	resourceEntityTypes,
+	basePath,
+	resourceValidationErrors = []
+) {
 	if (!resource?.targeting_criteria || Object.keys(resource.targeting_criteria).length === 0) {
 		resourceValidationErrors.push(
 			utils.errorObject(
@@ -1306,7 +1345,11 @@ async function validateResources(resource, resourceEntityTypes, basePath, resour
 			)
 		)
 	} else {
-		const validateResourceScope = await validateTargetingCriteria(programTargeting, resource.targeting_criteria)
+		const validateResourceScope = await validateTargetingCriteria(
+			programTargeting,
+			programTopLevelTargetingEntities,
+			resource.targeting_criteria
+		)
 		if (!validateResourceScope) {
 			resourceValidationErrors.push(
 				utils.errorObject(
@@ -1316,6 +1359,22 @@ async function validateResources(resource, resourceEntityTypes, basePath, resour
 				)
 			)
 		}
+	}
+	let roleValidationFlag = true
+	resource.targeting_criteria.forEach((targeting) => {
+		targeting.roles.forEach((role) => {
+			if (!programLevelRoles.includes(role)) roleValidationFlag = false
+		})
+	})
+
+	if (!roleValidationFlag) {
+		resourceValidationErrors.push(
+			utils.errorObject(
+				`${basePath}.targeting_criteria`,
+				'roles',
+				'Roles in targeting should be under Program Scope.'
+			)
+		)
 	}
 
 	resourceEntityTypes.map((entityType) => {
@@ -1362,8 +1421,8 @@ async function validateResources(resource, resourceEntityTypes, basePath, resour
 	// check if the resource end date lies with-in the program date range
 	if (resource?.[common.END_DATE] != undefined && programData?.[common.END_DATE] != undefined) {
 		const validateProgramResourceStartDate = utils.checkEndDate(
-			resource[common.END_DATE],
-			programData?.[common.END_DATE]
+			programData?.[common.END_DATE],
+			resource[common.END_DATE]
 		)
 		if (!validateProgramResourceStartDate) {
 			resourceValidationErrors.push(
