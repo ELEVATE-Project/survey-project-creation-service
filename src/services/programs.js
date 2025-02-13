@@ -855,6 +855,7 @@ module.exports = class ProgramsHelper {
 					resource,
 					program_top_level_targeting_entities,
 					programTargeting,
+					programData,
 					resourceEntityTypes,
 					basePath,
 					(resourceValidationErrors = [])
@@ -1305,6 +1306,7 @@ async function validateResources(
 	resource,
 	program_top_level_targeting_entities,
 	programTargeting,
+	programData,
 	resourceEntityTypes,
 	basePath,
 	resourceValidationErrors = []
