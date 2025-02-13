@@ -1392,4 +1392,92 @@ module.exports = class resourceHelper {
 			})
 		}
 	}
+
+	/**
+	 * List reviewers based on Org Id
+	 * @method
+	 * @name reviewerList
+	 * @returns {JSON} - List of reviewers from the org
+	 */
+
+	static async reviewerList(role, user_id, organization_id, pageNo, limit) {
+		try {
+			let result = {
+				data: [],
+				count: 0,
+			}
+
+			let reviewers = await userRequests.list(role, pageNo, limit, '', organization_id, {
+				excluded_user_ids: [user_id],
+			})
+
+			let userList = []
+
+			if (!reviewers.success) {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'REVIEWER_LIST_FETCHED_SUCCESSFULLY',
+					result,
+				})
+			}
+
+			//written as a beckup will remove once the user service PR merged
+			if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
+				userList = reviewers.data.result.data.filter((user) => user.id != user_id)
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'REVIEWER_LIST_FETCHED_SUCCESSFULLY',
+				result: {
+					data: userList,
+					count: userList.length,
+				},
+			})
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Uploads a resource to the cloud and updates its metadata in the database.
+	 * @param {string} resourceId - The ID of the resource to upload and update.
+	 * @param {string} orgId - The ID of the organization associated with the resource.
+	 * @param {string} loggedInUserId - The ID of the user performing the operation.
+	 * @param {Object} data - The data to be uploaded to the cloud.
+	 * @param {string} fileName - The name of the file to be uploaded.
+	 * @param {string} resourceType - The type of the resource (e.g., 'program', 'project').
+	 * @returns {Promise<void>} - Resolves when the upload and update are successful.
+	 */
+	static async uploadAndUpdateResource(resourceId, orgId, loggedInUserId, data, fileName, resourceType) {
+		try {
+			const uploadStatus = await this.uploadToCloud(fileName, resourceId, resourceType, loggedInUserId, data)
+
+			if (
+				uploadStatus.result.status === httpStatusCode.ok ||
+				uploadStatus.result.status === httpStatusCode.created
+			) {
+				const filter = { id: resourceId, organization_id: orgId }
+				const updateData = { updated_by: loggedInUserId, blob_path: uploadStatus.blob_path }
+				if (data.title) {
+					updateData.title = data.title
+				}
+
+				const [updateCount, updatedResource] = await resourceQueries.updateOne(filter, updateData, {
+					returning: true,
+					raw: true,
+				})
+
+				if (updateCount === 0) {
+					throw new Error('RESOURCE_NOT_FOUND')
+				}
+
+				return updatedResource
+			} else {
+				throw new Error('FILE_UPLOADED_FAILED')
+			}
+		} catch (error) {
+			throw error
+		}
+	}
 }
