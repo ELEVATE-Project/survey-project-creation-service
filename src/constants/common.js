@@ -49,6 +49,7 @@ module.exports = {
 		'min_approval',
 		'resource_type',
 		'review_type',
+		'review_required_after_publish',
 	],
 	MIN_APPROVAL: 1,
 	CONTENT_CREATOR: 'content_creator',

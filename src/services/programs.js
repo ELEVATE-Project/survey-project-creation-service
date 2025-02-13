@@ -16,6 +16,7 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const commentQueries = require('@database/queries/comments')
 const projectService = require('@services/projects')
+const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -114,7 +115,7 @@ module.exports = class ProgramsHelper {
 			try {
 				// Upload program to cloud
 				if (programId) {
-					await utils.uploadAndUpdateResource(
+					await resourceService.uploadAndUpdateResource(
 						programId,
 						orgId,
 						loggedInUserId,
@@ -153,7 +154,6 @@ module.exports = class ProgramsHelper {
 	static async update(resourceId, bodyData, loggedInUserId, orgId) {
 		try {
 			const forbidden_resource_statuses = [
-				common.RESOURCE_STATUS_PUBLISHED,
 				common.RESOURCE_STATUS_REJECTED,
 				common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 				common.RESOURCE_STATUS_SUBMITTED,
@@ -165,9 +165,6 @@ module.exports = class ProgramsHelper {
 				organization_id: orgId,
 				status: {
 					[Op.notIn]: forbidden_resource_statuses,
-				},
-				stage: {
-					[Op.notIn]: [common.RESOURCE_STAGE_COMPLETION],
 				},
 			})
 
@@ -245,7 +242,7 @@ module.exports = class ProgramsHelper {
 			}
 
 			//Upload program information to cloud
-			await utils.uploadAndUpdateResource(
+			await resourceService.uploadAndUpdateResource(
 				programId,
 				orgId,
 				loggedInUserId,
@@ -280,10 +277,9 @@ module.exports = class ProgramsHelper {
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
-				message:
-					fetchResource.stage == common.RESOURCE_STAGE_REVIEW
-						? 'PROGRAM_SAVED_SUCCESSFULLY'
-						: 'PROGRAM_UPDATED_SUCCESSFUL',
+				message: [common.RESOURCE_STAGE_REVIEW, common.RESOURCE_STAGE_COMPLETION].includes(fetchResource.stage)
+					? 'PROGRAM_SAVED_SUCCESSFULLY'
+					: 'PROGRAM_UPDATED_SUCCESSFUL',
 				result: updatedProgram[0].id,
 			})
 		} catch (error) {
@@ -561,7 +557,7 @@ module.exports = class ProgramsHelper {
 			])
 
 			// Upload and update the program resource
-			await utils.uploadAndUpdateResource(
+			await resourceService.uploadAndUpdateResource(
 				programId,
 				orgId,
 				loggedInUserId,
@@ -793,14 +789,26 @@ module.exports = class ProgramsHelper {
 			const resourceTypes = [...resourceData.map((resource) => resource.type), 'resource']
 
 			const programTargeting = programData?.targeting_criteria
+			let programTopLevelTargetingEntities = []
+			let programLevelRoles = []
+			programTargeting.forEach((targeting) => {
+				targeting?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY].forEach((eachTarget) => {
+					programTopLevelTargetingEntities.push(eachTarget._id)
+				})
+				programLevelRoles = [...programLevelRoles, ...targeting['roles'].map((roles) => roles._id)]
+			})
 			let validationErrors = []
 
-			if (programTargeting == undefined || Object.keys(programTargeting).length <= 0) {
+			if (
+				programTargeting == undefined ||
+				Object.keys(programTargeting).length <= 0 ||
+				programTopLevelTargetingEntities.length <= 0
+			) {
 				validationErrors.push(
 					utils.errorObject(
 						`${common.RESOURCE_TYPE_PROGRAM}.targeting_criteria`,
 						'targeting_criteria',
-						`Target your Program to any targeting criteria.`
+						'Target your Program to any targeting criteria.'
 					)
 				)
 			}
@@ -836,7 +844,7 @@ module.exports = class ProgramsHelper {
 			//validate reviewers
 			let reviewerIds = []
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
-				reviewerIds = validateReviewers(bodyData.reviewer_ids, userDetails)
+				reviewerIds = await validateReviewers(bodyData.reviewer_ids, userDetails)
 			}
 
 			// Check if any resources are added to program
@@ -879,21 +887,30 @@ module.exports = class ProgramsHelper {
 
 			const resourcesValidationPromise = resourceData.map(async (resource, index) => {
 				const basePath = `${common.RESOURCES}[${index}]`
-				validateResources(resource, resourceEntityTypes, basePath, (resourceValidationErrors = []))
+				validateResources(
+					resource,
+					programTopLevelTargetingEntities,
+					programTargeting,
+					programLevelRoles,
+					programData,
+					resourceEntityTypes,
+					basePath,
+					(resourceValidationErrors = [])
+				)
 			})
 
 			await Promise.all(resourcesValidationPromise)
 			const resourceErrors = await Promise.all(resourceValidationErrors)
 
-			resourceErrors.map((error) => {
-				if (error.hasError) {
-					if (Array.isArray(error.validationErrors)) {
-						validationErrors.push(...error.validationErrors)
-					} else {
-						validationErrors.push(error.validationErrors)
+			resourceErrors
+				.filter((error) => !(error?.hasError === false))
+				.forEach((error) => {
+					if (Array.isArray(error)) {
+						validationErrors.push(error)
+					} else if (error?.hasError && Array.isArray(error.error)) {
+						validationErrors.push(...error.error)
 					}
-				}
-			})
+				})
 
 			if (validationErrors.length > 0) {
 				const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
@@ -915,9 +932,35 @@ module.exports = class ProgramsHelper {
 					organization_id: userDetails.organization_id,
 				}))
 
-				await reviewsQueries.bulkCreate(reviewsData)
-				delete reviewsData.status
-				await reviewsResourcesQueries.bulkCreate(reviewsData)
+				//find existing reviews
+				const existingReviews = await reviewsQueries.findAll({
+					resource_id: programData.id,
+					reviewer_id: reviewerIds,
+				})
+
+				const existingReviewerIds = new Set(existingReviews.map((r) => r.reviewer_id))
+				// Separate updates and inserts
+				const inserts = reviewsData.filter((review) => !existingReviewerIds.has(review.reviewer_id))
+				const updates = reviewsData.filter((review) => existingReviewerIds.has(review.reviewer_id))
+
+				// Execute updates and inserts in parallel
+				await Promise.all(
+					[
+						// Update existing reviews
+						updates.length > 0 &&
+							reviewsQueries.update(
+								{ resource_id: programData.id, reviewer_id: updates.map((r) => r.reviewer_id) },
+								{ status: common.REVIEW_STATUS_NOT_STARTED }
+							),
+
+						// Insert new reviews and related resources
+						inserts.length > 0 &&
+							Promise.all([
+								reviewsResourcesQueries.bulkCreate(inserts.map(({ status, ...rest }) => rest)),
+								reviewsQueries.bulkCreate(inserts),
+							]),
+					].filter(Boolean)
+				)
 			}
 
 			//update the reviews and resource status
@@ -1081,7 +1124,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 						])
 
 						// Upload the duplicated resource to the cloud
-						await utils.uploadAndUpdateResource(
+						await resourceService.uploadAndUpdateResource(
 							duplicateResource.id,
 							orgId,
 							loggedInUserId,
@@ -1100,7 +1143,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 							...commonFields,
 						}
 
-						await utils.uploadAndUpdateResource(
+						await resourceService.uploadAndUpdateResource(
 							updatedResourceData.id,
 							orgId,
 							loggedInUserId,
@@ -1242,7 +1285,16 @@ async function validateEntityData(entityData, entityType, model, sourceType, val
  * @param {Array<Object>} resourceTargeting - The resource targeting criteria that needs to be validated against the program targeting.
  * @returns {Promise<boolean>} - A promise that resolves to `true` if resourceTargeting is a subset of programTargetring, otherwise `false`.
  */
-async function validateTargetingCriteria(programTargetring, resourceTargeting) {
+async function validateTargetingCriteria(programTargetring, programTopLevelTargetingEntities, resourceTargeting) {
+	const isValid = resourceTargeting.every((resourceTarget) =>
+		resourceTarget?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY]?.every((entity) =>
+			programTopLevelTargetingEntities.includes(entity._id)
+		)
+	)
+
+	if (!isValid) {
+		return false
+	}
 	// Extract _id values for each key using lodash reduce
 	const programTargetings = _.reduce(
 		programTargetring,
@@ -1313,7 +1365,16 @@ async function validateReviewers(reviewerIds, userDetails) {
  * @param {Array} resourceValidationErrors - Array of resource level validation error.
  * @returns {Promise<void>} - Returns a promise of errors.
  */
-async function validateResources(resource, resourceEntityTypes, basePath, resourceValidationErrors = []) {
+async function validateResources(
+	resource,
+	programTopLevelTargetingEntities,
+	programTargeting,
+	programLevelRoles,
+	programData,
+	resourceEntityTypes,
+	basePath,
+	resourceValidationErrors = []
+) {
 	if (!resource?.targeting_criteria || Object.keys(resource.targeting_criteria).length === 0) {
 		resourceValidationErrors.push(
 			utils.errorObject(
@@ -1323,7 +1384,11 @@ async function validateResources(resource, resourceEntityTypes, basePath, resour
 			)
 		)
 	} else {
-		const validateResourceScope = await validateTargetingCriteria(programTargeting, resource.targeting_criteria)
+		const validateResourceScope = await validateTargetingCriteria(
+			programTargeting,
+			programTopLevelTargetingEntities,
+			resource.targeting_criteria
+		)
 		if (!validateResourceScope) {
 			resourceValidationErrors.push(
 				utils.errorObject(
@@ -1333,6 +1398,22 @@ async function validateResources(resource, resourceEntityTypes, basePath, resour
 				)
 			)
 		}
+	}
+	let roleValidationFlag = true
+	resource.targeting_criteria.forEach((targeting) => {
+		targeting.roles.forEach((role) => {
+			if (!programLevelRoles.includes(role)) roleValidationFlag = false
+		})
+	})
+
+	if (!roleValidationFlag) {
+		resourceValidationErrors.push(
+			utils.errorObject(
+				`${basePath}.targeting_criteria`,
+				'roles',
+				'Roles in targeting should be under Program Scope.'
+			)
+		)
 	}
 
 	resourceEntityTypes.map((entityType) => {
@@ -1379,8 +1460,8 @@ async function validateResources(resource, resourceEntityTypes, basePath, resour
 	// check if the resource end date lies with-in the program date range
 	if (resource?.[common.END_DATE] != undefined && programData?.[common.END_DATE] != undefined) {
 		const validateProgramResourceStartDate = utils.checkEndDate(
-			resource[common.END_DATE],
-			programData?.[common.END_DATE]
+			programData?.[common.END_DATE],
+			resource[common.END_DATE]
 		)
 		if (!validateProgramResourceStartDate) {
 			resourceValidationErrors.push(

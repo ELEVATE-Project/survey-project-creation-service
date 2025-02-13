@@ -38,6 +38,11 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.ENUM('SEQUENTIAL', 'PARALLEL'),
 				defaultValue: 'SEQUENTIAL',
 			},
+			review_required_after_publish: {
+				allowNull: false,
+				type: DataTypes.BOOLEAN,
+				defaultValue: true,
+			},
 		},
 		{
 			sequelize,
