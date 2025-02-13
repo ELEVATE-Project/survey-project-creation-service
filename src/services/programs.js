@@ -26,8 +26,45 @@ module.exports = class ProgramsHelper {
 	 * @param {string} orgId - The ID of the organization.
 	 * @returns {JSON} - Program ID or error response.
 	 */
-	static async create(bodyData, loggedInUserId, orgId) {
+	static async create(bodyData, loggedInUserId, orgId, referenceId = null) {
 		try {
+			if (referenceId) {
+				// check if the reference project Id is valid or not
+				const referenceProject = await resourceQueries.findOne({
+					id: referenceId,
+					status: common.RESOURCE_STATUS_PUBLISHED,
+					stage: common.RESOURCE_STAGE_COMPLETION,
+					type: common.RESOURCE_TYPE_PROGRAM,
+				})
+
+				if (!referenceProject?.id) {
+					return responses.failureResponse({
+						message: 'PROGRAM_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				// Fetch all resources attached to the reference program
+				const referenceResourceMappings = await programResourceMappingQueries.findAll({
+					program_id: referenceId,
+					organization_id: referenceProject.organization_id,
+				})
+
+				const referenceResourceIds = referenceResourceMappings.map((res) => res.resource_id)
+				bodyData.resources = []
+
+				const resourceDetailsPromises = referenceResourceIds.map((resourceId) =>
+					resourceService.getDetails(resourceId, referenceProject.organization_id)
+				)
+				const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
+				bodyData.resources = resourceDetailsResults
+					.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
+					.map((resourceDetail) => ({
+						...resourceDetail.result,
+					}))
+			}
+
 			// Get the review type of the organization
 			const orgConfig = await orgExtensionService.getConfig(orgId)
 			const orgConfigList = _.reduce(
@@ -55,6 +92,8 @@ module.exports = class ProgramsHelper {
 					end_date: bodyData.end_date || '',
 				},
 			}
+
+			if (referenceId) programData.reference_id = referenceId
 
 			// Create program and handle resource mapping
 			let programCreate = await resourceQueries.create(programData)
