@@ -44,18 +44,21 @@ describe('Program APIs ', function () {
 	})
 
 	it('Remove Resource from program', async () => {
-		let res = await request.post('/scp/v1/programs/removeResources/2').send({
-			resource_ids: [5],
+		let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
+		const programId = createProgram.body?.result?.id
+		let removeResources = await request.post('/scp/v1/programs/removeResources/' + programId).send({
+			resource_ids: [programId],
 		})
-		expect(res.statusCode).toBe(400)
-		expect(res.body).toMatchSchema(schema.addOrRemoveResourceFailtureSchema)
+
+		expect(removeResources.statusCode).toBe(400)
+		expect(removeResources.body).toMatchSchema(schema.addOrRemoveResourceFailtureSchema)
 	})
 
 	it('Delete Program', async () => {
 		let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
 		const programId = createProgram.body?.result?.id
-		const res = await request.delete('/scp/v1/programs/update/' + programId)
-		expect(res.statusCode).toBe(202)
+		const deleteRes = await request.delete('/scp/v1/programs/update/' + programId)
+		expect(deleteRes.statusCode).toBe(202)
 	})
 
 	it('Get list of program managers', async () => {
