@@ -851,6 +851,7 @@ module.exports = class ProgramsHelper {
 				validateResources(
 					resource,
 					program_top_level_targeting_entities,
+					programTargeting,
 					resourceEntityTypes,
 					basePath,
 					(resourceValidationErrors = [])
@@ -1300,6 +1301,7 @@ async function validateReviewers(reviewerIds, userDetails) {
 async function validateResources(
 	resource,
 	program_top_level_targeting_entities,
+	programTargeting,
 	resourceEntityTypes,
 	basePath,
 	resourceValidationErrors = []
@@ -1313,7 +1315,11 @@ async function validateResources(
 			)
 		)
 	} else {
-		const validateResourceScope = await validateTargetingCriteria(programTargeting, resource.targeting_criteria)
+		const validateResourceScope = await validateTargetingCriteria(
+			programTargeting,
+			program_top_level_targeting_entities,
+			resource.targeting_criteria
+		)
 		if (!validateResourceScope) {
 			resourceValidationErrors.push(
 				utils.errorObject(
