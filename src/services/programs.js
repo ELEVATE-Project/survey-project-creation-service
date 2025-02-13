@@ -755,8 +755,11 @@ module.exports = class ProgramsHelper {
 			const resourceTypes = [...resourceData.map((resource) => resource.type), 'resource']
 
 			const programTargeting = programData?.targeting_criteria
-			const program_top_level_targeting_entities = programTargeting.map((targeting) => {
-				return targeting?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY]?._id
+			let program_top_level_targeting_entities = []
+			programTargeting.forEach((targeting) => {
+				return targeting?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY].forEach((eachTarget) => {
+					program_top_level_targeting_entities.push(eachTarget._id)
+				})
 			})
 			let validationErrors = []
 
@@ -1219,15 +1222,15 @@ async function validateEntityData(entityData, entityType, model, sourceType, val
  * @returns {Promise<boolean>} - A promise that resolves to `true` if resourceTargeting is a subset of programTargetring, otherwise `false`.
  */
 async function validateTargetingCriteria(programTargetring, program_top_level_targeting_entities, resourceTargeting) {
-	resourceTargeting.forEach((resourceTarget) => {
-		if (
-			!program_top_level_targeting_entities.includes(
-				resourceTarget?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY]._id
-			)
-		) {
-			return false
-		}
-	})
+	const isValid = resourceTargeting.every((resourceTarget) =>
+		resourceTarget?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY]?.every((entity) =>
+			program_top_level_targeting_entities.includes(entity._id)
+		)
+	)
+
+	if (!isValid) {
+		return false
+	}
 	// Extract _id values for each key using lodash reduce
 	const programTargetings = _.reduce(
 		programTargetring,
