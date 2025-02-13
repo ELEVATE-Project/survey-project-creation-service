@@ -756,10 +756,12 @@ module.exports = class ProgramsHelper {
 
 			const programTargeting = programData?.targeting_criteria
 			let program_top_level_targeting_entities = []
+			let program_level_roles = []
 			programTargeting.forEach((targeting) => {
-				return targeting?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY].forEach((eachTarget) => {
+				targeting?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY].forEach((eachTarget) => {
 					program_top_level_targeting_entities.push(eachTarget._id)
 				})
+				program_level_roles = [...program_level_roles, ...targeting['roles'].map((roles) => roles._id)]
 			})
 			let validationErrors = []
 
@@ -855,6 +857,7 @@ module.exports = class ProgramsHelper {
 					resource,
 					program_top_level_targeting_entities,
 					programTargeting,
+					program_level_roles,
 					programData,
 					resourceEntityTypes,
 					basePath,
@@ -864,16 +867,16 @@ module.exports = class ProgramsHelper {
 
 			await Promise.all(resourcesValidationPromise)
 			const resourceErrors = await Promise.all(resourceValidationErrors)
-
-			resourceErrors.map((error) => {
-				if (error.hasError) {
-					if (Array.isArray(error.validationErrors)) {
-						validationErrors.push(...error.validationErrors)
-					} else {
-						validationErrors.push(error.validationErrors)
+			const temp = resourceErrors.filter((error) => !(error?.hasError === false))
+			resourceErrors
+				.filter((error) => !(error?.hasError === false))
+				.forEach((error) => {
+					if (Array.isArray(error)) {
+						validationErrors.push(error)
+					} else if (error?.hasError && Array.isArray(error.error)) {
+						validationErrors.push(...error.error)
 					}
-				}
-			})
+				})
 
 			if (validationErrors.length > 0) {
 				const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
@@ -1306,6 +1309,7 @@ async function validateResources(
 	resource,
 	program_top_level_targeting_entities,
 	programTargeting,
+	program_level_roles,
 	programData,
 	resourceEntityTypes,
 	basePath,
@@ -1334,6 +1338,22 @@ async function validateResources(
 				)
 			)
 		}
+	}
+	let roleValidationFlag = true
+	resource.targeting_criteria.forEach((targeting) => {
+		targeting.roles.forEach((role) => {
+			if (!program_level_roles.includes(role)) roleValidationFlag = false
+		})
+	})
+
+	if (!roleValidationFlag) {
+		resourceValidationErrors.push(
+			utils.errorObject(
+				`${basePath}.targeting_criteria`,
+				'roles',
+				'Roles in targeting should be under Program Scope.'
+			)
+		)
 	}
 
 	resourceEntityTypes.map((entityType) => {
@@ -1380,8 +1400,8 @@ async function validateResources(
 	// check if the resource end date lies with-in the program date range
 	if (resource?.[common.END_DATE] != undefined && programData?.[common.END_DATE] != undefined) {
 		const validateProgramResourceStartDate = utils.checkEndDate(
-			resource[common.END_DATE],
-			programData?.[common.END_DATE]
+			programData?.[common.END_DATE],
+			resource[common.END_DATE]
 		)
 		if (!validateProgramResourceStartDate) {
 			resourceValidationErrors.push(
