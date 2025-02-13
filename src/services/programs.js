@@ -755,9 +755,16 @@ module.exports = class ProgramsHelper {
 			const resourceTypes = [...resourceData.map((resource) => resource.type), 'resource']
 
 			const programTargeting = programData?.targeting_criteria
+			const program_top_level_targeting_entities = programTargeting.map((targeting) => {
+				return targeting?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY]?._id
+			})
 			let validationErrors = []
 
-			if (programTargeting == undefined || Object.keys(programTargeting).length <= 0) {
+			if (
+				programTargeting == undefined ||
+				Object.keys(programTargeting).length <= 0 ||
+				program_top_level_targeting_entities.length <= 0
+			) {
 				validationErrors.push(
 					utils.errorObject(
 						`${common.RESOURCE_TYPE_PROGRAM}.targeting_criteria`,
@@ -841,7 +848,13 @@ module.exports = class ProgramsHelper {
 
 			const resourcesValidationPromise = resourceData.map(async (resource, index) => {
 				const basePath = `${common.RESOURCES}[${index}]`
-				validateResources(resource, resourceEntityTypes, basePath, (resourceValidationErrors = []))
+				validateResources(
+					resource,
+					program_top_level_targeting_entities,
+					resourceEntityTypes,
+					basePath,
+					(resourceValidationErrors = [])
+				)
 			})
 
 			await Promise.all(resourcesValidationPromise)
@@ -1204,7 +1217,16 @@ async function validateEntityData(entityData, entityType, model, sourceType, val
  * @param {Array<Object>} resourceTargeting - The resource targeting criteria that needs to be validated against the program targeting.
  * @returns {Promise<boolean>} - A promise that resolves to `true` if resourceTargeting is a subset of programTargetring, otherwise `false`.
  */
-async function validateTargetingCriteria(programTargetring, resourceTargeting) {
+async function validateTargetingCriteria(programTargetring, program_top_level_targeting_entities, resourceTargeting) {
+	resourceTargeting.forEach((resourceTarget) => {
+		if (
+			!program_top_level_targeting_entities.includes(
+				resourceTarget?.[process.env.HIGHEST_IN_ENTITY_HIERARCHY]._id
+			)
+		) {
+			return false
+		}
+	})
 	// Extract _id values for each key using lodash reduce
 	const programTargetings = _.reduce(
 		programTargetring,
@@ -1275,7 +1297,13 @@ async function validateReviewers(reviewerIds, userDetails) {
  * @param {Array} resourceValidationErrors - Array of resource level validation error.
  * @returns {Promise<void>} - Returns a promise of errors.
  */
-async function validateResources(resource, resourceEntityTypes, basePath, resourceValidationErrors = []) {
+async function validateResources(
+	resource,
+	program_top_level_targeting_entities,
+	resourceEntityTypes,
+	basePath,
+	resourceValidationErrors = []
+) {
 	if (!resource?.targeting_criteria || Object.keys(resource.targeting_criteria).length === 0) {
 		resourceValidationErrors.push(
 			utils.errorObject(
