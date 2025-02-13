@@ -725,8 +725,8 @@ module.exports = class ProgramsHelper {
 	 */
 	static async submitForReview(programId, bodyData, userDetails) {
 		try {
-			let programDetails = await this.details(programId, userDetails.organization_id, userDetails.id)
-			if (programDetails.statusCode !== httpStatusCode.ok) {
+			let program_details = await this.details(programId, userDetails.organization_id, userDetails.id)
+			if (program_details.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROGRAM_ACCESS',
 					statusCode: httpStatusCode.bad_request,
@@ -734,10 +734,10 @@ module.exports = class ProgramsHelper {
 				})
 			}
 
-			let programData = programDetails.result
+			let program_data = program_details.result
 
 			//check the creator is valid
-			if (programData.user_id !== userDetails.id) {
+			if (program_data.user_id !== userDetails.id) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROGRAM_ACCESS',
 					statusCode: httpStatusCode.bad_request,
@@ -746,15 +746,15 @@ module.exports = class ProgramsHelper {
 			}
 
 			//Restrict the user to submit the program
-			if (_nonReviewableResourceStatuses.includes(programData.status)) {
-				throw new Error(`Program is already ${programData.status}. You cannot submit it`)
+			if (_nonReviewableResourceStatuses.includes(program_data.status)) {
+				throw new Error(`Program is already ${program_data.status}. You cannot submit it`)
 			}
 
-			const resourceData = programData.resources
+			const resourceData = program_data.resources
 			const resourceIds = resourceData.map((resource) => resource.id)
 			const resourceTypes = [...resourceData.map((resource) => resource.type), 'resource']
 
-			const programTargeting = programData?.targeting_criteria
+			const programTargeting = program_data?.targeting_criteria
 			let program_top_level_targeting_entities = []
 			let program_level_roles = []
 			programTargeting.forEach((targeting) => {
@@ -826,14 +826,14 @@ module.exports = class ProgramsHelper {
 					model: common.RESOURCE_TYPE_PROGRAM,
 					status: common.STATUS_ACTIVE,
 				},
-				programData.organization_id,
+				program_data.organization_id,
 				['id', 'value', 'has_entities', 'validations']
 			)
 
 			let basePath = ''
 			//validate program data
 			const programValidationPromises = entityTypes.map((entityType) => {
-				validateEntityData(programData, entityType, common.RESOURCE_TYPE_PROGRAM, basePath, validationErrors)
+				validateEntityData(program_data, entityType, common.RESOURCE_TYPE_PROGRAM, basePath, validationErrors)
 			})
 
 			await Promise.all(programValidationPromises)
@@ -847,7 +847,7 @@ module.exports = class ProgramsHelper {
 					},
 					status: common.STATUS_ACTIVE,
 				},
-				programData.organization_id,
+				program_data.organization_id,
 				['id', 'value', 'has_entities', 'validations']
 			)
 
@@ -858,7 +858,7 @@ module.exports = class ProgramsHelper {
 					program_top_level_targeting_entities,
 					programTargeting,
 					program_level_roles,
-					programData,
+					program_data,
 					resourceEntityTypes,
 					basePath,
 					(resourceValidationErrors = [])
@@ -867,7 +867,7 @@ module.exports = class ProgramsHelper {
 
 			await Promise.all(resourcesValidationPromise)
 			const resourceErrors = await Promise.all(resourceValidationErrors)
-			const temp = resourceErrors.filter((error) => !(error?.hasError === false))
+
 			resourceErrors
 				.filter((error) => !(error?.hasError === false))
 				.forEach((error) => {
@@ -892,7 +892,7 @@ module.exports = class ProgramsHelper {
 			if (reviewerIds.length > 0) {
 				//create entry in reviews table
 				let reviewsData = reviewerIds.map((reviewer_id) => ({
-					resource_id: programData.id,
+					resource_id: program_data.id,
 					reviewer_id,
 					status: common.REVIEW_STATUS_NOT_STARTED,
 					organization_id: userDetails.organization_id,
@@ -906,14 +906,14 @@ module.exports = class ProgramsHelper {
 			//update the reviews and resource status
 			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
 			if (
-				programData.stage === common.RESOURCE_STAGE_REVIEW ||
-				programData.status === common.RESOURCE_STATUS_SUBMITTED
+				program_data.stage === common.RESOURCE_STAGE_REVIEW ||
+				program_data.status === common.RESOURCE_STATUS_SUBMITTED
 			) {
 				//Update the review status if the resource has been submitted before
 				await reviewsQueries.update(
 					{
-						organization_id: programData.organization_id,
-						resource_id: programData.id,
+						organization_id: program_data.organization_id,
+						resource_id: program_data.id,
 						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 					},
 					{
@@ -952,12 +952,12 @@ module.exports = class ProgramsHelper {
 				}
 			}
 
-			await resourceQueries.updateOne({ id: programData.id }, resourcesUpdate)
+			await resourceQueries.updateOne({ id: program_data.id }, resourcesUpdate)
 			// add user action
 			eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
-				actionCode: common.USER_ACTIONS[programData.type].RESOURCE_SUBMITTED,
+				actionCode: common.USER_ACTIONS[program_data.type].RESOURCE_SUBMITTED,
 				userId: userDetails.id,
-				objectId: programData.id,
+				objectId: program_data.id,
 				objectType: common.MODEL_NAMES.RESOURCE,
 				orgId: userDetails.organization_id,
 			})
@@ -965,7 +965,7 @@ module.exports = class ProgramsHelper {
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROGRAM_SUBMITTED_SUCCESSFULLY',
-				result: { id: programData.id },
+				result: { id: program_data.id },
 			})
 		} catch (error) {
 			return responses.failureResponse({
@@ -1310,7 +1310,7 @@ async function validateResources(
 	program_top_level_targeting_entities,
 	programTargeting,
 	program_level_roles,
-	programData,
+	program_data,
 	resourceEntityTypes,
 	basePath,
 	resourceValidationErrors = []
@@ -1382,9 +1382,9 @@ async function validateResources(
 	}
 
 	// check if the resource start date lies with-in the program date range
-	if (resource?.[common.START_DATE] != undefined && programData?.[common.START_DATE] != undefined) {
+	if (resource?.[common.START_DATE] != undefined && program_data?.[common.START_DATE] != undefined) {
 		const validateProgramResourceStartDate = utils.checkEndDate(
-			programData?.[common.START_DATE],
+			program_data?.[common.START_DATE],
 			resource?.[common.START_DATE]
 		)
 		if (!validateProgramResourceStartDate) {
@@ -1398,9 +1398,9 @@ async function validateResources(
 		}
 	}
 	// check if the resource end date lies with-in the program date range
-	if (resource?.[common.END_DATE] != undefined && programData?.[common.END_DATE] != undefined) {
+	if (resource?.[common.END_DATE] != undefined && program_data?.[common.END_DATE] != undefined) {
 		const validateProgramResourceStartDate = utils.checkEndDate(
-			programData?.[common.END_DATE],
+			program_data?.[common.END_DATE],
 			resource[common.END_DATE]
 		)
 		if (!validateProgramResourceStartDate) {
