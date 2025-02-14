@@ -333,11 +333,11 @@ module.exports = class orgExtensionsHelper {
 					process.env.REVIEW_TYPE.toUpperCase() === common.REVIEW_TYPE_SEQUENTIAL
 						? common.REVIEW_TYPE_SEQUENTIAL
 						: common.REVIEW_TYPE_PARALLEL,
+				review_required_after_publish: process.env.REVIEW_REQUIRED_AFTER_PUBLISH === 'true' ? true : false,
 			}
 
 			// fetch the configuration from Organization extension for the user's organization
 			orgExtenstionData = await organizationExtensionsQueries.findMany(filter, attributes)
-
 			// get the list of resource types not set by the org-admin
 			let resourceTypeFromDB = []
 
@@ -353,6 +353,7 @@ module.exports = class orgExtensionsHelper {
 								min_approval: orgExt.min_approval,
 								review_type: orgExt.review_type,
 								resource_type: orgExt.resource_type,
+								review_required_after_publish: orgExt.review_required_after_publish,
 							}
 						}
 					})
