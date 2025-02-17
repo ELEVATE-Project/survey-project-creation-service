@@ -1098,7 +1098,14 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 						resource.id = duplicateResource.id
 					} else {
 						// Update the existing resource
-						let updatedResourceData = _.omit(_.pick(resource, Object.keys(resourceDetails)), [
+						let updatedResourceData = _.pick(resource, Object.keys(resourceDetails))
+						Object.keys(resource).forEach((key) => {
+							if (!(key in resourceDetails)) {
+								updatedResourceData[key] = resource[key]
+							}
+						})
+
+						updatedResourceData = _.omit(updatedResourceData, [
 							'status',
 							'stage',
 							'next_stage',
