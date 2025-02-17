@@ -1026,7 +1026,6 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 					'status',
 					'stage',
 					'user_id',
-					'organization_id',
 					'next_stage',
 					'review_type',
 					'reference_id',
