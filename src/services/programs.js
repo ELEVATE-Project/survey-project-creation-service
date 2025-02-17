@@ -62,6 +62,14 @@ module.exports = class ProgramsHelper {
 					}
 				)
 
+				if (!referenceProject?.id) {
+					return responses.failureResponse({
+						message: 'PROGRAM_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
 				const programDetails = await this.details(referenceId, referenceProject.organization_id)
 				if (programDetails.statusCode != httpStatusCode.ok && !Object.keys(programDetails?.result).length > 0) {
 					return responses.failureResponse({
