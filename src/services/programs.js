@@ -1016,29 +1016,10 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 		if (resourceIds.length === 0) return
 
 		// Fetch resources from the database
-		const resourceList = await resourceQueries.findAll(
-			{
-				id: { [Op.in]: resourceIds },
-				organization_id: orgId,
-			},
-			{
-				attributes: [
-					'status',
-					'stage',
-					'user_id',
-					'next_stage',
-					'review_type',
-					'reference_id',
-					'published_id',
-					'created_by',
-					'updated_by',
-					'submitted_on',
-					'published_on',
-					'last_reviewed_on',
-					'is_under_edit',
-				],
-			}
-		)
+		const resourceList = await resourceQueries.findAll({
+			id: { [Op.in]: resourceIds },
+			organization_id: orgId,
+		})
 
 		let duplicateResourceIds = []
 
@@ -1117,10 +1098,18 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 						resource.id = duplicateResource.id
 					} else {
 						// Update the existing resource
-						const allowedFields = Object.keys(resourceDetails)
-						const updatedResourceData = {
-							..._.pick(resource, allowedFields),
-						}
+						let updatedResourceData = _.omit(_.pick(resource, Object.keys(resourceDetails)), [
+							'status',
+							'stage',
+							'next_stage',
+							'review_type',
+							'reference_id',
+							'published_id',
+							'submitted_on',
+							'published_on',
+							'last_reviewed_on',
+							'is_under_edit',
+						])
 
 						await resourceService.uploadAndUpdateResource(
 							updatedResourceData.id,
