@@ -1421,8 +1421,8 @@ async function validateResources(
 	// check if the resource end date lies with-in the program date range
 	if (resource?.[common.END_DATE] != undefined && programData?.[common.END_DATE] != undefined) {
 		const validateProgramResourceStartDate = utils.checkEndDate(
-			programData?.[common.END_DATE],
-			resource[common.END_DATE]
+			resource[common.END_DATE],
+			programData?.[common.END_DATE]
 		)
 		if (!validateProgramResourceStartDate) {
 			resourceValidationErrors.push(
