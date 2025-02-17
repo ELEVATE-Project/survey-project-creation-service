@@ -284,10 +284,16 @@ module.exports = class RolloutsHelper {
 
 			//filter based on multiple resource_types
 			let resourceTypes =
-				queryParams.resource_type && queryParams.resource_type != '' ? queryParams.resource_type.split(',') : ''
-			if (resourceTypes) {
+				queryParams.resource_type && queryParams.resource_type !== ''
+					? queryParams.resource_type.split(',').filter((type) => type !== common.RESOURCE_TYPE_PROGRAM)
+					: ''
+			if (resourceTypes && resourceTypes.length) {
 				filters.resource_type = {
 					[Op.in]: resourceTypes,
+				}
+			} else {
+				filters.resource_type = {
+					[Op.not]: common.RESOURCE_TYPE_PROGRAM,
 				}
 			}
 

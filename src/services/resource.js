@@ -770,6 +770,11 @@ module.exports = class resourceHelper {
 
 				if (item.meta?.notes) returnValue.notes = item.meta.notes
 
+				if (item.type === common.RESOURCE_TYPE_PROGRAM) {
+					returnValue.start_date = item.meta?.start_date || ''
+					returnValue.end_date = item.meta?.end_date || ''
+				}
+
 				// add corresponding review status. If there is no review status add not started .
 				// cases when there won't be any review status will be the resources open to all in the org
 				returnValue.review_status = reviewDetailsMapping[item.id]
