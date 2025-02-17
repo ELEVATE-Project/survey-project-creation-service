@@ -1098,11 +1098,18 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 						resource.id = duplicateResource.id
 					} else {
 						// Update the existing resource
-						const updatedResourceData = {
-							...resourceDetails,
-							...resource,
-							...commonFields,
-						}
+						let updatedResourceData = _.omit(_.pick(resource, Object.keys(resourceDetails)), [
+							'status',
+							'stage',
+							'next_stage',
+							'review_type',
+							'reference_id',
+							'published_id',
+							'submitted_on',
+							'published_on',
+							'last_reviewed_on',
+							'is_under_edit',
+						])
 
 						await resourceService.uploadAndUpdateResource(
 							updatedResourceData.id,
