@@ -286,6 +286,7 @@ module.exports = class RolloutsHelper {
 			const programRollouts = await rolloutQueries.findAll(
 				{
 					resource_type: common.RESOURCE_TYPE_PROGRAM,
+					organization_id : organization_id
 				},
 				{ attributes: ['resource_id'] }
 			)
