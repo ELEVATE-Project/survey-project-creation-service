@@ -960,7 +960,11 @@ module.exports = class ProgramsHelper {
 				//find existing reviews
 				const existingReviews = await reviewsQueries.findAll({
 					resource_id: programData.id,
-					reviewer_id: reviewerIds,
+					reviewer_id: {
+						[Op.in]: reviewerIds.map((reviewerId) => {
+							return reviewerId.toString()
+						}),
+					},
 				})
 
 				const existingReviewerIds = new Set(existingReviews.map((r) => r.reviewer_id))
