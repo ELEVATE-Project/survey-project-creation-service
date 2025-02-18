@@ -17,6 +17,8 @@ const utils = require('@generics/utils')
 const commentQueries = require('@database/queries/comments')
 const projectService = require('@services/projects')
 const reviewsResourcesQueries = require('@database/queries/reviewsResources')
+const reviewService = require('@services/reviews')
+
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -944,20 +946,20 @@ module.exports = class ProgramsHelper {
 			}
 
 			//check review is required or not
-			// const isReviewMandatory = await resourceService.isReviewMandatory(
-			// 	programData.type,
-			// 	programData.organization_id
-			// )
+			const isReviewMandatory = await resourceService.isReviewMandatory(
+				programData.type,
+				programData.organization_id
+			)
 
 			// this will be handled while taking up program publish
-			// if (!isReviewMandatory) {
-			// 	const publishResource = await reviewService.publishResource(
-			// 		programData.id,
-			// 		programData.user_id,
-			// 		programData.organization_id
-			// 	)
-			// 	return publishResource
-			// }
+			if (!isReviewMandatory) {
+				const publishResource = await reviewService.publishResource(
+					programData.id,
+					programData.user_id,
+					programData.organization_id
+				)
+				return publishResource
+			}
 
 			//update resource
 			let resourcesUpdate = {

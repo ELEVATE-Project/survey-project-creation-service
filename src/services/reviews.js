@@ -21,6 +21,8 @@ const utils = require('@generics/utils')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const kafkaCommunication = require('@generics/kafka-communication')
 const consumptionRequests = require('@requests/consumption')
+const rolloutService = require('@services/rollouts')
+const rolloutQueries = require('@database/queries/rollouts')
 module.exports = class reviewsHelper {
 	/**
 	 * Update review.
@@ -713,6 +715,72 @@ module.exports = class reviewsHelper {
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
 				//resource creation through kafka
 				if (process.env.RESOURCE_KAFKA_PUSH_ON_OFF == common.KAFKA_ON) {
+					if (resourceData?.type == common.ROLLOUT_TYPE_PROGRAM) {
+						let rolloutId = null
+						if (resourceData?.published_id) {
+							// check for rollout to fetch id and org id
+							const fetchRollout = await rolloutQueries.findOne(
+								{
+									resource_id: resourceId,
+									user_id: userId,
+								},
+								(attributes = ['id', 'organization_id'])
+							)
+
+							// update rollout variable
+							let rolloutUpdate = {
+								start_date: resourceData?.meta?.start_date,
+								end_date: resourceData?.meta?.end_date,
+								targeting_criteria: resourceData?.targeting_criteria,
+								updated_at: new Date(),
+								resources: [],
+							}
+
+							resourceData.resources.forEach((resource) => {
+								rolloutUpdate.resources.push(resource)
+							})
+
+							rolloutId = fetchRollout.id
+
+							await rolloutService.update(rolloutId, rolloutUpdate, userId, fetchRollout.organization_id)
+						} else {
+							// rollout request body
+							const rolloutReqBody = {
+								resource_id: resourceData?.id,
+								resource_type: resourceData?.type,
+								start_date: resourceData?.meta?.start_date,
+								end_date: resourceData?.meta?.end_date,
+								targeting_criteria: resourceData?.targeting_criteria,
+								title: resourceData.title,
+							}
+							// create an entry to rollout table
+							const createRollout = await rolloutService.create(
+								rolloutReqBody,
+								streamingData.user_id,
+								streamingData.organization_id
+							)
+
+							if (createRollout.responseCode !== httpStatusCode.ok) {
+								throw new Error(`Rollout creation failed: ${createRollout.message || 'Unknown error'}`) // Include error message if available
+							}
+
+							rolloutId = createRollout?.result?.id
+
+							if (!rolloutId) {
+								throw new Error('Rollout creation failed: ID not returned')
+							}
+						}
+						// publish the rollout
+						const publishRollout = await rolloutService.publish(
+							rolloutId,
+							streamingData.user_id,
+							streamingData.organization_id,
+							streamingData.userToken
+						)
+						if (publishRollout.responseCode !== httpStatusCode.ok) {
+							throw new Error(`Rollout publish failed: ${publishRollout.message || 'Unknown error'}`) // Include error message if available
+						}
+					}
 					resourceData.userToken = userToken
 					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
