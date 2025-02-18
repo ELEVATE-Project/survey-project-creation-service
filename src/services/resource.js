@@ -770,6 +770,7 @@ module.exports = class resourceHelper {
 
 				if (item.meta?.notes) returnValue.notes = item.meta.notes
 
+				//Only for program return start date and end date
 				if (item.type === common.RESOURCE_TYPE_PROGRAM) {
 					returnValue.start_date = item.meta?.start_date || ''
 					returnValue.end_date = item.meta?.end_date || ''
