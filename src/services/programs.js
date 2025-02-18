@@ -25,10 +25,73 @@ module.exports = class ProgramsHelper {
 	 * @param {Object} bodyData - Request body data.
 	 * @param {string} loggedInUserId - The ID of the logged-in user.
 	 * @param {string} orgId - The ID of the organization.
+	 * @param {Integer} referenceId - The ID of program need to copy
 	 * @returns {JSON} - Program ID or error response.
 	 */
-	static async create(bodyData, loggedInUserId, orgId) {
+	static async create(bodyData, loggedInUserId, orgId, referenceId = null) {
 		try {
+			let programData = {}
+			let isDuplicateProgramCreation = false
+			if (referenceId) {
+				// check if the reference project Id is valid or not
+				const referenceProject = await resourceQueries.findOne(
+					{
+						id: referenceId,
+						status: common.RESOURCE_STATUS_PUBLISHED,
+						stage: common.RESOURCE_STAGE_COMPLETION,
+						type: common.RESOURCE_TYPE_PROGRAM,
+					},
+					{
+						attributes: {
+							exclude: [
+								'stage',
+								'status',
+								'user_id',
+								'next_stage',
+								'review_type',
+								'reference_id',
+								'published_id',
+								'created_by',
+								'updated_by',
+								'submitted_on',
+								'published_on',
+								'last_reviewed_on',
+								'is_under_edit',
+							],
+						},
+					}
+				)
+
+				if (!referenceProject?.id) {
+					return responses.failureResponse({
+						message: 'PROGRAM_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				const programDetails = await this.details(referenceId, referenceProject.organization_id)
+				if (programDetails.statusCode != httpStatusCode.ok && !Object.keys(programDetails?.result).length > 0) {
+					return responses.failureResponse({
+						message: 'PROGRAM_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				bodyData.start_date = programDetails.result?.start_date || ''
+				bodyData.end_date = programDetails.result?.end_date || ''
+				bodyData.viewers = []
+				bodyData.resources = []
+				isDuplicateProgramCreation = true
+
+				programData = {
+					..._.omit(programDetails.result, ['id', 'organization_id', 'organization']),
+					reference_id: referenceId,
+				}
+				bodyData.resources = programDetails.result.resources
+			}
+
 			// Get the review type of the organization
 			const orgConfig = await orgExtensionService.getConfig(orgId)
 			const orgConfigList = _.reduce(
@@ -41,7 +104,8 @@ module.exports = class ProgramsHelper {
 			)
 
 			// Construct the program data
-			let programData = {
+			programData = {
+				...programData,
 				title: bodyData.title,
 				type: common.RESOURCE_TYPE_PROGRAM,
 				status: common.RESOURCE_STATUS_DRAFT,
@@ -70,7 +134,7 @@ module.exports = class ProgramsHelper {
 
 			// Handle resources if present in the request
 			if (bodyData?.resources?.length > 0) {
-				await handleResources(bodyData.resources, programId, orgId, loggedInUserId)
+				await handleResources(bodyData.resources, programId, orgId, loggedInUserId, isDuplicateProgramCreation)
 			}
 
 			try {
@@ -896,7 +960,11 @@ module.exports = class ProgramsHelper {
 				//find existing reviews
 				const existingReviews = await reviewsQueries.findAll({
 					resource_id: programData.id,
-					reviewer_id: reviewerIds,
+					reviewer_id: {
+						[Op.in]: reviewerIds.map((reviewerId) => {
+							return reviewerId.toString()
+						}),
+					},
 				})
 
 				const existingReviewerIds = new Set(existingReviews.map((r) => r.reviewer_id))
@@ -1005,8 +1073,10 @@ module.exports = class ProgramsHelper {
  * @param {string} programId - The ID of the program to which resources will be mapped.
  * @param {string} orgId - The ID of the organization.
  * @param {string} loggedInUserId - The ID of the logged-in user.
+ * @param {boolean} isResuableFalseResourceCreate - Flag to indicate if non-reusable resources should be created.
+ * @returns {Array} - List of resource IDs.
  */
-async function handleResources(resources, programId, orgId, loggedInUserId) {
+async function handleResources(resources, programId, orgId, loggedInUserId, isResuableFalseResourceCreate = false) {
 	try {
 		// Return early if no resources are provided
 		if (!resources?.length) return
@@ -1021,18 +1091,25 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 			organization_id: orgId,
 		})
 
-		let duplicateResourceIds = []
-
 		if (!resourceList?.length) return
+
+		// Fetch details for all resources in parallel
+		const resourceDetailsPromises = resourceList.map(async (resource) => {
+			const details = await resourceService.getDetails(resource.id, resource.organization_id)
+			return { id: resource.id, result: details?.result }
+		})
+
+		const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
 
 		// Create a map of resource details for quick lookup
 		const resourceDetailsMap = new Map()
-		for (const resource of resourceList) {
-			const resourceDetails = await resourceService.getDetails(resource.id, resource.organization_id)
-			if (resourceDetails?.result) {
-				resourceDetailsMap.set(resource.id, resourceDetails.result)
+		for (const { id, result } of resourceDetailsResults) {
+			if (result) {
+				resourceDetailsMap.set(id, result)
 			}
 		}
+
+		let duplicateResourceIds = []
 
 		// Process each resource in the input array
 		await Promise.all(
@@ -1049,7 +1126,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 
 				if (resourceDetails) {
 					// Prepare data for duplicating reusable resource
-					if (isReusable) {
+					if (isReusable || isResuableFalseResourceCreate) {
 						// Create a duplicate of the reusable resource
 						const duplicatedResourceData = {
 							..._.omit(resourceDetails, ['created_at', 'updated_at']),
@@ -1098,11 +1175,21 @@ async function handleResources(resources, programId, orgId, loggedInUserId) {
 						resource.id = duplicateResource.id
 					} else {
 						// Update the existing resource
-						const updatedResourceData = {
-							...resourceDetails,
-							...resource,
-							...commonFields,
-						}
+						let updatedResourceData = _.omit(
+							{ ..._.pick(resource, Object.keys(resourceDetails)), ...resource },
+							[
+								'status',
+								'stage',
+								'next_stage',
+								'review_type',
+								'reference_id',
+								'published_id',
+								'submitted_on',
+								'published_on',
+								'last_reviewed_on',
+								'is_under_edit',
+							]
+						)
 
 						await resourceService.uploadAndUpdateResource(
 							updatedResourceData.id,
@@ -1421,8 +1508,8 @@ async function validateResources(
 	// check if the resource end date lies with-in the program date range
 	if (resource?.[common.END_DATE] != undefined && programData?.[common.END_DATE] != undefined) {
 		const validateProgramResourceStartDate = utils.checkEndDate(
-			programData?.[common.END_DATE],
-			resource[common.END_DATE]
+			resource[common.END_DATE],
+			programData?.[common.END_DATE]
 		)
 		if (!validateProgramResourceStartDate) {
 			resourceValidationErrors.push(
