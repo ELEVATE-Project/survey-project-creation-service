@@ -980,6 +980,36 @@
 					"packageName": "elevate-self-creation-portal"
 				}
 			]
+		},
+		{
+			"sourceRoute": "/scp/v1/organization-extensions/updateConfig/:id",
+			"type": "POST",
+			"priority": "MUST_HAVE",
+			"inSequence": false,
+			"orchestrated": true,
+			"targetPackages": [
+				{
+					"basePackageName": "self-creation-portal",
+					"packageName": "elevate-self-creation-portal",
+					"targetBody": [],
+					"responseBody": []
+				}
+			]
+		},
+		{
+			"sourceRoute": "/scp/v1/organization-extensions/createConfig",
+			"type": "POST",
+			"priority": "MUST_HAVE",
+			"inSequence": false,
+			"orchestrated": true,
+			"targetPackages": [
+				{
+					"basePackageName": "self-creation-portal",
+					"packageName": "elevate-self-creation-portal",
+					"targetBody": [],
+					"responseBody": []
+				}
+			]
 		}
 	]
 }
