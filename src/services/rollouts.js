@@ -282,19 +282,30 @@ module.exports = class RolloutsHelper {
 				}
 			}
 
+			// Fetch all program IDs to exclude their associated resources
+			const programRollouts = await rolloutQueries.findAll(
+				{
+					resource_type: common.RESOURCE_TYPE_PROGRAM,
+				},
+				{ attributes: ['resource_id'] }
+			)
+
+			const programIds = programRollouts.map((rollout) => rollout.resource_id)
+
 			//filter based on multiple resource_types
 			let resourceTypes =
 				queryParams.resource_type && queryParams.resource_type !== ''
 					? queryParams.resource_type.split(',').filter((type) => type !== common.RESOURCE_TYPE_PROGRAM)
 					: ''
-			if (resourceTypes && resourceTypes.length) {
-				filters.resource_type = {
-					[Op.in]: resourceTypes,
-				}
-			} else {
-				filters.resource_type = {
-					[Op.not]: common.RESOURCE_TYPE_PROGRAM,
-				}
+
+			//Remove resource type program hence its a listing for single resource rollout
+			filters.resource_type = resourceTypes.length
+				? { [Op.in]: resourceTypes }
+				: { [Op.not]: common.RESOURCE_TYPE_PROGRAM }
+
+			// Remove the resources under a program (parent_id in programIds)
+			if (programIds.length) {
+				filters.parent_id = { [Op.notIn]: programIds }
 			}
 
 			if (queryParams.status && queryParams.status != '') {
