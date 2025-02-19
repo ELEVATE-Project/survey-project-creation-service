@@ -85,13 +85,61 @@ const dbName = mongoUrl.split('/').pop()
 		}
 
 		// Get all programs
-		const programs = await db
+		const programsData = await db
 			.collection('programs')
-			.find({ status: 'published', isReusable: true })
+			.find({
+				status: 'active',
+				scope: {
+					$exists: true, // Check if the field exists
+					$type: 'object', // Ensure it is an object
+					$ne: {}, // Ensure it's not an empty object
+				},
+				components: {
+					$exists: true, // Check if the field exists
+					$type: 'array', // Check if it's an array
+					$not: { $size: 0 }, // Ensure the array size is greater than 0
+				},
+			})
 			.project({ _id: 1 })
 			.toArray()
 
-		console.log(`${projectTemplates.length} project templates found`)
+		console.log(`${programsData.length} programs found`)
+
+		let chunkedPrograms = _.chunk(programsData, 10)
+		for (const chunk of chunkedPrograms) {
+			const programIds = chunk.map((programDoc) => programDoc._id)
+
+			// Fetch programs sequentially
+			const programs = await db
+				.collection('programs')
+				.find({ _id: { $in: programIds } })
+				.toArray()
+
+			// Fetch user and org details sequentially
+			let userIds = programs.map((program) => program.createdBy)
+			let userOrgMap = await getUserOrgDetails(userIds)
+
+			for (const program of programs) {
+				let programIdStr = program._id.toString()
+				console.log(`Processing program ${programIdStr}`)
+
+				// Check if the program exists
+				const isProgramExist = await checkProgramExist(programIdStr)
+				if (isProgramExist.success) {
+					console.log(`Program Exist for template ${programIdStr}`)
+					// csvRecords.push({
+					// 	templateId: templateIdStr,
+					// 	success: 'Project Exist',
+					// 	projectId: isProjectExist.projectId,
+					// })
+					continue
+				}
+			}
+		}
+
+		console.log('Migration completed')
+		await client.close()
+		console.log('Connection closed')
 	} catch (error) {
 		console.error('Error during migration:', error)
 	}
@@ -109,4 +157,46 @@ async function getDefaultUserId() {
 		defaultUserId = orgDetails.data.result.org_admin[0]
 	}
 	return defaultUserId
+}
+
+//get user org id
+async function getUserOrgDetails(userIds) {
+	let userOrgMap = {}
+	const users = await userRequest.list('all', '', '', '', '', {
+		user_ids: userIds,
+	})
+
+	if (users.success && users.data?.result?.data?.length > 0) {
+		userOrgMap = _.keyBy(users.data.result.data, 'id')
+	}
+
+	return userOrgMap
+}
+
+async function checkProgramExist(programId) {
+	try {
+		let program = await resourceQueries.findOne(
+			{
+				published_id: programId,
+			},
+			{
+				attributes: ['id'],
+			}
+		)
+
+		// Check if the project exists
+		if (!program || !program.id) {
+			throw new Error('Program Not Found')
+		}
+
+		return {
+			success: true,
+			programId: program.id,
+		}
+	} catch (error) {
+		return {
+			success: false,
+			error,
+		}
+	}
 }
