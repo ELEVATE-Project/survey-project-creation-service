@@ -286,7 +286,7 @@ module.exports = class RolloutsHelper {
 			const programRollouts = await rolloutQueries.findAll(
 				{
 					resource_type: common.RESOURCE_TYPE_PROGRAM,
-					organization_id : organization_id
+					organization_id: organization_id,
 				},
 				{ attributes: ['resource_id'] }
 			)
@@ -832,6 +832,136 @@ module.exports = class RolloutsHelper {
 			})
 		} catch (error) {
 			throw error
+		}
+	}
+
+	/**
+	 * Update program rollout
+	 * @method
+	 * @name updateProgramRollout
+	 * @param {Integer} programId - program Id
+	 * @param {Object} programData - Program data object
+	 * @param {String} userId - The ID of the user
+	 * @param {String} orgId - The ID of the Organization
+	 * @returns {Integer} - program rollout id
+	 */
+	static async updateProgramRollout(programId, programData, userId, orgId) {
+		try {
+			// fetch the resource ids from the program
+			const programResourceIds = programData.resources.map((resource) => resource.id)
+
+			// fetch rollout data of program and resources
+			const fetchRollouts = await rolloutQueries.findAll(
+				{
+					resource_id: {
+						[Op.in]: [programId, ...programResourceIds],
+					},
+					user_id: userId,
+					organization_id: orgId,
+				},
+				{
+					attributes: ['id', 'resource_type', 'resource_id'],
+				}
+			)
+			let resourceRolloutResourceIdMap = {} // initialise rollout id resource mapping
+			let programRolloutId // initialise variable for program rollout id
+
+			// seggregate program rollout id and create rollout id resource mapping
+			fetchRollouts.forEach((rollout) => {
+				if (rollout.type != common.RESOURCE_TYPE_PROGRAM) {
+					resourceRolloutResourceIdMap[rollout.resource_id] = rollout.id
+				} else if (rollout.type == common.RESOURCE_TYPE_PROGRAM && rollout.resource_id == programId) {
+					programRolloutId = rollout.id
+				}
+			})
+
+			// update rollout variable
+			let rolloutUpdate = {
+				start_date: programData?.meta?.start_date || '',
+				end_date: programData?.meta?.end_date || '',
+				targeting_criteria: programData?.targeting_criteria,
+				updated_at: new Date(),
+				resources: [],
+			}
+			// prepare resources for program rollout update
+			programData.resources.forEach((resource) => {
+				rolloutUpdate.resources.push(resource)
+			})
+
+			// create a promise variable and add program rollout update
+			let rolloutUpdatePromise = [await this.update(programRolloutId, rolloutUpdate, userId, orgId)]
+
+			// append resource rollout update promises
+			rolloutUpdate.resources.forEach(async (resource) => {
+				rolloutUpdatePromise.push(
+					await this.update(resourceRolloutResourceIdMap[resource.id], resource, userId, orgId)
+				)
+			})
+
+			// execute all the promises
+			await Promise.all(rolloutUpdatePromise)
+
+			return programRolloutId
+		} catch (error) {
+			throw new Error('Program Rollout Update failed. Error : ', error)
+		}
+	}
+
+	/**
+	 * Create Program Rollout
+	 * @method
+	 * @name createProgramRollout
+	 * @param {Object} programData - Program data object
+	 * @returns {Integer} - program rollout id
+	 */
+
+	static async createProgramRollout(programData) {
+		try {
+			// rollout request body
+			const rolloutReqBody = {
+				resource_id: programData?.id,
+				resource_type: programData?.type,
+				start_date: programData?.meta?.start_date,
+				end_date: programData?.meta?.end_date,
+				targeting_criteria: programData?.targeting_criteria,
+				title: programData.title,
+			}
+
+			// create an entry to rollout table
+			const createProgramRollout = await this.create(
+				rolloutReqBody,
+				programData.user_id,
+				programData.organization_id
+			)
+
+			if (createProgramRollout.responseCode !== httpStatusCode.ok) {
+				throw new Error(`Rollout creation failed: ${createProgramRollout.message || 'Unknown error'}`) // Include error message if available
+			}
+
+			rolloutId = createProgramRollout?.result?.id
+
+			let createRolloutPromise = []
+
+			programData?.resources.forEach(async (resource) => {
+				const resourceRolloutReqBody = {
+					resource_id: resource?.id,
+					resource_type: resource?.type,
+					start_date: resource?.start_date || '',
+					end_date: resource?.end_date || '',
+					targeting_criteria: resource?.targeting_criteria,
+					title: resource.title,
+					resources: resource?.resources,
+				}
+				createRolloutPromise.push(
+					await this.create(resourceRolloutReqBody, resource.user_id, resource.organization_id, true)
+				)
+			})
+
+			await Promise.all(createRolloutPromise)
+
+			return rolloutId
+		} catch (error) {
+			throw new Error('Program Rollout Creation failed. Error : ', error)
 		}
 	}
 }
