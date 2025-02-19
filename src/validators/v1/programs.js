@@ -34,6 +34,16 @@ module.exports = {
 			.withMessage('id param is invalid, must be an integer')
 			.isInt({ min: 1, max: 2147483647 })
 			.withMessage('Id is not valid')
+
+		req.checkParams('reference_id')
+			.trim()
+			.optional({ checkFalsy: true })
+			.notEmpty()
+			.withMessage('reference_id param is empty')
+			.isNumeric()
+			.withMessage('reference_id param is invalid, must be an integer')
+			.isInt({ min: 1, max: 2147483647 })
+			.withMessage('reference_id is not valid')
 	},
 	details: (req) => {
 		req.checkParams('id')

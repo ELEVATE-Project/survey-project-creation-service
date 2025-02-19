@@ -10,10 +10,7 @@ const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const userRequests = require('@requests/user')
 const _ = require('lodash')
-const reviewsQueries = require('@database/queries/reviews')
-const reviewResourceQueries = require('@database/queries/reviewResources')
 const reviewsHelper = require('@services/reviews')
-const { Op } = require('sequelize')
 const resourceQueries = require('@database/queries/resources')
 module.exports = class CommentsHelper {
 	/**

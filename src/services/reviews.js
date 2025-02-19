@@ -764,7 +764,7 @@ module.exports = class reviewsHelper {
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
-				message: 'RESOURCE_PUBLISHED',
+				message: resourceData.type == common.RESOURCE_TYPE_PROGRAM ? 'PROGRAM_PUBLISHED' : 'RESOURCE_PUBLISHED',
 			})
 		} catch (error) {
 			throw error
