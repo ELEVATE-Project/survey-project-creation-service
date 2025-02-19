@@ -608,36 +608,38 @@ module.exports = class RolloutsHelper {
 			// check if resource is present or not
 			if (resourceDetails?.statusCode != httpStatusCode.ok) return resourceDetails
 
-			let solutionRollout = await rolloutQueries.findOne({
-				resource_id: resourceDetailsResult?.id,
-				type: common.ROLLOUT_TYPE_SOLUTION,
-				parent_id: rolloutId,
-				organization_id: orgId,
-			})
+			if (resourceDetails.type != common.RESOURCE_TYPE_PROGRAM) {
+				let solutionRollout = await rolloutQueries.findOne({
+					resource_id: resourceDetailsResult?.id,
+					type: common.ROLLOUT_TYPE_SOLUTION,
+					parent_id: rolloutId,
+					organization_id: orgId,
+				})
 
-			if (!solutionRollout?.id) {
-				let childRollout = _.pick(rolloutDetailsResult, [
-					'title',
-					'blob_path',
-					'start_date',
-					'end_date',
-					'resource_id',
-					'created_by',
-					'updated_by',
-					'status',
-					'organization_id',
-					'user_id',
-					'resource_type',
-				])
-				childRollout.type = common.ROLLOUT_TYPE_SOLUTION
-				childRollout.parent_id = rolloutId
-				const resultCreateRollout = await rolloutQueries.create(childRollout)
-				solutionRolloutId = resultCreateRollout.id
-			} else {
-				let childRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])
-				// update the start date and end date of program for single roll out
-				solutionRolloutId = solutionRollout.id
-				await rolloutQueries.updateOne({ id: solutionRolloutId }, childRollout)
+				if (!solutionRollout?.id) {
+					let childRollout = _.pick(rolloutDetailsResult, [
+						'title',
+						'blob_path',
+						'start_date',
+						'end_date',
+						'resource_id',
+						'created_by',
+						'updated_by',
+						'status',
+						'organization_id',
+						'user_id',
+						'resource_type',
+					])
+					childRollout.type = common.ROLLOUT_TYPE_SOLUTION
+					childRollout.parent_id = rolloutId
+					const resultCreateRollout = await rolloutQueries.create(childRollout)
+					solutionRolloutId = resultCreateRollout.id
+				} else {
+					let childRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])
+					// update the start date and end date of program for single roll out
+					solutionRolloutId = solutionRollout.id
+					await rolloutQueries.updateOne({ id: solutionRolloutId }, childRollout)
+				}
 			}
 
 			// publish the resource if not published
