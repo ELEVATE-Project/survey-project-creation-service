@@ -282,13 +282,32 @@ module.exports = class RolloutsHelper {
 				}
 			}
 
+			// Fetch all program IDs to exclude their associated resources
+			const programRollouts = await rolloutQueries.findAll(
+				{
+					resource_type: common.RESOURCE_TYPE_PROGRAM,
+					organization_id: organization_id,
+				},
+				{ attributes: ['resource_id'] }
+			)
+
+			const programIds = programRollouts.map((rollout) => rollout.resource_id)
+
 			//filter based on multiple resource_types
+			//Remove resource type program hence its a listing for single resource rollout
 			let resourceTypes =
-				queryParams.resource_type && queryParams.resource_type != '' ? queryParams.resource_type.split(',') : ''
-			if (resourceTypes) {
-				filters.resource_type = {
-					[Op.in]: resourceTypes,
-				}
+				queryParams.resource_type && queryParams.resource_type !== ''
+					? queryParams.resource_type.split(',').filter((type) => type !== common.RESOURCE_TYPE_PROGRAM)
+					: ''
+
+			//resource_type are not passing then return all rollout expect resource_type program
+			filters.resource_type = resourceTypes.length
+				? { [Op.in]: resourceTypes }
+				: { [Op.not]: common.RESOURCE_TYPE_PROGRAM }
+
+			// Remove the resources under a program (parent_id in programIds)
+			if (programIds.length) {
+				filters.parent_id = { [Op.notIn]: programIds }
 			}
 
 			if (queryParams.status && queryParams.status != '') {
