@@ -60,7 +60,53 @@ const dbName = mongoUrl.split('/').pop()
 
 		console.log('Connected to MongoDB')
 		const db = connection.db(dbName)
+
+		// Path to the CSV file
+		const outputPath = path.resolve(__dirname, 'program_migration_results.csv')
+
+		// CSV Writer setup
+		const csvWriter = createCsvWriter({
+			path: outputPath,
+			header: [
+				{ id: 'programId', title: 'Program ID' },
+				{ id: 'solutionId', title: 'Solution ID' },
+				{ id: 'type', title: 'Type' },
+				{ id: 'success', title: 'Success' },
+				{ id: 'projectId', title: 'Project ID' },
+			],
+		})
+
+		let csvRecords = []
+
+		// Get default userId
+		const DEFAULT_USER_ID = await getDefaultUserId()
+		if (!DEFAULT_USER_ID) {
+			throw new Error('Failed to get default org admin')
+		}
+
+		// Get all programs
+		const programs = await db
+			.collection('programs')
+			.find({ status: 'published', isReusable: true })
+			.project({ _id: 1 })
+			.toArray()
+
+		console.log(`${projectTemplates.length} project templates found`)
 	} catch (error) {
 		console.error('Error during migration:', error)
 	}
 })()
+
+//get default org admin
+async function getDefaultUserId() {
+	let defaultUserId = null
+	let orgDetails = await userRequest.fetchOrg(process.env.DEFAULT_ORG_ID)
+	if (
+		orgDetails.success &&
+		Array.isArray(orgDetails?.data?.result?.org_admin) &&
+		orgDetails.data.result.org_admin.length > 0
+	) {
+		defaultUserId = orgDetails.data.result.org_admin[0]
+	}
+	return defaultUserId
+}
