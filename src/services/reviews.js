@@ -831,7 +831,7 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 				const associatedResourceIds = associatedResources.map((mapping) => mapping.resource_id)
 				await commentQueries.update(
 					{
-						id: {
+						resource_id: {
 							[Op.in]: associatedResourceIds,
 						},
 						status: common.COMMENT_STATUS_DRAFT,
