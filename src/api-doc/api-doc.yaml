@@ -5543,7 +5543,7 @@ paths:
             type: string
         - name: id
           in: path
-          description: The page number for pagination.
+          description: Id of the rollout
           required: true
           schema:
             type: integer
@@ -6386,7 +6386,7 @@ paths:
           required: true
           schema:
             type: string
-        - in: query
+        - in: path
           name: program_id
           description: Mention the program id to append resources.
           schema:
@@ -6449,7 +6449,7 @@ paths:
           required: true
           schema:
             type: string
-        - in: query
+        - in: path
           name: program_id
           description: Mention the program id to append resources.
           schema:
@@ -6678,6 +6678,50 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
+  '/scp/v1/programs/publish/{id}':
+    get:
+      summary: Publish Program
+      tags:
+        - Programs
+      description: |-
+        You can use this API to publish program
+         - The API Endpoint for publish rollout is `/scp/v1/programs/publish` 
+         - It is mandatory to provide values for parameters which are marked as `required` 
+         - This is a mandatory parameter and cannot be empty or null.
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: Id of the Program
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Your changes have been published
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Your changes have been published
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                        example: 1
   /scp/v1/programs/getProgramManagers:
     get:
       summary: Get Program Manager List

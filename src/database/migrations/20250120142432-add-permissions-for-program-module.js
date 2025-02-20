@@ -200,6 +200,17 @@ const existingPermissionsForReviewer = [
 		request_type: ['GET'],
 		api_path: '/scp/v1/programs/details*',
 	},
+	{
+		code: 'program_manager_list_program_permissions',
+		module: 'programs',
+		request_type: ['GET'],
+		api_path: '/scp/v1/programs/getProgramManagers',
+	},
+	{
+		module: 'resource',
+		request_type: ['GET', 'POST'],
+		api_path: '/scp/v1/resource/getPublishedResources*',
+	},
 ]
 
 module.exports = {
