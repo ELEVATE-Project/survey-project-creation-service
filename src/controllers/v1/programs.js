@@ -43,6 +43,7 @@ module.exports = class Programs {
 				return program
 			}
 		} catch (error) {
+			console.log(error, 'error')
 			return error
 		}
 	}
@@ -154,6 +155,21 @@ module.exports = class Programs {
 		try {
 			const submitForReview = await programService.submitForReview(req.params.id, req.body, req.decodedToken)
 			return submitForReview
+		} catch (error) {
+			return error
+		}
+	}
+	/* Program publish
+	 * @method
+	 * @name publish
+	 * @param {Object} req - user request
+	 * @returns {JSON} - submitted program id.
+	 */
+
+	async publish(req) {
+		try {
+			const publish = await programService.publish(req.params.id, req.decodedToken)
+			return publish
 		} catch (error) {
 			return error
 		}
