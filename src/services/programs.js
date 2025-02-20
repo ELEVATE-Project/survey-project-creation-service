@@ -17,6 +17,7 @@ const utils = require('@generics/utils')
 const commentQueries = require('@database/queries/comments')
 const projectService = require('@services/projects')
 const reviewsResourcesQueries = require('@database/queries/reviewsResources')
+const reviewService = require('@services/reviews')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -1007,6 +1008,26 @@ module.exports = class ProgramsHelper {
 					},
 					{
 						status: common.REVIEW_STATUS_CHANGES_UPDATED,
+					}
+				)
+			}
+			const userComments = await commentQueries.findAndCountAll({
+				user_id: userDetails.id,
+				resource_id: {
+					[Op.in]: [programId, ...resourceIds],
+				},
+				status: common.COMMENT_STATUS_DRAFT,
+			})
+
+			if (userComments.count > 0) {
+				await commentQueries.update(
+					{
+						id: {
+							[Op.in]: userComments.rows.map((comment) => comment.id),
+						},
+					},
+					{
+						status: common.COMMENT_STATUS_OPEN,
 					}
 				)
 			}
