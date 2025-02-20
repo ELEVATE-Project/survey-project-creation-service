@@ -31,7 +31,7 @@ module.exports = class CommentsHelper {
 				{
 					id: resourceId,
 				},
-				{ attributes: ['id', 'type', 'status'] }
+				{ attributes: ['id', 'type', 'status', 'organization_id'] }
 			)
 
 			if (!resource?.id) {
