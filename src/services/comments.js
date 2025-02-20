@@ -55,7 +55,13 @@ module.exports = class CommentsHelper {
 			//create the comment
 			if (!commentId) {
 				// handle comments
-				await reviewsHelper.handleComments(bodyData.comment, parseInt(resourceId, 10), userId)
+				await reviewsHelper.handleComments(
+					bodyData.comment,
+					parseInt(resourceId, 10),
+					userId,
+					'',
+					resource.type
+				)
 
 				// convert body data to array if its not
 				if (!Array.isArray(bodyData.comment)) {
@@ -88,7 +94,7 @@ module.exports = class CommentsHelper {
 				id: commentId,
 			}
 
-			const [updateCount, updatedComment] = await commentQueries.updateOne(filter, bodyData.comment, {
+			const [updateCount, updatedComment] = await commentQueries.update(filter, bodyData.comment, {
 				returning: true,
 				raw: true,
 			})
