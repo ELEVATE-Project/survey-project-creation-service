@@ -17,6 +17,7 @@ const utils = require('@generics/utils')
 const commentQueries = require('@database/queries/comments')
 const projectService = require('@services/projects')
 const reviewsResourcesQueries = require('@database/queries/reviewsResources')
+const reviewService = require('@services/reviews')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -1009,6 +1010,11 @@ module.exports = class ProgramsHelper {
 						status: common.REVIEW_STATUS_CHANGES_UPDATED,
 					}
 				)
+			}
+
+			// If the bodyData contains a comment Add or update comments
+			if (bodyData.comment) {
+				await reviewService.handleComments(bodyData.comment, programId, userDetails.id, true, programData.type)
 			}
 
 			//check review is required or not
