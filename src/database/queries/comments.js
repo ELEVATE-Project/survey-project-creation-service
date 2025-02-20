@@ -34,7 +34,7 @@ module.exports = class CommentData {
 		}
 	}
 
-	static async updateOne(filter, update, options = {}) {
+	static async update(filter, update, options = {}) {
 		try {
 			return await Comment.update(update, {
 				where: filter,
