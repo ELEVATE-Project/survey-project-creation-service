@@ -835,6 +835,7 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 							[Op.in]: associatedResourceIds,
 						},
 						status: common.COMMENT_STATUS_DRAFT,
+						user_id: userId,
 					},
 					{
 						status: common.COMMENT_STATUS_OPEN,
