@@ -306,7 +306,7 @@ module.exports = class RolloutsHelper {
 				: { [Op.not]: common.RESOURCE_TYPE_PROGRAM }
 
 			// Remove the resources under a program (parent_id in rollout ID of the program type)
-			if (programIds.length) {
+			if (programRolloutIds.length) {
 				filters.parent_id = { [Op.notIn]: programRolloutIds }
 			}
 
