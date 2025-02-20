@@ -12,6 +12,7 @@ const userRequests = require('@requests/user')
 const _ = require('lodash')
 const reviewsHelper = require('@services/reviews')
 const resourceQueries = require('@database/queries/resources')
+const programResourceMappingQueries = require('@database/queries/programResourceMapping')
 module.exports = class CommentsHelper {
 	/**
 	 * Comment Create or Update
@@ -39,7 +40,16 @@ module.exports = class CommentsHelper {
 
 			//validate resource status
 			if (_commentRestrictedStatuses.includes(resource.status)) {
-				throw new Error(`Resource is already ${resource.status}. You can't add comment`)
+				// Check if resource is associated with a program
+				const associatedResources = await programResourceMappingQueries.findOne({
+					resource_id: resourceId,
+					organization_id: resource.organization_id,
+				})
+
+				//if the resource is a non program and attached to program still reviewer can add comment
+				if (resource.type != common.RESOURCE_TYPE_PROGRAM && !associatedResources?.id) {
+					throw new Error(`Resource is already ${resource.status}. You can't add comment`)
+				}
 			}
 
 			//create the comment
