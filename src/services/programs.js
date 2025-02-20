@@ -1011,10 +1011,25 @@ module.exports = class ProgramsHelper {
 					}
 				)
 			}
+			const userComments = await commentQueries.findAndCountAll({
+				user_id: userDetails.id,
+				resource_id: {
+					[Op.in]: [programId, ...resourceIds],
+				},
+				status: common.COMMENT_STATUS_DRAFT,
+			})
 
-			// If the bodyData contains a comment Add or update comments
-			if (bodyData.comment) {
-				await reviewService.handleComments(bodyData.comment, programId, userDetails.id, true, programData.type)
+			if (userComments.count > 0) {
+				await commentQueries.update(
+					{
+						id: {
+							[Op.in]: userComments.rows.map((comment) => comment.id),
+						},
+					},
+					{
+						status: common.COMMENT_STATUS_OPEN,
+					}
+				)
 			}
 
 			//check review is required or not
