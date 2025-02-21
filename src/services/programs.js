@@ -53,6 +53,8 @@ module.exports = class ProgramsHelper {
 								'reference_id',
 								'published_id',
 								'created_by',
+								'created_at',
+								'updated_at',
 								'updated_by',
 								'submitted_on',
 								'published_on',
@@ -87,7 +89,26 @@ module.exports = class ProgramsHelper {
 				isDuplicateProgramCreation = true
 
 				programData = {
-					..._.omit(programDetails.result, ['id', 'organization_id', 'organization']),
+					..._.omit(programDetails.result, [
+						'id',
+						'organization_id',
+						'organization',
+						'stage',
+						'status',
+						'user_id',
+						'next_stage',
+						'review_type',
+						'reference_id',
+						'published_id',
+						'created_by',
+						'created_at',
+						'updated_at',
+						'updated_by',
+						'submitted_on',
+						'published_on',
+						'last_reviewed_on',
+						'is_under_edit',
+					]),
 					reference_id: referenceId,
 				}
 				bodyData.resources = programDetails.result.resources

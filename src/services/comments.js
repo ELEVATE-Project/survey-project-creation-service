@@ -204,7 +204,7 @@ module.exports = class CommentsHelper {
 			}
 
 			result.comments = comments.rows
-			result.commented_by = commented_by
+			result.commented_by = _.uniq(commented_by)
 			result.count = comments.count
 
 			return responses.successResponse({
