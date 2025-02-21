@@ -126,7 +126,7 @@ const dbName = mongoUrl.split('/').pop()
 
 				// Check if the program exists
 				const isProgramExist = await checkProgramExist(programIdStr)
-				console.log(isProgramExist, 'isProgramExist')
+				// console.log(isProgramExist, 'isProgramExist')
 				if (isProgramExist.success) {
 					console.log(`Program Exist for template ${programIdStr}`)
 					// csvRecords.push({
@@ -143,6 +143,38 @@ const dbName = mongoUrl.split('/').pop()
 					throw new Error(convertedProgramTemplate.error)
 				}
 				convertedProgramTemplate = convertedProgramTemplate.template
+				// console.log(convertedProgramTemplate, 'convertedProgramTemplate')
+
+				//convert the program components into array of object id
+				const solutionObjectIds = program.components.map((stringId) => new ObjectId(stringId))
+
+				// get all the solutions
+				const solutions = await db
+					.collection('solutions')
+					.find({ _id: { $in: solutionObjectIds }, type: 'improvementProject' })
+					.limit(1)
+					.toArray()
+
+				let solutionsFormatted = []
+				for (let solution of solutions) {
+					let convertedSolutionTemplate = await convertSolutionTemplate(solution, userOrgMap, DEFAULT_USER_ID)
+					if (!convertedSolutionTemplate.success) {
+						throw new Error(convertedSolutionTemplate.error)
+					}
+					solutionsFormatted.push(convertedSolutionTemplate.template)
+
+					// if any project template is there then follow the migrate project flow
+					// find the project templates
+					if (solution?.projectTemplateId) {
+						//find the project
+						const isProjectExist = await checkProjectExist(solution.projectTemplateId.toString())
+						if (isProjectExist.success) {
+							console.log(`Project Exist for template ${solution.projectTemplateId.toString()}`)
+						} else {
+							//create template
+						}
+					}
+				}
 			}
 		}
 
@@ -162,14 +194,68 @@ async function convertProgramTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 			userId = template.createdBy
 			orgId = userOrgMap[template.createdBy].organization.id
 		}
-
 		const convertedTemplate = {
-			title: template.title,
+			title: template.name,
+			type: 'program',
+			status: 'PUBLISHED',
+			stage: 'COMPLETION',
+			user_id: userId.toString(),
+			published_id: template._id,
+			organization_id: orgId.toString(),
+			created_by: userId.toString(),
+			updated_by: userId.toString(),
+			published_on: new Date(),
+			is_reusable: true,
+			viewers: [],
+			targeting_criteria: [],
+			objective: template.description ? template.description : '',
+			start_date: template.startDate ? template.startDate : null,
+			end_date: template.endDate ? template.endDate : null,
+			keywords: convertKeywords(template.keywords),
+			licenses: 'cc_by_4.0',
+			resources: [],
 		}
 
 		return { success: true, template: convertedTemplate }
 	} catch (error) {
 		console.error('Error occurred while converting the program template:', error)
+		return { success: false, error }
+	}
+}
+
+async function convertSolutionTemplate(template, userOrgMap, DEFAULT_USER_ID) {
+	try {
+		let userId = DEFAULT_USER_ID
+		let orgId = process.env.DEFAULT_ORG_ID
+		if (userOrgMap[template.createdBy]) {
+			userId = template.createdBy
+			orgId = userOrgMap[template.createdBy].organization.id
+		}
+
+		const convertedTemplate = {
+			title: template.name,
+			type: 'project',
+			status: 'PUBLISHED',
+			stage: 'COMPLETION',
+			user_id: userId.toString(),
+			published_id: template._id,
+			organization_id: orgId.toString(),
+			created_by: userId.toString(),
+			updated_by: userId.toString(),
+			published_on: new Date(),
+			is_reusable: true,
+			viewers: [],
+			targeting_criteria: [],
+			objective: template.description ? template.description : '',
+			start_date: template.startDate ? template.startDate : null,
+			end_date: template.endDate ? template.endDate : null,
+			keywords: convertKeywords(template.keywords),
+			licenses: 'cc_by_4.0',
+		}
+
+		return { success: true, template: convertedTemplate }
+	} catch (error) {
+		console.error('Error occurred while converting the solution template:', error)
 		return { success: false, error }
 	}
 }
@@ -229,3 +315,46 @@ async function checkProgramExist(programId) {
 		}
 	}
 }
+
+function convertKeywords(keywords) {
+	if (Array.isArray(keywords) && keywords.length > 0) {
+		return keywords.join(',')
+	}
+
+	return ''
+}
+
+async function checkProjectExist(templateId) {
+	try {
+		let project = await resourceQueries.findOne(
+			{
+				published_id: templateId,
+				type: 'project',
+			},
+			{
+				attributes: ['id'],
+			}
+		)
+
+		// Check if the project exists
+		if (!project || !project.id) {
+			throw new Error('Project Not Found')
+		}
+
+		return {
+			success: true,
+			projectId: project.id,
+		}
+	} catch (error) {
+		return {
+			success: false,
+			error,
+		}
+	}
+}
+
+// program template -> resource
+// program template -> rollout
+// solution template -> rollout
+// solution template inte projectTemplate -> id find resource -> duplicate create -> add solution scope, start date, end date,
+// project template -> resource
