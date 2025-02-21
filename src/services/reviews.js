@@ -22,6 +22,7 @@ const resourceCreatorMappingQueries = require('@database/queries/resourcesCreato
 const kafkaCommunication = require('@generics/kafka-communication')
 const consumptionRequests = require('@requests/consumption')
 const rolloutService = require('@services/rollouts')
+const programResourceMappingQueries = require('@database/queries/programResourceMapping')
 module.exports = class reviewsHelper {
 	/**
 	 * Update review.
@@ -61,7 +62,7 @@ module.exports = class reviewsHelper {
 
 			// If the bodyData contains a comment Add or update comments
 			if (bodyData.comment) {
-				await handleComments(bodyData.comment, resourceId, userId, true)
+				await handleComments(bodyData.comment, resourceId, userId, true, resource.type)
 			}
 
 			// Update the status in the reviews table
@@ -261,7 +262,8 @@ module.exports = class reviewsHelper {
 				reviewType,
 				resource.organization_id,
 				resource.next_stage,
-				resource.status
+				resource.status,
+				resource.type
 			)
 
 			// Publish resource if isPublishResource is true
@@ -322,7 +324,7 @@ module.exports = class reviewsHelper {
 
 			// If the bodyData contains a comment Add or update comments
 			if (bodyData.comment) {
-				await handleComments(bodyData.comment, resourceId, userId, true)
+				await handleComments(bodyData.comment, resourceId, userId, true, resource.type)
 			}
 
 			let updateObj = {
@@ -384,13 +386,14 @@ module.exports = class reviewsHelper {
 		reviewType,
 		resourceOrgId,
 		currentReviewStage,
-		status
+		status,
+		resourceType
 	) {
 		try {
 			let updateNextLevel = false
 			// Add or update comments if provided.
 			if (Array.isArray(comments) ? comments.length > 0 : Object.keys(comments).length > 0) {
-				await handleComments(comments, resourceId, userId, true)
+				await handleComments(comments, resourceId, userId, true, resourceType)
 			}
 
 			// Update the review status to 'APPROVED' for the given review.
@@ -803,9 +806,10 @@ const _restrictedReviewStatuses = [
  * @param {String} userId - The ID of the logged-in user adding or updating comments.
  * @param {Object|Array<Object>} comments - A single comment object or an array of comment objects.
  * @param {Boolean} setCommentsToOpen - To indicate the comment status should be set to open. Default value false
+ * @param {String} resourceType - Type of resource
  * @returns {Promise<Object>} - Returns a promise that resolves to an object indicating success or an error.
  */
-async function handleComments(comments, resourceId, userId, setCommentsToOpen = false) {
+async function handleComments(comments, resourceId, userId, setCommentsToOpen = false, resourceType) {
 	try {
 		// Normalize comments to an array if it's a single object
 		if (!Array.isArray(comments)) {
@@ -846,9 +850,33 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 		const isCommentValid = await isParantCommentValid(parentCommentIds, resourceId)
 		if (!isCommentValid) throw new Error('COMMENT_PARENT_INVALID')
 
+		//update the associated draft comment to open if the resource is program
+		if (resourceType === common.RESOURCE_TYPE_PROGRAM && setCommentsToOpen) {
+			//fetch all associated resources
+			const associatedResources = await programResourceMappingQueries.findAll({
+				program_id: resourceId,
+			})
+
+			if (associatedResources.length > 0) {
+				const associatedResourceIds = associatedResources.map((mapping) => mapping.resource_id)
+				await commentQueries.update(
+					{
+						resource_id: {
+							[Op.in]: associatedResourceIds,
+						},
+						status: common.COMMENT_STATUS_DRAFT,
+						user_id: userId,
+					},
+					{
+						status: common.COMMENT_STATUS_OPEN,
+					}
+				)
+			}
+		}
+
 		// Handle updating comments
 		const updatePromises = commentsToUpdate.map((comment) =>
-			commentQueries.updateOne(
+			commentQueries.update(
 				{ id: comment.id, parent_id: comment.parent_id, resource_id: resourceId },
 				_.omit(comment, ['id'])
 			)
