@@ -53,6 +53,8 @@ module.exports = class ProgramsHelper {
 								'reference_id',
 								'published_id',
 								'created_by',
+								'created_at',
+								'updated_at',
 								'updated_by',
 								'submitted_on',
 								'published_on',
