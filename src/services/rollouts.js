@@ -288,10 +288,10 @@ module.exports = class RolloutsHelper {
 					resource_type: common.RESOURCE_TYPE_PROGRAM,
 					organization_id: organization_id,
 				},
-				{ attributes: ['resource_id'] }
+				{ attributes: ['id'] }
 			)
 
-			const programIds = programRollouts.map((rollout) => rollout.resource_id)
+			const programRolloutIds = programRollouts.map((rollout) => rollout.id)
 
 			//filter based on multiple resource_types
 			//Remove resource type program hence its a listing for single resource rollout
@@ -305,9 +305,9 @@ module.exports = class RolloutsHelper {
 				? { [Op.in]: resourceTypes }
 				: { [Op.not]: common.RESOURCE_TYPE_PROGRAM }
 
-			// Remove the resources under a program (parent_id in programIds)
-			if (programIds.length) {
-				filters.parent_id = { [Op.notIn]: programIds }
+			// Remove the resources under a program (parent_id in rollout ID of the program type)
+			if (programRolloutIds.length) {
+				filters.parent_id = { [Op.notIn]: programRolloutIds }
 			}
 
 			if (queryParams.status && queryParams.status != '') {

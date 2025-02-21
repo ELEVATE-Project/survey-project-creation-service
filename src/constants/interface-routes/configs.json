@@ -990,9 +990,7 @@
 			"targetPackages": [
 				{
 					"basePackageName": "self-creation-portal",
-					"packageName": "elevate-self-creation-portal",
-					"targetBody": [],
-					"responseBody": []
+					"packageName": "elevate-self-creation-portal"
 				}
 			]
 		},
@@ -1005,9 +1003,7 @@
 			"targetPackages": [
 				{
 					"basePackageName": "self-creation-portal",
-					"packageName": "elevate-self-creation-portal",
-					"targetBody": [],
-					"responseBody": []
+					"packageName": "elevate-self-creation-portal"
 				}
 			]
 		}
