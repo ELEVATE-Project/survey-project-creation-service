@@ -101,6 +101,7 @@ const dbName = mongoUrl.split('/').pop()
 				},
 			})
 			.project({ _id: 1 })
+			.limit(1)
 			.toArray()
 
 		console.log(`${programsData.length} programs found`)
@@ -125,6 +126,7 @@ const dbName = mongoUrl.split('/').pop()
 
 				// Check if the program exists
 				const isProgramExist = await checkProgramExist(programIdStr)
+				console.log(isProgramExist, 'isProgramExist')
 				if (isProgramExist.success) {
 					console.log(`Program Exist for template ${programIdStr}`)
 					// csvRecords.push({
@@ -134,6 +136,13 @@ const dbName = mongoUrl.split('/').pop()
 					// })
 					continue
 				}
+
+				// Convert template sequentially
+				let convertedProgramTemplate = await convertProgramTemplate(program, userOrgMap, DEFAULT_USER_ID)
+				if (!convertedProgramTemplate.success) {
+					throw new Error(convertedProgramTemplate.error)
+				}
+				convertedProgramTemplate = convertedProgramTemplate.template
 			}
 		}
 
@@ -144,6 +153,26 @@ const dbName = mongoUrl.split('/').pop()
 		console.error('Error during migration:', error)
 	}
 })()
+
+async function convertProgramTemplate(template, userOrgMap, DEFAULT_USER_ID) {
+	try {
+		let userId = DEFAULT_USER_ID
+		let orgId = process.env.DEFAULT_ORG_ID
+		if (userOrgMap[template.createdBy]) {
+			userId = template.createdBy
+			orgId = userOrgMap[template.createdBy].organization.id
+		}
+
+		const convertedTemplate = {
+			title: template.title,
+		}
+
+		return { success: true, template: convertedTemplate }
+	} catch (error) {
+		console.error('Error occurred while converting the program template:', error)
+		return { success: false, error }
+	}
+}
 
 //get default org admin
 async function getDefaultUserId() {
