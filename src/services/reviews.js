@@ -721,19 +721,7 @@ module.exports = class reviewsHelper {
 					resourceData.userToken = userToken
 
 					if (resourceData?.type == common.ROLLOUT_TYPE_PROGRAM) {
-						let rolloutId = null
-						if (resourceData?.published_id) {
-							// if program is already rolled out
-							rolloutId = await rolloutService.updateProgramRollout(
-								resourceId,
-								resourceData,
-								userId,
-								resource.organization_id
-							)
-						} else {
-							// while program publishing first time
-							rolloutId = await rolloutService.createProgramRollout(resourceData)
-						}
+						let rolloutId = await handleProgramPublish(resourceData, resourceId, userId)
 
 						// publish program rollout
 						const publishRollout = await rolloutService.publish(
@@ -743,7 +731,7 @@ module.exports = class reviewsHelper {
 							resourceData.userToken
 						)
 
-						if (publishRollout.responseCode !== httpStatusCode.ok) {
+						if (publishRollout.statusCode !== httpStatusCode.ok) {
 							throw new Error(`Rollout publish failed: ${publishRollout.message || 'Unknown error'}`) // Include error message if available
 						}
 					}
@@ -751,6 +739,12 @@ module.exports = class reviewsHelper {
 				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
 					//resource creation through api
 					consumptionRequests.publishProject(resourceData)
+				} else if (
+					resourceData.type == common.ROLLOUT_TYPE_PROGRAM &&
+					process?.env?.PROGRAM_PUBLISH_END_POINT
+				) {
+					let rolloutId = await handleProgramPublish(resourceData, resourceId, userId)
+					// program create using api code here
 				}
 			}
 
@@ -798,6 +792,23 @@ const _restrictedReviewStatuses = [
 	common.REVIEW_STATUS_INPROGRESS,
 	common.REVIEW_STATUS_REJECTED_AND_REPORTED,
 ]
+
+async function handleProgramPublish(resourceData, resourceId, userId) {
+	let rolloutId = null
+	if (resourceData?.published_id) {
+		// if program is already rolled out
+		rolloutId = await rolloutService.updateProgramRollout(
+			resourceId,
+			resourceData,
+			userId,
+			resourceData.organization_id
+		)
+	} else {
+		// while program publishing first time
+		rolloutId = await rolloutService.createProgramRollout(resourceData)
+	}
+	return rolloutId
+}
 /**
  * Create or update comments for a specified resource.
  * @method

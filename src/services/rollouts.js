@@ -933,7 +933,7 @@ module.exports = class RolloutsHelper {
 	static async createProgramRollout(programData) {
 		try {
 			let createRolloutPromise = []
-			let resourceIds = []
+			let resourceIds = [programData?.id]
 			programData?.resources.forEach(async (resource) => {
 				resourceIds.push(resource?.id)
 				const resourceRolloutReqBody = {
@@ -948,7 +948,6 @@ module.exports = class RolloutsHelper {
 					this.create(resourceRolloutReqBody, resource.user_id, resource.organization_id, true)
 				)
 			})
-			resourceIds.push(programData?.id)
 			const updateResourceFilter = {
 				id: {
 					[Op.in]: resourceIds,
