@@ -18,7 +18,6 @@ const commentQueries = require('@database/queries/comments')
 const projectService = require('@services/projects')
 const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 const reviewService = require('@services/reviews')
-
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -54,6 +53,8 @@ module.exports = class ProgramsHelper {
 								'reference_id',
 								'published_id',
 								'created_by',
+								'created_at',
+								'updated_at',
 								'updated_by',
 								'submitted_on',
 								'published_on',
@@ -88,7 +89,26 @@ module.exports = class ProgramsHelper {
 				isDuplicateProgramCreation = true
 
 				programData = {
-					..._.omit(programDetails.result, ['id', 'organization_id', 'organization']),
+					..._.omit(programDetails.result, [
+						'id',
+						'organization_id',
+						'organization',
+						'stage',
+						'status',
+						'user_id',
+						'next_stage',
+						'review_type',
+						'reference_id',
+						'published_id',
+						'created_by',
+						'created_at',
+						'updated_at',
+						'updated_by',
+						'submitted_on',
+						'published_on',
+						'last_reviewed_on',
+						'is_under_edit',
+					]),
 					reference_id: referenceId,
 				}
 				bodyData.resources = programDetails.result.resources
@@ -921,6 +941,26 @@ module.exports = class ProgramsHelper {
 					},
 					{
 						status: common.REVIEW_STATUS_CHANGES_UPDATED,
+					}
+				)
+			}
+			const userComments = await commentQueries.findAndCountAll({
+				user_id: userDetails.id,
+				resource_id: {
+					[Op.in]: [programId, ...resourceIds],
+				},
+				status: common.COMMENT_STATUS_DRAFT,
+			})
+
+			if (userComments.count > 0) {
+				await commentQueries.update(
+					{
+						id: {
+							[Op.in]: userComments.rows.map((comment) => comment.id),
+						},
+					},
+					{
+						status: common.COMMENT_STATUS_OPEN,
 					}
 				)
 			}

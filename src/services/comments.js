@@ -12,6 +12,7 @@ const userRequests = require('@requests/user')
 const _ = require('lodash')
 const reviewsHelper = require('@services/reviews')
 const resourceQueries = require('@database/queries/resources')
+const programResourceMappingQueries = require('@database/queries/programResourceMapping')
 module.exports = class CommentsHelper {
 	/**
 	 * Comment Create or Update
@@ -30,7 +31,7 @@ module.exports = class CommentsHelper {
 				{
 					id: resourceId,
 				},
-				{ attributes: ['id', 'type', 'status'] }
+				{ attributes: ['id', 'type', 'status', 'organization_id'] }
 			)
 
 			if (!resource?.id) {
@@ -39,13 +40,28 @@ module.exports = class CommentsHelper {
 
 			//validate resource status
 			if (_commentRestrictedStatuses.includes(resource.status)) {
-				throw new Error(`Resource is already ${resource.status}. You can't add comment`)
+				// Check if resource is associated with a program
+				const associatedResources = await programResourceMappingQueries.findOne({
+					resource_id: resourceId,
+					organization_id: resource.organization_id,
+				})
+
+				//if the resource is a non program and attached to program still reviewer can add comment
+				if (resource.type != common.RESOURCE_TYPE_PROGRAM && !associatedResources?.id) {
+					throw new Error(`Resource is already ${resource.status}. You can't add comment`)
+				}
 			}
 
 			//create the comment
 			if (!commentId) {
 				// handle comments
-				await reviewsHelper.handleComments(bodyData.comment, parseInt(resourceId, 10), userId)
+				await reviewsHelper.handleComments(
+					bodyData.comment,
+					parseInt(resourceId, 10),
+					userId,
+					'',
+					resource.type
+				)
 
 				// convert body data to array if its not
 				if (!Array.isArray(bodyData.comment)) {
@@ -78,7 +94,7 @@ module.exports = class CommentsHelper {
 				id: commentId,
 			}
 
-			const [updateCount, updatedComment] = await commentQueries.updateOne(filter, bodyData.comment, {
+			const [updateCount, updatedComment] = await commentQueries.update(filter, bodyData.comment, {
 				returning: true,
 				raw: true,
 			})
@@ -188,7 +204,7 @@ module.exports = class CommentsHelper {
 			}
 
 			result.comments = comments.rows
-			result.commented_by = commented_by
+			result.commented_by = _.uniq(commented_by)
 			result.count = comments.count
 
 			return responses.successResponse({
