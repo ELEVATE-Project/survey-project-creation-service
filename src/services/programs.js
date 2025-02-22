@@ -18,6 +18,7 @@ const commentQueries = require('@database/queries/comments')
 const projectService = require('@services/projects')
 const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 const reviewService = require('@services/reviews')
+const rolloutService = require('@services/rollouts')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -869,7 +870,12 @@ module.exports = class ProgramsHelper {
 				reviewerIds = await validateReviewers(bodyData.reviewer_ids, userDetails)
 			}
 
-			const validationErrors = await handleProgramValidation(programData, resourceIds, resourceTypes)
+			const validationErrors = await handleProgramValidation(
+				programData,
+				resourceIds,
+				resourceData,
+				resourceTypes
+			)
 
 			if (validationErrors.length > 0) {
 				const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
@@ -1038,6 +1044,9 @@ module.exports = class ProgramsHelper {
 			}
 
 			let programData = programDetails.result
+			programData.meta = {}
+			programData.meta.start_date = programData.start_date
+			programData.meta.end_date = programData.end_date
 			const resourceData = programData.resources
 			const resourceTypes = [...resourceData.map((resource) => resource.type), 'resource']
 
@@ -1084,12 +1093,16 @@ module.exports = class ProgramsHelper {
 				['id', 'value', 'has_entities', 'validations']
 			)
 
+			let { programTopLevelTargetingEntities, programLevelRoles } = await fetchProgramTopLevelEntities(
+				programData?.targeting_criteria
+			)
+
 			const resourcesValidationPromise = resourceData.map(async (resource, index) => {
 				const basePath = `${common.RESOURCES}[${index}]`
 				validateResources(
 					resource,
 					programTopLevelTargetingEntities,
-					programTargeting,
+					programData?.targeting_criteria,
 					programLevelRoles,
 					programData,
 					resourceEntityTypes,
@@ -1121,29 +1134,21 @@ module.exports = class ProgramsHelper {
 				})
 			}
 
-			let rolloutId = null
-			if (programDetails?.published_id) {
-				// if program is already rolled out
-				rolloutId = await rolloutService.updateProgramRollout(
-					resourceId,
-					programDetails,
-					userId,
-					resource.organization_id
-				)
-			} else {
-				// while program publishing first time
-				rolloutId = await rolloutService.createProgramRollout(programDetails)
+			let rolloutId = await handleProgramPublish(programData, programId, userDetails.id)
+
+			if (isNaN(rolloutId)) {
+				throw new Error(rolloutId)
 			}
 
 			// publish program rollout
 			const publishRollout = await rolloutService.publish(
 				rolloutId,
-				programDetails.user_id,
-				programDetails.organization_id,
-				programDetails.userToken
+				programData.user_id,
+				programData.organization_id,
+				programData.userToken
 			)
 
-			if (publishRollout.responseCode !== httpStatusCode.ok) {
+			if (![httpStatusCode.ok, httpStatusCode.accepted].includes(publishRollout.statusCode)) {
 				throw new Error(`Rollout publish failed: ${publishRollout.message || 'Unknown error'}`) // Include error message if available
 			}
 
@@ -1162,8 +1167,13 @@ module.exports = class ProgramsHelper {
 		}
 	}
 }
-async function handleProgramValidation(programData, resourceIds, resourceTypes) {
-	const programTargeting = programData?.targeting_criteria
+
+/**
+ * fetch the top level entities from program
+ * @param {Object} programTargeting - Program targeting object
+ * @returns {Object} - Object of entities and role
+ */
+async function fetchProgramTopLevelEntities(programTargeting) {
 	let programTopLevelTargetingEntities = []
 	let programLevelRoles = []
 	programTargeting.forEach((targeting) => {
@@ -1172,6 +1182,22 @@ async function handleProgramValidation(programData, resourceIds, resourceTypes) 
 		})
 		programLevelRoles = [...programLevelRoles, ...targeting['roles'].map((roles) => roles._id)]
 	})
+	return { programTopLevelTargetingEntities, programLevelRoles }
+}
+
+/**
+ * Handle program validations
+ * @param {Object} programData - Program details
+ * @param {Array} resourceIds - List of resourceIds
+ * @param {Object} resourceData - resources details
+ * @param {Array} resourceTypes - List of resource Types
+ * @returns {Array} - Return array of error objects
+ */
+async function handleProgramValidation(programData, resourceIds, resourceData, resourceTypes) {
+	const programTargeting = programData?.targeting_criteria
+
+	let { programTopLevelTargetingEntities, programLevelRoles } = await fetchProgramTopLevelEntities(programTargeting)
+
 	let validationErrors = []
 
 	if (
@@ -1226,7 +1252,9 @@ async function handleProgramValidation(programData, resourceIds, resourceTypes) 
 			programData.organization_id,
 			['id', 'value', 'has_entities', 'validations']
 		)
-
+		let { programTopLevelTargetingEntities, programLevelRoles } = await fetchProgramTopLevelEntities(
+			programTargeting
+		)
 		const resourcesValidationPromise = resourceData.map(async (resource, index) => {
 			const basePath = `${common.RESOURCES}[${index}]`
 			validateResources(
@@ -1256,6 +1284,30 @@ async function handleProgramValidation(programData, resourceIds, resourceTypes) 
 	}
 
 	return validationErrors
+}
+
+/**
+ * Handle program rollout publish
+ * @param {Object} resourceData - resources details
+ * @param {Integer} resourceId - Rollout resourceId
+ * @param {String} userId - Logged in user id
+ * @returns {Integer} - Return rollout id or validation error
+ */
+async function handleProgramPublish(resourceData, resourceId, userId) {
+	let rolloutId = null
+	if (resourceData?.published_id) {
+		// if program is already rolled out
+		rolloutId = await rolloutService.updateProgramRollout(
+			resourceId,
+			resourceData,
+			userId,
+			resourceData.organization_id
+		)
+	} else {
+		// while program publishing first time
+		rolloutId = await rolloutService.createProgramRollout(resourceData)
+	}
+	return rolloutId
 }
 /**
  * Handles resources by duplicating reusable resources and mapping them to the program and user.
