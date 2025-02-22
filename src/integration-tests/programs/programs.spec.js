@@ -84,6 +84,14 @@ describe('Program APIs ', function () {
 		expect(res.statusCode).toBe(400)
 		expect(res.body).toMatchSchema(schema.programSubmitForReview)
 	})
+
+	it('Program Publish', async () => {
+		let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
+		const programId = createProgram.body?.result?.id
+		let res = await request.get('/scp/v1/programs/publish/' + programId)
+		expect(res.statusCode).toBe(400)
+		expect(res.body).toMatchSchema(schema.programSubmitForReview)
+	})
 })
 
 function insertProgramData() {
