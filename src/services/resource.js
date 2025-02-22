@@ -1343,7 +1343,7 @@ module.exports = class resourceHelper {
 
 			const internalResources = await resourceQueries.resourceList(
 				filterQuery,
-				['id', 'title', 'type', 'created_by', 'created_at', 'published_on', 'organization_id'],
+				['id', 'title', 'type', 'created_by', 'created_at', 'published_on', 'organization_id', 'meta'],
 				sort,
 				pageNo,
 				pageSize
@@ -1379,7 +1379,13 @@ module.exports = class resourceHelper {
 						.filter(Boolean) // To remove any empty strings
 						.join(' , ')
 					resource['organization'] = orgDetails[resource.organization_id] || {}
+					//Only for program return start date and end date
+					if (resource.type === common.RESOURCE_TYPE_PROGRAM) {
+						resource['start_date'] = resource.meta?.start_date || ''
+						resource['end_date'] = resource.meta?.end_date || ''
+					}
 					delete resource.created_at
+					delete resource.meta
 					result.data.push(resource)
 				})
 			}
