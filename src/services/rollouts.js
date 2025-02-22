@@ -881,7 +881,6 @@ module.exports = class RolloutsHelper {
 				end_date: programData?.meta?.end_date || '',
 				targeting_criteria: programData?.targeting_criteria,
 				updated_at: new Date(),
-				resources: [],
 			}
 			// prepare resources for program rollout update
 			programData.resources.forEach((resource) => {
@@ -900,6 +899,23 @@ module.exports = class RolloutsHelper {
 			// execute all the promises
 			await Promise.all(rolloutUpdatePromise)
 
+			const rolloutDetails = await this.details(
+				createProgramRollout?.result?.id,
+				programData.organization_id,
+				programData.user_id,
+				false
+			)
+
+			const validateRollout = await this.validateRollout(rolloutDetails.result)
+			if (validateRollout.length > 0) {
+				const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					result: result,
+					message: 'ROLLOUT_VALIDATION_FAILED',
+				})
+			}
+
 			return programRolloutId
 		} catch (error) {
 			throw new Error('Program Rollout Update failed. Error : ', error)
@@ -917,7 +933,7 @@ module.exports = class RolloutsHelper {
 	static async createProgramRollout(programData) {
 		try {
 			let createRolloutPromise = []
-			let resourceIds = []
+			let resourceIds = [programData?.id]
 			programData?.resources.forEach(async (resource) => {
 				resourceIds.push(resource?.id)
 				const resourceRolloutReqBody = {
@@ -932,7 +948,6 @@ module.exports = class RolloutsHelper {
 					this.create(resourceRolloutReqBody, resource.user_id, resource.organization_id, true)
 				)
 			})
-			resourceIds.push(programData?.id)
 			const updateResourceFilter = {
 				id: {
 					[Op.in]: resourceIds,
@@ -968,6 +983,23 @@ module.exports = class RolloutsHelper {
 			}
 
 			await Promise.all(createRolloutPromise)
+
+			const rolloutDetails = await this.details(
+				createProgramRollout?.result?.id,
+				programData.organization_id,
+				programData.user_id,
+				false
+			)
+
+			const validateRollout = await this.validateRollout(rolloutDetails.result)
+			if (validateRollout.length > 0) {
+				const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					result: result,
+					message: 'ROLLOUT_VALIDATION_FAILED',
+				})
+			}
 
 			return createProgramRollout?.result?.id
 		} catch (error) {

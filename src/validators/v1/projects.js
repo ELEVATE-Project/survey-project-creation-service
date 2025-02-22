@@ -26,7 +26,16 @@ module.exports = {
 		}
 
 		if (req.method != common.REQUEST_METHOD_DELETE) {
-			req.checkBody('title').trim().notEmpty().withMessage('title is required')
+			req.checkBody('title')
+				.trim()
+				.notEmpty()
+				.withMessage('title is required')
+				.custom((value) => {
+					if (utils.validateTitle(req.checkBody('title'))) {
+						throw new Error('Value exceeds the allowed length for the field title')
+					}
+					return true
+				})
 		}
 
 		req.checkParams('id')
