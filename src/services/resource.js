@@ -905,6 +905,9 @@ module.exports = class resourceHelper {
 			}
 
 			result = { ...result, ...resource }
+			if (result.meta) {
+				Object.assign(result, result.meta)
+			}
 			delete result.blob_path
 
 			return responses.successResponse({
