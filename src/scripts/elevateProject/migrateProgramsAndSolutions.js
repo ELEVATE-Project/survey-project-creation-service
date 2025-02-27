@@ -6,10 +6,11 @@
  */
 
 require('module-alias/register')
-require('dotenv').config({ path: '../../.env' })
-// require('dotenv').config({ path: '/home/dell/workspace/SCP/survey-project-creation-service/src/.env' })
+// require('dotenv').config({ path: '../../.env' })
+require('dotenv').config({ path: '/home/dell/workspace/SCP/survey-project-creation-service/src/.env' })
 
 require('../../configs/events')()
+const requests = require('@generics/requests')
 const utils = require('./utils')
 const path = require('path')
 const createCsvWriter = require('csv-writer').createObjectCsvWriter
@@ -72,7 +73,7 @@ const dbName = mongoUrl.split('/').pop()
 		const programsData = await db
 			.collection('programs')
 			.find({
-				// _id: ObjectId('66c4a815c753c2fe12efc9d2'),
+				_id: ObjectId('66c4a815c753c2fe12efc9d2'),
 				status: 'active',
 				scope: {
 					$exists: true,
@@ -86,7 +87,7 @@ const dbName = mongoUrl.split('/').pop()
 				},
 			})
 			.project({ _id: 1 })
-			// .limit(1)
+			.limit(1)
 			.toArray()
 
 		console.log(`${programsData.length} programs found`)
@@ -141,19 +142,19 @@ const dbName = mongoUrl.split('/').pop()
 				console.log(`Processing program ${programIdStr}`)
 
 				// Check if the program exists
-				const isProgramExist = await checkResourceExist(programIdStr, 'program')
-				if (isProgramExist.success) {
-					console.log(`Program Exist for template ${programIdStr}`)
-					csvRecords.push({
-						programId: programIdStr,
-						solutionId: '',
-						type: 'program',
-						success: 'Program Exist',
-						resourceId: isProgramExist.resourceId,
-						rolloutId: '',
-					})
-					continue
-				}
+				// const isProgramExist = await checkResourceExist(programIdStr, 'program')
+				// if (isProgramExist.success) {
+				// 	console.log(`Program Exist for template ${programIdStr}`)
+				// 	csvRecords.push({
+				// 		programId: programIdStr,
+				// 		solutionId: '',
+				// 		type: 'program',
+				// 		success: 'Program Exist',
+				// 		resourceId: isProgramExist.resourceId,
+				// 		rolloutId: '',
+				// 	})
+				// 	continue
+				// }
 
 				//convert the program components into array of object id
 				const solutionMongoIds = program.components.map((stringId) => new ObjectId(stringId))
@@ -162,8 +163,11 @@ const dbName = mongoUrl.split('/').pop()
 				const solutions = await db
 					.collection('solutions')
 					.find({
-						_id: { $in: solutionMongoIds },
+						// _id: { $in: solutionMongoIds },
 						// _id: ObjectId('66c72d20c8fb762949bd734e'),
+						// _id: ObjectId('66408ed0e077e6d429937bfa'),
+						// _id: ObjectId('66668830dca191013f50b0a5'),
+						_id: ObjectId('6666a560675ec70149ed7e8b'),
 						type: 'improvementProject',
 					})
 					.limit(1)
@@ -211,32 +215,32 @@ const dbName = mongoUrl.split('/').pop()
 								.findOne({ _id: ObjectId(projectTemplateIdStr) })
 
 							//validate the project template
-							if (!projectTemplate?._id) {
-								console.log(`No project template found for solution id ${solutionIdStr}, `)
-								csvRecords.push({
-									programId: programIdStr,
-									solutionId: solutionIdStr,
-									type: 'solution',
-									success: 'No project template found',
-									resourceId: '',
-									rolloutId: '',
-								})
-								continue
-							}
+							// if (!projectTemplate?._id) {
+							// 	console.log(`No project template found for solution id ${solutionIdStr}, `)
+							// 	csvRecords.push({
+							// 		programId: programIdStr,
+							// 		solutionId: solutionIdStr,
+							// 		type: 'solution',
+							// 		success: 'No project template found',
+							// 		resourceId: '',
+							// 		rolloutId: '',
+							// 	})
+							// 	continue
+							// }
 
 							//get task of the project template
-							if (!Array.isArray(projectTemplate.tasks) || !projectTemplate.tasks.length > 0) {
-								console.log(`No Task Found for Project Template ${solutionIdStr}, `)
-								csvRecords.push({
-									programId: programIdStr,
-									solutionId: solutionIdStr,
-									type: 'solution',
-									success: 'No project template found',
-									resourceId: '',
-									rolloutId: '',
-								})
-								continue
-							}
+							// if (!Array.isArray(projectTemplate.tasks) || !projectTemplate.tasks.length > 0) {
+							// 	console.log(`No Task Found for Project Template ${solutionIdStr}, `)
+							// 	csvRecords.push({
+							// 		programId: programIdStr,
+							// 		solutionId: solutionIdStr,
+							// 		type: 'solution',
+							// 		success: 'No project template found',
+							// 		resourceId: '',
+							// 		rolloutId: '',
+							// 	})
+							// 	continue
+							// }
 							let taskIdsToRemove = []
 							// fetch the task from projectTemplateTasks collection
 							const templateTasks = await db
@@ -245,18 +249,18 @@ const dbName = mongoUrl.split('/').pop()
 								.toArray()
 
 							//Validate the template task
-							if (!templateTasks.length > 0) {
-								console.log(`No Task Found for Project Template ${solutionIdStr}, `)
-								csvRecords.push({
-									programId: programIdStr,
-									solutionId: solutionIdStr,
-									type: 'solution',
-									success: 'No project template found',
-									resourceId: '',
-									rolloutId: '',
-								})
-								continue
-							}
+							// if (!templateTasks.length > 0) {
+							// 	console.log(`No Task Found for Project Template ${solutionIdStr}, `)
+							// 	csvRecords.push({
+							// 		programId: programIdStr,
+							// 		solutionId: solutionIdStr,
+							// 		type: 'solution',
+							// 		success: 'No project template found',
+							// 		resourceId: '',
+							// 		rolloutId: '',
+							// 	})
+							// 	continue
+							// }
 
 							projectTemplate.taskDetails = templateTasks
 
@@ -285,7 +289,18 @@ const dbName = mongoUrl.split('/').pop()
 								start_date: solution.startDate || null,
 								end_date: solution.endDate || null,
 							}
-							projectTemplate.scope = solution.scope
+							console.log('-----------------------')
+							console.log(solution.scope, 'solution.scope')
+							let targetingCriteriaRes = await generateTargetingCriteria(solution.scope, db)
+							console.log(JSON.stringify(targetingCriteriaRes.result, null, 2), 'targetingCriteriaRes')
+							if (!targetingCriteriaRes.success) {
+								process.exit(1)
+								throw new Error('Failed to generate targeting criteria')
+							}
+
+							process.exit(1)
+
+							projectTemplate.scope = targetingCriteriaRes.result
 
 							// Convert template
 							let convertedTemplate = await convertProjectTemplate(
@@ -358,166 +373,166 @@ const dbName = mongoUrl.split('/').pop()
 							}
 						}
 						//if atleast one valid solution is there then create the program
-						if (!validSolutionIds.length > 0) {
-							csvRecords.push({
-								programId: programIdStr,
-								solutionId: '',
-								type: 'program',
-								success: 'No solution found',
-								resourceId: '',
-								rolloutId: '',
-							})
-							continue
-						}
+						// if (!validSolutionIds.length > 0) {
+						// 	csvRecords.push({
+						// 		programId: programIdStr,
+						// 		solutionId: '',
+						// 		type: 'program',
+						// 		success: 'No solution found',
+						// 		resourceId: '',
+						// 		rolloutId: '',
+						// 	})
+						// 	continue
+						// }
 
-						let convertedProgramTemplate = await convertProgramTemplate(
-							program,
-							userOrgMap,
-							DEFAULT_USER_ID
-						)
-						//validate the program template
-						if (!convertedProgramTemplate.success) {
-							throw new Error(convertedProgramTemplate.error)
-						}
-						convertedProgramTemplate = convertedProgramTemplate.template
+						// let convertedProgramTemplate = await convertProgramTemplate(
+						// 	program,
+						// 	userOrgMap,
+						// 	DEFAULT_USER_ID
+						// )
+						// //validate the program template
+						// if (!convertedProgramTemplate.success) {
+						// 	throw new Error(convertedProgramTemplate.error)
+						// }
+						// convertedProgramTemplate = convertedProgramTemplate.template
 
-						//create program
-						const programCreationResponse = await createProgram(
-							programIdStr,
-							convertedProgramTemplate,
-							convertedProgramTemplate.created_by,
-							convertedProgramTemplate.organization_id,
-							validSolutionIds
-						)
+						// //create program
+						// const programCreationResponse = await createProgram(
+						// 	programIdStr,
+						// 	convertedProgramTemplate,
+						// 	convertedProgramTemplate.created_by,
+						// 	convertedProgramTemplate.organization_id,
+						// 	validSolutionIds
+						// )
 
-						if (!programCreationResponse.success) {
-							console.log(`Failed to create program ${programIdStr}`)
-							csvRecords.push({
-								programId: programIdStr,
-								solutionId: '',
-								type: 'program',
-								success: 'Failed to create program',
-								resourceId: '',
-								rolloutId: '',
-							})
-							continue
-						}
+						// if (!programCreationResponse.success) {
+						// 	console.log(`Failed to create program ${programIdStr}`)
+						// 	csvRecords.push({
+						// 		programId: programIdStr,
+						// 		solutionId: '',
+						// 		type: 'program',
+						// 		success: 'Failed to create program',
+						// 		resourceId: '',
+						// 		rolloutId: '',
+						// 	})
+						// 	continue
+						// }
 
-						let programResourceId = programCreationResponse.programId
+						// let programResourceId = programCreationResponse.programId
 
-						// get the program details
-						let programDetail = await programService.details(
-							programResourceId,
-							convertedProgramTemplate.organization_id
-						)
+						// // get the program details
+						// let programDetail = await programService.details(
+						// 	programResourceId,
+						// 	convertedProgramTemplate.organization_id
+						// )
 
-						//validate the program details
-						if (programDetail.statusCode !== 200) {
-							throw new Error(programDetail.error)
-						}
+						// //validate the program details
+						// if (programDetail.statusCode !== 200) {
+						// 	throw new Error(programDetail.error)
+						// }
 
-						programDetail = programDetail.result
+						// programDetail = programDetail.result
 
-						//Format the program for rollout program creation
-						let convertedProgramRolloutTemplate = _.omit(programDetail, [
-							'id',
-							'resources',
-							'status',
-							'stage',
-							'next_stage',
-							'review_type',
-							'reference_id',
-							'published_id',
-							'created_at',
-							'updated_at',
-							'updated_by',
-							'submitted_on',
-							'published_on',
-							'last_reviewed_on',
-							'is_under_edit',
-						])
+						// //Format the program for rollout program creation
+						// let convertedProgramRolloutTemplate = _.omit(programDetail, [
+						// 	'id',
+						// 	'resources',
+						// 	'status',
+						// 	'stage',
+						// 	'next_stage',
+						// 	'review_type',
+						// 	'reference_id',
+						// 	'published_id',
+						// 	'created_at',
+						// 	'updated_at',
+						// 	'updated_by',
+						// 	'submitted_on',
+						// 	'published_on',
+						// 	'last_reviewed_on',
+						// 	'is_under_edit',
+						// ])
 
-						convertedProgramRolloutTemplate.resource_id = programDetail.id
+						// convertedProgramRolloutTemplate.resource_id = programDetail.id
 
-						//create program rollout
-						const createProgramRolloutResponse = await rolloutService.create(
-							convertedProgramRolloutTemplate,
-							convertedProgramRolloutTemplate.created_by,
-							convertedProgramRolloutTemplate.organization_id,
-							false
-						)
+						// //create program rollout
+						// const createProgramRolloutResponse = await rolloutService.create(
+						// 	convertedProgramRolloutTemplate,
+						// 	convertedProgramRolloutTemplate.created_by,
+						// 	convertedProgramRolloutTemplate.organization_id,
+						// 	false
+						// )
 
-						//Validate the program rollout creation
-						if (createProgramRolloutResponse.statusCode != 200) {
-							throw new Error(createProgramRolloutResponse.error)
-						}
+						// //Validate the program rollout creation
+						// if (createProgramRolloutResponse.statusCode != 200) {
+						// 	throw new Error(createProgramRolloutResponse.error)
+						// }
 
-						let programRolloutId = createProgramRolloutResponse.result.id
+						// let programRolloutId = createProgramRolloutResponse.result.id
 
-						for (let solutionData of programDetail.resources) {
-							//Format the solution for rollout solution creation
-							let convertSolutionRolloutTemplate = _.omit(solutionData, [
-								'id',
-								'status',
-								'stage',
-								'next_stage',
-								'review_type',
-								'reference_id',
-								'created_at',
-								'updated_at',
-								'updated_by',
-								'submitted_on',
-								'published_on',
-								'last_reviewed_on',
-								'is_under_edit',
-							])
+						// for (let solutionData of programDetail.resources) {
+						// 	//Format the solution for rollout solution creation
+						// 	let convertSolutionRolloutTemplate = _.omit(solutionData, [
+						// 		'id',
+						// 		'status',
+						// 		'stage',
+						// 		'next_stage',
+						// 		'review_type',
+						// 		'reference_id',
+						// 		'created_at',
+						// 		'updated_at',
+						// 		'updated_by',
+						// 		'submitted_on',
+						// 		'published_on',
+						// 		'last_reviewed_on',
+						// 		'is_under_edit',
+						// 	])
 
-							convertSolutionRolloutTemplate.parent_id = programRolloutId
-							convertSolutionRolloutTemplate.resource_id = solutionData.id
-							convertSolutionRolloutTemplate.start_date = solutionData?.meta?.start_date || null
-							convertSolutionRolloutTemplate.end_date = solutionData?.meta?.end_date || null
+						// 	convertSolutionRolloutTemplate.parent_id = programRolloutId
+						// 	convertSolutionRolloutTemplate.resource_id = solutionData.id
+						// 	convertSolutionRolloutTemplate.start_date = solutionData?.meta?.start_date || null
+						// 	convertSolutionRolloutTemplate.end_date = solutionData?.meta?.end_date || null
 
-							//create the solution rollout
-							const createSolutionRolloutResponse = await rolloutService.create(
-								convertSolutionRolloutTemplate,
-								convertSolutionRolloutTemplate.created_by,
-								convertSolutionRolloutTemplate.organization_id,
-								true
-							)
+						// 	//create the solution rollout
+						// 	const createSolutionRolloutResponse = await rolloutService.create(
+						// 		convertSolutionRolloutTemplate,
+						// 		convertSolutionRolloutTemplate.created_by,
+						// 		convertSolutionRolloutTemplate.organization_id,
+						// 		true
+						// 	)
 
-							// Validate the solution rollout creation
-							if (createSolutionRolloutResponse.statusCode != 200) {
-								throw new Error(createSolutionRolloutResponse.error)
-							}
+						// 	// Validate the solution rollout creation
+						// 	if (createSolutionRolloutResponse.statusCode != 200) {
+						// 		throw new Error(createSolutionRolloutResponse.error)
+						// 	}
 
-							//update the solution rollout status
-							await rolloutService.publishCallback(
-								createSolutionRolloutResponse.result.id,
-								solutionIdStr,
-								solutionTargetingMap[solutionIdStr].projectTemplateId
-							)
+						// 	//update the solution rollout status
+						// 	await rolloutService.publishCallback(
+						// 		createSolutionRolloutResponse.result.id,
+						// 		solutionIdStr,
+						// 		solutionTargetingMap[solutionIdStr].projectTemplateId
+						// 	)
 
-							csvRecords.push({
-								programId: programIdStr,
-								solutionId: solutionIdStr,
-								type: 'solution',
-								success: 'Success',
-								resourceId: solutionData.id,
-								rolloutId: createSolutionRolloutResponse.result.id,
-							})
-						}
+						// 	csvRecords.push({
+						// 		programId: programIdStr,
+						// 		solutionId: solutionIdStr,
+						// 		type: 'solution',
+						// 		success: 'Success',
+						// 		resourceId: solutionData.id,
+						// 		rolloutId: createSolutionRolloutResponse.result.id,
+						// 	})
+						// }
 
-						//update the program rollout status
-						await rolloutService.publishCallback(programRolloutId, programIdStr)
+						// //update the program rollout status
+						// await rolloutService.publishCallback(programRolloutId, programIdStr)
 
-						csvRecords.push({
-							programId: programIdStr,
-							solutionId: solutionIdStr,
-							type: 'program',
-							success: 'Success',
-							resourceId: programDetail.id,
-							rolloutId: programRolloutId,
-						})
+						// csvRecords.push({
+						// 	programId: programIdStr,
+						// 	solutionId: solutionIdStr,
+						// 	type: 'program',
+						// 	success: 'Success',
+						// 	resourceId: programDetail.id,
+						// 	rolloutId: programRolloutId,
+						// })
 					} else {
 						//skip the solution
 						console.log(`No project template found for solution id ${solutionIdStr}, `)
@@ -855,6 +870,183 @@ async function createProgram(programId, programData, userId, orgId, solutionIds)
 		return { success: true, programId: createProgram.result.id }
 	} catch (error) {
 		console.log('Failed to create project ', programId)
+		return { success: false, error }
+	}
+}
+
+async function generateTargetingCriteria(scope = {}, db) {
+	try {
+		console.log(scope, 'scopeeeeeeeeeeeeee')
+		let targetingCriteria = []
+		//send empty
+		if (!scope || !Object.keys(scope).length > 0) {
+			return { success: false, error: 'Scope not found' }
+		}
+
+		//process for elevate project
+		if (process.env.CONSUMPTION_SERVICE == 'elevate-project') {
+			let roles = []
+			if (scope?.roles?.length > 0) {
+				// Get roles details
+				const userRoleExtensions = await db
+					.collection('userRoleExtension')
+					.find({ code: { $in: scope.roles } })
+					.toArray()
+
+				if (userRoleExtensions.length > 0) {
+					for (let userRole of userRoleExtensions) {
+						roles.push({
+							_id: userRole._id.toString(),
+							value: userRole.userRoleId,
+							label: userRole.title,
+							code: userRole.code,
+						})
+					}
+				}
+			}
+
+			let entityTypeIds = []
+			let entityIds = []
+			if (scope.entityType) {
+				if (scope.entities && scope.entityType) {
+					entityTypeIds.push(scope.entityType)
+					entityIds.push(...scope.entities)
+				} else if (typeof scope.entityType === 'string' && !scope.entities) {
+					entityTypeIds.push(scope.entityType)
+					if (scope[scope.entityType]) {
+						entityIds.push(...scope[scope.entityType])
+					}
+				} else if (Array.isArray(scope.entityType) && !scope.entities) {
+					entityTypeIds = scope.entityType
+					for (const entityType of scope.entityType) {
+						if (scope[entityType]) {
+							entityIds.push(...scope[entityType])
+						}
+					}
+				}
+			}
+			console.log(entityTypeIds, entityIds, 'scope.entityTypes')
+			if (entityTypeIds.length > 0 && entityIds.length > 0) {
+				entityIds = entityIds.map((id) => {
+					return ObjectId(id)
+				})
+				const entities = await db
+					.collection('entities')
+					.find({ _id: { $in: entityIds } })
+					.toArray()
+
+				// console.log(entities, 'entities')
+				const entityTypes = await db
+					.collection('entityTypes')
+					.find({ name: { $in: entityTypeIds } })
+					.toArray()
+
+				// console.log(entityTypes, 'entityTypes')
+
+				targetingCriteria = []
+
+				let highestEntity = entities.filter(
+					(entity) => entity.entityType === process.env.HIGHEST_IN_ENTITY_HIERARCHY
+				)
+
+				console.log(highestEntity, 'highestEntity')
+
+				if (typeof scope.entityType == 'string') {
+					let entityTargeting = []
+					for (let entity of entities) {
+						let entity_targeting = {
+							_id: entity._id,
+							externalId: entity.registryDetails?.code || entity.metaInformation.externalId,
+							name: entity.metaInformation.name,
+						}
+						entityTargeting.push(entity_targeting)
+					}
+
+					let targetingCriteriaData = {
+						roles: roles,
+						entity_targeting: {
+							_id: entityTypes[0]._id,
+							value: entityTypes[0].name,
+							name: entityTypes[0].name,
+						},
+						[scope.entityType]: entityTargeting,
+					}
+
+					if (highestEntity && highestEntity?.entityType && highestEntity.entityType != scope.entityType) {
+						targetingCriteriaData[process.env.HIGHEST_IN_ENTITY_HIERARCHY] = {
+							_id: highestEntity._id,
+							externalId: highestEntity.registryDetails?.code || highestEntity.metaInformation.externalId,
+							name: highestEntity.metaInformation.name,
+						}
+					} else {
+						let getEntities = await db.collection('entities').findOne({
+							[`group.${scope.entityType}`]: { $in: entityIds },
+							entityType: process.env.HIGHEST_IN_ENTITY_HIERARCHY,
+						})
+
+						if (getEntities._id) {
+							targetingCriteriaData[process.env.HIGHEST_IN_ENTITY_HIERARCHY] = {
+								_id: highestEntity._id,
+								externalId:
+									highestEntity.registryDetails?.code || highestEntity.metaInformation.externalId,
+								name: highestEntity.metaInformation.name,
+							}
+						}
+					}
+					targetingCriteria.push(targetingCriteriaData)
+					return { success: true, result: targetingCriteria }
+				} else if (Array.isArray(scope.entityType)) {
+					if (
+						process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL &&
+						process.env.CONSUMPTION_SERVICE_TARGETED_ROLES_END_POINT &&
+						!scope.entityType.length == 1 &&
+						!highestEntity
+					) {
+						if (highestEntity) {
+							//get the targeted roles
+							let apiUrl =
+								process.env.INTERFACE_SERVICE_HOST +
+								process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL +
+								process.env.CONSUMPTION_SERVICE_TARGETED_ROLES_END_POINT
+							'/' + highestEntity._id
+							console.log(apiUrl, 'apiUrl')
+							let targetedRoles = await requests.get(apiUrl, '', process.env.INTERNAL_ACCESS_TOKEN)
+							// console.log(targetedRoles, 'targetedRoles')
+						}
+
+						for (let entityType of scope.entityType) {
+							let filteredEntities = entities.filter((entity) => entity.entityType === entityType)
+							let entityTargeting = filteredEntities.map((entity) => ({
+								_id: entity._id,
+								externalId: entity.registryDetails?.code || entity.metaInformation.externalId,
+								name: entity.metaInformation.name,
+							}))
+
+							let matchingEntityType = entityTypes.find((type) => type.value === entityType)
+
+							if (matchingEntityType) {
+								targetingCriteria.push({
+									roles: roles,
+									entity_targeting: {
+										_id: matchingEntityType._id,
+										value: matchingEntityType.value,
+										name: matchingEntityType.name,
+									},
+									[entityType]: entityTargeting,
+								})
+							}
+						}
+					}
+				}
+			} else if (roles.length > 0 && !scope.entityType) {
+				targetingCriteria.push({
+					roles: roles,
+				})
+			}
+		}
+
+		return { success: true, result: targetingCriteria }
+	} catch (error) {
 		return { success: false, error }
 	}
 }
