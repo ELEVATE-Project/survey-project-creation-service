@@ -1032,26 +1032,20 @@ module.exports = class ProgramsHelper {
 					}
 				)
 			}
-			const userComments = await commentQueries.findAndCountAll({
-				user_id: userDetails.id,
-				resource_id: {
-					[Op.in]: [programId, ...resourceIds],
-				},
-				status: common.COMMENT_STATUS_DRAFT,
-			})
 
-			if (userComments.count > 0) {
-				await commentQueries.update(
-					{
-						id: {
-							[Op.in]: userComments.rows.map((comment) => comment.id),
-						},
+			//Open all draft comment when submitting the program for response
+			await commentQueries.update(
+				{
+					user_id: userDetails.id,
+					resource_id: {
+						[Op.in]: [programId, ...resourceIds],
 					},
-					{
-						status: common.COMMENT_STATUS_OPEN,
-					}
-				)
-			}
+					status: common.COMMENT_STATUS_DRAFT,
+				},
+				{
+					status: common.COMMENT_STATUS_OPEN,
+				}
+			)
 
 			//check review is required or not
 			// const isReviewMandatory = await resourceService.isReviewMandatory(
