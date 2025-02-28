@@ -303,6 +303,7 @@ module.exports = class ProgramsHelper {
 				...bodyData,
 				updated_by: loggedInUserId,
 				meta: {
+					...fetchResource.meta,
 					start_date: bodyData.start_date || '',
 					end_date: bodyData.end_date || '',
 				},
@@ -482,7 +483,6 @@ module.exports = class ProgramsHelper {
 						resourceService.getDetails(resource.id, resource.organization_id)
 					)
 					const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
-					// console.log(resourceDetailsResults, 'resourceDetailsResults')
 					result.resources = resourceDetailsResults
 						.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
 						.map((resourceDetail) => ({
@@ -1079,6 +1079,7 @@ module.exports = class ProgramsHelper {
 
 			if (bodyData.notes) {
 				resourcesUpdate.meta = {
+					...programData.meta,
 					notes: bodyData.notes,
 				}
 			}
@@ -1171,7 +1172,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId, isRe
 					if (isReusable || isResuableFalseResourceCreate) {
 						// Create a duplicate of the reusable resource
 						const duplicatedResourceData = {
-							..._.omit(resourceDetails, ['created_at', 'updated_at']),
+							..._.omit(resourceDetails, ['created_at', 'updated_at', 'is_comments']),
 							...resource,
 							...commonFields,
 							is_reusable: false,
@@ -1230,6 +1231,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId, isRe
 								'published_on',
 								'last_reviewed_on',
 								'is_under_edit',
+								'is_comments',
 							]
 						)
 

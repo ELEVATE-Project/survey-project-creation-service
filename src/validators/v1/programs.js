@@ -11,6 +11,9 @@ const utils = require('@generics/utils')
 module.exports = {
 	update: (req) => {
 		req.body = filterRequestBody(req.body, programs.update)
+		if (req.body?.resources?.length > 0) {
+			req.body.resources = filterRequestBody(req.body.resources, programs.resources)
+		}
 
 		if (req.method != common.REQUEST_METHOD_DELETE) {
 			req.checkBody('title')
