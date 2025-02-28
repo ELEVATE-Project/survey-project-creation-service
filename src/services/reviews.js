@@ -731,7 +731,7 @@ module.exports = class reviewsHelper {
 							resourceData.userToken
 						)
 
-						if (publishRollout.statusCode !== httpStatusCode.ok) {
+						if (publishRollout.statusCode !== httpStatusCode.accepted) {
 							throw new Error(`Rollout publish failed: ${publishRollout.message || 'Unknown error'}`) // Include error message if available
 						}
 					}
@@ -806,6 +806,9 @@ async function handleProgramPublish(resourceData, resourceId, userId) {
 	} else {
 		// while program publishing first time
 		rolloutId = await rolloutService.createProgramRollout(resourceData)
+		if (rolloutId?.statusCode && rolloutId?.statusCode == httpStatusCode.bad_request) {
+			throw rolloutId
+		}
 	}
 	return rolloutId
 }

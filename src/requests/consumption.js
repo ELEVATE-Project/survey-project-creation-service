@@ -22,6 +22,7 @@ const fs = require('fs')
 const filesService = require('@services/files')
 const request = require('request')
 const _ = require('lodash')
+const programResourceMapping = require('@database/queries/programResourceMapping')
 let mongoDb
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
@@ -1327,7 +1328,7 @@ const publishProgram = function async(programData) {
 				{
 					id: resourceDetailsCreate?.rolloutId,
 				},
-				{ attributes: ['status', 'published_id'] }
+				{ attributes: ['status', 'published_id', 'resource_type', 'resource_id'] }
 			)
 			const programScope = template.scope
 
@@ -1356,53 +1357,20 @@ const publishProgram = function async(programData) {
 				}
 				programId = result.insertedId
 			}
+
 			let solutions = []
 
-			if (
-				resourceStatus?.status == common.ROLLOUT_STATUS_ROLLED_OUT &&
-				resourceStatus?.published_id != undefined
-			) {
-				const updateTemplate = _.omit(template, '_id', 'published_id')
-				const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
-				result = await solutionsCollection.updateOne(
-					{ _id: ObjectId(resourceStatus?.published_id) },
-					{
-						$set: updateTemplate,
-					}
-				)
-
-				solutions.push({ rolloutId: resourceDetailsCreate?.rolloutId })
+			if (resourceStatus.resource_type == common.ROLLOUT_TYPE_PROGRAM) {
+				await createRolloutProgram(resourceStatus, template, programData, programId, programScope, userToken)
 			} else {
-				const certificate = programData?.resource?.certificate
-				let duplicateResource = await duplicateResources(
+				await createRolloutSolution(
+					resourceStatus,
+					template,
+					programData,
+					programId,
 					resourceDetailsCreate,
-					certificate,
-					programData.created_by
-				)
-				solutions = await createSolutions(
-					duplicateResource,
-					{
-						_id: programId,
-						scope: programScope,
-						externalId: template.externalId,
-						name: template.name,
-						description: template.description ? template.description : '',
-						end_date: template.endDate,
-						start_date: template.startDate,
-						created_by: programData.created_by,
-						orgId: programData.organization_id,
-					},
+					programScope,
 					userToken
-				)
-				const solutionIds = solutions.map((solution) => solution._id)
-				// Update Template with tasks and sequence
-				await programsCollection.updateOne(
-					{ _id: programId },
-					{
-						$set: {
-							components: solutionIds,
-						},
-					}
 				)
 			}
 
@@ -1426,6 +1394,151 @@ const publishProgram = function async(programData) {
 		}
 	})
 }
+
+async function createRolloutProgram(
+	resourceStatus,
+	template,
+	programId,
+	programData,
+	resourceDetailsCreate,
+	programScope
+) {
+	const programResourceId = resourceStatus?.resource_id
+
+	const programResourceDetails = await programResourceMapping.findAll(
+		{
+			program_id: programResourceId,
+		},
+		['resource_id']
+	)
+
+	const programResourceIds = programResourceDetails.map((rollout) => rollout.resource_id)
+	let resourceTargetingMap = {}
+	programResourceIds.forEach((resourceId) => {
+		const findResource = programData.resources.find((programResource) => programResource.id == resourceId)
+		resourceTargetingMap[resourceId] = findResource?.targeting_criteria
+	})
+
+	const resourceRolloutDetails = await rolloutQueries.findAll(
+		{
+			resource_id: {
+				[Op.in]: programResourceIds,
+			},
+		},
+		['id']
+	)
+
+	const resourceRolloutIds = resourceRolloutDetails.map((rollout) => rollout.id)
+	let solutionToCreate = []
+	let solutions = []
+	resourceRolloutIds.forEach(async (rolloutId) => {
+		let rolloutDetails = await rolloutService.details(
+			rolloutId,
+			programData.organization_id,
+			programData.created_by,
+			false
+		)
+		rolloutDetails = rolloutDetails?.result
+		if (rolloutDetails?.status == common.ROLLOUT_STATUS_ROLLED_OUT && rolloutDetails?.published_id != undefined) {
+			const updateTemplate = _.omit(template, '_id', 'published_id')
+			const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
+			result = await solutionsCollection.updateOne(
+				{ _id: ObjectId(rolloutDetails?.published_id) },
+				{
+					$set: updateTemplate,
+				}
+			)
+			solutions.push({ rolloutId: rolloutId })
+		} else {
+			const certificate = rolloutDetails?.certificate
+			let duplicateResource = await duplicateResources(rolloutDetails, certificate, programData.created_by)
+
+			solutions = await createSolutions(
+				duplicateResource,
+				{
+					_id: programId,
+					scope: programScope,
+					externalId: template.externalId,
+					name: template.name,
+					description: template.description ? template.description : '',
+					end_date: template.endDate,
+					start_date: template.startDate,
+					created_by: programData.created_by,
+					orgId: programData.organization_id,
+				},
+				userToken
+			)
+			const solutionIds = solutions.map((solution) => solution._id)
+			// Update Template with tasks and sequence
+			await programsCollection.updateOne(
+				{ _id: programId },
+				{
+					$set: {
+						components: solutionIds,
+					},
+				}
+			)
+		}
+	})
+}
+
+async function createRolloutSolution(
+	resourceStatus,
+	template,
+	programId,
+	programData,
+	resourceDetailsCreate,
+	programScope,
+	userToken
+) {
+	try {
+		let solutions = []
+		if (resourceStatus?.status == common.ROLLOUT_STATUS_ROLLED_OUT && resourceStatus?.published_id != undefined) {
+			const updateTemplate = _.omit(template, '_id', 'published_id')
+			const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
+			result = await solutionsCollection.updateOne(
+				{ _id: ObjectId(resourceStatus?.published_id) },
+				{
+					$set: updateTemplate,
+				}
+			)
+
+			solutions.push({ rolloutId: resourceDetailsCreate?.rolloutId })
+		} else {
+			const certificate = programData?.resource?.certificate
+			let duplicateResource = await duplicateResources(resourceDetailsCreate, certificate, programData.created_by)
+			solutions = await createSolutions(
+				duplicateResource,
+				{
+					_id: programId,
+					scope: programScope,
+					externalId: template.externalId,
+					name: template.name,
+					description: template.description ? template.description : '',
+					end_date: template.endDate,
+					start_date: template.startDate,
+					created_by: programData.created_by,
+					orgId: programData.organization_id,
+				},
+				userToken
+			)
+			const solutionIds = solutions.map((solution) => solution._id)
+			// Update Template with tasks and sequence
+			await programsCollection.updateOne(
+				{ _id: programId },
+				{
+					$set: {
+						components: solutionIds,
+					},
+				}
+			)
+		}
+		return solutions
+	} catch (error) {
+		throw new Error('Create Rollout Solution failed : ', error)
+	}
+}
+
 module.exports = {
 	publishProjectTemplates,
 	publishProject,
