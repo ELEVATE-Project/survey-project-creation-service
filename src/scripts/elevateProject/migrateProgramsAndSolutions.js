@@ -368,6 +368,46 @@ const dbName = mongoUrl.split('/').pop()
 							continue
 						}
 
+						// If certificate exist then add certificate criteria object
+						let certificateTemplates = await db
+							.collection('certificateTemplates')
+							.find({ programId: program._id, solutionId: solution._id })
+
+						if (certificateTemplates._id) {
+							// check the base template
+							if (certificateTemplates?.baseTemplateId) {
+								//find the base template
+								let certificateBaseTemplate = await db
+									.collection('certificateBaseTemplates')
+									.find({ _id: certificateTemplates.baseTemplateId })
+
+								if (certificateBaseTemplate._id) {
+									//validate that certificate exist in scp
+									const certificateTemplateInSCP = await isCertificateBaseTemplateExist(
+										certificateBaseTemplate.code
+									)
+									let scpCertificateBaseTemplate
+									if (certificateTemplateInSCP.success) {
+										console.log(
+											`Certificate Base template Exist for template ${projectTemplate._id.toString()}`
+										)
+										scpCertificateBaseTemplate = certificateTemplateInSCP.certificateBaseTemplate
+									} else {
+										//create certificate base template in scp
+									}
+
+									let certificateCeriteria = await generateCertificateCriteria(
+										certificateBaseTemplate,
+										certificateTemplates,
+										scpCertificateBaseTemplate,
+										projectTemplate
+									)
+
+									//update the resource with certificate
+								}
+							}
+						}
+
 						//update project template
 						await resourceQueries.updateOne(
 							{
@@ -1136,5 +1176,48 @@ async function generateTargetingCriteria(scope = {}, db) {
 	} catch (error) {
 		console.error('Error in generateTargetingCriteria:', error)
 		return { success: false, error: error.message }
+	}
+}
+
+async function isCertificateBaseTemplateExist(code, type) {
+	try {
+		let certificateBaseTemplate = await certificateBaseTemplateQueries.findOne({
+			code: code,
+			type: type,
+		})
+
+		// Check if the resource exists
+		if (!certificateBaseTemplate || !certificateBaseTemplate.id) {
+			throw new Error('certificateBaseTemplate Not Found')
+		}
+
+		return {
+			success: true,
+			certificateBaseTemplate: certificateBaseTemplate,
+		}
+	} catch (error) {
+		return {
+			success: false,
+			error,
+		}
+	}
+}
+
+async function generateCertificateCriteria(
+	certificateBaseTemplate,
+	certificateTemplate,
+	scpCertificateBaseTemplate,
+	projectTemplate
+) {
+	try {
+		return {
+			success: true,
+			certificateBaseTemplate: certificateBaseTemplate,
+		}
+	} catch (error) {
+		return {
+			success: false,
+			error,
+		}
 	}
 }
