@@ -10,25 +10,29 @@ require('dotenv').config({ path: '../../.env' })
 // require('dotenv').config({ path: '/home/dell/workspace/SCP/survey-project-creation-service/src/.env' })
 
 require('../../configs/events')()
+
+const path = require('path')
+const { v4: uuidv4 } = require('uuid')
+const _ = require('lodash')
+const { MongoClient, ObjectID: ObjectId } = require('mongodb')
+const createCsvWriter = require('csv-writer').createObjectCsvWriter
+
 const requests = require('@generics/requests')
 const utils = require('./utils')
-const path = require('path')
-const createCsvWriter = require('csv-writer').createObjectCsvWriter
+
 const entityTypeService = require('@services/entity-types')
 const projectService = require('@services/projects')
 const entityService = require('@services/entities')
 const resourceService = require('@services/resource')
-const resourceQueries = require('@database/queries/resources')
-const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
 const programService = require('@services/programs')
 const rolloutService = require('@services/rollouts')
+
+const resourceQueries = require('@database/queries/resources')
+const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
+
 const common = require('@constants/common')
-const _ = require('lodash')
-const MongoClient = require('mongodb').MongoClient
-const { v4: uuidv4 } = require('uuid')
 const userRequest = require('@requests/user')
-const ObjectId = require('mongodb').ObjectID
 
 const mongoUrl = process.env.MONGODB_URL
 if (!mongoUrl) {
@@ -159,7 +163,7 @@ const dbName = mongoUrl.split('/').pop()
 
 				//convert the program components into array of object id
 				const solutionMongoIds = program.components.map((stringId) => new ObjectId(stringId))
-
+				console.log(`${solutionMongoIds.length} solutionIds found for program ${programIdStr}`)
 				// get all the solutions
 				const solutions = await db
 					.collection('solutions')
@@ -199,361 +203,7 @@ const dbName = mongoUrl.split('/').pop()
 					let solutionIdStr = solution._id.toString()
 					// if any project template is there then follow the migrate project flow
 					// find the project templates
-					if (solution?.projectTemplateId) {
-						let projectTemplateIdStr = solution.projectTemplateId.toString()
-						//find the project
-						const isProjectExist = await checkResourceExist(projectTemplateIdStr, 'project')
-						if (isProjectExist.success) {
-							console.log(`Project Resource Exist for template ${projectTemplateIdStr}`)
-							validSolutionIds.push(isProjectExist.resourceId)
-							solutionTargetingMap[solutionIdStr] = {
-								projectResourceId: isProjectExist.resourceId,
-								scope: solution.scope,
-								projectTemplateId: projectTemplateIdStr,
-							}
-						} else {
-							console.log(`Project Resource Not Exist for template ${projectTemplateIdStr}`)
-							//create project template part
-							const projectTemplate = await db
-								.collection('projectTemplates')
-								.findOne({ _id: ObjectId(projectTemplateIdStr) })
-
-							// validate the project template
-							if (!projectTemplate?._id) {
-								console.log(`No project template found for solution id ${solutionIdStr}, `)
-								csvRecords.push({
-									programId: programIdStr,
-									solutionId: solutionIdStr,
-									type: 'solution',
-									success: 'No project template found',
-									resourceId: '',
-									rolloutId: '',
-								})
-								continue
-							}
-
-							// get task of the project template
-							if (!Array.isArray(projectTemplate.tasks) || !projectTemplate.tasks.length > 0) {
-								console.log(`No Task Found for Project Template ${solutionIdStr}, `)
-								csvRecords.push({
-									programId: programIdStr,
-									solutionId: solutionIdStr,
-									type: 'solution',
-									success: 'No project template found',
-									resourceId: '',
-									rolloutId: '',
-								})
-								continue
-							}
-							let taskIdsToRemove = []
-							// fetch the task from projectTemplateTasks collection
-							const templateTasks = await db
-								.collection('projectTemplateTasks')
-								.find({ _id: { $in: projectTemplate.tasks } })
-								.toArray()
-
-							// Validate the template task
-							if (!templateTasks.length > 0) {
-								console.log(`No Task Found for Project Template ${solutionIdStr}, `)
-								csvRecords.push({
-									programId: programIdStr,
-									solutionId: solutionIdStr,
-									type: 'solution',
-									success: 'No project template found',
-									resourceId: '',
-									rolloutId: '',
-								})
-								continue
-							}
-
-							projectTemplate.taskDetails = templateTasks
-
-							// Handle subtasks sequentially
-							for (const currentTask of templateTasks) {
-								if (Array.isArray(currentTask.children) && currentTask.children.length > 0) {
-									const subTasks = await db
-										.collection('projectTemplateTasks')
-										.find({ _id: { $in: currentTask.children } })
-										.toArray()
-
-									currentTask.children = subTasks
-									taskIdsToRemove.push(...subTasks.map((task) => task._id))
-								}
-							}
-
-							// Remove child tasks from the tasks array
-							if (taskIdsToRemove.length > 0) {
-								projectTemplate.taskDetails = projectTemplate.taskDetails.filter(
-									(task) => !taskIdsToRemove.some((id) => id.equals(task._id))
-								)
-							}
-
-							// Convert template
-							let convertedTemplate = await convertProjectTemplate(
-								projectTemplate,
-								userOrgMap,
-								DEFAULT_USER_ID
-							)
-							//send failure
-							if (!convertedTemplate.success) {
-								throw new Error(convertedTemplate.error)
-							}
-
-							convertedTemplate = convertedTemplate.template
-
-							//Add start date, end date from solution
-							convertedTemplate.meta = {
-								start_date: solution.startDate || null,
-								end_date: solution.endDate || null,
-							}
-
-							// Generate the targeting criteria
-							projectTemplate.targeting_criteria = []
-							if (solution?.scope) {
-								let targetingCriteriaRes = await generateTargetingCriteria(solution.scope, db)
-								if (!targetingCriteriaRes.success) {
-									throw new Error('Failed to generate targeting criteria')
-								}
-
-								projectTemplate.targeting_criteria = targetingCriteriaRes.result || []
-							}
-
-							// Find non-existing entities sequentially
-							for (const key of entityKeys) {
-								let values = convertedTemplate[key]
-								if (Array.isArray(values) && values.length > 0) {
-									values = [...new Set(values)]
-									convertedTemplate[key] = utils.formatValues(values)
-
-									await filterNonExistingEntities(key, values, entityTypeEntityMap, entitiesToCreate)
-								}
-							}
-
-							// Create the project and entities after conversion
-							let projectCreateResponse = await createProjectAndEntities(
-								projectTemplate._id.toString(),
-								convertedTemplate,
-								entityTypeEntityMap,
-								entitiesToCreate,
-								createdEntityIds
-							)
-
-							if (!projectCreateResponse.success) {
-								csvRecords.push({
-									programId: programIdStr,
-									solutionId: solutionIdStr,
-									type: 'solution',
-									success: 'Project resource creation failed',
-									resourceId: '',
-									rolloutId: '',
-								})
-								continue
-							}
-
-							//update project template
-							await resourceQueries.updateOne(
-								{
-									id: projectCreateResponse.projectId,
-								},
-								{
-									meta: {
-										start_date: solution.startDate || null,
-										end_date: solution.endDate || null,
-									},
-									is_reusable: false,
-								},
-								{
-									returning: true,
-									raw: true,
-								}
-							)
-
-							validSolutionIds.push(projectCreateResponse.projectId)
-							solutionTargetingMap[solutionIdStr] = {
-								projectResourceId: projectCreateResponse.resourceId,
-								scope: solution.scope,
-								projectTemplateId: projectTemplate._id.toString(),
-							}
-						}
-						//if atleast one valid solution is there then create the program
-						if (!validSolutionIds.length > 0) {
-							csvRecords.push({
-								programId: programIdStr,
-								solutionId: '',
-								type: 'program',
-								success: 'No solution found',
-								resourceId: '',
-								rolloutId: '',
-							})
-							continue
-						}
-
-						let convertedProgramTemplate = await convertProgramTemplate(
-							program,
-							userOrgMap,
-							DEFAULT_USER_ID
-						)
-						//validate the program template
-						if (!convertedProgramTemplate.success) {
-							throw new Error(convertedProgramTemplate.error)
-						}
-						convertedProgramTemplate = convertedProgramTemplate.template
-
-						//generate targeting criteria for program
-						convertedProgramTemplate.targeting_criteria = []
-						if (program?.scope) {
-							let programTargetingCriteriaRes = await generateTargetingCriteria(program.scope, db)
-							if (!programTargetingCriteriaRes.success) {
-								throw new Error('Failed to generate targeting criteria')
-							}
-
-							convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result || []
-						}
-
-						//Add start date, end date from solution
-						convertedProgramTemplate.meta = {
-							start_date: program.startDate || null,
-							end_date: program.endDate || null,
-						}
-
-						//create program
-						const programCreationResponse = await createProgram(
-							programIdStr,
-							convertedProgramTemplate,
-							convertedProgramTemplate.created_by,
-							convertedProgramTemplate.organization_id,
-							validSolutionIds
-						)
-
-						if (!programCreationResponse.success) {
-							console.log(`Failed to create program ${programIdStr}`)
-							csvRecords.push({
-								programId: programIdStr,
-								solutionId: '',
-								type: 'program',
-								success: 'Failed to create program',
-								resourceId: '',
-								rolloutId: '',
-							})
-							continue
-						}
-
-						let programResourceId = programCreationResponse.programId
-
-						// get the program details
-						let programDetail = await programService.details(
-							programResourceId,
-							convertedProgramTemplate.organization_id
-						)
-
-						//validate the program details
-						if (programDetail.statusCode !== 200) {
-							throw new Error(programDetail.error)
-						}
-
-						programDetail = programDetail.result
-
-						//Format the program for rollout program creation
-						let convertedProgramRolloutTemplate = _.omit(programDetail, [
-							'id',
-							'resources',
-							'status',
-							'stage',
-							'next_stage',
-							'review_type',
-							'reference_id',
-							'published_id',
-							'created_at',
-							'updated_at',
-							'updated_by',
-							'submitted_on',
-							'published_on',
-							'last_reviewed_on',
-							'is_under_edit',
-						])
-
-						convertedProgramRolloutTemplate.resource_id = programDetail.id
-
-						//create program rollout
-						const createProgramRolloutResponse = await rolloutService.create(
-							convertedProgramRolloutTemplate,
-							convertedProgramRolloutTemplate.created_by,
-							convertedProgramRolloutTemplate.organization_id,
-							false
-						)
-
-						//Validate the program rollout creation
-						if (createProgramRolloutResponse.statusCode != 200) {
-							throw new Error(createProgramRolloutResponse.error)
-						}
-
-						let programRolloutId = createProgramRolloutResponse.result.id
-
-						for (let solutionData of programDetail.resources) {
-							//Format the solution for rollout solution creation
-							let convertSolutionRolloutTemplate = _.omit(solutionData, [
-								'id',
-								'status',
-								'stage',
-								'next_stage',
-								'review_type',
-								'reference_id',
-								'created_at',
-								'updated_at',
-								'updated_by',
-								'submitted_on',
-								'published_on',
-								'last_reviewed_on',
-								'is_under_edit',
-							])
-
-							convertSolutionRolloutTemplate.parent_id = programRolloutId
-							convertSolutionRolloutTemplate.resource_id = solutionData.id
-							convertSolutionRolloutTemplate.start_date = solutionData?.meta?.start_date || null
-							convertSolutionRolloutTemplate.end_date = solutionData?.meta?.end_date || null
-
-							//create the solution rollout
-							const createSolutionRolloutResponse = await rolloutService.create(
-								convertSolutionRolloutTemplate,
-								convertSolutionRolloutTemplate.created_by,
-								convertSolutionRolloutTemplate.organization_id,
-								true
-							)
-
-							// Validate the solution rollout creation
-							if (createSolutionRolloutResponse.statusCode != 200) {
-								throw new Error(createSolutionRolloutResponse.error)
-							}
-
-							//update the solution rollout status
-							await rolloutService.publishCallback(
-								createSolutionRolloutResponse.result.id,
-								solutionIdStr,
-								solutionTargetingMap[solutionIdStr].projectTemplateId
-							)
-
-							csvRecords.push({
-								programId: programIdStr,
-								solutionId: solutionIdStr,
-								type: 'solution',
-								success: 'Success',
-								resourceId: solutionData.id,
-								rolloutId: createSolutionRolloutResponse.result.id,
-							})
-						}
-
-						//update the program rollout status
-						await rolloutService.publishCallback(programRolloutId, programIdStr)
-
-						csvRecords.push({
-							programId: programIdStr,
-							solutionId: solutionIdStr,
-							type: 'program',
-							success: 'Success',
-							resourceId: programDetail.id,
-							rolloutId: programRolloutId,
-						})
-					} else {
+					if (!solution?.projectTemplateId) {
 						//skip the solution
 						console.log(`No project template found for solution id ${solutionIdStr}, `)
 						csvRecords.push({
@@ -566,7 +216,359 @@ const dbName = mongoUrl.split('/').pop()
 						})
 						continue
 					}
+
+					let projectTemplateIdStr = solution.projectTemplateId.toString()
+					//find the project
+					const isProjectExist = await checkResourceExist(projectTemplateIdStr, 'project')
+					if (isProjectExist.success) {
+						console.log(`Project Resource Exist for template ${projectTemplateIdStr}`)
+						validSolutionIds.push(isProjectExist.resourceId)
+						solutionTargetingMap[projectTemplateIdStr] = {
+							projectResourceId: isProjectExist.resourceId,
+							projectId: projectTemplateIdStr,
+							solutionId: solutionIdStr,
+						}
+					} else {
+						console.log(`Project Resource Not Exist for template ${projectTemplateIdStr}`)
+						//create project template part
+						const projectTemplate = await db
+							.collection('projectTemplates')
+							.findOne({ _id: ObjectId(projectTemplateIdStr) })
+
+						// validate the project template
+						if (!projectTemplate?._id) {
+							console.log(`No project template found for solution id ${solutionIdStr}, `)
+							csvRecords.push({
+								programId: programIdStr,
+								solutionId: solutionIdStr,
+								type: 'solution',
+								success: 'No project template found',
+								resourceId: '',
+								rolloutId: '',
+							})
+							continue
+						}
+
+						// get task of the project template
+						if (!Array.isArray(projectTemplate.tasks) || !projectTemplate.tasks.length > 0) {
+							console.log(`No Task Found for Project Template ${solutionIdStr}, `)
+							csvRecords.push({
+								programId: programIdStr,
+								solutionId: solutionIdStr,
+								type: 'solution',
+								success: 'No project template found',
+								resourceId: '',
+								rolloutId: '',
+							})
+							continue
+						}
+
+						let taskIdsToRemove = []
+						// fetch the task from projectTemplateTasks collection
+						const templateTasks = await db
+							.collection('projectTemplateTasks')
+							.find({ _id: { $in: projectTemplate.tasks } })
+							.toArray()
+
+						// Validate the template task
+						if (!templateTasks.length > 0) {
+							console.log(`No Task Found for Project Template ${solutionIdStr}, `)
+							csvRecords.push({
+								programId: programIdStr,
+								solutionId: solutionIdStr,
+								type: 'solution',
+								success: 'No project template found',
+								resourceId: '',
+								rolloutId: '',
+							})
+							continue
+						}
+
+						projectTemplate.taskDetails = templateTasks
+
+						// Handle subtasks sequentially
+						for (const currentTask of templateTasks) {
+							if (Array.isArray(currentTask.children) && currentTask.children.length > 0) {
+								const subTasks = await db
+									.collection('projectTemplateTasks')
+									.find({ _id: { $in: currentTask.children } })
+									.toArray()
+
+								currentTask.children = subTasks
+								taskIdsToRemove.push(...subTasks.map((task) => task._id))
+							}
+						}
+
+						// Remove child tasks from the tasks array
+						if (taskIdsToRemove.length > 0) {
+							projectTemplate.taskDetails = projectTemplate.taskDetails.filter(
+								(task) => !taskIdsToRemove.some((id) => id.equals(task._id))
+							)
+						}
+
+						// Convert template
+						let convertedTemplate = await convertProjectTemplate(
+							projectTemplate,
+							userOrgMap,
+							DEFAULT_USER_ID
+						)
+						//send failure
+						if (!convertedTemplate.success) {
+							throw new Error(convertedTemplate.error)
+						}
+
+						convertedTemplate = convertedTemplate.template
+
+						//Add start date, end date from solution
+						convertedTemplate.meta = {
+							start_date: solution.startDate || null,
+							end_date: solution.endDate || null,
+						}
+
+						// Generate the targeting criteria
+						projectTemplate.targeting_criteria = []
+						if (solution?.scope) {
+							let targetingCriteriaRes = await generateTargetingCriteria(solution.scope, db)
+							if (!targetingCriteriaRes.success) {
+								throw new Error('Failed to generate targeting criteria')
+							}
+
+							projectTemplate.targeting_criteria = targetingCriteriaRes.result || []
+						}
+
+						// Find non-existing entities sequentially
+						for (const key of entityKeys) {
+							let values = convertedTemplate[key]
+							if (Array.isArray(values) && values.length > 0) {
+								values = [...new Set(values)]
+								convertedTemplate[key] = utils.formatValues(values)
+
+								await filterNonExistingEntities(key, values, entityTypeEntityMap, entitiesToCreate)
+							}
+						}
+
+						// Create the project and entities after conversion
+						let projectCreateResponse = await createProjectAndEntities(
+							projectTemplate._id.toString(),
+							convertedTemplate,
+							entityTypeEntityMap,
+							entitiesToCreate,
+							createdEntityIds
+						)
+
+						if (!projectCreateResponse.success) {
+							csvRecords.push({
+								programId: programIdStr,
+								solutionId: solutionIdStr,
+								type: 'solution',
+								success: 'Project resource creation failed',
+								resourceId: '',
+								rolloutId: '',
+							})
+							continue
+						}
+
+						//update project template
+						await resourceQueries.updateOne(
+							{
+								id: projectCreateResponse.projectId,
+							},
+							{
+								meta: {
+									start_date: solution.startDate || null,
+									end_date: solution.endDate || null,
+								},
+								is_reusable: false,
+							},
+							{
+								returning: true,
+								raw: true,
+							}
+						)
+
+						validSolutionIds.push(projectCreateResponse.projectId)
+						solutionTargetingMap[projectTemplate._id.toString()] = {
+							projectResourceId: projectCreateResponse.projectId,
+							projectId: projectTemplate._id.toString(),
+							solutionId: solutionIdStr,
+						}
+					}
 				}
+
+				//if atleast one valid solution is there then create the program
+				if (!validSolutionIds.length > 0) {
+					csvRecords.push({
+						programId: programIdStr,
+						solutionId: '',
+						type: 'program',
+						success: 'No solution found',
+						resourceId: '',
+						rolloutId: '',
+					})
+					continue
+				}
+
+				let convertedProgramTemplate = await convertProgramTemplate(program, userOrgMap, DEFAULT_USER_ID)
+				//validate the program template
+				if (!convertedProgramTemplate.success) {
+					throw new Error(convertedProgramTemplate.error)
+				}
+				convertedProgramTemplate = convertedProgramTemplate.template
+
+				//generate targeting criteria for program
+				convertedProgramTemplate.targeting_criteria = []
+				if (program?.scope) {
+					let programTargetingCriteriaRes = await generateTargetingCriteria(program.scope, db)
+					if (!programTargetingCriteriaRes.success) {
+						throw new Error('Failed to generate targeting criteria')
+					}
+
+					convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result || []
+				}
+
+				//Add start date, end date from solution
+				convertedProgramTemplate.meta = {
+					start_date: program.startDate || null,
+					end_date: program.endDate || null,
+				}
+
+				//create program
+				const programCreationResponse = await createProgram(
+					programIdStr,
+					convertedProgramTemplate,
+					convertedProgramTemplate.created_by,
+					convertedProgramTemplate.organization_id,
+					validSolutionIds
+				)
+
+				if (!programCreationResponse.success) {
+					console.log(`Failed to create program ${programIdStr}`)
+					csvRecords.push({
+						programId: programIdStr,
+						solutionId: '',
+						type: 'program',
+						success: 'Failed to create program',
+						resourceId: '',
+						rolloutId: '',
+					})
+					continue
+				}
+
+				let programResourceId = programCreationResponse.programId
+
+				// get the program details
+				let programDetail = await programService.details(
+					programResourceId,
+					convertedProgramTemplate.organization_id
+				)
+
+				//validate the program details
+				if (programDetail.statusCode !== 200) {
+					throw new Error(programDetail.error)
+				}
+
+				programDetail = programDetail.result
+
+				//Format the program for rollout program creation
+				let convertedProgramRolloutTemplate = _.omit(programDetail, [
+					'id',
+					'resources',
+					'status',
+					'stage',
+					'next_stage',
+					'review_type',
+					'reference_id',
+					'published_id',
+					'created_at',
+					'updated_at',
+					'updated_by',
+					'submitted_on',
+					'published_on',
+					'last_reviewed_on',
+					'is_under_edit',
+				])
+
+				convertedProgramRolloutTemplate.resource_id = programDetail.id
+
+				//create program rollout
+				const createProgramRolloutResponse = await rolloutService.create(
+					convertedProgramRolloutTemplate,
+					convertedProgramRolloutTemplate.created_by,
+					convertedProgramRolloutTemplate.organization_id,
+					false
+				)
+
+				//Validate the program rollout creation
+				if (createProgramRolloutResponse.statusCode != 200) {
+					throw new Error(createProgramRolloutResponse.error)
+				}
+
+				let programRolloutId = createProgramRolloutResponse.result.id
+
+				for (let solutionData of programDetail.resources) {
+					//Format the solution for rollout solution creation
+					let convertSolutionRolloutTemplate = _.omit(solutionData, [
+						'id',
+						'status',
+						'stage',
+						'next_stage',
+						'review_type',
+						'reference_id',
+						'created_at',
+						'updated_at',
+						'updated_by',
+						'submitted_on',
+						'published_on',
+						'last_reviewed_on',
+						'is_under_edit',
+					])
+
+					convertSolutionRolloutTemplate.parent_id = programRolloutId
+					convertSolutionRolloutTemplate.resource_id = solutionData.id
+					convertSolutionRolloutTemplate.start_date = solutionData?.meta?.start_date || null
+					convertSolutionRolloutTemplate.end_date = solutionData?.meta?.end_date || null
+
+					//create the solution rollout
+					const createSolutionRolloutResponse = await rolloutService.create(
+						convertSolutionRolloutTemplate,
+						convertSolutionRolloutTemplate.created_by,
+						convertSolutionRolloutTemplate.organization_id,
+						true
+					)
+
+					// Validate the solution rollout creation
+					if (createSolutionRolloutResponse.statusCode != 200) {
+						throw new Error(createSolutionRolloutResponse.error)
+					}
+
+					//update the solution rollout status
+					await rolloutService.publishCallback(
+						createSolutionRolloutResponse.result.id,
+						solutionTargetingMap[solutionData.published_id].solutionId,
+						solutionTargetingMap[solutionData.published_id].projectId
+					)
+
+					csvRecords.push({
+						programId: programIdStr,
+						solutionId: solutionData.published_id,
+						type: 'solution',
+						success: 'Success',
+						resourceId: solutionData.id,
+						rolloutId: createSolutionRolloutResponse.result.id,
+					})
+				}
+
+				//update the program rollout status
+				await rolloutService.publishCallback(programRolloutId, programIdStr)
+
+				csvRecords.push({
+					programId: programIdStr,
+					solutionId: '',
+					type: 'program',
+					success: 'Success',
+					resourceId: programDetail.id,
+					rolloutId: programRolloutId,
+				})
 			}
 		}
 		// Write data to csv
@@ -969,7 +971,6 @@ async function createProgram(programId, programData, userId, orgId, solutionIds)
  */
 async function generateTargetingCriteria(scope = {}, db) {
 	try {
-		console.log(scope, 'scope received')
 		let targetingCriteria = []
 
 		// Return empty if scope is empty
