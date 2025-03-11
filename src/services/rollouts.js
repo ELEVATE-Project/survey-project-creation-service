@@ -970,7 +970,7 @@ module.exports = class RolloutsHelper {
 				end_date: programData?.meta?.end_date,
 				targeting_criteria: programData?.targeting_criteria,
 				title: programData.title,
-				viewers: programData?.viewers,
+				viewers: programData?.viewers.map((viewer) => viewer.id),
 			}
 			// create an entry to rollout table
 			const createProgramRollout = await this.create(
