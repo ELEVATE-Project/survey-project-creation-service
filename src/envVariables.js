@@ -281,6 +281,15 @@ let environmentVariables = {
 			value: 'self',
 		},
 	},
+	PROGRAM_PUBLISH_END_POINT: {
+		message: 'Required Program publish endpoint',
+		optional: true,
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
 }
 
 let success = true

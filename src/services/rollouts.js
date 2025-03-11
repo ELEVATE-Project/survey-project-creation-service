@@ -638,7 +638,6 @@ module.exports = class RolloutsHelper {
 				if (!solutionRollout?.id) {
 					let childRollout = _.pick(rolloutDetailsResult, [
 						'title',
-						'blob_path',
 						'start_date',
 						'end_date',
 						'resource_id',
@@ -651,7 +650,9 @@ module.exports = class RolloutsHelper {
 					])
 					childRollout.type = common.ROLLOUT_TYPE_SOLUTION
 					childRollout.parent_id = rolloutId
-					const resultCreateRollout = await rolloutQueries.create(childRollout)
+					const resultCreateRollout = this.create(childRollout, loggedInUserId, orgId, childRollout.type)
+
+					// const resultCreateRollout = await rolloutQueries.create(childRollout)
 					solutionRolloutId = resultCreateRollout.id
 				} else {
 					let childRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])

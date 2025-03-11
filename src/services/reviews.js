@@ -743,7 +743,6 @@ module.exports = class reviewsHelper {
 					resourceData.type == common.ROLLOUT_TYPE_PROGRAM &&
 					process?.env?.PROGRAM_PUBLISH_END_POINT
 				) {
-					let rolloutId = await handleProgramPublish(resourceData, resourceId, userId)
 					// program create using api code here
 				}
 			}
