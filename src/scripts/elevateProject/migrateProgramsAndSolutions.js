@@ -6,8 +6,8 @@
  */
 
 require('module-alias/register')
-// require('dotenv').config({ path: '../../.env' })
-require('dotenv').config({ path: '/home/dell/workspace/SCP/survey-project-creation-service/src/.env' })
+require('dotenv').config({ path: '../../.env' })
+// require('dotenv').config({ path: '/home/dell/workspace/SCP/survey-project-creation-service/src/.env' })
 
 require('../../configs/events')()
 const requests = require('@generics/requests')
@@ -23,6 +23,7 @@ const certificateBaseTemplateQueries = require('@database/queries/certificateBas
 const programService = require('@services/programs')
 const rolloutService = require('@services/rollouts')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
+const common = require('@constants/common')
 const _ = require('lodash')
 const MongoClient = require('mongodb').MongoClient
 const { v4: uuidv4 } = require('uuid')
@@ -142,19 +143,19 @@ const dbName = mongoUrl.split('/').pop()
 				console.log(`Processing program ${programIdStr}`)
 
 				// Check if the program exists
-				// const isProgramExist = await checkResourceExist(programIdStr, 'program')
-				// if (isProgramExist.success) {
-				// 	console.log(`Program Exist for template ${programIdStr}`)
-				// 	csvRecords.push({
-				// 		programId: programIdStr,
-				// 		solutionId: '',
-				// 		type: 'program',
-				// 		success: 'Program Exist',
-				// 		resourceId: isProgramExist.resourceId,
-				// 		rolloutId: '',
-				// 	})
-				// 	continue
-				// }
+				const isProgramExist = await checkResourceExist(programIdStr, 'program')
+				if (isProgramExist.success) {
+					console.log(`Program Exist for template ${programIdStr}`)
+					csvRecords.push({
+						programId: programIdStr,
+						solutionId: '',
+						type: 'program',
+						success: 'Program Exist',
+						resourceId: isProgramExist.resourceId,
+						rolloutId: '',
+					})
+					continue
+				}
 
 				//convert the program components into array of object id
 				const solutionMongoIds = program.components.map((stringId) => new ObjectId(stringId))
@@ -163,11 +164,14 @@ const dbName = mongoUrl.split('/').pop()
 				const solutions = await db
 					.collection('solutions')
 					.find({
-						// _id: { $in: solutionMongoIds },
+						_id: { $in: solutionMongoIds },
 						// _id: ObjectId('66c72d20c8fb762949bd734e'),
 						// _id: ObjectId('66408ed0e077e6d429937bfa'),
 						// _id: ObjectId('66668830dca191013f50b0a5'),
-						_id: ObjectId('6666a560675ec70149ed7e8b'),
+						// _id: ObjectId('6666a560675ec70149ed7e8b'),
+						// _id: ObjectId('6672ca03968b5c4c59f98e38'), //entities empty key and role
+						// _id: ObjectId('666698cddca191013f50b27e'), //entities key and role
+						// _id: ObjectId('668baf8bb96e1cbe046f003a'),
 						type: 'improvementProject',
 					})
 					.limit(1)
@@ -214,33 +218,33 @@ const dbName = mongoUrl.split('/').pop()
 								.collection('projectTemplates')
 								.findOne({ _id: ObjectId(projectTemplateIdStr) })
 
-							//validate the project template
-							// if (!projectTemplate?._id) {
-							// 	console.log(`No project template found for solution id ${solutionIdStr}, `)
-							// 	csvRecords.push({
-							// 		programId: programIdStr,
-							// 		solutionId: solutionIdStr,
-							// 		type: 'solution',
-							// 		success: 'No project template found',
-							// 		resourceId: '',
-							// 		rolloutId: '',
-							// 	})
-							// 	continue
-							// }
+							// validate the project template
+							if (!projectTemplate?._id) {
+								console.log(`No project template found for solution id ${solutionIdStr}, `)
+								csvRecords.push({
+									programId: programIdStr,
+									solutionId: solutionIdStr,
+									type: 'solution',
+									success: 'No project template found',
+									resourceId: '',
+									rolloutId: '',
+								})
+								continue
+							}
 
-							//get task of the project template
-							// if (!Array.isArray(projectTemplate.tasks) || !projectTemplate.tasks.length > 0) {
-							// 	console.log(`No Task Found for Project Template ${solutionIdStr}, `)
-							// 	csvRecords.push({
-							// 		programId: programIdStr,
-							// 		solutionId: solutionIdStr,
-							// 		type: 'solution',
-							// 		success: 'No project template found',
-							// 		resourceId: '',
-							// 		rolloutId: '',
-							// 	})
-							// 	continue
-							// }
+							// get task of the project template
+							if (!Array.isArray(projectTemplate.tasks) || !projectTemplate.tasks.length > 0) {
+								console.log(`No Task Found for Project Template ${solutionIdStr}, `)
+								csvRecords.push({
+									programId: programIdStr,
+									solutionId: solutionIdStr,
+									type: 'solution',
+									success: 'No project template found',
+									resourceId: '',
+									rolloutId: '',
+								})
+								continue
+							}
 							let taskIdsToRemove = []
 							// fetch the task from projectTemplateTasks collection
 							const templateTasks = await db
@@ -248,19 +252,19 @@ const dbName = mongoUrl.split('/').pop()
 								.find({ _id: { $in: projectTemplate.tasks } })
 								.toArray()
 
-							//Validate the template task
-							// if (!templateTasks.length > 0) {
-							// 	console.log(`No Task Found for Project Template ${solutionIdStr}, `)
-							// 	csvRecords.push({
-							// 		programId: programIdStr,
-							// 		solutionId: solutionIdStr,
-							// 		type: 'solution',
-							// 		success: 'No project template found',
-							// 		resourceId: '',
-							// 		rolloutId: '',
-							// 	})
-							// 	continue
-							// }
+							// Validate the template task
+							if (!templateTasks.length > 0) {
+								console.log(`No Task Found for Project Template ${solutionIdStr}, `)
+								csvRecords.push({
+									programId: programIdStr,
+									solutionId: solutionIdStr,
+									type: 'solution',
+									success: 'No project template found',
+									resourceId: '',
+									rolloutId: '',
+								})
+								continue
+							}
 
 							projectTemplate.taskDetails = templateTasks
 
@@ -284,24 +288,6 @@ const dbName = mongoUrl.split('/').pop()
 								)
 							}
 
-							//Add start date, end date and scope from solution
-							projectTemplate.meta = {
-								start_date: solution.startDate || null,
-								end_date: solution.endDate || null,
-							}
-							console.log('-----------------------')
-							console.log(solution.scope, 'solution.scope')
-							let targetingCriteriaRes = await generateTargetingCriteria(solution.scope, db)
-							console.log(JSON.stringify(targetingCriteriaRes.result, null, 2), 'targetingCriteriaRes')
-							if (!targetingCriteriaRes.success) {
-								process.exit(1)
-								throw new Error('Failed to generate targeting criteria')
-							}
-
-							process.exit(1)
-
-							projectTemplate.scope = targetingCriteriaRes.result
-
 							// Convert template
 							let convertedTemplate = await convertProjectTemplate(
 								projectTemplate,
@@ -312,8 +298,25 @@ const dbName = mongoUrl.split('/').pop()
 							if (!convertedTemplate.success) {
 								throw new Error(convertedTemplate.error)
 							}
+
 							convertedTemplate = convertedTemplate.template
-							convertedTemplate.targeting_criteria = []
+
+							//Add start date, end date from solution
+							convertedTemplate.meta = {
+								start_date: solution.startDate || null,
+								end_date: solution.endDate || null,
+							}
+
+							// Generate the targeting criteria
+							projectTemplate.targeting_criteria = []
+							if (solution?.scope) {
+								let targetingCriteriaRes = await generateTargetingCriteria(solution.scope, db)
+								if (!targetingCriteriaRes.success) {
+									throw new Error('Failed to generate targeting criteria')
+								}
+
+								projectTemplate.targeting_criteria = targetingCriteriaRes.result || []
+							}
 
 							// Find non-existing entities sequentially
 							for (const key of entityKeys) {
@@ -373,166 +376,183 @@ const dbName = mongoUrl.split('/').pop()
 							}
 						}
 						//if atleast one valid solution is there then create the program
-						// if (!validSolutionIds.length > 0) {
-						// 	csvRecords.push({
-						// 		programId: programIdStr,
-						// 		solutionId: '',
-						// 		type: 'program',
-						// 		success: 'No solution found',
-						// 		resourceId: '',
-						// 		rolloutId: '',
-						// 	})
-						// 	continue
-						// }
+						if (!validSolutionIds.length > 0) {
+							csvRecords.push({
+								programId: programIdStr,
+								solutionId: '',
+								type: 'program',
+								success: 'No solution found',
+								resourceId: '',
+								rolloutId: '',
+							})
+							continue
+						}
 
-						// let convertedProgramTemplate = await convertProgramTemplate(
-						// 	program,
-						// 	userOrgMap,
-						// 	DEFAULT_USER_ID
-						// )
-						// //validate the program template
-						// if (!convertedProgramTemplate.success) {
-						// 	throw new Error(convertedProgramTemplate.error)
-						// }
-						// convertedProgramTemplate = convertedProgramTemplate.template
+						let convertedProgramTemplate = await convertProgramTemplate(
+							program,
+							userOrgMap,
+							DEFAULT_USER_ID
+						)
+						//validate the program template
+						if (!convertedProgramTemplate.success) {
+							throw new Error(convertedProgramTemplate.error)
+						}
+						convertedProgramTemplate = convertedProgramTemplate.template
 
-						// //create program
-						// const programCreationResponse = await createProgram(
-						// 	programIdStr,
-						// 	convertedProgramTemplate,
-						// 	convertedProgramTemplate.created_by,
-						// 	convertedProgramTemplate.organization_id,
-						// 	validSolutionIds
-						// )
+						//generate targeting criteria for program
+						convertedProgramTemplate.targeting_criteria = []
+						if (program?.scope) {
+							let programTargetingCriteriaRes = await generateTargetingCriteria(program.scope, db)
+							if (!programTargetingCriteriaRes.success) {
+								throw new Error('Failed to generate targeting criteria')
+							}
 
-						// if (!programCreationResponse.success) {
-						// 	console.log(`Failed to create program ${programIdStr}`)
-						// 	csvRecords.push({
-						// 		programId: programIdStr,
-						// 		solutionId: '',
-						// 		type: 'program',
-						// 		success: 'Failed to create program',
-						// 		resourceId: '',
-						// 		rolloutId: '',
-						// 	})
-						// 	continue
-						// }
+							convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result || []
+						}
 
-						// let programResourceId = programCreationResponse.programId
+						//Add start date, end date from solution
+						convertedProgramTemplate.meta = {
+							start_date: program.startDate || null,
+							end_date: program.endDate || null,
+						}
 
-						// // get the program details
-						// let programDetail = await programService.details(
-						// 	programResourceId,
-						// 	convertedProgramTemplate.organization_id
-						// )
+						//create program
+						const programCreationResponse = await createProgram(
+							programIdStr,
+							convertedProgramTemplate,
+							convertedProgramTemplate.created_by,
+							convertedProgramTemplate.organization_id,
+							validSolutionIds
+						)
 
-						// //validate the program details
-						// if (programDetail.statusCode !== 200) {
-						// 	throw new Error(programDetail.error)
-						// }
+						if (!programCreationResponse.success) {
+							console.log(`Failed to create program ${programIdStr}`)
+							csvRecords.push({
+								programId: programIdStr,
+								solutionId: '',
+								type: 'program',
+								success: 'Failed to create program',
+								resourceId: '',
+								rolloutId: '',
+							})
+							continue
+						}
 
-						// programDetail = programDetail.result
+						let programResourceId = programCreationResponse.programId
 
-						// //Format the program for rollout program creation
-						// let convertedProgramRolloutTemplate = _.omit(programDetail, [
-						// 	'id',
-						// 	'resources',
-						// 	'status',
-						// 	'stage',
-						// 	'next_stage',
-						// 	'review_type',
-						// 	'reference_id',
-						// 	'published_id',
-						// 	'created_at',
-						// 	'updated_at',
-						// 	'updated_by',
-						// 	'submitted_on',
-						// 	'published_on',
-						// 	'last_reviewed_on',
-						// 	'is_under_edit',
-						// ])
+						// get the program details
+						let programDetail = await programService.details(
+							programResourceId,
+							convertedProgramTemplate.organization_id
+						)
 
-						// convertedProgramRolloutTemplate.resource_id = programDetail.id
+						//validate the program details
+						if (programDetail.statusCode !== 200) {
+							throw new Error(programDetail.error)
+						}
 
-						// //create program rollout
-						// const createProgramRolloutResponse = await rolloutService.create(
-						// 	convertedProgramRolloutTemplate,
-						// 	convertedProgramRolloutTemplate.created_by,
-						// 	convertedProgramRolloutTemplate.organization_id,
-						// 	false
-						// )
+						programDetail = programDetail.result
 
-						// //Validate the program rollout creation
-						// if (createProgramRolloutResponse.statusCode != 200) {
-						// 	throw new Error(createProgramRolloutResponse.error)
-						// }
+						//Format the program for rollout program creation
+						let convertedProgramRolloutTemplate = _.omit(programDetail, [
+							'id',
+							'resources',
+							'status',
+							'stage',
+							'next_stage',
+							'review_type',
+							'reference_id',
+							'published_id',
+							'created_at',
+							'updated_at',
+							'updated_by',
+							'submitted_on',
+							'published_on',
+							'last_reviewed_on',
+							'is_under_edit',
+						])
 
-						// let programRolloutId = createProgramRolloutResponse.result.id
+						convertedProgramRolloutTemplate.resource_id = programDetail.id
 
-						// for (let solutionData of programDetail.resources) {
-						// 	//Format the solution for rollout solution creation
-						// 	let convertSolutionRolloutTemplate = _.omit(solutionData, [
-						// 		'id',
-						// 		'status',
-						// 		'stage',
-						// 		'next_stage',
-						// 		'review_type',
-						// 		'reference_id',
-						// 		'created_at',
-						// 		'updated_at',
-						// 		'updated_by',
-						// 		'submitted_on',
-						// 		'published_on',
-						// 		'last_reviewed_on',
-						// 		'is_under_edit',
-						// 	])
+						//create program rollout
+						const createProgramRolloutResponse = await rolloutService.create(
+							convertedProgramRolloutTemplate,
+							convertedProgramRolloutTemplate.created_by,
+							convertedProgramRolloutTemplate.organization_id,
+							false
+						)
 
-						// 	convertSolutionRolloutTemplate.parent_id = programRolloutId
-						// 	convertSolutionRolloutTemplate.resource_id = solutionData.id
-						// 	convertSolutionRolloutTemplate.start_date = solutionData?.meta?.start_date || null
-						// 	convertSolutionRolloutTemplate.end_date = solutionData?.meta?.end_date || null
+						//Validate the program rollout creation
+						if (createProgramRolloutResponse.statusCode != 200) {
+							throw new Error(createProgramRolloutResponse.error)
+						}
 
-						// 	//create the solution rollout
-						// 	const createSolutionRolloutResponse = await rolloutService.create(
-						// 		convertSolutionRolloutTemplate,
-						// 		convertSolutionRolloutTemplate.created_by,
-						// 		convertSolutionRolloutTemplate.organization_id,
-						// 		true
-						// 	)
+						let programRolloutId = createProgramRolloutResponse.result.id
 
-						// 	// Validate the solution rollout creation
-						// 	if (createSolutionRolloutResponse.statusCode != 200) {
-						// 		throw new Error(createSolutionRolloutResponse.error)
-						// 	}
+						for (let solutionData of programDetail.resources) {
+							//Format the solution for rollout solution creation
+							let convertSolutionRolloutTemplate = _.omit(solutionData, [
+								'id',
+								'status',
+								'stage',
+								'next_stage',
+								'review_type',
+								'reference_id',
+								'created_at',
+								'updated_at',
+								'updated_by',
+								'submitted_on',
+								'published_on',
+								'last_reviewed_on',
+								'is_under_edit',
+							])
 
-						// 	//update the solution rollout status
-						// 	await rolloutService.publishCallback(
-						// 		createSolutionRolloutResponse.result.id,
-						// 		solutionIdStr,
-						// 		solutionTargetingMap[solutionIdStr].projectTemplateId
-						// 	)
+							convertSolutionRolloutTemplate.parent_id = programRolloutId
+							convertSolutionRolloutTemplate.resource_id = solutionData.id
+							convertSolutionRolloutTemplate.start_date = solutionData?.meta?.start_date || null
+							convertSolutionRolloutTemplate.end_date = solutionData?.meta?.end_date || null
 
-						// 	csvRecords.push({
-						// 		programId: programIdStr,
-						// 		solutionId: solutionIdStr,
-						// 		type: 'solution',
-						// 		success: 'Success',
-						// 		resourceId: solutionData.id,
-						// 		rolloutId: createSolutionRolloutResponse.result.id,
-						// 	})
-						// }
+							//create the solution rollout
+							const createSolutionRolloutResponse = await rolloutService.create(
+								convertSolutionRolloutTemplate,
+								convertSolutionRolloutTemplate.created_by,
+								convertSolutionRolloutTemplate.organization_id,
+								true
+							)
 
-						// //update the program rollout status
-						// await rolloutService.publishCallback(programRolloutId, programIdStr)
+							// Validate the solution rollout creation
+							if (createSolutionRolloutResponse.statusCode != 200) {
+								throw new Error(createSolutionRolloutResponse.error)
+							}
 
-						// csvRecords.push({
-						// 	programId: programIdStr,
-						// 	solutionId: solutionIdStr,
-						// 	type: 'program',
-						// 	success: 'Success',
-						// 	resourceId: programDetail.id,
-						// 	rolloutId: programRolloutId,
-						// })
+							//update the solution rollout status
+							await rolloutService.publishCallback(
+								createSolutionRolloutResponse.result.id,
+								solutionIdStr,
+								solutionTargetingMap[solutionIdStr].projectTemplateId
+							)
+
+							csvRecords.push({
+								programId: programIdStr,
+								solutionId: solutionIdStr,
+								type: 'solution',
+								success: 'Success',
+								resourceId: solutionData.id,
+								rolloutId: createSolutionRolloutResponse.result.id,
+							})
+						}
+
+						//update the program rollout status
+						await rolloutService.publishCallback(programRolloutId, programIdStr)
+
+						csvRecords.push({
+							programId: programIdStr,
+							solutionId: solutionIdStr,
+							type: 'program',
+							success: 'Success',
+							resourceId: programDetail.id,
+							rolloutId: programRolloutId,
+						})
 					} else {
 						//skip the solution
 						console.log(`No project template found for solution id ${solutionIdStr}, `)
@@ -559,7 +579,11 @@ const dbName = mongoUrl.split('/').pop()
 	}
 })()
 
-//get default org admin
+/**
+ * Fetches and returns the default organization admin user ID
+ * @name getDefaultUserId
+ * @returns {String} default organization admin user ID
+ */
 async function getDefaultUserId() {
 	let defaultUserId = null
 	let orgDetails = await userRequest.fetchOrg(process.env.DEFAULT_ORG_ID)
@@ -573,7 +597,12 @@ async function getDefaultUserId() {
 	return defaultUserId
 }
 
-//get user org id
+/**
+ * Fetches and returns a map of user IDs to their organization details
+ * @name getUserOrgDetails
+ * @param {Array<string>} userIds - Array of user IDs
+ * @returns {Object} Map of user IDs to organization details
+ */
 async function getUserOrgDetails(userIds) {
 	let userOrgMap = {}
 	const users = await userRequest.list('all', '', '', '', '', {
@@ -587,6 +616,13 @@ async function getUserOrgDetails(userIds) {
 	return userOrgMap
 }
 
+/**
+ * Checks if a resource exists based on published ID and type
+ * @name checkResourceExist
+ * @param {String} publishedId - Published ID of the resource
+ * @param {String} type - Type of the resource
+ * @returns {Object} Object containing success status and resource ID or error
+ */
 async function checkResourceExist(publishedId, type) {
 	try {
 		let resource = await resourceQueries.findOne(
@@ -616,6 +652,14 @@ async function checkResourceExist(publishedId, type) {
 	}
 }
 
+/**
+ * Converts a project template to a standardized format with tasks and metadata
+ * @name convertProjectTemplate
+ * @param {Object} template - The project template object to be converted
+ * @param {Object} userOrgMap - Map of user IDs to their organization details
+ * @param {String} DEFAULT_USER_ID - Default user ID to use if creator is not found in userOrgMap
+ * @returns {Object} Object containing success status and the converted template or error
+ */
 async function convertProjectTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 	try {
 		let userId = DEFAULT_USER_ID
@@ -671,6 +715,7 @@ async function convertProjectTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 			organization_id: orgId.toString(),
 			published_id: template._id,
 			tasks: template.taskDetails ? template.taskDetails.map(convertTask) : [],
+			targeting_criteria: [],
 		}
 
 		return { success: true, template: convertedTemplate }
@@ -680,7 +725,15 @@ async function convertProjectTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 	}
 }
 
-//to get all entities which is not present
+/**
+ * Filters out entities that already exist and prepares a list of new entities to be created
+ * @name filterNonExistingEntities
+ * @param {String} entityTypeKey - The key representing the entity type
+ * @param {Array} values - Array of entity values to check
+ * @param {Object} entityTypeEntityMap - Map of entity types to their existing entities and IDs
+ * @param {Array} entitiesToCreate - Array to accumulate non-existing entities for creation
+ * @returns {Array} Updated array of entities to be created
+ */
 async function filterNonExistingEntities(entityTypeKey, values, entityTypeEntityMap, entitiesToCreate) {
 	if (entityTypeEntityMap.hasOwnProperty(entityTypeKey)) {
 		const entityTypeId = entityTypeEntityMap[entityTypeKey].entity_type_id
@@ -706,7 +759,16 @@ async function filterNonExistingEntities(entityTypeKey, values, entityTypeEntity
 	return entitiesToCreate
 }
 
-// function to create project and entities
+/**
+ * Creates non-existing entities and then creates a project based on the provided template data
+ * @name createProjectAndEntities
+ * @param {String} templateId - The ID of the project template
+ * @param {Object} templateData - Data of the template to create the project
+ * @param {Object} entityTypeEntityMap - Map of entity types and their existing entities
+ * @param {Array} entitiesToCreate - Array of entities to be created if they don't exist
+ * @param {Object} createdEntityIds - Map to collect IDs of newly created entities categorized by entity type
+ * @returns {Object} Result object containing success status and created project ID or error
+ */
 async function createProjectAndEntities(
 	templateId,
 	templateData,
@@ -787,7 +849,15 @@ async function createProjectAndEntities(
 	}
 }
 
-// function to create project
+/**
+ * Creates a new project from the provided template data and updates it using publish callback
+ * @name createProject
+ * @param {String} templateId - The ID of the project template
+ * @param {Object} projectData - Data to create the project
+ * @param {String} userId - User ID who is creating the project
+ * @param {String} orgId - Organization ID associated with the project
+ * @returns {Object} Result object containing success status and created project ID or error
+ */
 async function createProject(templateId, projectData, userId, orgId) {
 	try {
 		// Logic to create the project
@@ -807,6 +877,14 @@ async function createProject(templateId, projectData, userId, orgId) {
 	}
 }
 
+/**
+ * Converts a program template into a standard format for creation
+ * @name convertProgramTemplate
+ * @param {Object} template - The program template object to be converted
+ * @param {Object} userOrgMap - Map of user IDs to their organization details
+ * @param {String} DEFAULT_USER_ID - Default user ID to fallback if creator is not found
+ * @returns {Object} Result object containing success status and the converted program template or error
+ */
 async function convertProgramTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 	try {
 		let userId = DEFAULT_USER_ID
@@ -844,7 +922,16 @@ async function convertProgramTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 	}
 }
 
-// function to create program
+/**
+ * Creates a program and maps associated resources to it
+ * @name createProgram
+ * @param {String} programId - The published ID of the program template
+ * @param {Object} programData - The program data to be created
+ * @param {String} userId - User ID who is creating the program
+ * @param {String} orgId - Organization ID under which the program is created
+ * @param {Array} solutionIds - List of solution/resource IDs to be mapped to the program
+ * @returns {Object} Result object containing success status and the created program ID or error
+ */
 async function createProgram(programId, programData, userId, orgId, solutionIds) {
 	try {
 		// Logic to create the program
@@ -874,179 +961,179 @@ async function createProgram(programId, programData, userId, orgId, solutionIds)
 	}
 }
 
+/**
+ * Generates dynamic targeting criteria based on provided scope, roles, and entity hierarchy.
+ * @param {Object} scope - The scope object containing roles, entity types, and entities to target.
+ * @param {Object} db - MongoDB database instance for querying collections.
+ * @returns {Object} array of targeting criteria
+ */
 async function generateTargetingCriteria(scope = {}, db) {
 	try {
-		console.log(scope, 'scopeeeeeeeeeeeeee')
+		console.log(scope, 'scope received')
 		let targetingCriteria = []
-		//send empty
-		if (!scope || !Object.keys(scope).length > 0) {
-			return { success: false, error: 'Scope not found' }
+
+		// Return empty if scope is empty
+		if (!scope || Object.keys(scope).length === 0) {
+			return { success: true, result: targetingCriteria }
 		}
 
-		//process for elevate project
-		if (process.env.CONSUMPTION_SERVICE == 'elevate-project') {
-			let roles = []
-			if (scope?.roles?.length > 0) {
-				// Get roles details
-				const userRoleExtensions = await db
-					.collection('userRoleExtension')
-					.find({ code: { $in: scope.roles } })
-					.toArray()
-
-				if (userRoleExtensions.length > 0) {
-					for (let userRole of userRoleExtensions) {
-						roles.push({
-							_id: userRole._id.toString(),
-							value: userRole.userRoleId,
-							label: userRole.title,
-							code: userRole.code,
-						})
-					}
-				}
-			}
-
-			let entityTypeIds = []
-			let entityIds = []
-			if (scope.entityType) {
-				if (scope.entities && scope.entityType) {
-					entityTypeIds.push(scope.entityType)
-					entityIds.push(...scope.entities)
-				} else if (typeof scope.entityType === 'string' && !scope.entities) {
-					entityTypeIds.push(scope.entityType)
-					if (scope[scope.entityType]) {
-						entityIds.push(...scope[scope.entityType])
-					}
-				} else if (Array.isArray(scope.entityType) && !scope.entities) {
-					entityTypeIds = scope.entityType
-					for (const entityType of scope.entityType) {
-						if (scope[entityType]) {
-							entityIds.push(...scope[entityType])
-						}
-					}
-				}
-			}
-			console.log(entityTypeIds, entityIds, 'scope.entityTypes')
-			if (entityTypeIds.length > 0 && entityIds.length > 0) {
-				entityIds = entityIds.map((id) => {
-					return ObjectId(id)
+		// Normalize roles from scope
+		let roles = []
+		if (scope?.roles?.length > 0) {
+			let roleCodes = []
+			if (typeof scope.roles === 'string') {
+				// If roles is a string like 'HM,DEO'
+				roleCodes = scope.roles.split(',').map((code) => code.trim())
+			} else if (Array.isArray(scope.roles)) {
+				// If roles is an array
+				roleCodes = scope.roles.flatMap((r) => {
+					if (typeof r === 'object' && r.code) return [r.code]
+					if (typeof r === 'string') return r.split(',').map((code) => code.trim()) // handle string items with commas too
+					return []
 				})
-				const entities = await db
-					.collection('entities')
-					.find({ _id: { $in: entityIds } })
-					.toArray()
+			}
 
-				// console.log(entities, 'entities')
-				const entityTypes = await db
-					.collection('entityTypes')
-					.find({ name: { $in: entityTypeIds } })
-					.toArray()
+			// Fetch role details from DB
+			const userRoleExtensions = await db
+				.collection('userRoleExtension')
+				.find({ code: { $in: roleCodes } })
+				.toArray()
 
-				// console.log(entityTypes, 'entityTypes')
+			roles = userRoleExtensions.map((role) => ({
+				_id: role._id.toString(),
+				value: role.userRoleId,
+				label: role.title,
+				code: role.code,
+			}))
+		}
 
-				targetingCriteria = []
+		// Process entityType and entities
+		let entityTypeIds = []
+		let entityIds = []
 
-				let highestEntity = entities.filter(
-					(entity) => entity.entityType === process.env.HIGHEST_IN_ENTITY_HIERARCHY
-				)
+		if (scope.entityType) {
+			entityTypeIds = Array.isArray(scope.entityType) ? scope.entityType : [scope.entityType]
+			if (scope.entities) {
+				entityIds = scope.entities
+			} else {
+				entityTypeIds.forEach((et) => {
+					if (scope[et]) entityIds.push(...scope[et])
+				})
+			}
+		}
 
-				console.log(highestEntity, 'highestEntity')
+		entityIds = entityIds.map((id) => ObjectId(id))
 
-				if (typeof scope.entityType == 'string') {
-					let entityTargeting = []
-					for (let entity of entities) {
-						let entity_targeting = {
-							_id: entity._id,
-							externalId: entity.registryDetails?.code || entity.metaInformation.externalId,
-							name: entity.metaInformation.name,
-						}
-						entityTargeting.push(entity_targeting)
-					}
+		// Fetch entities and entityTypes
+		const [entities, entityTypes] = await Promise.all([
+			db
+				.collection('entities')
+				.find({ _id: { $in: entityIds } })
+				.toArray(),
+			db
+				.collection('entityTypes')
+				.find({ name: { $in: entityTypeIds } })
+				.toArray(),
+		])
 
-					let targetingCriteriaData = {
-						roles: roles,
-						entity_targeting: {
-							_id: entityTypes[0]._id,
-							value: entityTypes[0].name,
-							name: entityTypes[0].name,
-						},
-						[scope.entityType]: entityTargeting,
-					}
+		// Map entities under each entityType
+		const entityMap = {}
+		for (const entityType of entityTypeIds) {
+			entityMap[entityType] = entities
+				.filter((e) => e.entityType === entityType)
+				.map((entity) => ({
+					_id: entity._id,
+					externalId: entity.registryDetails?.code || entity.metaInformation?.externalId,
+					name: entity.metaInformation?.name,
+					entityType: entity.entityType,
+				}))
+		}
 
-					if (highestEntity && highestEntity?.entityType && highestEntity.entityType != scope.entityType) {
-						targetingCriteriaData[process.env.HIGHEST_IN_ENTITY_HIERARCHY] = {
+		// Handle highest hierarchy
+		const highestHierarchy = process.env.HIGHEST_IN_ENTITY_HIERARCHY
+		async function findHighestEntity(entity) {
+			return await db.collection('entities').findOne({
+				[`groups.${entity.entityType}`]: { $in: [ObjectId(entity._id)] },
+				entityType: highestHierarchy,
+			})
+		}
+
+		// Build targeting criteria
+		for (const entityType of entityTypeIds) {
+			const matchingEntityType = entityTypes.find((et) => et.name === entityType)
+			if (!matchingEntityType) continue
+
+			let highestEntitiesMap = {}
+			let finalRoles = [...roles] // By default, assign all roles
+
+			// Handle elevate-project targeted roles logic
+			if (process.env.CONSUMPTION_SERVICE === 'elevate-project') {
+				let targetedRolesSet = new Set()
+
+				// Find highest entities and targeted roles
+				for (const entity of entityMap[entityType]) {
+					const highestEntity = await findHighestEntity(entity)
+					if (highestEntity) {
+						highestEntitiesMap[highestEntity._id] = {
 							_id: highestEntity._id,
-							externalId: highestEntity.registryDetails?.code || highestEntity.metaInformation.externalId,
-							name: highestEntity.metaInformation.name,
-						}
-					} else {
-						let getEntities = await db.collection('entities').findOne({
-							[`group.${scope.entityType}`]: { $in: entityIds },
-							entityType: process.env.HIGHEST_IN_ENTITY_HIERARCHY,
-						})
-
-						if (getEntities._id) {
-							targetingCriteriaData[process.env.HIGHEST_IN_ENTITY_HIERARCHY] = {
-								_id: highestEntity._id,
-								externalId:
-									highestEntity.registryDetails?.code || highestEntity.metaInformation.externalId,
-								name: highestEntity.metaInformation.name,
-							}
-						}
-					}
-					targetingCriteria.push(targetingCriteriaData)
-					return { success: true, result: targetingCriteria }
-				} else if (Array.isArray(scope.entityType)) {
-					if (
-						process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL &&
-						process.env.CONSUMPTION_SERVICE_TARGETED_ROLES_END_POINT &&
-						!scope.entityType.length == 1 &&
-						!highestEntity
-					) {
-						if (highestEntity) {
-							//get the targeted roles
-							let apiUrl =
-								process.env.INTERFACE_SERVICE_HOST +
-								process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL +
-								process.env.CONSUMPTION_SERVICE_TARGETED_ROLES_END_POINT
-							'/' + highestEntity._id
-							console.log(apiUrl, 'apiUrl')
-							let targetedRoles = await requests.get(apiUrl, '', process.env.INTERNAL_ACCESS_TOKEN)
-							// console.log(targetedRoles, 'targetedRoles')
+							name: highestEntity.metaInformation?.name,
+							externalId:
+								highestEntity.registryDetails?.code || highestEntity.metaInformation?.externalId,
 						}
 
-						for (let entityType of scope.entityType) {
-							let filteredEntities = entities.filter((entity) => entity.entityType === entityType)
-							let entityTargeting = filteredEntities.map((entity) => ({
-								_id: entity._id,
-								externalId: entity.registryDetails?.code || entity.metaInformation.externalId,
-								name: entity.metaInformation.name,
-							}))
+						// Fetch targeted roles from API
+						const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${process.env.CONSUMPTION_SERVICE_TARGETED_ROLES_END_POINT}/${highestEntity._id}?entityType=${entity.entityType}`
+						const targetedRolesResponse = await requests.get(
+							apiUrl,
+							'',
+							process.env.INTERNAL_ACCESS_TOKEN,
+							common.INTERNAL_ACCESS_TOKEN
+						)
+						let targetedRolesData = targetedRolesResponse?.data?.result || []
 
-							let matchingEntityType = entityTypes.find((type) => type.value === entityType)
-
-							if (matchingEntityType) {
-								targetingCriteria.push({
-									roles: roles,
-									entity_targeting: {
-										_id: matchingEntityType._id,
-										value: matchingEntityType.value,
-										name: matchingEntityType.name,
-									},
-									[entityType]: entityTargeting,
-								})
-							}
-						}
+						// Collect targeted role codes
+						targetedRolesData.forEach((role) => targetedRolesSet.add(role.code))
 					}
 				}
-			} else if (roles.length > 0 && !scope.entityType) {
-				targetingCriteria.push({
-					roles: roles,
-				})
+
+				// Filter roles that match targeted roles
+				if (targetedRolesSet.size > 0) {
+					const targetedRolesArray = Array.from(targetedRolesSet)
+					const filteredRoles = roles.filter((r) => targetedRolesArray.includes(r.code))
+					if (filteredRoles.length > 0) {
+						finalRoles = filteredRoles
+					}
+				}
 			}
+
+			// Assemble targeting object
+			let finalTargeting = {
+				entity_targeting: {
+					_id: matchingEntityType._id,
+					value: matchingEntityType.name,
+					name: matchingEntityType.name,
+				},
+				roles: finalRoles,
+				[entityType]: entityMap[entityType],
+			}
+
+			// Attach highest hierarchy if found
+			if (Object.keys(highestEntitiesMap).length > 0) {
+				finalTargeting[highestHierarchy] = Object.values(highestEntitiesMap)
+			}
+
+			// Add to final targeting criteria
+			targetingCriteria.push(finalTargeting)
+		}
+
+		// Handle roles-only case
+		if (roles.length > 0 && entityTypeIds.length === 0) {
+			targetingCriteria.push({ roles })
 		}
 
 		return { success: true, result: targetingCriteria }
 	} catch (error) {
-		return { success: false, error }
+		console.error('Error in generateTargetingCriteria:', error)
+		return { success: false, error: error.message }
 	}
 }
