@@ -12,10 +12,13 @@ require('dotenv').config({ path: '../../.env' })
 require('../../configs/events')()
 
 const path = require('path')
+const fs = require('fs')
 const { v4: uuidv4 } = require('uuid')
 const _ = require('lodash')
 const { MongoClient, ObjectID: ObjectId } = require('mongodb')
 const createCsvWriter = require('csv-writer').createObjectCsvWriter
+const axios = require('axios')
+const { DOMParser } = require('xmldom')
 
 const requests = require('@generics/requests')
 const utils = require('./utils')
@@ -26,10 +29,14 @@ const entityService = require('@services/entities')
 const resourceService = require('@services/resource')
 const programService = require('@services/programs')
 const rolloutService = require('@services/rollouts')
+const fileService = require('@services/files')
+
+const request = require('request')
 
 const resourceQueries = require('@database/queries/resources')
 const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
+const certificateQueries = require('@database/queries/certificateBaseTemplate')
 
 const common = require('@constants/common')
 const userRequest = require('@requests/user')
@@ -78,6 +85,7 @@ const dbName = mongoUrl.split('/').pop()
 		const programsData = await db
 			.collection('programs')
 			.find({
+				// _id: ObjectId('66c4a815c753c2fe12efc9d2'),
 				_id: ObjectId('66c4a815c753c2fe12efc9d2'),
 				status: 'active',
 				scope: {
@@ -168,7 +176,7 @@ const dbName = mongoUrl.split('/').pop()
 				const solutions = await db
 					.collection('solutions')
 					.find({
-						_id: { $in: solutionMongoIds },
+						// _id: { $in: solutionMongoIds },
 						// _id: ObjectId('66c72d20c8fb762949bd734e'),
 						// _id: ObjectId('66408ed0e077e6d429937bfa'),
 						// _id: ObjectId('66668830dca191013f50b0a5'),
@@ -176,6 +184,7 @@ const dbName = mongoUrl.split('/').pop()
 						// _id: ObjectId('6672ca03968b5c4c59f98e38'), //entities empty key and role
 						// _id: ObjectId('666698cddca191013f50b27e'), //entities key and role
 						// _id: ObjectId('668baf8bb96e1cbe046f003a'),
+						_id: ObjectId('66c6cbb8d64c7d9c1ae1efd8'),
 						type: 'improvementProject',
 					})
 					.limit(1)
@@ -312,11 +321,13 @@ const dbName = mongoUrl.split('/').pop()
 							userOrgMap,
 							DEFAULT_USER_ID
 						)
+
 						//send failure
 						if (!convertedTemplate.success) {
 							throw new Error(convertedTemplate.error)
 						}
 
+						let taskIdMap = convertedTemplate.taskIdMap
 						convertedTemplate = convertedTemplate.template
 
 						//Add start date, end date from solution
@@ -348,64 +359,179 @@ const dbName = mongoUrl.split('/').pop()
 						}
 
 						// Create the project and entities after conversion
-						let projectCreateResponse = await createProjectAndEntities(
-							projectTemplate._id.toString(),
-							convertedTemplate,
-							entityTypeEntityMap,
-							entitiesToCreate,
-							createdEntityIds
-						)
+						// let projectCreateResponse = await createProjectAndEntities(
+						// 	projectTemplate._id.toString(),
+						// 	convertedTemplate,
+						// 	entityTypeEntityMap,
+						// 	entitiesToCreate,
+						// 	createdEntityIds
+						// )
 
-						if (!projectCreateResponse.success) {
-							csvRecords.push({
-								programId: programIdStr,
-								solutionId: solutionIdStr,
-								type: 'solution',
-								success: 'Project resource creation failed',
-								resourceId: '',
-								rolloutId: '',
-							})
-							continue
-						}
+						// if (!projectCreateResponse.success) {
+						// 	csvRecords.push({
+						// 		programId: programIdStr,
+						// 		solutionId: solutionIdStr,
+						// 		type: 'solution',
+						// 		success: 'Project resource creation failed',
+						// 		resourceId: '',
+						// 		rolloutId: '',
+						// 	})
+						// 	continue
+						// }
 
 						// If certificate exist then add certificate criteria object
-						let certificateTemplates = await db
-							.collection('certificateTemplates')
-							.find({ programId: program._id, solutionId: solution._id })
+						if (solution?.certificateTemplateId) {
+							let certificateTemplate = await db.collection('certificateTemplates').findOne({
+								_id: solution.certificateTemplateId,
+							})
 
-						if (certificateTemplates._id) {
-							// check the base template
-							if (certificateTemplates?.baseTemplateId) {
-								//find the base template
-								let certificateBaseTemplate = await db
-									.collection('certificateBaseTemplates')
-									.find({ _id: certificateTemplates.baseTemplateId })
+							// console.log(certificateTemplate, 'certificateTemplate')
 
-								if (certificateBaseTemplate._id) {
-									//validate that certificate exist in scp
-									const certificateTemplateInSCP = await isCertificateBaseTemplateExist(
-										certificateBaseTemplate.code
-									)
-									let scpCertificateBaseTemplate
-									if (certificateTemplateInSCP.success) {
-										console.log(
-											`Certificate Base template Exist for template ${projectTemplate._id.toString()}`
+							//if certificate template exist
+							if (certificateTemplate?._id) {
+								// check the base template
+								if (certificateTemplate?.baseTemplateId) {
+									//find the base template
+									let certificateBaseTemplate = await db
+										.collection('certificateBaseTemplates')
+										.findOne({ _id: certificateTemplate.baseTemplateId })
+
+									// console.log(certificateBaseTemplate, 'certificateBaseTemplate')
+
+									//Check the certificate base template exist
+									if (certificateBaseTemplate?._id) {
+										//validate that certificate exist in scp
+										const certificateTemplateInSCP = await isCertificateBaseTemplateExist(
+											certificateBaseTemplate.code,
+											'project'
 										)
-										scpCertificateBaseTemplate = certificateTemplateInSCP.certificateBaseTemplate
-									} else {
-										//create certificate base template in scp
+
+										console.log(certificateTemplateInSCP, 'certificateTemplateInSCP')
+
+										let scpCertificateBaseTemplate = {}
+										if (certificateTemplateInSCP.success) {
+											console.log(
+												`Certificate Base template Exist for template ${projectTemplate._id.toString()}`
+											)
+											scpCertificateBaseTemplate =
+												certificateTemplateInSCP.certificateBaseTemplate
+										} else {
+											//create certificate base template in scp
+											console.log('certificateTemplate Not found in SCP')
+
+											let templatesvgRes = await getSvgTemplate(certificateBaseTemplate)
+											if (!templatesvgRes.success) {
+												throw new Error('Failed to download svg template from consumption')
+											}
+
+											//create the certificate base template in scp
+											// Create a temporary file to store SVG content
+											const fileName = `template_${Date.now()}.svg`
+											const filePath = path.join(__dirname, fileName)
+											fs.writeFileSync(filePath, templatesvgRes.svgTemplate, 'utf-8') // Save the SVG content to file
+
+											// Prepare payload for signed URL
+											const payloadData = {
+												cert: {
+													files: [fileName],
+												},
+												ref: common.CERTIFICATE,
+											}
+
+											// Get Signed URL to upload
+											const getSignedUrl = await fileService.getSignedUrl(
+												payloadData,
+												'BASE_TEMPLATE',
+												'system',
+												false
+											)
+											if (!getSignedUrl.result) {
+												throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
+											}
+
+											const fileUploadUrl = getSignedUrl.result['cert']['files'][0].url
+											const uploadedFilePath = getSignedUrl.result['cert']['files'][0].file
+
+											console.log('File Upload URL:', fileUploadUrl)
+											console.log('Uploaded File Path:', uploadedFilePath)
+
+											// Upload the file to signed URL
+											const fileData = fs.readFileSync(filePath)
+											await request({
+												url: fileUploadUrl,
+												method: 'put',
+												headers: {
+													'Content-Type': 'application/octet-stream', // Correct content type for SVG file uploads
+												},
+												body: fileData,
+											})
+
+											// Prepare certificate data to save in DB
+											const certificateData = {
+												code: certificateBaseTemplate.code,
+												name: certificateBaseTemplate.name,
+												url: uploadedFilePath,
+												organization_id: utils.convertToString(process.env.DEFAULT_ORG_ID),
+												resource_type: common.PROJECT,
+												created_by: common.CREATED_BY_SYSTEM,
+												created_at: new Date(),
+												updated_at: new Date(),
+												meta: templatesvgRes.certificateMeta, // Attach extracted meta info (logos, signatures)
+											}
+
+											// Save certificate template record in DB
+											const certificateCreateRes = await certificateQueries.create(
+												certificateData
+											)
+
+											// Cleanup temp file
+											fs.unlinkSync(filePath) // Remove temp file after upload
+
+											scpCertificateBaseTemplate = certificateCreateRes
+
+											console.log('Certificate Template Created Successfully:', certificate)
+										}
+
+										if (certificateTemplate?.criteria) {
+											let certificateCeriteriaRes = await generateCertificateCriteria(
+												certificateTemplate,
+												certificateBaseTemplate,
+												scpCertificateBaseTemplate,
+												taskIdMap
+											)
+
+											// console.log(certificateCeriteriaRes?.result, 'certificateCeriteriaRes')
+
+											//update the resource with certificate
+											// if (certificateCeriteriaRes.success && certificateCeriteriaRes.result) {
+											// 	projectTemplate.certificates = certificateCeriteriaRes.result
+
+											// 	const updateProject = await projectService.update(
+											// 		projectCreateResponse.projectId,
+											// 		projectTemplate,
+											// 		projectTemplate.created_by,
+											// 		projectTemplate.organization_id
+											// 	)
+											// 	if (!updateProject?.result?.id) {
+											// 		throw new Error('Failed to update project')
+											// 	}
+											// }
+										}
 									}
-
-									let certificateCeriteria = await generateCertificateCriteria(
-										certificateBaseTemplate,
-										certificateTemplates,
-										scpCertificateBaseTemplate,
-										projectTemplate
-									)
-
-									//update the resource with certificate
 								}
 							}
+						}
+
+						process.exit(1)
+
+						//publish project
+						const projectPublishResponse = await publishProject(
+							projectCreateResponse.projectId,
+							projectTemplate._id
+						)
+
+						if (!projectPublishResponse.success) {
+							throw new Error('Failed to publish project')
 						}
 
 						//update project template
@@ -436,179 +562,179 @@ const dbName = mongoUrl.split('/').pop()
 				}
 
 				//if atleast one valid solution is there then create the program
-				if (!validSolutionIds.length > 0) {
-					csvRecords.push({
-						programId: programIdStr,
-						solutionId: '',
-						type: 'program',
-						success: 'No solution found',
-						resourceId: '',
-						rolloutId: '',
-					})
-					continue
-				}
+				// if (!validSolutionIds.length > 0) {
+				// 	csvRecords.push({
+				// 		programId: programIdStr,
+				// 		solutionId: '',
+				// 		type: 'program',
+				// 		success: 'No solution found',
+				// 		resourceId: '',
+				// 		rolloutId: '',
+				// 	})
+				// 	continue
+				// }
 
-				let convertedProgramTemplate = await convertProgramTemplate(program, userOrgMap, DEFAULT_USER_ID)
-				//validate the program template
-				if (!convertedProgramTemplate.success) {
-					throw new Error(convertedProgramTemplate.error)
-				}
-				convertedProgramTemplate = convertedProgramTemplate.template
+				// let convertedProgramTemplate = await convertProgramTemplate(program, userOrgMap, DEFAULT_USER_ID)
+				// //validate the program template
+				// if (!convertedProgramTemplate.success) {
+				// 	throw new Error(convertedProgramTemplate.error)
+				// }
+				// convertedProgramTemplate = convertedProgramTemplate.template
 
-				//generate targeting criteria for program
-				convertedProgramTemplate.targeting_criteria = []
-				if (program?.scope) {
-					let programTargetingCriteriaRes = await generateTargetingCriteria(program.scope, db)
-					if (!programTargetingCriteriaRes.success) {
-						throw new Error('Failed to generate targeting criteria')
-					}
+				// //generate targeting criteria for program
+				// convertedProgramTemplate.targeting_criteria = []
+				// if (program?.scope) {
+				// 	let programTargetingCriteriaRes = await generateTargetingCriteria(program.scope, db)
+				// 	if (!programTargetingCriteriaRes.success) {
+				// 		throw new Error('Failed to generate targeting criteria')
+				// 	}
 
-					convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result || []
-				}
+				// 	convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result || []
+				// }
 
-				//Add start date, end date from solution
-				convertedProgramTemplate.meta = {
-					start_date: program.startDate || null,
-					end_date: program.endDate || null,
-				}
+				// //Add start date, end date from solution
+				// convertedProgramTemplate.meta = {
+				// 	start_date: program.startDate || null,
+				// 	end_date: program.endDate || null,
+				// }
 
-				//create program
-				const programCreationResponse = await createProgram(
-					programIdStr,
-					convertedProgramTemplate,
-					convertedProgramTemplate.created_by,
-					convertedProgramTemplate.organization_id,
-					validSolutionIds
-				)
+				// //create program
+				// const programCreationResponse = await createProgram(
+				// 	programIdStr,
+				// 	convertedProgramTemplate,
+				// 	convertedProgramTemplate.created_by,
+				// 	convertedProgramTemplate.organization_id,
+				// 	validSolutionIds
+				// )
 
-				if (!programCreationResponse.success) {
-					console.log(`Failed to create program ${programIdStr}`)
-					csvRecords.push({
-						programId: programIdStr,
-						solutionId: '',
-						type: 'program',
-						success: 'Failed to create program',
-						resourceId: '',
-						rolloutId: '',
-					})
-					continue
-				}
+				// if (!programCreationResponse.success) {
+				// 	console.log(`Failed to create program ${programIdStr}`)
+				// 	csvRecords.push({
+				// 		programId: programIdStr,
+				// 		solutionId: '',
+				// 		type: 'program',
+				// 		success: 'Failed to create program',
+				// 		resourceId: '',
+				// 		rolloutId: '',
+				// 	})
+				// 	continue
+				// }
 
-				let programResourceId = programCreationResponse.programId
+				// let programResourceId = programCreationResponse.programId
 
-				// get the program details
-				let programDetail = await programService.details(
-					programResourceId,
-					convertedProgramTemplate.organization_id
-				)
+				// // get the program details
+				// let programDetail = await programService.details(
+				// 	programResourceId,
+				// 	convertedProgramTemplate.organization_id
+				// )
 
-				//validate the program details
-				if (programDetail.statusCode !== 200) {
-					throw new Error(programDetail.error)
-				}
+				// //validate the program details
+				// if (programDetail.statusCode !== 200) {
+				// 	throw new Error(programDetail.error)
+				// }
 
-				programDetail = programDetail.result
+				// programDetail = programDetail.result
 
-				//Format the program for rollout program creation
-				let convertedProgramRolloutTemplate = _.omit(programDetail, [
-					'id',
-					'resources',
-					'status',
-					'stage',
-					'next_stage',
-					'review_type',
-					'reference_id',
-					'published_id',
-					'created_at',
-					'updated_at',
-					'updated_by',
-					'submitted_on',
-					'published_on',
-					'last_reviewed_on',
-					'is_under_edit',
-				])
+				// //Format the program for rollout program creation
+				// let convertedProgramRolloutTemplate = _.omit(programDetail, [
+				// 	'id',
+				// 	'resources',
+				// 	'status',
+				// 	'stage',
+				// 	'next_stage',
+				// 	'review_type',
+				// 	'reference_id',
+				// 	'published_id',
+				// 	'created_at',
+				// 	'updated_at',
+				// 	'updated_by',
+				// 	'submitted_on',
+				// 	'published_on',
+				// 	'last_reviewed_on',
+				// 	'is_under_edit',
+				// ])
 
-				convertedProgramRolloutTemplate.resource_id = programDetail.id
+				// convertedProgramRolloutTemplate.resource_id = programDetail.id
 
-				//create program rollout
-				const createProgramRolloutResponse = await rolloutService.create(
-					convertedProgramRolloutTemplate,
-					convertedProgramRolloutTemplate.created_by,
-					convertedProgramRolloutTemplate.organization_id,
-					false
-				)
+				// //create program rollout
+				// const createProgramRolloutResponse = await rolloutService.create(
+				// 	convertedProgramRolloutTemplate,
+				// 	convertedProgramRolloutTemplate.created_by,
+				// 	convertedProgramRolloutTemplate.organization_id,
+				// 	false
+				// )
 
-				//Validate the program rollout creation
-				if (createProgramRolloutResponse.statusCode != 200) {
-					throw new Error(createProgramRolloutResponse.error)
-				}
+				// //Validate the program rollout creation
+				// if (createProgramRolloutResponse.statusCode != 200) {
+				// 	throw new Error(createProgramRolloutResponse.error)
+				// }
 
-				let programRolloutId = createProgramRolloutResponse.result.id
+				// let programRolloutId = createProgramRolloutResponse.result.id
 
-				for (let solutionData of programDetail.resources) {
-					//Format the solution for rollout solution creation
-					let convertSolutionRolloutTemplate = _.omit(solutionData, [
-						'id',
-						'status',
-						'stage',
-						'next_stage',
-						'review_type',
-						'reference_id',
-						'created_at',
-						'updated_at',
-						'updated_by',
-						'submitted_on',
-						'published_on',
-						'last_reviewed_on',
-						'is_under_edit',
-					])
+				// for (let solutionData of programDetail.resources) {
+				// 	//Format the solution for rollout solution creation
+				// 	let convertSolutionRolloutTemplate = _.omit(solutionData, [
+				// 		'id',
+				// 		'status',
+				// 		'stage',
+				// 		'next_stage',
+				// 		'review_type',
+				// 		'reference_id',
+				// 		'created_at',
+				// 		'updated_at',
+				// 		'updated_by',
+				// 		'submitted_on',
+				// 		'published_on',
+				// 		'last_reviewed_on',
+				// 		'is_under_edit',
+				// 	])
 
-					convertSolutionRolloutTemplate.parent_id = programRolloutId
-					convertSolutionRolloutTemplate.resource_id = solutionData.id
-					convertSolutionRolloutTemplate.start_date = solutionData?.meta?.start_date || null
-					convertSolutionRolloutTemplate.end_date = solutionData?.meta?.end_date || null
+				// 	convertSolutionRolloutTemplate.parent_id = programRolloutId
+				// 	convertSolutionRolloutTemplate.resource_id = solutionData.id
+				// 	convertSolutionRolloutTemplate.start_date = solutionData?.meta?.start_date || null
+				// 	convertSolutionRolloutTemplate.end_date = solutionData?.meta?.end_date || null
 
-					//create the solution rollout
-					const createSolutionRolloutResponse = await rolloutService.create(
-						convertSolutionRolloutTemplate,
-						convertSolutionRolloutTemplate.created_by,
-						convertSolutionRolloutTemplate.organization_id,
-						true
-					)
+				// 	//create the solution rollout
+				// 	const createSolutionRolloutResponse = await rolloutService.create(
+				// 		convertSolutionRolloutTemplate,
+				// 		convertSolutionRolloutTemplate.created_by,
+				// 		convertSolutionRolloutTemplate.organization_id,
+				// 		true
+				// 	)
 
-					// Validate the solution rollout creation
-					if (createSolutionRolloutResponse.statusCode != 200) {
-						throw new Error(createSolutionRolloutResponse.error)
-					}
+				// 	// Validate the solution rollout creation
+				// 	if (createSolutionRolloutResponse.statusCode != 200) {
+				// 		throw new Error(createSolutionRolloutResponse.error)
+				// 	}
 
-					//update the solution rollout status
-					await rolloutService.publishCallback(
-						createSolutionRolloutResponse.result.id,
-						solutionTargetingMap[solutionData.published_id].solutionId,
-						solutionTargetingMap[solutionData.published_id].projectId
-					)
+				// 	//update the solution rollout status
+				// 	await rolloutService.publishCallback(
+				// 		createSolutionRolloutResponse.result.id,
+				// 		solutionTargetingMap[solutionData.published_id].solutionId,
+				// 		solutionTargetingMap[solutionData.published_id].projectId
+				// 	)
 
-					csvRecords.push({
-						programId: programIdStr,
-						solutionId: solutionData.published_id,
-						type: 'solution',
-						success: 'Success',
-						resourceId: solutionData.id,
-						rolloutId: createSolutionRolloutResponse.result.id,
-					})
-				}
+				// 	csvRecords.push({
+				// 		programId: programIdStr,
+				// 		solutionId: solutionData.published_id,
+				// 		type: 'solution',
+				// 		success: 'Success',
+				// 		resourceId: solutionData.id,
+				// 		rolloutId: createSolutionRolloutResponse.result.id,
+				// 	})
+				// }
 
-				//update the program rollout status
-				await rolloutService.publishCallback(programRolloutId, programIdStr)
+				// //update the program rollout status
+				// await rolloutService.publishCallback(programRolloutId, programIdStr)
 
-				csvRecords.push({
-					programId: programIdStr,
-					solutionId: '',
-					type: 'program',
-					success: 'Success',
-					resourceId: programDetail.id,
-					rolloutId: programRolloutId,
-				})
+				// csvRecords.push({
+				// 	programId: programIdStr,
+				// 	solutionId: '',
+				// 	type: 'program',
+				// 	success: 'Success',
+				// 	resourceId: programDetail.id,
+				// 	rolloutId: programRolloutId,
+				// })
 			}
 		}
 		// Write data to csv
@@ -704,6 +830,8 @@ async function checkResourceExist(publishedId, type) {
  */
 async function convertProjectTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 	try {
+		const taskIdMap = {}
+
 		let userId = DEFAULT_USER_ID
 		let orgId = process.env.DEFAULT_ORG_ID
 		if (userOrgMap[template.createdBy]) {
@@ -712,22 +840,27 @@ async function convertProjectTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 		}
 
 		// Helper function to convert tasks and their children
-		const convertTask = (task, index) => ({
-			id: uuidv4(),
-			name: task.name,
-			type: task.type,
-			is_mandatory: task.isDeletable ? false : true,
-			allow_evidences: true,
-			evidence_details: {
-				file_types: task.evidenceDetails?.fileTypes || ['images', 'document', 'videos', 'audio'],
-				min_no_of_evidences: task.evidenceDetails?.minNoOfEvidences || 1,
-			},
-			learning_resources: Array.isArray(task.learningResources)
-				? utils.convertResources(task.learningResources)
-				: [],
-			sequence_no: task.sequenceNumber ? Number(task.sequenceNumber) : index + 1,
-			children: task.children ? task.children.map(convertTask) : [],
-		})
+		const convertTask = (task, index) => {
+			const newTaskId = uuidv4()
+			taskIdMap[task._id] = newTaskId
+
+			return {
+				id: newTaskId,
+				name: task.name,
+				type: task.type,
+				is_mandatory: task.isDeletable ? false : true,
+				allow_evidences: true,
+				evidence_details: {
+					file_types: task.evidenceDetails?.fileTypes || ['images', 'document', 'videos', 'audio'],
+					min_no_of_evidences: task.evidenceDetails?.minNoOfEvidences || 1,
+				},
+				learning_resources: Array.isArray(task.learningResources)
+					? utils.convertResources(task.learningResources)
+					: [],
+				sequence_no: task.sequenceNumber ? Number(task.sequenceNumber) : index + 1,
+				children: task.children ? task.children.map(convertTask) : [],
+			}
+		}
 
 		const convertedTemplate = {
 			title: template.title,
@@ -760,7 +893,7 @@ async function convertProjectTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 			targeting_criteria: [],
 		}
 
-		return { success: true, template: convertedTemplate }
+		return { success: true, template: convertedTemplate, taskIdMap: taskIdMap }
 	} catch (error) {
 		console.error('Error occurred while converting the template:', error)
 		return { success: false, error }
@@ -908,13 +1041,26 @@ async function createProject(templateId, projectData, userId, orgId) {
 			throw new Error('Failed to create project')
 		}
 
-		const updateProject = await resourceService.publishCallback(createProject.result.id, templateId.toString())
-		if (updateProject.statusCode != 202) {
+		// const updateProject = await resourceService.publishCallback(createProject.result.id, templateId.toString())
+		// if (updateProject.statusCode != 202) {
+		// 	throw new Error('Failed to update project')
+		// }
+		return { success: true, projectId: createProject.result.id }
+	} catch (error) {
+		console.log('Failed to create project ', projectData.published_id)
+		return { success: false, error }
+	}
+}
+
+async function publishProject(projectId, templateId) {
+	try {
+		const publishProjectRes = await resourceService.publishCallback(projectId, templateId.toString())
+		if (publishProjectRes.statusCode != 202) {
 			throw new Error('Failed to update project')
 		}
 		return { success: true, projectId: createProject.result.id }
 	} catch (error) {
-		console.log('Failed to create project ', projectData.published_id)
+		console.log('Failed to publish project ', templateId)
 		return { success: false, error }
 	}
 }
@@ -1183,7 +1329,7 @@ async function isCertificateBaseTemplateExist(code, type) {
 	try {
 		let certificateBaseTemplate = await certificateBaseTemplateQueries.findOne({
 			code: code,
-			type: type,
+			resource_type: type,
 		})
 
 		// Check if the resource exists
@@ -1204,20 +1350,226 @@ async function isCertificateBaseTemplateExist(code, type) {
 }
 
 async function generateCertificateCriteria(
-	certificateBaseTemplate,
 	certificateTemplate,
+	certificateBaseTemplate,
 	scpCertificateBaseTemplate,
-	projectTemplate
+	taskIdMap
 ) {
 	try {
+		let certificate = {}
+
+		// Check if mandatory fields are present
+		if (!certificateTemplate?.criteria || !certificateTemplate?.issuer) {
+			return {
+				success: true,
+				result: certificate,
+			}
+		}
+
+		// Initialize certificate structure
+		certificate = {
+			base_template_id: scpCertificateBaseTemplate?.id || null,
+			base_template_url: scpCertificateBaseTemplate?.url || '',
+			code: scpCertificateBaseTemplate?.code || '',
+			name: scpCertificateBaseTemplate?.name || '',
+			issuer: certificateTemplate?.issuer?.name || '',
+			criteria: {},
+			logos: {
+				stateLogo1: certificateBaseTemplate?.logos?.stateLogo1 || '',
+				no_of_logos: certificateBaseTemplate?.logos?.no_of_logos || 0,
+			},
+			signature: {
+				signatureImg1: certificateBaseTemplate?.signature?.signatureImg1 || '',
+				signatureTitleName1: certificateBaseTemplate?.signature?.signatureTitleName1 || '',
+				signatureTitleDesignation1: certificateBaseTemplate?.signature?.signatureTitleDesignation1 || '',
+				no_of_signature: certificateBaseTemplate?.signature?.no_of_signature || 0,
+			},
+		}
+
+		let originalCriteria = certificateTemplate.criteria
+		let transformedConditions = {}
+
+		// Step 1: Loop through each condition
+		for (let [key, condition] of Object.entries(originalCriteria.conditions)) {
+			let innerConditionKey = Object.keys(condition.conditions)[0]
+			let innerCondition = condition.conditions[innerConditionKey]
+
+			let isTask = innerCondition.scope === 'task'
+			let mongoTaskId = innerCondition.taskDetails?.[0] // Original Mongo ID
+
+			let taskUUID = isTask && mongoTaskId && taskIdMap[mongoTaskId] ? taskIdMap[mongoTaskId] : null
+
+			// Prepare transformed condition object
+			let transformedCondition = {
+				validationText: Array.isArray(condition.validationText)
+					? condition.validationText[0]
+					: condition.validationText,
+				expression: condition.expression, // Keep expression untouched ("C1", "C2", etc.)
+				conditions: {},
+			}
+
+			// Prepare inner condition details
+			let newInnerCondition = {
+				scope: innerCondition.scope,
+				key: innerCondition.key,
+				operator: innerCondition.operator,
+				value:
+					typeof innerCondition.value === 'number' ? innerCondition.value.toString() : innerCondition.value,
+			}
+
+			// Add function and filter if present
+			if (innerCondition.function) {
+				newInnerCondition.function = innerCondition.function
+			}
+
+			if (innerCondition.filter) {
+				newInnerCondition.filter = innerCondition.filter
+			}
+
+			// Replace taskDetails Mongo ID with UUID if possible
+			if (isTask && taskUUID) {
+				newInnerCondition.taskDetails = [taskUUID]
+			} else if (isTask && mongoTaskId) {
+				// If mapping not found, keep original Mongo ID
+				newInnerCondition.taskDetails = [mongoTaskId]
+			}
+
+			// Add final inner condition under its original key (C1, C2, etc.)
+			transformedCondition.conditions[innerConditionKey] = newInnerCondition
+
+			// Add to transformed conditions set
+			transformedConditions[key] = transformedCondition
+		}
+
+		// Step 2: Replace task IDs in global/top-level expression
+		let transformedExpression = originalCriteria.expression
+		for (const mongoId in taskIdMap) {
+			const uuid = taskIdMap[mongoId]
+			transformedExpression = transformedExpression.replace(new RegExp(`\\b${mongoId}\\b`, 'g'), uuid)
+		}
+
+		// Step 3: Prepare final criteria object
+		certificate.criteria = {
+			validationText: Array.isArray(originalCriteria.validationText)
+				? originalCriteria.validationText[0]
+				: originalCriteria.validationText,
+			expression: transformedExpression,
+			conditions: transformedConditions,
+		}
+
 		return {
 			success: true,
-			certificateBaseTemplate: certificateBaseTemplate,
+			certificate: certificate,
 		}
 	} catch (error) {
+		console.error('Error in generateCertificateCriteria:', error)
 		return {
 			success: false,
 			error,
 		}
+	}
+}
+
+async function getSvgTemplate(certificateBaseTemplate) {
+	try {
+		let result = {
+			success: true,
+			svgTemplate: null,
+			certificateMeta: {},
+		}
+
+		let templateUrl = certificateBaseTemplate?.url
+		if (!templateUrl) {
+			throw new Error('Template URL not provided')
+		}
+
+		//download the svg template
+		const svgTemplateRes = await generateDownloadableUrlInConsumption(
+			// process.env.INTERFACE_SERVICE_HOST +
+			process.env.PROJECT_SERVICE_HOST +
+				process.env.CONSUMPTION_SERVICE_BASE_URL +
+				process.env.CONSUMPTION_SERVICE_DOWNLOADBLE_URL +
+				'?file=' +
+				templateUrl
+		)
+
+		if (!svgTemplateRes.success || !svgTemplateRes?.file) {
+			throw new Error('svg Template Not Found')
+		}
+
+		result.svgTemplate = svgTemplateRes.file
+
+		// Parse SVG Content
+		const parser = new DOMParser()
+		const svgDoc = parser.parseFromString(svgTemplateRes.file, 'image/svg+xml')
+
+		const logoImages = svgDoc.getElementsByTagName('image')
+		const signatureImages = svgDoc.getElementsByTagName('image')
+
+		const logos = {}
+		const signatures = {}
+		const signatureTitles = {}
+
+		let logoCount = 0
+		let signatureCount = 0
+
+		// Identify and count logos
+		for (let i = 0; i < logoImages.length; i++) {
+			const id = logoImages[i].getAttribute('id') || ''
+			const className = logoImages[i].getAttribute('class') || ''
+			if (id.toLowerCase().includes('logo') || className.toLowerCase().includes('logo')) {
+				logoCount++
+				logos[id] = null
+			}
+		}
+
+		// Identify and count signatures
+		for (let i = 0; i < signatureImages.length; i++) {
+			const id = signatureImages[i].getAttribute('id') || ''
+			const className = signatureImages[i].getAttribute('class') || ''
+			if (id.toLowerCase().includes('signature') || className.toLowerCase().includes('signature')) {
+				signatureCount++
+				signatures[`signatureImg${signatureCount}`] = null
+				signatureTitles[`signatureTitleName${signatureCount}`] = 'Name'
+				signatureTitles[`signatureTitleDesignation${signatureCount}`] = 'Designation'
+			}
+		}
+
+		// Add counts to respective objects
+		logos['no_of_logos'] = logoCount
+		signatures['no_of_signature'] = signatureCount
+
+		result.certificateMeta = {
+			logos,
+			signature: signatures,
+			...signatureTitles,
+		}
+
+		return result
+	} catch (error) {
+		console.error('Error in generateCertificateCriteria:', error)
+		return {
+			success: false,
+			error,
+		}
+	}
+}
+
+async function generateDownloadableUrlInConsumption(url) {
+	try {
+		const response = await axios.get(url, { timeout: 6000 })
+		let result = { success: true, file: null }
+
+		if (response.status === 200) {
+			const file = response?.data
+			result.file = file
+		} else {
+			console.error('Unexpected response status:', response.status)
+		}
+
+		return result
+	} catch (error) {
+		console.error('Error generating consumption presigned URL:', error.message)
+		throw error // Rethrow the error to be handled by the caller
 	}
 }
