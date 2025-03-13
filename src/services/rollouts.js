@@ -14,6 +14,7 @@ const { Op } = require('sequelize')
 const kafkaCommunication = require('@generics/kafka-communication')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
+const reviewService = require('@services/reviews')
 
 module.exports = class RolloutsHelper {
 	/**
@@ -1004,10 +1005,14 @@ module.exports = class RolloutsHelper {
 					result: result,
 					message: `Rollout creation failed: ${createProgramRollout.message || 'Unknown error'}`,
 				})
-				throw new Error() // Include error message if available
 			}
 
 			const solutionRollout = await Promise.all(createRolloutPromise)
+
+			const solutionRolloutPromises = solutionRollout.map(async (solution) => {
+				const resourceData = await resourceService.getDetails(solution.result.id, programData.organization_id)
+				kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
+			})
 
 			const rolloutDetails = await this.details(
 				createProgramRollout?.result?.id,

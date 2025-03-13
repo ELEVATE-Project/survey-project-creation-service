@@ -281,6 +281,11 @@ let environmentVariables = {
 			value: 'self',
 		},
 	},
+	HIGHEST_IN_ENTITY_HIERARCHY: {
+		message: 'Highest entity type in the hierarchy',
+		optional: true,
+		default: 'state',
+	},
 }
 
 let success = true
