@@ -18,7 +18,7 @@ module.exports = {
 				.notEmpty()
 				.withMessage('title is required')
 				.custom((value) => {
-					if (utils.validateTitle(value)) {
+					if (utils.validateTitle(req.checkBody('title'))) {
 						throw new Error('Value exceeds the allowed length for the field title')
 					}
 					return true

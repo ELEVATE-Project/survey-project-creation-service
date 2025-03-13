@@ -159,6 +159,7 @@
 	"PROGRAM_MANAGER_LIST_FETCHED": "Data Manager list fetched successfully.",
 	"RESOURCE_ADDED_TO_PROGRAM": "Resources have been added to the program successfully.",
 	"DONT_HAVE_PROGRAM_ACCESS": "You don't have permission to access this Program.",
+	"PROGRAM_NOT_PUBLISHED": "This Program cannot be published.",
 	"NO_RESOURCE_ADDED": "Atleast one resource is mandatory.",
 	"PROGRAM_SUBMITTED_SUCCESSFULLY": "Your program has been sent for review",
 	"PROGRAM_PUBLISHED": "You have successfully published the program"

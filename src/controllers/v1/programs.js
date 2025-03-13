@@ -158,4 +158,20 @@ module.exports = class Programs {
 			return error
 		}
 	}
+
+	/* Program publish
+	 * @method
+	 * @name publish
+	 * @param {Object} req - user request
+	 * @returns {JSON} - submitted program id.
+	 */
+
+	async publish(req) {
+		try {
+			const publish = await programService.publish(req.params.id, req.decodedToken)
+			return publish
+		} catch (error) {
+			return error
+		}
+	}
 }

@@ -21,6 +21,7 @@ const utils = require('@generics/utils')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const kafkaCommunication = require('@generics/kafka-communication')
 const consumptionRequests = require('@requests/consumption')
+const rolloutService = require('@services/rollouts')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
 module.exports = class reviewsHelper {
 	/**
@@ -716,11 +717,34 @@ module.exports = class reviewsHelper {
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
 				//resource creation through kafka
 				if (process.env.RESOURCE_KAFKA_PUSH_ON_OFF == common.KAFKA_ON) {
+					// add user token to resource data
 					resourceData.userToken = userToken
+
+					if (resourceData?.type == common.ROLLOUT_TYPE_PROGRAM) {
+						let rolloutId = await handleProgramPublish(resourceData, resourceId, userId)
+
+						// publish program rollout
+						const publishRollout = await rolloutService.publish(
+							rolloutId,
+							resourceData.user_id,
+							resourceData.organization_id,
+							resourceData.userToken
+						)
+
+						if (publishRollout.statusCode !== httpStatusCode.accepted) {
+							throw new Error(`Rollout publish failed: ${publishRollout.message || 'Unknown error'}`) // Include error message if available
+						}
+					}
 					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
 					//resource creation through api
 					consumptionRequests.publishProject(resourceData)
+				} else if (
+					resourceData.type == common.ROLLOUT_TYPE_PROGRAM &&
+					process?.env?.PROGRAM_PUBLISH_END_POINT
+				) {
+					// let rolloutId = await handleProgramPublish(resourceData, resourceId, userId)
+					// program create using api code here
 				}
 			}
 
@@ -768,6 +792,26 @@ const _restrictedReviewStatuses = [
 	common.REVIEW_STATUS_INPROGRESS,
 	common.REVIEW_STATUS_REJECTED_AND_REPORTED,
 ]
+
+async function handleProgramPublish(resourceData, resourceId, userId) {
+	let rolloutId = null
+	if (resourceData?.published_id) {
+		// if program is already rolled out
+		rolloutId = await rolloutService.updateProgramRollout(
+			resourceId,
+			resourceData,
+			userId,
+			resourceData.organization_id
+		)
+	} else {
+		// while program publishing first time
+		rolloutId = await rolloutService.createProgramRollout(resourceData)
+		if (rolloutId?.statusCode && rolloutId?.statusCode == httpStatusCode.bad_request) {
+			throw rolloutId
+		}
+	}
+	return rolloutId
+}
 /**
  * Create or update comments for a specified resource.
  * @method
