@@ -954,6 +954,12 @@ async function createProject(templateId, projectData, userId, orgId) {
 	}
 }
 
+/**
+ * Publishes a project using the given project and template IDs.
+ * @param {string} projectId - The ID of the project to publish.
+ * @param {string} templateId - The ID of the template associated with the project.
+ * @returns {Object} - Result of the publish operation.
+ */
 async function publishProject(projectId, templateId) {
 	try {
 		const publishProjectRes = await resourceService.publishCallback(projectId, templateId.toString())
@@ -1467,7 +1473,7 @@ async function getSvgTemplate(certificateBaseTemplate) {
 
 		return result
 	} catch (error) {
-		console.error('Error in generateCertificateCriteria:', error)
+		console.error('Error in cerificate meta creation:', error)
 		return {
 			success: false,
 			error,
@@ -1482,6 +1488,7 @@ async function getSvgTemplate(certificateBaseTemplate) {
  */
 async function generateDownloadableUrlInConsumption(url) {
 	try {
+		// Download the file
 		const response = await axios.get(url, { timeout: 6000 })
 		let result = { success: true, file: null }
 
@@ -1515,11 +1522,13 @@ async function handleCertificateTemplate(solution, projectTemplate, db) {
 			certificateTemplate: {},
 			certificateBaseTemplate: {},
 		}
+
+		// Validate certificateTemplateId
 		if (!solution?.certificateTemplateId) {
 			throw new Error('certificateTemplateId not found in solution')
 		}
 
-		//get the certificate template
+		// Get the certificate template
 		let certificateTemplate = await db.collection('certificateTemplates').findOne({
 			_id: solution.certificateTemplateId,
 		})
