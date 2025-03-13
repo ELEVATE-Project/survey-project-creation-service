@@ -103,13 +103,13 @@ module.exports = class RolloutsHelper {
 					}
 				} else {
 					// If file upload fails, rollback the transaction and delete the created entry
-					if (rolloutCreate.id)
+					if (rolloutCreate?.id)
 						await rolloutQueries.deleteOne(rolloutCreate.id, rolloutCreate.organization_id)
 					await transaction.rollback()
 					throw new Error('FILE_UPLOADED_FAILED')
 				}
 			} catch (error) {
-				if (rolloutCreate.id) await rolloutQueries.deleteOne(rolloutCreate.id, rolloutCreate.organization_id)
+				if (rolloutCreate?.id) await rolloutQueries.deleteOne(rolloutCreate.id, rolloutCreate.organization_id)
 				await transaction.rollback()
 				return responses.failureResponse({
 					message: error.message || error,
