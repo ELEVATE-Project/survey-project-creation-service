@@ -7,6 +7,7 @@
 const common = require('@constants/common')
 const filterRequestBody = require('../common')
 const { projects } = require('@constants/blacklistConfig')
+const utils = require('@generics/utils')
 module.exports = {
 	details: (req) => {
 		req.checkParams('id')
