@@ -115,8 +115,7 @@ module.exports = class resourceHelper {
 			page,
 			limit
 		)
-
-		const requestedForChangesResources = await resourceQueries.count({
+		let requestedForChangesResourcesFilter = {
 			id: {
 				[Op.in]: uniqueResourceIds,
 			},
@@ -124,7 +123,13 @@ module.exports = class resourceHelper {
 				[Op.in]: OrganizationIds,
 			},
 			status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
-		})
+		}
+		if (queryParams.type && queryParams.type != '') {
+			requestedForChangesResourcesFilter.type = {
+				[Op.in]: queryParams.type.split(','),
+			}
+		}
+		const requestedForChangesResources = await resourceQueries.count(requestedForChangesResourcesFilter)
 
 		if (response.result.length <= 0) {
 			result.changes_requested_count = requestedForChangesResources > 0 ? requestedForChangesResources : 0
@@ -588,12 +593,18 @@ module.exports = class resourceHelper {
 				)
 
 				inProgressResources = utils.getUniqueElements(distinctResourceIds.resource_ids)
-				const in_progress_count = await resourceQueries.count({
+				let inProgressCountFilter = {
 					id: {
 						[Op.in]: inProgressResources,
 					},
 					status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
-				})
+				}
+				if (queryParams.type && queryParams.type != '') {
+					inProgressCountFilter.type = {
+						[Op.in]: queryParams.type.split(','),
+					}
+				}
+				const in_progress_count = await resourceQueries.count(inProgressCountFilter)
 				result.in_progress_count = in_progress_count
 				finalResourceIds = inProgressResources
 			}
