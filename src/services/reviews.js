@@ -805,7 +805,7 @@ async function handleProgramPublish(resourceData, resourceId, userId) {
 		)
 	} else {
 		// while program publishing first time
-		rolloutId = await rolloutService.createProgramRollout(resourceData)
+		rolloutId = await rolloutService.createProgramRollout(resourceData, userId)
 		if (rolloutId?.statusCode && rolloutId?.statusCode == httpStatusCode.bad_request) {
 			throw rolloutId
 		}

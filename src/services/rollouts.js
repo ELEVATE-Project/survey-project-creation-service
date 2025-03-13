@@ -931,23 +931,41 @@ module.exports = class RolloutsHelper {
 	 * @returns {Integer} - program rollout id
 	 */
 
-	static async createProgramRollout(programData) {
+	static async createProgramRollout(programData, userId) {
 		try {
 			let createRolloutPromise = []
 			let resourceIds = [programData?.id]
+			const programResourceIds = programData?.resources.map((programResource) => programResource.id)
+			// check if the resource rollout is already created by the user
+			const solutionRollouts = await rolloutQueries.findAll(
+				{
+					resource_id: {
+						[Op.in]: programResourceIds,
+					},
+					created_by: userId,
+				},
+				['id']
+			)
+			let solutionRolloutsIds = []
+			if (solutionRollouts.length > 0) {
+				solutionRolloutsIds = solutionRollouts.map((solution) => solution.id)
+			}
+
 			programData?.resources.forEach(async (resource) => {
-				resourceIds.push(resource?.id)
-				const resourceRolloutReqBody = {
-					resource_id: resource?.id,
-					resource_type: resource?.type,
-					start_date: resource?.start_date || '',
-					end_date: resource?.end_date || '',
-					targeting_criteria: resource?.targeting_criteria,
-					title: resource.title,
+				if (!solutionRolloutsIds.includes(resource?.id)) {
+					resourceIds.push(resource?.id)
+					const resourceRolloutReqBody = {
+						resource_id: resource?.id,
+						resource_type: resource?.type,
+						start_date: resource?.start_date || '',
+						end_date: resource?.end_date || '',
+						targeting_criteria: resource?.targeting_criteria,
+						title: resource.title,
+					}
+					createRolloutPromise.push(
+						this.create(resourceRolloutReqBody, resource.user_id, resource.organization_id, true)
+					)
 				}
-				createRolloutPromise.push(
-					this.create(resourceRolloutReqBody, resource.user_id, resource.organization_id, true)
-				)
 			})
 			const updateResourceFilter = {
 				id: {
