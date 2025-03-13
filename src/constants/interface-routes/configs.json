@@ -982,6 +982,19 @@
 			]
 		},
 		{
+			"sourceRoute": "/scp/v1/programs/publish/:id",
+			"type": "GET",
+			"priority": "MUST_HAVE",
+			"inSequence": false,
+			"orchestrated": false,
+			"targetPackages": [
+				{
+					"basePackageName": "self-creation-portal",
+					"packageName": "elevate-self-creation-portal"
+				}
+			]
+		},
+		{
 			"sourceRoute": "/scp/v1/organization-extensions/updateConfig/:id",
 			"type": "POST",
 			"priority": "MUST_HAVE",
