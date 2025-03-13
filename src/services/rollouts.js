@@ -636,7 +636,7 @@ module.exports = class RolloutsHelper {
 				})
 
 				if (!solutionRollout?.id) {
-					let childRollout = _.pick(rolloutDetailsResult, [
+					let solutionRollout = _.pick(rolloutDetailsResult, [
 						'title',
 						'blob_path',
 						'start_date',
@@ -649,15 +649,15 @@ module.exports = class RolloutsHelper {
 						'user_id',
 						'resource_type',
 					])
-					childRollout.type = common.ROLLOUT_TYPE_SOLUTION
-					childRollout.parent_id = rolloutId
-					const resultCreateRollout = await rolloutQueries.create(childRollout)
+					solutionRollout.type = common.ROLLOUT_TYPE_SOLUTION
+					solutionRollout.parent_id = rolloutId
+					const resultCreateRollout = await rolloutQueries.create(solutionRollout)
 					solutionRolloutId = resultCreateRollout.id
 				} else {
-					let childRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])
+					let solutionRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])
 					// update the start date and end date of program for single roll out
 					solutionRolloutId = solutionRollout.id
-					await rolloutQueries.updateOne({ id: solutionRolloutId }, childRollout)
+					await rolloutQueries.updateOne({ id: solutionRolloutId }, solutionRollout)
 				}
 			}
 
@@ -880,7 +880,7 @@ module.exports = class RolloutsHelper {
 			let rolloutUpdate = {
 				start_date: programData?.meta?.start_date || '',
 				end_date: programData?.meta?.end_date || '',
-				targeting_criteria: programData?.targeting_criteria,
+				targeting_criteria: programData?.targeting_criteria || [],
 				updated_at: new Date(),
 			}
 			// prepare resources for program rollout update
@@ -942,6 +942,7 @@ module.exports = class RolloutsHelper {
 					resource_id: {
 						[Op.in]: programResourceIds,
 					},
+					organization_id: programData.organization_id,
 					created_by: userId,
 				},
 				['id']
@@ -998,7 +999,12 @@ module.exports = class RolloutsHelper {
 			)
 
 			if (createProgramRollout.statusCode !== httpStatusCode.ok) {
-				throw new Error(`Rollout creation failed: ${createProgramRollout.message || 'Unknown error'}`) // Include error message if available
+				return responses.failureResponse({
+					statusCode: httpStatusCode[createProgramRollout.statusCode],
+					result: result,
+					message: `Rollout creation failed: ${createProgramRollout.message || 'Unknown error'}`,
+				})
+				throw new Error() // Include error message if available
 			}
 
 			const solutionRollout = await Promise.all(createRolloutPromise)

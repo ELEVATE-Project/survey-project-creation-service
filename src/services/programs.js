@@ -870,7 +870,7 @@ module.exports = class ProgramsHelper {
 				reviewerIds = await validateReviewers(bodyData.reviewer_ids, userDetails)
 			}
 
-			const validationErrors = await handleProgramValidation(
+			const validationErrors = await this.handleProgramValidation(
 				programData,
 				resourceIds,
 				resourceData,
@@ -1026,10 +1026,11 @@ module.exports = class ProgramsHelper {
 		}
 	}
 	/**
-	 * Submit the program for review
+	 * Publish program
 	 * @method
 	 * @name publish
 	 * @param {string} programId - The ID of the program for submitting for review.
+	 * @param {Object} userDetails - Object of user details
 	 * @returns {JSON} - Response status of the submission
 	 */
 	static async publish(programId, userDetails) {
@@ -1042,13 +1043,7 @@ module.exports = class ProgramsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-
 			let programData = programDetails.result
-			programData.meta = {}
-			programData.meta.start_date = programData.start_date
-			programData.meta.end_date = programData.end_date
-			const resourceData = programData.resources
-			const resourceTypes = [...resourceData.map((resource) => resource.type), 'resource']
 
 			const publishableProgramStatuses = [common.RESOURCE_STATUS_PUBLISHED, common.RESOURCE_STATUS_SUBMITTED]
 			//check if the program status is valid to publish
@@ -1060,7 +1055,106 @@ module.exports = class ProgramsHelper {
 				})
 			}
 
+			programData.meta = programData?.meta ? programData.meta : {}
+			programData.meta.start_date = programData.start_date
+			programData.meta.end_date = programData.end_date
+			const resourceData = programData.resources
+			const resourceIds = programData.resources.map((resource) => resource.id)
+			const resourceTypes = [...resourceData.map((resource) => resource.type), 'resource']
+
+			const validationErrors = await this.handleProgramValidation(
+				programData,
+				resourceIds,
+				resourceData,
+				resourceTypes
+			)
+
+			if (validationErrors.length > 0) {
+				const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
+				return responses.failureResponse({
+					responseCode: 'CLIENT_ERROR',
+					statusCode: httpStatusCode.bad_request,
+					result: result,
+					message: 'RESOURCE_VALIDATION_FAILED',
+				})
+			}
+
+			let rolloutId = await handleProgramRollouts(programData, programId, userDetails.id)
+
+			if (isNaN(rolloutId)) {
+				throw new Error(rolloutId)
+			}
+
+			// publish program rollout
+			const publishRollout = await rolloutService.publish(
+				rolloutId,
+				programData.user_id,
+				programData.organization_id,
+				programData.userToken
+			)
+
+			if (![httpStatusCode.ok, httpStatusCode.accepted].includes(publishRollout.statusCode)) {
+				return responses.failureResponse({
+					message: `Rollout publish failed: ${publishRollout.message || 'Unknown error'}`,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+					result: error.error || [],
+				})
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'PROGRAM_PUBLISHED',
+				result: { id: programData.id },
+			})
+		} catch (error) {
+			return responses.failureResponse({
+				message: error.message || 'RESOURCE_VALIDATION_FAILED',
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+				result: error.error || [],
+			})
+		}
+	}
+
+	/**
+	 * Handle program validations
+	 * @param {Object} programData - Program details
+	 * @param {Array} resourceIds - List of resourceIds
+	 * @param {Object} resourceData - resources details
+	 * @param {Array} resourceTypes - List of resource Types
+	 * @returns {Array} - Return array of error objects
+	 */
+	static async handleProgramValidation(programData, resourceIds, resourceData, resourceTypes) {
+		try {
+			const programTargeting = programData?.targeting_criteria
+			// fetch the top level of entity in the hierarchy
+			let { programTopLevelTargetingEntities, programLevelRoles } = await fetchProgramTopLevelEntities(
+				programTargeting
+			)
+
 			let validationErrors = []
+
+			if (
+				programTargeting == undefined ||
+				Object.keys(programTargeting).length <= 0 ||
+				programTopLevelTargetingEntities.length <= 0
+			) {
+				validationErrors.push(
+					utils.errorObject(
+						`${common.RESOURCE_TYPE_PROGRAM}.targeting_criteria`,
+						'targeting_criteria',
+						'Target your Program to any targeting criteria.'
+					)
+				)
+			}
+
+			// Check if any resources are added to program
+			if (resourceIds.length == 0) {
+				validationErrors.push(
+					utils.errorObject(common.RESOURCE_TYPE_PROGRAM, 'resources', `Atleast one resource is mandatory.`)
+				)
+			}
 
 			//get all entity type validations for program
 			let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
@@ -1080,87 +1174,55 @@ module.exports = class ProgramsHelper {
 
 			await Promise.all(programValidationPromises)
 
-			let resourceValidationErrors = []
+			if (resourceIds.length > 0) {
+				let resourceValidationErrors = []
 
-			let resourceEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
-				{
-					model: {
-						[Op.in]: resourceTypes,
+				let resourceEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
+					{
+						model: {
+							[Op.in]: resourceTypes,
+						},
+						status: common.STATUS_ACTIVE,
 					},
-					status: common.STATUS_ACTIVE,
-				},
-				programData.organization_id,
-				['id', 'value', 'has_entities', 'validations']
-			)
-
-			let { programTopLevelTargetingEntities, programLevelRoles } = await fetchProgramTopLevelEntities(
-				programData?.targeting_criteria
-			)
-
-			const resourcesValidationPromise = resourceData.map(async (resource, index) => {
-				const basePath = `${common.RESOURCES}[${index}]`
-				validateResources(
-					resource,
-					programTopLevelTargetingEntities,
-					programData?.targeting_criteria,
-					programLevelRoles,
-					programData,
-					resourceEntityTypes,
-					basePath,
-					(resourceValidationErrors = [])
+					programData.organization_id,
+					['id', 'value', 'has_entities', 'validations']
 				)
-			})
-
-			await Promise.all(resourcesValidationPromise)
-			const resourceErrors = await Promise.all(resourceValidationErrors)
-
-			resourceErrors
-				.filter((error) => !(error?.hasError === false))
-				.forEach((error) => {
-					if (Array.isArray(error)) {
-						validationErrors.push(error)
-					} else if (error?.hasError && Array.isArray(error.error)) {
-						validationErrors.push(...error.error)
-					}
+				let { programTopLevelTargetingEntities, programLevelRoles } = await fetchProgramTopLevelEntities(
+					programTargeting
+				)
+				const resourcesValidationPromise = resourceData.map(async (resource, index) => {
+					const basePath = `${common.RESOURCES}[${index}]`
+					validateResources(
+						resource,
+						programTopLevelTargetingEntities,
+						programTargeting,
+						programLevelRoles,
+						programData,
+						resourceEntityTypes,
+						basePath,
+						(resourceValidationErrors = [])
+					)
 				})
 
-			if (validationErrors.length > 0) {
-				const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
-				return responses.failureResponse({
-					responseCode: 'CLIENT_ERROR',
-					statusCode: httpStatusCode.bad_request,
-					result: result,
-					message: 'RESOURCE_VALIDATION_FAILED',
-				})
+				await Promise.all(resourcesValidationPromise)
+				const resourceErrors = await Promise.all(resourceValidationErrors)
+
+				resourceErrors
+					.filter((error) => !(error?.hasError === false))
+					.forEach((error) => {
+						if (Array.isArray(error)) {
+							validationErrors.push(error)
+						} else if (error?.hasError && Array.isArray(error.error)) {
+							validationErrors.push(...error.error)
+						}
+					})
 			}
 
-			let rolloutId = await handleProgramPublish(programData, programId, userDetails.id)
-
-			if (isNaN(rolloutId)) {
-				throw new Error(rolloutId)
-			}
-
-			// publish program rollout
-			const publishRollout = await rolloutService.publish(
-				rolloutId,
-				programData.user_id,
-				programData.organization_id,
-				programData.userToken
-			)
-
-			if (![httpStatusCode.ok, httpStatusCode.accepted].includes(publishRollout.statusCode)) {
-				throw new Error(`Rollout publish failed: ${publishRollout.message || 'Unknown error'}`) // Include error message if available
-			}
-
-			return responses.successResponse({
-				statusCode: httpStatusCode.ok,
-				message: 'PROGRAM_PUBLISHED',
-				result: { id: programData.id },
-			})
+			return validationErrors
 		} catch (error) {
 			return responses.failureResponse({
-				message: error.message || 'RESOURCE_VALIDATION_FAILED',
-				statusCode: httpStatusCode.bad_request,
+				message: error.message,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 				result: error.error || [],
 			})
@@ -1186,114 +1248,13 @@ async function fetchProgramTopLevelEntities(programTargeting) {
 }
 
 /**
- * Handle program validations
- * @param {Object} programData - Program details
- * @param {Array} resourceIds - List of resourceIds
- * @param {Object} resourceData - resources details
- * @param {Array} resourceTypes - List of resource Types
- * @returns {Array} - Return array of error objects
- */
-async function handleProgramValidation(programData, resourceIds, resourceData, resourceTypes) {
-	const programTargeting = programData?.targeting_criteria
-
-	let { programTopLevelTargetingEntities, programLevelRoles } = await fetchProgramTopLevelEntities(programTargeting)
-
-	let validationErrors = []
-
-	if (
-		programTargeting == undefined ||
-		Object.keys(programTargeting).length <= 0 ||
-		programTopLevelTargetingEntities.length <= 0
-	) {
-		validationErrors.push(
-			utils.errorObject(
-				`${common.RESOURCE_TYPE_PROGRAM}.targeting_criteria`,
-				'targeting_criteria',
-				'Target your Program to any targeting criteria.'
-			)
-		)
-	}
-
-	// Check if any resources are added to program
-	if (resourceIds.length == 0) {
-		validationErrors.push(
-			utils.errorObject(common.RESOURCE_TYPE_PROGRAM, 'resources', `Atleast one resource is mandatory.`)
-		)
-	}
-
-	//get all entity type validations for program
-	let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
-		{
-			model: common.RESOURCE_TYPE_PROGRAM,
-			status: common.STATUS_ACTIVE,
-		},
-		programData.organization_id,
-		['id', 'value', 'has_entities', 'validations']
-	)
-
-	let basePath = ''
-	//validate program data
-	const programValidationPromises = entityTypes.map((entityType) => {
-		validateEntityData(programData, entityType, common.RESOURCE_TYPE_PROGRAM, basePath, validationErrors)
-	})
-
-	await Promise.all(programValidationPromises)
-
-	if (resourceIds.length > 0) {
-		let resourceValidationErrors = []
-
-		let resourceEntityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
-			{
-				model: {
-					[Op.in]: resourceTypes,
-				},
-				status: common.STATUS_ACTIVE,
-			},
-			programData.organization_id,
-			['id', 'value', 'has_entities', 'validations']
-		)
-		let { programTopLevelTargetingEntities, programLevelRoles } = await fetchProgramTopLevelEntities(
-			programTargeting
-		)
-		const resourcesValidationPromise = resourceData.map(async (resource, index) => {
-			const basePath = `${common.RESOURCES}[${index}]`
-			validateResources(
-				resource,
-				programTopLevelTargetingEntities,
-				programTargeting,
-				programLevelRoles,
-				programData,
-				resourceEntityTypes,
-				basePath,
-				(resourceValidationErrors = [])
-			)
-		})
-
-		await Promise.all(resourcesValidationPromise)
-		const resourceErrors = await Promise.all(resourceValidationErrors)
-
-		resourceErrors
-			.filter((error) => !(error?.hasError === false))
-			.forEach((error) => {
-				if (Array.isArray(error)) {
-					validationErrors.push(error)
-				} else if (error?.hasError && Array.isArray(error.error)) {
-					validationErrors.push(...error.error)
-				}
-			})
-	}
-
-	return validationErrors
-}
-
-/**
  * Handle program rollout publish
  * @param {Object} resourceData - resources details
  * @param {Integer} resourceId - Rollout resourceId
  * @param {String} userId - Logged in user id
  * @returns {Integer} - Return rollout id or validation error
  */
-async function handleProgramPublish(resourceData, resourceId, userId) {
+async function handleProgramRollouts(resourceData, resourceId, userId) {
 	let rolloutId = null
 	if (resourceData?.published_id) {
 		// if program is already rolled out
