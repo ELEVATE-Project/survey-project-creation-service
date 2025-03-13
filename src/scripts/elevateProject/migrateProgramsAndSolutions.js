@@ -1227,6 +1227,12 @@ async function generateTargetingCriteria(scope = {}, db) {
 	}
 }
 
+/**
+ * Checks if a certificate base template exists for a given code and type.
+ * @param {string} code - Certificate base template code.
+ * @param {string} type - Resource type (e.g., 'project').
+ * @returns {Promise<Object>} - An object with success status and certificate base template data if found.
+ */
 async function isCertificateBaseTemplateExist(code, type) {
 	try {
 		let certificateBaseTemplate = await certificateBaseTemplateQueries.findOne({
@@ -1251,6 +1257,14 @@ async function isCertificateBaseTemplateExist(code, type) {
 	}
 }
 
+/**
+ * Generates certificate criteria with transformed task IDs and structured metadata.
+ * @param {Object} certificateTemplate - Certificate template containing issuer and criteria.
+ * @param {Object} certificateBaseTemplate - Base template metadata (logos, signatures).
+ * @param {Object} scpCertificateBaseTemplate - SCP's certificate base template details.
+ * @param {Object} taskIdMap - Mapping of MongoDB task IDs to UUIDs.
+ * @returns {Promise<Object>} - An object containing success status and formatted certificate data.
+ */
 async function generateCertificateCriteria(
 	certificateTemplate,
 	certificateBaseTemplate,
@@ -1372,6 +1386,11 @@ async function generateCertificateCriteria(
 	}
 }
 
+/**
+ * Downloads and parses SVG template to extract metadata like logos and signatures.
+ * @param {Object} certificateBaseTemplate - Certificate base template containing the URL.
+ * @returns {Promise<Object>} - An object with success status, SVG content, and extracted metadata.
+ */
 async function getSvgTemplate(certificateBaseTemplate) {
 	try {
 		let result = {
@@ -1387,8 +1406,7 @@ async function getSvgTemplate(certificateBaseTemplate) {
 
 		//download the svg template
 		const svgTemplateRes = await generateDownloadableUrlInConsumption(
-			// process.env.INTERFACE_SERVICE_HOST +
-			process.env.PROJECT_SERVICE_HOST +
+			process.env.INTERFACE_SERVICE_HOST +
 				process.env.CONSUMPTION_SERVICE_BASE_URL +
 				process.env.CONSUMPTION_SERVICE_DOWNLOADBLE_URL +
 				'?file=' +
@@ -1457,6 +1475,11 @@ async function getSvgTemplate(certificateBaseTemplate) {
 	}
 }
 
+/**
+ * Downloads a file from a given URL and returns its content.
+ * @param {string} url - The URL to download the file from.
+ * @returns {Promise<Object>} - An object with success status and file data.
+ */
 async function generateDownloadableUrlInConsumption(url) {
 	try {
 		const response = await axios.get(url, { timeout: 6000 })
@@ -1476,6 +1499,14 @@ async function generateDownloadableUrlInConsumption(url) {
 	}
 }
 
+/**
+ * Fetches or creates a certificate template and its base template in SCP.
+ * @param {Object} solution - Object containing certificateTemplateId.
+ * @param {Object} projectTemplate - Project template object for reference.
+ * @param {Object} db - Database instance to query templates.
+ * @returns {Promise<Object>} - Returns an object with SCP certificate base template,
+ * @throws {Error} If any required template is missing or creation fails.
+ */
 async function handleCertificateTemplate(solution, projectTemplate, db) {
 	try {
 		let result = {
@@ -1589,6 +1620,15 @@ async function handleCertificateTemplate(solution, projectTemplate, db) {
 	}
 }
 
+/**
+ * Updates the project resource with meta information and sets it as non-reusable.
+ * @param {string} projectId - The unique identifier of the project to update.
+ * @param {Object} solution - The solution object containing optional start and end dates.
+ * @param {string | null} [solution.startDate] - The start date of the project (optional).
+ * @param {string | null} [solution.endDate] - The end date of the project (optional).
+ * @returns {Promise<Object>} - Returns a promise that resolves to the updated project object.
+ * @throws {Error} Throws an error if the update operation fails.
+ */
 async function updateProjectResource(projectId, solution) {
 	try {
 		const updatePayload = {
