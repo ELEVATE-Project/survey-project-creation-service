@@ -956,7 +956,7 @@ module.exports = class ProgramsHelper {
 				{
 					user_id: userDetails.id,
 					resource_id: {
-						[Op.in]: [parseInt(programId), ...resourceIds],
+						[Op.in]: [programId, ...resourceIds],
 					},
 					status: common.COMMENT_STATUS_DRAFT,
 				},
