@@ -657,7 +657,7 @@ module.exports = class RolloutsHelper {
 				} else {
 					let solutionRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])
 					// update the start date and end date of program for single roll out
-					solutionRolloutId = solutionRollout.id
+					solutionRolloutId = rolloutDetailsResult.id
 					await rolloutQueries.updateOne({ id: solutionRolloutId }, solutionRollout)
 				}
 			}
