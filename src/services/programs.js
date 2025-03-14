@@ -304,6 +304,7 @@ module.exports = class ProgramsHelper {
 				...bodyData,
 				updated_by: loggedInUserId,
 				meta: {
+					...fetchResource.meta,
 					start_date: bodyData.start_date || '',
 					end_date: bodyData.end_date || '',
 				},
@@ -483,7 +484,6 @@ module.exports = class ProgramsHelper {
 						resourceService.getDetails(resource.id, resource.organization_id)
 					)
 					const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
-					// console.log(resourceDetailsResults, 'resourceDetailsResults')
 					result.resources = resourceDetailsResults
 						.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
 						.map((resourceDetail) => ({
@@ -950,26 +950,20 @@ module.exports = class ProgramsHelper {
 					}
 				)
 			}
-			const userComments = await commentQueries.findAndCountAll({
-				user_id: userDetails.id,
-				resource_id: {
-					[Op.in]: [programId, ...resourceIds],
-				},
-				status: common.COMMENT_STATUS_DRAFT,
-			})
 
-			if (userComments.count > 0) {
-				await commentQueries.update(
-					{
-						id: {
-							[Op.in]: userComments.rows.map((comment) => comment.id),
-						},
+			//Open all draft comment when submitting the program for response
+			await commentQueries.update(
+				{
+					user_id: userDetails.id,
+					resource_id: {
+						[Op.in]: [programId, ...resourceIds],
 					},
-					{
-						status: common.COMMENT_STATUS_OPEN,
-					}
-				)
-			}
+					status: common.COMMENT_STATUS_DRAFT,
+				},
+				{
+					status: common.COMMENT_STATUS_OPEN,
+				}
+			)
 
 			//check review is required or not
 			const isReviewMandatory = await resourceService.isReviewMandatory(
@@ -997,6 +991,7 @@ module.exports = class ProgramsHelper {
 
 			if (bodyData.notes) {
 				resourcesUpdate.meta = {
+					...programData.meta,
 					notes: bodyData.notes,
 				}
 			}
@@ -1332,7 +1327,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId, isRe
 					if (isReusable || isResuableFalseResourceCreate) {
 						// Create a duplicate of the reusable resource
 						const duplicatedResourceData = {
-							..._.omit(resourceDetails, ['created_at', 'updated_at']),
+							..._.omit(resourceDetails, ['created_at', 'updated_at', 'is_comments']),
 							...resource,
 							...commonFields,
 							is_reusable: false,
@@ -1391,6 +1386,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId, isRe
 								'published_on',
 								'last_reviewed_on',
 								'is_under_edit',
+								'is_comments',
 							]
 						)
 
