@@ -721,7 +721,7 @@ module.exports = class reviewsHelper {
 					resourceData.userToken = userToken
 
 					if (resourceData?.type == common.ROLLOUT_TYPE_PROGRAM) {
-						let rolloutId = await handleProgramPublish(resourceData, resourceId, userId)
+						let rolloutId = await handleProgramRollout(resourceData, resourceId, userId)
 
 						// publish program rollout
 						const publishRollout = await rolloutService.publish(
@@ -732,19 +732,19 @@ module.exports = class reviewsHelper {
 						)
 
 						if (publishRollout.statusCode !== httpStatusCode.accepted) {
-							throw new Error(`Rollout publish failed: ${publishRollout.message || 'Unknown error'}`) // Include error message if available
+							return responses.failureResponse({
+								responseCode: 'CLIENT_ERROR',
+								statusCode: httpStatusCode[publishRollout.statusCode],
+								result: result,
+								message: `Rollout publish failed: ${publishRollout.message || 'Unknown error'}`,
+							})
+							throw new Error() // Include error message if available
 						}
 					}
 					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
 					//resource creation through api
 					consumptionRequests.publishProject(resourceData)
-				} else if (
-					resourceData.type == common.ROLLOUT_TYPE_PROGRAM &&
-					process?.env?.PROGRAM_PUBLISH_END_POINT
-				) {
-					// let rolloutId = await handleProgramPublish(resourceData, resourceId, userId)
-					// program create using api code here
 				}
 			}
 
@@ -793,24 +793,37 @@ const _restrictedReviewStatuses = [
 	common.REVIEW_STATUS_REJECTED_AND_REPORTED,
 ]
 
-async function handleProgramPublish(resourceData, resourceId, userId) {
-	let rolloutId = null
-	if (resourceData?.published_id) {
-		// if program is already rolled out
-		rolloutId = await rolloutService.updateProgramRollout(
-			resourceId,
-			resourceData,
-			userId,
-			resourceData.organization_id
-		)
-	} else {
-		// while program publishing first time
-		rolloutId = await rolloutService.createProgramRollout(resourceData)
-		if (rolloutId?.statusCode && rolloutId?.statusCode == httpStatusCode.bad_request) {
-			throw rolloutId
+/**
+ * handle Program Rollout
+ * @method
+ * @name handleProgramRollout
+ * @param {Object} resourceData - Object of resource data
+ * @param {Integer} resourceId - The ID of the resource
+ * @param {String} userId - The ID of the user
+ * @returns {JSON} - Publish Response
+ */
+async function handleProgramRollout(resourceData, resourceId, userId) {
+	try {
+		let rolloutId = null
+		if (resourceData?.published_id) {
+			// if program is already rolled out
+			rolloutId = await rolloutService.updateProgramRollout(
+				resourceId,
+				resourceData,
+				userId,
+				resourceData.organization_id
+			)
+		} else {
+			// while program publishing first time
+			rolloutId = await rolloutService.createProgramRollout(resourceData, userId)
+			if (rolloutId?.statusCode && rolloutId?.statusCode == httpStatusCode.bad_request) {
+				throw rolloutId
+			}
 		}
+		return rolloutId
+	} catch (error) {
+		throw error
 	}
-	return rolloutId
 }
 /**
  * Create or update comments for a specified resource.
