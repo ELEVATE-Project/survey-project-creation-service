@@ -14,7 +14,6 @@ const { Op } = require('sequelize')
 const kafkaCommunication = require('@generics/kafka-communication')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
-const reviewService = require('@services/reviews')
 
 module.exports = class RolloutsHelper {
 	/**
