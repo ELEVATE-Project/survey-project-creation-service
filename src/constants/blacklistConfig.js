@@ -45,7 +45,7 @@ const rolePermissionMapping = {
 }
 
 const comments = {
-	update: ['id', 'user_id', 'resource_id', 'resolved_by', 'resolved_at'],
+	update: ['user_id', 'resource_id', 'resolved_by', 'resolved_at'],
 }
 
 const organizationExtensions = {

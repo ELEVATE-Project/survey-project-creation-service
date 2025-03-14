@@ -496,7 +496,7 @@ module.exports = class ProgramsHelper {
 			if (result.meta) {
 				Object.assign(result, result.meta)
 			}
-			delete result.blob_path, delete result.meta
+			delete result.blob_path
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -956,7 +956,7 @@ module.exports = class ProgramsHelper {
 				{
 					user_id: userDetails.id,
 					resource_id: {
-						[Op.in]: [programId, ...resourceIds],
+						[Op.in]: [parseInt(programId), ...resourceIds],
 					},
 					status: common.COMMENT_STATUS_DRAFT,
 				},
