@@ -336,14 +336,14 @@ const dbName = mongoUrl.split('/').pop()
 						}
 
 						// Generate the targeting criteria
-						projectTemplate.targeting_criteria = []
+						convertedTemplate.targeting_criteria = []
 						if (solution?.scope) {
 							let targetingCriteriaRes = await generateTargetingCriteria(solution.scope, db)
 							if (!targetingCriteriaRes.success) {
 								throw new Error('Failed to generate targeting criteria')
 							}
 
-							projectTemplate.targeting_criteria = targetingCriteriaRes.result || []
+							convertedTemplate.targeting_criteria = targetingCriteriaRes.result || []
 						}
 
 						// Find non-existing entities sequentially
@@ -355,27 +355,6 @@ const dbName = mongoUrl.split('/').pop()
 
 								await filterNonExistingEntities(key, values, entityTypeEntityMap, entitiesToCreate)
 							}
-						}
-
-						// Create the project and entities after conversion
-						let projectCreateResponse = await createProjectAndEntities(
-							projectTemplate._id.toString(),
-							convertedTemplate,
-							entityTypeEntityMap,
-							entitiesToCreate,
-							createdEntityIds
-						)
-
-						if (!projectCreateResponse.success) {
-							csvRecords.push({
-								programId: programIdStr,
-								solutionId: solutionIdStr,
-								type: common.ROLLOUT_TYPE_SOLUTION,
-								success: 'Project resource creation failed',
-								resourceId: '',
-								rolloutId: '',
-							})
-							continue
 						}
 
 						// If certificate exist then add certificate criteria object
@@ -400,42 +379,57 @@ const dbName = mongoUrl.split('/').pop()
 								//update the resource with certificate object
 								if (certificateCeriteriaRes.success && certificateCeriteriaRes.certificate) {
 									convertedTemplate.certificates = certificateCeriteriaRes.certificate
-
-									const updateProject = await projectService.update(
-										projectCreateResponse.projectId,
-										convertedTemplate,
-										convertedTemplate.created_by,
-										convertedTemplate.organization_id
-									)
-
-									if (!updateProject?.result) {
-										throw new Error('Failed to update project')
-									}
 								}
 							}
 						}
 
-						//publish project
-						const projectPublishResponse = await publishProject(
-							projectCreateResponse.projectId,
-							projectTemplate._id
+						// Create the project and entities after conversion
+						let projectCreateResponse = await createProjectAndEntities(
+							projectTemplate._id.toString(),
+							convertedTemplate,
+							entityTypeEntityMap,
+							entitiesToCreate,
+							createdEntityIds
 						)
 
-						if (!projectPublishResponse.success) {
-							console.log(`Failed to publish project for solution ${solutionIdStr}`)
+						if (!projectCreateResponse.success) {
 							csvRecords.push({
 								programId: programIdStr,
 								solutionId: solutionIdStr,
 								type: common.ROLLOUT_TYPE_SOLUTION,
-								success: 'Failed to publish project',
+								success: 'Project resource creation failed',
 								resourceId: '',
 								rolloutId: '',
 							})
 							continue
 						}
 
-						//update project template
-						await updateProjectResource(projectCreateResponse.projectId, solution)
+						//update and publish resource
+						const updatePayload = {
+							meta: {
+								start_date: solution.startDate || null,
+								end_date: solution.endDate || null,
+							},
+							is_reusable: false,
+							published_id: projectTemplate._id.toString(),
+							published_on: new Date(),
+							status: common.RESOURCE_STATUS_PUBLISHED,
+							stage: common.RESOURCE_STAGE_COMPLETION,
+						}
+
+						let updateResourceRes = await updateResource(projectCreateResponse.projectId, updatePayload)
+						if (!updateResourceRes.success) {
+							console.log(`Failed to update or publish resource for solution ${solutionIdStr}`)
+							csvRecords.push({
+								programId: programIdStr,
+								solutionId: solutionIdStr,
+								type: common.ROLLOUT_TYPE_SOLUTION,
+								success: 'Failed to update or publish resource',
+								resourceId: '',
+								rolloutId: '',
+							})
+							continue
+						}
 
 						// Add solution to mapping
 						validSolutionIds.push(projectCreateResponse.projectId)
@@ -649,6 +643,7 @@ const dbName = mongoUrl.split('/').pop()
 		console.log('Connection closed')
 	} catch (error) {
 		console.error('Error during migration:', error)
+		return error
 	}
 })()
 
@@ -892,9 +887,6 @@ async function createProjectAndEntities(
 							}
 						}
 
-						console.log(entitiesToCreate, 'entitiesToCreate after creation')
-						console.log(entityTypeEntityMap, 'entityTypeEntityMap after entity creation')
-
 						if (!createdEntityIds[entity.entity_type_id]) {
 							createdEntityIds[entity.entity_type_id] = [] // Initialize if not already done
 						}
@@ -1069,9 +1061,10 @@ async function generateTargetingCriteria(scope = {}, db) {
 	try {
 		let targetingCriteria = []
 
-		// Return empty if scope is empty
-		if (!scope || Object.keys(scope).length === 0) {
-			return { success: true, result: targetingCriteria }
+		// Return empty if scope is empty or has no valid targeting data
+		if (!scope || Object.keys(scope).length === 0 || !hasValidTargetingData(scope)) {
+			console.log('No valid targeting-related data found in scope. Returning empty targeting criteria.')
+			return { success: true, result: [] }
 		}
 
 		// Normalize roles from scope
@@ -1096,12 +1089,14 @@ async function generateTargetingCriteria(scope = {}, db) {
 				.find({ code: { $in: roleCodes } })
 				.toArray()
 
-			roles = userRoleExtensions.map((role) => ({
-				_id: role._id.toString(),
-				value: role.userRoleId,
-				label: role.title,
-				code: role.code,
-			}))
+			roles = userRoleExtensions.length
+				? userRoleExtensions.map((role) => ({
+						_id: role._id.toString(),
+						value: role.userRoleId,
+						label: role.title,
+						code: role.code,
+				  }))
+				: []
 		}
 
 		// Process entityType and entities
@@ -1114,12 +1109,12 @@ async function generateTargetingCriteria(scope = {}, db) {
 				entityIds = scope.entities
 			} else {
 				entityTypeIds.forEach((et) => {
-					if (scope[et]) entityIds.push(...scope[et])
+					if (scope[et]) entityIds.push(...scope[et].flat())
 				})
 			}
 		}
 
-		entityIds = entityIds.map((id) => ObjectId(id))
+		entityIds = entityIds.length ? entityIds.map((id) => ObjectId(id)) : []
 
 		// Fetch entities and entityTypes
 		const [entities, entityTypes] = await Promise.all([
@@ -1179,12 +1174,7 @@ async function generateTargetingCriteria(scope = {}, db) {
 						}
 
 						// Fetch targeted roles from API
-						const apiUrl = `${
-							// process.env.INTERFACE_SERVICE_HOST
-							process.env.PROJECT_SERVICE_HOST
-						}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${
-							process.env.CONSUMPTION_SERVICE_TARGETED_ROLES_END_POINT
-						}/${highestEntity._id}?entityType=${entity.entityType}`
+						const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${process.env.CONSUMPTION_SERVICE_TARGETED_ROLES_END_POINT}/${highestEntity._id}?entityType=${entity.entityType}`
 						const targetedRolesResponse = await requests.get(
 							apiUrl,
 							'',
@@ -1238,6 +1228,47 @@ async function generateTargetingCriteria(scope = {}, db) {
 		console.error('Error in generateTargetingCriteria:', error)
 		return { success: false, error: error.message }
 	}
+}
+
+/**
+ * Checks if the scope object contains at least one valid ObjectId or UUID.
+ * @param {Object} scope - The scope object to check.
+ * @returns {boolean} - Returns true if at least one valid ObjectId or UUID is found, otherwise false.
+ */
+function hasValidTargetingData(scope) {
+	for (const key in scope) {
+		const value = scope[key]
+
+		if (typeof value === 'string' && migrationUtils.isValidObjectIdOrUUID(value)) {
+			return true
+		}
+
+		if (Array.isArray(value)) {
+			if (value.some((item) => typeof item === 'string' && migrationUtils.isValidObjectIdOrUUID(item))) {
+				return true
+			}
+		}
+
+		// If value itself is an object and might contain IDs (optional enhancement)
+		if (typeof value === 'object' && value !== null) {
+			for (const innerKey in value) {
+				const innerValue = value[innerKey]
+				if (typeof innerValue === 'string' && migrationUtils.isValidObjectIdOrUUID(innerValue)) {
+					return true
+				}
+				if (Array.isArray(innerValue)) {
+					if (
+						innerValue.some(
+							(item) => typeof item === 'string' && migrationUtils.isValidObjectIdOrUUID(item)
+						)
+					) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
 }
 
 /**
@@ -1509,7 +1540,10 @@ async function generateDownloadableUrlInConsumption(url) {
 		return result
 	} catch (error) {
 		console.error('Error generating consumption presigned URL:', error.message)
-		throw error // Rethrow the error to be handled by the caller
+		return {
+			success: false,
+			error,
+		}
 	}
 }
 
@@ -1632,39 +1666,37 @@ async function handleCertificateTemplate(solution, projectTemplate, db) {
 		return result
 	} catch (error) {
 		console.error('Error creating or fetching certificate template:', error.message)
-		throw error
+		return {
+			success: false,
+			error,
+		}
 	}
 }
 
 /**
- * Updates the project resource with meta information and sets it as non-reusable.
- * @param {string} projectId - The unique identifier of the project to update.
+ * Updates the resource
+ * @param {string} projectId - The unique identifier of the resource to update.
  * @param {Object} solution - The solution object containing optional start and end dates.
- * @param {string | null} [solution.startDate] - The start date of the project (optional).
- * @param {string | null} [solution.endDate] - The end date of the project (optional).
- * @returns {Promise<Object>} - Returns a promise that resolves to the updated project object.
+ * @param {Object} updateData - The date to be updated
+ * @returns {Promise<Object>} - Returns a promise that resolves to the updated resource object.
  * @throws {Error} Throws an error if the update operation fails.
  */
-async function updateProjectResource(projectId, solution) {
+async function updateResource(resourceId, updateData) {
 	try {
-		const updatePayload = {
-			meta: {
-				start_date: solution.startDate || null,
-				end_date: solution.endDate || null,
-			},
-			is_reusable: false,
+		let result = {
+			success: true,
+			updatedResource: null,
 		}
-
 		const updateOptions = {
 			returning: true,
 			raw: true,
 		}
 
-		const updatedProject = await resourceQueries.updateOne({ id: projectId }, updatePayload, updateOptions)
-
-		return updatedProject
+		const updatedResource = await resourceQueries.updateOne({ id: resourceId }, updateData, updateOptions)
+		result.updatedResource = updatedResource
+		return result
 	} catch (error) {
-		console.error('Error updating project resource:', error)
-		throw new Error('Failed to update project resource')
+		console.error('Error updating resource:', error)
+		return { success: false, error }
 	}
 }
