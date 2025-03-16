@@ -175,6 +175,7 @@ const dbName = mongoUrl.split('/').pop()
 				const solutions = await db
 					.collection('solutions')
 					.find({
+						_id: { $in: solutionMongoIds },
 						type: 'improvementProject',
 					})
 					.toArray()
@@ -324,6 +325,7 @@ const dbName = mongoUrl.split('/').pop()
 							continue
 						}
 
+						//add task object id uuid map to replace task id in certificate criteria
 						let taskIdMap = convertedTemplate.taskIdMap
 						convertedTemplate = convertedTemplate.template
 
@@ -395,7 +397,7 @@ const dbName = mongoUrl.split('/').pop()
 									taskIdMap
 								)
 
-								//update the resource with certificate
+								//update the resource with certificate object
 								if (certificateCeriteriaRes.success && certificateCeriteriaRes.certificate) {
 									convertedTemplate.certificates = certificateCeriteriaRes.certificate
 
@@ -420,7 +422,7 @@ const dbName = mongoUrl.split('/').pop()
 						)
 
 						if (!projectPublishResponse.success) {
-							// throw new Error('Failed to publish project')
+							console.log(`Failed to publish project for solution ${solutionIdStr}`)
 							csvRecords.push({
 								programId: programIdStr,
 								solutionId: solutionIdStr,
@@ -1177,7 +1179,12 @@ async function generateTargetingCriteria(scope = {}, db) {
 						}
 
 						// Fetch targeted roles from API
-						const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${process.env.CONSUMPTION_SERVICE_TARGETED_ROLES_END_POINT}/${highestEntity._id}?entityType=${entity.entityType}`
+						const apiUrl = `${
+							// process.env.INTERFACE_SERVICE_HOST
+							process.env.PROJECT_SERVICE_HOST
+						}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${
+							process.env.CONSUMPTION_SERVICE_TARGETED_ROLES_END_POINT
+						}/${highestEntity._id}?entityType=${entity.entityType}`
 						const targetedRolesResponse = await requests.get(
 							apiUrl,
 							'',
