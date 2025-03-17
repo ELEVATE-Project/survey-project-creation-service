@@ -573,6 +573,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 		return createdSolutionsResponse
 	} catch (error) {
 		console.log(error)
+		throw error
 	}
 }
 
@@ -1305,66 +1306,34 @@ async function downloadAndConvertToBase64(url) {
 async function createProgram(programTemplate) {
 	// Insert the template into the database
 	const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
-	result = await programsCollection.insertOne(programTemplate)
+	const result = await programsCollection.insertOne(programTemplate)
 	// Validate the result of the template creation
 	if (!result || !result.insertedId) {
 		throw new Error('Failed to insert the template into the database.')
 	}
 	return result.insertedId
 }
-async function updateProgram(programTemplate) {
+
+async function updateProgram(programId, updateTemplate) {
 	// Update the template in the database
 	const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
-	let updateData = _.omit(programTemplate, '_id', 'published_id')
-	result = await programsCollection.updateOne(
-		{ _id: programTemplate?._id },
+	await programsCollection.updateOne(
+		{ _id: programId },
 		{
-			$set: updateData,
+			$set: _.omit(updateTemplate, '_id', 'published_id'),
 		}
 	)
-	return programTemplate?._id
+	return programId
 }
 
-async function createSolutionTemplate(resource, programDetails) {
+async function updateSolutionTemplate(resource) {
 	const targeting = await processTargetingCriteria(resource?.targeting_criteria)
-	const solutionTemplate = {
-		resourceType: [common.SOLUTIONS_RESOURCE_TYPE[resource.type]],
+	return {
 		language: resource?.languages ? resource?.languages.map((language) => language.label) : [],
 		keywords: resource?.keywords ? utils.formatKeywords(resource?.keywords) : [],
-		concepts: resource?.concepts ? resource?.concepts : [],
-		themes: resource?.themes ? resource?.themes : [],
-		flattenedThemes: resource?.flattenedThemes ? resource?.flattenedThemes : [],
-		entities: resource?.entities ? resource?.entities : [],
-		registry: resource?.registry ? resource?.registry : [],
-		isRubricDriven: resource?.isRubricDriven ? true : false,
-		enableQuestionReadOut: resource?.enableQuestionReadOut ? true : false,
-		captureGpsLocationAtQuestionLevel: resource?.captureGpsLocationAtQuestionLevel ? true : false,
-		isAPrivateProgram: false,
-		allowMultipleAssessemts: resource?.allowMultipleAssessemts ? true : false,
-		isDeleted: false,
-		pageHeading: 'Domains',
-		minNoOfSubmissionsRequired: resource?.minNoOfSubmissionsRequired ? resource?.minNoOfSubmissionsRequired : 1,
-		rootOrganisations: resource?.organization ? resource?.organization.map((organization) => organization.id) : [],
-		createdFor: resource?.organization ? resource?.organization.map((organization) => organization.id) : [],
-		deleted: false,
 		name: resource?.title,
-		programExternalId: programDetails.externalId,
-		entityType: resource?.entityType ? resource?.entityType : null,
-		type: common.SOLUTIONS_TYPE[resource.type] ? common.SOLUTIONS_TYPE[resource.type] : null,
-		subType: common.SOLUTIONS_TYPE[resource.type] ? common.SOLUTIONS_TYPE[resource.type] : null,
-		isReusable: false,
-		externalId: utils.generateUniqueId(),
-		programId: programDetails._id,
-		programName: programDetails.name,
-		programDescription: programDetails.description,
-		description: programDetails.description,
-		status: common.STATUS_ACTIVE.toLowerCase(),
 		updatedAt: new Date(),
-		createdAt: new Date(),
 		scope: targeting?.scope ? targeting?.scope : {},
-		projectTemplateId: resource._id,
-		updatedBy: programDetails.created_by,
-		author: programDetails.created_by,
 		endDate: resource.end_date,
 		startDate: resource.start_date,
 	}
@@ -1381,6 +1350,7 @@ const publishProgram = function async(programData) {
 		const result = { success: false, templateId: null, error: null }
 		try {
 			const userToken = programData.userToken
+			const isProgramResource = programData.resource_type == common.RESOURCE_TYPE_PROGRAM
 			// Format the program template
 			let formattedTemplate = await formatProgramTemplate(programData)
 			if (!formattedTemplate.success) {
@@ -1389,102 +1359,97 @@ const publishProgram = function async(programData) {
 
 			let template = formattedTemplate.programDocument
 
-			const rolloutResourceType = programData.resource_type
-
-			// fetch the resource details to create solutions
-			// const resourceDetailsCreate = programData.resource
-			// delete template.resourceDetails
-			// const resourceStatus = await rolloutQueries.findOne(
-			// 	{
-			// 		id: resourceDetailsCreate?.rolloutId,
-			// 	},
-			// 	{ attributes: ['status', 'published_id'] }
-			// )
-			// const programScope = template.scope
-
 			let result = {}
+			let solutions = []
 			let programId = template?._id ? ObjectId(template?._id) : null
 
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
-				programId = await updateProgram(template)
+				programId = await updateProgram(programId, template)
 			} else {
 				programId = await createProgram(template)
 			}
-			if (rolloutResourceType == common.RESOURCE_TYPE_PROGRAM) {
-				const resourceWithInProgram = programData?.resources || []
-				if (resourceWithInProgram.length <= 0) {
-					console.error('Consumption Error : Program Resources Empty.')
-					throw new Error('NO_RESOURCE_ADDED')
-				}
-				let resourceToCreate = []
-				let resourceToUpdate = []
-				resourceWithInProgram.forEach(async (resource) => {
-					const fetchDetails = await resourceService.getDetails(resource.id, programData.organization_id)
-					await createSolutionTemplate({
-						...fetchDetails.result,
-						start_date: resource.start_date,
-						end_date: resource.end_date,
-						targeting_criteria: resource.targeting_criteria,
+
+			const resourceWithInProgram = programData?.resources || [
+				{
+					id: programData.resource_id,
+					targeting_criteria: programData.targeting_criteria,
+				},
+			]
+			if (resourceWithInProgram.length <= 0) {
+				console.error('Consumption Error : Program Resources Empty.')
+				throw new Error('NO_RESOURCE_ADDED')
+			}
+			let solutionIds = []
+			let resourceToUpdate = []
+
+			for (const resource of resourceWithInProgram) {
+				const fetchDetails = await resourceService.getDetails(resource.id, programData.organization_id)
+
+				if (fetchDetails?.result?.published_id == undefined || fetchDetails?.result?.published_id == null) {
+					// publish a new template based on the type of the resource
+					if (fetchDetails?.result?.type == common.PROJECT) {
+						// create a new project template
+						const publishedProject = await publishProjectTemplates(fetchDetails?.result)
+
+						let duplicateResource = await duplicateResources(
+							{
+								...fetchDetails?.result,
+								published_id: publishedProject.templateId,
+							},
+							fetchDetails?.result?.certificate,
+							programData.created_by
+						)
+
+						const targeting = await processTargetingCriteria(resource?.targeting_criteria)
+						const solutionExternalId = `${utils.generateExternalId(
+							fetchDetails?.result?.title
+						)}_CHILD_SOLUTION`
+
+						const createSolutionsData = await createSolutions(
+							duplicateResource,
+							{
+								_id: programId,
+								scope: targeting.scope,
+								externalId: solutionExternalId,
+								name: fetchDetails?.result.title,
+								description: fetchDetails?.result?.description ? fetchDetails?.result?.description : '',
+								end_date: fetchDetails?.result?.end_date,
+								start_date: fetchDetails?.result?.start_date,
+								created_by: programData.created_by,
+								orgId: programData.organization_id,
+							},
+							userToken
+						)
+
+						solutions = [...solutions, ...createSolutionsData]
+						solutionIds = [...solutionIds, ...solutions.map((solution) => solution._id)]
+					}
+				} else {
+					solutionIds.push(fetchDetails?.result?.published_id)
+					resourceToUpdate.push({
+						_id: fetchDetails?.result?.published_id,
+						updateBody: await updateSolutionTemplate(fetchDetails?.result),
 					})
+				}
+			}
+			if (solutionIds.length > 0) {
+				await updateProgram(programId, {
+					components: solutionIds,
 				})
 			}
-			let solutions = []
 
-			if (
-				resourceStatus?.status == common.ROLLOUT_STATUS_ROLLED_OUT &&
-				resourceStatus?.published_id != undefined
-			) {
-				const updateTemplate = _.omit(template, '_id', 'published_id')
-				const solutionsCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
-				result = await solutionsCollection.updateOne(
-					{ _id: ObjectId(resourceStatus?.published_id) },
-					{
-						$set: updateTemplate,
-					}
-				)
-
-				solutions.push({ rolloutId: resourceDetailsCreate?.rolloutId })
-			} else {
-				const certificate = programData?.resource?.certificate
-				let duplicateResource = await duplicateResources(
-					resourceDetailsCreate,
-					certificate,
-					programData.created_by
-				)
-				solutions = await createSolutions(
-					duplicateResource,
-					{
-						_id: programId,
-						scope: programScope,
-						externalId: template.externalId,
-						name: template.name,
-						description: template.description ? template.description : '',
-						end_date: template.endDate,
-						start_date: template.startDate,
-						created_by: programData.created_by,
-						orgId: programData.organization_id,
-					},
-					userToken
-				)
-				const solutionIds = solutions.map((solution) => solution._id)
-				// Update Template with tasks and sequence
-				await programsCollection.updateOne(
-					{ _id: programId },
-					{
-						$set: {
-							components: solutionIds,
-						},
-					}
-				)
-			}
-
-			await rolloutService.publishCallback(programData.id, programId ? programId.toString() : null)
+			await rolloutService.publishCallback(
+				programData.id,
+				programId ? programId.toString() : null,
+				isProgramResource
+			)
 			solutions.forEach(async (solution) => {
 				await rolloutService.publishCallback(
 					solution.rolloutId,
 					solution?._id ? solution?._id.toString() : null,
-					solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null
+					solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
+					isProgramResource
 				)
 			})
 

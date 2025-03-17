@@ -805,7 +805,7 @@ module.exports = class RolloutsHelper {
 	 * @param {String} templateId - template id
 	 * @returns {JSON} - details of Rollout
 	 */
-	static async publishCallback(rolloutId, publishedId = null, templateId = null) {
+	static async publishCallback(rolloutId, publishedId = null, templateId = null, isProgramResource = false) {
 		try {
 			let updateData = {
 				published_on: new Date(),
@@ -819,6 +819,28 @@ module.exports = class RolloutsHelper {
 				},
 				updateData
 			)
+			// if rollout is program rollout
+			if (isProgramResource) {
+				// update the program and resources , add published id
+				let rolloutData = await rolloutQueries.findOne(
+					{
+						id: rolloutId,
+					},
+					(attributes = ['resource_id'])
+				)
+
+				if (rolloutData) {
+					await resourceQueries.updateOne(
+						{
+							id: rolloutData.resource_id,
+						},
+						{
+							published_id: publishedId,
+							published_on: new Date(),
+						}
+					)
+				}
+			}
 
 			if (rollout === 0) {
 				return responses.failureResponse({
@@ -987,6 +1009,7 @@ module.exports = class RolloutsHelper {
 				resource_type: programData?.type,
 				start_date: programData?.meta?.start_date,
 				end_date: programData?.meta?.end_date,
+				resources: programData?.resources || [],
 				targeting_criteria: programData?.targeting_criteria,
 				title: programData.title,
 				viewers: programData?.viewers?.map((viewer) => (typeof viewer === 'object' ? viewer.id : viewer)),
