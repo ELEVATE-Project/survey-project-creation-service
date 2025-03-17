@@ -497,8 +497,8 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				projectTemplateId: resource._id,
 				updatedBy: programDetails.created_by,
 				author: programDetails.created_by,
-				endDate: programDetails.end_date,
-				startDate: programDetails.start_date,
+				endDate: new Date(programDetails.end_date),
+				startDate: new Date(programDetails.start_date),
 			}
 
 			solutionRolloutMap[solutionTemplate.externalId] = resource.rolloutId
