@@ -887,7 +887,6 @@ module.exports = class ProgramsHelper {
 				})
 			}
 
-			//create the review entry
 			//find existing reviews
 			const existingReviews = await reviewsQueries.findAll({
 				resource_id: programData.id,
@@ -907,7 +906,7 @@ module.exports = class ProgramsHelper {
 				const existingReviewerReviews = await reviewsQueries.findAll({
 					resource_id: programData.id,
 					reviewer_id: {
-						[Op.in]: reviewerIds,
+						[Op.in]: reviewerIds.map((id) => id.toString()),
 					},
 				})
 				const existingReviewerIdsFromProvided = new Set(existingReviewerReviews.map((r) => r.reviewer_id))
