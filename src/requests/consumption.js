@@ -453,6 +453,9 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 		let solutionCertificateMap = []
 		// solution to rollout if map
 		let solutionRolloutMap = {}
+
+		const endDate = new Date(programDetails?.end_date)
+		const startDate = new Date(programDetails?.start_date)
 		resourceDetails.forEach((resource) => {
 			// create solutions template
 			const solutionTemplate = {
@@ -497,8 +500,8 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				projectTemplateId: resource._id,
 				updatedBy: programDetails.created_by,
 				author: programDetails.created_by,
-				endDate: new Date(programDetails.end_date),
-				startDate: new Date(programDetails.start_date),
+				endDate,
+				startDate,
 			}
 
 			solutionRolloutMap[solutionTemplate.externalId] = resource.rolloutId
@@ -1457,8 +1460,8 @@ const publishProgram = function async(programData) {
 							orgId: programData.organization_id,
 						}
 						if (isProgramResource) {
-							programDetails.start_date = fetchDetails?.result?.start_date
-							programDetails.end_date = fetchDetails?.result?.end_date
+							programDetails.start_date = resource?.start_date
+							programDetails.end_date = resource?.end_date
 							programDetails.scope = targeting
 						}
 						const createSolutionsData = await createSolutions(duplicateResource, programDetails, userToken)
