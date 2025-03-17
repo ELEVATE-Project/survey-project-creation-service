@@ -1444,26 +1444,24 @@ const publishProgram = function async(programData) {
 						}
 
 						const targeting = await processTargetingCriteria(resource?.targeting_criteria)
-						const solutionExternalId = `${utils.generateExternalId(
-							fetchDetails?.result?.title
-						)}_CHILD_SOLUTION`
 
-						const createSolutionsData = await createSolutions(
-							duplicateResource,
-							{
-								_id: programId,
-								scope: targeting.scope,
-								externalId: solutionExternalId,
-								name: fetchDetails?.result.title,
-								description: fetchDetails?.result?.description ? fetchDetails?.result?.description : '',
-								end_date: fetchDetails?.result?.end_date,
-								start_date: fetchDetails?.result?.start_date,
-								created_by: programData.created_by,
-								orgId: programData.organization_id,
-							},
-							userToken
-						)
-						console.log('createSolutionsData : : : ::    ======-======> ', createSolutionsData)
+						let programDetails = {
+							_id: programId,
+							scope: template.scope,
+							externalId: template.externalId,
+							name: template?.name,
+							description: template?.description ? template?.description : '',
+							end_date: template?.end_date,
+							start_date: template?.start_date,
+							created_by: programData.created_by,
+							orgId: programData.organization_id,
+						}
+						if (isProgramResource) {
+							programDetails.start_date = fetchDetails?.result?.start_date
+							programDetails.end_date = fetchDetails?.result?.end_date
+							programDetails.scope = targeting
+						}
+						const createSolutionsData = await createSolutions(duplicateResource, programDetails, userToken)
 						solutions = [...solutions, ...createSolutionsData]
 						solutionIds = [...solutionIds, ...solutions.map((solution) => solution._id)]
 					}
