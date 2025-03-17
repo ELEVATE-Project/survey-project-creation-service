@@ -961,6 +961,7 @@ module.exports = class ProgramsHelper {
 						organization_id: programData.organization_id,
 						resource_id: programData.id,
 						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+						next_stage: 1,
 					},
 					{
 						status: common.REVIEW_STATUS_CHANGES_UPDATED,
