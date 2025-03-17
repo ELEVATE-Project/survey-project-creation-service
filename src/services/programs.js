@@ -1319,6 +1319,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId, isRe
 					user_id: loggedInUserId,
 					organization_id: orgId,
 					updated_by: loggedInUserId,
+					created_at: new Date(),
 					updated_at: new Date(),
 				}
 
