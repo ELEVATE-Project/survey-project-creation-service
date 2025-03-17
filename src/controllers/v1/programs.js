@@ -152,7 +152,11 @@ module.exports = class Programs {
 
 	async submitForReview(req) {
 		try {
-			const submitForReview = await programService.submitForReview(req.params.id, req.body, req.decodedToken)
+			const submitForReview = await programService.submitForReview(
+				parseInt(req.params.id),
+				req.body,
+				req.decodedToken
+			)
 			return submitForReview
 		} catch (error) {
 			return error
