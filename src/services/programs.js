@@ -36,7 +36,7 @@ module.exports = class ProgramsHelper {
 			let isDuplicateProgramCreation = false
 			if (referenceId) {
 				// check if the reference project Id is valid or not
-				const referenceProject = await resourceQueries.findOne(
+				const referenceProgram = await resourceQueries.findOne(
 					{
 						id: referenceId,
 						status: common.RESOURCE_STATUS_PUBLISHED,
@@ -66,7 +66,7 @@ module.exports = class ProgramsHelper {
 					}
 				)
 
-				if (!referenceProject?.id) {
+				if (!referenceProgram?.id) {
 					return responses.failureResponse({
 						message: 'PROGRAM_NOT_FOUND',
 						statusCode: httpStatusCode.bad_request,
@@ -74,7 +74,7 @@ module.exports = class ProgramsHelper {
 					})
 				}
 
-				const programDetails = await this.details(referenceId, referenceProject.organization_id)
+				const programDetails = await this.details(referenceId, referenceProgram.organization_id)
 				if (programDetails.statusCode != httpStatusCode.ok && !Object.keys(programDetails?.result).length > 0) {
 					return responses.failureResponse({
 						message: 'PROGRAM_NOT_FOUND',
@@ -1387,6 +1387,8 @@ async function handleResources(resources, programId, orgId, loggedInUserId, isRe
 								'last_reviewed_on',
 								'is_under_edit',
 								'is_comments',
+								'created_at',
+								'updated_at',
 							]
 						)
 
