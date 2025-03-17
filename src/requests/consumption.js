@@ -1421,7 +1421,7 @@ const publishProgram = function async(programData) {
 							},
 							userToken
 						)
-
+						console.log('createSolutionsData : : : ::    ======-======> ', createSolutionsData)
 						solutions = [...solutions, ...createSolutionsData]
 						solutionIds = [...solutionIds, ...solutions.map((solution) => solution._id)]
 					}
@@ -1435,7 +1435,9 @@ const publishProgram = function async(programData) {
 			}
 			if (solutionIds.length > 0) {
 				await updateProgram(programId, {
-					components: solutionIds,
+					components: solutionIds.map((solution) => {
+						return solution instanceof ObjectId ? solution : ObjectId(solution)
+					}),
 				})
 			}
 
