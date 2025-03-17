@@ -605,7 +605,8 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 		}
 
 		// seggregate templates based on type , all projects should be created in projectTemplates and others in solutions collection
-		if (resourceDetails.type == common.PROJECT) projectTemplateIds.push(ObjectId(resourceDetails.published_id))
+		if (resourceDetails.type == common.PROJECT || resourceDetails.resource_type == common.PROJECT)
+			projectTemplateIds.push(ObjectId(resourceDetails.published_id))
 		else solutionTemplateIds.push(ObjectId(resourceDetails.published_id))
 
 		// handling only project creation now. Make changes here for observation , survey etc...
@@ -1351,6 +1352,7 @@ const publishProgram = function async(programData) {
 		try {
 			const userToken = programData.userToken
 			const isProgramResource = programData.resource_type == common.RESOURCE_TYPE_PROGRAM
+			// return true
 			// Format the program template
 			let formattedTemplate = await formatProgramTemplate(programData)
 			if (!formattedTemplate.success) {
@@ -1372,7 +1374,7 @@ const publishProgram = function async(programData) {
 
 			const resourceWithInProgram = programData?.resources || [
 				{
-					id: programData.resource_id,
+					id: programData.resource.rolloutId,
 					targeting_criteria: programData.targeting_criteria,
 				},
 			]
@@ -1384,22 +1386,35 @@ const publishProgram = function async(programData) {
 			let resourceToUpdate = []
 
 			for (const resource of resourceWithInProgram) {
-				const fetchDetails = await resourceService.getDetails(resource.id, programData.organization_id)
+				const fetchDetails = isProgramResource
+					? await resourceService.getDetails(resource.id, programData.organization_id)
+					: await rolloutService.details(
+							resource.id,
+							programData.organization_id,
+							programData.created_by,
+							false
+					  )
 
 				if (fetchDetails?.result?.published_id == undefined || fetchDetails?.result?.published_id == null) {
 					// publish a new template based on the type of the resource
-					if (fetchDetails?.result?.type == common.PROJECT) {
+					if (fetchDetails?.result?.type == common.PROJECT || fetchDetails?.result?.resource_type) {
 						// create a new project template
-						const publishedProject = await publishProjectTemplates(fetchDetails?.result)
+						const publishedProject = isProgramResource
+							? await publishProjectTemplates(fetchDetails?.result)
+							: { templateId: programData?.resource?.published_id }
 
 						let duplicateResource = await duplicateResources(
 							{
 								...fetchDetails?.result,
-								published_id: publishedProject.templateId,
+								published_id: publishedProject?.templateId,
 							},
 							fetchDetails?.result?.certificate,
 							programData.created_by
 						)
+						if (!duplicateResource) {
+							console.log('Error in creating duplicate Resource')
+							throw new Error('Error in creating duplicate Resource')
+						}
 
 						const targeting = await processTargetingCriteria(resource?.targeting_criteria)
 						const solutionExternalId = `${utils.generateExternalId(
@@ -1461,8 +1476,9 @@ const publishProgram = function async(programData) {
 
 			return resolve(result)
 		} catch (error) {
+			console.log('ERROR : ', error)
 			result.error = `Error: ${error.message}`
-			return reject(error)
+			return resolve(error)
 		}
 	})
 }
