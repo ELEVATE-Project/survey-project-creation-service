@@ -36,7 +36,7 @@ module.exports = class ProgramsHelper {
 			let isDuplicateProgramCreation = false
 			if (referenceId) {
 				// check if the reference project Id is valid or not
-				const referenceProject = await resourceQueries.findOne(
+				const referenceProgram = await resourceQueries.findOne(
 					{
 						id: referenceId,
 						status: common.RESOURCE_STATUS_PUBLISHED,
@@ -66,7 +66,7 @@ module.exports = class ProgramsHelper {
 					}
 				)
 
-				if (!referenceProject?.id) {
+				if (!referenceProgram?.id) {
 					return responses.failureResponse({
 						message: 'PROGRAM_NOT_FOUND',
 						statusCode: httpStatusCode.bad_request,
@@ -74,7 +74,7 @@ module.exports = class ProgramsHelper {
 					})
 				}
 
-				const programDetails = await this.details(referenceId, referenceProject.organization_id)
+				const programDetails = await this.details(referenceId, referenceProgram.organization_id)
 				if (programDetails.statusCode != httpStatusCode.ok && !Object.keys(programDetails?.result).length > 0) {
 					return responses.failureResponse({
 						message: 'PROGRAM_NOT_FOUND',
@@ -496,7 +496,7 @@ module.exports = class ProgramsHelper {
 			if (result.meta) {
 				Object.assign(result, result.meta)
 			}
-			delete result.blob_path, delete result.meta
+			delete result.blob_path
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -887,42 +887,59 @@ module.exports = class ProgramsHelper {
 				})
 			}
 
-			//create the review entry
-			if (reviewerIds.length > 0) {
-				//create entry in reviews table
-				let reviewsData = reviewerIds.map((reviewer_id) => ({
-					resource_id: programData.id,
-					reviewer_id,
-					status: common.REVIEW_STATUS_NOT_STARTED,
-					organization_id: userDetails.organization_id,
-				}))
+			//find existing reviews
+			const existingReviews = await reviewsQueries.findAll({
+				resource_id: programData.id,
+			})
 
-				//find existing reviews
-				const existingReviews = await reviewsQueries.findAll({
+			// If no reviewerIds provided, reset status of all existing reviews
+			if (!reviewerIds || reviewerIds.length === 0) {
+				if (existingReviews.length > 0) {
+					await reviewsQueries.update(
+						{ resource_id: programData.id },
+						{ status: common.REVIEW_STATUS_NOT_STARTED }
+					)
+				}
+			} else {
+				// reviewerIds are provided
+				// Find reviews that already exist for the provided reviewerIds
+				const existingReviewerReviews = await reviewsQueries.findAll({
 					resource_id: programData.id,
 					reviewer_id: {
-						[Op.in]: reviewerIds.map((reviewerId) => {
-							return reviewerId.toString()
-						}),
+						[Op.in]: reviewerIds.map((id) => id.toString()),
 					},
 				})
+				const existingReviewerIdsFromProvided = new Set(existingReviewerReviews.map((r) => r.reviewer_id))
 
-				const existingReviewerIds = new Set(existingReviews.map((r) => r.reviewer_id))
-				// Separate updates and inserts
-				const inserts = reviewsData.filter((review) => !existingReviewerIds.has(review.reviewer_id))
-				const updates = reviewsData.filter((review) => existingReviewerIds.has(review.reviewer_id))
+				// Prepare data to insert for new reviewers (if review does not exist yet)
+				const inserts = reviewerIds
+					.filter((reviewer_id) => !existingReviewerIdsFromProvided.has(reviewer_id))
+					.map((reviewer_id) => ({
+						resource_id: programData.id,
+						reviewer_id,
+						status: common.REVIEW_STATUS_NOT_STARTED,
+						organization_id: userDetails.organization_id,
+					}))
 
-				// Execute updates and inserts in parallel
+				// Prepare updates for existing reviewers
+				const updates = reviewerIds.filter((reviewer_id) => existingReviewerIdsFromProvided.has(reviewer_id))
+
+				// Execute updates and inserts
 				await Promise.all(
 					[
-						// Update existing reviews
+						// Update status for existing reviews for provided reviewers
 						updates.length > 0 &&
 							reviewsQueries.update(
-								{ resource_id: programData.id, reviewer_id: updates.map((r) => r.reviewer_id) },
+								{
+									resource_id: programData.id,
+									reviewer_id: {
+										[Op.in]: updates,
+									},
+								},
 								{ status: common.REVIEW_STATUS_NOT_STARTED }
 							),
 
-						// Insert new reviews and related resources
+						// Insert new reviews and related resources for new reviewers
 						inserts.length > 0 &&
 							Promise.all([
 								reviewsResourcesQueries.bulkCreate(inserts.map(({ status, ...rest }) => rest)),
@@ -932,6 +949,8 @@ module.exports = class ProgramsHelper {
 				)
 			}
 
+			let updateNextStage = true
+
 			//update the reviews and resource status
 			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
 			if (
@@ -939,7 +958,7 @@ module.exports = class ProgramsHelper {
 				programData.status === common.RESOURCE_STATUS_SUBMITTED
 			) {
 				//Update the review status if the resource has been submitted before
-				await reviewsQueries.update(
+				let updatedReviewCount = await reviewsQueries.update(
 					{
 						organization_id: programData.organization_id,
 						resource_id: programData.id,
@@ -949,6 +968,8 @@ module.exports = class ProgramsHelper {
 						status: common.REVIEW_STATUS_CHANGES_UPDATED,
 					}
 				)
+
+				if (updatedReviewCount > 0) updateNextStage = false
 			}
 
 			//Open all draft comment when submitting the program for response
@@ -987,6 +1008,10 @@ module.exports = class ProgramsHelper {
 				submitted_on: new Date(),
 				is_under_edit: false,
 				stage: common.RESOURCE_STAGE_REVIEW,
+			}
+
+			if (updateNextStage) {
+				resourcesUpdate.next_stage = 1
 			}
 
 			if (bodyData.notes) {
@@ -1319,6 +1344,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId, isRe
 					user_id: loggedInUserId,
 					organization_id: orgId,
 					updated_by: loggedInUserId,
+					created_at: new Date(),
 					updated_at: new Date(),
 				}
 
@@ -1387,6 +1413,8 @@ async function handleResources(resources, programId, orgId, loggedInUserId, isRe
 								'last_reviewed_on',
 								'is_under_edit',
 								'is_comments',
+								'created_at',
+								'updated_at',
 							]
 						)
 

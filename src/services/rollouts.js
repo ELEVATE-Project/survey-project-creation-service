@@ -656,7 +656,7 @@ module.exports = class RolloutsHelper {
 				} else {
 					let solutionRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])
 					// update the start date and end date of program for single roll out
-					solutionRolloutId = solutionRollout.id
+					solutionRolloutId = rolloutDetailsResult.id
 					await rolloutQueries.updateOne({ id: solutionRolloutId }, solutionRollout)
 				}
 			}
@@ -1004,10 +1004,14 @@ module.exports = class RolloutsHelper {
 					result: result,
 					message: `Rollout creation failed: ${createProgramRollout.message || 'Unknown error'}`,
 				})
-				throw new Error() // Include error message if available
 			}
 
 			const solutionRollout = await Promise.all(createRolloutPromise)
+
+			const solutionRolloutPromises = solutionRollout.map(async (solution) => {
+				const resourceData = await resourceService.getDetails(solution.result.id, programData.organization_id)
+				kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
+			})
 
 			const rolloutDetails = await this.details(
 				createProgramRollout?.result?.id,

@@ -45,7 +45,7 @@ const rolePermissionMapping = {
 }
 
 const comments = {
-	update: ['id', 'user_id', 'resource_id', 'resolved_by', 'resolved_at'],
+	update: ['user_id', 'resource_id', 'resolved_by', 'resolved_at'],
 }
 
 const organizationExtensions = {
@@ -147,7 +147,6 @@ const programs = {
 		'updated_at',
 		'is_under_edit',
 		'deleted_at',
-		'metaData',
 		'meta',
 		'stage',
 		'organizations',
@@ -174,7 +173,6 @@ const programs = {
 		'deleted_at',
 		'meta',
 		'is_comments',
-		'formMeta',
 		'stage',
 		'organizations',
 	],
