@@ -85,7 +85,6 @@ const dbName = mongoUrl.split('/').pop()
 		const programsData = await db
 			.collection('programs')
 			.find({
-				status: 'active',
 				scope: {
 					$exists: true,
 					$type: 'object',
@@ -154,6 +153,8 @@ const dbName = mongoUrl.split('/').pop()
 
 				// Check if the program exists
 				const isProgramExist = await checkResourceExist(programIdStr, common.RESOURCE_TYPE_PROGRAM)
+				//update mongo
+
 				if (isProgramExist.success) {
 					console.log(`Program Exist for template ${programIdStr}`)
 					csvRecords.push({
@@ -431,6 +432,14 @@ const dbName = mongoUrl.split('/').pop()
 							continue
 						}
 
+						//add resource id in solution mongo
+						await db.collection('solutions').updateOne(
+							{
+								_id: solution._id,
+							},
+							{ $set: { scp_reference_id: projectCreateResponse.projectId } }
+						)
+
 						// Add solution to mapping
 						validSolutionIds.push(projectCreateResponse.projectId)
 						solutionTargetingMap[projectTemplate._id.toString()] = {
@@ -504,6 +513,14 @@ const dbName = mongoUrl.split('/').pop()
 				}
 
 				let programResourceId = programCreationResponse.programId
+
+				//update resource id in program doc
+				await db.collection('programs').updateOne(
+					{
+						_id: program._id,
+					},
+					{ $set: { scp_reference_id: programResourceId } }
+				)
 
 				// Get the program details
 				let programDetail = await programService.details(
@@ -1173,15 +1190,8 @@ async function generateTargetingCriteria(scope = {}, db) {
 								highestEntity.registryDetails?.code || highestEntity.metaInformation?.externalId,
 						}
 
-						// Fetch targeted roles from API
-						const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${process.env.CONSUMPTION_SERVICE_TARGETED_ROLES_END_POINT}/${highestEntity._id}?entityType=${entity.entityType}`
-						const targetedRolesResponse = await requests.get(
-							apiUrl,
-							'',
-							process.env.INTERNAL_ACCESS_TOKEN,
-							common.INTERNAL_ACCESS_TOKEN
-						)
-						let targetedRolesData = targetedRolesResponse?.data?.result || []
+						const targetedRolesResponse = await targetedRoles(highestEntity._id, entity.entityType, db)
+						let targetedRolesData = targetedRolesResponse?.targetedRoles || []
 
 						// Collect targeted role codes
 						targetedRolesData.forEach((role) => targetedRolesSet.add(role.code))
@@ -1694,6 +1704,106 @@ async function updateResource(resourceId, updateData) {
 
 		const updatedResource = await resourceQueries.updateOne({ id: resourceId }, updateData, updateOptions)
 		result.updatedResource = updatedResource
+		return result
+	} catch (error) {
+		console.error('Error updating resource:', error)
+		return { success: false, error }
+	}
+}
+
+/**
+ * Fetches targeted roles based on entityId and optional type filter.
+ * @param {Array|string} entityId - Single or multiple entity IDs to fetch data for.
+ * @param {string} type - Optional entity type to filter higher hierarchy paths.
+ * @param {Object} db - MongoDB database connection object.
+ * @returns {Object} - Object containing success status and targeted roles.
+ */
+async function targetedRoles(entityId, type, db) {
+	try {
+		let result = {
+			success: true,
+			targetedRoles: [],
+		}
+
+		// Retrieve entityDetails based on provided entity IDs
+		const entityDetails = await db
+			.collection('entities')
+			.find(
+				{ _id: { $in: Array.isArray(entityId) ? entityId : [entityId] } },
+				{ projection: { childHierarchyPath: 1, entityType: 1 } }
+			)
+			.toArray()
+
+		if (
+			!entityDetails ||
+			!entityDetails[0]?.childHierarchyPath ||
+			entityDetails[0]?.childHierarchyPath.length < 0
+		) {
+			throw 'Entity not found'
+		}
+
+		// Extract the childHierarchyPath and entityType
+		const { childHierarchyPath, entityType } = entityDetails[0]
+
+		// Append entityType to childHierarchyPath array
+		const updatedChildHierarchyPaths = [entityType, ...childHierarchyPath]
+
+		// Filter for higher entity types if a specific type is requested
+		let filteredHierarchyPaths = updatedChildHierarchyPaths
+		if (type) {
+			const typeIndex = updatedChildHierarchyPaths.indexOf(type)
+			if (typeIndex > -1) {
+				// Include only higher types in the hierarchy
+				filteredHierarchyPaths = updatedChildHierarchyPaths.slice(0, typeIndex + 1)
+			}
+		}
+
+		// Retrieve entity type IDs based on child hierarchy paths
+		const fetchEntityTypeId = await db
+			.collection('entityTypes')
+			.find(
+				{
+					name: {
+						$in: filteredHierarchyPaths,
+					},
+					isDeleted: false,
+				},
+				{ projection: { _id: 1 } }
+			)
+			.toArray()
+
+		// Check if entity type IDs are retrieved successfully
+		if (fetchEntityTypeId.length < 0) {
+			throw 'Entity type not found'
+		}
+
+		// Extract the _id fields from the fetched entity types to use as a filter for user roles
+		const userRoleFilter = fetchEntityTypeId.map((entityType) => entityType._id)
+
+		const fetchUserRoles = await db
+			.collection('userRoleExtension')
+			.find(
+				{
+					'entityTypes.entityTypeId': {
+						$in: userRoleFilter,
+					},
+					status: 'active',
+				},
+				{ projection: { _id: 1, title: 1, code: 1, userRoleId: 1 } }
+			)
+			.toArray()
+		// Transforming the data
+		const transformedData = fetchUserRoles.map((item) => {
+			// For each item in the result array, create a new object with modified keys
+			return {
+				_id: item._id,
+				value: item.userRoleId,
+				label: item.title,
+				code: item.code,
+			}
+		})
+
+		result.targetedRoles = transformedData
 		return result
 	} catch (error) {
 		console.error('Error updating resource:', error)
