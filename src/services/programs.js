@@ -949,6 +949,8 @@ module.exports = class ProgramsHelper {
 				)
 			}
 
+			let updateNextStage = true
+
 			//update the reviews and resource status
 			let resourceStatus = common.RESOURCE_STATUS_SUBMITTED
 			if (
@@ -956,17 +958,18 @@ module.exports = class ProgramsHelper {
 				programData.status === common.RESOURCE_STATUS_SUBMITTED
 			) {
 				//Update the review status if the resource has been submitted before
-				await reviewsQueries.update(
+				let updatedReviewCount = await reviewsQueries.update(
 					{
 						organization_id: programData.organization_id,
 						resource_id: programData.id,
 						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
-						next_stage: 1,
 					},
 					{
 						status: common.REVIEW_STATUS_CHANGES_UPDATED,
 					}
 				)
+
+				if (updatedReviewCount > 0) updateNextStage = false
 			}
 
 			//Open all draft comment when submitting the program for response
@@ -1005,6 +1008,10 @@ module.exports = class ProgramsHelper {
 				submitted_on: new Date(),
 				is_under_edit: false,
 				stage: common.RESOURCE_STAGE_REVIEW,
+			}
+
+			if (updateNextStage) {
+				resourcesUpdate.next_stage = 1
 			}
 
 			if (bodyData.notes) {
