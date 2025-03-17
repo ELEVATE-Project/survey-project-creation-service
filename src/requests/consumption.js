@@ -1462,7 +1462,7 @@ const publishProgram = function async(programData) {
 						if (isProgramResource) {
 							programDetails.start_date = fetchDetails?.result?.start_date
 							programDetails.end_date = fetchDetails?.result?.end_date
-							programDetails.scope = targeting
+							programDetails.scope = targeting.scope
 						}
 						const createSolutionsData = await createSolutions(duplicateResource, programDetails, userToken)
 						solutions = [...solutions, ...createSolutionsData]
