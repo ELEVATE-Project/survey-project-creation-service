@@ -86,6 +86,7 @@ module.exports = class resourceHelper {
 					? queryParams.status.split(',')
 					: common.PAGE_STATUS_VALUES['submitted_for_review'],
 			},
+			is_reusable: true,
 		}
 
 		// return a sort object with sorting parameters. if no params are provided returns {}
@@ -695,6 +696,7 @@ module.exports = class resourceHelper {
 				user_id: {
 					[Op.notIn]: [user_id],
 				},
+				is_reusable: true,
 			}
 			if (common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS) {
 				resourceFilter.status = common.REVIEW_STATUS_INPROGRESS
