@@ -23,6 +23,7 @@ const filesService = require('@services/files')
 const request = require('request')
 const _ = require('lodash')
 let mongoDb
+const { Op } = require('sequelize')
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
 	const mongoUrl = process.env.MONGODB_URL
@@ -1361,6 +1362,27 @@ const publishProgram = function async(programData) {
 
 			let template = formattedTemplate.programDocument
 
+			let programResourceRolloutMap = {}
+			if (isProgramResource) {
+				const programResourceIds = programData?.resources.map((resource) => resource.id)
+				if (programResourceIds) {
+					const rolloutData = await rolloutQueries.findAll(
+						{
+							resource_id: {
+								[Op.in]: programResourceIds,
+							},
+						},
+						['id', 'resource_id']
+					)
+
+					if (rolloutData) {
+						rolloutData.forEach((rollout) => {
+							programResourceRolloutMap[rollout.resource_id] = rollout.id
+						})
+					}
+				}
+			}
+
 			let result = {}
 			let solutions = []
 			let programId = template?._id ? ObjectId(template?._id) : null
@@ -1387,7 +1409,12 @@ const publishProgram = function async(programData) {
 
 			for (const resource of resourceWithInProgram) {
 				const fetchDetails = isProgramResource
-					? await resourceService.getDetails(resource.id, programData.organization_id)
+					? await rolloutService.details(
+							programResourceRolloutMap[resource.id],
+							programData.organization_id,
+							programData.created_by,
+							false
+					  )
 					: await rolloutService.details(
 							resource.id,
 							programData.organization_id,

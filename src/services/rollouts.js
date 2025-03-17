@@ -826,7 +826,7 @@ module.exports = class RolloutsHelper {
 					{
 						id: rolloutId,
 					},
-					(attributes = ['resource_id'])
+					['resource_id']
 				)
 
 				if (rolloutData) {
@@ -981,7 +981,14 @@ module.exports = class RolloutsHelper {
 						resource?.id,
 						programData.organization_id
 					)
-
+					const rolloutDetails = _.omit(fetchResourceDetails?.result, [
+						'resource_id',
+						'resource_type',
+						'start_date',
+						'end_date',
+						'targeting_criteria',
+						'title',
+					])
 					const resourceRolloutReqBody = {
 						resource_id: resource?.id,
 						resource_type: fetchResourceDetails.result?.type,
@@ -989,6 +996,7 @@ module.exports = class RolloutsHelper {
 						end_date: resource?.end_date || '',
 						targeting_criteria: resource?.targeting_criteria,
 						title: resource.title,
+						...rolloutDetails,
 					}
 
 					createRolloutPromise.push(
@@ -1038,11 +1046,13 @@ module.exports = class RolloutsHelper {
 				const solutionRollout = await Promise.all(createRolloutPromise)
 
 				const solutionRolloutPromises = solutionRollout.map(async (solution) => {
-					const resourceData = await resourceService.getDetails(
+					const resourceData = await this.details(
 						solution.result.id,
-						programData.organization_id
+						programData.organization_id,
+						userId,
+						false
 					)
-					kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
+					kafkaCommunication.pushResourceToKafka(resourceData?.result, resourceData.type)
 				})
 
 				const rolloutDetails = await this.details(
