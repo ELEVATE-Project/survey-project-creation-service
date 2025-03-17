@@ -974,22 +974,29 @@ module.exports = class RolloutsHelper {
 				solutionRolloutsIds = solutionRollouts.map((solution) => solution.id)
 			}
 
-			programData?.resources.forEach(async (resource) => {
+			for (const resource of programData?.resources || []) {
 				if (!solutionRolloutsIds.includes(resource?.id)) {
 					resourceIds.push(resource?.id)
+					const fetchResourceDetails = await resourceService.getDetails(
+						resource?.id,
+						programData.organization_id
+					)
+
 					const resourceRolloutReqBody = {
 						resource_id: resource?.id,
-						resource_type: resource?.type,
+						resource_type: fetchResourceDetails.result?.type,
 						start_date: resource?.start_date || '',
 						end_date: resource?.end_date || '',
 						targeting_criteria: resource?.targeting_criteria,
 						title: resource.title,
 					}
+
 					createRolloutPromise.push(
-						this.create(resourceRolloutReqBody, resource.user_id, resource.organization_id, true)
+						this.create(resourceRolloutReqBody, userId, programData.organization_id, true)
 					)
 				}
-			})
+			}
+
 			const updateResourceFilter = {
 				id: {
 					[Op.in]: resourceIds,
@@ -1027,30 +1034,33 @@ module.exports = class RolloutsHelper {
 					result: result,
 					message: `Rollout creation failed: ${createProgramRollout.message || 'Unknown error'}`,
 				})
-			}
+			} else {
+				const solutionRollout = await Promise.all(createRolloutPromise)
 
-			const solutionRollout = await Promise.all(createRolloutPromise)
-
-			const solutionRolloutPromises = solutionRollout.map(async (solution) => {
-				const resourceData = await resourceService.getDetails(solution.result.id, programData.organization_id)
-				kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
-			})
-
-			const rolloutDetails = await this.details(
-				createProgramRollout?.result?.id,
-				programData.organization_id,
-				programData.user_id,
-				false
-			)
-
-			const validateRollout = await this.validateRollout(rolloutDetails.result)
-			if (validateRollout.length > 0) {
-				const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
-				return responses.failureResponse({
-					statusCode: httpStatusCode.bad_request,
-					result: result,
-					message: 'ROLLOUT_VALIDATION_FAILED',
+				const solutionRolloutPromises = solutionRollout.map(async (solution) => {
+					const resourceData = await resourceService.getDetails(
+						solution.result.id,
+						programData.organization_id
+					)
+					kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 				})
+
+				const rolloutDetails = await this.details(
+					createProgramRollout?.result?.id,
+					programData.organization_id,
+					programData.user_id,
+					false
+				)
+
+				const validateRollout = await this.validateRollout(rolloutDetails.result)
+				if (validateRollout.length > 0) {
+					const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
+					return responses.failureResponse({
+						statusCode: httpStatusCode.bad_request,
+						result: result,
+						message: 'ROLLOUT_VALIDATION_FAILED',
+					})
+				}
 			}
 
 			return createProgramRollout?.result?.id

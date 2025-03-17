@@ -1450,15 +1450,20 @@ const publishProgram = function async(programData) {
 			}
 			if (solutionIds.length > 0) {
 				await updateProgram(programId, {
-					components: solutionIds.map((solution) => {
-						return solution instanceof ObjectId ? solution : ObjectId(solution)
-					}),
+					components: Array.from(
+						new Set(
+							solutionIds.map((solution) =>
+								solution instanceof ObjectId ? solution : ObjectId(solution)
+							)
+						)
+					),
 				})
 			}
 
 			await rolloutService.publishCallback(
 				programData.id,
 				programId ? programId.toString() : null,
+				null,
 				isProgramResource
 			)
 			solutions.forEach(async (solution) => {
