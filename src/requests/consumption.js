@@ -1454,14 +1454,14 @@ const publishProgram = function async(programData) {
 							externalId: template.externalId,
 							name: template?.name,
 							description: template?.description ? template?.description : '',
-							end_date: template?.end_date,
-							start_date: template?.start_date,
+							end_date: template?.endDate,
+							start_date: template?.startDate,
 							created_by: programData.created_by,
 							orgId: programData.organization_id,
 						}
 						if (isProgramResource) {
-							programDetails.start_date = resource?.start_date
-							programDetails.end_date = resource?.end_date
+							programDetails.start_date = fetchDetails?.result?.start_date
+							programDetails.end_date = fetchDetails?.result?.end_date
 							programDetails.scope = targeting
 						}
 						const createSolutionsData = await createSolutions(duplicateResource, programDetails, userToken)
