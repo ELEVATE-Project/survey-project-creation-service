@@ -870,7 +870,7 @@ module.exports = class RolloutsHelper {
 	 * @param {String} orgId - The ID of the Organization
 	 * @returns {Integer} - program rollout id
 	 */
-	static async updateProgramRollout(programId, programData, userId, orgId) {
+	static async updateProgramRollout(programId, programData, userId, orgId, userToken = false) {
 		try {
 			// fetch the resource ids from the program
 			const programResourceIds = programData.resources.map((resource) => resource.id)
@@ -915,6 +915,7 @@ module.exports = class RolloutsHelper {
 						end_date: findResources?.end_date || '',
 						targeting_criteria: findResources?.targeting_criteria,
 						title: findResources.title,
+						userToken,
 						...rolloutDetails,
 					}
 
@@ -948,7 +949,7 @@ module.exports = class RolloutsHelper {
 					programRolloutId = rollout.id
 				}
 			})
-			const viewers = programData.viewers.map((viewer) => viewer.id)
+			const viewers = programData.viewers.map((viewer) => viewer?.id || viewer)
 			// update rollout variable
 			let rolloutUpdate = {
 				start_date: programData?.meta?.start_date || '',
@@ -956,6 +957,7 @@ module.exports = class RolloutsHelper {
 				targeting_criteria: programData?.targeting_criteria || [],
 				updated_at: new Date(),
 				viewers,
+				userToken,
 				resources: [],
 			}
 			// prepare resources for program rollout update
@@ -1006,7 +1008,7 @@ module.exports = class RolloutsHelper {
 	 * @returns {Integer} - program rollout id
 	 */
 
-	static async createProgramRollout(programData, userId) {
+	static async createProgramRollout(programData, userId, userToken) {
 		try {
 			let createRolloutPromise = []
 			let resourceIds = [programData?.id]
@@ -1049,6 +1051,7 @@ module.exports = class RolloutsHelper {
 						end_date: resource?.end_date || '',
 						targeting_criteria: resource?.targeting_criteria,
 						title: resource.title,
+						userToken,
 						...rolloutDetails,
 					}
 
@@ -1080,6 +1083,7 @@ module.exports = class RolloutsHelper {
 				resources: programData?.resources || [],
 				targeting_criteria: programData?.targeting_criteria,
 				title: programData.title,
+				userToken,
 				viewers: programData?.viewers?.map((viewer) => (typeof viewer === 'object' ? viewer.id : viewer)),
 			}
 			// create an entry to rollout table

@@ -1054,7 +1054,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 			// generate signed url
 			// const getSignedUrl = await filesService.getSignedUrl(payloadData, common.CERTIFICATE, loggedInUserId, false)
 			const headers = {
-				'X-auth-token': userToken,
+				'X-auth-token': userToken.split(' ')[1],
 			}
 			const getSignedUrl = await generatePresignedUrlInConsumption(
 				process.env.INTERFACE_SERVICE_HOST +
@@ -1424,7 +1424,8 @@ const publishProgram = function async(programData) {
 		const result = { success: false, templateId: null, error: null }
 		try {
 			console.log(' ======= START Publish Program =======')
-			const { userToken, resource_type } = programData
+			const userToken = programData.userToken
+			const resource_type = programData.type
 			const isProgramResource = resource_type === common.RESOURCE_TYPE_PROGRAM
 			// Format the program template
 			let formattedTemplate = await formatProgramTemplate(programData)
@@ -1465,18 +1466,16 @@ const publishProgram = function async(programData) {
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
 				const updateProgramResponse = await updateProgram(programId, template)
-				if (programId.success) {
-					programId = updateProgramResponse._id
-				} else {
+				if (!updateProgramResponse?.success) {
 					throw new Error(updateProgramResponse?.error)
 				}
+				programId = updateProgramResponse._id
 			} else {
 				const createProgramResponse = await createProgram(template)
-				if (programId.success) {
-					programId = createProgramResponse._id
-				} else {
+				if (!createProgramResponse?.success) {
 					throw new Error(createProgramResponse?.error)
 				}
+				programId = createProgramResponse._id
 			}
 
 			const resourceWithInProgram = programData?.resources || [
@@ -1505,7 +1504,10 @@ const publishProgram = function async(programData) {
 
 				if (!fetchDetails?.result?.published_id) {
 					// publish a new template based on the type of the resource
-					if (fetchDetails?.result?.type == common.PROJECT || fetchDetails?.result?.resource_type) {
+					if (
+						fetchDetails?.result?.type == common.PROJECT ||
+						fetchDetails?.result?.resource_type == common.PROJECT
+					) {
 						// create a new project template
 						const publishedProject = isProgramResource
 							? await publishProjectTemplates(fetchDetails?.result)
@@ -1624,7 +1626,7 @@ const publishProgram = function async(programData) {
 			console.log('ERROR : ', error)
 			result.error = `Error: ${error.message}`
 			result.success = false
-			return result
+			return reject(result)
 		}
 	})
 }
