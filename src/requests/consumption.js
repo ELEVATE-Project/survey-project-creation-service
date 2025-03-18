@@ -1403,13 +1403,16 @@ async function updateSolutionTemplate(resource) {
 		}
 	}
 	return {
-		language: resource?.languages ? resource?.languages.map((language) => language.label) : [],
-		keywords: resource?.keywords ? utils.formatKeywords(resource?.keywords) : [],
-		name: resource?.title,
-		updatedAt: new Date(),
-		scope: targeting?.scope ? targeting?.scope : {},
-		endDate: resource.end_date,
-		startDate: resource.start_date,
+		success: true,
+		data: {
+			language: resource?.languages ? resource?.languages.map((language) => language.label) : [],
+			keywords: resource?.keywords ? utils.formatKeywords(resource?.keywords) : [],
+			name: resource?.title,
+			updatedAt: new Date(),
+			scope: targeting?.scope ? targeting?.scope : {},
+			endDate: resource.end_date,
+			startDate: resource.start_date,
+		},
 	}
 }
 
@@ -1626,7 +1629,7 @@ const publishProgram = function async(programData) {
 			console.log('ERROR : ', error)
 			result.error = `Error: ${error.message}`
 			result.success = false
-			return reject(result)
+			return resolve(result)
 		}
 	})
 }
