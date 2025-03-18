@@ -446,6 +446,7 @@ async function convertRecommendedRolesForProjects(recommendedFor) {
  * @returns {Array} Array of objects of solutions
  */
 const createSolutions = async (resourceDetails, programDetails, userToken) => {
+	let result = {}
 	try {
 		// array to have objects of solutions to create
 		let solutionsToCreate = []
@@ -573,11 +574,14 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				}
 			})
 		)
-
-		return createdSolutionsResponse
+		result.success = true
+		result.data = createdSolutionsResponse
+		return result
 	} catch (error) {
 		console.log(error)
-		throw error
+		result.success = false
+		result.error = error
+		return result
 	}
 }
 
@@ -805,11 +809,17 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 				rolloutId: templateProjectsIdMap[project.externalId].rollout_id,
 			}))
 
-			return [...updatedProjectTemplates]
+			return {
+				success: true,
+				data: [...updatedProjectTemplates],
+			}
 		}
 	} catch (error) {
 		console.log('ERROR in DUPLICATING TEMPLATE : ', error)
-		throw error
+		return {
+			success: false,
+			error,
+		}
 	}
 }
 
@@ -883,10 +893,13 @@ const processTargetingCriteria = async (targetingData) => {
 			}
 		})
 
-		return { scope, metaInformation }
+		return { scope, metaInformation, success: true }
 	} catch (error) {
 		console.log('Error in creating targeting : ', error)
-		throw error
+		return {
+			success: false,
+			error,
+		}
 	}
 }
 
@@ -901,6 +914,12 @@ const formatProgramTemplate = async (programData) => {
 		let programDocument = {}
 		if (programData?.targeting_criteria) {
 			const targeting = await processTargetingCriteria(programData?.targeting_criteria)
+			if (!targeting?.success) {
+				return {
+					success: false,
+					error: targeting?.error,
+				}
+			}
 			programDocument.scope = targeting?.scope ? targeting?.scope : {}
 			programDocument.metaInformation = targeting?.metaInformation ? targeting?.metaInformation : {}
 		}
@@ -1308,31 +1327,81 @@ async function downloadAndConvertToBase64(url) {
 	}
 }
 
+/**
+ *  Create program template and insert it into mongo
+ * @method
+ * @name createProgram
+ * @param {Object} programTemplate - Program data
+ * @return {String} programId - Program _id
+ */
 async function createProgram(programTemplate) {
-	// Insert the template into the database
-	const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
-	const result = await programsCollection.insertOne(programTemplate)
-	// Validate the result of the template creation
-	if (!result || !result.insertedId) {
-		throw new Error('Failed to insert the template into the database.')
-	}
-	return result.insertedId
-}
-
-async function updateProgram(programId, updateTemplate) {
-	// Update the template in the database
-	const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
-	await programsCollection.updateOne(
-		{ _id: programId },
-		{
-			$set: _.omit(updateTemplate, '_id', 'published_id'),
+	try {
+		// Insert the template into the database
+		const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
+		const result = await programsCollection.insertOne(programTemplate)
+		// Validate the result of the template creation
+		if (!result || !result.insertedId) {
+			throw new Error('Failed to insert the template into the database.')
 		}
-	)
-	return programId
+		return {
+			success: true,
+			_id: result.insertedId,
+		}
+	} catch (error) {
+		console.log('Create Program Error : ', error)
+		return {
+			success: false,
+			error,
+		}
+	}
 }
 
+/**
+ *  Update program template in mongo
+ * @method
+ * @name updateProgram
+ * @param {String} programId - Program _id
+ * @param {Object} programTemplate - Program data
+ * @return {String} programId - Program _id
+ */
+async function updateProgram(programId, updateTemplate) {
+	try {
+		// Update the template in the database
+		const programsCollection = mongoDb.collection(COLLECTIONS.PROGRAMS)
+		await programsCollection.updateOne(
+			{ _id: programId },
+			{
+				$set: _.omit(updateTemplate, '_id', 'published_id'),
+			}
+		)
+		return {
+			success: true,
+			_id: programId,
+		}
+	} catch (error) {
+		console.log('Update Program Error : ', error)
+		return {
+			success: false,
+			error,
+		}
+	}
+}
+
+/**
+ *  updateSolution template
+ * @method
+ * @name updateSolutionTemplate
+ * @param {Object} resource - resource data
+ * @return {Object} updateBody - resource update body
+ */
 async function updateSolutionTemplate(resource) {
 	const targeting = await processTargetingCriteria(resource?.targeting_criteria)
+	if (!targeting?.success) {
+		return {
+			success: false,
+			error: targeting.error,
+		}
+	}
 	return {
 		language: resource?.languages ? resource?.languages.map((language) => language.label) : [],
 		keywords: resource?.keywords ? utils.formatKeywords(resource?.keywords) : [],
@@ -1355,9 +1424,8 @@ const publishProgram = function async(programData) {
 		const result = { success: false, templateId: null, error: null }
 		try {
 			console.log(' ======= START Publish Program =======')
-			const userToken = programData.userToken
-			const isProgramResource = programData.resource_type == common.RESOURCE_TYPE_PROGRAM
-			// return true
+			const { userToken, resource_type } = programData
+			const isProgramResource = resource_type === common.RESOURCE_TYPE_PROGRAM
 			// Format the program template
 			let formattedTemplate = await formatProgramTemplate(programData)
 			if (!formattedTemplate.success) {
@@ -1368,8 +1436,10 @@ const publishProgram = function async(programData) {
 
 			let programResourceRolloutMap = {}
 			if (isProgramResource) {
+				// get the resource ids in a program
 				const programResourceIds = programData?.resources.map((resource) => resource.id)
-				if (programResourceIds) {
+				if (programResourceIds.length > 0) {
+					// find all the resource rollout data
 					const rolloutData = await rolloutQueries.findAll(
 						{
 							resource_id: {
@@ -1380,6 +1450,7 @@ const publishProgram = function async(programData) {
 					)
 
 					if (rolloutData) {
+						// create a map of resource id and rollout id
 						rolloutData.forEach((rollout) => {
 							programResourceRolloutMap[rollout.resource_id] = rollout.id
 						})
@@ -1393,9 +1464,19 @@ const publishProgram = function async(programData) {
 
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
-				programId = await updateProgram(programId, template)
+				const updateProgramResponse = await updateProgram(programId, template)
+				if (programId.success) {
+					programId = updateProgramResponse._id
+				} else {
+					throw new Error(updateProgramResponse?.error)
+				}
 			} else {
-				programId = await createProgram(template)
+				const createProgramResponse = await createProgram(template)
+				if (programId.success) {
+					programId = createProgramResponse._id
+				} else {
+					throw new Error(createProgramResponse?.error)
+				}
 			}
 
 			const resourceWithInProgram = programData?.resources || [
@@ -1404,7 +1485,7 @@ const publishProgram = function async(programData) {
 					targeting_criteria: programData.targeting_criteria,
 				},
 			]
-			if (resourceWithInProgram.length <= 0) {
+			if (resourceWithInProgram.length === 0) {
 				console.error('Consumption Error : Program Resources Empty.')
 				throw new Error('NO_RESOURCE_ADDED')
 			}
@@ -1412,21 +1493,17 @@ const publishProgram = function async(programData) {
 			let resourceToUpdate = []
 
 			for (const resource of resourceWithInProgram) {
-				const fetchDetails = isProgramResource
-					? await rolloutService.details(
-							programResourceRolloutMap[resource.id],
-							programData.organization_id,
-							programData.created_by,
-							false
-					  )
-					: await rolloutService.details(
-							resource.id,
-							programData.organization_id,
-							programData.created_by,
-							false
-					  )
+				// for programs check the map and get the rollout id from resource id
+				// for single rollout use the rollout id directly
+				const rolloutId = isProgramResource ? programResourceRolloutMap[resource.id] : resource.id
+				const fetchDetails = await rolloutService.details(
+					rolloutId,
+					programData.organization_id,
+					programData.created_by,
+					false
+				)
 
-				if (fetchDetails?.result?.published_id == undefined || fetchDetails?.result?.published_id == null) {
+				if (!fetchDetails?.result?.published_id) {
 					// publish a new template based on the type of the resource
 					if (fetchDetails?.result?.type == common.PROJECT || fetchDetails?.result?.resource_type) {
 						// create a new project template
@@ -1442,12 +1519,19 @@ const publishProgram = function async(programData) {
 							fetchDetails?.result?.certificate,
 							programData.created_by
 						)
-						if (!duplicateResource) {
+						if (!duplicateResource.success) {
 							console.log('Error in creating duplicate Resource')
-							throw new Error('Error in creating duplicate Resource')
+							throw new Error(
+								`Error in creating duplicate Resource ${duplicateResource?.error || 'Unknown Error'}`
+							)
 						}
 
 						const targeting = await processTargetingCriteria(resource?.targeting_criteria)
+						if (!targeting?.success) {
+							throw new Error(
+								`Error in processing targetting criteria : ${targeting?.error || 'Unknown Error'}`
+							)
+						}
 
 						let programDetails = {
 							_id: programId,
@@ -1465,15 +1549,25 @@ const publishProgram = function async(programData) {
 							programDetails.end_date = fetchDetails?.result?.end_date
 							programDetails.scope = targeting.scope
 						}
-						const createSolutionsData = await createSolutions(duplicateResource, programDetails, userToken)
-						solutions = [...solutions, ...createSolutionsData]
+						const createSolutionsData = await createSolutions(
+							duplicateResource.data,
+							programDetails,
+							userToken
+						)
+						if (!createSolutionsData.success)
+							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
+						solutions = [...solutions, ...createSolutionsData.data]
 						solutionIds = [...solutionIds, ...solutions.map((solution) => solution._id)]
 					}
 				} else {
 					solutionIds.push(fetchDetails?.result?.published_id)
+					const updateBody = await updateSolutionTemplate(fetchDetails?.result)
+					if (!updateBody?.success) {
+						throw new Error(`Error in creating update body : ${updateBody?.error || 'Unknown Error'}`)
+					}
 					resourceToUpdate.push({
 						_id: fetchDetails?.result?.published_id,
-						updateBody: await updateSolutionTemplate(fetchDetails?.result),
+						updateBody,
 					})
 				}
 			}
