@@ -738,7 +738,6 @@ module.exports = class reviewsHelper {
 								result: result,
 								message: `Rollout publish failed: ${publishRollout.message || 'Unknown error'}`,
 							})
-							throw new Error() // Include error message if available
 						}
 					}
 					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
@@ -802,7 +801,7 @@ const _restrictedReviewStatuses = [
  * @param {String} userId - The ID of the user
  * @returns {JSON} - Publish Response
  */
-async function handleProgramRollout(resourceData, resourceId, userId) {
+async function handleProgramRollout(resourceData, resourceId, userId, userToken) {
 	try {
 		let rolloutId = null
 		if (resourceData?.published_id) {
@@ -815,7 +814,7 @@ async function handleProgramRollout(resourceData, resourceId, userId) {
 			)
 		} else {
 			// while program publishing first time
-			rolloutId = await rolloutService.createProgramRollout(resourceData, userId)
+			rolloutId = await rolloutService.createProgramRollout(resourceData, userId, userToken)
 			if (rolloutId?.statusCode && rolloutId?.statusCode == httpStatusCode.bad_request) {
 				throw rolloutId
 			}
