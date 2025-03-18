@@ -39,6 +39,7 @@ module.exports = class CommentData {
 			return await Comment.update(update, {
 				where: filter,
 				...options,
+				individualHooks: true,
 			})
 		} catch (error) {
 			throw error

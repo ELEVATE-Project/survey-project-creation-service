@@ -10,7 +10,6 @@ exports.create = async (data) => {
 			const messages = error.errors.map((err) => `${err.path} cannot be null.`)
 			throw new Error(messages.join(' '))
 		} else {
-			console.log(error, 'errpr')
 			throw new Error(error)
 		}
 	}
