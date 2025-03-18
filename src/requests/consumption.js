@@ -1354,6 +1354,7 @@ const publishProgram = function async(programData) {
 	return new Promise(async (resolve, reject) => {
 		const result = { success: false, templateId: null, error: null }
 		try {
+			console.log(' ======= START Publish Program =======')
 			const userToken = programData.userToken
 			const isProgramResource = programData.resource_type == common.RESOURCE_TYPE_PROGRAM
 			// return true
@@ -1523,7 +1524,7 @@ const publishProgram = function async(programData) {
 			//return result
 			result.success = true
 			result.programId = programId
-
+			console.log(' ======= END Publish Program =======')
 			return resolve(result)
 		} catch (error) {
 			console.log('ERROR : ', error)
