@@ -1425,7 +1425,7 @@ const publishProgram = function async(programData) {
 		try {
 			console.log(' ======= START Publish Program =======')
 			const userToken = programData.userToken
-			const resource_type = programData.type
+			const resource_type = programData.resource_type
 			const isProgramResource = resource_type === common.RESOURCE_TYPE_PROGRAM
 			// Format the program template
 			let formattedTemplate = await formatProgramTemplate(programData)
