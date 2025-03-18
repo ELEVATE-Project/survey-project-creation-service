@@ -450,7 +450,7 @@ module.exports = class RolloutsHelper {
 				}
 			}
 
-			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_id', 'user_id'])
+			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_id', 'user_id', 'status'])
 
 			if (bodyData.start_date == '' || bodyData.start_date == undefined) {
 				bodyData.start_date = null
@@ -807,7 +807,7 @@ module.exports = class RolloutsHelper {
 	 * @param {String} templateId - template id
 	 * @returns {JSON} - details of Rollout
 	 */
-	static async publishCallback(rolloutId, publishedId = null, templateId = null) {
+	static async publishCallback(rolloutId, publishedId = null, templateId = null, isProgramResource = false) {
 		try {
 			let updateData = {
 				published_on: new Date(),
@@ -821,6 +821,28 @@ module.exports = class RolloutsHelper {
 				},
 				updateData
 			)
+			// if rollout is program rollout
+			if (isProgramResource) {
+				// update the program and resources , add published id
+				let rolloutData = await rolloutQueries.findOne(
+					{
+						id: rolloutId,
+					},
+					['resource_id']
+				)
+
+				if (rolloutData) {
+					await resourceQueries.updateOne(
+						{
+							id: rolloutData.resource_id,
+						},
+						{
+							published_id: publishedId,
+							published_on: new Date(),
+						}
+					)
+				}
+			}
 
 			if (rollout === 0) {
 				return responses.failureResponse({
@@ -848,13 +870,13 @@ module.exports = class RolloutsHelper {
 	 * @param {String} orgId - The ID of the Organization
 	 * @returns {Integer} - program rollout id
 	 */
-	static async updateProgramRollout(programId, programData, userId, orgId) {
+	static async updateProgramRollout(programId, programData, userId, orgId, userToken = false) {
 		try {
 			// fetch the resource ids from the program
 			const programResourceIds = programData.resources.map((resource) => resource.id)
 
 			// fetch rollout data of program and resources
-			const fetchRollouts = await rolloutQueries.findAll(
+			let fetchRollouts = await rolloutQueries.findAll(
 				{
 					resource_id: {
 						[Op.in]: [programId, ...programResourceIds],
@@ -866,6 +888,56 @@ module.exports = class RolloutsHelper {
 					attributes: ['id', 'resource_type', 'resource_id'],
 				}
 			)
+
+			const createdRolloutResources = fetchRollouts.map((rollout) => rollout.resource_id)
+
+			const deltaResources = _.difference(programResourceIds, createdRolloutResources)
+
+			if (deltaResources.length > 0) {
+				let createRolloutPromise = []
+				const programResources = programData?.resources || []
+				for (const resource of deltaResources) {
+					const fetchResourceDetails = await resourceService.getDetails(resource, programData.organization_id)
+					const rolloutDetails = _.omit(fetchResourceDetails?.result, [
+						'resource_id',
+						'resource_type',
+						'start_date',
+						'end_date',
+						'targeting_criteria',
+						'title',
+						'blob_path',
+					])
+					const findResources = programResources.find((programResource) => programResource.id == resource)
+					const resourceRolloutReqBody = {
+						resource_id: resource,
+						resource_type: fetchResourceDetails.result?.type,
+						start_date: findResources?.start_date || '',
+						end_date: findResources?.end_date || '',
+						targeting_criteria: findResources?.targeting_criteria,
+						title: findResources.title,
+						userToken,
+						...rolloutDetails,
+					}
+
+					createRolloutPromise.push(
+						this.create(resourceRolloutReqBody, userId, programData.organization_id, true)
+					)
+				}
+				await Promise.all(createRolloutPromise)
+				fetchRollouts = await rolloutQueries.findAll(
+					{
+						resource_id: {
+							[Op.in]: [programId, ...programResourceIds],
+						},
+						user_id: userId,
+						organization_id: orgId,
+					},
+					{
+						attributes: ['id', 'resource_type', 'resource_id'],
+					}
+				)
+			}
+
 			let resourceRolloutResourceIdMap = {} // initialise rollout id resource mapping
 			let programRolloutId // initialise variable for program rollout id
 
@@ -877,13 +949,16 @@ module.exports = class RolloutsHelper {
 					programRolloutId = rollout.id
 				}
 			})
-
+			const viewers = programData.viewers.map((viewer) => viewer?.id || viewer)
 			// update rollout variable
 			let rolloutUpdate = {
 				start_date: programData?.meta?.start_date || '',
 				end_date: programData?.meta?.end_date || '',
 				targeting_criteria: programData?.targeting_criteria || [],
 				updated_at: new Date(),
+				viewers,
+				userToken,
+				resources: [],
 			}
 			// prepare resources for program rollout update
 			programData.resources.forEach((resource) => {
@@ -895,7 +970,7 @@ module.exports = class RolloutsHelper {
 			// append resource rollout update promises
 			rolloutUpdate.resources.forEach(async (resource) => {
 				rolloutUpdatePromise.push(
-					this.update(resourceRolloutResourceIdMap[resource.id], resource, userId, orgId)
+					this.update(resourceRolloutResourceIdMap[resource.id], { ...resource, viewers }, userId, orgId)
 				)
 			})
 
@@ -903,7 +978,7 @@ module.exports = class RolloutsHelper {
 			await Promise.all(rolloutUpdatePromise)
 
 			const rolloutDetails = await this.details(
-				createProgramRollout?.result?.id,
+				programRolloutId,
 				programData.organization_id,
 				programData.user_id,
 				false
@@ -933,7 +1008,7 @@ module.exports = class RolloutsHelper {
 	 * @returns {Integer} - program rollout id
 	 */
 
-	static async createProgramRollout(programData, userId) {
+	static async createProgramRollout(programData, userId, userToken) {
 		try {
 			let createRolloutPromise = []
 			let resourceIds = [programData?.id]
@@ -954,22 +1029,38 @@ module.exports = class RolloutsHelper {
 				solutionRolloutsIds = solutionRollouts.map((solution) => solution.id)
 			}
 
-			programData?.resources.forEach(async (resource) => {
+			for (const resource of programData?.resources || []) {
 				if (!solutionRolloutsIds.includes(resource?.id)) {
 					resourceIds.push(resource?.id)
+					const fetchResourceDetails = await resourceService.getDetails(
+						resource?.id,
+						programData.organization_id
+					)
+					const rolloutDetails = _.omit(fetchResourceDetails?.result, [
+						'resource_id',
+						'resource_type',
+						'start_date',
+						'end_date',
+						'targeting_criteria',
+						'title',
+					])
 					const resourceRolloutReqBody = {
 						resource_id: resource?.id,
-						resource_type: resource?.type,
+						resource_type: fetchResourceDetails.result?.type,
 						start_date: resource?.start_date || '',
 						end_date: resource?.end_date || '',
 						targeting_criteria: resource?.targeting_criteria,
 						title: resource.title,
+						userToken,
+						...rolloutDetails,
 					}
+
 					createRolloutPromise.push(
-						this.create(resourceRolloutReqBody, resource.user_id, resource.organization_id, true)
+						this.create(resourceRolloutReqBody, userId, programData.organization_id, true)
 					)
 				}
-			})
+			}
+
 			const updateResourceFilter = {
 				id: {
 					[Op.in]: resourceIds,
@@ -989,8 +1080,10 @@ module.exports = class RolloutsHelper {
 				resource_type: programData?.type,
 				start_date: programData?.meta?.start_date,
 				end_date: programData?.meta?.end_date,
+				resources: programData?.resources || [],
 				targeting_criteria: programData?.targeting_criteria,
 				title: programData.title,
+				userToken,
 				viewers: programData?.viewers?.map((viewer) => (typeof viewer === 'object' ? viewer.id : viewer)),
 			}
 			// create an entry to rollout table
@@ -1006,30 +1099,35 @@ module.exports = class RolloutsHelper {
 					result: result,
 					message: `Rollout creation failed: ${createProgramRollout.message || 'Unknown error'}`,
 				})
-			}
+			} else {
+				const solutionRollout = await Promise.all(createRolloutPromise)
 
-			const solutionRollout = await Promise.all(createRolloutPromise)
-
-			const solutionRolloutPromises = solutionRollout.map(async (solution) => {
-				const resourceData = await resourceService.getDetails(solution.result.id, programData.organization_id)
-				kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
-			})
-
-			const rolloutDetails = await this.details(
-				createProgramRollout?.result?.id,
-				programData.organization_id,
-				programData.user_id,
-				false
-			)
-
-			const validateRollout = await this.validateRollout(rolloutDetails.result)
-			if (validateRollout.length > 0) {
-				const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
-				return responses.failureResponse({
-					statusCode: httpStatusCode.bad_request,
-					result: result,
-					message: 'ROLLOUT_VALIDATION_FAILED',
+				const solutionRolloutPromises = solutionRollout.map(async (solution) => {
+					const resourceData = await this.details(
+						solution.result.id,
+						programData.organization_id,
+						userId,
+						false
+					)
+					kafkaCommunication.pushResourceToKafka(resourceData?.result, resourceData.type)
 				})
+
+				const rolloutDetails = await this.details(
+					createProgramRollout?.result?.id,
+					programData.organization_id,
+					programData.user_id,
+					false
+				)
+
+				const validateRollout = await this.validateRollout(rolloutDetails.result)
+				if (validateRollout.length > 0) {
+					const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
+					return responses.failureResponse({
+						statusCode: httpStatusCode.bad_request,
+						result: result,
+						message: 'ROLLOUT_VALIDATION_FAILED',
+					})
+				}
 			}
 
 			return createProgramRollout?.result?.id

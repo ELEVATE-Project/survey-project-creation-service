@@ -997,7 +997,7 @@ module.exports = class ProgramsHelper {
 				const publishResource = await reviewService.publishResource(
 					programData.id,
 					programData.user_id,
-					programData.organization_id
+					userDetails.token
 				)
 				return publishResource
 			}
@@ -1041,7 +1041,6 @@ module.exports = class ProgramsHelper {
 				message: error.message || 'RESOURCE_VALIDATION_FAILED',
 				statusCode: httpStatusCode.bad_request,
 				responseCode: 'CLIENT_ERROR',
-				result: error.error || [],
 			})
 		}
 	}
@@ -1099,7 +1098,7 @@ module.exports = class ProgramsHelper {
 				})
 			}
 
-			let rolloutId = await handleProgramRollouts(programData, programId, userDetails.id)
+			let rolloutId = await handleProgramRollouts(programData, programId, userDetails.id, userDetails.token)
 
 			if (isNaN(rolloutId)) {
 				throw new Error(rolloutId)
@@ -1110,7 +1109,7 @@ module.exports = class ProgramsHelper {
 				rolloutId,
 				programData.user_id,
 				programData.organization_id,
-				programData.userToken
+				userDetails.token
 			)
 
 			if (![httpStatusCode.ok, httpStatusCode.accepted].includes(publishRollout.statusCode)) {
@@ -1274,7 +1273,7 @@ async function fetchProgramTopLevelEntities(programTargeting) {
  * @param {String} userId - Logged in user id
  * @returns {Integer} - Return rollout id or validation error
  */
-async function handleProgramRollouts(resourceData, resourceId, userId) {
+async function handleProgramRollouts(resourceData, resourceId, userId, userToken = false) {
 	let rolloutId = null
 	if (resourceData?.published_id) {
 		// if program is already rolled out
@@ -1282,11 +1281,12 @@ async function handleProgramRollouts(resourceData, resourceId, userId) {
 			resourceId,
 			resourceData,
 			userId,
-			resourceData.organization_id
+			resourceData.organization_id,
+			userToken
 		)
 	} else {
 		// while program publishing first time
-		rolloutId = await rolloutService.createProgramRollout(resourceData, userId)
+		rolloutId = await rolloutService.createProgramRollout(resourceData, userId, userToken)
 	}
 	return rolloutId
 }
@@ -1423,8 +1423,8 @@ async function handleResources(resources, programId, orgId, loggedInUserId, isRe
 							orgId,
 							loggedInUserId,
 							updatedResourceData,
-							common.UPLOAD_FILE_NAME[updatedResourceData.type],
-							updatedResourceData.type
+							common.UPLOAD_FILE_NAME[resourceDetails.type],
+							resourceDetails.type
 						)
 					}
 				}
