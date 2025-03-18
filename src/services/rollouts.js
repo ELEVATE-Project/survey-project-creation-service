@@ -129,6 +129,8 @@ module.exports = class RolloutsHelper {
 		} catch (error) {
 			await transaction.rollback() // Rollback transaction on any error
 			throw error
+		} finally {
+			await transaction.cleanup()
 		}
 	}
 

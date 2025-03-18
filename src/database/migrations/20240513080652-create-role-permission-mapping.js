@@ -42,6 +42,14 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
+
+		await queryInterface.addIndex('role_permission_mapping', ['api_path'], {
+			name: 'role_permission_api_path_index',
+		})
+
+		await queryInterface.addIndex('role_permission_mapping', ['module'], {
+			name: 'role_permission_module_index',
+		})
 	},
 
 	async down(queryInterface, Sequelize) {
