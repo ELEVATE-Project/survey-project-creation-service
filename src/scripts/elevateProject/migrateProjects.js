@@ -194,6 +194,13 @@ const dbName = mongoUrl.split('/').pop()
 				)
 
 				if (projectCreateResponse.success) {
+					//update scp resource id in mongo
+					await db.collection('projectTemplates').updateOne(
+						{
+							_id: template._id,
+						},
+						{ $set: { scp_reference_id: projectCreateResponse.projectId } }
+					)
 					csvRecords.push({
 						templateId: templateIdStr,
 						success: 'Project Created',
