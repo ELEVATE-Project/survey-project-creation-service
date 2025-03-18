@@ -735,6 +735,7 @@ module.exports = class resourceHelper {
 					'created_at',
 					'meta',
 					'published_id',
+					'published_on',
 				],
 				sort,
 				page,

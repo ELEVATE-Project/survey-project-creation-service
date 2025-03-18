@@ -448,7 +448,7 @@ module.exports = class RolloutsHelper {
 				}
 			}
 
-			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_id', 'user_id'])
+			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_id', 'user_id', 'status'])
 
 			if (bodyData.start_date == '' || bodyData.start_date == undefined) {
 				bodyData.start_date = null
@@ -897,13 +897,15 @@ module.exports = class RolloutsHelper {
 					programRolloutId = rollout.id
 				}
 			})
-
+			const viewers = programData.viewers.map((viewer) => viewer.id)
 			// update rollout variable
 			let rolloutUpdate = {
 				start_date: programData?.meta?.start_date || '',
 				end_date: programData?.meta?.end_date || '',
 				targeting_criteria: programData?.targeting_criteria || [],
 				updated_at: new Date(),
+				viewers,
+				resources: [],
 			}
 			// prepare resources for program rollout update
 			programData.resources.forEach((resource) => {
@@ -915,7 +917,7 @@ module.exports = class RolloutsHelper {
 			// append resource rollout update promises
 			rolloutUpdate.resources.forEach(async (resource) => {
 				rolloutUpdatePromise.push(
-					this.update(resourceRolloutResourceIdMap[resource.id], resource, userId, orgId)
+					this.update(resourceRolloutResourceIdMap[resource.id], { ...resource, viewers }, userId, orgId)
 				)
 			})
 
@@ -923,7 +925,7 @@ module.exports = class RolloutsHelper {
 			await Promise.all(rolloutUpdatePromise)
 
 			const rolloutDetails = await this.details(
-				createProgramRollout?.result?.id,
+				programRolloutId,
 				programData.organization_id,
 				programData.user_id,
 				false

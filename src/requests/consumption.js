@@ -661,7 +661,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 					templateProjectsTaskMap[project.externalId] = project.tasks
 					templateProjectsIdMap[project.externalId] = {
 						resource_id: resourceDetails.resource_id,
-						rollout_id: resourceDetails.rolloutId,
+						rollout_id: resourceDetails.id,
 					}
 
 					templateProjects.push(project)
@@ -1476,6 +1476,23 @@ const publishProgram = function async(programData) {
 					})
 				}
 			}
+			if (resourceToUpdate.length > 0) {
+				const solutionCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
+
+				const resourceToUpdatePromise = resourceToUpdate.map((resourceData) => {
+					return solutionCollection.updateOne(
+						{ _id: resourceData._id },
+						{
+							$set: resourceData.updateBody,
+						}
+					)
+				})
+
+				if (resourceToUpdatePromise.length > 0) {
+					await Promise.all(resourceToUpdatePromise)
+				}
+			}
+
 			if (solutionIds.length > 0) {
 				await updateProgram(programId, {
 					components: Array.from(
@@ -1511,7 +1528,8 @@ const publishProgram = function async(programData) {
 		} catch (error) {
 			console.log('ERROR : ', error)
 			result.error = `Error: ${error.message}`
-			return resolve(error)
+			result.success = false
+			return result
 		}
 	})
 }
