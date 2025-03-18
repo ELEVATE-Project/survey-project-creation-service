@@ -874,7 +874,7 @@ module.exports = class RolloutsHelper {
 			const programResourceIds = programData.resources.map((resource) => resource.id)
 
 			// fetch rollout data of program and resources
-			const fetchRollouts = await rolloutQueries.findAll(
+			let fetchRollouts = await rolloutQueries.findAll(
 				{
 					resource_id: {
 						[Op.in]: [programId, ...programResourceIds],
@@ -886,6 +886,55 @@ module.exports = class RolloutsHelper {
 					attributes: ['id', 'resource_type', 'resource_id'],
 				}
 			)
+
+			const createdRolloutResources = fetchRollouts.map((rollout) => rollout.resource_id)
+
+			const deltaResources = _.difference(programResourceIds, createdRolloutResources)
+
+			if (deltaResources.length > 0) {
+				let createRolloutPromise = []
+				const programResources = programData?.resources || []
+				for (const resource of deltaResources) {
+					const fetchResourceDetails = await resourceService.getDetails(resource, programData.organization_id)
+					const rolloutDetails = _.omit(fetchResourceDetails?.result, [
+						'resource_id',
+						'resource_type',
+						'start_date',
+						'end_date',
+						'targeting_criteria',
+						'title',
+						'blob_path',
+					])
+					const findResources = programResources.find((programResource) => programResource.id == resource)
+					const resourceRolloutReqBody = {
+						resource_id: resource,
+						resource_type: fetchResourceDetails.result?.type,
+						start_date: findResources?.start_date || '',
+						end_date: findResources?.end_date || '',
+						targeting_criteria: findResources?.targeting_criteria,
+						title: findResources.title,
+						...rolloutDetails,
+					}
+
+					createRolloutPromise.push(
+						this.create(resourceRolloutReqBody, userId, programData.organization_id, true)
+					)
+				}
+				await Promise.all(createRolloutPromise)
+				fetchRollouts = await rolloutQueries.findAll(
+					{
+						resource_id: {
+							[Op.in]: [programId, ...programResourceIds],
+						},
+						user_id: userId,
+						organization_id: orgId,
+					},
+					{
+						attributes: ['id', 'resource_type', 'resource_id'],
+					}
+				)
+			}
+
 			let resourceRolloutResourceIdMap = {} // initialise rollout id resource mapping
 			let programRolloutId // initialise variable for program rollout id
 
