@@ -1060,7 +1060,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 			}
 			// generate signed url
 			const headers = {
-				'X-auth-token': userToken.split(' ')[1],
+				'X-auth-token': userToken.replace(/^bearer\s+/i, ''),
 			}
 			console.log('-=-=-=-=-=-%%%%=-=-=-=-=-=-=-=-8888 > headers :', userToken, headers)
 			const getSignedUrl = await generatePresignedUrlInConsumption(
