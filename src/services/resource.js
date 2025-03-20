@@ -24,6 +24,7 @@ const programResourceMappingQueries = require('@database/queries/programResource
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
 const defaultOrgId = process.env.DEFAULT_ORG_ID
+const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
 module.exports = class resourceHelper {
 	/**
 	 * List up for listAllSubmittedResources
@@ -1325,13 +1326,40 @@ module.exports = class resourceHelper {
 	 * @param {Integer} pageSize -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {Object} - Response contain object of resources
 	 */
-	static async browseExistingList(organization_id, resourceIds = [], query, searchText = '', pageNo, pageSize) {
+	static async browseExistingList(
+		organization_id,
+		userRoles,
+		resourceIds = [],
+		query,
+		searchText = '',
+		pageNo,
+		pageSize
+	) {
 		try {
 			let result = {
 				data: [],
 				count: 0,
 			}
-			const resourceType = query[common.TYPE] ? query[common.TYPE].split(',') : ''
+			const roleTitles = userRoles.map((roles) => roles.title)
+			const rolePermissionDetails = await rolePermissionMappingQueries.findAll(
+				{
+					role_title: {
+						[Op.in]: roleTitles,
+					},
+				},
+				['module']
+			)
+			const allowedModulesInSingular = [
+				...new Set(rolePermissionDetails.map((rolesModule) => utils.convertToSingular(rolesModule.module))),
+			]
+			const allResources = process.env.RESOURCE_TYPES
+				? process.env.RESOURCE_TYPES.split(',')
+				: common.ALL_RESOURCES
+			const allowedResources = allResources.filter((resource) => allowedModulesInSingular.includes(resource))
+
+			const resourceType = query[common.TYPE]
+				? query[common.TYPE].split(',').filter((type) => allowedResources.includes(type))
+				: allowedResources
 			const search = searchText != '' ? searchText : ''
 
 			let filterQuery = {

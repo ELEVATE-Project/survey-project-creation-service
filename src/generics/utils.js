@@ -738,6 +738,13 @@ const escapeXml = (inputElement) => {
 		.replace(/'/g, '&apos;')
 }
 
+const convertToSingular = (plural) => {
+	if (plural.endsWith('s')) {
+		return plural.replace(/(s)$/, '')
+	}
+	return plural
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -782,4 +789,5 @@ module.exports = {
 	formatProjectMetaInformation,
 	convertDuration,
 	escapeXml,
+	convertToSingular,
 }
