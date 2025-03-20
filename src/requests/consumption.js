@@ -1059,10 +1059,10 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				},
 			}
 			// generate signed url
-			// const getSignedUrl = await filesService.getSignedUrl(payloadData, common.CERTIFICATE, loggedInUserId, false)
 			const headers = {
 				'X-auth-token': userToken.split(' ')[1],
 			}
+			console.log('-=-=-=-=-=-%%%%=-=-=-=-=-=-=-=-8888 > headers :', headers)
 			const getSignedUrl = await generatePresignedUrlInConsumption(
 				process.env.INTERFACE_SERVICE_HOST +
 					process.env.CONSUMPTION_SERVICE_BASE_URL +
