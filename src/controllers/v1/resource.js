@@ -93,6 +93,7 @@ module.exports = class Resource {
 		try {
 			const resourceList = await resourceService.browseExistingList(
 				req.decodedToken.organization_id,
+				req.decodedToken.roles,
 				req.body.resource_ids ? req.body.resource_ids : [],
 				req.query,
 				req.searchText,
