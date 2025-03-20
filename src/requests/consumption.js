@@ -996,6 +996,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 		try {
 			// fetch base template from cloud
 			let baseTemplate = await getBaseTemplate(certificateData?.base_template_url)
+			console.log('-=-=-=-=-=-=-=-=-=-=-=>>>> BASE template : ')
 			if (!baseTemplate.success) {
 				throw new Error('Base template download failed.')
 			}
@@ -1015,6 +1016,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				const signatureImgTag = `signatureImg${index}`
 				await waitForSocketAvailability() // check and wait for axios socket availability
 				const imageData = await downloadAndConvertToBase64(certificateData.signature[signatureImgTag])
+				console.log('-=-=-=-=-=-=-=-=-=-=-=>>>> INDEX : ', index)
 				const signatureNameElement = $(`#${signatureNameTag}`)
 				const signatureImgElement = $(`#${signatureImgTag}`)
 				signatureImgElement.attr('xlink:href', utils.escapeXml(imageData))
@@ -1031,6 +1033,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				await waitForSocketAvailability() // check and wait for axios socket availability
 				const imageData = await downloadAndConvertToBase64(certificateData.logos[logoTag])
 				const logoElement = $(`#${logoTag}`)
+				console.log('-=-=-=-=-=-=-=-=-=-=-=>>>> INDEX 2 : ', index)
 				logoElement.attr('xlink:href', utils.escapeXml(imageData))
 			}
 
@@ -1067,6 +1070,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				payloadData,
 				headers
 			)
+			console.log('-=-=-=-=-=-%%%%=-=-=-=-=-=-=-=-8888 > getSignedUrl :', getSignedUrl)
 			if (!getSignedUrl.success) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}
@@ -1076,6 +1080,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 			await uploadFile(dirPath, fileName, fileUploadUrl)
 			// delete folder after upload
 			await deleteFolderRecursive(path.join(mainPath, uniqueId))
+			console.log('-=-=-=-=-=-%%%%=-=-=-=-=-=-=-=-8888 > Deleted :')
 
 			resolve({
 				message: 'Template edited successfully',
@@ -1089,9 +1094,10 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 
 async function generatePresignedUrlInConsumption(url, body, headers) {
 	try {
+		console.log('-=-=-=-=-=-=-=-=-=-=-=>>>> URL : ', url)
 		const response = await axios.post(url, body, { headers, timeout: 6000 })
 		let result = { success: false }
-
+		console.log('-=-=-=-=-=-=-=-=-=-=-=>>>> response.status : ', response.status)
 		if (response.status === 200) {
 			const files = response?.data?.result?.[common.CERTIFICATE]?.files
 
