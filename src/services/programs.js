@@ -686,8 +686,7 @@ module.exports = class ProgramsHelper {
 
 				// If the program is published, only allow removing resources added after publishing
 				const resourcesAddedBeforePublishing = bodyData.resource_ids.filter((resourceId) => {
-					const resourceAddedDate = existingResourceMap[resourceId]
-					return resourceAddedDate < program.published_on
+					return existingResourceMap[resourceId] < program.published_on
 				})
 
 				if (resourcesAddedBeforePublishing.length > 0) {
