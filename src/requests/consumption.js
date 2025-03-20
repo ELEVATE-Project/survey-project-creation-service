@@ -23,6 +23,8 @@ const filesService = require('@services/files')
 const request = require('request')
 const _ = require('lodash')
 let mongoDb
+let socketInUse = false // Flag to track socket status
+
 const { Op } = require('sequelize')
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
@@ -1011,6 +1013,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				const signatureNameTag = `signatureTitle${index}a`
 				const signatureDesignationTag = `signatureTitleDesignation${index}`
 				const signatureImgTag = `signatureImg${index}`
+				await waitForSocketAvailability() // check and wait for axios socket availability
 				const imageData = await downloadAndConvertToBase64(certificateData.signature[signatureImgTag])
 				const signatureNameElement = $(`#${signatureNameTag}`)
 				const signatureImgElement = $(`#${signatureImgTag}`)
@@ -1025,6 +1028,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 			// update logos
 			for (let index = 1; index <= certificateData.logos.no_of_logos; index++) {
 				const logoTag = `stateLogo${index}`
+				await waitForSocketAvailability() // check and wait for axios socket availability
 				const imageData = await downloadAndConvertToBase64(certificateData.logos[logoTag])
 				const logoElement = $(`#${logoTag}`)
 				logoElement.attr('xlink:href', utils.escapeXml(imageData))
@@ -1052,9 +1056,8 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				},
 			}
 			// generate signed url
-			// const getSignedUrl = await filesService.getSignedUrl(payloadData, common.CERTIFICATE, loggedInUserId, false)
 			const headers = {
-				'X-auth-token': userToken.split(' ')[1],
+				'X-auth-token': userToken.replace(/^bearer\s+/i, ''),
 			}
 			const getSignedUrl = await generatePresignedUrlInConsumption(
 				process.env.INTERFACE_SERVICE_HOST +
@@ -1087,7 +1090,6 @@ async function generatePresignedUrlInConsumption(url, body, headers) {
 	try {
 		const response = await axios.post(url, body, { headers, timeout: 6000 })
 		let result = { success: false }
-
 		if (response.status === 200) {
 			const files = response?.data?.result?.[common.CERTIFICATE]?.files
 
@@ -1281,7 +1283,11 @@ async function deleteFolderRecursive(folderPath) {
  */
 async function getBaseTemplate(templateUrl) {
 	try {
+		// Mark socket as engaged
+		socketInUse = true
 		const response = await axios.get(templateUrl)
+		// Mark socket as free
+		socketInUse = false
 		if (response.status === 200) {
 			return {
 				success: true,
@@ -1291,10 +1297,22 @@ async function getBaseTemplate(templateUrl) {
 			throw new Error(`Unexpected response status: ${response.status}`)
 		}
 	} catch (error) {
+		// Mark socket as free
+		socketInUse = false
 		return Promise.reject(new Error(`Failed to fetch base template: ${error.message}`))
 	}
 }
 
+async function waitForSocketAvailability() {
+	return new Promise((resolve) => {
+		const checkInterval = setInterval(() => {
+			if (!socketInUse) {
+				clearInterval(checkInterval)
+				resolve()
+			}
+		}, 1000) // Check every second
+	})
+}
 /**
  *  download file from cloud and convert it into base64
  * @method
@@ -1303,6 +1321,15 @@ async function getBaseTemplate(templateUrl) {
  */
 async function downloadAndConvertToBase64(url) {
 	try {
+		// Wait if the socket is in use
+		if (socketInUse) {
+			console.log('Socket is in use. Waiting for 1 minute...')
+			await new Promise((resolve) => setTimeout(resolve, 60000)) // Wait for 1 minute
+		}
+
+		// Mark socket as in use
+		socketInUse = true
+
 		// Download the image file as a binary buffer
 		const response = await axios({
 			url,
@@ -1320,9 +1347,14 @@ async function downloadAndConvertToBase64(url) {
 		// Create the Base64 Data URL
 		const base64DataUrl = `data:image/png;base64,${base64}`
 
+		// Mark socket as free
+		socketInUse = false
+
 		return base64DataUrl
 	} catch (error) {
 		console.error('Error downloading or converting file:', error.message)
+		// Mark socket as free
+		socketInUse = false
 		throw error
 	}
 }
@@ -1430,8 +1462,10 @@ const publishProgram = function async(programData) {
 			const userToken = programData.userToken
 			const resource_type = programData.resource_type
 			const isProgramResource = resource_type === common.RESOURCE_TYPE_PROGRAM
+
 			// Format the program template
 			let formattedTemplate = await formatProgramTemplate(programData)
+
 			if (!formattedTemplate.success) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
@@ -1439,6 +1473,7 @@ const publishProgram = function async(programData) {
 			let template = formattedTemplate.programDocument
 
 			let programResourceRolloutMap = {}
+
 			if (isProgramResource) {
 				// get the resource ids in a program
 				const programResourceIds = programData?.resources.map((resource) => resource.id)
@@ -1459,6 +1494,8 @@ const publishProgram = function async(programData) {
 							programResourceRolloutMap[rollout.resource_id] = rollout.id
 						})
 					}
+				} else {
+					throw new Error('Add atleast one resource to the Program.')
 				}
 			}
 
@@ -1498,6 +1535,12 @@ const publishProgram = function async(programData) {
 				// for programs check the map and get the rollout id from resource id
 				// for single rollout use the rollout id directly
 				const rolloutId = isProgramResource ? programResourceRolloutMap[resource.id] : resource.id
+				if (!rolloutId)
+					throw new Error(
+						`Rollout For Resource ( ${resource?.id} ) ${
+							isProgramResource ? 'within Program ' : 'within Single rollout '
+						} is not created`
+					)
 				const fetchDetails = await rolloutService.details(
 					rolloutId,
 					programData.organization_id,
@@ -1562,7 +1605,7 @@ const publishProgram = function async(programData) {
 						if (!createSolutionsData.success)
 							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
 						solutions = [...solutions, ...createSolutionsData.data]
-						solutionIds = [...solutionIds, ...solutions.map((solution) => solution._id)]
+						solutionIds = [...new Set([...solutionIds, ...solutions.map((solution) => solution._id)])]
 					}
 				} else {
 					solutionIds.push(fetchDetails?.result?.published_id)
