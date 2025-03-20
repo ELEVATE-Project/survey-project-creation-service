@@ -23,6 +23,8 @@ const filesService = require('@services/files')
 const request = require('request')
 const _ = require('lodash')
 let mongoDb
+let socketInUse = false // Flag to track socket status
+
 const { Op } = require('sequelize')
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
@@ -1011,6 +1013,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 				const signatureNameTag = `signatureTitle${index}a`
 				const signatureDesignationTag = `signatureTitleDesignation${index}`
 				const signatureImgTag = `signatureImg${index}`
+				await waitForSocketAvailability() // check and wait for axios socket availability
 				const imageData = await downloadAndConvertToBase64(certificateData.signature[signatureImgTag])
 				const signatureNameElement = $(`#${signatureNameTag}`)
 				const signatureImgElement = $(`#${signatureImgTag}`)
@@ -1025,6 +1028,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 			// update logos
 			for (let index = 1; index <= certificateData.logos.no_of_logos; index++) {
 				const logoTag = `stateLogo${index}`
+				await waitForSocketAvailability() // check and wait for axios socket availability
 				const imageData = await downloadAndConvertToBase64(certificateData.logos[logoTag])
 				const logoElement = $(`#${logoTag}`)
 				logoElement.attr('xlink:href', utils.escapeXml(imageData))
@@ -1281,7 +1285,11 @@ async function deleteFolderRecursive(folderPath) {
  */
 async function getBaseTemplate(templateUrl) {
 	try {
+		// Mark socket as engaged
+		socketInUse = true
 		const response = await axios.get(templateUrl)
+		// Mark socket as free
+		socketInUse = false
 		if (response.status === 200) {
 			return {
 				success: true,
@@ -1291,10 +1299,22 @@ async function getBaseTemplate(templateUrl) {
 			throw new Error(`Unexpected response status: ${response.status}`)
 		}
 	} catch (error) {
+		// Mark socket as free
+		socketInUse = false
 		return Promise.reject(new Error(`Failed to fetch base template: ${error.message}`))
 	}
 }
 
+async function waitForSocketAvailability() {
+	return new Promise((resolve) => {
+		const checkInterval = setInterval(() => {
+			if (!socketInUse) {
+				clearInterval(checkInterval)
+				resolve()
+			}
+		}, 1000) // Check every second
+	})
+}
 /**
  *  download file from cloud and convert it into base64
  * @method
@@ -1303,6 +1323,15 @@ async function getBaseTemplate(templateUrl) {
  */
 async function downloadAndConvertToBase64(url) {
 	try {
+		// Wait if the socket is in use
+		if (socketInUse) {
+			console.log('Socket is in use. Waiting for 1 minute...')
+			await new Promise((resolve) => setTimeout(resolve, 60000)) // Wait for 1 minute
+		}
+
+		// Mark socket as in use
+		socketInUse = true
+
 		// Download the image file as a binary buffer
 		const response = await axios({
 			url,
@@ -1320,9 +1349,14 @@ async function downloadAndConvertToBase64(url) {
 		// Create the Base64 Data URL
 		const base64DataUrl = `data:image/png;base64,${base64}`
 
+		// Mark socket as free
+		socketInUse = false
+
 		return base64DataUrl
 	} catch (error) {
 		console.error('Error downloading or converting file:', error.message)
+		// Mark socket as free
+		socketInUse = false
 		throw error
 	}
 }
