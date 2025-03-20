@@ -1262,15 +1262,21 @@ module.exports = class ProgramsHelper {
 				await Promise.all(resourcesValidationPromise)
 				let resourceErrors = await Promise.all(resourceValidationErrors)
 
-				resourceErrors = resourceErrors.filter((error) => error?.hasError === true)
-
-				resourceErrors.forEach((error) => {
-					if (error?.hasError && Array.isArray(error.validationErrors) && error.validationErrors.length > 0) {
-						validationErrors.push(...error.validationErrors)
-					} else if (error?.hasError && Array.isArray(error.error) && error.error.length > 0) {
-						validationErrors.push(...error.error)
-					}
-				})
+				resourceErrors =
+					resourceErrors.length > 0 ? resourceErrors.filter((error) => error?.hasError === true) : []
+				if (resourceErrors.length > 0) {
+					resourceErrors.forEach((error) => {
+						if (
+							error?.hasError &&
+							Array.isArray(error.validationErrors) &&
+							error.validationErrors.length > 0
+						) {
+							validationErrors.push(...error.validationErrors)
+						} else if (error?.hasError && Array.isArray(error.error) && error.error.length > 0) {
+							validationErrors.push(...error.error)
+						}
+					})
+				}
 			}
 
 			return validationErrors
