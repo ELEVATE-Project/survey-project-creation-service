@@ -19,6 +19,7 @@ const projectService = require('@services/projects')
 const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 const reviewService = require('@services/reviews')
 const rolloutService = require('@services/rollouts')
+const commentService = require('@services/comments')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -1157,6 +1158,8 @@ module.exports = class ProgramsHelper {
 				})
 			}
 
+			await commentService.removeAllComments([programId, ...resourceIds], userDetails.id)
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'PROGRAM_PUBLISHED',
@@ -1260,17 +1263,17 @@ module.exports = class ProgramsHelper {
 				})
 
 				await Promise.all(resourcesValidationPromise)
-				const resourceErrors = await Promise.all(resourceValidationErrors)
+				let resourceErrors = await Promise.all(resourceValidationErrors)
 
-				resourceErrors
-					.filter((error) => !(error?.hasError === false))
-					.forEach((error) => {
-						if (Array.isArray(error)) {
-							validationErrors.push(error)
-						} else if (error?.hasError && Array.isArray(error.error)) {
-							validationErrors.push(...error.error)
-						}
-					})
+				resourceErrors = resourceErrors.filter((error) => error?.hasError === true)
+
+				resourceErrors.forEach((error) => {
+					if (error?.hasError && Array.isArray(error.validationErrors) && error.validationErrors.length > 0) {
+						validationErrors.push(...error.validationErrors)
+					} else if (error?.hasError && Array.isArray(error.error) && error.error.length > 0) {
+						validationErrors.push(...error.error)
+					}
+				})
 			}
 
 			return validationErrors

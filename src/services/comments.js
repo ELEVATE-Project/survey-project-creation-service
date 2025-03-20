@@ -216,6 +216,31 @@ module.exports = class CommentsHelper {
 			throw error
 		}
 	}
+
+	/**
+	 * Remove all the comments while Publishing
+	 * @method
+	 * @name removeAllComments
+	 * @param {Array} resourceIds - List of resource ids
+	 * @param {String} userId - loggedIn user id
+	 * @returns {JSON} - Response status of the submission
+	 */
+	static async removeAllComments(resourceIds, userId) {
+		await commentQueries.update(
+			{
+				resource_id: {
+					[Op.in]: resourceIds,
+				},
+			},
+			{
+				status: common.STATUS_RESOLVED,
+				resolved_by: userId,
+				resolved_at: new Date(),
+				deleted_at: new Date(),
+			}
+		)
+		return
+	}
 }
 
 /**
