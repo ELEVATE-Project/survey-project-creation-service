@@ -162,5 +162,6 @@
 	"PROGRAM_NOT_PUBLISHED": "This Program cannot be published.",
 	"NO_RESOURCE_ADDED": "Atleast one resource is mandatory.",
 	"PROGRAM_SUBMITTED_SUCCESSFULLY": "Your program has been sent for review",
-	"PROGRAM_PUBLISHED": "Your changes have been published"
+	"PROGRAM_PUBLISHED": "Your changes have been published",
+	"CANNOT_REMOVE_RESOURCE_ADDED_AFTER_PUBLISHED_DATE": "Resource cannot be removed after the program has been published."
 }
