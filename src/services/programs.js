@@ -640,7 +640,7 @@ module.exports = class ProgramsHelper {
 			const program = await resourceQueries.findOne(
 				{ id: programId, organization_id: orgId },
 				{
-					attributes: ['id', 'status', 'published_id'],
+					attributes: ['id', 'status', 'published_id', 'published_on'],
 				}
 			)
 
@@ -654,12 +654,48 @@ module.exports = class ProgramsHelper {
 			}
 
 			// Check if the program is published
-			if (program.status === common.PROGRAM_STATUS_PUBLISHED || program.published_id) {
-				return responses.failureResponse({
-					message: 'CANNOT_REMOVE_RESOURCE_FROM_PUBLISHED_PROGRAM',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
+			if (program.status === common.PUBLISHED_STATUS || program.published_id || program.published_on) {
+				// Fetch all resources linked to the program
+				const mappedResources = await programResourceMappingQueries.findAll({
+					program_id: programId,
 				})
+
+				if (!mappedResources.length) {
+					return responses.failureResponse({
+						message: 'NO_RESOURCES_FOUND_TO_REMOVE',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				// Create a map of existing resource IDs and their added timestamps
+				const existingResourceMap = mappedResources.reduce((acc, resource) => {
+					acc[resource.resource_id] = resource.created_at
+					return acc
+				}, {})
+
+				// Validate resource existence
+				const invalidResources = bodyData.resource_ids.filter((resourceId) => !existingResourceMap[resourceId])
+				if (invalidResources.length > 0) {
+					return responses.failureResponse({
+						message: 'INVALID_RESOURCES_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				// If the program is published, only allow removing resources added after publishing
+				const resourcesAddedBeforePublishing = bodyData.resource_ids.filter((resourceId) => {
+					return existingResourceMap[resourceId] < program.published_on
+				})
+
+				if (resourcesAddedBeforePublishing.length > 0) {
+					return responses.failureResponse({
+						message: 'CANNOT_REMOVE_RESOURCES_ADDED_BEFORE_PUBLISHING',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
 			}
 
 			// Convert resource IDs to numbers
