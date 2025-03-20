@@ -24,6 +24,7 @@ const programResourceMappingQueries = require('@database/queries/programResource
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
 const defaultOrgId = process.env.DEFAULT_ORG_ID
+const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
 module.exports = class resourceHelper {
 	/**
 	 * List up for listAllSubmittedResources
@@ -1319,19 +1320,60 @@ module.exports = class resourceHelper {
 	 * @name browseExistingList
 	 * @param {String} organization_id - Org Id of the user
 	 * @param {Array} resourceIds - Resource Ids
+	 * @param {Array} userRoles - User roles,
 	 * @param {Object} query - Query object passed by user
 	 * @param {String} searchText - Title to search
 	 * @param {Integer} pageNo -  Used to skip to different pages. Used for pagination . If value is not passed, by default it will be 1
 	 * @param {Integer} pageSize -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {Object} - Response contain object of resources
 	 */
-	static async browseExistingList(organization_id, resourceIds = [], query, searchText = '', pageNo, pageSize) {
+	static async browseExistingList(
+		organization_id,
+		userRoles,
+		resourceIds = [],
+		query,
+		searchText = '',
+		pageNo,
+		pageSize
+	) {
 		try {
 			let result = {
 				data: [],
 				count: 0,
 			}
-			const resourceType = query[common.TYPE] ? query[common.TYPE].split(',') : ''
+			// fetch all the role titles from the roles array
+			const roleTitles = userRoles.map((roles) => roles.title)
+
+			// fetch modules from role permission mapping table for the user roles
+			const rolePermissionDetails = await rolePermissionMappingQueries.findAll(
+				{
+					role_title: {
+						[Op.in]: roleTitles,
+					},
+				},
+				['module']
+			)
+			// check if the user have any permissions else return empty array
+			if (!rolePermissionDetails || rolePermissionDetails.length === 0)
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'RESOURCES_FETCHED',
+					result,
+				})
+
+			// fetch all the modules converted by removing trailing 's'
+			const allowedModulesInSingular = [
+				...new Set(rolePermissionDetails.map((rolesModule) => utils.convertToSingular(rolesModule.module))),
+			]
+			// all the resource types supported by the system
+			const allResources = process.env.RESOURCE_TYPES.split(',') || []
+			// fetch all the allowed resource types based on user role
+			const allowedResources = allResources.filter((resource) => allowedModulesInSingular.includes(resource))
+
+			// construct user resource type based on query param
+			const resourceType = query[common.TYPE]
+				? query[common.TYPE].split(',').filter((type) => allowedResources.includes(type))
+				: allowedResources
 			const search = searchText != '' ? searchText : ''
 
 			let filterQuery = {
