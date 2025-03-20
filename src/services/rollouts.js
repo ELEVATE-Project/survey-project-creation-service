@@ -14,7 +14,7 @@ const { Op } = require('sequelize')
 const kafkaCommunication = require('@generics/kafka-communication')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
-const commentService = require('@services/comments')
+
 module.exports = class RolloutsHelper {
 	/**
 	 * Rollout create
@@ -684,13 +684,6 @@ module.exports = class RolloutsHelper {
 				await kafkaCommunication.pushRolloutToKafka(rolloutKafkaPayload, common.ROLL_OUT)
 			} else {
 				// implement API based publish
-			}
-			if (resourceDetails?.result.type == common.RESOURCE_TYPE_PROGRAM) {
-				const programAndResources = [
-					resourceDetails?.result.id,
-					...resourceDetails?.result.resources.map((resource) => resource.id),
-				]
-				await commentService.removeAllComments(programAndResources, loggedInUserId)
 			}
 
 			return responses.successResponse({
