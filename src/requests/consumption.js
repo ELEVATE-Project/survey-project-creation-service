@@ -1430,8 +1430,10 @@ const publishProgram = function async(programData) {
 			const userToken = programData.userToken
 			const resource_type = programData.resource_type
 			const isProgramResource = resource_type === common.RESOURCE_TYPE_PROGRAM
+
 			// Format the program template
 			let formattedTemplate = await formatProgramTemplate(programData)
+
 			if (!formattedTemplate.success) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
@@ -1439,6 +1441,7 @@ const publishProgram = function async(programData) {
 			let template = formattedTemplate.programDocument
 
 			let programResourceRolloutMap = {}
+
 			if (isProgramResource) {
 				// get the resource ids in a program
 				const programResourceIds = programData?.resources.map((resource) => resource.id)
@@ -1459,6 +1462,8 @@ const publishProgram = function async(programData) {
 							programResourceRolloutMap[rollout.resource_id] = rollout.id
 						})
 					}
+				} else {
+					throw new Error('Add atleast one resource to the Program.')
 				}
 			}
 
@@ -1498,6 +1503,12 @@ const publishProgram = function async(programData) {
 				// for programs check the map and get the rollout id from resource id
 				// for single rollout use the rollout id directly
 				const rolloutId = isProgramResource ? programResourceRolloutMap[resource.id] : resource.id
+				if (!rolloutId)
+					throw new Error(
+						`Rollout For Resource ( ${resource?.id} ) ${
+							isProgramResource ? 'within Program ' : 'within Single rollout '
+						} is not created`
+					)
 				const fetchDetails = await rolloutService.details(
 					rolloutId,
 					programData.organization_id,
@@ -1562,7 +1573,7 @@ const publishProgram = function async(programData) {
 						if (!createSolutionsData.success)
 							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
 						solutions = [...solutions, ...createSolutionsData.data]
-						solutionIds = [...solutionIds, ...solutions.map((solution) => solution._id)]
+						solutionIds = [...new Set([...solutionIds, ...solutions.map((solution) => solution._id)])]
 					}
 				} else {
 					solutionIds.push(fetchDetails?.result?.published_id)
