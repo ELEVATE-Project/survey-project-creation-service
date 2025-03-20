@@ -39,7 +39,6 @@ module.exports = class EntityHelper {
 				result: entity,
 			})
 		} catch (error) {
-			console.log('-=-=-=-=-=-=-=>>>> ERROR : ', error)
 			if (error instanceof UniqueConstraintError) {
 				return responses.failureResponse({
 					message: 'ENTITY_ALREADY_EXISTS',

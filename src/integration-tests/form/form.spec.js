@@ -15,21 +15,27 @@ describe('Form APIs', function () {
 		}
 	})
 
-	it('Create Form', async () => {
+	it('Create Form with valid data', async () => {
 		let res = await request.post('/scp/v1/form/create').send(insertFormData())
 
 		expect(res.statusCode).toBe(201)
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
 
+	it('Create Form with invalid data', async () => {
+		let formData = insertFormData()
+		delete formData.type
+		let res = await request.post('/scp/v1/form/create').send(formData)
+		expect(res.statusCode).toBe(400)
+	})
+
 	it('Read form', async () => {
 		let res = await request.get('/scp/v1/form/read/')
-
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.readSchema)
 	})
 
-	it('/update', async () => {
+	it('Update form with valid data', async () => {
 		let formData = await request.post('/scp/v1/form/create').send(insertFormData())
 		if (formData.meta && formData.meta.formVersion && formData.meta.formVersion.length > 0) {
 			let formId = formData.meta.formVersion[0].id
@@ -38,6 +44,18 @@ describe('Form APIs', function () {
 			expect(res.statusCode).toBe(200)
 			expect(res.body).toMatchSchema(schema.updateSchema)
 		}
+	})
+
+	it('Update form with invalid form id', async () => {
+		let res = await request.post('/scp/v1/form/update/9999').send(insertFormData())
+		expect(res.statusCode).toBe(400)
+	})
+
+	it('Update form with invalid data', async () => {
+		let formData = insertFormData()
+		delete formData.type
+		let res = await request.post('/scp/v1/form/update/9999').send(formData)
+		expect(res.statusCode).toBe(400)
 	})
 })
 
