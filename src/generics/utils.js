@@ -738,6 +738,12 @@ const escapeXml = (inputElement) => {
 		.replace(/'/g, '&apos;')
 }
 
+/**
+ * Converts a string from Plural to singular by removing the trailing 's' from the word
+ * @name convertToSingular
+ * @param {String} plural - Input string to remove the trailing s
+ * @returns {String} - Output string to after removing the trailing s
+ */
 const convertToSingular = (plural) => {
 	if (plural.endsWith('s')) {
 		return plural.replace(/(s)$/, '')
