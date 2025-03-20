@@ -654,7 +654,7 @@ module.exports = class ProgramsHelper {
 			}
 
 			// Check if the program is published
-			if (program.status === common.PUBLISHED_STATUS || program.published_id) {
+			if (program.status === common.PUBLISHED_STATUS || program.published_id || program.published_on) {
 				// Fetch all resources linked to the program
 				const mappedResources = await programResourceMappingQueries.findAll({
 					program_id: programId,
@@ -685,10 +685,9 @@ module.exports = class ProgramsHelper {
 				}
 
 				// If the program is published, only allow removing resources added after publishing
-				const publishedDate = new Date(program.published_at)
 				const resourcesAddedBeforePublishing = bodyData.resource_ids.filter((resourceId) => {
-					const resourceAddedDate = new Date(existingResourceMap[resourceId])
-					return resourceAddedDate < publishedDate
+					const resourceAddedDate = existingResourceMap[resourceId]
+					return resourceAddedDate < program.published_on
 				})
 
 				if (resourcesAddedBeforePublishing.length > 0) {
