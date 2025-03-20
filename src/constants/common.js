@@ -240,5 +240,4 @@ module.exports = {
 		project: 'project.json',
 		program: 'program.json',
 	},
-	ALL_RESOURCES: ['project', 'observation', 'observation_with_rubric', 'survey', 'program'],
 }
