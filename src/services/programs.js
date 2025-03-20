@@ -19,7 +19,6 @@ const projectService = require('@services/projects')
 const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 const reviewService = require('@services/reviews')
 const rolloutService = require('@services/rollouts')
-const commentService = require('@services/comments')
 module.exports = class ProgramsHelper {
 	/**
 	 * Program create
@@ -1157,8 +1156,6 @@ module.exports = class ProgramsHelper {
 					result: error.error || [],
 				})
 			}
-
-			await commentService.removeAllComments([programId, ...resourceIds], userDetails.id)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
