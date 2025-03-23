@@ -117,6 +117,8 @@ services:
     container_name: scp
     ports:
       - '6001:6001'
+    volumes:
+      - ../../survey-project-creation-service/src:/var/src
     command: >
       bash -c '
         echo "Waiting for User service to accept connections...";

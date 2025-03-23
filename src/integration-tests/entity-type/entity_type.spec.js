@@ -1,20 +1,21 @@
 const commonHelper = require('@commonTests')
 const schema = require('./responseSchema')
+const { faker } = require('@faker-js/faker')
 jest.setTimeout(10000)
 
 describe('Entity-Type APIs', function () {
 	let userDetails
+	let entityTypeId
 
 	beforeAll(async () => {
 		try {
 			userDetails = await commonHelper.logIn()
-			console.log('Logged in User:', userDetails.id, userDetails.roles)
+			// console.log('Logged in User:', userDetails.id, userDetails.roles)
 		} catch (error) {
 			console.error('Error in beforeAll setup:', error)
 			throw error // Ensure the error is thrown to fail the tests
 		}
 	})
-	let entityTypeId
 
 	it('Read Entity-Type', async () => {
 		const res = await request.post('/scp/v1/entity-types/read')
@@ -24,7 +25,7 @@ describe('Entity-Type APIs', function () {
 
 	it('Create an Entity Type with valid data', async () => {
 		const res = await request.post('/scp/v1/entity-types/create').send({
-			value: 'new_entity_type',
+			value: faker.random.alpha(5),
 			label: 'New Entity Type',
 			type: 'SYSTEM',
 			allow_filtering: false,
@@ -32,7 +33,8 @@ describe('Entity-Type APIs', function () {
 			has_entities: true,
 		})
 		expect(res.statusCode).toBe(201)
-		entityTypeId = res?.result?.id
+		entityTypeId = res?.body?.result?.id
+		expect(entityTypeId).toBeDefined()
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
 
@@ -71,10 +73,10 @@ describe('Entity-Type APIs', function () {
 		expect(res.statusCode).toBe(400)
 	})
 
-	if (entityTypeId) {
-		it('Delete an Entity Type using a valid ID', async () => {
-			const res = await request.delete('/scp/v1/entity-types/delete/' + entityTypeId)
-			expect(res.statusCode).toBe(200)
-		})
-	}
+	it('Delete an Entity Type with a valid ID', async () => {
+		expect(entityTypeId).toBeDefined() // Ensure it exists before using
+		const res = await request.delete(`/scp/v1/entity-types/delete/${entityTypeId}`)
+		expect(res.statusCode).toBe(202)
+		console.log(`Successfully deleted entityTypeId: ${entityTypeId}`)
+	})
 })

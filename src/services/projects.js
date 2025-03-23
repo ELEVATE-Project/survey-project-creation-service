@@ -299,7 +299,11 @@ module.exports = class ProjectsHelper {
 			)
 
 			if (!resourceCreatorMapping?.id) {
-				throw new Error('PROJECT_NOT_FOUND')
+				return responses.failureResponse({
+					message: 'PROJECT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
 			const resource = await resourceQueries.findOne(
@@ -313,7 +317,11 @@ module.exports = class ProjectsHelper {
 			)
 
 			if (!resource?.id) {
-				throw new Error('PROJECT_NOT_FOUND')
+				return responses.failureResponse({
+					message: 'PROJECT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
 			let updatedProject = await resourceQueries.deleteOne(resourceId, resource.organization_id)
@@ -323,7 +331,11 @@ module.exports = class ProjectsHelper {
 			)
 
 			if (updatedProject === 0 && updatedProjectCreatorMapping === 0) {
-				throw new Error('PROJECT_NOT_FOUND')
+				return responses.failureResponse({
+					message: 'PROJECT_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
 			return responses.successResponse({
@@ -332,11 +344,7 @@ module.exports = class ProjectsHelper {
 				result: {},
 			})
 		} catch (error) {
-			return responses.failureResponse({
-				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
-				responseCode: 'CLIENT_ERROR',
-			})
+			throw error
 		}
 	}
 	/**

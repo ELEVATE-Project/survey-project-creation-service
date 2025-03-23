@@ -9,7 +9,7 @@ describe('Config APIs', function () {
 		try {
 			userDetails = await commonHelper.verifyUserRole()
 			userDetails = await commonHelper.logIn()
-			console.log('Logged in User:', userDetails.id, userDetails.roles)
+			// console.log('Logged in User:', userDetails.id, userDetails.roles)
 		} catch (error) {
 			console.error('Error in beforeAll setup:', error)
 			throw error // Ensure the error is thrown to fail the tests

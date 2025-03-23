@@ -18,6 +18,7 @@ module.exports = {
 		'@commonTests': '<rootDir>/integration-tests/commonTests',
 	},
 	testMatch: ['<rootDir>/integration-tests/**/*.spec.js'],
+	testSequencer: '<rootDir>/integration-tests/testSequencer.js',
 	reporters: ['default', ['jest-junit', { suiteName: 'jest tests', outputDirectory: '../dev-ops/report' }]],
 }
 /* Add env variables used by jest here because jest do not have access to app or docker env files.

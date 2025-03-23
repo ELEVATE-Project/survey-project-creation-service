@@ -317,24 +317,84 @@ const programSubmitForReview = {
 		responseCode: {
 			type: 'string',
 		},
-		error: {
-			type: 'array',
-			items: {},
+		message: {
+			type: 'string',
 		},
-		meta: {
+		result: {
 			type: 'object',
 			properties: {
-				correlation: {
-					type: 'string',
+				id: {
+					type: 'integer',
 				},
 			},
-			required: ['correlation'],
+			required: ['id'],
+		},
+	},
+	required: ['responseCode', 'message', 'result'],
+}
+
+const reviewerListSchema = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
 		message: {
 			type: 'string',
 		},
+		result: {
+			type: 'object',
+			properties: {
+				data: {
+					type: 'array',
+					items: [
+						{
+							type: 'object',
+							properties: {
+								id: {
+									type: 'integer',
+								},
+								name: {
+									type: 'string',
+								},
+								email: {
+									type: 'string',
+								},
+								about: {
+									type: ['string', 'null'],
+								},
+								image: {
+									type: ['string', 'null'],
+								},
+								organization: {
+									type: 'object',
+									properties: {
+										id: {
+											type: 'integer',
+										},
+										code: {
+											type: 'string',
+										},
+										name: {
+											type: 'string',
+										},
+									},
+									required: ['id', 'code', 'name'],
+								},
+							},
+							required: ['id', 'name', 'email', 'organization'],
+						},
+					],
+				},
+				count: {
+					type: 'integer',
+				},
+			},
+			required: ['data', 'count'],
+		},
 	},
-	required: ['responseCode', 'error', 'message'],
+
+	required: ['responseCode', 'message', 'result'],
 }
 module.exports = {
 	createSchema,
@@ -344,4 +404,5 @@ module.exports = {
 	getProgramManagersEmptyResponseSchema,
 	getProgramManagersSchema,
 	programSubmitForReview,
+	reviewerListSchema,
 }

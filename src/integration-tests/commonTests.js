@@ -58,27 +58,37 @@ const verifyUserRole = async () => {
 			}
 
 			// Run role checks concurrently for content_creator and reviewer roles
-			const [existingCreatorRole, existingReviewerRole, existingRolloutManagerRole, existingProgramDesignerRole] =
-				await Promise.all([
-					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-						title: 'content_creator',
-						organization_id: 1,
-					}),
-					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-						title: 'reviewer',
-						organization_id: 1,
-					}),
+			const [
+				existingCreatorRole,
+				existingReviewerRole,
+				existingRolloutManagerRole,
+				existingProgramDesignerRole,
+				existingProgramManagerRole,
+			] = await Promise.all([
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'content_creator',
+					organization_id: 1,
+				}),
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'reviewer',
+					organization_id: 1,
+				}),
 
-					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-						title: 'rollout_manager',
-						organization_id: 1,
-					}),
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'rollout_manager',
+					organization_id: 1,
+				}),
 
-					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-						title: 'program_designer',
-						organization_id: 1,
-					}),
-				])
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'program_designer',
+					organization_id: 1,
+				}),
+
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'program_manager',
+					organization_id: 1,
+				}),
+			])
 
 			// Create role creation promises
 			let roleCreationPromises = []
@@ -137,6 +147,20 @@ const verifyUserRole = async () => {
 				roleCreationPromises.push(createProgramDesignerRole)
 			}
 
+			if (
+				existingProgramManagerRole.statusCode === 400 ||
+				!existingProgramManagerRole.body.result?.data?.length
+			) {
+				const createProgramManagerRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+					title: 'program_manager',
+					user_type: 0,
+					organization_id: 1,
+					label: 'Program Manager',
+					visibility: 'PUBLIC',
+				})
+				roleCreationPromises.push(createProgramManagerRole)
+			}
+
 			// Wait for both role creation requests to complete
 			if (roleCreationPromises.length > 0) {
 				const res = await Promise.all(roleCreationPromises)
@@ -187,14 +211,14 @@ const logIn = async () => {
 			password: password,
 		})
 
-		console.log(' Create : -=-=-=-=-=>>  ', res.body)
+		// console.log(' Create : -=-=-=-=-=>>  ', res.body)
 
 		// Log in with the created account
 		res = await request.post('/user/v1/account/login').send({
 			email: email,
 			password: password,
 		})
-		console.log('-=-=-=-=-=>> ', res.body)
+		// console.log('-=-=-=-=-=>> ', res.body)
 		// Check if login was successful and return token details
 		if (res.body?.result?.access_token && res.body.result.user.id) {
 			console.log('============>LOGIN SUCCESSFUL')

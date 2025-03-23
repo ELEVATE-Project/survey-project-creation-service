@@ -18,7 +18,7 @@ module.exports = class modulesHelper {
 	static async create(roleTitle, permissionId, loggedInUserId) {
 		try {
 			const permission = await permissionsQueries.findPermissionId(permissionId)
-			if (!permission) {
+			if (!permission?.id) {
 				return responses.failureResponse({
 					message: 'PERMISSION_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -85,7 +85,7 @@ module.exports = class modulesHelper {
 			}
 
 			return responses.successResponse({
-				statusCode: httpStatusCode.created,
+				statusCode: httpStatusCode.ok,
 				message: 'ROLE_PERMISSION_DELETED_SUCCESSFULLY',
 				result: {},
 			})
@@ -128,7 +128,7 @@ module.exports = class modulesHelper {
 
 			if (!permissions.length) {
 				return responses.successResponse({
-					statusCode: httpStatusCode.created,
+					statusCode: httpStatusCode.ok,
 					message: 'ROLE_PERMISSION_NOT_FOUND',
 					result: { permissions: [] },
 				})

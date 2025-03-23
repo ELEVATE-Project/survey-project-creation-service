@@ -131,6 +131,12 @@ const newPermissions = [
 		request_type: ['GET'],
 		api_path: '/scp/v1/programs/getProgramManagers',
 	},
+	{
+		code: 'publish_program_permissions',
+		module: 'programs',
+		request_type: ['GET'],
+		api_path: '/scp/v1/programs/publish*',
+	},
 ]
 
 // Existing permissions for program designer

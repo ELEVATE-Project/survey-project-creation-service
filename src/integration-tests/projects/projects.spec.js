@@ -5,29 +5,37 @@ jest.setTimeout(200000)
 
 describe('Project APIs ', function () {
 	let userDetails
+	let projectResourceId
 	beforeAll(async () => {
 		try {
 			await commonHelper.verifyUserRole()
 			userDetails = await commonHelper.logIn()
-			console.log('Logged in User:', userDetails.id, userDetails.roles)
+			// console.log('Logged in User:', userDetails.id, userDetails.roles)
 		} catch (error) {
 			console.error('Error in beforeAll setup:', error)
 			throw error // Ensure the error is thrown to fail the tests
 		}
 	})
 
-	it('Create Project', async () => {
-		let res = await request.post('/scp/v1/projects/update').send(insertProjectData())
+	it('List Project with empty data', async () => {
+		const res = await request.get('/scp/v1/resource/list?page=1&limit=5&listing=drafts&type=project')
 		expect(res.statusCode).toBe(200)
-		expect(res.body).toMatchSchema(schema.createSchema)
+		expect(res.body).toMatchSchema(schema.emptyListSchema)
 	})
 
-	it('Delete Project', async () => {
-		const res = await request.delete('/scp/v1/projects/update/999999')
+	it('Create Project with invalid data', async () => {
+		let res = await request.post('/scp/v1/projects/update').send({ objective: 'In the vibrant city of Metropolis' })
 		expect(res.statusCode).toBe(400)
 	})
 
-	it('Project Details', async () => {
+	it('Create Project with valid data', async () => {
+		let res = await request.post('/scp/v1/projects/update').send(insertProjectData())
+		expect(res.statusCode).toBe(200)
+		projectResourceId = res?.body?.result?.id
+		expect(res.body).toMatchSchema(schema.createSchema)
+	})
+
+	it('Project Details with valid project id', async () => {
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
 		const projectId = createProject.body?.result?.id
 		let res = await request.get('/scp/v1/projects/details/' + projectId)
@@ -35,12 +43,18 @@ describe('Project APIs ', function () {
 		expect(res.body).toMatchSchema(schema.detailSchema)
 	})
 
+	it('Project Details with invalid id', async () => {
+		let res = await request.get('/scp/v1/projects/details/9999')
+		expect(res.statusCode).toBe(400)
+	})
+
 	it('Reviewer List', async () => {
 		const res = await request.get('/scp/v1/projects/reviewerList')
 		expect(res.statusCode).toBe(200)
+		expect(res.body).toMatchSchema(schema.reviewerListSchema)
 	})
 
-	it('List Project', async () => {
+	it('List Project with data', async () => {
 		//create project
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
 		const res = await request.get('/scp/v1/resource/list?page=1&limit=5&listing=drafts')
@@ -52,14 +66,37 @@ describe('Project APIs ', function () {
 		}
 	})
 
-	it('Submit Project for Review', async () => {
+	it('Submit Project for Review with invalid data ', async () => {
+		//delete mandatory key from project req body
+		let projectData = insertProjectData()
+		delete projectData.categories
+
+		let createProject = await request.post('/scp/v1/projects/update').send(projectData)
+		const projectId = createProject.body?.result?.id
+		//submit for review
+		const res = await request.post('/scp/v1/projects/submitForReview/' + projectId)
+		expect(res.statusCode).toBe(400)
+	})
+
+	it('Submit Project for Review with valid data ', async () => {
 		//create project
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
 		const projectId = createProject.body?.result?.id
 		//submit for review
 		const res = await request.post('/scp/v1/projects/submitForReview/' + projectId)
+		expect(res.statusCode).toBe(200)
+		expect(res.body).toMatchSchema(schema.submitProjectSchema)
+	})
+
+	it('Delete Project with invalid id', async () => {
+		const res = await request.delete('/scp/v1/projects/update/999999')
 		expect(res.statusCode).toBe(400)
-		// expect(res.body).toMatchSchema(schema.submitProjectSchema)
+	})
+
+	it('Delete Project with valid id', async () => {
+		expect(projectResourceId).toBeDefined()
+		const res = await request.delete(`/scp/v1/projects/update/${projectResourceId}`)
+		expect(res.statusCode).toBe(202)
 	})
 })
 
@@ -75,6 +112,12 @@ function insertProjectData() {
 				url: 'http://test.com',
 			},
 		],
+		recommended_duration: {
+			number: '20',
+			duration: 'days',
+		},
+		recommended_for: ['hm'],
+		categories: ['teachers'],
 		tasks: [
 			{
 				id: '7a8b13fb-c9e1-4296-8abd-8b64b357a128',
@@ -112,12 +155,6 @@ function insertProjectData() {
 						url: 'http://test.com',
 					},
 				],
-				solution_details: {
-					name: 'sample observation',
-					min_no_of_submissions_required: 2,
-					type: 'observation',
-					link: 'https://dev.elevate-ml.shikshalokam.org/view/observation/beb6e72ad73a097b9d7910e45a613431',
-				},
 			},
 		],
 	}
