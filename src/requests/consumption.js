@@ -496,7 +496,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				programId: programDetails._id,
 				programName: programDetails.name,
 				programDescription: programDetails.description,
-				description: programDetails.description,
+				description: resource?.description ? resource.description : programDetails.description,
 				status: common.STATUS_ACTIVE.toLowerCase(),
 				updatedAt: new Date(),
 				createdAt: new Date(),
@@ -1559,6 +1559,7 @@ const publishProgram = function async(programData) {
 						// create a new project template
 						if (isProgramResource) {
 							publishedProject = await publishProjectTemplates(fetchDetails?.result)
+							projectCertificate = fetchDetails?.result?.certificate
 						} else {
 							const fetchProjectDetails = await projectService.details(
 								programData?.resource?.resource_id,
