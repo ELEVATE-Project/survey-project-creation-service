@@ -7,6 +7,7 @@
 const common = require('@constants/common')
 const resourceService = require('@services/resource')
 const rolloutService = require('@services/rollouts')
+const projectService = require('@services/projects')
 const rolloutQueries = require('@database/queries/rollouts')
 const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
 const utils = require('@generics/utils')
@@ -948,7 +949,6 @@ const formatProgramTemplate = async (programData) => {
 				: []
 			keywords = [...new Set(keywords)]
 
-			let resourceDetails = programData?.resource // prepare the program template
 			programDocument = {
 				...programDocument,
 				...{
@@ -957,7 +957,6 @@ const formatProgramTemplate = async (programData) => {
 					keywords,
 					concepts: programData?.concepts ? programData?.concepts : [],
 					components: [],
-					resourceDetails,
 					isAPrivateProgram: false,
 					isDeleted: false,
 					requestForPIIConsent: programData?.requestForPIIConsent ? true : false,
@@ -1554,17 +1553,31 @@ const publishProgram = function async(programData) {
 						fetchDetails?.result?.type == common.PROJECT ||
 						fetchDetails?.result?.resource_type == common.PROJECT
 					) {
+						let publishedProject
+						let projectCertificate = {}
+
 						// create a new project template
-						const publishedProject = isProgramResource
-							? await publishProjectTemplates(fetchDetails?.result)
-							: { templateId: programData?.resource?.published_id }
+						if (isProgramResource) {
+							publishedProject = await publishProjectTemplates(fetchDetails?.result)
+						} else {
+							const fetchProjectDetails = await projectService.details(
+								programData?.resource?.resource_id,
+								programData?.resource?.organization_id
+							)
+							publishedProject = { templateId: fetchProjectDetails?.result?.published_id }
+							fetchDetails.result = {
+								...fetchDetails.result,
+								..._.omit(fetchProjectDetails?.result, Object.keys(fetchDetails.result)),
+							}
+							projectCertificate = fetchProjectDetails?.result?.certificate
+						}
 
 						let duplicateResource = await duplicateResources(
 							{
 								...fetchDetails?.result,
 								published_id: publishedProject?.templateId,
 							},
-							fetchDetails?.result?.certificate,
+							projectCertificate,
 							programData.created_by
 						)
 						if (!duplicateResource.success) {
