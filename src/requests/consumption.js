@@ -971,7 +971,7 @@ const formatProgramTemplate = async (programData) => {
 					updatedBy: programData?.created_by,
 					externalId: utils.generateExternalId(programData?.title),
 					name: programData?.title.trim(),
-					description: resourceDetails?.objective || '',
+					description: programData?.resource?.objective || '',
 					createdAt: new Date(),
 				},
 			}
