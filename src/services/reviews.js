@@ -735,7 +735,6 @@ module.exports = class reviewsHelper {
 							return responses.failureResponse({
 								responseCode: 'CLIENT_ERROR',
 								statusCode: httpStatusCode[publishRollout.statusCode],
-								result: result,
 								message: `Rollout publish failed: ${publishRollout.message || 'Unknown error'}`,
 							})
 						}
