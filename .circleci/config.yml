@@ -142,9 +142,15 @@ jobs:
               sleep 2
             done
       - run:
-          name: Run the additional entity creation script
+          name: Run Entity Creation Script inside SCP Container
           command: |
-            cd src/scripts && node addDefaultEntitiesForEducationSector.js
+            echo "Executing entity creation script..."
+            SCP_CONTAINER=$(docker ps -q --filter "name=scp")
+            if [ -z "$SCP_CONTAINER" ]; then
+              echo "SCP container is not running. Exiting..."
+              exit 1
+            fi
+            docker exec -it $SCP_CONTAINER node /var/src/scripts/addDefaultEntitiesForEducationSector.js
       - run:
           name: Create test results directory
           command: mkdir -p ./dev-ops/report
