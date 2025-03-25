@@ -21,6 +21,7 @@ describe('Program APIs ', function () {
 			'/scp/v1/resource/getPublishedResources?page=1&limit=5&type=project&listing=browse_existing'
 		)
 		expect(response.statusCode).toBe(200)
+		console.log(response.body, 'getResource line no 24')
 		return response.body?.result?.data?.length > 0 ? response.body.result.data[0]?.id : null
 	}
 
