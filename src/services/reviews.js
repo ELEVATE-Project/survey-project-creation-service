@@ -754,6 +754,7 @@ module.exports = class reviewsHelper {
 					status: common.RESOURCE_STATUS_PUBLISHED,
 					published_on: new Date(),
 					stage: common.RESOURCE_STAGE_COMPLETION,
+					is_under_edit: false,
 				}
 			)
 
