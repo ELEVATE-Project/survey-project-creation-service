@@ -142,6 +142,19 @@ jobs:
               sleep 2
             done
       - run:
+          name: Check SCP Database Migration Status
+          command: |
+            echo "Checking database migration status..."
+            for i in {1..60}; do
+              COUNT=$(docker exec postgres psql -U postgres -d integration_test_scp -tAc "SELECT COUNT(*) FROM public.\"SequelizeMeta\";")
+              if [ "$COUNT" -gt 0 ]; then
+                echo "Migrations completed!"
+                break
+              fi
+              echo "Waiting for migrations to complete... attempt $i"
+              sleep 5
+            done
+      - run:
           name: Run Entity Creation Script inside SCP Container
           command: |
             echo "Executing entity creation script..."
