@@ -27,7 +27,7 @@ describe('Rollout APIs', function () {
 
 	/** Fetch viewers (program managers) */
 	async function getViewers() {
-		const response = await request.get('/scp/v1/programs/getProgramManagers').query({ page: 1, limit: 10 })
+		const response = await request.get('/scp/v1/rollouts/getDataManagers').query({ page: 1, limit: 10 })
 		let viewerId = response.body?.result?.data?.[0]?.id
 		if (!viewerId) throw new Error('No viewers found')
 		return [viewerId] // Return as an array

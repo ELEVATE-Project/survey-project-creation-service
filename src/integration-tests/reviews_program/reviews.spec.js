@@ -101,8 +101,6 @@ describe('Review APIs ', function () {
 		if (programId) {
 			let res = await request.get('/scp/v1/programs/publish/' + programId)
 			expect(res.statusCode).toBe(200)
-		} else {
-			expect(res.statusCode).toBe(400)
 		}
 	})
 })

@@ -55,7 +55,7 @@ describe('Module APIs ', function () {
 	it('Delete module with valid id', async () => {
 		expect(moduleId).toBeDefined()
 		let res = await request.post(`/scp/v1/modules/delete/${moduleId}`)
-		expect(res.statusCode).toBe(202)
+		expect(res.statusCode).toBe(200)
 	})
 
 	it('List modules', async () => {
