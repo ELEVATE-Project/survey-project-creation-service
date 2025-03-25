@@ -31,6 +31,7 @@ const utils = require('../generics/utils')
 					},
 					signatureTitleName1: 'Name',
 					signatureTitleDesignation1: 'Designation',
+					QrCode: null,
 				},
 			},
 			{
@@ -50,6 +51,7 @@ const utils = require('../generics/utils')
 					signatureTitleDesignation1: 'Designation',
 					signatureTitleName2: 'Name',
 					signatureTitleDesignation2: 'Designation',
+					QrCode: null,
 				},
 			},
 			{
@@ -67,6 +69,7 @@ const utils = require('../generics/utils')
 					},
 					signatureTitleName1: 'Name',
 					signatureTitleDesignation1: 'Designation',
+					QrCode: null,
 				},
 			},
 			{
@@ -87,6 +90,7 @@ const utils = require('../generics/utils')
 					signatureTitleDesignation1: 'Designation',
 					signatureTitleName2: 'Name',
 					signatureTitleDesignation2: 'Designation',
+					QrCode: null,
 				},
 			},
 		]
