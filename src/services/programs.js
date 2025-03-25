@@ -310,6 +310,11 @@ module.exports = class ProgramsHelper {
 				},
 			}
 
+			//update is_under_edit true if reviewer requested for changes
+			if (countReviews.count > 0) {
+				updateData.is_under_edit = true
+			}
+
 			const [updateCount, updatedProgram] = await resourceQueries.updateOne(
 				{ id: resourceId, organization_id: orgId },
 				updateData,
@@ -1153,9 +1158,19 @@ module.exports = class ProgramsHelper {
 					message: `Rollout publish failed: ${publishRollout.message || 'Unknown error'}`,
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
-					result: error.error || [],
 				})
 			}
+
+			//update the program resource
+			await resourceQueries.updateOne(
+				{ id: programId, organization_id: programData.organization_id },
+				{
+					status: common.RESOURCE_STATUS_PUBLISHED,
+					stage: common.RESOURCE_STAGE_COMPLETION,
+					published_on: new Date(),
+					is_under_edit: false,
+				}
+			)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
