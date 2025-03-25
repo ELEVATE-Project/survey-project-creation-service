@@ -757,6 +757,24 @@ module.exports = class reviewsHelper {
 				}
 			)
 
+			//delete all comments of the resource after publish
+			let resourceIds = [resourceId]
+			if (resourceData.type === common.RESOURCE_TYPE_PROGRAM) {
+				const associatedResources = await programResourceMappingQueries.findAll({
+					program_id: resourceId,
+				})
+
+				if (associatedResources.length) {
+					resourceIds.push(...associatedResources.map((resource) => resource.resource_id))
+				}
+			}
+
+			if (resourceIds.length > 0) {
+				await commentQueries.deleteMany({
+					resource_id: { [Op.in]: resourceIds },
+				})
+			}
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: resourceData.type == common.RESOURCE_TYPE_PROGRAM ? 'PROGRAM_PUBLISHED' : 'RESOURCE_PUBLISHED',
