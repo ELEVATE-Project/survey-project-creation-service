@@ -142,12 +142,11 @@ jobs:
               sleep 2
             done
       - run:
-          name: Check SCP Database Migration Status
+          name: Wait for SCP Database Migration to Complete
           command: |
-            echo "Checking database migration status..."
+            echo "Waiting for SCP database migration to complete..."
             for i in {1..60}; do
-              COUNT=$(docker exec postgres psql -U postgres -d integration_test_scp -tAc "SELECT COUNT(*) FROM public.\"SequelizeMeta\";")
-              if [ "$COUNT" -gt 0 ]; then
+              if docker logs $(docker ps -q --filter "name=scp") 2>&1 | grep -q "MIGRATION_SUCCESS"; then
                 echo "Migrations completed!"
                 break
               fi
