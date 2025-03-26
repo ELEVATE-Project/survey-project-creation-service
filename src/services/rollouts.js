@@ -623,6 +623,15 @@ module.exports = class RolloutsHelper {
 			// fetch resource details
 			const resourceDetails = await resourceService.getDetails(rolloutDetailsResult?.resource_id, orgId)
 
+			// if resource status is in the forbidden list , cannot proceed to rollout
+			if (_forbidenStatusForResourcePublish.includes(resourceDetails?.result?.status)) {
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					result: result,
+					message: 'FORBIDEN_RESOURCE_STATUS_FOR_ROLLOUT',
+				})
+			}
+
 			let resourceDetailsResult = resourceDetails?.result
 			resourceDetailsResult.resource_id = resourceDetailsResult?.id
 
@@ -665,7 +674,7 @@ module.exports = class RolloutsHelper {
 
 			// publish the resource if not published
 			if (
-				resourceDetails?.result?.status != common.RESOURCE_STATUS_PUBLISHED ||
+				resourceDetails?.result?.status == common.RESOURCE_STATUS_SUBMITTED ||
 				resourceDetails?.result?.published_id === undefined
 			) {
 				await kafkaCommunication.pushResourceToKafka(resourceDetails?.result, resourceDetails?.result?.type)
@@ -835,6 +844,7 @@ module.exports = class RolloutsHelper {
 					await resourceQueries.updateOne(
 						{
 							id: rolloutData.resource_id,
+							status: common.RESOURCE_STATUS_PUBLISHED,
 						},
 						{
 							published_id: publishedId,
@@ -1065,6 +1075,7 @@ module.exports = class RolloutsHelper {
 				id: {
 					[Op.in]: resourceIds,
 				},
+				is_reusable: false,
 			}
 			const updateResourceBody = {
 				status: common.RESOURCE_STATUS_PUBLISHED,
@@ -1136,3 +1147,12 @@ module.exports = class RolloutsHelper {
 		}
 	}
 }
+
+const _forbidenStatusForResourcePublish = [
+	common.RESOURCE_STATUS_DRAFT,
+	common.RESOURCE_STATUS_STARTED,
+	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_IN_REVIEW,
+	common.RESOURCE_STATUS_SUBMITTED,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+]
