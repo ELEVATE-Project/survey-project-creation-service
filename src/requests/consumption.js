@@ -1666,7 +1666,9 @@ const publishProgram = function async(programData) {
 					),
 				})
 			}
-
+			// update resource table with published Id
+			await resourceService.publishCallback(programData.id, programId ? programId.toString() : null)
+			// update rollout table with published Id
 			await rolloutService.publishCallback(
 				programData.id,
 				programId ? programId.toString() : null,
@@ -1674,6 +1676,12 @@ const publishProgram = function async(programData) {
 				isProgramResource
 			)
 			solutions.forEach(async (solution) => {
+				// update resource table with published Id
+				await resourceService.publishCallback(
+					solution.resource_id,
+					solution?._id ? solution?._id.toString() : null
+				)
+				// update rollout table with published Id
 				await rolloutService.publishCallback(
 					solution.rolloutId,
 					solution?._id ? solution?._id.toString() : null,

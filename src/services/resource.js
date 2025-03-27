@@ -1208,6 +1208,7 @@ module.exports = class resourceHelper {
 			let resource = await resourceQueries.updateOne(
 				{
 					id: resourceId,
+					status: { [Op.notIn]: [common.RESOURCE_STATUS_DRAFT] },
 				},
 				{
 					published_id: publishedId,
