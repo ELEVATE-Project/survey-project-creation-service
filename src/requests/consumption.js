@@ -1623,6 +1623,7 @@ const publishProgram = function async(programData) {
 					}
 				} else {
 					solutionIds.push(fetchDetails?.result?.published_id)
+					solutions.push(fetchDetails?.result)
 					const updateBody = await updateSolutionTemplate(fetchDetails?.result)
 					if (!updateBody?.success) {
 						throw new Error(`Error in creating update body : ${updateBody?.error || 'Unknown Error'}`)

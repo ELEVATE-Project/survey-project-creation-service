@@ -647,25 +647,17 @@ module.exports = class RolloutsHelper {
 				})
 
 				if (!solutionRollout?.id) {
-					let solutionRollout = _.pick(rolloutDetailsResult, [
-						'title',
-						'blob_path',
-						'start_date',
-						'end_date',
-						'resource_id',
-						'created_by',
-						'updated_by',
-						'status',
-						'organization_id',
-						'user_id',
-						'resource_type',
-					])
+					let solutionRollout = _.omit(rolloutDetailsResult, ['id', 'blob_path', 'created_at', 'updated_at'])
 					solutionRollout.type = common.ROLLOUT_TYPE_SOLUTION
 					solutionRollout.parent_id = rolloutId
 					const resultCreateRollout = await rolloutQueries.create(solutionRollout)
 					solutionRolloutId = resultCreateRollout.id
 				} else {
-					let solutionRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])
+					let solutionRollout = _.pick(rolloutDetailsResult, [
+						'start_date',
+						'end_date',
+						'targerting_criteria',
+					])
 					// update the start date and end date of program for single roll out
 					solutionRolloutId = rolloutDetailsResult.id
 					await rolloutQueries.updateOne({ id: solutionRolloutId }, solutionRollout)
@@ -830,29 +822,6 @@ module.exports = class RolloutsHelper {
 				},
 				updateData
 			)
-			// if rollout is program rollout
-			if (isProgramResource) {
-				// update the program and resources , add published id
-				let rolloutData = await rolloutQueries.findOne(
-					{
-						id: rolloutId,
-					},
-					['resource_id']
-				)
-
-				if (rolloutData) {
-					await resourceQueries.updateOne(
-						{
-							id: rolloutData.resource_id,
-							status: common.RESOURCE_STATUS_PUBLISHED,
-						},
-						{
-							published_id: publishedId,
-							published_on: new Date(),
-						}
-					)
-				}
-			}
 
 			if (rollout === 0) {
 				return responses.failureResponse({
