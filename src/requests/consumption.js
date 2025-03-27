@@ -1629,7 +1629,7 @@ const publishProgram = function async(programData) {
 					}
 					resourceToUpdate.push({
 						_id: fetchDetails?.result?.published_id,
-						updateBody,
+						updateBody: updateBody.data,
 					})
 				}
 			}
@@ -1638,7 +1638,7 @@ const publishProgram = function async(programData) {
 
 				const resourceToUpdatePromise = resourceToUpdate.map((resourceData) => {
 					return solutionCollection.updateOne(
-						{ _id: resourceData._id },
+						{ _id: ObjectId(resourceData._id) },
 						{
 							$set: resourceData.updateBody,
 						}
