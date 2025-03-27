@@ -1623,14 +1623,13 @@ const publishProgram = function async(programData) {
 					}
 				} else {
 					solutionIds.push(fetchDetails?.result?.published_id)
-					solutions.push(fetchDetails?.result)
-					const updateBody = await updateSolutionTemplate(fetchDetails?.result)
-					if (!updateBody?.success) {
-						throw new Error(`Error in creating update body : ${updateBody?.error || 'Unknown Error'}`)
+					const updatePayload = await updateSolutionTemplate(fetchResult?.data)
+					if (!updatePayload?.success) {
+						throw new Error(`Error in creating update body : ${updatePayload?.error || 'Unknown Error'}`)
 					}
 					resourceToUpdate.push({
 						_id: fetchDetails?.result?.published_id,
-						updateBody,
+						updatePayload: updatePayload.data,
 					})
 				}
 			}
@@ -1639,9 +1638,9 @@ const publishProgram = function async(programData) {
 
 				const resourceToUpdatePromise = resourceToUpdate.map((resourceData) => {
 					return solutionCollection.updateOne(
-						{ _id: resourceData._id },
+						{ _id: ObjectId(resourceData._id) },
 						{
-							$set: resourceData.updateBody,
+							$set: resourceData.updatePayload,
 						}
 					)
 				})
