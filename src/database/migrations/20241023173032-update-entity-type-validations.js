@@ -75,7 +75,6 @@ module.exports = {
 				'licenses',
 				'tasks',
 				'file_types',
-				'notes',
 				'title',
 				'objective',
 				'name',

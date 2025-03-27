@@ -146,4 +146,18 @@ module.exports = class CommentData {
 			throw error
 		}
 	}
+
+	static async deleteMany(filter, options = {}) {
+		try {
+			let response = await Comment.destroy({
+				where: filter,
+				...options,
+				individualHooks: true,
+			})
+
+			return response
+		} catch (error) {
+			throw error
+		}
+	}
 }

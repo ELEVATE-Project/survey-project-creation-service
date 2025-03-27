@@ -20,13 +20,6 @@ module.exports = {
 				validation: { required: false },
 				model: 'tasks',
 			},
-			{
-				entityType: 'notes',
-				entities: [],
-				has_entities: false,
-				validation: { required: false, regex: `[^A-Za-z0-9]` },
-				model: 'project',
-			},
 		]
 
 		//add entity type details
