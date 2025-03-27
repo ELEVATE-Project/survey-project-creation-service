@@ -603,7 +603,7 @@ module.exports = class RolloutsHelper {
 	static async publish(rolloutId, loggedInUserId, orgId, userToken) {
 		try {
 			// fetch rollout details
-			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, true)
+			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, false)
 			let solutionRolloutId
 			const rolloutDetailsResult = rolloutDetails?.result
 
@@ -1098,9 +1098,15 @@ module.exports = class RolloutsHelper {
 				}
 			)
 
-			return createProgramRollout?.result?.id
+			return {
+				success: true,
+				rolloutId: createProgramRollout?.result?.id,
+			}
 		} catch (error) {
-			throw new Error('Program Rollout Creation failed. Error : ', error)
+			return {
+				success: false,
+				error: `Program Rollout Creation failed. Error : ${error}`,
+			}
 		}
 	}
 }

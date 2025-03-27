@@ -833,10 +833,11 @@ async function handleProgramRollout(resourceData, resourceId, userId, userToken)
 			)
 		} else {
 			// while program publishing first time
-			rolloutId = await rolloutService.createProgramRollout(resourceData, userId, userToken)
-			if (rolloutId?.statusCode && rolloutId?.statusCode == httpStatusCode.bad_request) {
-				throw rolloutId
+			rolloutData = await rolloutService.createProgramRollout(resourceData, userId, userToken)
+			if (!rolloutData?.success) {
+				throw new Error(rolloutData?.error)
 			}
+			rolloutId = rolloutData.rolloutId
 		}
 		return rolloutId
 	} catch (error) {

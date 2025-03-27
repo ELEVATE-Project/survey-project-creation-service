@@ -472,6 +472,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				entities: resource?.entities ? resource?.entities : [],
 				registry: resource?.registry ? resource?.registry : [],
 				isRubricDriven: resource?.isRubricDriven ? true : false,
+				scp_reference_id: resource?.resource_id,
 				enableQuestionReadOut: resource?.enableQuestionReadOut ? true : false,
 				captureGpsLocationAtQuestionLevel: resource?.captureGpsLocationAtQuestionLevel ? true : false,
 				isAPrivateProgram: false,
@@ -664,7 +665,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 					project.createdAt = new Date()
 					project.createdBy = created_by
 					project.updatedBy = created_by
-					project.isReusable = false
+					;(project.isReusable = false), (project.scp_reference_id = resourceDetails.resource_id)
 					templateProjectsTaskMap[project.externalId] = project.tasks
 					templateProjectsIdMap[project.externalId] = {
 						resource_id: resourceDetails.resource_id,
@@ -973,7 +974,7 @@ const formatProgramTemplate = async (programData) => {
 					name: programData?.title.trim(),
 					description: programData?.resource?.objective || '',
 					createdAt: new Date(),
-					scp_reference_id: programData.id,
+					scp_reference_id: programData.resource_id,
 				},
 			}
 		}
