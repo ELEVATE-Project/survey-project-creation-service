@@ -664,13 +664,6 @@ module.exports = class RolloutsHelper {
 				}
 			}
 
-			// publish the resource if not published
-			if (
-				resourceDetails?.result?.status == common.RESOURCE_STATUS_SUBMITTED ||
-				resourceDetails?.result?.published_id === undefined
-			) {
-				await kafkaCommunication.pushResourceToKafka(resourceDetails?.result, resourceDetails?.result?.type)
-			}
 			const rolloutKafkaPayload = {
 				...rolloutDetails.result,
 				rolloutId: rolloutDetails.result.id,
@@ -1022,6 +1015,14 @@ module.exports = class RolloutsHelper {
 						'end_date',
 						'targeting_criteria',
 						'title',
+						'id',
+						'status',
+						'review_type',
+						'stage',
+						'is_under_edit',
+						'is_reusable',
+						'next_stage',
+						'submitted_on',
 					])
 					const resourceRolloutReqBody = {
 						resource_id: resource?.id,
@@ -1044,7 +1045,6 @@ module.exports = class RolloutsHelper {
 				id: {
 					[Op.in]: resourceIds,
 				},
-				is_reusable: false,
 			}
 			const updateResourceBody = {
 				status: common.RESOURCE_STATUS_PUBLISHED,
@@ -1079,36 +1079,24 @@ module.exports = class RolloutsHelper {
 					result: result,
 					message: `Rollout creation failed: ${createProgramRollout.message || 'Unknown error'}`,
 				})
-			} else {
-				const solutionRollout = await Promise.all(createRolloutPromise)
-
-				const solutionRolloutPromises = solutionRollout.map(async (solution) => {
-					const resourceData = await this.details(
-						solution.result.id,
-						programData.organization_id,
-						userId,
-						false
-					)
-					kafkaCommunication.pushResourceToKafka(resourceData?.result, resourceData.type)
-				})
-
-				const rolloutDetails = await this.details(
-					createProgramRollout?.result?.id,
-					programData.organization_id,
-					programData.user_id,
-					false
-				)
-
-				const validateRollout = await this.validateRollout(rolloutDetails.result)
-				if (validateRollout.length > 0) {
-					const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
-					return responses.failureResponse({
-						statusCode: httpStatusCode.bad_request,
-						result: result,
-						message: 'ROLLOUT_VALIDATION_FAILED',
-					})
-				}
 			}
+
+			const solutionRollout = await Promise.all(createRolloutPromise)
+
+			const solutionRolloutIds = solutionRollout
+				.filter((solution) => solution.statusCode === 200)
+				.map((solution) => solution.result.id)
+			// update program rollout id as parent_id in solution rollouts
+			await rolloutQueries.updateOne(
+				{
+					id: {
+						[Op.in]: solutionRolloutIds,
+					},
+				},
+				{
+					parent_id: createProgramRollout?.result?.id,
+				}
+			)
 
 			return createProgramRollout?.result?.id
 		} catch (error) {

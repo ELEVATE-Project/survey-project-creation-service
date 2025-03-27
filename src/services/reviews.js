@@ -738,8 +738,9 @@ module.exports = class reviewsHelper {
 								message: `Rollout publish failed: ${publishRollout.message || 'Unknown error'}`,
 							})
 						}
+					} else if (resourceData.type == common.PROJECT) {
+						await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 					}
-					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
 					//resource creation through api
 					consumptionRequests.publishProject(resourceData)

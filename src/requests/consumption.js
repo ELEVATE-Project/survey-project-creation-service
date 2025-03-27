@@ -973,6 +973,7 @@ const formatProgramTemplate = async (programData) => {
 					name: programData?.title.trim(),
 					description: programData?.resource?.objective || '',
 					createdAt: new Date(),
+					scp_reference_id: programData.id,
 				},
 			}
 		}
@@ -1487,7 +1488,7 @@ const publishProgram = function async(programData) {
 						['id', 'resource_id']
 					)
 
-					if (rolloutData) {
+					if (rolloutData?.length > 0) {
 						// create a map of resource id and rollout id
 						rolloutData.forEach((rollout) => {
 							programResourceRolloutMap[rollout.resource_id] = rollout.id
@@ -1558,7 +1559,10 @@ const publishProgram = function async(programData) {
 
 						// create a new project template
 						if (isProgramResource) {
-							publishedProject = await publishProjectTemplates(fetchDetails?.result)
+							publishedProject = await publishProjectTemplates({
+								id: fetchDetails?.result?.resource_id,
+								..._.omit(fetchDetails?.result, ['id']),
+							})
 							projectCertificate = fetchDetails?.result?.certificate
 						} else {
 							const fetchProjectDetails = await projectService.details(
