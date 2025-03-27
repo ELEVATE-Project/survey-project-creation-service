@@ -650,8 +650,15 @@ module.exports = class RolloutsHelper {
 					let solutionRollout = _.omit(rolloutDetailsResult, ['id', 'blob_path', 'created_at', 'updated_at'])
 					solutionRollout.type = common.ROLLOUT_TYPE_SOLUTION
 					solutionRollout.parent_id = rolloutId
-					const resultCreateRollout = await rolloutQueries.create(solutionRollout)
-					solutionRolloutId = resultCreateRollout.id
+					const resultCreateRollout = await this.create(solutionRollout, loggedInUserId, orgId)
+					if (resultCreateRollout.statusCode !== httpStatusCode.ok) {
+						return responses.failureResponse({
+							statusCode: httpStatusCode[resultCreateRollout.statusCode],
+							result: {},
+							message: `Rollout creation failed: ${resultCreateRollout.message || 'Unknown error'}`,
+						})
+					}
+					solutionRolloutId = resultCreateRollout?.result?.id
 				} else {
 					let solutionRollout = _.pick(rolloutDetailsResult, [
 						'start_date',
