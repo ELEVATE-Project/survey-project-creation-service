@@ -164,5 +164,6 @@
 	"PROGRAM_SUBMITTED_SUCCESSFULLY": "Your program has been sent for review",
 	"PROGRAM_PUBLISHED": "You have successfully published the program",
 	"CANNOT_REMOVE_RESOURCES_ADDED_BEFORE_PUBLISHING": "Resource cannot be removed after the program has been published.",
-	"INVALID_RESOURCES_FOUND": "Invalid resource ids"
+	"INVALID_RESOURCES_FOUND": "Invalid resource ids",
+	"FORBIDEN_RESOURCE_STATUS_FOR_ROLLOUT": "Resource status not eligible for Rollout."
 }

@@ -472,6 +472,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				entities: resource?.entities ? resource?.entities : [],
 				registry: resource?.registry ? resource?.registry : [],
 				isRubricDriven: resource?.isRubricDriven ? true : false,
+				scp_reference_id: resource?.resource_id,
 				enableQuestionReadOut: resource?.enableQuestionReadOut ? true : false,
 				captureGpsLocationAtQuestionLevel: resource?.captureGpsLocationAtQuestionLevel ? true : false,
 				isAPrivateProgram: false,
@@ -664,7 +665,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 					project.createdAt = new Date()
 					project.createdBy = created_by
 					project.updatedBy = created_by
-					project.isReusable = false
+					;(project.isReusable = false), (project.scp_reference_id = resourceDetails.resource_id)
 					templateProjectsTaskMap[project.externalId] = project.tasks
 					templateProjectsIdMap[project.externalId] = {
 						resource_id: resourceDetails.resource_id,
@@ -973,6 +974,7 @@ const formatProgramTemplate = async (programData) => {
 					name: programData?.title.trim(),
 					description: programData?.resource?.objective || '',
 					createdAt: new Date(),
+					scp_reference_id: programData.resource_id,
 				},
 			}
 		}
@@ -1487,7 +1489,7 @@ const publishProgram = function async(programData) {
 						['id', 'resource_id']
 					)
 
-					if (rolloutData) {
+					if (rolloutData?.length > 0) {
 						// create a map of resource id and rollout id
 						rolloutData.forEach((rollout) => {
 							programResourceRolloutMap[rollout.resource_id] = rollout.id
@@ -1558,7 +1560,10 @@ const publishProgram = function async(programData) {
 
 						// create a new project template
 						if (isProgramResource) {
-							publishedProject = await publishProjectTemplates(fetchDetails?.result)
+							publishedProject = await publishProjectTemplates({
+								id: fetchDetails?.result?.resource_id,
+								..._.omit(fetchDetails?.result, ['id']),
+							})
 							projectCertificate = fetchDetails?.result?.certificate
 						} else {
 							const fetchProjectDetails = await projectService.details(

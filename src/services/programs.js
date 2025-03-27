@@ -1343,7 +1343,11 @@ async function handleProgramRollouts(resourceData, resourceId, userId, userToken
 		)
 	} else {
 		// while program publishing first time
-		rolloutId = await rolloutService.createProgramRollout(resourceData, userId, userToken)
+		rolloutData = await rolloutService.createProgramRollout(resourceData, userId, userToken)
+		if (!rolloutData?.success) {
+			throw new Error(rolloutData?.error)
+		}
+		rolloutId = rolloutData.rolloutId
 	}
 	return rolloutId
 }

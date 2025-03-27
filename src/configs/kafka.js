@@ -84,8 +84,6 @@ module.exports = async () => {
 							await consumptionService.publishProjectTemplates(streamingData)
 						} else if (topic == process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC) {
 							await consumptionService.publishProgram(streamingData)
-						} else if (topic == process.env.PROGRAM_PUBLISH_KAFKA_TOPIC) {
-							await handleProgramPublish(streamingData)
 						}
 					} catch (error) {
 						logger.error('Error processing Kafka message:', { error })
@@ -96,52 +94,6 @@ module.exports = async () => {
 		} catch (error) {
 			logger.error('KafkaConsumer: Error in subscribing or running', { error })
 			throw error
-		}
-	}
-
-	const handleProgramPublish = async (streamingData) => {
-		try {
-			if (streamingData?.id) {
-				const rolloutReqBody = {
-					resource_id: streamingData?.id,
-					resource_type: streamingData?.type,
-					start_date: streamingData?.meta?.start_date,
-					end_date: streamingData?.meta?.end_date,
-					targeting_criteria: streamingData?.targeting_criteria,
-					title: streamingData.title,
-				}
-
-				const createRollout = await rolloutService.create(
-					rolloutReqBody,
-					streamingData.user_id,
-					streamingData.organization_id
-				)
-
-				if (createRollout.responseCode !== httpStatusCode.ok) {
-					throw new Error(`Rollout creation failed: ${createRollout.message || 'Unknown error'}`) // Include error message if available
-				}
-
-				const rollouId = createRollout?.result?.id
-				if (!rollouId) {
-					throw new Error('Rollout creation failed: ID not returned')
-				}
-
-				const publishRollout = await rolloutService.publish(
-					rollouId,
-					streamingData.user_id,
-					streamingData.organization_id,
-					streamingData.userToken
-				)
-
-				if (publishRollout.responseCode !== httpStatusCode.ok) {
-					throw new Error(`Rollout publish failed: ${publishRollout.message || 'Unknown error'}`) // Include error message if available
-				}
-			} else {
-				throw new Error('Resource id required')
-			}
-		} catch (error) {
-			logger.error('Error in handleProgramPublish:', error)
-			throw error // Re-throw the error to be caught by the outer try-catch
 		}
 	}
 

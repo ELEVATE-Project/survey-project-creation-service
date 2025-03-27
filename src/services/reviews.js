@@ -738,8 +738,9 @@ module.exports = class reviewsHelper {
 								message: `Rollout publish failed: ${publishRollout.message || 'Unknown error'}`,
 							})
 						}
+					} else if (resourceData.type == common.PROJECT) {
+						await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 					}
-					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
 					//resource creation through api
 					consumptionRequests.publishProject(resourceData)
@@ -832,10 +833,11 @@ async function handleProgramRollout(resourceData, resourceId, userId, userToken)
 			)
 		} else {
 			// while program publishing first time
-			rolloutId = await rolloutService.createProgramRollout(resourceData, userId, userToken)
-			if (rolloutId?.statusCode && rolloutId?.statusCode == httpStatusCode.bad_request) {
-				throw rolloutId
+			rolloutData = await rolloutService.createProgramRollout(resourceData, userId, userToken)
+			if (!rolloutData?.success) {
+				throw new Error(rolloutData?.error)
 			}
+			rolloutId = rolloutData.rolloutId
 		}
 		return rolloutId
 	} catch (error) {
