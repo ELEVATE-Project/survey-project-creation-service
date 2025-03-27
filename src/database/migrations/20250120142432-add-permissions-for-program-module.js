@@ -229,6 +229,7 @@ module.exports = {
 
 			// Step 4: Map permissions to reviewer roles
 			const reviewerRoles = process.env.DEFAULT_REVIEWER_ROLE.split(',') || []
+			reviewerRoles.push(common.ADMIN_ROLE, common.ORG_ADMIN_ROLE)
 			if (reviewerRoles.length > 0) {
 				await mapPermissionsToRoles(queryInterface, reviewerRoles, existingPermissionsForReviewer)
 			}
