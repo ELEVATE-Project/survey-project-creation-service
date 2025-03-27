@@ -19,14 +19,26 @@ class CustomSequencer extends Sequencer {
 			'programs/program.spec.js',
 			'reviews_program/reviews.spec.js',
 			'rollouts/rollouts.spec.js',
-		]
+		].map((test) => path.normalize(`integration-tests/${test}`))
+
+		console.log(
+			'Tests Found:',
+			tests.map((t) => path.relative(process.cwd(), t.path))
+		)
 
 		return tests.sort((a, b) => {
 			const testA = path.relative(process.cwd(), a.path)
 			const testB = path.relative(process.cwd(), b.path)
 			const indexA = order.indexOf(testA)
 			const indexB = order.indexOf(testB)
-			return indexA - indexB
+
+			// Handle tests not listed in order by moving them to the end
+			const posA = indexA === -1 ? order.length : indexA
+			const posB = indexB === -1 ? order.length : indexB
+
+			console.log(`Sorting: ${testA} (${posA}) vs ${testB} (${posB})`)
+
+			return posA - posB
 		})
 	}
 }
