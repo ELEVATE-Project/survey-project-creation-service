@@ -1628,7 +1628,7 @@ const publishProgram = function async(programData) {
 					}
 				} else {
 					solutionIds.push(fetchDetails?.result?.published_id)
-					const updatePayload = await updateSolutionTemplate(fetchResult?.data)
+					const updatePayload = await updateSolutionTemplate(fetchDetails?.result)
 					if (!updatePayload?.success) {
 						throw new Error(`Error in creating update body : ${updatePayload?.error || 'Unknown Error'}`)
 					}

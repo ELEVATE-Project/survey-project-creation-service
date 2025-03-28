@@ -650,7 +650,7 @@ module.exports = class RolloutsHelper {
 					let solutionRollout = _.omit(rolloutDetailsResult, ['id', 'blob_path', 'created_at', 'updated_at'])
 					solutionRollout.type = common.ROLLOUT_TYPE_SOLUTION
 					solutionRollout.parent_id = rolloutId
-					const resultCreateRollout = await this.create(solutionRollout, loggedInUserId, orgId)
+					const resultCreateRollout = await this.create(solutionRollout, loggedInUserId, orgId, true)
 					if (resultCreateRollout.statusCode !== httpStatusCode.ok) {
 						return responses.failureResponse({
 							statusCode: httpStatusCode[resultCreateRollout.statusCode],
