@@ -1676,11 +1676,13 @@ const publishProgram = function async(programData) {
 				isProgramResource
 			)
 			solutions.forEach(async (solution) => {
-				// update resource table with published Id
-				await resourceService.publishCallback(
-					solution.scp_reference_id,
-					solution?._id ? solution?._id.toString() : null
-				)
+				if (isProgramResource) {
+					// update resource table with published Id
+					await resourceService.publishCallback(
+						solution.scp_reference_id,
+						solution?._id ? solution?._id.toString() : null
+					)
+				}
 				// update rollout table with published Id
 				await rolloutService.publishCallback(
 					solution.rolloutId,
