@@ -1666,8 +1666,10 @@ const publishProgram = function async(programData) {
 					),
 				})
 			}
-			// update resource table with published Id
-			await resourceService.publishCallback(programData.resource_id, programId ? programId.toString() : null)
+			if (isProgramResource) {
+				// update resource table with published Id
+				await resourceService.publishCallback(programData.resource_id, programId ? programId.toString() : null)
+			}
 			// update rollout table with published Id
 			await rolloutService.publishCallback(
 				programData.id,
