@@ -627,7 +627,7 @@ module.exports = class RolloutsHelper {
 			if (_forbidenStatusForResourcePublish.includes(resourceDetails?.result?.status)) {
 				return responses.failureResponse({
 					statusCode: httpStatusCode.bad_request,
-					result: result,
+					result: {},
 					message: 'FORBIDEN_RESOURCE_STATUS_FOR_ROLLOUT',
 				})
 			}
@@ -1123,6 +1123,5 @@ const _forbidenStatusForResourcePublish = [
 	common.RESOURCE_STATUS_STARTED,
 	common.RESOURCE_STATUS_REJECTED,
 	common.RESOURCE_STATUS_IN_REVIEW,
-	common.RESOURCE_STATUS_SUBMITTED,
 	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
 ]
