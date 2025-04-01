@@ -4899,6 +4899,14 @@ paths:
                             name: Priyanka
                           is_read: true
                       count: 2
+                      childResources:
+                        - resource_id: 2
+                          is_comments: true
+                          count: '2'
+                        - resource_id: 3
+                          is_comments: true
+                          count: '1'
+
                     meta:
                       formsVersion:
                         - id: 3
