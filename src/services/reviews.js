@@ -735,12 +735,12 @@ module.exports = class reviewsHelper {
 							return responses.failureResponse({
 								responseCode: 'CLIENT_ERROR',
 								statusCode: httpStatusCode[publishRollout.statusCode],
-								result: result,
 								message: `Rollout publish failed: ${publishRollout.message || 'Unknown error'}`,
 							})
 						}
+					} else if (resourceData.type == common.PROJECT) {
+						await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 					}
-					await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
 				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
 					//resource creation through api
 					consumptionRequests.publishProject(resourceData)
@@ -754,8 +754,27 @@ module.exports = class reviewsHelper {
 					status: common.RESOURCE_STATUS_PUBLISHED,
 					published_on: new Date(),
 					stage: common.RESOURCE_STAGE_COMPLETION,
+					is_under_edit: false,
 				}
 			)
+
+			//delete all comments of the resource after publish
+			let resourceIds = [resourceId]
+			if (resourceData.type === common.RESOURCE_TYPE_PROGRAM) {
+				const associatedResources = await programResourceMappingQueries.findAll({
+					program_id: resourceId,
+				})
+
+				if (associatedResources.length) {
+					resourceIds.push(...associatedResources.map((resource) => resource.resource_id))
+				}
+			}
+
+			if (resourceIds.length > 0) {
+				await commentQueries.deleteMany({
+					resource_id: { [Op.in]: resourceIds },
+				})
+			}
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -814,10 +833,11 @@ async function handleProgramRollout(resourceData, resourceId, userId, userToken)
 			)
 		} else {
 			// while program publishing first time
-			rolloutId = await rolloutService.createProgramRollout(resourceData, userId, userToken)
-			if (rolloutId?.statusCode && rolloutId?.statusCode == httpStatusCode.bad_request) {
-				throw rolloutId
+			rolloutData = await rolloutService.createProgramRollout(resourceData, userId, userToken)
+			if (!rolloutData?.success) {
+				throw new Error(rolloutData?.error)
 			}
+			rolloutId = rolloutData.rolloutId
 		}
 		return rolloutId
 	} catch (error) {

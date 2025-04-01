@@ -603,7 +603,7 @@ module.exports = class RolloutsHelper {
 	static async publish(rolloutId, loggedInUserId, orgId, userToken) {
 		try {
 			// fetch rollout details
-			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, true)
+			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, false)
 			let solutionRolloutId
 			const rolloutDetailsResult = rolloutDetails?.result
 
@@ -623,6 +623,15 @@ module.exports = class RolloutsHelper {
 			// fetch resource details
 			const resourceDetails = await resourceService.getDetails(rolloutDetailsResult?.resource_id, orgId)
 
+			// if resource status is in the forbidden list , cannot proceed to rollout
+			if (_forbidenStatusForResourcePublish.includes(resourceDetails?.result?.status)) {
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					result: {},
+					message: 'FORBIDEN_RESOURCE_STATUS_FOR_ROLLOUT',
+				})
+			}
+
 			let resourceDetailsResult = resourceDetails?.result
 			resourceDetailsResult.resource_id = resourceDetailsResult?.id
 
@@ -638,38 +647,30 @@ module.exports = class RolloutsHelper {
 				})
 
 				if (!solutionRollout?.id) {
-					let solutionRollout = _.pick(rolloutDetailsResult, [
-						'title',
-						'blob_path',
-						'start_date',
-						'end_date',
-						'resource_id',
-						'created_by',
-						'updated_by',
-						'status',
-						'organization_id',
-						'user_id',
-						'resource_type',
-					])
+					let solutionRollout = _.omit(rolloutDetailsResult, ['id', 'blob_path', 'created_at', 'updated_at'])
 					solutionRollout.type = common.ROLLOUT_TYPE_SOLUTION
 					solutionRollout.parent_id = rolloutId
-					const resultCreateRollout = await rolloutQueries.create(solutionRollout)
-					solutionRolloutId = resultCreateRollout.id
+					const resultCreateRollout = await this.create(solutionRollout, loggedInUserId, orgId, true)
+					if (resultCreateRollout.statusCode !== httpStatusCode.ok) {
+						return responses.failureResponse({
+							statusCode: httpStatusCode[resultCreateRollout.statusCode],
+							result: {},
+							message: `Rollout creation failed: ${resultCreateRollout.message || 'Unknown error'}`,
+						})
+					}
+					solutionRolloutId = resultCreateRollout?.result?.id
 				} else {
-					let solutionRollout = _.pick(rolloutDetailsResult, ['blob_path', 'start_date', 'end_date'])
+					let solutionRollout = _.pick(rolloutDetailsResult, [
+						'start_date',
+						'end_date',
+						'targerting_criteria',
+					])
 					// update the start date and end date of program for single roll out
 					solutionRolloutId = rolloutDetailsResult.id
 					await rolloutQueries.updateOne({ id: solutionRolloutId }, solutionRollout)
 				}
 			}
 
-			// publish the resource if not published
-			if (
-				resourceDetails?.result?.status != common.RESOURCE_STATUS_PUBLISHED ||
-				resourceDetails?.result?.published_id === undefined
-			) {
-				await kafkaCommunication.pushResourceToKafka(resourceDetails?.result, resourceDetails?.result?.type)
-			}
 			const rolloutKafkaPayload = {
 				...rolloutDetails.result,
 				rolloutId: rolloutDetails.result.id,
@@ -821,28 +822,6 @@ module.exports = class RolloutsHelper {
 				},
 				updateData
 			)
-			// if rollout is program rollout
-			if (isProgramResource) {
-				// update the program and resources , add published id
-				let rolloutData = await rolloutQueries.findOne(
-					{
-						id: rolloutId,
-					},
-					['resource_id']
-				)
-
-				if (rolloutData) {
-					await resourceQueries.updateOne(
-						{
-							id: rolloutData.resource_id,
-						},
-						{
-							published_id: publishedId,
-							published_on: new Date(),
-						}
-					)
-				}
-			}
 
 			if (rollout === 0) {
 				return responses.failureResponse({
@@ -1043,6 +1022,14 @@ module.exports = class RolloutsHelper {
 						'end_date',
 						'targeting_criteria',
 						'title',
+						'id',
+						'status',
+						'review_type',
+						'stage',
+						'is_under_edit',
+						'is_reusable',
+						'next_stage',
+						'submitted_on',
 					])
 					const resourceRolloutReqBody = {
 						resource_id: resource?.id,
@@ -1099,40 +1086,42 @@ module.exports = class RolloutsHelper {
 					result: result,
 					message: `Rollout creation failed: ${createProgramRollout.message || 'Unknown error'}`,
 				})
-			} else {
-				const solutionRollout = await Promise.all(createRolloutPromise)
-
-				const solutionRolloutPromises = solutionRollout.map(async (solution) => {
-					const resourceData = await this.details(
-						solution.result.id,
-						programData.organization_id,
-						userId,
-						false
-					)
-					kafkaCommunication.pushResourceToKafka(resourceData?.result, resourceData.type)
-				})
-
-				const rolloutDetails = await this.details(
-					createProgramRollout?.result?.id,
-					programData.organization_id,
-					programData.user_id,
-					false
-				)
-
-				const validateRollout = await this.validateRollout(rolloutDetails.result)
-				if (validateRollout.length > 0) {
-					const result = Array.isArray(validateRollout) ? validateRollout.flat() : validateRollout || []
-					return responses.failureResponse({
-						statusCode: httpStatusCode.bad_request,
-						result: result,
-						message: 'ROLLOUT_VALIDATION_FAILED',
-					})
-				}
 			}
 
-			return createProgramRollout?.result?.id
+			const solutionRollout = await Promise.all(createRolloutPromise)
+
+			const solutionRolloutIds = solutionRollout
+				.filter((solution) => solution.statusCode === 200)
+				.map((solution) => solution.result.id)
+			// update program rollout id as parent_id in solution rollouts
+			await rolloutQueries.updateOne(
+				{
+					id: {
+						[Op.in]: solutionRolloutIds,
+					},
+				},
+				{
+					parent_id: createProgramRollout?.result?.id,
+				}
+			)
+
+			return {
+				success: true,
+				rolloutId: createProgramRollout?.result?.id,
+			}
 		} catch (error) {
-			throw new Error('Program Rollout Creation failed. Error : ', error)
+			return {
+				success: false,
+				error: `Program Rollout Creation failed. Error : ${error}`,
+			}
 		}
 	}
 }
+
+const _forbidenStatusForResourcePublish = [
+	common.RESOURCE_STATUS_DRAFT,
+	common.RESOURCE_STATUS_STARTED,
+	common.RESOURCE_STATUS_REJECTED,
+	common.RESOURCE_STATUS_IN_REVIEW,
+	common.RESOURCE_STATUS_REJECTED_AND_REPORTED,
+]

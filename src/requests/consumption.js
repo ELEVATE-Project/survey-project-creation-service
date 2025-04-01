@@ -7,6 +7,7 @@
 const common = require('@constants/common')
 const resourceService = require('@services/resource')
 const rolloutService = require('@services/rollouts')
+const projectService = require('@services/projects')
 const rolloutQueries = require('@database/queries/rollouts')
 const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
 const utils = require('@generics/utils')
@@ -471,6 +472,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				entities: resource?.entities ? resource?.entities : [],
 				registry: resource?.registry ? resource?.registry : [],
 				isRubricDriven: resource?.isRubricDriven ? true : false,
+				scp_reference_id: resource?.resource_id,
 				enableQuestionReadOut: resource?.enableQuestionReadOut ? true : false,
 				captureGpsLocationAtQuestionLevel: resource?.captureGpsLocationAtQuestionLevel ? true : false,
 				isAPrivateProgram: false,
@@ -495,7 +497,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				programId: programDetails._id,
 				programName: programDetails.name,
 				programDescription: programDetails.description,
-				description: programDetails.description,
+				description: resource?.description ? resource.description : programDetails.description,
 				status: common.STATUS_ACTIVE.toLowerCase(),
 				updatedAt: new Date(),
 				createdAt: new Date(),
@@ -663,7 +665,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 					project.createdAt = new Date()
 					project.createdBy = created_by
 					project.updatedBy = created_by
-					project.isReusable = false
+					;(project.isReusable = false), (project.scp_reference_id = resourceDetails.resource_id)
 					templateProjectsTaskMap[project.externalId] = project.tasks
 					templateProjectsIdMap[project.externalId] = {
 						resource_id: resourceDetails.resource_id,
@@ -948,7 +950,6 @@ const formatProgramTemplate = async (programData) => {
 				: []
 			keywords = [...new Set(keywords)]
 
-			let resourceDetails = programData?.resource // prepare the program template
 			programDocument = {
 				...programDocument,
 				...{
@@ -957,7 +958,6 @@ const formatProgramTemplate = async (programData) => {
 					keywords,
 					concepts: programData?.concepts ? programData?.concepts : [],
 					components: [],
-					resourceDetails,
 					isAPrivateProgram: false,
 					isDeleted: false,
 					requestForPIIConsent: programData?.requestForPIIConsent ? true : false,
@@ -972,8 +972,9 @@ const formatProgramTemplate = async (programData) => {
 					updatedBy: programData?.created_by,
 					externalId: utils.generateExternalId(programData?.title),
 					name: programData?.title.trim(),
-					description: resourceDetails?.objective || '',
+					description: programData?.resource?.objective || '',
 					createdAt: new Date(),
+					scp_reference_id: programData.resource_id,
 				},
 			}
 		}
@@ -1488,7 +1489,7 @@ const publishProgram = function async(programData) {
 						['id', 'resource_id']
 					)
 
-					if (rolloutData) {
+					if (rolloutData?.length > 0) {
 						// create a map of resource id and rollout id
 						rolloutData.forEach((rollout) => {
 							programResourceRolloutMap[rollout.resource_id] = rollout.id
@@ -1554,17 +1555,35 @@ const publishProgram = function async(programData) {
 						fetchDetails?.result?.type == common.PROJECT ||
 						fetchDetails?.result?.resource_type == common.PROJECT
 					) {
+						let publishedProject
+						let projectCertificate = {}
+
 						// create a new project template
-						const publishedProject = isProgramResource
-							? await publishProjectTemplates(fetchDetails?.result)
-							: { templateId: programData?.resource?.published_id }
+						if (isProgramResource) {
+							publishedProject = await publishProjectTemplates({
+								id: fetchDetails?.result?.resource_id,
+								..._.omit(fetchDetails?.result, ['id']),
+							})
+							projectCertificate = fetchDetails?.result?.certificate
+						} else {
+							const fetchProjectDetails = await projectService.details(
+								programData?.resource?.resource_id,
+								programData?.resource?.organization_id
+							)
+							publishedProject = { templateId: fetchProjectDetails?.result?.published_id }
+							fetchDetails.result = {
+								...fetchDetails.result,
+								..._.omit(fetchProjectDetails?.result, Object.keys(fetchDetails.result)),
+							}
+							projectCertificate = fetchProjectDetails?.result?.certificate
+						}
 
 						let duplicateResource = await duplicateResources(
 							{
 								...fetchDetails?.result,
 								published_id: publishedProject?.templateId,
 							},
-							fetchDetails?.result?.certificate,
+							projectCertificate,
 							programData.created_by
 						)
 						if (!duplicateResource.success) {
@@ -1609,13 +1628,13 @@ const publishProgram = function async(programData) {
 					}
 				} else {
 					solutionIds.push(fetchDetails?.result?.published_id)
-					const updateBody = await updateSolutionTemplate(fetchDetails?.result)
-					if (!updateBody?.success) {
-						throw new Error(`Error in creating update body : ${updateBody?.error || 'Unknown Error'}`)
+					const updatePayload = await updateSolutionTemplate(fetchDetails?.result)
+					if (!updatePayload?.success) {
+						throw new Error(`Error in creating update body : ${updatePayload?.error || 'Unknown Error'}`)
 					}
 					resourceToUpdate.push({
 						_id: fetchDetails?.result?.published_id,
-						updateBody,
+						updatePayload: updatePayload.data,
 					})
 				}
 			}
@@ -1624,9 +1643,9 @@ const publishProgram = function async(programData) {
 
 				const resourceToUpdatePromise = resourceToUpdate.map((resourceData) => {
 					return solutionCollection.updateOne(
-						{ _id: resourceData._id },
+						{ _id: ObjectId(resourceData._id) },
 						{
-							$set: resourceData.updateBody,
+							$set: resourceData.updatePayload,
 						}
 					)
 				})
@@ -1647,7 +1666,9 @@ const publishProgram = function async(programData) {
 					),
 				})
 			}
-
+			// update resource table with published Id
+			await resourceService.publishCallback(programData.resource_id, programId ? programId.toString() : null)
+			// update rollout table with published Id
 			await rolloutService.publishCallback(
 				programData.id,
 				programId ? programId.toString() : null,
@@ -1655,6 +1676,12 @@ const publishProgram = function async(programData) {
 				isProgramResource
 			)
 			solutions.forEach(async (solution) => {
+				// update resource table with published Id
+				await resourceService.publishCallback(
+					solution.scp_reference_id,
+					solution?._id ? solution?._id.toString() : null
+				)
+				// update rollout table with published Id
 				await rolloutService.publishCallback(
 					solution.rolloutId,
 					solution?._id ? solution?._id.toString() : null,
