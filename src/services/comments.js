@@ -238,7 +238,7 @@ module.exports = class CommentsHelper {
 
 					// Fetch count of open comments for each associated resource
 					const associatedResourceComments = await commentQueries.findAll(
-						{ resource_id: { [Op.in]: resourceIds }, status: common.COMMENT_STATUS_OPEN },
+						{ resource_id: { [Op.in]: resourceIds }, status: common.COMMENT_STATUS_DRAFT },
 						['resource_id', [Sequelize.literal('COUNT(id)'), 'count']],
 						{ group: ['resource_id'] }
 					)
