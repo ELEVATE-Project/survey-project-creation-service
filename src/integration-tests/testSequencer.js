@@ -1,8 +1,9 @@
 const Sequencer = require('@jest/test-sequencer').default
 const path = require('path')
+
 class CustomSequencer extends Sequencer {
 	sort(tests) {
-		// Define the required test execution order
+		// Define the required test execution order (relative to integration-tests)
 		const order = [
 			'modules/module.spec.js',
 			'permissions/permissions.spec.js',
@@ -19,27 +20,36 @@ class CustomSequencer extends Sequencer {
 			'programs/program.spec.js',
 			'reviews_program/reviews.spec.js',
 			'rollouts/rollouts.spec.js',
-		].map((test) => path.normalize(`integration-tests/${test}`))
+		]
+
+		// Get absolute paths for all tests
+		const testPaths = tests.map((test) => ({
+			...test,
+			relativePath: path.relative(path.join(process.cwd(), 'integration-tests'), test.path),
+		}))
 
 		console.log(
-			'Tests Found:',
-			tests.map((t) => path.relative(process.cwd(), t.path))
+			'All Test Paths:',
+			testPaths.map((t) => t.relativePath)
 		)
 
-		return tests.sort((a, b) => {
-			const testA = path.relative(process.cwd(), a.path)
-			const testB = path.relative(process.cwd(), b.path)
-			const indexA = order.indexOf(testA)
-			const indexB = order.indexOf(testB)
+		return testPaths
+			.sort((a, b) => {
+				const indexA = order.indexOf(a.relativePath)
+				const indexB = order.indexOf(b.relativePath)
 
-			// Handle tests not listed in order by moving them to the end
-			const posA = indexA === -1 ? order.length : indexA
-			const posB = indexB === -1 ? order.length : indexB
+				// Handle tests not listed in order by moving them to the end
+				const posA = indexA === -1 ? Infinity : indexA
+				const posB = indexB === -1 ? Infinity : indexB
 
-			console.log(`Sorting: ${testA} (${posA}) vs ${testB} (${posB})`)
+				if (posA === Infinity && posB === Infinity) {
+					// If both tests are not in the order list, sort them alphabetically
+					return a.relativePath.localeCompare(b.relativePath)
+				}
 
-			return posA - posB
-		})
+				return posA - posB
+			})
+			.map((test) => test)
 	}
 }
 
