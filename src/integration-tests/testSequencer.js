@@ -3,8 +3,8 @@ const path = require('path')
 
 class CustomSequencer extends Sequencer {
 	sort(tests) {
-		// Define the required test execution order (relative to integration-tests)
-		const order = [
+		// Define exact execution order (must match actual filenames)
+		const executionOrder = [
 			'modules/module.spec.js',
 			'permissions/permissions.spec.js',
 			'role-permission-mapping/role-permission-mapping.spec.js',
@@ -15,41 +15,47 @@ class CustomSequencer extends Sequencer {
 			'form/form.spec.js',
 			'organization-extensions/organization_extensions.spec.js',
 			'review-stages/review-stages.spec.js',
-			'projects/project.spec.js',
+			'projects/projects.spec.js',
 			'reviews_project/reviews.spec.js',
-			'programs/program.spec.js',
+			'programs/programs.spec.js',
 			'reviews_program/reviews.spec.js',
 			'rollouts/rollouts.spec.js',
 		]
 
-		// Get absolute paths for all tests
-		const testPaths = tests.map((test) => ({
-			...test,
-			relativePath: path.relative(path.join(process.cwd(), 'integration-tests'), test.path),
-		}))
+		// Map tests to their relative paths
+		const testMap = {}
+		tests.forEach((test) => {
+			const relPath = path.relative(path.join(process.cwd(), 'integration-tests'), test.path)
+			testMap[relPath] = test
+		})
 
-		console.log(
-			'All Test Paths:',
-			testPaths.map((t) => t.relativePath)
-		)
+		// Create ordered test array
+		const orderedTests = []
+		executionOrder.forEach((testPath) => {
+			if (testMap[testPath]) {
+				orderedTests.push(testMap[testPath])
+				delete testMap[testPath]
+			} else {
+				console.warn(`⚠️ Test not found: ${testPath}`)
+			}
+		})
 
-		return testPaths
-			.sort((a, b) => {
-				const indexA = order.indexOf(a.relativePath)
-				const indexB = order.indexOf(b.relativePath)
+		// Add any remaining tests at the end
+		const remainingTests = Object.values(testMap)
+		if (remainingTests.length) {
+			console.warn(
+				'⚠️ These tests were not in the execution order:',
+				remainingTests.map((t) => path.relative(path.join(process.cwd(), 'integration-tests'), t.path))
+			)
+			orderedTests.push(...remainingTests)
+		}
 
-				// Handle tests not listed in order by moving them to the end
-				const posA = indexA === -1 ? Infinity : indexA
-				const posB = indexB === -1 ? Infinity : indexB
+		console.log('✅ Final execution order:')
+		orderedTests.forEach((test, index) => {
+			console.log(`${index + 1}. ${path.relative(path.join(process.cwd(), 'integration-tests'), test.path)}`)
+		})
 
-				if (posA === Infinity && posB === Infinity) {
-					// If both tests are not in the order list, sort them alphabetically
-					return a.relativePath.localeCompare(b.relativePath)
-				}
-
-				return posA - posB
-			})
-			.map((test) => test)
+		return orderedTests
 	}
 }
 
