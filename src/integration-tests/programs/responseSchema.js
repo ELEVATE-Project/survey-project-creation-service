@@ -196,7 +196,7 @@ const addOrRemoveResourceSchema = {
 			type: 'string',
 		},
 	},
-	required: ['responseCode', 'error', 'message'],
+	required: ['responseCode', 'message'],
 }
 const getProgramManagersEmptyResponseSchema = {
 	type: 'object',
