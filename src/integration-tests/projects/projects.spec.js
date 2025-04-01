@@ -29,7 +29,7 @@ describe('Project APIs ', function () {
 
 	it('Create Project with valid data', async () => {
 		let res = await request.post('/scp/v1/projects/update').send(insertProjectData())
-		console.log(JSON.stringify(res.body, null, 2), 'Create Project with valid data')
+		// console.log(JSON.stringify(res.body, null, 2), 'Create Project with valid data')
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
@@ -39,7 +39,7 @@ describe('Project APIs ', function () {
 		const projectId = createProject.body?.result?.id
 		let res = await request.get('/scp/v1/projects/details/' + projectId)
 		expect(res.statusCode).toBe(200)
-		console.log(JSON.stringify(res.body, null, 2), 'Project Details with valid project id')
+		// console.log(JSON.stringify(res.body, null, 2), 'Project Details with valid project id')
 		expect(res.body).toMatchSchema(schema.detailSchema)
 	})
 
@@ -85,7 +85,7 @@ describe('Project APIs ', function () {
 		//submit for review
 		const res = await request.post('/scp/v1/projects/submitForReview/' + projectId)
 		expect(res.statusCode).toBe(200)
-		console.log(JSON.stringify(res.body, null, 2), 'Submit Project for Review with valid data')
+		// console.log(JSON.stringify(res.body, null, 2), 'Submit Project for Review with valid data')
 		expect(res.body).toMatchSchema(schema.submitProjectSchema)
 	})
 
@@ -99,6 +99,22 @@ describe('Project APIs ', function () {
 		const projectId = createProject.body?.result?.id
 		const res = await request.delete(`/scp/v1/projects/update/${projectId}`)
 		expect(res.statusCode).toBe(202)
+	})
+
+	it('Create and Submit 3 Projects for Review', async () => {
+		for (let i = 0; i < 3; i++) {
+			let createdProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
+			const projectResourceId = createdProject.body?.result?.id
+
+			if (projectResourceId) {
+				console.log(`Project ${i + 1} created with ID: ${projectResourceId}`)
+				let res = await request.post('/scp/v1/projects/submitForReview/' + projectResourceId)
+				expect(res.statusCode).toBe(200)
+				console.log(`Project ${i + 1} submitted for review.`)
+			} else {
+				console.error(`Failed to create project ${i + 1}`)
+			}
+		}
 	})
 })
 
