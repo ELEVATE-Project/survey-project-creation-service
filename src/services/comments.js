@@ -247,7 +247,7 @@ module.exports = class CommentsHelper {
 					if (associatedResourceComments.length > 0) {
 						result.childResources = associatedResourceComments.map((comment) => ({
 							resource_id: comment.resource_id,
-							is_comments: true,
+							is_comments: comment.count > 0,
 							count: comment.count,
 						}))
 					}
