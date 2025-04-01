@@ -28,7 +28,7 @@ describe('Rollout APIs', function () {
 	/** Fetch viewers (program managers) */
 	async function getViewers() {
 		const response = await request.get('/scp/v1/rollouts/getDataManagers').query({ page: 1, limit: 10 })
-		console.log(JSON.stringify(response.body, null, 2), 'getViewers rollout ')
+		// console.log(JSON.stringify(response.body, null, 2), 'getViewers rollout ')
 		let viewerId = response.body?.result?.data?.[0]?.id
 		if (!viewerId) throw new Error('No viewers found')
 		return [viewerId] // Return as an array
@@ -42,7 +42,7 @@ describe('Rollout APIs', function () {
 
 		const rolloutData = { ...insertRolloutData(), viewers, resource_id: resourceId }
 		const response = await request.post('/scp/v1/rollouts/update').send(rolloutData)
-		console.log(JSON.stringify(response.body, null, 2), 'createRollout')
+		// console.log(JSON.stringify(response.body, null, 2), 'createRollout')
 		expect(response.statusCode).toBe(200)
 		expect(response.body).toMatchSchema(schema.createSchema)
 		return response.body?.result?.id

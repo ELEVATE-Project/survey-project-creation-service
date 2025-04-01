@@ -21,7 +21,7 @@ describe('Program APIs ', function () {
 			'/scp/v1/resource/getPublishedResources?page=1&limit=5&type=project&listing=browse_existing'
 		)
 		expect(response.statusCode).toBe(200)
-		console.log(response.body, 'getResource line no 24')
+		// console.log(response.body, 'getResource line no 24')
 		return response.body?.result?.data?.length > 0 ? response.body.result.data[0]?.id : null
 	}
 
@@ -66,8 +66,9 @@ describe('Program APIs ', function () {
 			let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
 			const programId = createProgram.body?.result?.id
 			let addResourceRes = await request.post('/scp/v1/programs/addResources/' + programId).send({
-				resource_ids: [res.body.result.data[0]],
+				resource_ids: [res.body.result.data[0]?.id],
 			})
+			console.log(JSON.stringify(addResourceRes.body, null, 2), 'Add Resource to program with valid data')
 			expect(addResourceRes.statusCode).toBe(200)
 			expect(res.body).toMatchSchema(schema.addOrRemoveResourceSchema)
 		}
@@ -156,7 +157,7 @@ describe('Program APIs ', function () {
 		await new Promise((resolve) => setTimeout(resolve, 5000)) // Add delay
 
 		let res = await request.post(`/scp/v1/programs/submitForReview/${programId}`).send({})
-		console.log(JSON.stringify(res.body, null, 2), 'Program Send For Review with valid data')
+		// console.log(JSON.stringify(res.body, null, 2), 'Program Send For Review with valid data')
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.programSubmitForReview)
 	})
