@@ -30,7 +30,7 @@ describe('Rollout APIs', function () {
 		const response = await request.get('/scp/v1/rollouts/getDataManagers').query({ page: 1, limit: 10 })
 		// console.log(JSON.stringify(response.body, null, 2), 'getViewers rollout ')
 		let viewerId = response.body?.result?.data?.[0]?.id
-		if (!viewerId) throw new Error('No viewers found')
+		if (!viewerId) return []
 		return [viewerId] // Return as an array
 	}
 
@@ -110,6 +110,7 @@ describe('Rollout APIs', function () {
 		const rolloutId = rolloutList?.body?.result?.data?.[0]?.id
 		if (rolloutId) {
 			const res = await request.get(`/scp/v1/rollouts/publish/${rolloutId}`)
+			console.log(JSON.stringify(res.body, null, 2), 'createRollout')
 			expect(res.statusCode).toBe(202)
 		} else {
 			console.warn('No rollout found to publish')

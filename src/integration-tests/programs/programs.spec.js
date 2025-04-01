@@ -68,7 +68,7 @@ describe('Program APIs ', function () {
 			let addResourceRes = await request.post('/scp/v1/programs/addResources/' + programId).send({
 				resource_ids: [res.body.result.data[0]?.id],
 			})
-			console.log(JSON.stringify(addResourceRes.body, null, 2), 'Add Resource to program with valid data')
+			// console.log(JSON.stringify(addResourceRes.body, null, 2), 'Add Resource to program with valid data')
 			expect(addResourceRes.statusCode).toBe(200)
 			expect(res.body).toMatchSchema(schema.addOrRemoveResourceSchema)
 		}
