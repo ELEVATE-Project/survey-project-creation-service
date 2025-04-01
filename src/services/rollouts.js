@@ -233,6 +233,7 @@ module.exports = class RolloutsHelper {
 			const orgConfigs = await orgExtensionService.getConfig(orgId)
 			// identify the roles have data manager access
 			const dataManagerRoles = orgConfigs?.result?.config?.data_managers
+			console.log(dataManagerRoles, 'dataManagerRoles')
 			// fetch the users from user service
 			const dataManagersList = await userRequests.list(dataManagerRoles.join(','), pageNo, pageSize, '', orgId)
 			let result = {

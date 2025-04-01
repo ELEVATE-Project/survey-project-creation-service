@@ -42,7 +42,7 @@ describe('Rollout APIs', function () {
 
 		const rolloutData = { ...insertRolloutData(), viewers, resource_id: resourceId }
 		const response = await request.post('/scp/v1/rollouts/update').send(rolloutData)
-
+		console.log(JSON.stringify(response.body, null, 2), 'createRollout')
 		expect(response.statusCode).toBe(200)
 		expect(response.body).toMatchSchema(schema.createSchema)
 		return response.body?.result?.id

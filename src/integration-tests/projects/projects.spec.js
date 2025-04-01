@@ -5,7 +5,6 @@ jest.setTimeout(200000)
 
 describe('Project APIs ', function () {
 	let userDetails
-	let projectResourceId
 	beforeAll(async () => {
 		try {
 			await commonHelper.verifyUserRole()
@@ -30,8 +29,8 @@ describe('Project APIs ', function () {
 
 	it('Create Project with valid data', async () => {
 		let res = await request.post('/scp/v1/projects/update').send(insertProjectData())
+		console.log(JSON.stringify(res.body, null, 2), 'Create Project with valid data')
 		expect(res.statusCode).toBe(200)
-		projectResourceId = res?.body?.result?.id
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
 
@@ -40,7 +39,7 @@ describe('Project APIs ', function () {
 		const projectId = createProject.body?.result?.id
 		let res = await request.get('/scp/v1/projects/details/' + projectId)
 		expect(res.statusCode).toBe(200)
-		// console.log(JSON.stringify(res.body, null, 2), 'Project Details with valid project id')
+		console.log(JSON.stringify(res.body, null, 2), 'Project Details with valid project id')
 		expect(res.body).toMatchSchema(schema.detailSchema)
 	})
 
@@ -86,7 +85,7 @@ describe('Project APIs ', function () {
 		//submit for review
 		const res = await request.post('/scp/v1/projects/submitForReview/' + projectId)
 		expect(res.statusCode).toBe(200)
-		// console.log(JSON.stringify(res.body, null, 2), 'Submit Project for Review with valid data')
+		console.log(JSON.stringify(res.body, null, 2), 'Submit Project for Review with valid data')
 		expect(res.body).toMatchSchema(schema.submitProjectSchema)
 	})
 
@@ -96,8 +95,9 @@ describe('Project APIs ', function () {
 	})
 
 	it('Delete Project with valid id', async () => {
-		expect(projectResourceId).toBeDefined()
-		const res = await request.delete(`/scp/v1/projects/update/${projectResourceId}`)
+		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
+		const projectId = createProject.body?.result?.id
+		const res = await request.delete(`/scp/v1/projects/update/${projectId}`)
 		expect(res.statusCode).toBe(202)
 	})
 })
