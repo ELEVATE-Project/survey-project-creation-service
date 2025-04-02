@@ -25,24 +25,14 @@ describe('Rollout APIs', function () {
 		return response.body?.result?.data?.length > 0 ? response.body.result.data[0]?.id : null
 	}
 
-	/** Fetch viewers (program managers) */
-	async function getViewers() {
-		const response = await request.get('/scp/v1/rollouts/getDataManagers').query({ page: 1, limit: 10 })
-		// console.log(JSON.stringify(response.body, null, 2), 'getViewers rollout ')
-		let viewerId = response.body?.result?.data?.[0]?.id
-		if (!viewerId) return []
-		return [viewerId] // Return as an array
-	}
-
 	/** Create a rollout */
 	async function createRollout() {
-		const viewers = await getViewers()
 		const resourceId = await getResource()
 		if (!resourceId) throw new Error('Failed to get resource')
 
-		const rolloutData = { ...insertRolloutData(), viewers, resource_id: resourceId }
+		const rolloutData = { ...insertRolloutData(), resource_id: resourceId }
 		const response = await request.post('/scp/v1/rollouts/update').send(rolloutData)
-		// console.log(JSON.stringify(response.body, null, 2), 'createRollout')
+
 		expect(response.statusCode).toBe(200)
 		expect(response.body).toMatchSchema(schema.createSchema)
 		return response.body?.result?.id
@@ -126,6 +116,7 @@ function insertRolloutData() {
 		title: faker.random.alpha(5),
 		start_date: startDate.toISOString(), // Convert to ISO format
 		end_date: endDate.toISOString(), // Convert to ISO format
+		viewers: [5],
 		targeting_criteria: [
 			{
 				state: [

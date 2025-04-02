@@ -29,7 +29,6 @@ describe('Project APIs ', function () {
 
 	it('Create Project with valid data', async () => {
 		let res = await request.post('/scp/v1/projects/update').send(insertProjectData())
-		// console.log(JSON.stringify(res.body, null, 2), 'Create Project with valid data')
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
@@ -39,7 +38,6 @@ describe('Project APIs ', function () {
 		const projectId = createProject.body?.result?.id
 		let res = await request.get('/scp/v1/projects/details/' + projectId)
 		expect(res.statusCode).toBe(200)
-		// console.log(JSON.stringify(res.body, null, 2), 'Project Details with valid project id')
 		expect(res.body).toMatchSchema(schema.detailSchema)
 	})
 
@@ -85,7 +83,6 @@ describe('Project APIs ', function () {
 		//submit for review
 		const res = await request.post('/scp/v1/projects/submitForReview/' + projectId)
 		expect(res.statusCode).toBe(200)
-		// console.log(JSON.stringify(res.body, null, 2), 'Submit Project for Review with valid data')
 		expect(res.body).toMatchSchema(schema.submitProjectSchema)
 	})
 

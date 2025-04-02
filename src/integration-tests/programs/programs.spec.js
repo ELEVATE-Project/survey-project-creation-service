@@ -34,7 +34,6 @@ describe('Program APIs ', function () {
 
 	it('Create Program with valid data', async () => {
 		let res = await request.post('/scp/v1/programs/update').send(insertProgramData())
-		// console.log(JSON.stringify(res.body, null, 2), 'Create Program with valid data')
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
@@ -48,7 +47,6 @@ describe('Program APIs ', function () {
 		let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
 		const programId = createProgram.body?.result?.id
 		let res = await request.get('/scp/v1/programs/details/' + programId)
-		// console.log(JSON.stringify(res.body, null, 2), 'Program Details with valid program id')
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.detailSchema)
 	})
@@ -68,7 +66,7 @@ describe('Program APIs ', function () {
 			let addResourceRes = await request.post('/scp/v1/programs/addResources/' + programId).send({
 				resource_ids: [res.body.result.data[0]?.id],
 			})
-			// console.log(JSON.stringify(addResourceRes.body, null, 2), 'Add Resource to program with valid data')
+
 			expect(addResourceRes.statusCode).toBe(200)
 			expect(res.body).toMatchSchema(schema.addOrRemoveResourceSchema)
 		}
@@ -101,7 +99,6 @@ describe('Program APIs ', function () {
 		let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
 		const programId = createProgram.body?.result?.id
 		const deleteRes = await request.delete('/scp/v1/programs/update/' + programId)
-		// console.log(JSON.stringify(deleteRes.body, null, 2), 'Delete Program with valid program id')
 		expect(deleteRes.statusCode).toBe(202)
 	})
 
@@ -157,7 +154,6 @@ describe('Program APIs ', function () {
 		await new Promise((resolve) => setTimeout(resolve, 5000)) // Add delay
 
 		let res = await request.post(`/scp/v1/programs/submitForReview/${programId}`).send({})
-		// console.log(JSON.stringify(res.body, null, 2), 'Program Send For Review with valid data')
 		expect(res.statusCode).toBe(200)
 		expect(res.body).toMatchSchema(schema.programSubmitForReview)
 	})
