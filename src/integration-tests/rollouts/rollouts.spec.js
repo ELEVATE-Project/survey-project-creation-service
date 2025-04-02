@@ -93,11 +93,6 @@ describe('Rollout APIs', function () {
 	})
 
 	it('Publish Rollout with valid rollout id', async () => {
-		// const rolloutList = await request
-		// 	.get('/scp/v1/rollouts/list')
-		// 	.query({ page: 1, limit: 10, listing: 'roll-out' })
-
-		// const rolloutId = rolloutList?.body?.result?.data?.[0]?.id
 		let viewBuildRes = await commonHelper.triggerViewRebuild()
 		if (!viewBuildRes.success) {
 			console.warn(JSON.stringify(viewBuildRes.body, null, 2), 'View rebuild failed')
