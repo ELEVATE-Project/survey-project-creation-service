@@ -93,14 +93,15 @@ describe('Rollout APIs', function () {
 	})
 
 	it('Publish Rollout with valid rollout id', async () => {
-		const rolloutList = await request
-			.get('/scp/v1/rollouts/list')
-			.query({ page: 1, limit: 10, listing: 'roll-out' })
+		// const rolloutList = await request
+		// 	.get('/scp/v1/rollouts/list')
+		// 	.query({ page: 1, limit: 10, listing: 'roll-out' })
 
-		const rolloutId = rolloutList?.body?.result?.data?.[0]?.id
+		// const rolloutId = rolloutList?.body?.result?.data?.[0]?.id
+		const rolloutId = await createRollout()
 		if (rolloutId) {
 			const res = await request.get(`/scp/v1/rollouts/publish/${rolloutId}`)
-			console.log(JSON.stringify(res.body, null, 2), 'createRollout')
+			console.log(JSON.stringify(res.body, null, 2), 'res')
 			expect(res.statusCode).toBe(202)
 		} else {
 			console.warn('No rollout found to publish')
