@@ -218,10 +218,10 @@ const logIn = async () => {
 			email: email,
 			password: password,
 		})
-		// console.log('-=-=-=-=-=>> ', res.body)
+		console.log('-=-=-=-=-=>> ', res.body)
 		// Check if login was successful and return token details
 		if (res.body?.result?.access_token && res.body.result.user.id) {
-			console.log('============>LOGIN SUCCESSFUL')
+			console.log('============>LOGIN SUCCESSFUL', res.body?.result?.access_token)
 			defaultHeaders = {
 				'X-auth-token': 'bearer ' + res.body.result.access_token,
 				Connection: 'keep-alive',
