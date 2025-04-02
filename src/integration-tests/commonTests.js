@@ -274,6 +274,7 @@ const triggerViewRebuild = async () => {
 		if (res.body.statusCode != 200) {
 			return {
 				success: false,
+				error: res.body,
 			}
 		}
 		return {
