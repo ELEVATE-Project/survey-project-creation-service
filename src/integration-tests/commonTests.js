@@ -257,8 +257,38 @@ function logError(res) {
 	}
 }
 
+// Function to build materialized view
+const triggerViewRebuild = async () => {
+	try {
+		console.log('============>ATTEMPTING VIEW BUILD : ')
+
+		// Define a separate request instance scoped to this function
+		let request = defaults(supertest('http://localhost:5001'))
+
+		await waitForService(baseURL)
+		jest.setTimeout(10000)
+
+		let res = await request.get('/user/v1/admin/triggerViewRebuild')
+		console.log(JSON.stringify(res.body, null, 2), 'triggerViewRebuild---------')
+		if (res.body.statusCode != 200) {
+			return {
+				success: false,
+			}
+		}
+		return {
+			success: true,
+		}
+	} catch (error) {
+		console.error('Error triggering view rebuild:', error)
+		return {
+			success: false,
+		}
+	}
+}
+
 module.exports = {
 	logIn,
 	logError,
 	verifyUserRole,
+	triggerViewRebuild,
 }
