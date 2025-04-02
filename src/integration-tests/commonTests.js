@@ -229,6 +229,8 @@ const logIn = async () => {
 				internal_access_token: process.env.INTERNAL_ACCESS_TOKEN,
 			}
 
+			console.log(defaultHeaders, 'defaultHeaders--------')
+
 			global.request = defaults(supertest(baseURL))
 			global.request.set(defaultHeaders)
 			global.userId = res.body.result.user.id
