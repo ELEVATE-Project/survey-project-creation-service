@@ -226,6 +226,7 @@ const logIn = async () => {
 				'X-auth-token': 'bearer ' + res.body.result.access_token,
 				Connection: 'keep-alive',
 				'Content-Type': 'application/json',
+				internal_access_token: process.env.INTERNAL_ACCESS_TOKEN,
 			}
 
 			global.request = defaults(supertest(baseURL))
