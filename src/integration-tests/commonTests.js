@@ -3,6 +3,7 @@ var supertest = require('supertest')
 var defaults = require('superagent-defaults')
 const crypto = require('crypto')
 const baseURL = 'http://localhost:6001'
+require('dotenv').config({ path: '../../dev-ops/integration_test.self_creation_portal.env' })
 
 // Global headers for authenticated requests
 let defaultHeaders
@@ -177,15 +178,7 @@ const verifyUserRole = async () => {
 }
 
 ;(async () => {
-	console.log(
-		'PROCESS ENV VARIABLES : : ==> ',
-		process.env.CLOUD_STORAGE_PROVIDER,
-		process.env.CLOUD_STORAGE_ACCOUNTNAME,
-		process.env.CLOUD_STORAGE_SECRET,
-		process.env.CLOUD_STORAGE_BUCKETNAME,
-		process.env.CLOUD_STORAGE_REGION,
-		process.env.CLOUD_ENDPOINT
-	)
+	console.log('PROCESS ENV VARIABLES : : ==> ', process.env.INTERNAL_ACCESS_TOKEN)
 })()
 
 // Function to log in and generate token
