@@ -264,6 +264,7 @@ const triggerViewRebuild = async () => {
 
 		// Define a separate request instance scoped to this function
 		let request = defaults(supertest('http://localhost:5001'))
+		console.log('defaultHeaders : : : --->>> ', defaultHeaders)
 
 		await waitForService(baseURL)
 		jest.setTimeout(10000)
