@@ -201,7 +201,7 @@ const logIn = async () => {
 		jest.setTimeout(10000)
 
 		// Generate unique email for testing
-		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
+		let email = 'adithya' + crypto.randomBytes(5).toString('hex') + '@shikshalokam.org'
 		let password = 'Welco@Me#123!'
 
 		// Create a new account
@@ -269,7 +269,7 @@ const triggerViewRebuild = async () => {
 		await waitForService(baseURL)
 		jest.setTimeout(10000)
 
-		let res = await request.get('/user/v1/admin/triggerViewRebuild')
+		let res = await request.get('/user/v1/admin/triggerPeriodicViewRefresh')
 		console.log(JSON.stringify(res.body, null, 2), 'triggerViewRebuild---------')
 		if (res.body.statusCode != 200) {
 			return {
