@@ -3,7 +3,6 @@ var supertest = require('supertest')
 var defaults = require('superagent-defaults')
 const crypto = require('crypto')
 const baseURL = 'http://localhost:6001'
-require('dotenv').config({ path: '../../dev-ops/integration_test.self_creation_portal.env' })
 
 // Global headers for authenticated requests
 let defaultHeaders
@@ -219,10 +218,7 @@ const logIn = async () => {
 				'X-auth-token': 'bearer ' + res.body.result.access_token,
 				Connection: 'keep-alive',
 				'Content-Type': 'application/json',
-				internal_access_token: process.env.INTERNAL_ACCESS_TOKEN,
 			}
-
-			console.log(defaultHeaders, 'defaultHeaders--------')
 
 			global.request = defaults(supertest(baseURL))
 			global.request.set(defaultHeaders)
@@ -260,6 +256,7 @@ const triggerViewRebuild = async () => {
 
 		// Define a separate request instance scoped to this function
 		let request = defaults(supertest('http://localhost:5001'))
+		defaultHeaders.internal_access_token = 'PKXBJ7kgwX5auvASmB3djL8jd0pzYADo'
 		console.log('defaultHeaders : : : --->>> ', defaultHeaders)
 
 		await waitForService(baseURL)
