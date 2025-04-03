@@ -167,15 +167,7 @@ module.exports = class CommentsHelper {
 				{ attributes: ['id', 'type', 'organization_id'] }
 			)
 
-			if (!resource?.id) {
-				return responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: 'COMMENT_FETCHED',
-					result: result,
-				})
-			}
-
-			if (resource.type === common.RESOURCE_TYPE_PROGRAM) {
+			if (resource?.type === common.RESOURCE_TYPE_PROGRAM) {
 				result.childResources = []
 				// Fetch all resources associated with the given program
 				const associatedResources = await programResourceMappingQueries.findAll({
@@ -204,7 +196,7 @@ module.exports = class CommentsHelper {
 					}
 				}
 			}
-			if (comments.count <= 0) {
+			if (comments.count <= 0 || !resource?.id) {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'COMMENT_FETCHED',
