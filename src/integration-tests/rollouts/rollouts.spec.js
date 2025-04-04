@@ -11,7 +11,7 @@ describe('Rollout APIs', function () {
 			await commonHelper.verifyUserRole()
 			userDetails = await commonHelper.logIn()
 
-			console.log('Logged in User:', userDetails.id, userDetails.roles)
+			// console.log('Logged in User:', userDetails.id, userDetails.roles)
 		} catch (error) {
 			console.error('Error in beforeAll setup:', error)
 			throw error // Ensure the error is thrown to fail the tests
@@ -102,7 +102,7 @@ describe('Rollout APIs', function () {
 		const rolloutId = await createRollout()
 		if (rolloutId) {
 			const res = await request.get(`/scp/v1/rollouts/publish/${rolloutId}`)
-			console.log(JSON.stringify(res.body, null, 2), 'res')
+			// console.log(JSON.stringify(res.body, null, 2), 'res')
 			expect(res.statusCode).toBe(202)
 		} else {
 			console.warn('No rollout found to publish')
