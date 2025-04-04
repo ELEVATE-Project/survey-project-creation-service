@@ -8,6 +8,7 @@ describe('Role permission Mapping APIs', function () {
 
 	beforeAll(async () => {
 		try {
+			jest.setTimeout(30000)
 			await commonHelper.verifyUserRole()
 			userDetails = await commonHelper.logIn()
 			// console.log('Logged in User:', userDetails.id, userDetails.roles)

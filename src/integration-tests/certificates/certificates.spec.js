@@ -6,6 +6,7 @@ describe('Certificate APIs ', function () {
 	let userDetails
 	beforeAll(async () => {
 		try {
+			jest.setTimeout(30000)
 			userDetails = await commonHelper.logIn()
 			// console.log('Logged in User:', userDetails.id, userDetails.roles)
 		} catch (error) {

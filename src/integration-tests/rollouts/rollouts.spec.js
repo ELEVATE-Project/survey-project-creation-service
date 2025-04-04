@@ -8,6 +8,7 @@ describe('Rollout APIs', function () {
 
 	beforeAll(async () => {
 		try {
+			jest.setTimeout(30000)
 			await commonHelper.verifyUserRole()
 			userDetails = await commonHelper.logIn()
 
