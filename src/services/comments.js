@@ -159,7 +159,44 @@ module.exports = class CommentsHelper {
 			//get all comments
 			const comments = await commentQueries.list(resourceId, userId, pageValue, context)
 
-			if (comments.count <= 0) {
+			// Check if the resource is of type 'program' and fetch child resources
+			let resource = await resourceQueries.findOne(
+				{
+					id: resourceId,
+				},
+				{ attributes: ['id', 'type', 'organization_id'] }
+			)
+
+			if (resource?.type === common.RESOURCE_TYPE_PROGRAM) {
+				result.childResources = []
+				// Fetch all resources associated with the given program
+				const associatedResources = await programResourceMappingQueries.findAll({
+					program_id: resourceId,
+					organization_id: resource.organization_id,
+				})
+
+				// If there are associated resources, proceed with fetching their comments
+				if (associatedResources?.length > 0) {
+					const resourceIds = associatedResources.map((resource) => resource.resource_id)
+
+					// Fetch count of open comments for each associated resource
+					const associatedResourceComments = await commentQueries.findAll(
+						{ resource_id: { [Op.in]: resourceIds }, status: common.COMMENT_STATUS_DRAFT },
+						['resource_id', [Sequelize.literal('COUNT(id)'), 'count']],
+						{ group: ['resource_id'] }
+					)
+
+					// Add childResources data only if there are comments
+					if (associatedResourceComments.length > 0) {
+						result.childResources = associatedResourceComments.map((comment) => ({
+							resource_id: comment.resource_id,
+							is_comments: comment.count > 0,
+							count: comment.count,
+						}))
+					}
+				}
+			}
+			if (comments.count <= 0 || !resource?.id) {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'COMMENT_FETCHED',
@@ -207,52 +244,6 @@ module.exports = class CommentsHelper {
 			result.comments = comments.rows
 			result.commented_by = _.uniq(commented_by)
 			result.count = comments.count
-
-			// Check if the resource is of type 'program' and fetch child resources
-			let resource = await resourceQueries.findOne(
-				{
-					id: resourceId,
-				},
-				{ attributes: ['id', 'type', 'organization_id'] }
-			)
-
-			if (!resource?.id) {
-				return responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: 'COMMENT_FETCHED',
-					result: result,
-				})
-			}
-
-			if (resource.type === common.RESOURCE_TYPE_PROGRAM) {
-				result.childResources = []
-				// Fetch all resources associated with the given program
-				const associatedResources = await programResourceMappingQueries.findAll({
-					program_id: resourceId,
-					organization_id: resource.organization_id,
-				})
-
-				// If there are associated resources, proceed with fetching their comments
-				if (associatedResources?.length > 0) {
-					const resourceIds = associatedResources.map((resource) => resource.resource_id)
-
-					// Fetch count of open comments for each associated resource
-					const associatedResourceComments = await commentQueries.findAll(
-						{ resource_id: { [Op.in]: resourceIds }, status: common.COMMENT_STATUS_DRAFT },
-						['resource_id', [Sequelize.literal('COUNT(id)'), 'count']],
-						{ group: ['resource_id'] }
-					)
-
-					// Add childResources data only if there are comments
-					if (associatedResourceComments.length > 0) {
-						result.childResources = associatedResourceComments.map((comment) => ({
-							resource_id: comment.resource_id,
-							is_comments: comment.count > 0,
-							count: comment.count,
-						}))
-					}
-				}
-			}
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
