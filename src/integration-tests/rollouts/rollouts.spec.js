@@ -94,10 +94,10 @@ describe('Rollout APIs', function () {
 	})
 
 	it('Publish Rollout with valid rollout id', async () => {
-		let viewBuildRes = await commonHelper.triggerViewRebuild()
-		if (!viewBuildRes.success) {
-			console.warn(JSON.stringify(viewBuildRes.error, null, 2), 'View rebuild failed')
-		}
+		// let viewBuildRes = await commonHelper.triggerViewRebuild()
+		// if (!viewBuildRes.success) {
+		// 	console.warn(JSON.stringify(viewBuildRes.error, null, 2), 'View rebuild failed')
+		// }
 
 		const rolloutId = await createRollout()
 		if (rolloutId) {
