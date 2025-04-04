@@ -164,7 +164,6 @@ const verifyUserRole = async () => {
 			// Wait for both role creation requests to complete
 			if (roleCreationPromises.length > 0) {
 				const res = await Promise.all(roleCreationPromises)
-				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(res.body, null, 2))
 			}
 		}
 	} catch (error) {
@@ -210,10 +209,8 @@ const logIn = async () => {
 			email: email,
 			password: password,
 		})
-		console.log('-=-=-=-=-=>> ', res.body)
 		// Check if login was successful and return token details
 		if (res.body?.result?.access_token && res.body.result.user.id) {
-			console.log('============>LOGIN SUCCESSFUL', res.body?.result?.access_token)
 			defaultHeaders = {
 				'X-auth-token': 'bearer ' + res.body.result.access_token,
 				Connection: 'keep-alive',
@@ -261,13 +258,12 @@ const triggerViewRebuild = async () => {
 		// Define a separate request instance scoped to this function
 		let request = defaults(supertest('http://localhost:5001'))
 		defaultHeaders.internal_access_token = 'PKXBJ7kgwX5auvASmB3djL8jd0pzYADo'
-		console.log('defaultHeaders : : : --->>> ', defaultHeaders)
+		console.log('defaultHeaders : : : : --------->>>> ', defaultHeaders)
 
 		await waitForService(baseURL)
 		jest.setTimeout(10000)
 
 		let res = await request.get('/user/v1/admin/triggerPeriodicViewRefresh')
-		console.log(JSON.stringify(res.body, null, 2), 'triggerViewRebuild---------')
 		if (res.body.statusCode != 200) {
 			return {
 				success: false,
