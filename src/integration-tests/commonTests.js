@@ -19,7 +19,7 @@ const waitForService = async (url) => {
 	}
 	try {
 		await waitOn(opts)
-		console.log(`Service is ready at: ${url}`)
+		await console.log(`Service is ready at: ${url}`)
 	} catch (error) {
 		console.error(`Error: ${error.message}`)
 		throw new Error('Service not available')
@@ -28,7 +28,7 @@ const waitForService = async (url) => {
 
 // Function to verify user roles and create them if necessary
 const verifyUserRole = async () => {
-	console.log('============>USER ROLE CHECK : ')
+	await console.log('============>USER ROLE CHECK : ')
 
 	// Define a separate request instance scoped to this function
 	let request = defaults(supertest('http://localhost:5001'))
@@ -171,18 +171,18 @@ const verifyUserRole = async () => {
 		throw error
 	}
 
-	console.log('============>USER ROLE CHECK COMPLETED: ')
+	await console.log('============>USER ROLE CHECK COMPLETED: ')
 	return true
 }
 
 ;(async () => {
-	console.log('PROCESS ENV VARIABLES : : ==> ', process.env.INTERNAL_ACCESS_TOKEN)
+	await console.log('PROCESS ENV VARIABLES : : ==> ', process.env.INTERNAL_ACCESS_TOKEN)
 })()
 
 // Function to log in and generate token
 const logIn = async () => {
 	try {
-		console.log('============>ATTEMPTING LOGIN : ')
+		await console.log('============>ATTEMPTING LOGIN : ')
 
 		// Define a separate request instance scoped to this function
 		let request = defaults(supertest('http://localhost:5001'))
@@ -246,19 +246,19 @@ const logIn = async () => {
 function logError(res) {
 	let successCodes = [200, 201, 202]
 	if (!successCodes.includes(res.statusCode)) {
-		console.log('Response Body', res.body)
+		console.error('Response Body', res.body)
 	}
 }
 
 // Function to build materialized view
 const triggerViewRebuild = async () => {
 	try {
-		console.log('============>ATTEMPTING VIEW BUILD : ')
+		await console.log('============>ATTEMPTING VIEW BUILD : ')
 
 		// Define a separate request instance scoped to this function
 		let request = defaults(supertest('http://localhost:5001'))
 		defaultHeaders.internal_access_token = 'PKXBJ7kgwX5auvASmB3djL8jd0pzYADo'
-		console.log('defaultHeaders : : : : --------->>>> ', defaultHeaders)
+		await console.log('defaultHeaders : : : : --------->>>> ', defaultHeaders)
 
 		await waitForService(baseURL)
 		jest.setTimeout(10000)
