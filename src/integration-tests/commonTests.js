@@ -3,6 +3,7 @@ var supertest = require('supertest')
 var defaults = require('superagent-defaults')
 const crypto = require('crypto')
 const baseURL = 'http://localhost:6001'
+require('dotenv').config({ path: '../.env' })
 
 // Global headers for authenticated requests
 let defaultHeaders
@@ -18,8 +19,9 @@ const waitForService = async (url) => {
 		timeout: 60000, // Max time to wait for service
 	}
 	try {
-		await waitOn(opts)
-		await console.log(`Service is ready at: ${url}`)
+		await waitOn(opts).then(async () => {
+			await console.log(`Service is ready at: ${url}`)
+		})
 	} catch (error) {
 		console.error(`Error: ${error.message}`)
 		throw new Error('Service not available')
