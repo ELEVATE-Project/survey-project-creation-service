@@ -223,8 +223,8 @@ const logIn = async () => {
 			global.request = defaults(supertest(baseURL))
 			global.request.set(defaultHeaders)
 			global.userId = res.body.result.user.id
-			const viewRebuild = await triggerViewRebuild()
-			console.log('VIEW REBUILD : ', viewRebuild)
+			await waitForService(baseURL)
+			await triggerViewRebuild()
 
 			return {
 				id: res.body.result.user.id,
