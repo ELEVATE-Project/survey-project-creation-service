@@ -212,6 +212,12 @@ const logIn = async () => {
 			email: email,
 			password: password,
 		})
+		const view = await request
+			.set('X-auth-token', 'bearer ' + res.body.result.access_token)
+			.get('/user/v1/admin/triggerPeriodicViewRefresh')
+
+		console.log('VIEW : : ---> ', view)
+
 		// Check if login was successful and return token details
 		if (res.body?.result?.access_token && res.body.result.user.id) {
 			defaultHeaders = {
