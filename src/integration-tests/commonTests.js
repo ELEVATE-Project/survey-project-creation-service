@@ -212,9 +212,9 @@ const logIn = async () => {
 			email: email,
 			password: password,
 		})
-		const view = await request
-			.set('X-auth-token', 'bearer ' + res.body.result.access_token)
-			.get('/user/v1/admin/triggerPeriodicViewRefresh')
+		// const view = await request
+		// 	.set('X-auth-token', 'bearer ' + res.body.result.access_token)
+		// 	.get('/user/v1/admin/triggerPeriodicViewRefresh')
 
 		console.log('VIEW : : ---> ', view)
 
@@ -266,13 +266,16 @@ const triggerViewRebuild = async () => {
 
 		// Define a separate request instance scoped to this function
 		let request = defaults(supertest('http://localhost:5001'))
-		defaultHeaders.internal_access_token = 'PKXBJ7kgwX5auvASmB3djL8jd0pzYADo'
-		// await console.log('defaultHeaders : : : : --------->>>> ', defaultHeaders)
+		request.set(defaultHeaders)
+
+		//defaultHeaders.internal_access_token = 'PKXBJ7kgwX5auvASmB3djL8jd0pzYADo'
+		// console.log('defaultHeaders : : : : --------->>>> ', defaultHeaders)
 
 		await waitForService(baseURL)
 		jest.setTimeout(10000)
 
 		let res = await request.get('/user/v1/admin/triggerPeriodicViewRefresh')
+		console.log('BODY : : : ', res.body)
 		if (res.body.statusCode != 200) {
 			return {
 				success: false,
