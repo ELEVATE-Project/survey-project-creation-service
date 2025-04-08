@@ -1700,9 +1700,21 @@ const publishProgram = function async(programData) {
 			console.log(' ======= END Publish Program =======')
 			return resolve(result)
 		} catch (error) {
-			console.log('ERROR : ', error)
+			console.error('-----------> Consumption ERROR : ', error)
+			console.log(' ======= END Publish Program =======')
 			result.error = `Error: ${error.message}`
 			result.success = false
+
+			// update rollout status failed in case of error
+			await rolloutQueries.updateOne(
+				{
+					id: programData.id,
+				},
+				{
+					status: common.ROLLOUT_STATUS_FAILED,
+				}
+			)
+
 			return resolve(result)
 		}
 	})
