@@ -11,6 +11,7 @@ describe('Rollout APIs', function () {
 			jest.setTimeout(30000)
 			await commonHelper.verifyUserRole()
 			userDetails = await commonHelper.logIn()
+			await commonHelper.triggerViewRebuild()
 
 			// console.log('Logged in User:', userDetails.id, userDetails.roles)
 		} catch (error) {

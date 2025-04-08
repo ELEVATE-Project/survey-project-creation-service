@@ -226,7 +226,7 @@ const logIn = async () => {
 			global.userId = res.body.result.user.id
 			await waitForService(baseURL)
 			jest.setTimeout(10000)
-			await triggerViewRebuild()
+			// await triggerViewRebuild()
 
 			return {
 				id: res.body.result.user.id,
