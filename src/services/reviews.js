@@ -862,7 +862,7 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 			comments = [comments]
 		}
 
-		if (comments) {
+		if (comments && resourceType != common.RESOURCE_TYPE_PROGRAM) {
 			const isValidComment = utils.validateComment(comments)
 			if (!isValidComment) throw new Error('COMMENT_INVALID')
 		}
@@ -905,6 +905,20 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 
 			if (associatedResources.length > 0) {
 				const associatedResourceIds = associatedResources.map((mapping) => mapping.resource_id)
+				let fetchAssociatedResourceComments = await commentQueries.findAll({
+					resource_id: {
+						[Op.in]: associatedResourceIds,
+					},
+				})
+
+				if (!Array.isArray(comments)) {
+					fetchAssociatedResourceComments = [...fetchAssociatedResourceComments, ...comments]
+				}
+
+				if (fetchAssociatedResourceComments.length > 0) {
+					const isValidResourceComment = utils.validateComment(fetchAssociatedResourceComments)
+					if (!isValidResourceComment) throw new Error('COMMENT_INVALID')
+				}
 				await commentQueries.update(
 					{
 						resource_id: {
