@@ -20,8 +20,8 @@ module.exports = {
 			},
 			status: {
 				allowNull: false,
-				type: Sequelize.ENUM('PENDING', 'ROLLED_OUT', 'INACTIVE'),
-				defaultValue: 'PENDING',
+				type: Sequelize.ENUM('DRAFT', 'ROLLED_OUT', 'INACTIVE', 'PROCESSING', 'FAILED'),
+				defaultValue: 'DRAFT',
 			},
 			published_on: {
 				allowNull: true,

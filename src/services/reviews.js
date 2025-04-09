@@ -861,8 +861,9 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 		if (!Array.isArray(comments)) {
 			comments = [comments]
 		}
+		comments = comments.filter((comment) => Object.keys(comment).length > 0)
 
-		if (comments) {
+		if (comments.length > 0) {
 			const isValidComment = utils.validateComment(comments)
 			if (!isValidComment) throw new Error('COMMENT_INVALID')
 		}
@@ -905,6 +906,7 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 
 			if (associatedResources.length > 0) {
 				const associatedResourceIds = associatedResources.map((mapping) => mapping.resource_id)
+
 				await commentQueries.update(
 					{
 						resource_id: {
