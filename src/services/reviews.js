@@ -863,7 +863,7 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 		}
 		comments = comments.filter((comment) => Object.keys(comment).length > 0)
 
-		if (comments) {
+		if (comments.length > 0) {
 			const isValidComment = utils.validateComment(comments)
 			if (!isValidComment) throw new Error('COMMENT_INVALID')
 		}
