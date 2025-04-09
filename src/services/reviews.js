@@ -859,7 +859,7 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 	try {
 		// Normalize comments to an array if it's a single object
 		if (!Array.isArray(comments)) {
-			comments = [comments].filter((comment) => comment != {})
+			comments = [comments]
 		}
 		comments = comments.filter((comment) => Object.keys(comment).length > 0)
 
