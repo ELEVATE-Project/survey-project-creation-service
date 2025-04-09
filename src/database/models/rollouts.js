@@ -20,8 +20,8 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			status: {
 				allowNull: false,
-				type: DataTypes.ENUM('PENDING', 'ROLLED_OUT', 'INACTIVE'),
-				defaultValue: 'PENDING',
+				type: DataTypes.ENUM('DRAFT', 'ROLLED_OUT', 'INACTIVE', 'PROCESSING', 'FAILED'),
+				defaultValue: 'DRAFT',
 			},
 			published_on: {
 				allowNull: true,
