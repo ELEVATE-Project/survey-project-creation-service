@@ -671,6 +671,13 @@ module.exports = class RolloutsHelper {
 				}
 			}
 
+			// set the status of rollout to PROCESSING till it is published in the CONSUMPTION_SERVICE
+			const updateBody = {
+				status: common.ROLLOUT_STATUS_PROCESSING,
+			}
+
+			await rolloutQueries.updateOne({ id: rolloutId }, updateBody)
+
 			const rolloutKafkaPayload = {
 				...rolloutDetails.result,
 				rolloutId: rolloutDetails.result.id,
