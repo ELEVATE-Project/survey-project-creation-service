@@ -29,7 +29,8 @@ module.exports = class Programs {
 						req.params.id,
 						req.body,
 						req.decodedToken.id,
-						req.decodedToken.organization_id
+						req.decodedToken.organization_id,
+						req.params?.is_under_edit ? req.params.is_under_edit : false
 					)
 				}
 				return program

@@ -199,7 +199,7 @@ module.exports = class ProgramsHelper {
 	 * @param {string} orgId - The ID of the organization.
 	 * @returns {JSON} - Program ID or error response.
 	 */
-	static async update(resourceId, bodyData, loggedInUserId, orgId) {
+	static async update(resourceId, bodyData, loggedInUserId, orgId, is_under_edit_param = false) {
 		try {
 			const forbidden_resource_statuses = [
 				common.RESOURCE_STATUS_REJECTED,
@@ -311,7 +311,7 @@ module.exports = class ProgramsHelper {
 			}
 
 			//update is_under_edit true if reviewer requested for changes
-			if (countReviews.count > 0) {
+			if (countReviews.count > 0 || is_under_edit_param) {
 				updateData.is_under_edit = true
 			}
 
