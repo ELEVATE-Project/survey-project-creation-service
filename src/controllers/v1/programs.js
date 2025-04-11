@@ -30,7 +30,7 @@ module.exports = class Programs {
 						req.body,
 						req.decodedToken.id,
 						req.decodedToken.organization_id,
-						req.params?.is_under_edit ? req.params.is_under_edit : false
+						req.query?.is_under_edit ? req.query.is_under_edit : false
 					)
 				}
 				return program
