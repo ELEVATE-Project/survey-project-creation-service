@@ -800,6 +800,12 @@ module.exports = class RolloutsHelper {
 						)
 					)
 				}
+				const now = new Date()
+				if (rollout[entityType.value] < now) {
+					validationErrors.push(
+						utils.errorObject(basePath, common.END_DATE, `End date cannot be less than current date.`)
+					)
+				}
 			}
 		})
 
