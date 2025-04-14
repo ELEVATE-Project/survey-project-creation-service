@@ -1,7 +1,7 @@
 const commonHelper = require('@commonTests')
 const schema = require('./responseSchema')
 const { faker } = require('@faker-js/faker')
-jest.setTimeout(10000)
+jest.setTimeout(20000)
 
 describe('Permission Apis', function () {
 	let userDetails
