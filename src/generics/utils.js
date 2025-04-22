@@ -10,6 +10,7 @@ const startCase = require('lodash/startCase')
 const common = require('@constants/common')
 const { v4: uuidV4 } = require('uuid')
 const _ = require('lodash')
+const md5 = require('md5')
 const { transliterate: tr } = require('transliteration')
 
 const composeEmailBody = (body, params) => {
@@ -750,7 +751,16 @@ const convertToSingular = (plural) => {
 	}
 	return plural
 }
+/**
+ * md5 hash
+ * @function
+ * @name md5Hash
+ * @returns {String} returns hashed value.
+ */
 
+function md5Hash(value) {
+	return md5(value)
+}
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -796,4 +806,5 @@ module.exports = {
 	convertDuration,
 	escapeXml,
 	convertToSingular,
+	md5Hash,
 }
