@@ -138,6 +138,7 @@ module.exports = class ProgramsHelper {
 				organization_id: orgId,
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
+				link: null,
 				meta: {
 					start_date: bodyData.start_date || '',
 					end_date: bodyData.end_date || '',
