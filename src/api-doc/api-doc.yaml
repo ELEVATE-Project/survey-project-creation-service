@@ -6270,9 +6270,9 @@ paths:
                                     type: string
                                     format: uri
                                     example: 'http://test.com'
-                            licence:
+                            link:
                               type: string
-                              example: 'CC BY 4.0'
+                              example: 'https://dev.elevate-ml.shikshalokam.org/view/project/f03ce4b022104654e5a5be13535a1702'
                             tasks:
                               type: array
                               items:
