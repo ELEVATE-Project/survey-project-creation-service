@@ -1203,7 +1203,7 @@ module.exports = class resourceHelper {
 	 * @name publishCallback
 	 * @returns {JSON} - details of resource
 	 */
-	static async publishCallback(resourceId, publishedId) {
+	static async publishCallback(resourceId, publishedId, link = false) {
 		try {
 			let resource = await resourceQueries.updateOne(
 				{
@@ -1215,6 +1215,7 @@ module.exports = class resourceHelper {
 					published_on: new Date(),
 					status: common.RESOURCE_STATUS_PUBLISHED,
 					stage: common.RESOURCE_STAGE_COMPLETION,
+					link: link ? link : null,
 				}
 			)
 

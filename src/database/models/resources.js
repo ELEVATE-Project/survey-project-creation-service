@@ -94,6 +94,10 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.BOOLEAN,
 				defaultValue: true,
 			},
+			link: {
+				type: DataTypes.STRING,
+				defaultValue: null,
+			},
 		},
 		{
 			modelName: 'Resource',

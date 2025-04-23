@@ -138,6 +138,7 @@ module.exports = class ProgramsHelper {
 				organization_id: orgId,
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
+				link: null,
 				meta: {
 					start_date: bodyData.start_date || '',
 					end_date: bodyData.end_date || '',
@@ -494,6 +495,9 @@ module.exports = class ProgramsHelper {
 						.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
 						.map((resourceDetail) => ({
 							...resourceDetail.result,
+							link: resourceDetail?.result.link
+								? `${process.env.PROJECT_DEEP_LINK_URL}${resourceDetail?.result?.link}`
+								: null,
 							is_comments: resourceCommentSet.has(resourceDetail.result.id),
 						}))
 				}

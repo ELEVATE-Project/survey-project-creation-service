@@ -453,6 +453,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 	try {
 		// array to have objects of solutions to create
 		let solutionsToCreate = []
+
 		// solution to certificate mapping
 		let solutionCertificateMap = []
 		// solution to rollout if map
@@ -528,11 +529,67 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 		const solutionCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
 		await solutionCollection.insertMany(solutionsToCreate)
 
-		const createdSolutions = await solutionCollection
+		let createdSolutions = await solutionCollection
 			.find({
 				programId: programDetails._id,
 			})
 			.toArray()
+
+		// update solution links for deeplink
+		let generatedLink = ''
+		const solutionLinks = solutionsToCreate
+			.map((solution) => {
+				// Find the created solution corresponding to the externalId
+				const createdSolutionDetails = createdSolutions.find(
+					(solutionCreated) => solutionCreated.externalId == solution.externalId
+				)
+
+				if (createdSolutionDetails) {
+					// Generate the link
+					generatedLink = utils.md5Hash(`${createdSolutionDetails._id}###${createdSolutionDetails.author}`)
+
+					// Update createdSolutions array outside of the map to avoid mutation
+					createdSolutions = createdSolutions.map((item) => {
+						if (item._id == createdSolutionDetails._id) {
+							return {
+								...item,
+								link: generatedLink,
+							}
+						}
+						return item // return unchanged item
+					})
+
+					// Return the _id and link for the solution
+					return {
+						_id: ObjectId(createdSolutionDetails._id),
+						link: generatedLink,
+					}
+				}
+
+				// Return a default or error object if createdSolutionDetails is not found
+				return null
+			})
+			.filter((solution) => solution !== null) // Filter out any null values if not found
+
+		// update the solutions collection with link
+		await Promise.all(
+			solutionLinks.map(async (solution) => {
+				const updateSolution = await solutionCollection.updateOne(
+					{
+						_id: solution._id,
+					},
+					{
+						$set: {
+							link: solution?.link ? solution?.link : null,
+						},
+					}
+				)
+				// Validate the result of the solution updation
+				if (!updateSolution) {
+					throw new Error(`Failed to update link for solution ${solution._id}.`)
+				}
+			})
+		)
 
 		if (solutionCertificateMap && solutionCertificateMap.length > 0) {
 			solutionCertificateMap.forEach((solutionMap) => {
@@ -1682,7 +1739,8 @@ const publishProgram = function async(programData) {
 					// update resource table with published Id
 					await resourceService.publishCallback(
 						solution.scp_reference_id,
-						solution?._id ? solution?._id.toString() : null
+						solution?._id ? solution?._id.toString() : null,
+						solution?.link ? solution?.link : false
 					)
 				}
 				// update rollout table with published Id
