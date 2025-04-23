@@ -495,6 +495,9 @@ module.exports = class ProgramsHelper {
 						.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
 						.map((resourceDetail) => ({
 							...resourceDetail.result,
+							link: resourceDetail?.result.link
+								? `${process.env.PROJECT_DEEP_LINK_URL}${resourceDetail?.result?.link}`
+								: null,
 							is_comments: resourceCommentSet.has(resourceDetail.result.id),
 						}))
 				}
