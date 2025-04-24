@@ -3,6 +3,7 @@ var supertest = require('supertest')
 var defaults = require('superagent-defaults')
 const crypto = require('crypto')
 const baseURL = 'http://localhost:6001'
+require('dotenv').config({ path: '../.env' })
 
 // Global headers for authenticated requests
 let defaultHeaders
@@ -10,7 +11,7 @@ const waitOn = require('wait-on')
 
 // Improved waitForService function
 const waitForService = async (url) => {
-	console.log(`Waiting for service at: ${url}`)
+	// console.log(`Waiting for service at: ${url}`)
 	const opts = {
 		resources: [url],
 		delay: 5000, // Initial delay before checking
@@ -19,7 +20,9 @@ const waitForService = async (url) => {
 	}
 	try {
 		await waitOn(opts)
-		console.log(`Service is ready at: ${url}`)
+		// .then(async () => {
+		// 	await console.log(`Service is ready at: ${url}`)
+		// })
 	} catch (error) {
 		console.error(`Error: ${error.message}`)
 		throw new Error('Service not available')
@@ -28,7 +31,7 @@ const waitForService = async (url) => {
 
 // Function to verify user roles and create them if necessary
 const verifyUserRole = async () => {
-	console.log('============>USER ROLE CHECK : ')
+	// await console.log('============>USER ROLE CHECK : ')
 
 	// Define a separate request instance scoped to this function
 	let request = defaults(supertest('http://localhost:5001'))
@@ -58,27 +61,37 @@ const verifyUserRole = async () => {
 			}
 
 			// Run role checks concurrently for content_creator and reviewer roles
-			const [existingCreatorRole, existingReviewerRole, existingRolloutManagerRole, existingProgramDesignerRole] =
-				await Promise.all([
-					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-						title: 'content_creator',
-						organization_id: 1,
-					}),
-					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-						title: 'reviewer',
-						organization_id: 1,
-					}),
+			const [
+				existingCreatorRole,
+				existingReviewerRole,
+				existingRolloutManagerRole,
+				existingProgramDesignerRole,
+				existingProgramManagerRole,
+			] = await Promise.all([
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'content_creator',
+					organization_id: 1,
+				}),
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'reviewer',
+					organization_id: 1,
+				}),
 
-					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-						title: 'rollout_manager',
-						organization_id: 1,
-					}),
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'rollout_manager',
+					organization_id: 1,
+				}),
 
-					request.get('/user/v1/user-role/list').set(defaultHeaders).query({
-						title: 'program_designer',
-						organization_id: 1,
-					}),
-				])
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'program_designer',
+					organization_id: 1,
+				}),
+
+				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
+					title: 'program_manager',
+					organization_id: 1,
+				}),
+			])
 
 			// Create role creation promises
 			let roleCreationPromises = []
@@ -137,10 +150,23 @@ const verifyUserRole = async () => {
 				roleCreationPromises.push(createProgramDesignerRole)
 			}
 
+			if (
+				existingProgramManagerRole.statusCode === 400 ||
+				!existingProgramManagerRole.body.result?.data?.length
+			) {
+				const createProgramManagerRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
+					title: 'program_manager',
+					user_type: 0,
+					organization_id: 1,
+					label: 'Program Manager',
+					visibility: 'PUBLIC',
+				})
+				roleCreationPromises.push(createProgramManagerRole)
+			}
+
 			// Wait for both role creation requests to complete
 			if (roleCreationPromises.length > 0) {
 				const res = await Promise.all(roleCreationPromises)
-				console.log('ROLE CREATION : : : : =====> ', JSON.stringify(res.body, null, 2))
 			}
 		}
 	} catch (error) {
@@ -148,26 +174,18 @@ const verifyUserRole = async () => {
 		throw error
 	}
 
-	console.log('============>USER ROLE CHECK COMPLETED: ')
+	// await console.log('============>USER ROLE CHECK COMPLETED: ')
 	return true
 }
 
 ;(async () => {
-	console.log(
-		'PROCESS ENV VARIABLES : : ==> ',
-		process.env.CLOUD_STORAGE_PROVIDER,
-		process.env.CLOUD_STORAGE_ACCOUNTNAME,
-		process.env.CLOUD_STORAGE_SECRET,
-		process.env.CLOUD_STORAGE_BUCKETNAME,
-		process.env.CLOUD_STORAGE_REGION,
-		process.env.CLOUD_ENDPOINT
-	)
+	// await console.log('PROCESS ENV VARIABLES : : ==> ', process.env.INTERNAL_ACCESS_TOKEN)
 })()
 
 // Function to log in and generate token
 const logIn = async () => {
 	try {
-		console.log('============>ATTEMPTING LOGIN : ')
+		// await console.log('============>ATTEMPTING LOGIN : ')
 
 		// Define a separate request instance scoped to this function
 		let request = defaults(supertest('http://localhost:5001'))
@@ -177,7 +195,7 @@ const logIn = async () => {
 		jest.setTimeout(10000)
 
 		// Generate unique email for testing
-		let email = 'adithya.d' + crypto.randomBytes(5).toString('hex') + '@pacewisdom.com'
+		let email = 'adithya' + crypto.randomBytes(5).toString('hex') + '@shikshalokam.org'
 		let password = 'Welco@Me#123!'
 
 		// Create a new account
@@ -187,17 +205,16 @@ const logIn = async () => {
 			password: password,
 		})
 
-		console.log(' Create : -=-=-=-=-=>>  ', res.body)
+		// console.log(' Create : -=-=-=-=-=>>  ', res.body)
 
 		// Log in with the created account
 		res = await request.post('/user/v1/account/login').send({
 			email: email,
 			password: password,
 		})
-		console.log('-=-=-=-=-=>> ', res.body)
+
 		// Check if login was successful and return token details
 		if (res.body?.result?.access_token && res.body.result.user.id) {
-			console.log('============>LOGIN SUCCESSFUL')
 			defaultHeaders = {
 				'X-auth-token': 'bearer ' + res.body.result.access_token,
 				Connection: 'keep-alive',
@@ -207,6 +224,10 @@ const logIn = async () => {
 			global.request = defaults(supertest(baseURL))
 			global.request.set(defaultHeaders)
 			global.userId = res.body.result.user.id
+			await waitForService(baseURL)
+			jest.setTimeout(10000)
+			// await triggerViewRebuild()
+
 			return {
 				id: res.body.result.user.id,
 				token: res.body.result.access_token,
@@ -229,7 +250,38 @@ const logIn = async () => {
 function logError(res) {
 	let successCodes = [200, 201, 202]
 	if (!successCodes.includes(res.statusCode)) {
-		console.log('Response Body', res.body)
+		console.error('Response Body', res.body)
+	}
+}
+
+// Function to build materialized view
+const triggerViewRebuild = async () => {
+	try {
+		// await console.log('============>ATTEMPTING VIEW BUILD : ')
+
+		// Define a separate request instance scoped to this function
+		let request = defaults(supertest('http://localhost:5001'))
+		request.set(defaultHeaders)
+
+		await waitForService(baseURL)
+		jest.setTimeout(10000)
+
+		let res = await request.get('/user/v1/admin/triggerPeriodicViewRefresh')
+
+		if (res.body.statusCode != 200) {
+			return {
+				success: false,
+				error: res.body,
+			}
+		}
+		return {
+			success: true,
+		}
+	} catch (error) {
+		console.error('Error triggering view rebuild:', error)
+		return {
+			success: false,
+		}
 	}
 }
 
@@ -237,4 +289,5 @@ module.exports = {
 	logIn,
 	logError,
 	verifyUserRole,
+	triggerViewRebuild,
 }

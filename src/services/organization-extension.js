@@ -248,7 +248,7 @@ module.exports = class orgExtensionsHelper {
 			}
 
 			return responses.successResponse({
-				statusCode: httpStatusCode.accepted,
+				statusCode: httpStatusCode.ok,
 				message: 'ORG_CONFIG_UPDATED',
 				result: updatedConfig,
 			})

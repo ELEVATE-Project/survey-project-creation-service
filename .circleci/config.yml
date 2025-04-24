@@ -39,26 +39,6 @@ jobs:
           key: user-dependency-cache-{{checksum "../user/src/package.json"}}
           paths:
             - ../user/src/node_modules
-      # - run:
-      #     name: Replace SCP Service environment variables
-      #     command: |
-      #       # Define the file path
-      #       ENV_FILE=~/survey-project-creation-service/dev-ops/integration_test.self_creation_portal.env
-
-      #       # Replace the existing variables or append them if they don't exist
-      #       grep -q "^CLOUD_STORAGE_PROVIDER=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROVIDER=.*|CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER|" $ENV_FILE || echo "CLOUD_STORAGE_PROVIDER=$CLOUD_STORAGE_PROVIDER" >> $ENV_FILE
-      #       grep -q "^CLOUD_STORAGE_ACCOUNTNAME=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_ACCOUNTNAME=.*|CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME|" $ENV_FILE || echo "CLOUD_STORAGE_ACCOUNTNAME=$CLOUD_STORAGE_ACCOUNTNAME" >> $ENV_FILE
-      #       grep -q "^CLOUD_STORAGE_SECRET=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_SECRET=.*|CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET|" $ENV_FILE || echo "CLOUD_STORAGE_SECRET=$CLOUD_STORAGE_SECRET" >> $ENV_FILE
-      #       grep -q "^CLOUD_STORAGE_BUCKETNAME=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_BUCKETNAME=.*|CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME|" $ENV_FILE || echo "CLOUD_STORAGE_BUCKETNAME=$CLOUD_STORAGE_BUCKETNAME" >> $ENV_FILE
-      #       grep -q "^CLOUD_STORAGE_REGION=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_REGION=.*|CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION|" $ENV_FILE || echo "CLOUD_STORAGE_REGION=$CLOUD_STORAGE_REGION" >> $ENV_FILE
-      #       grep -q "^CLOUD_STORAGE_PROJECT=" $ENV_FILE && sed -i "s|^CLOUD_STORAGE_PROJECT=.*|CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT|" $ENV_FILE || echo "CLOUD_STORAGE_PROJECT=$CLOUD_STORAGE_PROJECT" >> $ENV_FILE
-      #       grep -q "^CLOUD_ENDPOINT=" $ENV_FILE && sed -i "s|^CLOUD_ENDPOINT=.*|CLOUD_ENDPOINT=$CLOUD_ENDPOINT|" $ENV_FILE || echo "CLOUD_ENDPOINT=$CLOUD_ENDPOINT" >> $ENV_FILE
-
-      #       # List the file to ensure changes were made
-      #       ls -l $ENV_FILE
-
-      #       # Output the file content for verification
-      #       cat $ENV_FILE
       - run:
           name: Replace SCP Service environment variables
           command: |
@@ -142,44 +122,66 @@ jobs:
               sleep 2
             done
       - run:
+          name: Wait for SCP Database Migration to Complete
+          command: |
+            echo "Waiting for SCP database migration to complete..."
+            for i in {1..60}; do
+              if docker logs $(docker ps -q --filter "name=scp") 2>&1 | grep -q "MIGRATION_SUCCESS"; then
+                echo "Migrations completed!"
+                break
+              fi
+              echo "Waiting for migrations to complete... attempt $i"
+              sleep 5
+            done
+      - run:
+          name: Run Entity Creation Script inside SCP Container
+          command: |
+            echo "Executing entity creation script..."
+            SCP_CONTAINER=$(docker ps -q --filter "name=scp")
+            if [ -z "$SCP_CONTAINER" ]; then
+              echo "SCP container is not running. Exiting..."
+              exit 1
+            fi
+            docker exec -it $SCP_CONTAINER node /var/src/scripts/addDefaultEntitiesForEducationSector.js
+      - run:
           name: Create test results directory
           command: mkdir -p ./dev-ops/report
       - run:
           name: Running test cases
           command: |
             cd src/ && npm run test:integration
-      # - run:
-      #     name: Get User container ID and print logs
-      #     command: |
-      #       echo "Getting User container ID..."
-      #       USER_CONTAINER_ID=$(docker ps -q --filter "name=user")
-      #       echo "User container ID: $USER_CONTAINER_ID"
+      - run:
+          name: Get User container ID and print logs
+          command: |
+            echo "Getting User container ID..."
+            USER_CONTAINER_ID=$(docker ps -q --filter "name=user")
+            echo "User container ID: $USER_CONTAINER_ID"
 
-      #       # Check if the User container is running
-      #       if [ -z "$USER_CONTAINER_ID" ]; then
-      #         echo "User container is not running. Cannot fetch logs."
-      #         exit 1  # Exit with an error if User container is not running
-      #       fi
+            # Check if the User container is running
+            if [ -z "$USER_CONTAINER_ID" ]; then
+              echo "User container is not running. Cannot fetch logs."
+              exit 1  # Exit with an error if User container is not running
+            fi
 
-      #       # Print logs of the SCP container
-      #       echo "Printing SCP container logs..."
-      #       docker logs $USER_CONTAINER_ID --tail=20000
-      # - run:
-      #     name: Get SCP container ID and print logs
-      #     command: |
-      #       echo "Getting SCP container ID..."
-      #       SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
-      #       echo "SCP container ID: $SCP_CONTAINER_ID"
+            # Print logs of the SCP container
+            echo "Printing SCP container logs..."
+            docker logs $USER_CONTAINER_ID --tail=20000
+      - run:
+          name: Get SCP container ID and print logs
+          command: |
+            echo "Getting SCP container ID..."
+            SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
+            echo "SCP container ID: $SCP_CONTAINER_ID"
 
-      #       # Check if the SCP container is running
-      #       if [ -z "$SCP_CONTAINER_ID" ]; then
-      #         echo "SCP container is not running. Cannot fetch logs."
-      #         exit 1  # Exit with an error if SCP container is not running
-      #       fi
+            # Check if the SCP container is running
+            if [ -z "$SCP_CONTAINER_ID" ]; then
+              echo "SCP container is not running. Cannot fetch logs."
+              exit 1  # Exit with an error if SCP container is not running
+            fi
 
-      #       # Print logs of the SCP container
-      #       echo "Printing SCP container logs..."
-      #       docker logs $SCP_CONTAINER_ID --tail=20000
+            # Print logs of the SCP container
+            echo "Printing SCP container logs..."
+            docker logs $SCP_CONTAINER_ID --tail=20000
 
       - store_test_results:
           path: ./dev-ops/report

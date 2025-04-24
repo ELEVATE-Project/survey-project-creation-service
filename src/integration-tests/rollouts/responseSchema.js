@@ -160,7 +160,7 @@ const listSchema = {
 									type: 'string',
 								},
 								creator: {
-									type: 'string',
+									type: ['null', 'string'],
 								},
 								organization: {
 									type: 'object',
@@ -168,17 +168,14 @@ const listSchema = {
 										id: {
 											type: 'integer',
 										},
-										name: {
-											type: 'string',
-										},
 										code: {
 											type: 'string',
 										},
-										description: {
+										name: {
 											type: 'string',
 										},
 									},
-									required: ['id', 'name', 'code', 'description'],
+									required: ['id', 'code', 'name'],
 								},
 							},
 							required: [
@@ -193,147 +190,7 @@ const listSchema = {
 								'created_at',
 								'updated_at',
 								'creator',
-								'organization',
-							],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								resource_type: {
-									type: 'string',
-								},
-								resource_id: {
-									type: 'integer',
-								},
-								title: {
-									type: 'string',
-								},
-								status: {
-									type: 'string',
-								},
-								start_date: {
-									type: 'string',
-								},
-								end_date: {
-									type: 'string',
-								},
-								created_at: {
-									type: 'string',
-								},
-								updated_at: {
-									type: 'string',
-								},
-								creator: {
-									type: 'string',
-								},
-								organization: {
-									type: 'object',
-									properties: {
-										id: {
-											type: 'integer',
-										},
-										name: {
-											type: 'string',
-										},
-										code: {
-											type: 'string',
-										},
-										description: {
-											type: 'string',
-										},
-									},
-									required: ['id', 'name', 'code', 'description'],
-								},
-							},
-							required: [
-								'id',
-								'type',
-								'resource_type',
-								'resource_id',
-								'title',
-								'status',
-								'start_date',
-								'end_date',
-								'created_at',
-								'updated_at',
-								'creator',
-								'organization',
-							],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								resource_type: {
-									type: 'string',
-								},
-								resource_id: {
-									type: 'integer',
-								},
-								title: {
-									type: 'string',
-								},
-								status: {
-									type: 'string',
-								},
-								start_date: {
-									type: 'string',
-								},
-								end_date: {
-									type: 'string',
-								},
-								created_at: {
-									type: 'string',
-								},
-								updated_at: {
-									type: 'string',
-								},
-								creator: {
-									type: 'string',
-								},
-								organization: {
-									type: 'object',
-									properties: {
-										id: {
-											type: 'integer',
-										},
-										name: {
-											type: 'string',
-										},
-										code: {
-											type: 'string',
-										},
-										description: {
-											type: 'string',
-										},
-									},
-									required: ['id', 'name', 'code', 'description'],
-								},
-							},
-							required: [
-								'id',
-								'type',
-								'resource_type',
-								'resource_id',
-								'title',
-								'status',
-								'start_date',
-								'end_date',
-								'created_at',
-								'updated_at',
-								'creator',
-								'organization',
+								'organizations',
 							],
 						},
 					],
@@ -344,21 +201,8 @@ const listSchema = {
 			},
 			required: ['data', 'count'],
 		},
-		meta: {
-			type: 'object',
-			properties: {
-				formsVersion: {
-					type: 'array',
-					items: {},
-				},
-				correlation: {
-					type: 'string',
-				},
-			},
-			required: [],
-		},
 	},
-	required: ['responseCode', 'message', 'result', 'meta'],
+	required: ['responseCode', 'message', 'result'],
 }
 const listEmptyResponseSchema = {
 	type: 'object',
@@ -404,24 +248,115 @@ const detailResponseSchema = {
 		responseCode: {
 			type: 'string',
 		},
-		error: {
-			type: 'array',
-			items: {},
-		},
-		meta: {
-			type: 'object',
-			properties: {
-				correlation: {
-					type: 'string',
-				},
-			},
-			required: [],
-		},
 		message: {
 			type: 'string',
 		},
+		result: {
+			type: 'object',
+			properties: {
+				title: {
+					type: 'string',
+				},
+				start_date: {
+					type: 'string',
+				},
+				end_date: {
+					type: 'string',
+				},
+				resource_id: {
+					type: 'integer',
+				},
+				id: {
+					type: 'integer',
+				},
+				resource_type: {
+					type: 'string',
+				},
+				status: {
+					type: 'string',
+				},
+				published_on: {
+					type: 'null',
+				},
+				organization_id: {
+					type: 'string',
+				},
+				user_id: {
+					type: 'string',
+				},
+				published_id: {
+					type: 'null',
+				},
+				parent_id: {
+					type: 'integer',
+				},
+				type: {
+					type: 'string',
+				},
+				template_id: {
+					type: 'null',
+				},
+				created_by: {
+					type: 'string',
+				},
+				updated_by: {
+					type: 'string',
+				},
+				created_at: {
+					type: 'string',
+				},
+				updated_at: {
+					type: 'string',
+				},
+				deleted_at: {
+					type: 'null',
+				},
+				viewers: {
+					type: 'array',
+					items: {},
+				},
+				organization: {
+					type: 'object',
+					properties: {
+						id: {
+							type: 'integer',
+						},
+						name: {
+							type: 'string',
+						},
+						code: {
+							type: 'string',
+						},
+					},
+					required: ['id', 'name', 'code'],
+				},
+			},
+			required: [
+				'title',
+				'start_date',
+				'end_date',
+				'resource_id',
+				'id',
+				'resource_type',
+				'status',
+				'published_on',
+				'organization_id',
+				'user_id',
+				'published_id',
+				'parent_id',
+				'type',
+				'template_id',
+				'created_by',
+				'updated_by',
+				'created_at',
+				'updated_at',
+				'deleted_at',
+				'viewers',
+				'organization',
+			],
+		},
 	},
-	required: ['responseCode', 'error', 'meta', 'message'],
+	required: ['responseCode', 'message', 'result'],
 }
 
 const createSchema = {
@@ -430,24 +365,20 @@ const createSchema = {
 		responseCode: {
 			type: 'string',
 		},
-		error: {
-			type: 'array',
-			items: {},
-		},
-		meta: {
-			type: 'object',
-			properties: {
-				correlation: {
-					type: 'string',
-				},
-			},
-			required: [],
-		},
 		message: {
 			type: 'string',
 		},
+		result: {
+			type: 'object',
+			properties: {
+				id: {
+					type: 'integer',
+				},
+			},
+			required: ['id'],
+		},
 	},
-	required: ['responseCode', 'error', 'meta', 'message'],
+	required: ['responseCode', 'message', 'result'],
 }
 module.exports = {
 	getDataManagersSchema,

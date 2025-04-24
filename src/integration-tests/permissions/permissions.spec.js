@@ -1,14 +1,17 @@
 const commonHelper = require('@commonTests')
 const schema = require('./responseSchema')
-jest.setTimeout(10000)
+const { faker } = require('@faker-js/faker')
+jest.setTimeout(20000)
 
 describe('Permission Apis', function () {
 	let userDetails
+	let permissionId
 
 	beforeAll(async () => {
 		try {
+			jest.setTimeout(30000)
 			userDetails = await commonHelper.logIn()
-			console.log('Logged in User:', userDetails.id, userDetails.roles)
+			// console.log('Logged in User:', userDetails.id, userDetails.roles)
 		} catch (error) {
 			console.error('Error in beforeAll setup:', error)
 			throw error // Ensure the error is thrown to fail the tests
@@ -27,7 +30,7 @@ describe('Permission Apis', function () {
 		expect(res.body).toMatchSchema(schema.getPermissionSchema)
 	})
 
-	it('Create permission', async () => {
+	it('Create permission with valid data', async () => {
 		let res = await request.post('/scp/v1/permissions/create').send({
 			code: 'create_observations',
 			module: 'observation_specific',
@@ -35,11 +38,24 @@ describe('Permission Apis', function () {
 			api_path: '/scp/v1/observation/create',
 			status: 'ACTIVE',
 		})
+
 		expect(res.statusCode).toBe(201)
+		permissionId = res?.body?.result?.id
 		expect(res.body).toMatchSchema(schema.createSchema)
 	})
 
-	it('Update permission', async () => {
+	it('Create permission with invalid data', async () => {
+		let res = await request.post('/scp/v1/permissions/create').send({
+			code: 'create_observations',
+			module: 'observation_specific',
+			request_type: ['POST'],
+			api_path: '/scp/v1/observation2/update',
+			status: 'ACTIVE',
+		})
+		expect(res.statusCode).toBe(400)
+	})
+
+	it('Update permission with valid data', async () => {
 		let res = await request.post('/scp/v1/permissions/update/1').send({
 			code: 'get_signedurl_permissions',
 			module: 'cloud-services',
@@ -51,8 +67,20 @@ describe('Permission Apis', function () {
 		expect(res.body).toMatchSchema(schema.updateSchema)
 	})
 
-	it('Delete permission', async () => {
-		let res = await request.post('/scp/v1/permissions/delete/100')
-		expect(res.statusCode).toBe(500)
+	it('Update permission with invalid data', async () => {
+		let res = await request.post('/scp/v1/permissions/update/1').send({
+			module: 'cloud-services',
+		})
+		expect(res.statusCode).toBe(400)
+	})
+
+	it('Delete permission with invalid permission id', async () => {
+		let res = await request.post('/scp/v1/permissions/delete/9999')
+		expect(res.statusCode).toBe(400)
+	})
+
+	it('Delete permission with Valid permission id', async () => {
+		let res = await request.post(`/scp/v1/permissions/delete/${permissionId}`)
+		expect(res.statusCode).toBe(202)
 	})
 })

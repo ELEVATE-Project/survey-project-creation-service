@@ -1741,11 +1741,23 @@ async function validateResources(
 		}
 	}
 	let roleValidationFlag = true
-	resource.targeting_criteria.forEach((targeting) => {
-		targeting.roles.forEach((role) => {
-			if (!programLevelRoles.includes(role._id)) roleValidationFlag = false
+	if (Array.isArray(resource?.targeting_criteria)) {
+		resource.targeting_criteria.forEach((targeting) => {
+			if (Array.isArray(targeting.roles)) {
+				targeting.roles.forEach((role) => {
+					if (!programLevelRoles.includes(role._id)) roleValidationFlag = false
+				})
+			} else {
+				resourceValidationErrors.push(
+					utils.errorObject(
+						`${basePath}.targeting_criteria.roles`,
+						'roles',
+						'Roles should be an array inside targeting_criteria.'
+					)
+				)
+			}
 		})
-	})
+	}
 
 	if (!roleValidationFlag) {
 		resourceValidationErrors.push(

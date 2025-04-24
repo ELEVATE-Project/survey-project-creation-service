@@ -18,7 +18,10 @@ module.exports = {
 				.notEmpty()
 				.withMessage('title is required')
 				.custom((value) => {
-					if (utils.validateTitle(value)) {
+					if (typeof req.body.title !== 'string' || !req.body.title.trim()) {
+						throw new Error('title is required and must be a string')
+					}
+					if (utils.validateTitle(req.body.title)) {
 						throw new Error('Value exceeds the allowed length for the field title')
 					}
 					return true
@@ -48,7 +51,6 @@ module.exports = {
 
 			req.checkBody('resource_id')
 				.trim()
-				.optional({ checkFalsy: true })
 				.notEmpty()
 				.withMessage('resource_id param is empty')
 				.isNumeric()

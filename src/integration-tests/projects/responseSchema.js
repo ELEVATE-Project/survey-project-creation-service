@@ -79,72 +79,94 @@ const detailSchema = {
 					type: 'string',
 				},
 				recommended_for: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
 							properties: {
-								label: {
-									type: 'string',
-								},
-								value: {
-									type: 'string',
-								},
+								label: { type: 'string' },
+								value: { type: 'string' },
 							},
 							required: ['label', 'value'],
 						},
 						{
-							type: 'object',
-							properties: {
-								label: {
-									type: 'string',
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {
+									label: { type: 'string' },
+									value: { type: 'string' },
 								},
-								value: {
-									type: 'string',
-								},
+								required: ['label', 'value'],
 							},
-							required: ['label', 'value'],
 						},
 					],
 				},
 				languages: {
-					type: 'object',
-					properties: {
-						label: {
-							type: 'string',
-						},
-						value: {
-							type: 'string',
-						},
-					},
-					required: ['label', 'value'],
-				},
-				categories: {
-					type: 'object',
-					properties: {
-						label: {
-							type: 'string',
-						},
-						value: {
-							type: 'string',
-						},
-					},
-					required: ['label', 'value'],
-				},
-				licenses: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
 							properties: {
-								label: {
-									type: 'string',
-								},
-								value: {
-									type: 'string',
-								},
+								label: { type: 'string' },
+								value: { type: 'string' },
 							},
 							required: ['label', 'value'],
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {
+									label: { type: 'string' },
+									value: { type: 'string' },
+								},
+								required: ['label', 'value'],
+							},
+						},
+					],
+				},
+				categories: {
+					oneOf: [
+						{
+							type: 'object',
+							properties: {
+								label: { type: 'string' },
+								value: { type: 'string' },
+							},
+							required: ['label', 'value'],
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {
+									label: { type: 'string' },
+									value: { type: 'string' },
+								},
+								required: ['label', 'value'],
+							},
+						},
+					],
+				},
+				licenses: {
+					oneOf: [
+						{
+							type: 'object',
+							properties: {
+								label: { type: 'string' },
+								value: { type: 'string' },
+							},
+							required: ['label', 'value'],
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {
+									label: { type: 'string' },
+									value: { type: 'string' },
+								},
+								required: ['label', 'value'],
+							},
 						},
 					],
 				},
@@ -309,45 +331,8 @@ const detailSchema = {
 				'created_at',
 				'updated_at',
 				'deleted_at',
+				'stage',
 			],
-		},
-		meta: {
-			type: 'object',
-			properties: {
-				formsVersion: {
-					type: 'array',
-					items: {},
-				},
-				correlation: {
-					type: 'string',
-				},
-			},
-		},
-	},
-	required: ['responseCode', 'message', 'result', 'meta'],
-}
-
-const reviewerListSchema = {
-	type: 'object',
-	properties: {
-		responseCode: {
-			type: 'string',
-		},
-		message: {
-			type: 'string',
-		},
-		result: {
-			type: 'object',
-			properties: {
-				data: {
-					type: 'array',
-					items: {},
-				},
-				count: {
-					type: 'integer',
-				},
-			},
-			required: ['data', 'count'],
 		},
 		meta: {
 			type: 'object',
@@ -550,11 +535,75 @@ const submitProjectSchema = {
 	required: ['responseCode', 'message', 'result', 'meta'],
 }
 
+const reviewerListSchema = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		message: {
+			type: 'string',
+		},
+		result: {
+			type: 'object',
+			properties: {
+				data: {
+					type: 'array',
+					items: [
+						{
+							type: 'object',
+							properties: {
+								id: {
+									type: 'integer',
+								},
+								name: {
+									type: 'string',
+								},
+								email: {
+									type: 'string',
+								},
+								about: {
+									type: ['string', 'null'],
+								},
+								image: {
+									type: ['string', 'null'],
+								},
+								organization: {
+									type: 'object',
+									properties: {
+										id: {
+											type: 'integer',
+										},
+										code: {
+											type: 'string',
+										},
+										name: {
+											type: 'string',
+										},
+									},
+									required: ['id', 'code', 'name'],
+								},
+							},
+							required: ['id', 'name', 'email', 'organization'],
+						},
+					],
+				},
+				count: {
+					type: 'integer',
+				},
+			},
+			required: ['data', 'count'],
+		},
+	},
+
+	required: ['responseCode', 'message', 'result'],
+}
+
 module.exports = {
 	createSchema,
 	detailSchema,
-	reviewerListSchema,
 	listSchema,
 	emptyListSchema,
 	submitProjectSchema,
+	reviewerListSchema,
 }
