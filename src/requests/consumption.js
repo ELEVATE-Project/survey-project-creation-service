@@ -80,8 +80,8 @@ const publishProjectTemplates = function (templateData) {
 
 			let template = formattedTemplate.template
 
-			//add duration key if consumption service is diksha
-			if (process.env.CONSUMPTION_SERVICE == common.DIKSHA && templateData.recommended_duration) {
+			//add duration key if consumption service is sunbird
+			if (process.env.CONSUMPTION_SERVICE == common.SUNBIRD && templateData.recommended_duration) {
 				template.duration = utils.convertDuration(templateData.recommended_duration)
 			}
 
@@ -413,11 +413,11 @@ const publishProject = function (templateData) {
  */
 async function convertRecommendedRolesForProjects(recommendedFor) {
 	try {
-		if (process.env.CONSUMPTION_SERVICE == common.DIKSHA) {
+		if (process.env.CONSUMPTION_SERVICE == common.SUNBIRD) {
 			const userRoleCollection = mongoDb.collection(COLLECTIONS.USER_ROLES)
 			const roles = await userRoleCollection.find({ status: 'active' }).toArray()
 
-			// Prepare the recommended roles for the Diksha project
+			// Prepare the recommended roles for the Sunbird project
 			const recommendedRoles = recommendedFor
 				.filter((item) => item?.label && item?.value)
 				// Validate label and value exist

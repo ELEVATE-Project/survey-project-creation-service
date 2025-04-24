@@ -238,7 +238,6 @@ module.exports = {
 	CONSUMPTION_SERVICE_SELF: 'self',
 	SUNBIRD: 'sunbird',
 	INTERNAL_ACCESS_TOKEN: 'internal-access-token',
-	DIKSHA: 'diksha',
 	UPLOAD_FILE_NAME: {
 		project: 'project.json',
 		program: 'program.json',
