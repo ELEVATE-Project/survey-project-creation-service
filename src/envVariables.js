@@ -24,6 +24,11 @@ let environmentVariables = {
 		message: 'Required access token secret',
 		optional: false,
 	},
+	AUTH_TOKEN_HEADER_NAME: {
+		message: 'Required auth token header name',
+		optional: true,
+		default: 'x-auth-token',
+	},
 	KAFKA_COMMUNICATIONS_ON_OFF: {
 		message: 'Enable/Disable kafka communications',
 		optional: false,
@@ -294,6 +299,11 @@ let environmentVariables = {
 		message: 'Highest entity type in the hierarchy',
 		optional: true,
 		default: 'state',
+	},
+	KEYCLOAK_PUBLIC_KEY_PATH: {
+		message: 'Required Keycloak Public Key Path',
+		optional: true,
+		default: './constants/keycloakPublicKeys',
 	},
 }
 
