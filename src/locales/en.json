@@ -106,7 +106,7 @@
 	"REVIEW_STAGE_NOT_FOUND": "Review stages not found",
 	"REVIEW_STAGE_UPDATED_SUCCESSFULLY": "Review stages updated successfully",
 	"REVIEW_STAGES_FETCHED_SUCCESSFULLY": "Review stages fetched successfully",
-	"RESOURCE_VALIDATION_FAILED": "Failed to send resource for review. Try again.",
+	"RESOURCE_VALIDATION_FAILED": "Check the highlighted fields.Some inputs contain invalid characters.",
 	"RESOURCE_ALREADY_SUBMITTED": "This resource is already submitted.",
 	"RESOURCE_NOTE_LENGTH_EXCEEDED": "This resource note length exceeded.",
 	"CHARACTER_LIMIT_EXCEED": "Value exceeds the allowed length for the field title",

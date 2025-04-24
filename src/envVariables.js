@@ -232,6 +232,15 @@ let environmentVariables = {
 			value: 'self',
 		},
 	},
+	PROJECT_DEEP_LINK_URL: {
+		message: 'Required project deeplink endpoint',
+		optional: true,
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
 	IS_AUTH_TOKEN_BEARER: {
 		message: 'Required specification: If auth token is bearer or not',
 		optional: true,

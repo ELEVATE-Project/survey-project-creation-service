@@ -69,4 +69,18 @@ module.exports = {
 			.isInt({ min: 1, max: 2147483647 })
 			.withMessage('Id is not valid')
 	},
+	list: (req) => {
+		const check_values = [
+			common.ROLLOUT_STATUS_FAILED,
+			common.ROLLOUT_STATUS_INACTIVE,
+			common.ROLLOUT_STATUS_PROCESSING,
+			common.ROLLOUT_STATUS_PUBLISHED,
+			common.ROLLOUT_STATUS_ROLLED_OUT,
+			common.ROLLOUT_STATUS_PENDING,
+		]
+		req.checkQuery('status')
+			.optional({ checkFalsy: true })
+			.isIn(check_values)
+			.withMessage('Status ' + req.query.status + ' invalid ')
+	},
 }

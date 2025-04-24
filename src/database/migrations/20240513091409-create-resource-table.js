@@ -61,6 +61,10 @@ module.exports = {
 				allowNull: true,
 				type: Sequelize.JSONB,
 			},
+			link: {
+				allowNull: true,
+				type: Sequelize.STRING,
+			},
 			created_by: {
 				allowNull: false,
 				type: Sequelize.STRING,
