@@ -27,6 +27,7 @@ let mongoDb
 let socketInUse = false // Flag to track socket status
 
 const { Op } = require('sequelize')
+const isSunbird = process.env.CONSUMPTION_SERVICE.toLowerCase() == common.SUNBIRD.toLowerCase()
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
 	const mongoUrl = process.env.MONGODB_URL
@@ -176,7 +177,6 @@ const formatTemplate = (templateData) => {
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		}
-
 		return { success: true, template }
 	} catch (error) {
 		console.error('Error in formatTemplate:', error.message)
@@ -508,6 +508,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				author: programDetails.created_by,
 				endDate,
 				startDate,
+				creator: programDetails.created_by,
 			}
 
 			solutionRolloutMap[solutionTemplate.externalId] = resource.rolloutId
@@ -653,7 +654,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
  * @param {String} created_by - created by user id
  * @returns {Array} Array of objects of duplicate templates
  */
-const duplicateResources = async (resourceDetails, resourceCertificate, created_by) => {
+const duplicateResources = async (resourceDetails, resourceCertificate, programData) => {
 	try {
 		// initialise list of project templates to create
 		let projectTemplateIds = []
@@ -720,13 +721,20 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 					delete project._id
 					project.updatedAt = new Date()
 					project.createdAt = new Date()
-					project.createdBy = created_by
-					project.updatedBy = created_by
+					project.createdBy = programData.created_by
+					project.updatedBy = programData.created_by
 					;(project.isReusable = false), (project.scp_reference_id = resourceDetails.resource_id)
 					templateProjectsTaskMap[project.externalId] = project.tasks
 					templateProjectsIdMap[project.externalId] = {
 						resource_id: resourceDetails.resource_id,
 						rollout_id: resourceDetails.id,
+					}
+
+					if (isSunbird) {
+						project.averageRating = 0
+						project.parentTemplateId = project.externalId
+						project.programExternalId = programData?.externalId
+						project.programId = programData?._id
 					}
 
 					templateProjects.push(project)
@@ -789,8 +797,8 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
 					taskMap[projectTask._id] = projectTask.externalId
 					projectTask.updatedAt = new Date()
 					projectTask.createdAt = new Date()
-					projectTask.createdBy = created_by
-					projectTask.updatedBy = created_by
+					projectTask.createdBy = programData.created_by
+					projectTask.updatedBy = programData.created_by
 					projectTask.projectTemplateExternalId = projectTask.projectTemplateExternalId + externalId_suffixing
 					delete projectTask._id
 					duplicateTasks.push(projectTask)
@@ -892,10 +900,16 @@ const duplicateResources = async (resourceDetails, resourceCertificate, created_
  */
 const processTargetingCriteria = async (targetingData) => {
 	try {
-		let scope = {
-			roles: [],
-			entityType: [],
-		}
+		let scope = isSunbird
+			? {
+					entityType: '',
+					roles: [],
+					entities: [],
+			  }
+			: {
+					roles: [],
+					entityType: [],
+			  }
 
 		let metaInformation = process.env.PROGRAM_META_INFO_KEYS.split(',').reduce((acc, key) => {
 			acc[key] = []
@@ -906,35 +920,51 @@ const processTargetingCriteria = async (targetingData) => {
 			// Iterate through each targeting criterion
 			targetingData.forEach((targeting) => {
 				const targetingEntity = targeting?.entity_targeting?.value
+				if (isSunbird) {
+					scope.entityType = targetingEntity
+					const entities = targeting?.[targetingEntity].map((eachTargetEntity) => eachTargetEntity._id)
 
-				scope.entityType.push(targetingEntity)
+					scope.entities = [...scope.entities, ...entities]
 
-				if (targeting?.roles?.length) {
-					// Add unique roles to scope and metaInformation
-					targeting.roles.forEach(({ code, label }) => {
-						scope.roles.push(code)
-						if (metaInformation.hasOwnProperty('recommendedFor')) {
-							metaInformation.recommendedFor.push(label)
-						}
-					})
-				} else {
-					// Reset roles and recommendedFor if no roles are present
-					scope.roles = []
-					metaInformation.recommendedFor = []
-				}
-
-				process.env.PROGRAM_META_INFO_KEYS.split(',').forEach((metaKey) => {
-					if (targeting[metaKey]) {
-						targeting[metaKey].forEach((eachKeys) => {
-							metaInformation[metaKey].push(eachKeys.name)
+					if (targeting?.roles?.length) {
+						// Add unique roles to scope and metaInformation
+						targeting.roles.forEach(({ code, _id }) => {
+							scope.roles.push({ _id, code })
 						})
+					} else {
+						// Reset roles if no roles are present
+						scope.roles = []
 					}
-				})
+				} else {
+					scope.entityType.push(targetingEntity)
 
-				targeting[targetingEntity]?.forEach(({ _id }) => {
-					scope[targetingEntity] = scope[targetingEntity] || []
-					scope[targetingEntity].push(_id)
-				})
+					if (targeting?.roles?.length) {
+						// Add unique roles to scope and metaInformation
+						targeting.roles.forEach(({ code, label }) => {
+							scope.roles.push(code)
+							if (metaInformation.hasOwnProperty('recommendedFor')) {
+								metaInformation.recommendedFor.push(label)
+							}
+						})
+
+						process.env.PROGRAM_META_INFO_KEYS.split(',').forEach((metaKey) => {
+							if (targeting[metaKey]) {
+								targeting[metaKey].forEach((eachKeys) => {
+									metaInformation[metaKey].push(eachKeys.name)
+								})
+							}
+						})
+
+						targeting[targetingEntity]?.forEach(({ _id }) => {
+							scope[targetingEntity] = scope[targetingEntity] || []
+							scope[targetingEntity].push(_id)
+						})
+					} else {
+						// Reset roles and recommendedFor if no roles are present
+						scope.roles = []
+						metaInformation.recommendedFor = []
+					}
+				}
 			})
 		}
 
@@ -945,14 +975,16 @@ const processTargetingCriteria = async (targetingData) => {
 			}
 		})
 
-		// convert the 'entityType' array to coma separated string
-		scope.entityType = scope?.entityType ? [...new Set(scope.entityType)] : []
-		// refactor metaInformation to remove duplicates
-		Object.keys(metaInformation).forEach((key) => {
-			if (Array.isArray(metaInformation[key]) && metaInformation[key].length > 0) {
-				metaInformation[key] = [...new Set(metaInformation[key])] // Remove duplicates while preserving array structure
-			}
-		})
+		if (!isSunbird) {
+			// convert the 'entityType' array to coma separated string
+			scope.entityType = scope?.entityType ? [...new Set(scope.entityType)] : []
+			// refactor metaInformation to remove duplicates
+			Object.keys(metaInformation).forEach((key) => {
+				if (Array.isArray(metaInformation[key]) && metaInformation[key].length > 0) {
+					metaInformation[key] = [...new Set(metaInformation[key])] // Remove duplicates while preserving array structure
+				}
+			})
+		}
 
 		return { scope, metaInformation, success: true }
 	} catch (error) {
@@ -1641,7 +1673,7 @@ const publishProgram = function async(programData) {
 								published_id: publishedProject?.templateId,
 							},
 							projectCertificate,
-							programData.created_by
+							programData
 						)
 						if (!duplicateResource.success) {
 							console.log('Error in creating duplicate Resource')
