@@ -58,7 +58,6 @@ module.exports = async function (req, res, next) {
 		}
 
 		const [decodedToken, skipFurtherChecks] = await authenticateUser(authHeader, req)
-
 		if (!skipFurtherChecks) {
 			if (process.env.SESSION_VERIFICATION_METHOD === common.SESSION_VERIFICATION_METHOD.USER_SERVICE)
 				await validateSession(authHeader)
@@ -183,7 +182,6 @@ async function fetchUserProfile(userId) {
  */
 async function authenticateUser(authHeader, req) {
 	if (!authHeader) throw createUnauthorizedResponse()
-
 	let token
 	if (process.env.IS_AUTH_TOKEN_BEARER === 'true') {
 		const [authType, extractedToken] = authHeader.split(' ')
@@ -192,9 +190,14 @@ async function authenticateUser(authHeader, req) {
 	} else token = authHeader.trim()
 
 	let decodedToken = null
-	if (process.env.AUTH_METHOD === common.AUTH_METHOD.NATIVE) decodedToken = await verifyToken(token)
-	else if (process.env.AUTH_METHOD === common.AUTH_METHOD.KEYCLOAK_PUBLIC_KEY)
+	if (process.env.AUTH_METHOD === common.AUTH_METHOD.NATIVE) {
+		decodedToken = await verifyToken(token)
+	} else if (process.env.AUTH_METHOD === common.AUTH_METHOD.KEYCLOAK_PUBLIC_KEY) {
 		decodedToken = await keycloakPublicKeyAuthentication(token)
+		if (!decodedToken) throw createUnauthorizedResponse()
+		if (decodedToken) return [decodedToken, true]
+	}
+
 	if (!decodedToken) throw createUnauthorizedResponse()
 
 	if (decodedToken.data.roles && isAdminRole(decodedToken.data.roles)) {
@@ -244,10 +247,25 @@ async function keycloakPublicKeyAuthentication(token) {
 		// Extract the external user ID from the verified claims
 		const externalUserId = verifiedClaims.sub.split(':').pop()
 
+		//get user role
+		const userBaseUrl = `${process.env.USER_SERVICE_HOST}${process.env.USER_SERVICE_BASE_URL}`
+		const userReadAPIUrl = `${userBaseUrl}${endpoints.USER_PROFILE_DETAILS}` + '/' + externalUserId
+		const userRes = await requests.get(userReadAPIUrl, token, false)
+		let roles = []
+		if (userRes.responseCode === 'OK' && userRes.result?.response?.length > 0) {
+			roles = userRes.result.response.roleList.map((role) => {
+				return {
+					label: role.name,
+					title: role.name,
+					id: role.id,
+				}
+			})
+		}
+
 		return {
 			data: {
 				id: externalUserId,
-				// roles: roles,
+				roles: roles,
 				name: verifiedClaims.name,
 				organization_id: verifiedClaims.org || null,
 			},
@@ -269,7 +287,8 @@ async function keycloakPublicKeyAuthentication(token) {
  */
 async function verifyKeycloakToken(token, cert) {
 	try {
-		return jwt.verify(token, cert, { algorithms: ['sha1', 'RS256', 'HS256'] })
+		let verifyTokenRes = jwt.verify(token, cert, { algorithms: ['sha1', 'RS256', 'HS256'] })
+		return verifyTokenRes
 	} catch (err) {
 		if (err.name === 'TokenExpiredError') throw createUnauthorizedResponse('ACCESS_TOKEN_EXPIRED')
 		console.error(err)

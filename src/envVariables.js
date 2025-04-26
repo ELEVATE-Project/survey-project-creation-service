@@ -305,6 +305,18 @@ let environmentVariables = {
 		optional: true,
 		default: './constants/keycloakPublicKeys',
 	},
+	DEFAULT_CONTENT_CREATOR_ROLE: {
+		message: 'Required Default Content Creator Role',
+		optional: false,
+	},
+	DEFAULT_ORG_ADMIN_ROLE: {
+		message: 'Required Default Org Admin Role',
+		optional: false,
+	},
+	DEFAULT_ADMIN_ROLE: {
+		message: 'Required Default Admin Role',
+		optional: false,
+	},
 }
 
 let success = true
