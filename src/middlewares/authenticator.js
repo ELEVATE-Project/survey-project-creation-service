@@ -140,7 +140,7 @@ async function verifyToken(token) {
  * @returns {boolean} True if at least one role has the admin title, otherwise false.
  */
 function isAdminRole(roles) {
-	return roles.some((role) => role.title === common.ADMIN_ROLE)
+	return roles.some((role) => role.title === process.env.DEFAULT_ADMIN_ROLE)
 }
 
 /**
@@ -252,14 +252,24 @@ async function keycloakPublicKeyAuthentication(token) {
 		const userReadAPIUrl = `${userBaseUrl}${endpoints.USER_PROFILE_DETAILS}` + '/' + externalUserId
 		const userRes = await requests.get(userReadAPIUrl, token, false)
 		let roles = []
+		let organization_id = verifiedClaims.org
 		if (userRes.responseCode === 'OK' && userRes.result?.response?.length > 0) {
-			roles = userRes.result.response.roleList.map((role) => {
-				return {
-					label: role.name,
-					title: role.name,
-					id: role.id,
-				}
-			})
+			if (userRes.result.response?.roles && userRes.result.response?.roles?.length > 0) {
+				roles = userRes.result.response.roles.map((eachRole) => {
+					return {
+						label: eachRole.role
+							.toLowerCase()
+							.split('_')
+							.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+							.join(' '),
+						title: eachRole.name,
+					}
+				})
+			}
+
+			if (userRes.result.response?.organisations && userRes.result.response?.organisations?.length > 0) {
+				organization_id = userRes.result.response.organisations[0].organisationId
+			}
 		}
 
 		return {
@@ -267,7 +277,7 @@ async function keycloakPublicKeyAuthentication(token) {
 				id: externalUserId,
 				roles: roles,
 				name: verifiedClaims.name,
-				organization_id: verifiedClaims.org || null,
+				organization_id: organization_id,
 			},
 		}
 	} catch (err) {
