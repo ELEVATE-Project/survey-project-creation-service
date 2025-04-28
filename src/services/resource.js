@@ -246,7 +246,7 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of drafts resources
 	 */
 
-	static async listAllDrafts(userId, queryParams, searchText = '', page, limit) {
+	static async listAllDrafts(userId, queryParams, searchText = '', page, limit, userToken) {
 		try {
 			let result = {
 				data: [],
@@ -315,11 +315,10 @@ module.exports = class resourceHelper {
 			}
 
 			// fetch the user details from user service
-			const userDetails = await this.fetchUserDetails([userId])
-			console.log(userDetails, 'orgDetails')
+			const userDetails = await this.fetchUserDetails([userId], userToken)
+
 			// fetch the org details from user service
 			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds)
-
 			result = await this.responseBuilder(response, userDetails, orgDetails, {})
 
 			return responses.successResponse({
@@ -1251,11 +1250,19 @@ module.exports = class resourceHelper {
 	 * @param {Array} userIds - array of userIds.
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds) {
-		const userDetailsResponse = await userRequests.list(common.FILTER_ALL.toLowerCase(), '', '', '', '', {
-			user_ids: userIds,
-		})
-		console.log(userDetailsResponse, 'userDetailsResponse')
+	static async fetchUserDetails(userIds, userToken = '') {
+		const userDetailsResponse = await userRequests.list(
+			common.FILTER_ALL.toLowerCase(),
+			'',
+			'',
+			'',
+			'',
+			{
+				user_ids: userIds,
+			},
+			userToken
+		)
+
 		let userDetails = {}
 		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
 			userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')

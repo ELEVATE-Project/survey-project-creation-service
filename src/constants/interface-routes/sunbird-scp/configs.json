@@ -1143,6 +1143,21 @@
 				}
 			],
 			"service": "user"
+		},
+		{
+			"sourceRoute": "/user/v1/organization/list",
+			"type": "POST",
+			"priority": "MUST_HAVE",
+			"inSequence": false,
+			"orchestrated": false,
+			"requiresCustomHandling": true,
+			"targetPackages": [
+				{
+					"basePackageName": "scp",
+					"packageName": "sunbird-self-creation-portal"
+				}
+			],
+			"service": "user"
 		}
 	]
 }
