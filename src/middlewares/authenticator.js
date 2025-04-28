@@ -78,7 +78,14 @@ module.exports = async function (req, res, next) {
 
 			if (!isPermissionValid) throw createUnauthorizedResponse('PERMISSION_DENIED')
 		}
+		// decodedToken.data.roles = [
+		// 	{
+		// 		label: 'Content Creator',
+		// 		title: 'CONTENT_CREATOR',
+		// 	},
+		// ]
 
+		// decodedToken.data.organization_id = '01352469707956224046842'
 		req.decodedToken = {
 			id: typeof decodedToken.data.id === 'number' ? decodedToken.data.id.toString() : decodedToken.data.id,
 			roles: decodedToken.data.roles,
@@ -251,33 +258,22 @@ async function keycloakPublicKeyAuthentication(token) {
 		const userBaseUrl = `${process.env.USER_SERVICE_HOST}${process.env.USER_SERVICE_BASE_URL}`
 		const userReadAPIUrl = `${userBaseUrl}${endpoints.USER_PROFILE_DETAILS}` + '/' + externalUserId
 		const userRes = await requests.get(userReadAPIUrl, token, false)
+
 		let roles = []
 		let organization_id = verifiedClaims.org
-		if (userRes.responseCode === 'OK' && userRes.result?.response?.length > 0) {
-			if (userRes.result.response?.roles && userRes.result.response?.roles?.length > 0) {
-				roles = userRes.result.response.roles.map((eachRole) => {
-					return {
-						label: eachRole.role
-							.toLowerCase()
-							.split('_')
-							.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-							.join(' '),
-						title: eachRole.name,
-					}
-				})
-			}
 
-			if (userRes.result.response?.organisations && userRes.result.response?.organisations?.length > 0) {
-				organization_id = userRes.result.response.organisations[0].organisationId
-			}
+		if (userRes.data.responseCode === 'OK' && userRes?.data?.result) {
+			userRes.result = userRes.data.result
+			roles = userRes.result?.user_roles
+			organization_id = userRes.result?.organization_id
 		}
 
 		return {
 			data: {
 				id: externalUserId,
-				roles: roles,
+				roles: roles || [],
 				name: verifiedClaims.name,
-				organization_id: organization_id,
+				organization_id: organization_id || null,
 			},
 		}
 	} catch (err) {
