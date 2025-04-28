@@ -6,7 +6,11 @@
  */
 
 // Dependencies
-const userBaseUrl = process.env.USER_SERVICE_HOST + process.env.USER_SERVICE_BASE_URL
+const common = require('@constants/common')
+const userBaseUrl =
+	process.env.CONSUMPTION_SERVICE == common.SUNBIRD
+		? process.env.USER_SERVICE_HOST
+		: process.env.USER_SERVICE_HOST + process.env.USER_SERVICE_BASE_URL
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 const request = require('request')
@@ -20,20 +24,39 @@ const request = require('request')
 const fetchOrg = function (organisationIdentifier) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let orgReadUrl
-			if (!isNaN(organisationIdentifier)) {
-				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_id=' + organisationIdentifier
+			let orgReadUrl, orgDetails
+			if (process.env.CONSUMPTION_SERVICE == common.SUNBIRD) {
+				orgReadUrl = userBaseUrl + endpoints.SUNBIRD.ORG_SEARCH
+
+				let orgSearchBody = {
+					request: {
+						filters: {
+							id: organisationIdentifier,
+						},
+					},
+				}
+				orgDetailsResponse = await requests.post(orgReadUrl, orgSearchBody)
+				orgDetails = {
+					success: true,
+					result: orgDetailsResponse?.data?.result?.response?.content?.[0],
+				}
 			} else {
-				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_code=' + organisationIdentifier
+				if (!isNaN(organisationIdentifier)) {
+					orgReadUrl =
+						userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_id=' + organisationIdentifier
+				} else {
+					orgReadUrl =
+						userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_code=' + organisationIdentifier
+				}
+
+				let internalToken = true
+
+				orgDetails = await requests.get(
+					orgReadUrl,
+					'', // X-auth-token not required for internal call
+					internalToken
+				)
 			}
-
-			let internalToken = true
-
-			const orgDetails = await requests.get(
-				orgReadUrl,
-				'', // X-auth-token not required for internal call
-				internalToken
-			)
 
 			return resolve(orgDetails)
 		} catch (error) {

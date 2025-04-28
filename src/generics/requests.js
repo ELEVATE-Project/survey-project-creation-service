@@ -1,5 +1,6 @@
 const request = require('request')
 const parser = require('xml2json')
+const common = require('@constants/common')
 var get = function (url, token = '', internal_access_token = false, internalAccessTokenKey = 'internal_access_token') {
 	return new Promise((resolve, reject) => {
 		try {
@@ -60,7 +61,15 @@ var post = function (
 			}
 
 			if (token) {
-				headers['x-auth-token'] = token
+				if (process.env.CONSUMPTION_SERVICE == common.SUNBIRD) {
+					headers['X-authenticated-user-token'] = token
+				} else {
+					headers['x-auth-token'] = token
+				}
+			}
+
+			if (process.env.CONSUMPTION_SERVICE == common.SUNBIRD) {
+				headers['Authorization'] = process.env.SUNBIRD_BEARER_TOKEN
 			}
 
 			const options = {

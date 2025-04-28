@@ -256,6 +256,11 @@ let environmentVariables = {
 			value: 'self',
 		},
 	},
+	SUNBIRD_X_AUTH_TOKEN: {
+		message: 'Sunbird x authenticated user token for Migration.',
+		optional: true,
+		default: '',
+	},
 	DEFAULT_PROGRAM_DESIGNER_ROLES: {
 		message: 'Default program designer role required',
 		optional: true,

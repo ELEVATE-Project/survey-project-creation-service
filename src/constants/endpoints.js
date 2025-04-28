@@ -12,4 +12,8 @@ module.exports = {
 	VALIDATE_SESSIONS: 'v1/account/validateUserSession',
 	BROWSE_EXISTING_END_POINT: '/scp/v1/resource/browseExisting',
 	CALLBACK_URL_FOR_RESOURCE_PUBLISH: 'v1/resource/publishCallback',
+	SUNBIRD: {
+		ORG_SEARCH: '/api/org/v2/search',
+		USER_SEARCH: '/api/user/v1/search',
+	},
 }

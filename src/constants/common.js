@@ -237,9 +237,10 @@ module.exports = {
 	PUBLISHED_STATUS: 'published',
 	CONSUMPTION_SERVICE_SELF: 'self',
 	INTERNAL_ACCESS_TOKEN: 'internal-access-token',
-	DIKSHA: 'diksha',
+	SUNBIRD: 'sunbird',
 	UPLOAD_FILE_NAME: {
 		project: 'project.json',
 		program: 'program.json',
 	},
+	SERVER_TIME_OUT: 5000,
 }
