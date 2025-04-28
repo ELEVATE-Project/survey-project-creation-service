@@ -247,83 +247,93 @@ module.exports = class resourceHelper {
 	 */
 
 	static async listAllDrafts(userId, queryParams, searchText = '', page, limit) {
-		let result = {
-			data: [],
-			count: 0,
-		}
-		// fetch all resource ids created by the logged in user
-		const resourcesCreatedByMe = await this.resourcesCreatedByUser(userId, ['resource_id', 'organization_id'])
+		try {
+			let result = {
+				data: [],
+				count: 0,
+			}
+			// fetch all resource ids created by the logged in user
+			const resourcesCreatedByMe = await this.resourcesCreatedByUser(userId, ['resource_id', 'organization_id'])
 
-		if (resourcesCreatedByMe.length <= 0) {
+			if (resourcesCreatedByMe.length <= 0) {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'RESOURCE_LISTED_SUCCESSFULLY',
+					result,
+				})
+			}
+
+			const uniqueResourceIds = resourcesCreatedByMe.map((item) => item.resource_id)
+
+			// get the unique organization ids from resource creator mapping table by the user
+			const OrganizationIds = utils.getUniqueElements(resourcesCreatedByMe.map((item) => item.organization_id))
+
+			const filter = await this.constructCustomFilter(
+				{
+					organization_id: {
+						[Op.in]: OrganizationIds,
+					},
+					id: {
+						[Op.in]: uniqueResourceIds,
+					},
+					status: {
+						[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_DRAFTS],
+					},
+				},
+				queryParams,
+				searchText
+			)
+			// return a sort object with sorting parameters. if no params are provided returns {}
+			const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
+
+			// fetches data from resource table with the passed filters
+			const response = await resourceQueries.resourceList(
+				filter,
+				[
+					'id',
+					'title',
+					'organization_id',
+					'type',
+					'status',
+					'user_id',
+					'created_at',
+					'updated_at',
+					'stage',
+					'meta',
+				],
+				sort,
+				page,
+				limit
+			)
+
+			if (response.result.length <= 0) {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'RESOURCE_LISTED_SUCCESSFULLY',
+					result,
+				})
+			}
+
+			// fetch the user details from user service
+			const userDetails = await this.fetchUserDetails([userId])
+			console.log(userDetails, 'orgDetails')
+			// fetch the org details from user service
+			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds)
+
+			result = await this.responseBuilder(response, userDetails, orgDetails, {})
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
 				result,
 			})
-		}
-
-		const uniqueResourceIds = resourcesCreatedByMe.map((item) => item.resource_id)
-
-		// get the unique organization ids from resource creator mapping table by the user
-		const OrganizationIds = utils.getUniqueElements(resourcesCreatedByMe.map((item) => item.organization_id))
-
-		const filter = await this.constructCustomFilter(
-			{
-				organization_id: {
-					[Op.in]: OrganizationIds,
-				},
-				id: {
-					[Op.in]: uniqueResourceIds,
-				},
-				status: {
-					[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_DRAFTS],
-				},
-			},
-			queryParams,
-			searchText
-		)
-		// return a sort object with sorting parameters. if no params are provided returns {}
-		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
-
-		// fetches data from resource table with the passed filters
-		const response = await resourceQueries.resourceList(
-			filter,
-			[
-				'id',
-				'title',
-				'organization_id',
-				'type',
-				'status',
-				'user_id',
-				'created_at',
-				'updated_at',
-				'stage',
-				'meta',
-			],
-			sort,
-			page,
-			limit
-		)
-		if (response.result.length <= 0) {
+		} catch (error) {
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
-				result,
+				result: [],
 			})
 		}
-
-		// fetch the user details from user service
-		const userDetails = await this.fetchUserDetails([userId])
-
-		// fetch the org details from user service
-		const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds)
-		result = await this.responseBuilder(response, userDetails, orgDetails, {})
-
-		return responses.successResponse({
-			statusCode: httpStatusCode.ok,
-			message: 'RESOURCE_LISTED_SUCCESSFULLY',
-			result,
-		})
 	}
 
 	/**
@@ -1245,6 +1255,7 @@ module.exports = class resourceHelper {
 		const userDetailsResponse = await userRequests.list(common.FILTER_ALL.toLowerCase(), '', '', '', '', {
 			user_ids: userIds,
 		})
+		console.log(userDetailsResponse, 'userDetailsResponse')
 		let userDetails = {}
 		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
 			userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
@@ -1475,16 +1486,24 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of reviewers from the org
 	 */
 
-	static async reviewerList(role, user_id, organization_id, pageNo, limit) {
+	static async reviewerList(role, user_id, organization_id, userToken, pageNo, limit) {
 		try {
 			let result = {
 				data: [],
 				count: 0,
 			}
 
-			let reviewers = await userRequests.list(role, pageNo, limit, '', organization_id, {
-				excluded_user_ids: [user_id],
-			})
+			let reviewers = await userRequests.list(
+				role,
+				pageNo,
+				limit,
+				'',
+				organization_id,
+				{
+					excluded_user_ids: [user_id],
+				},
+				userToken
+			)
 
 			let userList = []
 

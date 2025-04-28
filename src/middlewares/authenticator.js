@@ -78,14 +78,7 @@ module.exports = async function (req, res, next) {
 
 			if (!isPermissionValid) throw createUnauthorizedResponse('PERMISSION_DENIED')
 		}
-		// decodedToken.data.roles = [
-		// 	{
-		// 		label: 'Content Creator',
-		// 		title: 'CONTENT_CREATOR',
-		// 	},
-		// ]
 
-		// decodedToken.data.organization_id = '01352469707956224046842'
 		req.decodedToken = {
 			id: typeof decodedToken.data.id === 'number' ? decodedToken.data.id.toString() : decodedToken.data.id,
 			roles: decodedToken.data.roles,

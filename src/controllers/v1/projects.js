@@ -79,6 +79,7 @@ module.exports = class Projects {
 				process.env.DEFAULT_REVIEWER_ROLE || common.REVIEWER,
 				req.decodedToken.id,
 				req.decodedToken.organization_id,
+				req.decodedToken.token,
 				req.pageNo,
 				req.pageSize
 			)

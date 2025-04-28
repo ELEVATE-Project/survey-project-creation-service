@@ -87,7 +87,15 @@ const details = function (token = '', userId = '') {
  * @returns {JSON} - List of users
  */
 
-const list = function (userType, pageNo = '', pageSize = '', searchText = '', organization_id = null, body = {}) {
+const list = function (
+	userType,
+	pageNo = '',
+	pageSize = '',
+	searchText = '',
+	organization_id = null,
+	body = {},
+	userToken = ''
+) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let apiUrl = userBaseUrl + endpoints.USERS_LIST + '?type=' + userType
@@ -96,8 +104,7 @@ const list = function (userType, pageNo = '', pageSize = '', searchText = '', or
 			if (searchText != '') apiUrl += '&search=' + searchText
 			if (organization_id != null) apiUrl += '&organization_id=' + organization_id
 
-			const userDetails = await requests.post(apiUrl, body, '', true)
-
+			const userDetails = await requests.post(apiUrl, body, userToken, true)
 			return resolve(userDetails)
 		} catch (error) {
 			return reject(error)
