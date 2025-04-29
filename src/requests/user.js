@@ -221,33 +221,17 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
  * @returns
  */
 
-const listOrganization = function (organizationIds = []) {
+const listOrganization = function (organizationIds = [], userToken = '') {
 	return new Promise(async (resolve, reject) => {
-		const options = {
-			headers: {
-				'Content-Type': 'application/json',
-				internal_access_token: process.env.INTERNAL_ACCESS_TOKEN,
-			},
-			form: {
-				organizationIds,
-			},
-		}
-
-		const apiUrl = userBaseUrl + endpoints.ORGANIZATION_LIST
 		try {
-			request.get(apiUrl, options, callback)
-			let result = {
-				success: true,
+			const apiUrl = userBaseUrl + endpoints.ORGANIZATION_LIST
+			let body = {}
+			if (organizationIds) {
+				body.organizationIds = organizationIds
 			}
-			function callback(err, data) {
-				if (err) {
-					result.success = false
-				} else {
-					response = JSON.parse(data.body)
-					result.data = response
-				}
-				return resolve(result)
-			}
+
+			const orgDetails = await requests.post(apiUrl, body, userToken, true)
+			return resolve(orgDetails)
 		} catch (error) {
 			return reject(error)
 		}

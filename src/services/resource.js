@@ -38,7 +38,7 @@ module.exports = class resourceHelper {
 	 * @param {Integer} limit -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {JSON} - List of up for review resources
 	 */
-	static async listAllSubmittedResources(userId, queryParams, searchText = '', page, limit) {
+	static async listAllSubmittedResources(userId, queryParams, searchText = '', page, limit, userToken = '') {
 		let result = {
 			data: [],
 			count: 0,
@@ -143,7 +143,8 @@ module.exports = class resourceHelper {
 		}
 		// fetch the organization details from user service
 		const orgDetails = await orgExtension.fetchOrganizationDetails(
-			utils.getUniqueElements(response.result.map((item) => item.organization_id))
+			utils.getUniqueElements(response.result.map((item) => item.organization_id)),
+			userToken
 		)
 
 		// fetch all open comments for the resources which are in review
@@ -180,7 +181,8 @@ module.exports = class resourceHelper {
 
 		// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
 		const userDetails = await this.fetchUserDetails(
-			utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds])
+			utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds]),
+			userToken
 		)
 
 		// fetch additional information about resource
@@ -318,7 +320,7 @@ module.exports = class resourceHelper {
 			const userDetails = await this.fetchUserDetails([userId], userToken)
 
 			// fetch the org details from user service
-			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds)
+			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds, userToken)
 			result = await this.responseBuilder(response, userDetails, orgDetails, {})
 
 			return responses.successResponse({
@@ -558,7 +560,7 @@ module.exports = class resourceHelper {
 	 *
 	 * @returns {JSON} - List of up for review resources
 	 */
-	static async upForReview(queryParams, tokenDetails, searchText = '', page, limit) {
+	static async upForReview(queryParams, tokenDetails, searchText = '', page, limit, userToken = '') {
 		try {
 			// get user details from token
 			const user_id = tokenDetails.id
@@ -766,8 +768,8 @@ module.exports = class resourceHelper {
 				})
 			)
 
-			const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
-			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds)
+			const userDetails = await this.fetchUserDetails(uniqueCreatorIds, userToken)
+			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds, userToken)
 			const reviewDetails = await reviewsQueries.findAll(
 				{
 					organization_id: {
@@ -833,7 +835,7 @@ module.exports = class resourceHelper {
 	 * @name getDetails
 	 * @returns {JSON} - details of resource
 	 */
-	static async getDetails(resourceId, orgId) {
+	static async getDetails(resourceId, orgId, userToken = '') {
 		try {
 			let result = {
 				organization: {},
@@ -923,7 +925,7 @@ module.exports = class resourceHelper {
 			}
 
 			//get organization details
-			let organizationDetails = await userRequests.fetchOrg(resource.organization_id)
+			let organizationDetails = await userRequests.fetchOrg(resource.organization_id, userToken)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
 			}
@@ -1354,7 +1356,8 @@ module.exports = class resourceHelper {
 		query,
 		searchText = '',
 		pageNo,
-		pageSize
+		pageSize,
+		userToken = ''
 	) {
 		try {
 			let result = {
@@ -1448,8 +1451,11 @@ module.exports = class resourceHelper {
 
 			if (internalResources.result.length > 0) {
 				// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
-				const userDetails = await this.fetchUserDetails(utils.getUniqueElements(userIds))
-				const orgDetails = await orgExtension.fetchOrganizationDetails(utils.getUniqueElements(organizationIds))
+				const userDetails = await this.fetchUserDetails(utils.getUniqueElements(userIds), userToken)
+				const orgDetails = await orgExtension.fetchOrganizationDetails(
+					utils.getUniqueElements(organizationIds),
+					userToken
+				)
 				result.count = internalResources.count
 				internalResources.result.forEach((resource) => {
 					resource['creator'] = userDetails[resource.created_by]?.name || ''

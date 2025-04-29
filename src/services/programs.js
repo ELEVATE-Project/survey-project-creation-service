@@ -30,7 +30,7 @@ module.exports = class ProgramsHelper {
 	 * @param {Integer} referenceId - The ID of program need to copy
 	 * @returns {JSON} - Program ID or error response.
 	 */
-	static async create(bodyData, loggedInUserId, orgId, referenceId = null) {
+	static async create(bodyData, loggedInUserId, orgId, referenceId = null, userToken = '') {
 		try {
 			let programData = {}
 			let isDuplicateProgramCreation = false
@@ -74,7 +74,7 @@ module.exports = class ProgramsHelper {
 					})
 				}
 
-				const programDetails = await this.details(referenceId, referenceProgram.organization_id)
+				const programDetails = await this.details(referenceId, referenceProgram.organization_id, userToken)
 				if (programDetails.statusCode != httpStatusCode.ok && !Object.keys(programDetails?.result).length > 0) {
 					return responses.failureResponse({
 						message: 'PROGRAM_NOT_FOUND',
@@ -158,7 +158,14 @@ module.exports = class ProgramsHelper {
 
 			// Handle resources if present in the request
 			if (bodyData?.resources?.length > 0) {
-				await handleResources(bodyData.resources, programId, orgId, loggedInUserId, isDuplicateProgramCreation)
+				await handleResources(
+					bodyData.resources,
+					programId,
+					orgId,
+					loggedInUserId,
+					isDuplicateProgramCreation,
+					userToken
+				)
 			}
 
 			try {
@@ -201,7 +208,7 @@ module.exports = class ProgramsHelper {
 	 * @param {string} is_under_edit_param - Frontend Paramenter to update the is_under_edit key.
 	 * @returns {JSON} - Program ID or error response.
 	 */
-	static async update(resourceId, bodyData, loggedInUserId, orgId, is_under_edit_param = false) {
+	static async update(resourceId, bodyData, loggedInUserId, orgId, is_under_edit_param = false, userToken = '') {
 		try {
 			const forbidden_resource_statuses = [
 				common.RESOURCE_STATUS_REJECTED,
@@ -275,7 +282,7 @@ module.exports = class ProgramsHelper {
 				) || []
 
 			if (existingResourcesToUpdate.length > 0) {
-				await handleResources(existingResourcesToUpdate, resourceId, orgId, loggedInUserId)
+				await handleResources(existingResourcesToUpdate, resourceId, orgId, loggedInUserId, '', userToken)
 			}
 
 			// Delete removed resources from programResourceMapping
@@ -288,7 +295,7 @@ module.exports = class ProgramsHelper {
 			const newResources = bodyData.resources?.filter((res) => !existingResourceIds.includes(res.id)) || []
 			// Handle new resources (create duplicates, upload to cloud, and map to program)
 			if (newResources.length > 0) {
-				await handleResources(newResources, resourceId, orgId, loggedInUserId)
+				await handleResources(newResources, resourceId, orgId, loggedInUserId, '', userToken)
 			}
 
 			//Upload program information to cloud
@@ -352,7 +359,7 @@ module.exports = class ProgramsHelper {
 	 * @param {String} loggedInUserId - User id
 	 * @returns {JSON} - Program Details
 	 */
-	static async details(programId, orgId) {
+	static async details(programId, orgId, userToken = '') {
 		try {
 			// Fetch the program details
 			const program = await resourceQueries.findOne({
@@ -447,8 +454,8 @@ module.exports = class ProgramsHelper {
 					}
 					// fetch the user if viewer is present
 					if (response?.result?.viewers?.length > 0) {
-						const userDetails = await this.fetchUserDetails(response.result.viewers)
-
+						const userDetails = await this.fetchUserDetails(response.result.viewers, userToken)
+						console.log(userDetails, 'userDetails')
 						if (userDetails && Object.keys(userDetails).length > 0) {
 							result.viewers = response.result.viewers.map((userId) => userDetails[userId])
 						}
@@ -458,7 +465,7 @@ module.exports = class ProgramsHelper {
 
 			// Fetch organization details and associated resources
 			const [organizationDetails, associatedResources] = await Promise.all([
-				orgExtensionService.fetchOrganizationDetails([program.organization_id]),
+				orgExtensionService.fetchOrganizationDetails([program.organization_id], userToken),
 				programResourceMappingQueries.findAll({
 					program_id: programId,
 					organization_id: program.organization_id,
@@ -488,7 +495,7 @@ module.exports = class ProgramsHelper {
 					const resourceCommentSet = new Set(openComments.map((comment) => comment.resource_id))
 					// Process each resource and store in result.resources
 					const resourceDetailsPromises = resources.map((resource) =>
-						resourceService.getDetails(resource.id, resource.organization_id)
+						resourceService.getDetails(resource.id, resource.organization_id, userToken)
 					)
 					const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
 					result.resources = resourceDetailsResults
@@ -524,10 +531,18 @@ module.exports = class ProgramsHelper {
 	 * @param {Array} userIds - array of userIds.
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds) {
-		const userDetailsResponse = await userRequests.list(common.FILTER_ALL.toLowerCase(), '', '', '', '', {
-			user_ids: userIds,
-		})
+	static async fetchUserDetails(userIds, userToken = '') {
+		const userDetailsResponse = await userRequests.list(
+			common.FILTER_ALL.toLowerCase(),
+			'',
+			'',
+			'',
+			'',
+			{
+				user_ids: userIds,
+			},
+			userToken
+		)
 		let userDetails = {}
 		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
 			userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
@@ -544,7 +559,7 @@ module.exports = class ProgramsHelper {
 	 * @param {string} orgId - The ID of the organization.
 	 * @returns {JSON} - Program ID or error response.
 	 */
-	static async addResources(programId, updateBody, loggedInUserId, orgId) {
+	static async addResources(programId, updateBody, loggedInUserId, orgId, userToken = '') {
 		try {
 			// Convert resource IDs to integers
 			const resourceIds = updateBody.resource_ids.map(Number)
@@ -597,11 +612,11 @@ module.exports = class ProgramsHelper {
 			const [createdResources, fetchProgramDetails] = await Promise.all([
 				// Create copies of reusable resources in parallel
 				resourceToCreate.length > 0
-					? handleResources(resourceToCreate, programId, orgId, loggedInUserId)
+					? handleResources(resourceToCreate, programId, orgId, loggedInUserId, '', userToken)
 					: Promise.resolve([]),
 
 				// Fetch program details in parallel
-				resourceService.getDetails(programId, orgId),
+				resourceService.getDetails(programId, orgId, userToken),
 			])
 
 			// Prepare data for upload
@@ -1365,7 +1380,14 @@ async function handleProgramRollouts(resourceData, resourceId, userId, userToken
  * @param {boolean} isResuableFalseResourceCreate - Flag to indicate if non-reusable resources should be created.
  * @returns {Array} - List of resource IDs.
  */
-async function handleResources(resources, programId, orgId, loggedInUserId, isResuableFalseResourceCreate = false) {
+async function handleResources(
+	resources,
+	programId,
+	orgId,
+	loggedInUserId,
+	isResuableFalseResourceCreate = false,
+	userToken = ''
+) {
 	try {
 		// Return early if no resources are provided
 		if (!resources?.length) return
@@ -1384,7 +1406,7 @@ async function handleResources(resources, programId, orgId, loggedInUserId, isRe
 
 		// Fetch details for all resources in parallel
 		const resourceDetailsPromises = resourceList.map(async (resource) => {
-			const details = await resourceService.getDetails(resource.id, resource.organization_id)
+			const details = await resourceService.getDetails(resource.id, resource.organization_id, userToken)
 			return { id: resource.id, result: details?.result }
 		})
 

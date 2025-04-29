@@ -263,9 +263,10 @@ module.exports = class orgExtensionsHelper {
 	 * @param {Array} organization_ids - array of organization_ids.
 	 * @returns {Object} - Response contain object of org details
 	 */
-	static async fetchOrganizationDetails(organization_ids) {
-		const orgDetailsResponse = await userRequests.listOrganization(organization_ids)
+	static async fetchOrganizationDetails(organization_ids, userToken = '') {
+		const orgDetailsResponse = await userRequests.listOrganization(organization_ids, userToken)
 		let orgDetails = {}
+
 		if (orgDetailsResponse.success && orgDetailsResponse.data?.result?.length > 0) {
 			orgDetails = _.keyBy(orgDetailsResponse.data.result, 'id')
 		}

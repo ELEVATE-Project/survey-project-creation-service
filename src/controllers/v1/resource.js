@@ -36,7 +36,8 @@ module.exports = class Resource {
 					req.query,
 					req.searchText,
 					req.pageNo,
-					req.pageSize
+					req.pageSize,
+					req.decodedToken.token
 				)
 			}
 			return resourceList
@@ -59,7 +60,8 @@ module.exports = class Resource {
 				req.decodedToken,
 				req.searchText,
 				req.pageNo,
-				req.pageSize
+				req.pageSize,
+				req.decodedToken.token
 			)
 			return resource
 		} catch (error) {
@@ -99,7 +101,8 @@ module.exports = class Resource {
 				req.query,
 				req.searchText,
 				req.pageNo,
-				req.pageSize
+				req.pageSize,
+				req.decodedToken.token
 			)
 			return resourceList
 		} catch (error) {

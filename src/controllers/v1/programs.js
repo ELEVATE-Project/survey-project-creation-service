@@ -30,7 +30,8 @@ module.exports = class Programs {
 						req.body,
 						req.decodedToken.id,
 						req.decodedToken.organization_id,
-						req.query?.is_under_edit ? req.query.is_under_edit : false
+						req.query?.is_under_edit ? req.query.is_under_edit : false,
+						req.decodedToken.token
 					)
 				}
 				return program
@@ -39,7 +40,8 @@ module.exports = class Programs {
 					req.body,
 					req.decodedToken.id,
 					req.decodedToken.organization_id,
-					req.query.reference_id ? parseInt(req.query.reference_id) : null
+					req.query.reference_id ? parseInt(req.query.reference_id) : null,
+					req.decodedToken.token
 				)
 				return program
 			}
@@ -56,7 +58,11 @@ module.exports = class Programs {
 	 */
 	async details(req) {
 		try {
-			const rollout = await programService.details(req.params.id, req.decodedToken.organization_id)
+			const rollout = await programService.details(
+				req.params.id,
+				req.decodedToken.organization_id,
+				req.decodedToken.token
+			)
 			return rollout
 		} catch (error) {
 			return error
@@ -75,7 +81,8 @@ module.exports = class Programs {
 				parseInt(req.params.id),
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_id,
+				req.decodedToken.token
 			)
 		} catch (error) {
 			return error
