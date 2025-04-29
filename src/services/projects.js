@@ -545,10 +545,18 @@ module.exports = class ProjectsHelper {
 			let reviewerIds = []
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
 				const uniqueReviewerIds = utils.getUniqueElements(bodyData.reviewer_ids)
-				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
-					user_ids: uniqueReviewerIds,
-					excluded_user_ids: [userDetails.id],
-				})
+				const reviewers = await userRequests.list(
+					common.REVIEWER,
+					'',
+					'',
+					'',
+					userDetails.organization_id,
+					{
+						user_ids: uniqueReviewerIds,
+						excluded_user_ids: [userDetails.id],
+					},
+					userDetails.token
+				)
 
 				if (!reviewers.success) throw new Error('REVIEWER_IDS_NOT_FOUND')
 

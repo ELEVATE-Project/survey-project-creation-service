@@ -26,7 +26,8 @@ module.exports = class activities {
 				req.decodedToken.id,
 				req.decodedToken.organization_id,
 				req.pageNo,
-				req.pageSize
+				req.pageSize,
+				req.decodedToken.token
 			)
 			return activities
 		} catch (error) {
