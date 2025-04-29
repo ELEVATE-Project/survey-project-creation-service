@@ -868,7 +868,7 @@ module.exports = class ProgramsHelper {
 	 */
 	static async submitForReview(programId, bodyData, userDetails) {
 		try {
-			let programDetails = await this.details(programId, userDetails.organization_id, userDetails.id)
+			let programDetails = await this.details(programId, userDetails.organization_id, userDetails.token)
 			if (programDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROGRAM_ACCESS',
@@ -1115,7 +1115,7 @@ module.exports = class ProgramsHelper {
 	 */
 	static async publish(programId, userDetails) {
 		try {
-			let programDetails = await this.details(programId, userDetails.organization_id, userDetails.id)
+			let programDetails = await this.details(programId, userDetails.organization_id, userDetails.token)
 			if (programDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROGRAM_ACCESS',
@@ -1706,10 +1706,18 @@ async function validateReviewers(reviewerIds, userDetails) {
 	if (!reviewerIds || reviewerIds.length === 0) return []
 
 	const uniqueReviewerIds = utils.getUniqueElements(reviewerIds)
-	const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
-		user_ids: uniqueReviewerIds,
-		excluded_user_ids: [userDetails.id],
-	})
+	const reviewers = await userRequests.list(
+		common.REVIEWER,
+		'',
+		'',
+		'',
+		userDetails.organization_id,
+		{
+			user_ids: uniqueReviewerIds,
+			excluded_user_ids: [userDetails.id],
+		},
+		userDetails.token
+	)
 
 	if (!reviewers.success || uniqueReviewerIds.length > reviewers.data.result.data.length) {
 		throw new Error('REVIEWER_IDS_NOT_FOUND')

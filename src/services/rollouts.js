@@ -143,7 +143,7 @@ module.exports = class RolloutsHelper {
 	 * @param {String} loggedInUserId - User id
 	 * @returns {JSON} - Rollout Details
 	 */
-	static async details(rolloutId, orgId, loggedInUserId, returnBlobPath = false) {
+	static async details(rolloutId, orgId, loggedInUserId, returnBlobPath = false, userToken = '') {
 		try {
 			let result = {
 				organization: {},
@@ -184,7 +184,7 @@ module.exports = class RolloutsHelper {
 					// fetch the user if viewer is present
 					if (response?.result?.viewers?.length > 0) {
 						const viewerUserIds = response.result.viewers
-						const userDetails = await this.fetchUserDetails(viewerUserIds)
+						const userDetails = await this.fetchUserDetails(viewerUserIds, userToken)
 
 						if (userDetails && Object.keys(userDetails).length > 0) {
 							resultData.viewers = viewerUserIds.map((user) => {
@@ -194,9 +194,10 @@ module.exports = class RolloutsHelper {
 					}
 
 					// fetch the org details from user service
-					const organizationDetails = await orgExtensionService.fetchOrganizationDetails([
-						rollout.organization_id,
-					])
+					const organizationDetails = await orgExtensionService.fetchOrganizationDetails(
+						[rollout.organization_id],
+						userToken
+					)
 					if (organizationDetails?.[rollout.organization_id]) {
 						resultData.organization = _.pick(organizationDetails[rollout.organization_id], [
 							'id',
@@ -227,14 +228,22 @@ module.exports = class RolloutsHelper {
 	 * @param pageSize - Page size
 	 * @returns {JSON} - List of data managers
 	 */
-	static async getDataManagers(orgId, pageNo, pageSize) {
+	static async getDataManagers(orgId, pageNo, pageSize, userToken = '') {
 		try {
 			// get org config based on orgId
 			const orgConfigs = await orgExtensionService.getConfig(orgId)
 			// identify the roles have data manager access
 			const dataManagerRoles = orgConfigs?.result?.config?.data_managers
 			// fetch the users from user service
-			const dataManagersList = await userRequests.list(dataManagerRoles.join(','), pageNo, pageSize, '', orgId)
+			const dataManagersList = await userRequests.list(
+				dataManagerRoles.join(','),
+				pageNo,
+				pageSize,
+				'',
+				orgId,
+				{},
+				userToken
+			)
 			let result = {
 				data: [],
 				count: 0,
@@ -265,7 +274,7 @@ module.exports = class RolloutsHelper {
 	 * @param {Integer} limit
 	 * @returns {JSON} - List of rollouts
 	 */
-	static async list(organization_id, loggedInUserId, queryParams, searchText = '', page, limit) {
+	static async list(organization_id, loggedInUserId, queryParams, searchText = '', page, limit, userToken = '') {
 		try {
 			let result = {
 				data: [],
@@ -358,10 +367,10 @@ module.exports = class RolloutsHelper {
 			})
 
 			// fetch the user details from user service
-			const userDetails = await this.fetchUserDetails([loggedInUserId])
+			const userDetails = await this.fetchUserDetails([loggedInUserId], userToken)
 
 			// fetch the org details from user service
-			const orgDetails = await orgExtensionService.fetchOrganizationDetails(orgList)
+			const orgDetails = await orgExtensionService.fetchOrganizationDetails(orgList, userToken)
 
 			let rolloutFinalList = []
 
@@ -515,10 +524,18 @@ module.exports = class RolloutsHelper {
 	 * @param {Array} userIds - array of userIds.
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds) {
-		const userDetailsResponse = await userRequests.list(common.FILTER_ALL.toLowerCase(), '', '', '', '', {
-			user_ids: userIds,
-		})
+	static async fetchUserDetails(userIds, userToken = '') {
+		const userDetailsResponse = await userRequests.list(
+			common.FILTER_ALL.toLowerCase(),
+			'',
+			'',
+			'',
+			'',
+			{
+				user_ids: userIds,
+			},
+			userToken
+		)
 		let userDetails = {}
 		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
 			userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
@@ -600,10 +617,10 @@ module.exports = class RolloutsHelper {
 	 * @returns {JSON} - rollout publish response.
 	 */
 
-	static async publish(rolloutId, loggedInUserId, orgId, userToken) {
+	static async publish(rolloutId, loggedInUserId, orgId, userToken = '') {
 		try {
 			// fetch rollout details
-			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, false)
+			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, false, userToken)
 			let solutionRolloutId
 			const rolloutDetailsResult = rolloutDetails?.result
 
@@ -621,7 +638,11 @@ module.exports = class RolloutsHelper {
 			}
 
 			// fetch resource details
-			const resourceDetails = await resourceService.getDetails(rolloutDetailsResult?.resource_id, orgId)
+			const resourceDetails = await resourceService.getDetails(
+				rolloutDetailsResult?.resource_id,
+				orgId,
+				userToken
+			)
 
 			// if resource status is in the forbidden list , cannot proceed to rollout
 			if (_forbidenStatusForResourcePublish.includes(resourceDetails?.result?.status)) {
@@ -994,7 +1015,7 @@ module.exports = class RolloutsHelper {
 	 * @returns {Integer} - program rollout id
 	 */
 
-	static async createProgramRollout(programData, userId, userToken) {
+	static async createProgramRollout(programData, userId, userToken = '') {
 		try {
 			let createRolloutPromise = []
 			let resourceIds = [programData?.id]
@@ -1020,7 +1041,8 @@ module.exports = class RolloutsHelper {
 					resourceIds.push(resource?.id)
 					const fetchResourceDetails = await resourceService.getDetails(
 						resource?.id,
-						programData.organization_id
+						programData.organization_id,
+						userToken
 					)
 					const rolloutDetails = _.omit(fetchResourceDetails?.result, [
 						'resource_id',
