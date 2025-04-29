@@ -826,7 +826,7 @@ module.exports = class ProgramsHelper {
 	 * @param pageSize - Page size
 	 * @returns {JSON} - List of program managers
 	 */
-	static async getProgramManagers(orgId, pageNo, pageSize) {
+	static async getProgramManagers(orgId, pageNo, pageSize, userToken = '') {
 		try {
 			// get org config based on orgId
 			const orgConfigs = await orgExtensionService.getConfig(orgId)
@@ -837,7 +837,9 @@ module.exports = class ProgramsHelper {
 				pageNo,
 				pageSize,
 				'',
-				orgId
+				orgId,
+				{},
+				userToken
 			)
 			let result = {
 				data: [],

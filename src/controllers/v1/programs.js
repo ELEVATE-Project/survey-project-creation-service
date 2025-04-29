@@ -121,7 +121,8 @@ module.exports = class Programs {
 			const dataManagers = await programService.getProgramManagers(
 				req.decodedToken.organization_id,
 				req.pageNo,
-				req.pageSize
+				req.pageSize,
+				req.decodedToken.token
 			)
 			return dataManagers
 		} catch (error) {
