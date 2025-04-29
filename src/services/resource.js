@@ -1499,7 +1499,7 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of reviewers from the org
 	 */
 
-	static async reviewerList(role, user_id, organization_id, userToken, pageNo, limit) {
+	static async reviewerList(role, user_id, organization_id, userToken = '', pageNo, limit) {
 		try {
 			let result = {
 				data: [],
