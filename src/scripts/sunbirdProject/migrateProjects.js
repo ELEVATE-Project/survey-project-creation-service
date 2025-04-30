@@ -91,9 +91,8 @@ const dbName = mongoUrl.split('/').pop()
 		// Get all project templates
 		const projectTemplates = await db
 			.collection('projectTemplates')
-			.find({ status: 'published', isReusable: true, _id: ObjectId('671f0ca289b7da000869ed46') })
+			.find({ status: 'published', isReusable: true })
 			.project({ _id: 1 })
-			.limit(50)
 			.toArray()
 
 		console.log(`${projectTemplates.length} project templates found`)
@@ -257,15 +256,7 @@ const dbName = mongoUrl.split('/').pop()
 //get default org admin
 async function getDefaultUserId(userToken) {
 	let defaultUserId = null
-	const users = await userRequest.list(
-		process.env.DEFAULT_ORG_ADMIN_ROLE,
-		'',
-		'',
-		'',
-		process.env.DEFAULT_ORG_ID,
-		{},
-		userToken
-	)
+	const users = await userRequest.list(process.env.DEFAULT_ORG_ADMIN_ROLE, '', '', '', DEFAULT_ORG_ID, {}, userToken)
 
 	if (users.success && users.data?.result?.data?.length > 0) {
 		defaultUserId = users.data.result.data[0].id
@@ -326,7 +317,7 @@ async function checkProjectExist(templateId) {
 async function convertTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 	try {
 		let userId = DEFAULT_USER_ID
-		let orgId = process.env.DEFAULT_ORG_ID
+		let orgId = DEFAULT_ORG_ID
 		if (userOrgMap[template.createdBy]) {
 			userId = template.createdBy
 			orgId = userOrgMap[template.createdBy].organization.id
