@@ -1,29 +1,80 @@
-# Script Excution
+# 🛠️ Script Execution Guide
 
-### Upload Default Certificate Template to Cloud
+This repository contains a collection of Node.js scripts used for initial setup and data migration for the Elevate and Sunbird projects.
 
-This script uploads the default certificate template to the cloud. It should be run only once during the initial project setup.
+---
 
--   Navigate to the scripts folder using the following command
+### 📤 Upload Default Certificate Template
+
+This script uploads the default certificate base template to cloud storage. It should only be run **once** during the initial project setup.
+
+### 🔧 Steps to Run:
+
+1. Navigate to the scripts directory:
+
     ```bash
-    cd src/scripts
+     cd src/scripts
     ```
--   Run **uploadCertificateBaseTemplate.js** only once while setup the project
+
+2. Run the upload script:
     ```bash
-        node -r module-alias/register uploadCertificateBaseTemplate.js
+     node -r module-alias/register uploadCertificateBaseTemplate.js
     ```
 
-### Migration Script for copy all elevate project templates to SCP
+### 🧱 Add Default Entities for Education Sector
 
-This script migrates all existing project templates of elevate project
+This script creates default entities relevant to the education domain.
+⚠️ Note: The script includes education-related entities by default. You can modify the script file to include additional or custom entities.
 
--   Navigate to the scripts folder using the following command
+### 🔧 Steps to Run:
+
+1. Navigate to the scripts directory:
+
     ```bash
-        cd src/scripts/elevateProject
+     cd src/scripts
     ```
--   Run the script
+
+2. Execute the entity creation script:
     ```bash
-        node migrateProjects.js
+          node addDefaultEntitiesForEducationSector.js
+    ```
+
+### 🔄 Migration Scripts
+
+#### 📁 Elevate Project Migration
+
+1. 📌 Navigate to the Elevate migration directory:
+
+    ```bash
+      cd src/scripts/sunbirdProject
+    ```
+
+2. 🚀 Migrate Project Template
+    ```bash
+      node migrateProjects.js
+    ```
+3. 🚀 Migrate Programs and Solutions
+    ```bash
+      node migrateProgramsAndSolutions.js
+    ```
+
+#### 📁 Sunbird Migration
+
+📌 Navigate to the Sunbird migration directory:
+
+1. 📌 Navigate to the Sunbird migration directory:
+
+    ```bash
+      cd src/scripts/sunbirdProject
+    ```
+
+2. 🚀 Migrate Project Template
+    ```bash
+      node migrateProjects.js
+    ```
+3. 🚀 Migrate Programs and Solutions
+    ```bash
+      node migrateProgramsAndSolutions.js
     ```
 
 ### Script to Add Default Entities for the Education Sector.
@@ -32,10 +83,5 @@ This script creates default entities.
 NOTE : Education related entities are added in the default script. Update the file accordingly to add desired entities.
 
 -   Navigate to the scripts folder using the following command
-    ```bash
-        cd src/scripts
-    ```
+    `
 -   Run the script
-    ```bash
-         node addDefaultEntitiesForEducationSector.js
-    ```
