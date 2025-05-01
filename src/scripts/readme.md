@@ -76,12 +76,3 @@ This script creates default entities relevant to the education domain.
     ```bash
       node migrateProgramsAndSolutions.js
     ```
-
-### Script to Add Default Entities for the Education Sector.
-
-This script creates default entities.
-NOTE : Education related entities are added in the default script. Update the file accordingly to add desired entities.
-
--   Navigate to the scripts folder using the following command
-    `
--   Run the script
