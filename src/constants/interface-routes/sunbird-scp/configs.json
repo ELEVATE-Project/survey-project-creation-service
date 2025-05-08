@@ -1070,7 +1070,7 @@
 			"service": "user"
 		},
 		{
-			"sourceRoute": "entity-management/v1/entities/entityListBasedOnEntityType",
+			"sourceRoute": "/entity-management/v1/entities/entityListBasedOnEntityType",
 			"type": "GET",
 			"priority": "MUST_HAVE",
 			"inSequence": false,
@@ -1085,7 +1085,7 @@
 			"service": "entity"
 		},
 		{
-			"sourceRoute": "entity-management/v1/entities/targetedRoles/:id",
+			"sourceRoute": "/entity-management/v1/entities/targetedRoles",
 			"type": "GET",
 			"priority": "MUST_HAVE",
 			"inSequence": false,
@@ -1100,22 +1100,7 @@
 			"service": "entity"
 		},
 		{
-			"sourceRoute": "entity-management/v1/entities/subEntityList",
-			"type": "GET",
-			"priority": "MUST_HAVE",
-			"inSequence": false,
-			"orchestrated": false,
-			"requiresCustomHandling": true,
-			"targetPackages": [
-				{
-					"basePackageName": "scp",
-					"packageName": "sunbird-self-creation-portal"
-				}
-			],
-			"service": "entity"
-		},
-		{
-			"sourceRoute": "entity-management/v1/entities/subEntityList/:id",
+			"sourceRoute": "/entity-management/v1/entities/subEntityList",
 			"type": "GET",
 			"priority": "MUST_HAVE",
 			"inSequence": false,
