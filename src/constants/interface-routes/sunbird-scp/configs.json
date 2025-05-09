@@ -1085,6 +1085,21 @@
 			"service": "entity"
 		},
 		{
+			"sourceRoute": "/entity-management/v1/entities/subEntityListBasedOnRoleAndLocation",
+			"type": "GET",
+			"priority": "MUST_HAVE",
+			"inSequence": false,
+			"orchestrated": false,
+			"requiresCustomHandling": true,
+			"targetPackages": [
+				{
+					"basePackageName": "scp",
+					"packageName": "sunbird-self-creation-portal"
+				}
+			],
+			"service": "mlcore"
+		},
+		{
 			"sourceRoute": "/entity-management/v1/entities/targetedRoles",
 			"type": "GET",
 			"priority": "MUST_HAVE",
