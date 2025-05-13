@@ -842,7 +842,6 @@ module.exports = class resourceHelper {
 			}
 			const resource = await resourceQueries.findOne({
 				id: resourceId,
-				organization_id: orgId,
 			})
 
 			if (!resource?.id) {

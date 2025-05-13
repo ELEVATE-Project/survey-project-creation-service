@@ -364,7 +364,6 @@ module.exports = class ProgramsHelper {
 			// Fetch the program details
 			const program = await resourceQueries.findOne({
 				id: programId,
-				organization_id: orgId,
 			})
 
 			if (!program?.id) {
@@ -483,7 +482,7 @@ module.exports = class ProgramsHelper {
 				const [resources, openComments] = await Promise.all([
 					resourceQueries.findAll({
 						id: { [Op.in]: resourceIds },
-						organization_id: orgId,
+						organization_id: program.organization_id,
 					}),
 					commentQueries.findAll({
 						resource_id: { [Op.in]: resourceIds },
