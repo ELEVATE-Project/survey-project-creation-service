@@ -1127,7 +1127,7 @@
 					"packageName": "sunbird-self-creation-portal"
 				}
 			],
-			"service": "mlcore"
+			"service": "entity"
 		},
 		{
 			"sourceRoute": "/entity-management/v1/entities/targetedRoles/:id",
@@ -1142,7 +1142,7 @@
 					"packageName": "sunbird-self-creation-portal"
 				}
 			],
-			"service": "mlcore"
+			"service": "entity"
 		},
 		{
 			"sourceRoute": "/entity-management/v1/entities/subEntityList",
