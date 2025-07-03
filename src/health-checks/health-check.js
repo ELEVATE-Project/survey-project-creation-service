@@ -6,54 +6,12 @@
  */
 
 // Dependencies
-
-const { v1: uuidv1 } = require('uuid')
-const userHealthCheck = require('./user')
-const kafkaHealthCheck = require('./kafka')
-
-const obj = {
-	USER_SERVICE: {
-		NAME: 'userservice.api',
-		FAILED_CODE: 'USER_SERVICE_HEALTH_FAILED',
-		FAILED_MESSAGE: 'User service is not healthy',
-	},
-	KAFKA: {
-		NAME: 'kafka',
-		FAILED_CODE: 'KAFKA_HEALTH_FAILED',
-		FAILED_MESSAGE: 'Kafka is not connected',
-	},
-	NAME: 'SCPServiceHealthCheck',
-	API_VERSION: '1.0',
-}
+const { healthCheckHandler } = require('elevate-services-health-check')
+const healthCheckConfig = require('./health.config')
 
 let health_check = async function (req, res) {
-	let checks = []
-	let userServiceStatus = await userHealthCheck.health_check()
-	let kafkaServiceStatus = await kafkaHealthCheck.health_check()
-
-	checks.push(checkResult('KAFKA', kafkaServiceStatus))
-	checks.push(checkResult('USER_SERVICE', userServiceStatus))
-
-	let checkServices = checks.filter((check) => check.healthy === false)
-
-	let result = {
-		name: obj.NAME,
-		version: obj.API_VERSION,
-		healthy: checkServices.length > 0 ? false : true,
-		checks: checks,
-	}
-
-	let responseData = response(req, result)
-	res.status(200).json(responseData)
-}
-
-let checkResult = function (serviceName, isHealthy) {
-	return {
-		name: obj[serviceName].NAME,
-		healthy: isHealthy,
-		err: !isHealthy ? obj[serviceName].FAILED_CODE : '',
-		errMsg: !isHealthy ? obj[serviceName].FAILED_MESSAGE : '',
-	}
+	const response = await healthCheckHandler(healthCheckConfig, req.query.serviceName)
+	res.status(200).json(response)
 }
 
 let healthCheckStatus = function (req, res) {
@@ -61,9 +19,9 @@ let healthCheckStatus = function (req, res) {
 	res.status(200).json(responseData)
 }
 
-let response = function (req, result = {}) {
+let response = function (req, result) {
 	return {
-		id: 'scpService.Health.API',
+		id: 'SCP.service.Health.API',
 		ver: '1.0',
 		ts: new Date(),
 		params: {
@@ -79,6 +37,6 @@ let response = function (req, result = {}) {
 }
 
 module.exports = {
-	healthCheckStatus: healthCheckStatus,
 	health_check: health_check,
+	healthCheckStatus: healthCheckStatus,
 }
