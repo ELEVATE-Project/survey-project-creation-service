@@ -13,7 +13,7 @@ const { v1: uuidv1 } = require('uuid')
 let health_check = async function (req, res) {
 	try {
 		validateHealthConfig(healthCheckConfig)
-		const response = await healthCheckHandler(healthCheckConfig, req.query.serviceName)
+		const response = await healthCheckHandler(healthCheckConfig, req.query.basicCheck, req.query.serviceName)
 		res.status(200).json(response)
 	} catch (err) {
 		console.error('Health config validation failed:', err.message || err)

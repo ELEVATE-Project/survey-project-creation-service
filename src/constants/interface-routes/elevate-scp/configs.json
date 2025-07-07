@@ -1022,7 +1022,7 @@
 		},
 		{
 			"sourceRoute": "/scp/health",
-			"type": "POST",
+			"type": "GET",
 			"priority": "MUST_HAVE",
 			"inSequence": false,
 			"orchestrated": false,
