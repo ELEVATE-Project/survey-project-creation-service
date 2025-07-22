@@ -1597,6 +1597,12 @@ async function validateEntityData(entityData, entityType, model, sourceType, val
 					)
 				)
 			}
+			const now = new Date()
+			if (rollout[entityType.value] < now) {
+				validationErrors.push(
+					utils.errorObject(basePath, common.END_DATE, `End date cannot be less than current date.`)
+				)
+			}
 		}
 		if (validationErrors.length > 0) {
 			const result = Array.isArray(validationErrors) ? validationErrors.flat() : validationErrors || []
@@ -1819,6 +1825,13 @@ async function validateResources(
 		if (!validateProgramResourceStartDate) {
 			resourceValidationErrors.push(
 				utils.errorObject(basePath, common.END_DATE, 'Resource End date should be within program Date Range.')
+			)
+		}
+
+		const now = new Date()
+		if (resource[common.END_DATE] < now) {
+			resourceValidationErrors.push(
+				utils.errorObject(basePath, common.END_DATE, `Resource End date cannot be less than current date.`)
 			)
 		}
 	}
