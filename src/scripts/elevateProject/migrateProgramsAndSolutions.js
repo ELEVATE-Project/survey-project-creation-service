@@ -379,7 +379,7 @@ const dbName = mongoUrl.split('/').pop()
 
 								//update the resource with certificate object
 								if (certificateCeriteriaRes.success && certificateCeriteriaRes.certificate) {
-									convertedTemplate.certificates = certificateCeriteriaRes.certificate
+									convertedTemplate.certificate = certificateCeriteriaRes.certificate
 								}
 							}
 						}
@@ -1046,6 +1046,17 @@ async function createProgram(programId, programData, userId, orgId, solutionIds)
 		if (!createProgramRes?.result?.id) {
 			throw new Error('Failed to create program')
 		}
+
+		// update the program status from draft to submitted before publish
+		await resourceQueries.updateOne(
+			{
+				id: createProgramRes.result.id,
+			},
+			{
+				status: common.RESOURCE_STATUS_SUBMITTED,
+				stage: common.RESOURCE_STAGE_REVIEW,
+			}
+		)
 
 		//add resource to program
 		for (let solutionId of solutionIds) {
