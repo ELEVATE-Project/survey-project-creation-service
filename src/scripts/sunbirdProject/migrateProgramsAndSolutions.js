@@ -79,6 +79,7 @@ const dbName = mongoUrl.split('/').pop()
 
 		// Get default userId
 		const DEFAULT_USER_ID = await getDefaultUserId(userToken)
+		console.log(DEFAULT_USER_ID, 'DEFAULT_USER_ID')
 		if (!DEFAULT_USER_ID) {
 			throw new Error('Failed to get default org admin')
 		}
@@ -97,7 +98,6 @@ const dbName = mongoUrl.split('/').pop()
 					$type: 'array',
 					$not: { $size: 0 },
 				},
-				_id: ObjectId('6769062c06c68c00080a1a48'),
 			})
 			.project({ _id: 1 })
 			.toArray()
@@ -149,6 +149,7 @@ const dbName = mongoUrl.split('/').pop()
 			let userIds = programs
 				.filter((program) => program.createdBy !== 'SYSTEM')
 				.map((program) => program.createdBy)
+
 			// create a map for org and user
 			let userOrgMap = {}
 			if (userIds.length > 0) {
@@ -162,8 +163,6 @@ const dbName = mongoUrl.split('/').pop()
 
 				// Check if the program exists
 				const isProgramExist = await checkResourceExist(programIdStr, common.RESOURCE_TYPE_PROGRAM)
-				//update mongo
-
 				if (isProgramExist.success) {
 					console.log(`Program Exist for template ${programIdStr}`)
 					csvRecords.push({
@@ -213,7 +212,7 @@ const dbName = mongoUrl.split('/').pop()
 					// Find the project templates
 					if (!solution?.projectTemplateId) {
 						//skip the solution
-						console.log(`No project template found for solution id ${solutionIdStr}, `)
+						console.log(`No project template found for solution id ${solutionIdStr}`)
 						csvRecords.push({
 							programId: programIdStr,
 							solutionId: solutionIdStr,
@@ -347,14 +346,33 @@ const dbName = mongoUrl.split('/').pop()
 
 						// Generate the targeting criteria
 						convertedTemplate.targeting_criteria = []
-						if (solution?.scope) {
-							let targetingCriteriaRes = await generateTargetingCriteria(solution.scope, db)
-							if (!targetingCriteriaRes.success) {
-								throw new Error('Failed to generate targeting criteria')
-							}
 
-							convertedTemplate.targeting_criteria = targetingCriteriaRes.result || []
+						if (!solution?.scope) {
+							csvRecords.push({
+								programId: programIdStr,
+								solutionId: solutionIdStr,
+								type: common.ROLLOUT_TYPE_SOLUTION,
+								success: 'Targeting criteria not exist',
+								resourceId: '',
+								rolloutId: '',
+							})
+							continue
 						}
+
+						let targetingCriteriaRes = await generateTargetingCriteria(solution.scope, db)
+						if (!targetingCriteriaRes.success || !targetingCriteriaRes?.result?.length > 0) {
+							csvRecords.push({
+								programId: programIdStr,
+								solutionId: solutionIdStr,
+								type: common.ROLLOUT_TYPE_SOLUTION,
+								success: 'Failed to generate targeting criteria',
+								resourceId: '',
+								rolloutId: '',
+							})
+							continue
+						}
+
+						convertedTemplate.targeting_criteria = targetingCriteriaRes.result
 
 						// Find non-existing entities sequentially
 						for (const key of entityKeys) {
@@ -370,7 +388,6 @@ const dbName = mongoUrl.split('/').pop()
 						// If certificate exist then add certificate criteria object
 						if (solution?.certificateTemplateId) {
 							let certificateRes = await handleCertificateTemplate(solution, projectTemplate, db)
-
 							if (
 								certificateRes &&
 								certificateRes.success &&
@@ -388,7 +405,7 @@ const dbName = mongoUrl.split('/').pop()
 
 								//update the resource with certificate object
 								if (certificateCeriteriaRes.success && certificateCeriteriaRes.certificate) {
-									convertedTemplate.certificates = certificateCeriteriaRes.certificate
+									convertedTemplate.certificate = certificateCeriteriaRes.certificate
 								}
 							}
 						}
@@ -485,11 +502,19 @@ const dbName = mongoUrl.split('/').pop()
 				convertedProgramTemplate.targeting_criteria = []
 				if (program?.scope) {
 					let programTargetingCriteriaRes = await generateTargetingCriteria(program.scope, db)
-					if (!programTargetingCriteriaRes.success) {
-						throw new Error('Failed to generate targeting criteria')
+					if (!programTargetingCriteriaRes.success || !programTargetingCriteriaRes?.result?.length > 0) {
+						csvRecords.push({
+							programId: programIdStr,
+							solutionId: '',
+							type: common.RESOURCE_TYPE_PROGRAM,
+							success: 'Failed to generate targeting criteria',
+							resourceId: '',
+							rolloutId: '',
+						})
+						continue
 					}
 
-					convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result || []
+					convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result
 				}
 
 				//Add start date, end date from solution
@@ -682,7 +707,6 @@ const dbName = mongoUrl.split('/').pop()
 async function getDefaultUserId(userToken) {
 	let defaultUserId = null
 	const users = await userRequest.list(process.env.DEFAULT_ORG_ADMIN_ROLE, '', '', '', DEFAULT_ORG_ID, {}, userToken)
-
 	if (users.success && users.data?.result?.data?.length > 0) {
 		defaultUserId = users.data.result.data[0].id
 	}
@@ -697,9 +721,17 @@ async function getDefaultUserId(userToken) {
  */
 async function getUserOrgDetails(userIds) {
 	let userOrgMap = {}
-	const users = await userRequest.list('all', '', '', '', '', {
-		user_ids: userIds,
-	})
+	const users = await userRequest.list(
+		'all',
+		'',
+		'',
+		'',
+		'',
+		{
+			user_ids: userIds,
+		},
+		userToken
+	)
 
 	if (users.success && users.data?.result?.data?.length > 0) {
 		userOrgMap = _.keyBy(users.data.result.data, 'id')
@@ -979,25 +1011,6 @@ async function createProject(templateId, projectData, userId, orgId) {
 }
 
 /**
- * Publishes a project using the given project and template IDs.
- * @param {string} projectId - The ID of the project to publish.
- * @param {string} templateId - The ID of the template associated with the project.
- * @returns {Object} - Result of the publish operation.
- */
-async function publishProject(projectId, templateId) {
-	try {
-		const publishProjectRes = await resourceService.publishCallback(projectId, templateId.toString())
-		if (publishProjectRes.statusCode != 202) {
-			throw new Error('Failed to update project')
-		}
-		return { success: true, projectId: projectId }
-	} catch (error) {
-		console.log('Failed to publish project ', templateId)
-		return { success: false, error }
-	}
-}
-
-/**
  * Converts a program template into a standard format for creation
  * @name convertProgramTemplate
  * @param {Object} template - The program template object to be converted
@@ -1101,7 +1114,7 @@ async function generateTargetingCriteria(scope = {}, db) {
 
 		// Return empty if scope is empty or has no valid targeting data
 		if (!scope || Object.keys(scope).length === 0 || !hasValidTargetingData(scope)) {
-			console.log('No valid targeting-related data found in scope. Returning empty targeting criteria.')
+			console.log('No valid targeting-related data found in scope. Returning empty targeting criteria')
 			return { success: true, result: [] }
 		}
 
@@ -1136,118 +1149,103 @@ async function generateTargetingCriteria(scope = {}, db) {
 				  }))
 				: []
 		}
+		const entityMap = {}
+		const entityType = scope.entityType
+		const entities = Array.isArray(scope.entities) ? scope.entities : [scope.entities]
+		const highestHierarchy = process.env.HIGHEST_IN_ENTITY_HIERARCHY
 
 		// Process entityType and entities
-		let entityTypeIds = []
-		let entityIds = []
-
-		if (scope.entityType) {
-			entityTypeIds = Array.isArray(scope.entityType) ? scope.entityType : [scope.entityType]
-			if (scope.entities) {
-				entityIds = scope.entities
-			} else {
-				entityTypeIds.forEach((et) => {
-					if (scope[et]) entityIds.push(...scope[et].flat())
-				})
+		if (scope.entityType && scope.entities) {
+			let filterQuery = {
+				id: entities,
+				type: entityType,
 			}
-		}
-		let entitesFindQuery = {}
-		let entityTypesFindQuery = {}
-		if (entityIds.length) {
-			entityIds = entityIds.length ? entityIds : []
-			entitesFindQuery = { 'registryDetails.locationId': { $in: entityIds } }
-			entityTypesFindQuery = { name: { $in: entityTypeIds } }
-		}
 
-		// Fetch entities and entityTypes
-		const [entities, entityTypes] = await Promise.all([
-			db.collection('entities').find(entitesFindQuery).toArray(),
-			db.collection('entityTypes').find(entityTypesFindQuery).toArray(),
-		])
+			let entityDetailsResponse = await locationSearch(filterQuery)
 
-		// Map entities under each entityType
-		const entityMap = {}
-		for (const entityType of entityTypeIds) {
-			entityMap[entityType] = entities
-				.filter((e) => e.entityType === entityType)
-				.map((entity) => ({
+			if (
+				entityDetailsResponse.success &&
+				entityDetailsResponse.data &&
+				entityDetailsResponse?.data?.result.length > 0
+			) {
+				const entityDetails = entityDetailsResponse.data.result
+				entityMap[entityType] = entityDetails.map((entity) => ({
 					_id: entity._id,
-					externalId: entity.registryDetails?.locationId || entity.registryDetails?.code,
-					name: entity.metaInformation?.name,
-					entityType: entity.entityType,
+					externalId: entity._id,
+					name: entity.name,
+					parentId: entity.parentId,
 				}))
-		}
 
-		// Handle highest hierarchy
-		const highestHierarchy = process.env.HIGHEST_IN_ENTITY_HIERARCHY
-		async function findHighestEntity(entity) {
-			const parentEntities = await getParentEntities(entity.externalId)
-			return parentEntities.find((entityInHierarchy) => entityInHierarchy.type == highestHierarchy)
-		}
-
-		// Build targeting criteria
-		for (const entityType of entityTypeIds) {
-			const matchingEntityType = entityTypes.find((et) => et.name === entityType)
-			if (!matchingEntityType) continue
-
-			let highestEntitiesMap = {}
-			let finalRoles = [...roles] // By default, assign all roles
-
-			// Handle elevate-project targeted roles logic
-
-			let targetedRolesSet = new Set()
-
-			// Find highest entities and targeted roles
-			for (const entity of entityMap[entityType]) {
-				const highestEntity = await findHighestEntity(entity)
-				if (highestEntity) {
-					highestEntitiesMap[highestEntity.id] = {
-						id: highestEntity.id,
-						name: highestEntity?.name,
-						externalId: highestEntity?.identifier || highestEntity?.code,
+				if (entityType === highestHierarchy) {
+					for (let entity of entityMap[highestHierarchy]) {
+						const { parentId, type, ...entityWithoutParentId } = entity
+						targetingCriteria.push({
+							state: [entityWithoutParentId],
+							roles: [...roles],
+							label: `${entity.name} - ${highestHierarchy} (1)`,
+							entity_targeting: {
+								_id: highestHierarchy,
+								value: highestHierarchy,
+								name: highestHierarchy,
+							},
+						})
+					}
+				} else {
+					async function findHighestParentEntity(entityId) {
+						const parentEntitiesResponse = await getParentEntities(entityId)
+						return parentEntitiesResponse?.find((e) => e.type === highestHierarchy)
 					}
 
-					const targetedRolesResponse = await targetedRoles(highestEntity.id, entity.entityType, db)
-					let targetedRolesData = targetedRolesResponse?.targetedRoles || []
+					for (const entity of entityMap[entityType]) {
+						const highestEntity = await findHighestParentEntity(entity._id)
 
-					// Collect targeted role codes
-					targetedRolesData.forEach((role) => targetedRolesSet.add(role.code))
+						if (highestEntity) {
+							const existingCriteriaForHighest = targetingCriteria.find(
+								(criteria) =>
+									criteria[highestHierarchy] &&
+									criteria[highestHierarchy].some((h) => h._id === highestEntity._id)
+							)
+
+							const entityTargeting = {
+								_id: entityType,
+								value: entityType,
+								name: entityType,
+							}
+
+							const entityWithoutParent = { ...entity }
+							delete entityWithoutParent.parentId
+
+							const label = `${highestEntity.name} - ${entityType} (1)` // Basic label, can be improved
+
+							if (existingCriteriaForHighest) {
+								if (!existingCriteriaForHighest[entityType]) {
+									existingCriteriaForHighest[entityType] = []
+								}
+								existingCriteriaForHighest[entityType].push(entityWithoutParent)
+								existingCriteriaForHighest.entity_targeting = entityTargeting
+								existingCriteriaForHighest.roles = [...roles]
+								const count = existingCriteriaForHighest[entityType].length
+								existingCriteriaForHighest.label = `${highestEntity.name} - ${entityType} (${count})`
+							} else {
+								targetingCriteria.push({
+									[highestHierarchy]: [
+										{
+											_id: highestEntity._id,
+											name: highestEntity.name,
+											externalId: highestEntity.externalId,
+											type: highestEntity.type,
+										},
+									],
+									[entityType]: [entityWithoutParent],
+									entity_targeting: entityTargeting,
+									roles: [...roles],
+									label: label,
+								})
+							}
+						}
+					}
 				}
 			}
-
-			// Filter roles that match targeted roles
-			if (targetedRolesSet.size > 0) {
-				const targetedRolesArray = Array.from(targetedRolesSet)
-				const filteredRoles = roles.filter((r) => targetedRolesArray.includes(r.code))
-				if (filteredRoles.length > 0) {
-					finalRoles = filteredRoles
-				}
-			}
-
-			// Assemble targeting object
-			let finalTargeting = {
-				entity_targeting: {
-					_id: matchingEntityType._id,
-					value: matchingEntityType.name,
-					name: matchingEntityType.name,
-				},
-				roles: finalRoles,
-				[entityType]: entityMap[entityType],
-			}
-
-			// Attach highest hierarchy if found
-			if (Object.keys(highestEntitiesMap).length > 0) {
-				finalTargeting[highestHierarchy] = Object.values(highestEntitiesMap)
-			}
-			if (Object.keys(finalTargeting).includes(highestHierarchy) && finalTargeting[highestHierarchy].length > 0) {
-				// Add to final targeting criteria
-				targetingCriteria.push(finalTargeting)
-			}
-		}
-
-		// Handle roles-only case
-		if (roles.length > 0 && entityTypeIds.length === 0) {
-			targetingCriteria.push({ roles })
 		}
 
 		return { success: true, result: targetingCriteria }
@@ -1476,13 +1474,7 @@ async function getSvgTemplate(certificateBaseTemplate) {
 		}
 
 		//download the svg template
-		const svgTemplateRes = await generateDownloadableUrlInConsumption(
-			process.env.INTERFACE_SERVICE_HOST +
-				process.env.CONSUMPTION_SERVICE_BASE_URL +
-				process.env.CONSUMPTION_SERVICE_DOWNLOADBLE_URL +
-				'?file=' +
-				templateUrl
-		)
+		const svgTemplateRes = await generateDownloadableUrlInConsumption([templateUrl])
 
 		if (!svgTemplateRes.success || !svgTemplateRes?.file) {
 			throw new Error('svg Template Not Found')
@@ -1551,26 +1543,66 @@ async function getSvgTemplate(certificateBaseTemplate) {
  * @param {string} url - The URL to download the file from.
  * @returns {Promise<Object>} - An object with success status and file data.
  */
-async function generateDownloadableUrlInConsumption(url) {
+async function generateDownloadableUrlInConsumption(filePaths) {
+	let result = { success: false, file: null, error: null }
 	try {
-		// Download the file
-		const response = await axios.get(url, { timeout: 6000 })
-		let result = { success: true, file: null }
-
-		if (response.status === 200) {
-			const file = response?.data
-			result.file = file
-		} else {
-			console.error('Unexpected response status:', response.status)
+		// Validate input
+		if (!Array.isArray(filePaths) || filePaths.length === 0) {
+			result.error = 'Invalid or empty filePaths array provided.'
+			return result
 		}
 
+		// Download the file
+		const response = await axios.post(
+			process.env.INTERFACE_SERVICE_HOST +
+				process.env.CONSUMPTION_SERVICE_BASE_URL + //mlcore
+				process.env.CONSUMPTION_SERVICE_DOWNLOADBLE_URL, // /v1/cloud-services/files/getDownloadableUrl
+			{ filePaths: filePaths }, // POST body with array
+			{ timeout: 6000 }
+		)
+
+		// Check for valid HTTP status code
+		if (response.status !== 200) {
+			result.error = `Unexpected response status: ${response.status}`
+			return result
+		}
+
+		const responseData = response.data
+		if (!responseData || typeof responseData !== 'object' || !responseData.result) {
+			result.error = 'Invalid response structure: Missing "result" field.'
+			return result
+		}
+
+		const resultKeys = Object.keys(responseData.result)
+		if (resultKeys.length === 0) {
+			result.error = 'No data found in the response result.'
+			return result
+		}
+
+		const firstKey = resultKeys[0]
+		const filesArray = responseData.result[firstKey]?.files
+
+		// Validate files array
+		if (!Array.isArray(filesArray) || filesArray.length === 0) {
+			result.error = 'Files array is empty or missing in the response.'
+			return result
+		}
+
+		const downloadableUrl = filesArray[0]?.url
+
+		// Final check if URL exists
+		if (!downloadableUrl) {
+			result.error = 'Downloadable URL not found in the files array.'
+			return result
+		}
+
+		result.success = true
+		result.file = downloadableUrl
 		return result
 	} catch (error) {
-		console.error('Error generating consumption presigned URL:', error.message)
-		return {
-			success: false,
-			error,
-		}
+		console.error('Error generating consumption downloadable URL:', error.message || error)
+		result.error = error.message || 'Unknown error occurred while generating URL.'
+		return result
 	}
 }
 
@@ -1729,106 +1761,6 @@ async function updateResource(resourceId, updateData) {
 }
 
 /**
- * Fetches targeted roles based on entityId and optional type filter.
- * @param {Array|string} entityId - Single or multiple entity IDs to fetch data for.
- * @param {string} type - Optional entity type to filter higher hierarchy paths.
- * @param {Object} db - MongoDB database connection object.
- * @returns {Object} - Object containing success status and targeted roles.
- */
-async function targetedRoles(entityId, type, db) {
-	try {
-		let result = {
-			success: true,
-			targetedRoles: [],
-		}
-
-		// Retrieve entityDetails based on provided entity IDs
-		const entityDetails = await db
-			.collection('entities')
-			.find(
-				{ 'registryDetails.locationId': { $in: Array.isArray(entityId) ? entityId : [entityId] } },
-				{ projection: { childHierarchyPath: 1, entityType: 1 } }
-			)
-			.toArray()
-
-		if (
-			!entityDetails ||
-			!entityDetails[0]?.childHierarchyPath ||
-			entityDetails[0]?.childHierarchyPath.length < 0
-		) {
-			throw 'Entity not found'
-		}
-
-		// Extract the childHierarchyPath and entityType
-		const { childHierarchyPath, entityType } = entityDetails[0]
-
-		// Append entityType to childHierarchyPath array
-		const updatedChildHierarchyPaths = [entityType, ...childHierarchyPath]
-
-		// Filter for higher entity types if a specific type is requested
-		let filteredHierarchyPaths = updatedChildHierarchyPaths
-		if (type) {
-			const typeIndex = updatedChildHierarchyPaths.indexOf(type)
-			if (typeIndex > -1) {
-				// Include only higher types in the hierarchy
-				filteredHierarchyPaths = updatedChildHierarchyPaths.slice(0, typeIndex + 1)
-			}
-		}
-
-		// Retrieve entity type IDs based on child hierarchy paths
-		const fetchEntityTypeId = await db
-			.collection('entityTypes')
-			.find(
-				{
-					name: {
-						$in: filteredHierarchyPaths,
-					},
-					isDeleted: false,
-				},
-				{ projection: { _id: 1 } }
-			)
-			.toArray()
-
-		// Check if entity type IDs are retrieved successfully
-		if (fetchEntityTypeId.length < 0) {
-			throw 'Entity type not found'
-		}
-
-		// Extract the _id fields from the fetched entity types to use as a filter for user roles
-		const userRoleFilter = fetchEntityTypeId.map((entityType) => entityType._id)
-
-		const fetchUserRoles = await db
-			.collection('userRoles')
-			.find(
-				{
-					'entityTypes.entityTypeId': {
-						$in: userRoleFilter,
-					},
-					status: 'active',
-				},
-				{ projection: { _id: 1, title: 1, code: 1, userRoleId: 1 } }
-			)
-			.toArray()
-		// Transforming the data
-		const transformedData = fetchUserRoles.map((item) => {
-			// For each item in the result array, create a new object with modified keys
-			return {
-				_id: item._id,
-				value: item.code,
-				label: item.title,
-				code: item.code,
-			}
-		})
-
-		result.targetedRoles = transformedData
-		return result
-	} catch (error) {
-		console.error('Error updating resource:', error)
-		return { success: false, error }
-	}
-}
-
-/**
  * get Parent Entities of an entity.
  * @method
  * @name getParentEntities
@@ -1836,33 +1768,24 @@ async function targetedRoles(entityId, type, db) {
  * @returns {Array} - parent entities.
  */
 
-async function getParentEntities(entityId, iteration = 0, parentEntities) {
-	if (iteration == 0) {
-		parentEntities = []
-	}
-
+async function getParentEntities(entityId, parentEntities = []) {
 	let filterQuery = {
 		id: entityId,
 	}
 
 	let entityDetails = await locationSearch(filterQuery)
-	if (!entityDetails.success) {
+	if (!entityDetails.success || !entityDetails.data?.result?.[0]) {
 		return parentEntities
 	} else {
-		let entityData = entityDetails.data[0]
-		if (iteration > 0) parentEntities.push(entityData)
+		let entityData = entityDetails.data.result[0]
+		parentEntities.push(entityData)
 		if (entityData.parentId) {
-			iteration = iteration + 1
-			entityId = entityData.parentId
-			await getParentEntities(entityId, iteration, parentEntities)
-		} else {
-			parentEntities.push(entityData)
+			await getParentEntities(entityData.parentId, parentEntities)
 		}
 	}
 
 	return parentEntities
 }
-
 /**
  *
  * @function
@@ -1889,95 +1812,10 @@ const locationSearch = function (
 	return new Promise(async (resolve, reject) => {
 		try {
 			const userServiceUrl = process.env.USER_SERVICE_HOST
-			let bodyData = {}
-			bodyData['request'] = {}
-			bodyData['request']['filters'] = filterData
-
-			if (pageSize !== '') {
-				bodyData['request']['limit'] = pageSize
-			}
-
-			if (pageNo !== '') {
-				let offsetValue = pageSize * (pageNo - 1)
-				bodyData['request']['offset'] = offsetValue
-			}
-
-			if (searchKey !== '') {
-				bodyData['request']['query'] = searchKey
-			}
 
 			const url = userServiceUrl + process.env.LOCATION_SERVICE_PREFIX + process.env.GET_LOCATION_DATA
-
-			const locationSearchResponse = await requests.post(url, bodyData, process.env.SUNBIRD_X_AUTH_TOKEN)
-			let result = {
-				success: locationSearchResponse.success,
-			}
-			if (locationSearchResponse.success) {
-				result.data = locationSearchResponse?.data?.result?.response
-			}
-
-			return resolve(result)
-
-			//     function requestCallback(err, data) {
-			//         if (err) {
-			//             result.success = false;
-			//         } else {
-
-			//             let response = data.body;
-			//             if( response.responseCode === messageConstants.common.OK &&
-			//                 response.result &&
-			//                 response.result.response &&
-			//                 response.result.response.length > 0
-			//             ) {
-			//                 // format result if true
-			//                 if ( formatResult ) {
-			//                     let entityDocument = [];
-			//                     response.result.response.map(entityData => {
-			//                         let data = {};
-			//                         data._id = entityData.id;
-			//                         data.entityType = entityData.type;
-			//                         data.metaInformation = {};
-			//                         data.metaInformation.name = entityData.name;
-			//                         data.metaInformation.externalId = entityData.code;
-			//                         data.registryDetails = {};
-			//                         data.registryDetails.locationId = entityData.id;
-			//                         data.registryDetails.code = entityData.code;
-			//                         entityDocument.push(data);
-			//                     });
-			//                     if ( returnObject ) {
-			//                         result["data"] = entityDocument[0];
-			//                         result["count"] = response.result.count;
-			//                     } else {
-			//                         result["data"] = entityDocument;
-			//                         result["count"] = response.result.count;
-			//                     }
-			//                 } else if ( resultForSearchEntities ) {
-			//                     let entityDocument = [];
-			//                     response.result.response.map(entityData => {
-			//                         let data = {};
-			//                         data._id = entityData.id;
-			//                         data.name = entityData.name;
-			//                         data.externalId = entityData.code;
-			//                         entityDocument.push(data);
-			//                     });
-			//                     result["data"] = entityDocument;
-			//                     result["count"] = response.result.count;
-			//             }else {
-			//                 result["data"] = response.result.response;
-			//                 result["count"] = response.result.count;
-			//             }
-			//         } else {
-			//             result.success = false;
-			//         }
-			//     }
-			//         return resolve(result);
-			//   }
-
-			//     setTimeout( function () {
-			//         return resolve (result = {
-			//             success : false
-			//         });
-			//    }, common.SERVER_TIME_OUT || 3000 );
+			const locationSearchResponse = await requests.post(url, filterData, process.env.SUNBIRD_X_AUTH_TOKEN)
+			return resolve(locationSearchResponse)
 		} catch (error) {
 			return reject(error)
 		}

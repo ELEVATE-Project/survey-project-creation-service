@@ -112,6 +112,18 @@ const list = function (
 	})
 }
 
+const read = function (userId, userToken = '') {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let apiUrl = userBaseUrl + endpoints.USER_PROFILE_DETAILS + userId
+			const userDetails = await requests.get(apiUrl, userToken, false)
+			return resolve(userDetails)
+		} catch (error) {
+			return reject(error)
+		}
+	})
+}
+
 /**
  * User Role list.
  * @method
@@ -246,4 +258,5 @@ module.exports = {
 	search,
 	getListOfUserRoles,
 	listOrganization,
+	read,
 }
