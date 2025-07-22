@@ -54,8 +54,12 @@ module.exports = class modulesHelper {
 	static async update(id, bodyData) {
 		try {
 			const modules = await modulesQueries.findModulesById(id)
-			if (!modules) {
-				throw new Error('MODULES_NOT_FOUND')
+			if (!modules?.id) {
+				return responses.failureResponse({
+					message: 'MODULES_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
 			const updatedModules = await modulesQueries.updateModules({ id }, bodyData)
@@ -72,7 +76,7 @@ module.exports = class modulesHelper {
 				})
 			} else {
 				return responses.successResponse({
-					statusCode: httpStatusCode.created,
+					statusCode: httpStatusCode.accepted,
 					message: 'MODULES_UPDATED_SUCCESSFULLY',
 					result: {
 						id: updatedModules.id,
@@ -98,28 +102,27 @@ module.exports = class modulesHelper {
 		try {
 			const modules = await modulesQueries.findModulesById(id)
 
-			if (!modules) {
+			if (!modules?.id) {
 				return responses.failureResponse({
 					message: 'MODULES_ALREADY_DELETED_OR_MODULE_NOT_PRESENT',
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
-			} else {
-				const deletemodules = await modulesQueries.deleteModulesById(id)
+			}
+			const deletemodules = await modulesQueries.deleteModulesById(id)
 
-				if (!deletemodules) {
-					return responses.failureResponse({
-						message: 'MODULES_NOT_DELETED',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
-				}
-				return responses.successResponse({
-					statusCode: httpStatusCode.accepted,
-					message: 'MODULES_DELETED_SUCCESSFULLY',
-					result: {},
+			if (!deletemodules) {
+				return responses.failureResponse({
+					message: 'MODULES_NOT_DELETED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
 				})
 			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'MODULES_DELETED_SUCCESSFULLY',
+				result: {},
+			})
 		} catch (error) {
 			throw error
 		}

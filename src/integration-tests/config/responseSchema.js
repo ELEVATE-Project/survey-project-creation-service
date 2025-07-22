@@ -34,6 +34,9 @@ const listSchema = {
 								max_task_count: {
 									type: 'integer',
 								},
+								review_required_after_publish: {
+									type: 'boolean',
+								},
 							},
 							required: [
 								'review_required',
@@ -41,6 +44,7 @@ const listSchema = {
 								'min_approval',
 								'review_type',
 								'resource_type',
+								'review_required_after_publish',
 							],
 						},
 					],

@@ -1,6 +1,7 @@
 // Dependencies
 const httpStatusCode = require('@generics/http-status')
 const entityQueries = require('@database/queries/entities')
+const entityTypeQueries = require('@database/queries/entityType')
 const { UniqueConstraintError, ForeignKeyConstraintError } = require('sequelize')
 const { Op } = require('sequelize')
 const responses = require('@helpers/responses')
@@ -12,11 +13,12 @@ module.exports = class EntityHelper {
 	 * @method
 	 * @name create
 	 * @param {Object} bodyData - entity body data.
-	 * @param {String} id -  id.
+	 * @param {String} loggedInUserId -  user id.
+	 * @param {String} orgId -  organization id.
 	 * @returns {JSON} - Entity created response.
 	 */
 
-	static async create(bodyData, loggedInUserId) {
+	static async create(bodyData, loggedInUserId, orgId) {
 		bodyData.created_by = loggedInUserId
 		bodyData.updated_by = loggedInUserId
 		bodyData.value = bodyData.value.toLowerCase()
@@ -32,6 +34,21 @@ module.exports = class EntityHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
+			//validate entity type
+			const entityType = await entityTypeQueries.findOneEntityType({
+				id: bodyData.entity_type_id,
+				organization_id: orgId,
+			})
+
+			if (!entityType?.id) {
+				return responses.failureResponse({
+					message: 'ENTITY_TYPE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
 			const entity = await entityQueries.createEntity(bodyData)
 			return responses.successResponse({
 				statusCode: httpStatusCode.created,
@@ -39,7 +56,6 @@ module.exports = class EntityHelper {
 				result: entity,
 			})
 		} catch (error) {
-			console.log('-=-=-=-=-=-=-=>>>> ERROR : ', error)
 			if (error instanceof UniqueConstraintError) {
 				return responses.failureResponse({
 					message: 'ENTITY_ALREADY_EXISTS',
@@ -65,13 +81,30 @@ module.exports = class EntityHelper {
 	 * @param {Object} bodyData - entity body data.
 	 * @param {String} _id - entity id.
 	 * @param {String} loggedInUserId - logged in user id.
+	 * @param {String} orgId -  organization id.
 	 * @returns {JSON} - Entity updated response.
 	 */
 
-	static async update(bodyData, id, loggedInUserId) {
+	static async update(bodyData, id, loggedInUserId, orgId) {
 		bodyData.updated_by = loggedInUserId
 		try {
 			if (bodyData.value) bodyData.value = bodyData.value.toLowerCase()
+
+			if (bodyData.entity_type_id) {
+				//validate entity type
+				const entityType = await entityTypeQueries.findOneEntityType({
+					id: bodyData.entity_type_id,
+					organization_id: orgId,
+				})
+
+				if (!entityType?.id) {
+					return responses.failureResponse({
+						message: 'ENTITY_TYPE_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+			}
 			const [updateCount, updatedEntity] = await entityQueries.updateOneEntity(id, bodyData, loggedInUserId, {
 				returning: true,
 				raw: true,

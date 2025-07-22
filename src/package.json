@@ -12,7 +12,7 @@
 		"stage": "NODE_ENV=stage node app.js",
 		"qa": "NODE_ENV=qa node app.js",
 		"prepare": "cd .. && husky install src/.husky",
-		"test:integration": "jest --verbose ./integration-tests  --config=integrationJest.config.js --runInBand || true",
+		"test:integration": "jest --verbose ./integration-tests  --config=integrationJest.config.js",
 		"db:init": "npx sequelize-cli db:create && npx sequelize-cli db:migrate ",
 		"db:seed:all": "npx sequelize-cli db:seed:all",
 		"db:migrate": "npx sequelize-cli db:migrate"
@@ -35,6 +35,7 @@
 		"elevate-cloud-storage": "^2.6.1",
 		"elevate-logger": "^3.1.0",
 		"elevate-node-cache": "^1.0.6",
+		"elevate-services-health-check": "^0.0.3",
 		"express": "^4.17.1",
 		"express-validator": "^5.3.1",
 		"fn-args": "^4.0.0",

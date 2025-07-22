@@ -1,0 +1,1080 @@
+- name: createModule
+  uris: '{{ scp_prefix }}/v1/modules/create'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/modules/create'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: updateModule
+  uris: '{{ scp_prefix }}/v1/modules/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/modules/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: listAllModule
+  uris: '{{ scp_prefix }}/v1/modules/list'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/modules/list'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: deleteModule
+  uris: '{{ scp_prefix }}/v1/modules/delete'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/modules/delete'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: createPermission
+  uris: '{{ scp_prefix }}/v1/permissions/create'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/permissions/create'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: updatePermission
+  uris: '{{ scp_prefix }}/v1/permissions/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/permissions/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: listAllPermissions
+  uris: '{{ scp_prefix }}/v1/permissions/getPermissions'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/permissions/getPermissions'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: listAllPermissions
+  uris: '{{ scp_prefix }}/v1/permissions/getPermissions'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/permissions/getPermissions'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: userPermissions
+  uris: '{{ scp_prefix }}/v1/permissions/list'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/permissions/list'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: deletePermission
+  uris: '{{ scp_prefix }}/v1/permissions/delete'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/permissions/delete'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: createRolePermissionMapping
+  uris: '{{ scp_prefix }}/v1/role-permission-mapping/create'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/role-permission-mapping/create'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: listRolePermissionMapping
+  uris: '{{ scp_prefix }}/v1/role-permission-mapping/list'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/role-permission-mapping/list'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: deleteRolePermissionMapping
+  uris: '{{ scp_prefix }}/v1/role-permission-mapping/delete'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/role-permission-mapping/delete'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: createEntityType
+  uris: '{{ scp_prefix }}/v1/entity-types/create'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/entity-types/create'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: updateEntityType
+  uris: '{{ scp_prefix }}/v1/entity-types/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/entity-types/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: readEntityType
+  uris: '{{ scp_prefix }}/v1/entity-types/read'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/entity-types/read'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: deleteEntityType
+  uris: '{{ scp_prefix }}/v1/entity-types/delete'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/entity-types/delete'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: createEntity
+  uris: '{{ scp_prefix }}/v1/entities/create'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/entities/create'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: updateEntity
+  uris: '{{ scp_prefix }}/v1/entities/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/entities/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: readEntity
+  uris: '{{ scp_prefix }}/v1/entities/read'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/entities/read'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: deleteEntity
+  uris: '{{ scp_prefix }}/v1/entities/delete'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/entities/delete'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: listEntity
+  uris: '{{ scp_prefix }}/v1/entities/list'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/entities/list'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: getSignedUrl
+  uris: '{{ scp_prefix }}/v1/cloud-services/file/getSignedUrl'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/cloud-services/file/getSignedUrl'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: getDownloadableUrl
+  uris: '{{ scp_prefix }}/v1/cloud-services/file/getDownloadableUrl'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/cloud-services/file/getDownloadableUrl'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: createForm
+  uris: '{{ scp_prefix }}/v1/form/create'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/form/create'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: updateForm
+  uris: '{{ scp_prefix }}/v1/form/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/form/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: readForm
+  uris: '{{ scp_prefix }}/v1/form/read'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/form/read'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: createOrUpdateOrDeleteProject
+  uris: '{{ scp_prefix }}/v1/projects/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/projects/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: submitProjectForReview
+  uris: '{{ scp_prefix }}/v1/projects/submitForReview'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/projects/submitForReview'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: projectDetails
+  uris: '{{ scp_prefix }}/v1/projects/details'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/projects/details'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: projectReviewerList
+  uris: '{{ scp_prefix }}/v1/projects/reviewerList'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/projects/reviewerList'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: resourceList
+  uris: '{{ scp_prefix }}/v1/resource/list'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/resource/list'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: getPublishedResources
+  uris: '{{ scp_prefix }}/v1/resource/getPublishedResources'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/resource/getPublishedResources'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: upForReviewList
+  uris: '{{ scp_prefix }}/v1/resource/upForReview'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/resource/upForReview'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: resourcePublishCallBack
+  uris: '{{ scp_prefix }}/v1/resource/publishCallback'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/resource/publishCallback'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: startReview
+  uris: '{{ scp_prefix }}/v1/reviews/start'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/reviews/start'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: reviewRequestForChange
+  uris: '{{ scp_prefix }}/v1/reviews/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/reviews/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: approveReview
+  uris: '{{ scp_prefix }}/v1/reviews/approve'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/reviews/approve'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: rejectOrReportReview
+  uris: '{{ scp_prefix }}/v1/reviews/rejectOrReport'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/reviews/rejectOrReport'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: createOrUpdateOrDeleteComment
+  uris: '{{ scp_prefix }}/v1/comments/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/comments/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: commentList
+  uris: '{{ scp_prefix }}/v1/comments/list'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/comments/list'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: rolloutList
+  uris: '{{ scp_prefix }}/v1/rollouts/list'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/rollouts/list'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: createOrUpdateOrDeleteRollout
+  uris: '{{ scp_prefix }}/v1/rollouts/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/rollouts/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: publishRollout
+  uris: '{{ scp_prefix }}/v1/rollouts/publish'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/rollouts/publish'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: rolloutDataManagerList
+  uris: '{{ scp_prefix }}/v1/rollouts/getDataManagers'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/rollouts/getDataManagers'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: createOrUpdateOrDeleteProgram
+  uris: '{{ scp_prefix }}/v1/programs/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/programs/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: programDetails
+  uris: '{{ scp_prefix }}/v1/programs/details'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/programs/details'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: addResourceToProgram
+  uris: '{{ scp_prefix }}/v1/programs/addResource'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/programs/addResource'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: removeResourcesToProgram
+  uris: '{{ scp_prefix }}/v1/programs/removeResources'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/programs/removeResources'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: programSubmitForReview
+  uris: '{{ scp_prefix }}/v1/programs/submitForReview'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/programs/submitForReview'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: programReviewerList
+  uris: '{{ scp_prefix }}/v1/programs/reviewerList'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/programs/reviewerList'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: programPublish
+  uris: '{{ scp_prefix }}/v1/programs/publish'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/programs/publish'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: getProgramManagers
+  uris: '{{ scp_prefix }}/v1/programs/getProgramManagers'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/programs/getProgramManagers'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: createOrgExtensionConfig
+  uris: '{{ scp_prefix }}/v1/organization-extensions/createConfig'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/organization-extensions/createConfig'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: updateConfigOrgExtensionConfig
+  uris: '{{ scp_prefix }}/v1/organization-extensions/updateConfig'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/organization-extensions/updateConfig'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: configList
+  uris: '{{ scp_prefix }}/v1/config/list'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/config/list'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: certificateList
+  uris: '{{ scp_prefix }}/v1/certificates/list'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/certificates/list'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: certificateUpdate
+  uris: '{{ scp_prefix }}/v1/certificates/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/certificates/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: reviewStageUpdate
+  uris: '{{ scp_prefix }}/v1/review-stages/update'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/review-stages/update'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
+- name: reviewStagelist
+  uris: '{{ scp_prefix }}/v1/review-stages/list'
+  upstream_url: '{{ scp_interface_service_url }}/scp/v1/review-stages/list'
+  strip_uri: true
+  plugins:
+    - name: jwt
+    - name: cors
+    - '{{ statsd_plugin }}'
+    - name: acl
+      config.whitelist:
+        - 'dummyRole1'
+        - 'dummyRole2'
+    - name: rate-limiting
+      config.policy: local
+      config.hour: '{{ medium_rate_limit_per_hour }}'
+      config.limit_by: credential
+    - name: request-size-limiting
+      config.allowed_payload_size: '{{ medium_request_size_limit }}'
