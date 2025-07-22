@@ -21,7 +21,7 @@ module.exports = class orgExtensions {
 	async createConfig(req) {
 		try {
 			let organization_id = req.decodedToken.organization_id
-			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
+			if (utils.validateRoleAccess(req.decodedToken.roles, process.env.DEFAULT_ADMIN_ROLE)) {
 				organization_id = req.body.organization_id ? req.body.organization_id : req.decodedToken.organization_id
 			}
 			const orgExtension = await orgExtensionService.createConfig(req.body, organization_id)
@@ -42,7 +42,7 @@ module.exports = class orgExtensions {
 	async updateConfig(req) {
 		try {
 			let organization_id = req.decodedToken.organization_id
-			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
+			if (utils.validateRoleAccess(req.decodedToken.roles, process.env.DEFAULT_ADMIN_ROLE)) {
 				organization_id = req.body.organization_id ? req.body.organization_id : req.decodedToken.organization_id
 			}
 			const orgExtension = await orgExtensionService.updateConfig(

@@ -85,7 +85,7 @@ const mapPermissionsToRoles = async (queryInterface, roles, permissions) => {
 }
 
 let defaultRoles = process.env.DEFAULT_PROGRAM_DESIGNER_ROLES.split(',') || []
-defaultRoles.push(common.ADMIN_ROLE, common.ORG_ADMIN_ROLE)
+defaultRoles.push(process.env.DEFAULT_ADMIN_ROLE, process.env.DEFAULT_ORG_ADMIN_ROLE)
 
 // New permissions for programs module
 const newPermissions = [
@@ -235,7 +235,7 @@ module.exports = {
 
 			// Step 4: Map permissions to reviewer roles
 			const reviewerRoles = process.env.DEFAULT_REVIEWER_ROLE.split(',') || []
-			reviewerRoles.push(common.ADMIN_ROLE, common.ORG_ADMIN_ROLE)
+			reviewerRoles.push(process.env.DEFAULT_ADMIN_ROLE, process.env.DEFAULT_ORG_ADMIN_ROLE)
 			if (reviewerRoles.length > 0) {
 				await mapPermissionsToRoles(queryInterface, reviewerRoles, existingPermissionsForReviewer)
 			}

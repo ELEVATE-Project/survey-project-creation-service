@@ -87,7 +87,15 @@ const details = function (token = '', userId = '') {
  * @returns {JSON} - List of users
  */
 
-const list = function (userType, pageNo = '', pageSize = '', searchText = '', organization_id = null, body = {}) {
+const list = function (
+	userType,
+	pageNo = '',
+	pageSize = '',
+	searchText = '',
+	organization_id = null,
+	body = {},
+	userToken = ''
+) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let apiUrl = userBaseUrl + endpoints.USERS_LIST + '?type=' + userType
@@ -96,8 +104,19 @@ const list = function (userType, pageNo = '', pageSize = '', searchText = '', or
 			if (searchText != '') apiUrl += '&search=' + searchText
 			if (organization_id != null) apiUrl += '&organization_id=' + organization_id
 
-			const userDetails = await requests.post(apiUrl, body, '', true)
+			const userDetails = await requests.post(apiUrl, body, userToken, true)
+			return resolve(userDetails)
+		} catch (error) {
+			return reject(error)
+		}
+	})
+}
 
+const read = function (userId, userToken = '') {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let apiUrl = userBaseUrl + endpoints.USER_PROFILE_DETAILS + userId
+			const userDetails = await requests.get(apiUrl, userToken, false)
 			return resolve(userDetails)
 		} catch (error) {
 			return reject(error)
@@ -214,33 +233,17 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
  * @returns
  */
 
-const listOrganization = function (organizationIds = []) {
+const listOrganization = function (organizationIds = [], userToken = '') {
 	return new Promise(async (resolve, reject) => {
-		const options = {
-			headers: {
-				'Content-Type': 'application/json',
-				internal_access_token: process.env.INTERNAL_ACCESS_TOKEN,
-			},
-			form: {
-				organizationIds,
-			},
-		}
-
-		const apiUrl = userBaseUrl + endpoints.ORGANIZATION_LIST
 		try {
-			request.get(apiUrl, options, callback)
-			let result = {
-				success: true,
+			const apiUrl = userBaseUrl + endpoints.ORGANIZATION_LIST
+			let body = {}
+			if (organizationIds) {
+				body.organizationIds = organizationIds
 			}
-			function callback(err, data) {
-				if (err) {
-					result.success = false
-				} else {
-					response = JSON.parse(data.body)
-					result.data = response
-				}
-				return resolve(result)
-			}
+
+			const orgDetails = await requests.post(apiUrl, body, userToken, true)
+			return resolve(orgDetails)
 		} catch (error) {
 			return reject(error)
 		}
@@ -255,4 +258,5 @@ module.exports = {
 	search,
 	getListOfUserRoles,
 	listOrganization,
+	read,
 }
