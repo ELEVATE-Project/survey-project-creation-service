@@ -34,9 +34,12 @@ module.exports = {
 	},
 	getPaginationOffset,
 	AUTH_METHOD: {
-		JWT_ONLY: 'jwt_only',
+		NATIVE: 'native',
 		USER_SERVICE: 'user_service_authenticated',
 		KEYCLOAK_PUBLIC_KEY: 'keycloak_public_key',
+	},
+	SESSION_VERIFICATION_METHOD: {
+		USER_SERVICE: 'user_service_authenticated',
 	},
 	internalAccessUrls: [process.env.APPLICATION_BASE_URL + 'v1/resource/publishCallback'],
 	SCP_SERVICE: 'scp',
@@ -243,4 +246,5 @@ module.exports = {
 		project: 'project.json',
 		program: 'program.json',
 	},
+	ORGANIZATION_KEY: 'organization_id',
 }

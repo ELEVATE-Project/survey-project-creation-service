@@ -11,7 +11,7 @@ var get = function (url, token = '', internal_access_token = false, internalAcce
 			}
 
 			if (token) {
-				headers['x-auth-token'] = token
+				headers[process.env.AUTH_TOKEN_HEADER_NAME] = token
 			}
 
 			const options = {
@@ -29,6 +29,8 @@ var get = function (url, token = '', internal_access_token = false, internalAcce
 					let response = data.body
 					if (data.headers['content-type'].split(';')[0] !== 'application/json') {
 						response = parser.toJson(data.body)
+					} else if (/text\/xml|application\/xml/.test(data.headers['content-type'])) {
+						response = parser.toJson(response, { object: true })
 					}
 
 					response = JSON.parse(response)
@@ -60,7 +62,7 @@ var post = function (
 			}
 
 			if (token) {
-				headers['x-auth-token'] = token
+				headers[process.env.AUTH_TOKEN_HEADER_NAME] = token
 			}
 
 			const options = {
@@ -79,6 +81,8 @@ var post = function (
 					let response = data.body
 					if (data.headers['content-type'].split(';')[0] !== 'application/json') {
 						response = parser.toJson(data.body)
+					} else if (/text\/xml|application\/xml/.test(data.headers['content-type'])) {
+						response = parser.toJson(response, { object: true })
 					}
 
 					response = JSON.parse(response)

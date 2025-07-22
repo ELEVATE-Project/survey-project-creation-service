@@ -317,6 +317,11 @@ let environmentVariables = {
 		message: 'Required Default Admin Role',
 		optional: false,
 	},
+	AUTH_CONFIG_FILE_PATH: {
+		message: 'Required auth config file path',
+		optional: false,
+		default: 'config.json',
+	},
 }
 
 let success = true
