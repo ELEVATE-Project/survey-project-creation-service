@@ -352,11 +352,10 @@ module.exports = class ProjectsHelper {
 	 * @method
 	 * @name details
 	 * @param {String} projectId - Project id
-	 * @param {String} organization_id - Organization id
 	 * @returns {JSON} - Project data.
 	 */
 
-	static async details(projectId, orgId) {
+	static async details(projectId) {
 		try {
 			let result = {
 				organization: {},
@@ -365,7 +364,6 @@ module.exports = class ProjectsHelper {
 			const project = await resourceQueries.findOne(
 				{
 					id: projectId,
-					organization_id: orgId,
 					type: common.PROJECT,
 				},
 				{ attributes: { exclude: ['next_stage', 'review_type'] } }
@@ -396,7 +394,7 @@ module.exports = class ProjectsHelper {
 							model: common.ENTITY_TYPE_MODELS[common.PROJECT],
 							status: common.STATUS_ACTIVE,
 						},
-						orgId,
+						project.organization_id,
 						['id', 'value', 'label', 'has_entities']
 					)
 
@@ -545,10 +543,18 @@ module.exports = class ProjectsHelper {
 			let reviewerIds = []
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
 				const uniqueReviewerIds = utils.getUniqueElements(bodyData.reviewer_ids)
-				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
-					user_ids: uniqueReviewerIds,
-					excluded_user_ids: [userDetails.id],
-				})
+				const reviewers = await userRequests.list(
+					common.REVIEWER,
+					'',
+					'',
+					'',
+					userDetails.organization_id,
+					{
+						user_ids: uniqueReviewerIds,
+						excluded_user_ids: [userDetails.id],
+					},
+					userDetails.token
+				)
 
 				if (!reviewers.success) throw new Error('REVIEWER_IDS_NOT_FOUND')
 

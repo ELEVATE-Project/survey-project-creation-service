@@ -24,7 +24,7 @@ const getPermissionId = async (module, request_type, api_path) => {
 }
 
 let defaultRoles = process.env.DEFAULT_ROLLOUT_ROLES.split(',') || []
-defaultRoles.push(common.ADMIN_ROLE, common.ORG_ADMIN_ROLE)
+defaultRoles.push(process.env.DEFAULT_ADMIN_ROLE, process.env.DEFAULT_ORG_ADMIN_ROLE)
 
 let rolePermissions = [
 	{

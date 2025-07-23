@@ -36,6 +36,7 @@ module.exports = {
 	AUTH_METHOD: {
 		JWT_ONLY: 'jwt_only',
 		USER_SERVICE: 'user_service_authenticated',
+		KEYCLOAK_PUBLIC_KEY: 'keycloak_public_key',
 	},
 	internalAccessUrls: [process.env.APPLICATION_BASE_URL + 'v1/resource/publishCallback'],
 	SCP_SERVICE: 'scp',

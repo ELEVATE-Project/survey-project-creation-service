@@ -22,7 +22,7 @@ module.exports = class ActivityHelper {
 	 * @returns {JSON} - activities list response.
 	 */
 
-	static async list(resourceId, userId, orgId, page, limit) {
+	static async list(resourceId, userId, orgId, page, limit, userToken = '') {
 		try {
 			if (!resourceId) {
 				return responses.failureResponse({
@@ -59,7 +59,7 @@ module.exports = class ActivityHelper {
 			}
 
 			// Format each user activity into a readable form
-			const formatActivities = await activityDTO(activities.rows, orgId, userId)
+			const formatActivities = await activityDTO(activities.rows, orgId, userId, userToken)
 			if (formatActivities.success) {
 				result.data = formatActivities
 				result.count = activities.count

@@ -1,7 +1,6 @@
 'use strict'
 
 require('module-alias/register')
-const common = require('@constants/common')
 const Permissions = require('@database/models/index').Permission
 
 const getPermissionId = async (module, request_type, api_path) => {
@@ -38,19 +37,32 @@ module.exports = {
 
 			await queryInterface.bulkInsert('permissions', permissionsData)
 
-			//create role permission mapping
-			const rolePermissionsData = [
-				{
-					role_title: common.REVIEWER,
-					permission_id: await getPermissionId('reviews', ['POST', 'PATCH'], '/scp/v1/reviews/start*'),
-					module: 'reviews',
-					request_type: ['POST', 'PATCH'],
-					api_path: '/scp/v1/reviews/start*',
-					created_at: new Date(),
-					updated_at: new Date(),
-					created_by: 0,
-				},
-			]
+			let rolePermissionsData = []
+
+			let defaultReviewerRoles = process.env.DEFAULT_REVIEWER_ROLE.split(',') || []
+			async function addPermissions(permissions, roles) {
+				for (const permission of permissions) {
+					const permissionId = await getPermissionId(
+						permission.module,
+						permission.request_type,
+						permission.api_path
+					)
+					for (const role of roles) {
+						rolePermissionsData.push({
+							role_title: role,
+							permission_id: permissionId,
+							module: permission.module,
+							request_type: permission.request_type,
+							api_path: permission.api_path,
+							created_at: new Date(),
+							updated_at: new Date(),
+							created_by: 0,
+						})
+					}
+				}
+			}
+
+			await addPermissions(permissionsData, defaultReviewerRoles)
 
 			await queryInterface.bulkInsert('role_permission_mapping', rolePermissionsData)
 		} catch (error) {

@@ -21,7 +21,7 @@ module.exports = class reviewStages {
 	async update(req) {
 		try {
 			let organization_id = req.decodedToken.organization_id
-			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
+			if (utils.validateRoleAccess(req.decodedToken.roles, process.env.DEFAULT_ADMIN_ROLE)) {
 				organization_id = req.query.organization_id
 					? req.query.organization_id
 					: req.decodedToken.organization_id
@@ -44,7 +44,7 @@ module.exports = class reviewStages {
 	async list(req) {
 		try {
 			let organization_id = req.decodedToken.organization_id
-			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
+			if (utils.validateRoleAccess(req.decodedToken.roles, process.env.DEFAULT_ADMIN_ROLE)) {
 				organization_id = req.query.organization_id
 					? req.query.organization_id
 					: req.decodedToken.organization_id

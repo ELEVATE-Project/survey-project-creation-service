@@ -147,7 +147,7 @@ module.exports = class CommentsHelper {
 	 * @param {String} context - Context page or tag
 	 * @returns {JSON} - comment list
 	 */
-	static async list(resourceId, pageValue = '', context = '', userId, orgId) {
+	static async list(resourceId, pageValue = '', context = '', userId, orgId, userToken = '') {
 		try {
 			let result = {
 				resource_id: resourceId,
@@ -211,9 +211,17 @@ module.exports = class CommentsHelper {
 				)
 			)
 
-			const users = await userRequests.list(common.ALL_USER_ROLES, '', '', '', orgId, {
-				user_ids: userIds,
-			})
+			const users = await userRequests.list(
+				common.ALL_USER_ROLES,
+				'',
+				'',
+				'',
+				orgId,
+				{
+					user_ids: userIds,
+				},
+				userToken
+			)
 
 			let commented_by = []
 

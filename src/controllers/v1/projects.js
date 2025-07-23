@@ -56,11 +56,7 @@ module.exports = class Projects {
 
 	async details(req) {
 		try {
-			const project = await projectService.details(
-				req.params.id,
-				req.decodedToken.organization_id,
-				req.decodedToken.id
-			)
+			const project = await projectService.details(req.params.id)
 			return project
 		} catch (error) {
 			return error
@@ -79,6 +75,7 @@ module.exports = class Projects {
 				process.env.DEFAULT_REVIEWER_ROLE || common.REVIEWER,
 				req.decodedToken.id,
 				req.decodedToken.organization_id,
+				req.decodedToken.token,
 				req.pageNo,
 				req.pageSize
 			)

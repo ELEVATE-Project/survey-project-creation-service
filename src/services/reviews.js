@@ -690,7 +690,7 @@ module.exports = class reviewsHelper {
 	 * @param {String} userId - The ID of the user
 	 * @returns {JSON} - Publish Response
 	 */
-	static async publishResource(resourceId, userId, userToken = null) {
+	static async publishResource(resourceId, userId, userToken = '') {
 		try {
 			// Fetch the resource creator mapping
 			const resource = await resourceCreatorMappingQueries.findOne(
@@ -706,7 +706,7 @@ module.exports = class reviewsHelper {
 				organization_id: resource.organization_id,
 			})
 
-			let resourceDetails = await resourceService.getDetails(resourceId, resourceData.organization_id)
+			let resourceDetails = await resourceService.getDetails(resourceId, resourceData.organization_id, userToken)
 			if (resourceDetails.statusCode !== httpStatusCode.ok) {
 				return resourceDetails
 			}

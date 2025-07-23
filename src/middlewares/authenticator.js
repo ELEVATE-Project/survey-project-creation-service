@@ -13,6 +13,7 @@ const endpoints = require('@constants/endpoints')
 const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
 const responses = require('@helpers/responses')
 const { Op } = require('sequelize')
+const fs = require('fs')
 
 async function checkPermissions(roleTitle, requestPath, requestMethod) {
 	const parts = requestPath.match(/[^/]+/g)
@@ -37,168 +38,259 @@ async function checkPermissions(roleTitle, requestPath, requestMethod) {
 }
 
 module.exports = async function (req, res, next) {
-	const unAuthorizedResponse = responses.failureResponse({
-		message: 'UNAUTHORIZED_REQUEST',
-		statusCode: httpStatusCode.unauthorized,
-		responseCode: 'UNAUTHORIZED',
-	})
 	try {
-		let roleValidation = false
-		let decodedToken
-		const isBearerRequired = process.env.IS_AUTH_TOKEN_BEARER === 'true'
+		const authHeader = req.get(process.env.AUTH_TOKEN_HEADER_NAME)
 
-		const authHeader = req.get('X-auth-token')
-
-		const internalAccess = common.internalAccessUrls.some((path) => {
+		const isInternalAccess = common.internalAccessUrls.some((path) => {
 			if (req.path.includes(path)) {
 				if (req.headers.internal_access_token === process.env.INTERNAL_ACCESS_TOKEN) return true
-				else throw unAuthorizedResponse
+				else throw createUnauthorizedResponse()
 			}
 			return false
 		})
 
-		common.roleValidationPaths.map(function (path) {
-			if (req.path.includes(path)) {
-				roleValidation = true
-			}
-		})
-
-		if (internalAccess && !authHeader) return next()
+		if (isInternalAccess && !authHeader) return next()
 
 		if (!authHeader || authHeader === undefined) {
-			try {
-				const isPermissionValid = await checkPermissions(common.PUBLIC_ROLE, req.path, req.method)
-				if (!isPermissionValid) {
-					throw responses.failureResponse({
-						message: 'PERMISSION_DENIED',
-						statusCode: httpStatusCode.unauthorized,
-						responseCode: 'UNAUTHORIZED',
-					})
-				}
-				return next()
-			} catch (error) {
-				throw unAuthorizedResponse
-			}
+			const isPermissionValid = await checkPermissions(common.PUBLIC_ROLE, req.path, req.method)
+			if (isPermissionValid) return next()
+			else throw createUnauthorizedResponse('PERMISSION_DENIED')
 		}
 
-		let token
-		const [authType, extractedToken] = authHeader.split(' ')
-		if (isBearerRequired) {
-			if (authType.toLowerCase() !== 'bearer') throw unAuthorizedResponse
-			token = extractedToken?.trim()
-		} else {
-			token = authType.toLowerCase() === 'bearer' ? extractedToken?.trim() : authType.trim()
-		}
+		const [decodedToken, skipFurtherChecks] = await authenticateUser(authHeader, req)
+		if (!skipFurtherChecks) {
+			if (process.env.SESSION_VERIFICATION_METHOD === common.SESSION_VERIFICATION_METHOD.USER_SERVICE)
+				await validateSession(authHeader)
 
-		req.userToken = token
+			const roleValidation = common.roleValidationPaths.some((path) => req.path.includes(path))
 
-		if (!token) throw unAuthorizedResponse
-
-		try {
-			decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
-		} catch (err) {
-			if (err.name === 'TokenExpiredError') {
-				throw responses.failureResponse({
-					message: 'ACCESS_TOKEN_EXPIRED',
-					statusCode: httpStatusCode.unauthorized,
-					responseCode: 'UNAUTHORIZED',
-				})
-			} else throw unAuthorizedResponse
-		}
-		if (process.env.AUTH_METHOD == common.AUTH_METHOD.USER_SERVICE) {
-			try {
-				const userBaseUrl = process.env.USER_SERVICE_HOST + process.env.USER_SERVICE_BASE_URL
-				const validateSessionEndpoint = userBaseUrl + endpoints.VALIDATE_SESSIONS
-				const reqBody = {
-					token: authHeader,
-				}
-				const isSessionActive = await requests.post(validateSessionEndpoint, reqBody, '', true)
-
-				if (isSessionActive.data.responseCode == 'UNAUTHORIZED') {
-					const accessTokenExpiredError = new Error('ACCESS_TOKEN_EXPIRED')
-					accessTokenExpiredError.statusCode = httpStatusCode.unauthorized
-					accessTokenExpiredError.responseCode = 'UNAUTHORIZED'
-					throw accessTokenExpiredError
-				}
-
-				if (isSessionActive.data.result.data.user_session_active != true) {
-					throw new Error('USER_SERVICE_DOWN')
-				}
-			} catch (error) {
-				if (error.message === 'ACCESS_TOKEN_EXPIRED') {
-					throw responses.failureResponse({
-						message: error.message,
-						statusCode: error.statusCode,
-						responseCode: error.responseCode,
-					})
-				}
-				throw responses.failureResponse({
-					message: 'USER_SERVICE_DOWN',
-					statusCode: httpStatusCode.internal_server_error,
-					responseCode: 'SERVER_ERROR',
-				})
-			}
-		}
-		if (!decodedToken) throw unAuthorizedResponse
-
-		let isAdmin = false
-		if (decodedToken.data.roles) {
-			isAdmin = decodedToken.data.roles.some((role) => role.title == common.ADMIN_ROLE)
-			if (isAdmin) {
-				req.decodedToken = decodedToken.data
-				req.decodedToken.organization_id = req.decodedToken.organization_id.toString()
-				req.decodedToken.id = req.decodedToken.id.toString()
-				return next()
-			}
-		}
-		if (roleValidation) {
-			/* Invalidate token when user role is updated, say from mentor to mentee or vice versa */
-			const userBaseUrl = process.env.USER_SERVICE_HOST + process.env.USER_SERVICE_BASE_URL
-			const profileUrl = userBaseUrl + endpoints.USER_PROFILE_DETAILS + '/' + decodedToken.data.id
-			const user = await requests.get(profileUrl, null, true)
-			if (!user || !user.success) {
-				throw responses.failureResponse({
-					message: 'USER_NOT_FOUND',
-					statusCode: httpStatusCode.unauthorized,
-					responseCode: 'UNAUTHORIZED',
-				})
+			if (roleValidation) {
+				if (process.env.AUTH_METHOD === common.AUTH_METHOD.NATIVE) await nativeRoleValidation(decodedToken)
+				// else if (process.env.AUTH_METHOD === common.AUTH_METHOD.KEYCLOAK_PUBLIC_KEY)
+				// 	await dbBasedRoleValidation(decodedToken)
 			}
 
-			if (user.data.result.deleted_at !== null) {
-				throw responses.failureResponse({
-					message: 'USER_ROLE_UPDATED',
-					statusCode: httpStatusCode.unauthorized,
-					responseCode: 'UNAUTHORIZED',
-				})
-			}
+			const isPermissionValid = await checkPermissions(
+				decodedToken.data.roles.map((role) => role.title),
+				req.path,
+				req.method
+			)
 
-			decodedToken.data.roles = user.data.result.user_roles
-			decodedToken.data.organization_id = user.data.result.organization_id.toString()
-		}
-
-		const isPermissionValid = await checkPermissions(
-			decodedToken.data.roles.map((role) => role.title),
-			req.path,
-			req.method
-		)
-		if (!isPermissionValid) {
-			throw responses.failureResponse({
-				message: 'PERMISSION_DENIED',
-				statusCode: httpStatusCode.unauthorized,
-				responseCode: 'UNAUTHORIZED',
-			})
+			if (!isPermissionValid) throw createUnauthorizedResponse('PERMISSION_DENIED')
 		}
 
 		req.decodedToken = {
-			id: decodedToken.data.id.toString(),
+			id: typeof decodedToken.data.id === 'number' ? decodedToken.data.id.toString() : decodedToken.data.id,
 			roles: decodedToken.data.roles,
 			name: decodedToken.data.name,
 			token: authHeader,
-			organization_id: decodedToken.data.organization_id.toString(),
+			organization_id:
+				typeof decodedToken.data.organization_id === 'number'
+					? decodedToken.data.organization_id.toString()
+					: decodedToken.data.organization_id,
 		}
-		return next()
+
+		console.log('DECODED TOKEN:', req.decodedToken)
+		next()
 	} catch (err) {
-		console.log(err)
+		if (err.message === 'USER_SERVICE_DOWN') {
+			err = responses.failureResponse({
+				message: 'USER_SERVICE_DOWN',
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'SERVER_ERROR',
+			})
+		}
+		console.error(err)
 		next(err)
+	}
+}
+
+/**
+ * Creates a standardized unauthorized error response object.
+ * @param {string} [message='UNAUTHORIZED_REQUEST'] - Custom message to include in the response.
+ * @returns {Object} A formatted failure response indicating unauthorized access.
+ */
+function createUnauthorizedResponse(message = 'UNAUTHORIZED_REQUEST') {
+	return responses.failureResponse({
+		message,
+		statusCode: httpStatusCode.unauthorized,
+		responseCode: 'UNAUTHORIZED',
+	})
+}
+
+/**
+ * Verifies a JWT access token and returns the decoded payload.
+ * @param {string} token - The JWT access token to verify.
+ * @returns {Object} Decoded token payload if valid.
+ * @throws Will throw an unauthorized response if the token is expired or invalid.
+ */
+async function verifyToken(token) {
+	try {
+		return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+	} catch (err) {
+		if (err.name === 'TokenExpiredError') throw createUnauthorizedResponse('ACCESS_TOKEN_EXPIRED')
+		console.log(err)
+		throw createUnauthorizedResponse()
+	}
+}
+
+/**
+ * Checks if the given list of roles contains the admin role.
+ * @param {Array<Object>} roles - Array of role objects to check.
+ * @returns {boolean} True if at least one role has the admin title, otherwise false.
+ */
+function isAdminRole(roles) {
+	return roles.some((role) => role.title === process.env.DEFAULT_ADMIN_ROLE)
+}
+
+/**
+ * Validates the user's session token by calling the user service.
+ * @param {string} authHeader - The access token extracted from the request header.
+ */
+async function validateSession(authHeader) {
+	const userBaseUrl = `${process.env.USER_SERVICE_HOST}${process.env.USER_SERVICE_BASE_URL}`
+	const validateSessionEndpoint = `${userBaseUrl}${endpoints.VALIDATE_SESSIONS}`
+	const reqBody = { token: authHeader }
+
+	const isSessionActive = await requests.post(validateSessionEndpoint, reqBody, '', true)
+
+	if (isSessionActive?.data?.responseCode === 'UNAUTHORIZED') throw createUnauthorizedResponse('ACCESS_TOKEN_EXPIRED')
+	if (!isSessionActive?.success || !isSessionActive?.data?.result?.data?.user_session_active)
+		throw new Error('USER_SERVICE_DOWN')
+}
+
+/**
+ * Fetches the user's profile details from user service.
+ * @param {string} userId - The ID of the user whose profile needs to be fetched.
+ * @returns {Object} The user's profile details if found and active.
+ */
+async function fetchUserProfile(userId) {
+	const userBaseUrl = `${process.env.USER_SERVICE_HOST}${process.env.USER_SERVICE_BASE_URL}`
+	const profileUrl = `${userBaseUrl}${endpoints.USER_PROFILE_DETAILS}/${userId}`
+	const user = await requests.get(profileUrl, null, true)
+
+	if (!user || !user.success) throw createUnauthorizedResponse('USER_NOT_FOUND')
+	if (user.data.result.deleted_at !== null) throw createUnauthorizedResponse('USER_ROLE_UPDATED')
+	return user.data.result
+}
+
+/**
+ * Authenticates a user by validating the provided authentication token.
+ * @param {string} authHeader - The authentication header containing the token.
+ * @param {Object} req - The request object, used to attach the decoded token to the request.
+ * @returns {Array} An array where the first element is the decoded token, and the second is a boolean indicating whether the user is an admin.
+ */
+async function authenticateUser(authHeader, req) {
+	if (!authHeader) throw createUnauthorizedResponse()
+	let token
+	if (process.env.IS_AUTH_TOKEN_BEARER === 'true') {
+		const [authType, extractedToken] = authHeader.split(' ')
+		if (authType.toLowerCase() !== 'bearer') throw createUnauthorizedResponse()
+		token = extractedToken.trim()
+	} else token = authHeader.trim()
+
+	let decodedToken = null
+	if (process.env.AUTH_METHOD === common.AUTH_METHOD.NATIVE) {
+		decodedToken = await verifyToken(token)
+	} else if (process.env.AUTH_METHOD === common.AUTH_METHOD.KEYCLOAK_PUBLIC_KEY) {
+		decodedToken = await keycloakPublicKeyAuthentication(token)
+		if (!decodedToken) throw createUnauthorizedResponse()
+		if (decodedToken) return [decodedToken, true]
+	}
+
+	if (!decodedToken) throw createUnauthorizedResponse()
+
+	if (decodedToken.data.roles && isAdminRole(decodedToken.data.roles)) {
+		req.decodedToken = decodedToken.data
+		return [decodedToken, true]
+	}
+
+	return [decodedToken, false]
+}
+
+/**
+ * Validates the user's roles and organization by fetching the user's profile.
+ * @param {Object} decodedToken - The decoded JWT token containing user information.
+ * @throws Will throw an error if the user profile cannot be fetched or if the profile is invalid.
+ */
+async function nativeRoleValidation(decodedToken) {
+	const userProfile = await fetchUserProfile(decodedToken.data.id)
+	decodedToken.data.roles = userProfile.user_roles
+	decodedToken.data.organization_id = userProfile.organization_id
+}
+
+const keycloakPublicKeyPath = `${process.env.KEYCLOAK_PUBLIC_KEY_PATH}/`
+const PEM_FILE_BEGIN_STRING = '-----BEGIN PUBLIC KEY-----'
+const PEM_FILE_END_STRING = '-----END PUBLIC KEY-----'
+
+/**
+ * Authenticates a user by verifying their Keycloak JWT token using the public key.
+ * @param {string} token - The Keycloak JWT token to authenticate.
+ * @returns {Object} The user's verified data, including their external user ID, name, and organization ID.
+ */
+async function keycloakPublicKeyAuthentication(token) {
+	try {
+		const tokenClaims = jwt.decode(token, { complete: true })
+		if (!tokenClaims || !tokenClaims.header) throw createUnauthorizedResponse()
+		// Extract the key ID (kid) from the token header
+		const kid = tokenClaims.header.kid
+		// Construct the path to the public key file using the key ID
+		const path = keycloakPublicKeyPath + kid.replace(/\.\.\//g, '')
+		// Read the public key file from the resolved file path
+		const accessKeyFile = await fs.promises.readFile(path, 'utf8')
+		// Ensure the public key is properly formatted with BEGIN and END markers
+		const cert = accessKeyFile.includes(PEM_FILE_BEGIN_STRING)
+			? accessKeyFile
+			: `${PEM_FILE_BEGIN_STRING}\n${accessKeyFile}\n${PEM_FILE_END_STRING}`
+
+		const verifiedClaims = await verifyKeycloakToken(token, cert)
+		// Extract the external user ID from the verified claims
+		const externalUserId = verifiedClaims.sub.split(':').pop()
+
+		//get user role
+		const userBaseUrl = `${process.env.USER_SERVICE_HOST}${process.env.USER_SERVICE_BASE_URL}`
+		const userReadAPIUrl = `${userBaseUrl}${endpoints.USER_PROFILE_DETAILS}` + '/' + externalUserId
+		const userRes = await requests.get(userReadAPIUrl, token, false)
+
+		let roles = []
+		let organization_id = verifiedClaims.org
+
+		if (userRes.data.responseCode === 'OK' && userRes?.data?.result) {
+			userRes.result = userRes.data.result
+			roles = userRes.result?.user_roles
+			organization_id = userRes.result?.organization_id
+		}
+
+		return {
+			data: {
+				id: externalUserId,
+				roles: roles || [],
+				name: verifiedClaims.name,
+				organization_id: organization_id || null,
+			},
+		}
+	} catch (err) {
+		if (err.message === 'USER_NOT_FOUND') throw createUnauthorizedResponse('USER_NOT_FOUND')
+		else {
+			console.error(err)
+			throw createUnauthorizedResponse()
+		}
+	}
+}
+
+/**
+ * Verifies the Keycloak JWT token using the provided public key certificate.
+ * @param {string} token - The Keycloak JWT token to verify.
+ * @param {string} cert - The public key certificate used to verify the token.
+ * @returns {Object} The decoded token data if the token is valid.
+ */
+async function verifyKeycloakToken(token, cert) {
+	try {
+		let verifyTokenRes = jwt.verify(token, cert, { algorithms: ['sha1', 'RS256', 'HS256'] })
+		return verifyTokenRes
+	} catch (err) {
+		if (err.name === 'TokenExpiredError') throw createUnauthorizedResponse('ACCESS_TOKEN_EXPIRED')
+		console.error(err)
+		throw createUnauthorizedResponse()
 	}
 }

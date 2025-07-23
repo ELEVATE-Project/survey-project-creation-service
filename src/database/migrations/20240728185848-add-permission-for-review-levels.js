@@ -45,11 +45,10 @@ module.exports = {
 			]
 
 			await queryInterface.bulkInsert('permissions', permissionsData)
-
 			//create role permission mapping
 			const rolePermissionsData = [
 				{
-					role_title: common.ADMIN_ROLE,
+					role_title: process.env.DEFAULT_ADMIN_ROLE,
 					permission_id: await getPermissionId('review-stages', ['PUT', 'GET'], '/scp/v1/review-stages/*'),
 					module: 'review-stages',
 					request_type: ['PUT', 'GET'],
@@ -59,7 +58,7 @@ module.exports = {
 					created_by: 0,
 				},
 				{
-					role_title: common.ORG_ADMIN_ROLE,
+					role_title: process.env.DEFAULT_ORG_ADMIN_ROLE,
 					permission_id: await getPermissionId('review-stages', ['PUT', 'GET'], '/scp/v1/review-stages/*'),
 					module: 'review-stages',
 					request_type: ['PUT', 'GET'],

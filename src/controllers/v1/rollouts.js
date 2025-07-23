@@ -57,7 +57,8 @@ module.exports = class rollouts {
 			const dataManagers = await rolloutService.getDataManagers(
 				req.decodedToken.organization_id,
 				req.pageNo,
-				req.pageSize
+				req.pageSize,
+				req.decodedToken.token
 			)
 			return dataManagers
 		} catch (error) {
@@ -76,7 +77,8 @@ module.exports = class rollouts {
 			const rollout = await rolloutService.details(
 				req.params.id,
 				req.decodedToken.organization_id,
-				req.decodedToken.id
+				req.decodedToken.id,
+				req.decodedToken.token
 			)
 			return rollout
 		} catch (error) {
@@ -103,7 +105,8 @@ module.exports = class rollouts {
 				req.query,
 				req.searchText,
 				req.pageNo,
-				req.pageSize
+				req.pageSize,
+				req.decodedToken.token
 			)
 
 			return rolloutList
@@ -124,7 +127,7 @@ module.exports = class rollouts {
 				req.params.id,
 				req.decodedToken.id,
 				req.decodedToken.organization_id,
-				req.userToken
+				req.decodedToken.token
 			)
 			return rollout
 		} catch (error) {

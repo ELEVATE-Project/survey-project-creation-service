@@ -38,7 +38,7 @@ module.exports = class resourceHelper {
 	 * @param {Integer} limit -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {JSON} - List of up for review resources
 	 */
-	static async listAllSubmittedResources(userId, queryParams, searchText = '', page, limit) {
+	static async listAllSubmittedResources(userId, queryParams, searchText = '', page, limit, userToken = '') {
 		let result = {
 			data: [],
 			count: 0,
@@ -143,7 +143,8 @@ module.exports = class resourceHelper {
 		}
 		// fetch the organization details from user service
 		const orgDetails = await orgExtension.fetchOrganizationDetails(
-			utils.getUniqueElements(response.result.map((item) => item.organization_id))
+			utils.getUniqueElements(response.result.map((item) => item.organization_id)),
+			userToken
 		)
 
 		// fetch all open comments for the resources which are in review
@@ -180,7 +181,8 @@ module.exports = class resourceHelper {
 
 		// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
 		const userDetails = await this.fetchUserDetails(
-			utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds])
+			utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds]),
+			userToken
 		)
 
 		// fetch additional information about resource
@@ -246,84 +248,93 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of drafts resources
 	 */
 
-	static async listAllDrafts(userId, queryParams, searchText = '', page, limit) {
-		let result = {
-			data: [],
-			count: 0,
-		}
-		// fetch all resource ids created by the logged in user
-		const resourcesCreatedByMe = await this.resourcesCreatedByUser(userId, ['resource_id', 'organization_id'])
+	static async listAllDrafts(userId, queryParams, searchText = '', page, limit, userToken) {
+		try {
+			let result = {
+				data: [],
+				count: 0,
+			}
+			// fetch all resource ids created by the logged in user
+			const resourcesCreatedByMe = await this.resourcesCreatedByUser(userId, ['resource_id', 'organization_id'])
 
-		if (resourcesCreatedByMe.length <= 0) {
+			if (resourcesCreatedByMe.length <= 0) {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'RESOURCE_LISTED_SUCCESSFULLY',
+					result,
+				})
+			}
+
+			const uniqueResourceIds = resourcesCreatedByMe.map((item) => item.resource_id)
+
+			// get the unique organization ids from resource creator mapping table by the user
+			const OrganizationIds = utils.getUniqueElements(resourcesCreatedByMe.map((item) => item.organization_id))
+
+			const filter = await this.constructCustomFilter(
+				{
+					organization_id: {
+						[Op.in]: OrganizationIds,
+					},
+					id: {
+						[Op.in]: uniqueResourceIds,
+					},
+					status: {
+						[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_DRAFTS],
+					},
+				},
+				queryParams,
+				searchText
+			)
+			// return a sort object with sorting parameters. if no params are provided returns {}
+			const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
+
+			// fetches data from resource table with the passed filters
+			const response = await resourceQueries.resourceList(
+				filter,
+				[
+					'id',
+					'title',
+					'organization_id',
+					'type',
+					'status',
+					'user_id',
+					'created_at',
+					'updated_at',
+					'stage',
+					'meta',
+				],
+				sort,
+				page,
+				limit
+			)
+
+			if (response.result.length <= 0) {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'RESOURCE_LISTED_SUCCESSFULLY',
+					result,
+				})
+			}
+
+			// fetch the user details from user service
+			const userDetails = await this.fetchUserDetails([userId], userToken)
+
+			// fetch the org details from user service
+			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds, userToken)
+			result = await this.responseBuilder(response, userDetails, orgDetails, {})
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
 				result,
 			})
-		}
-
-		const uniqueResourceIds = resourcesCreatedByMe.map((item) => item.resource_id)
-
-		// get the unique organization ids from resource creator mapping table by the user
-		const OrganizationIds = utils.getUniqueElements(resourcesCreatedByMe.map((item) => item.organization_id))
-
-		const filter = await this.constructCustomFilter(
-			{
-				organization_id: {
-					[Op.in]: OrganizationIds,
-				},
-				id: {
-					[Op.in]: uniqueResourceIds,
-				},
-				status: {
-					[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_DRAFTS],
-				},
-			},
-			queryParams,
-			searchText
-		)
-		// return a sort object with sorting parameters. if no params are provided returns {}
-		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
-
-		// fetches data from resource table with the passed filters
-		const response = await resourceQueries.resourceList(
-			filter,
-			[
-				'id',
-				'title',
-				'organization_id',
-				'type',
-				'status',
-				'user_id',
-				'created_at',
-				'updated_at',
-				'stage',
-				'meta',
-			],
-			sort,
-			page,
-			limit
-		)
-		if (response.result.length <= 0) {
+		} catch (error) {
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
-				result,
+				result: [],
 			})
 		}
-
-		// fetch the user details from user service
-		const userDetails = await this.fetchUserDetails([userId])
-
-		// fetch the org details from user service
-		const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds)
-		result = await this.responseBuilder(response, userDetails, orgDetails, {})
-
-		return responses.successResponse({
-			statusCode: httpStatusCode.ok,
-			message: 'RESOURCE_LISTED_SUCCESSFULLY',
-			result,
-		})
 	}
 
 	/**
@@ -549,7 +560,7 @@ module.exports = class resourceHelper {
 	 *
 	 * @returns {JSON} - List of up for review resources
 	 */
-	static async upForReview(queryParams, tokenDetails, searchText = '', page, limit) {
+	static async upForReview(queryParams, tokenDetails, searchText = '', page, limit, userToken = '') {
 		try {
 			// get user details from token
 			const user_id = tokenDetails.id
@@ -757,8 +768,8 @@ module.exports = class resourceHelper {
 				})
 			)
 
-			const userDetails = await this.fetchUserDetails(uniqueCreatorIds)
-			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds)
+			const userDetails = await this.fetchUserDetails(uniqueCreatorIds, userToken)
+			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds, userToken)
 			const reviewDetails = await reviewsQueries.findAll(
 				{
 					organization_id: {
@@ -824,14 +835,13 @@ module.exports = class resourceHelper {
 	 * @name getDetails
 	 * @returns {JSON} - details of resource
 	 */
-	static async getDetails(resourceId, orgId) {
+	static async getDetails(resourceId, orgId, userToken = '') {
 		try {
 			let result = {
 				organization: {},
 			}
 			const resource = await resourceQueries.findOne({
 				id: resourceId,
-				organization_id: orgId,
 			})
 
 			if (!resource?.id) {
@@ -914,7 +924,7 @@ module.exports = class resourceHelper {
 			}
 
 			//get organization details
-			let organizationDetails = await userRequests.fetchOrg(resource.organization_id)
+			let organizationDetails = await userRequests.fetchOrg(resource.organization_id, userToken)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
 			}
@@ -1241,10 +1251,19 @@ module.exports = class resourceHelper {
 	 * @param {Array} userIds - array of userIds.
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds) {
-		const userDetailsResponse = await userRequests.list(common.FILTER_ALL.toLowerCase(), '', '', '', '', {
-			user_ids: userIds,
-		})
+	static async fetchUserDetails(userIds, userToken = '') {
+		const userDetailsResponse = await userRequests.list(
+			common.FILTER_ALL.toLowerCase(),
+			'',
+			'',
+			'',
+			'',
+			{
+				user_ids: userIds,
+			},
+			userToken
+		)
+
 		let userDetails = {}
 		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
 			userDetails = _.keyBy(userDetailsResponse.data.result.data, 'id')
@@ -1336,7 +1355,8 @@ module.exports = class resourceHelper {
 		query,
 		searchText = '',
 		pageNo,
-		pageSize
+		pageSize,
+		userToken = ''
 	) {
 		try {
 			let result = {
@@ -1430,8 +1450,11 @@ module.exports = class resourceHelper {
 
 			if (internalResources.result.length > 0) {
 				// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
-				const userDetails = await this.fetchUserDetails(utils.getUniqueElements(userIds))
-				const orgDetails = await orgExtension.fetchOrganizationDetails(utils.getUniqueElements(organizationIds))
+				const userDetails = await this.fetchUserDetails(utils.getUniqueElements(userIds), userToken)
+				const orgDetails = await orgExtension.fetchOrganizationDetails(
+					utils.getUniqueElements(organizationIds),
+					userToken
+				)
 				result.count = internalResources.count
 				internalResources.result.forEach((resource) => {
 					resource['creator'] = userDetails[resource.created_by]?.name || ''
@@ -1475,16 +1498,24 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of reviewers from the org
 	 */
 
-	static async reviewerList(role, user_id, organization_id, pageNo, limit) {
+	static async reviewerList(role, user_id, organization_id, userToken = '', pageNo, limit) {
 		try {
 			let result = {
 				data: [],
 				count: 0,
 			}
 
-			let reviewers = await userRequests.list(role, pageNo, limit, '', organization_id, {
-				excluded_user_ids: [user_id],
-			})
+			let reviewers = await userRequests.list(
+				role,
+				pageNo,
+				limit,
+				'',
+				organization_id,
+				{
+					excluded_user_ids: [user_id],
+				},
+				userToken
+			)
 
 			let userList = []
 

@@ -39,95 +39,94 @@ module.exports = {
 					module: 'actions',
 					request_type: ['POST', 'GET', 'DELETE'],
 					api_path: '/scp/v1/actions/*',
-					status: 'ACTIVE',
-					created_at: new Date(),
-					updated_at: new Date(),
 				},
 				{
 					code: 'read_action_permissions',
 					module: 'actions',
 					request_type: ['GET'],
 					api_path: '/scp/v1/actions/list*',
-					status: 'ACTIVE',
-					created_at: new Date(),
-					updated_at: new Date(),
 				},
 				{
 					code: 'read_activities_permissions',
 					module: 'activities',
 					request_type: ['GET'],
 					api_path: '/scp/v1/activities/list*',
-					status: 'ACTIVE',
-					created_at: new Date(),
-					updated_at: new Date(),
 				},
 			]
 
-			await queryInterface.bulkInsert('permissions', permissionsData)
+			const now = new Date()
+			const formattedPermissionsData = permissionsData.map((permission) => ({
+				...permission,
+				status: 'ACTIVE',
+				created_at: now,
+				updated_at: now,
+			}))
 
-			//create role permission mapping
-			const rolePermissionsData = [
+			// Now you can use completePermissionsData for your bulk insert
+			await queryInterface.bulkInsert('permissions', formattedPermissionsData)
+
+			let rolePermissionsData = []
+
+			// Define admin permissions
+			const adminPermissions = [
 				{
-					role_title: common.ADMIN_ROLE,
-					permission_id: await getPermissionId('actions', ['POST', 'GET', 'DELETE'], '/scp/v1/actions/*'),
 					module: 'actions',
 					request_type: ['POST', 'GET', 'DELETE'],
 					api_path: '/scp/v1/actions/*',
-					created_at: new Date(),
-					updated_at: new Date(),
-					created_by: 0,
+					roles: [process.env.DEFAULT_ADMIN_ROLE],
 				},
+			]
+
+			async function addPermissions(permissions) {
+				for (const permission of permissions) {
+					const permissionId = await getPermissionId(
+						permission.module,
+						permission.request_type,
+						permission.api_path
+					)
+					for (const role of permission.roles) {
+						rolePermissionsData.push({
+							role_title: role,
+							permission_id: permissionId,
+							module: permission.module,
+							request_type: permission.request_type,
+							api_path: permission.api_path,
+							created_at: new Date(),
+							updated_at: new Date(),
+							created_by: 0,
+						})
+					}
+				}
+			}
+
+			// Add admin permissions
+			await addPermissions(adminPermissions)
+
+			let defaultContentCreatorRoles = process.env.DEFAULT_CONTENT_CREATOR_ROLE.split(',') || []
+			let defaultReviewerRoles = process.env.DEFAULT_REVIEWER_ROLE.split(',') || []
+			const commonAPIRoles = [
+				...defaultContentCreatorRoles,
+				...defaultReviewerRoles,
+				process.env.DEFAULT_ORG_ADMIN_ROLE,
+			].filter((role, index, self) => self.indexOf(role) === index) // Remove duplicates
+
+			// Define all permissions to be mapped to roles
+			const permissionsToMap = [
 				{
-					role_title: common.ORG_ADMIN_ROLE,
-					permission_id: await getPermissionId('actions', ['GET'], '/scp/v1/actions/list*'),
 					module: 'actions',
 					request_type: ['GET'],
 					api_path: '/scp/v1/actions/list*',
-					created_at: new Date(),
-					updated_at: new Date(),
-					created_by: 0,
+					roles: [process.env.DEFAULT_ORG_ADMIN_ROLE],
 				},
 				{
-					role_title: common.ADMIN_ROLE,
-					permission_id: await getPermissionId('activities', ['GET'], '/scp/v1/activities/list*'),
 					module: 'activities',
 					request_type: ['GET'],
 					api_path: '/scp/v1/activities/list*',
-					created_at: new Date(),
-					updated_at: new Date(),
-					created_by: 0,
-				},
-				{
-					role_title: common.ORG_ADMIN_ROLE,
-					permission_id: await getPermissionId('activities', ['GET'], '/scp/v1/activities/list*'),
-					module: 'activities',
-					request_type: ['GET'],
-					api_path: '/scp/v1/activities/list*',
-					created_at: new Date(),
-					updated_at: new Date(),
-					created_by: 0,
-				},
-				{
-					role_title: common.CONTENT_CREATOR,
-					permission_id: await getPermissionId('activities', ['GET'], '/scp/v1/activities/list*'),
-					module: 'activities',
-					request_type: ['GET'],
-					api_path: '/scp/v1/activities/list*',
-					created_at: new Date(),
-					updated_at: new Date(),
-					created_by: 0,
-				},
-				{
-					role_title: common.REVIEWER,
-					permission_id: await getPermissionId('activities', ['GET'], '/scp/v1/activities/list*'),
-					module: 'activities',
-					request_type: ['GET'],
-					api_path: '/scp/v1/activities/list*',
-					created_at: new Date(),
-					updated_at: new Date(),
-					created_by: 0,
+					roles: [process.env.DEFAULT_ADMIN_ROLE, ...commonAPIRoles],
 				},
 			]
+
+			await addPermissions(permissionsToMap)
 
 			await queryInterface.bulkInsert('role_permission_mapping', rolePermissionsData)
 		} catch (error) {

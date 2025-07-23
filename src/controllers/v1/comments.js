@@ -24,7 +24,8 @@ module.exports = class comments {
 				req.query.page_value ? req.query.page_value : '',
 				req.query.context ? req.query.context : '',
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_id,
+				req.decodedToken.token
 			)
 			return comments
 		} catch (error) {
