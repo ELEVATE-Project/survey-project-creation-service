@@ -29,6 +29,31 @@ let environmentVariables = {
 		optional: true,
 		default: 'x-auth-token',
 	},
+	ADMIN_TOKEN_HEADER_NAME: {
+		message: 'Required admin token header name',
+		optional: true,
+		default: 'admin-auth-token',
+	},
+	ADMIN_ACCESS_TOKEN: {
+		message: 'Required admin access token',
+		optional: true,
+		default: false,
+	},
+	ORG_ID_HEADER_NAME: {
+		message: 'Required organization id header name',
+		optional: true,
+		default: 'organization-id',
+	},
+	TENANT_ID_HEADER_NAME: {
+		message: 'Required tenant id header name',
+		optional: true,
+		default: 'tenant-id',
+	},
+	SESSION_VERIFICATION_METHOD: {
+		message: 'Required Session Verification Method',
+		optional: true,
+		default: 'user_service_authenticated',
+	},
 	KAFKA_COMMUNICATIONS_ON_OFF: {
 		message: 'Enable/Disable kafka communications',
 		optional: false,

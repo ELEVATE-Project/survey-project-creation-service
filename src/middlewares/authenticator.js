@@ -129,6 +129,7 @@ module.exports = async function (req, res, next) {
 		if (!req.decodedToken[organizationKey]) {
 			throw createUnauthorizedResponse()
 		}
+
 		req.decodedToken.token = authHeader
 		// --- config.json logic end ---
 
@@ -148,7 +149,24 @@ module.exports = async function (req, res, next) {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
+			const tenantId = req.get(process.env.TENANT_ID_HEADER_NAME)
+			if (!tenantId) {
+				throw responses.failureResponse({
+					message: {
+						key: 'ADD_TENANT_ID_HEADER',
+						interpolation: {
+							tenantIdHeader: process.env.TENANT_ID_HEADER_NAME,
+							adminHeader: process.env.ADMIN_TOKEN_HEADER_NAME,
+						},
+					},
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
 			req.decodedToken.organization_id = organizationId.toString()
+			req.decodedToken.tenant_code = tenantId.toString()
 			req.decodedToken.roles.push({ title: common.ADMIN_ROLE })
 		}
 
