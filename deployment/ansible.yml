@@ -18,6 +18,9 @@
     - name: Get gcp credentials
       shell: "curl --location --request GET '{{ vaultAddress }}gcp' --header 'X-Vault-Token: {{ slurpfile['content'] | b64decode }}' | jq '.data.data' > '{{ project_path }}/gcp.json'"
 
+    - name: Get config.json 
+      shell: "curl --location --request GET '{{ vaultAddress }}scpConfig' --header 'X-Vault-Token: {{ slurpfile['content'] | b64decode }}' | jq '.data.data' > '{{ release_path }}/config.json'"
+    
     - name: Create release folder
       set_fact:
         release_path: "{{ project_path }}/releases/{{ lookup('pipe','date +%Y%m%d%H%M%S') }}"
@@ -50,7 +53,7 @@
 
     - name: Move code from release  to service folder
       shell: mv "{{ release_path }}"/* {{ current_path }}/
-    
+
     - name: set permission
       shell: chmod 744 {{ current_path }}/src/scripts/json2env.sh  
       
@@ -58,6 +61,9 @@
       shell: cat {{ project_path }}/data2.json | {{ current_path }}/src/scripts/json2env.sh > {{ current_path }}/src/.env
       register: envConfig 
     - debug: msg=" cred {{ envConfig }} "
+
+    - name: move config.json  
+      shell: mv {{ project_path }}/config.json  {{ current_path }}/src/
 
     - name: move gcp credentials 
       shell: mv {{ project_path }}/gcp.json  {{ current_path }}/src/
