@@ -14,6 +14,11 @@ module.exports = {
 				primaryKey: true,
 				type: Sequelize.STRING,
 			},
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: Sequelize.STRING,
+			},
 			meta: {
 				allowNull: true,
 				type: Sequelize.JSONB,
@@ -30,9 +35,9 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
-		await queryInterface.addIndex('organization_configs', ['organization_id'], {
+		await queryInterface.addIndex('organization_configs', ['organization_id', 'tenant_code'], {
 			unique: true,
-			name: 'unique_organization_id',
+			name: 'unique_org_tenant_resource_type',
 			where: {
 				deleted_at: null,
 			},

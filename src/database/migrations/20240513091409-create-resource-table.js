@@ -44,6 +44,11 @@ module.exports = {
 				allowNull: false,
 				type: Sequelize.STRING,
 			},
+			tenant_code: {
+				primaryKey: true,
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
 			next_stage: {
 				type: Sequelize.INTEGER,
 			},

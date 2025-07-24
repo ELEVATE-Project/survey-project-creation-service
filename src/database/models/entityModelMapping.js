@@ -22,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				defaultValue: 'ACTIVE',
 			},
+			tenant_code: {
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
 		},
 		{
 			sequelize,

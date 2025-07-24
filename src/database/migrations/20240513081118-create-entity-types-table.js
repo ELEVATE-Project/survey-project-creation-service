@@ -28,6 +28,10 @@ module.exports = {
 			data_type: {
 				type: Sequelize.STRING,
 			},
+			tenant_code: {
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
 			organization_id: {
 				allowNull: false,
 				primaryKey: true,
@@ -66,9 +70,9 @@ module.exports = {
 		})
 
 		// Add an index for the 'value' column
-		await queryInterface.addIndex('entity_types', ['value', 'organization_id'], {
+		await queryInterface.addIndex('entity_types', ['value', 'organization_id', 'tenant_code'], {
 			unique: true,
-			name: 'unique_value_org_id',
+			name: 'unique_value_org_id_tenant_code',
 			where: {
 				deleted_at: null,
 			},

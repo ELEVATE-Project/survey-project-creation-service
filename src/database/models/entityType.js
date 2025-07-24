@@ -38,6 +38,10 @@ module.exports = (sequelize, DataTypes) => {
 				defaultValue: 0,
 				primaryKey: true,
 			},
+			tenant_code: {
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
 			parent_id: {
 				type: DataTypes.INTEGER,
 				allowNull: true,

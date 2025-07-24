@@ -37,6 +37,11 @@ module.exports = {
 				allowNull: false,
 				type: Sequelize.STRING,
 			},
+			tenant_code: {
+				primaryKey: true,
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
 			created_at: {
 				allowNull: false,
 				type: Sequelize.DATE,
@@ -51,9 +56,9 @@ module.exports = {
 		})
 
 		// Add an index for the 'value' column
-		await queryInterface.addIndex('reviews', ['resource_id', 'reviewer_id'], {
+		await queryInterface.addIndex('reviews', ['resource_id', 'reviewer_id', 'organization_id', 'tenant_code'], {
 			unique: true,
-			name: 'unique_resource_reviewer',
+			name: 'unique_resource_reviewer_tenant_code',
 			where: {
 				deleted_at: null,
 			},

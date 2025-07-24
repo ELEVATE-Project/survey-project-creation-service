@@ -9,11 +9,6 @@ module.exports = {
 				primaryKey: true,
 				autoIncrement: true,
 			},
-			organization_id: {
-				type: Sequelize.STRING,
-				primaryKey: true,
-				allowNull: false,
-			},
 			code: {
 				type: Sequelize.STRING,
 				allowNull: false,
@@ -29,6 +24,16 @@ module.exports = {
 			resource_type: {
 				type: Sequelize.STRING,
 				allowNull: false,
+			},
+			organization_id: {
+				type: Sequelize.STRING,
+				primaryKey: true,
+				allowNull: false,
+			},
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: Sequelize.STRING,
 			},
 			meta: {
 				type: Sequelize.JSON,

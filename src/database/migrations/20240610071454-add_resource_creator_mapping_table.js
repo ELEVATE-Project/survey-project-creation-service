@@ -23,6 +23,10 @@ module.exports = {
 				allowNull: false,
 				type: Sequelize.STRING,
 			},
+			tenant_code: {
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
 			created_at: {
 				allowNull: false,
 				type: Sequelize.DATE,
@@ -33,6 +37,15 @@ module.exports = {
 			},
 			deleted_at: {
 				type: Sequelize.DATE,
+			},
+		})
+
+		// Add an index for the 'value' column
+		await queryInterface.addIndex('resource_creator_mapping', ['resource_id', 'creator_id'], {
+			unique: true,
+			name: 'unique_creator_resource',
+			where: {
+				deleted_at: null,
 			},
 		})
 	},

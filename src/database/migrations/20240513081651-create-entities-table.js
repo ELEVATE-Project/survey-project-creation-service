@@ -27,6 +27,10 @@ module.exports = {
 			type: {
 				type: Sequelize.STRING,
 			},
+			tenant_code: {
+				type: Sequelize.STRING,
+				allowNull: false,
+			},
 			created_by: {
 				allowNull: false,
 				type: Sequelize.STRING,
@@ -46,9 +50,9 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
-		await queryInterface.addIndex('entities', ['value', 'entity_type_id'], {
+		await queryInterface.addIndex('entities', ['value', 'entity_type_id', 'tenant_code'], {
 			unique: true,
-			name: 'unique_entities_value',
+			name: 'unique_entities_value_type_tenant',
 			where: {
 				deleted_at: null,
 			},

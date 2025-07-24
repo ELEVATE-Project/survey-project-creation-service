@@ -22,6 +22,10 @@ module.exports = {
 				type: Sequelize.ENUM('ACTIVE', 'INACTIVE'),
 				defaultValue: 'ACTIVE',
 			},
+			tenant_code: {
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
 			created_at: {
 				allowNull: false,
 				type: Sequelize.DATE,
@@ -35,9 +39,9 @@ module.exports = {
 		})
 
 		// Add an index for the 'value' column
-		await queryInterface.addIndex('entities_model_mapping', ['entity_type_id', 'model'], {
+		await queryInterface.addIndex('entities_model_mapping', ['entity_type_id', 'model', 'tenant_code'], {
 			unique: true,
-			name: 'unique_entity_type_id_model',
+			name: 'unique_entity_type_id_model_tenant_code',
 			where: {
 				deleted_at: null,
 			},

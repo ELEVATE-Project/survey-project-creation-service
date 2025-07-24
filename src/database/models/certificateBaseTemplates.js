@@ -30,6 +30,11 @@ module.exports = (sequelize, DataTypes) => {
 				primaryKey: true,
 				allowNull: false,
 			},
+			tenant_code: {
+				type: DataTypes.STRING,
+				primaryKey: true,
+				allowNull: false,
+			},
 			meta: {
 				type: DataTypes.JSON,
 			},
@@ -44,8 +49,8 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['code', 'organization_id'],
-					name: 'unique_code_per_organization',
+					fields: ['code', 'organization_id', 'tenant_code'],
+					name: 'unique_code_per_organization_tenant',
 				},
 			],
 			sequelize,

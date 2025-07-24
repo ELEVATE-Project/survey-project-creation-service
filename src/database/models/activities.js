@@ -30,6 +30,11 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 				primaryKey: true,
 			},
+			tenant_code: {
+				allowNull: false,
+				type: DataTypes.STRING,
+				primaryKey: true,
+			},
 		},
 		{
 			modelName: 'Activity',

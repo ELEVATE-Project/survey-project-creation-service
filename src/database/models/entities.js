@@ -30,6 +30,10 @@ module.exports = (sequelize, DataTypes) => {
 			type: {
 				type: DataTypes.STRING,
 			},
+			tenant_code: {
+				type: DataTypes.STRING,
+				allowNull: false,
+			},
 			created_by: {
 				type: DataTypes.STRING,
 				allowNull: false,

@@ -14,6 +14,11 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				primaryKey: true,
 			},
+			tenant_code: {
+				type: DataTypes.STRING,
+				allowNull: false,
+				primaryKey: true,
+			},
 			meta: {
 				allowNull: true,
 				type: DataTypes.JSONB,
@@ -28,8 +33,8 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['organization_id', 'resource_type'],
-					name: 'unique_org_resource_type',
+					fields: ['organization_id', 'resource_type', 'tenant_code'],
+					name: 'unique_org_tenant_resource_type',
 				},
 			],
 		}

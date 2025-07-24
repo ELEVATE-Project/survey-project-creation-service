@@ -21,6 +21,10 @@ module.exports = {
 				type: Sequelize.STRING,
 				allowNull: false,
 			},
+			tenant_code: {
+				type: Sequelize.STRING,
+				allowNull: false,
+			},
 			created_at: {
 				allowNull: false,
 				type: Sequelize.DATE,

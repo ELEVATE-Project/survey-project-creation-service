@@ -28,6 +28,11 @@ module.exports = {
 				primaryKey: true,
 				type: Sequelize.STRING,
 			},
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: Sequelize.STRING,
+			},
 			created_at: {
 				allowNull: false,
 				type: Sequelize.DATE,

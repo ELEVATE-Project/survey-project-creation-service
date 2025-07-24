@@ -32,6 +32,11 @@ module.exports = {
 				allowNull: false,
 				type: Sequelize.STRING,
 			},
+			tenant_code: {
+				primaryKey: true,
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
 			user_id: {
 				allowNull: false,
 				type: Sequelize.STRING,

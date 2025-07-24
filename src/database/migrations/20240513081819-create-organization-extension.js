@@ -14,6 +14,11 @@ module.exports = {
 				primaryKey: true,
 				type: Sequelize.STRING,
 			},
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: Sequelize.STRING,
+			},
 			resource_type: {
 				allowNull: false,
 				type: Sequelize.STRING,

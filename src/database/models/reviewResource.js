@@ -21,6 +21,10 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				type: DataTypes.STRING,
 			},
+			tenant_code: {
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
 		},
 		{
 			modelName: 'ReviewResource',
