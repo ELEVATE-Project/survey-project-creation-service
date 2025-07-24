@@ -33,6 +33,7 @@ module.exports = {
 					updated_by: 0,
 					allow_filtering: false,
 					organization_id: defaultOrgId,
+					tenant_code: process.env.DEFAULT_TENANT_CODE,
 					has_entities: false,
 					allow_custom_entities: false,
 				},
@@ -58,6 +59,7 @@ module.exports = {
 			const entityModelMapping = models.map((model) => {
 				return {
 					entity_type_id: nameEntityData.id,
+					tenant_code: process.env.DEFAULT_TENANT_CODE,
 					model: model,
 					status: 'ACTIVE',
 					updated_at: new Date(),

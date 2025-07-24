@@ -7,10 +7,10 @@
 require('module-alias/register')
 require('dotenv').config({ path: '../.env' })
 const entityTypeQueries = require('../database/queries/entityType')
-const defaultOrgId = process.env.DEFAULT_ORG_ID
-	? process.env.DEFAULT_ORG_ID.toString()
+const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+	? process.env.DEFAULT_TENANT_CODE.toString()
 	: (() => {
-			throw new Error('DEFAULT_ORG_ID is not defined in env')
+			throw new Error('DEFAULT_TENANT_CODE is not defined in env')
 	  })()
 const { Op } = require('sequelize')
 const entitiesQueries = require('../database/queries/entities')
@@ -76,6 +76,7 @@ const entityTypeEntitiesMapping = {
 				if (!exists) {
 					entitiesToCreate.push({
 						entity_type_id: Number(entity_type_id),
+						tenant_code: defaultTenantCode,
 						value: entity.value,
 						label: entity.label,
 						status: 'ACTIVE',

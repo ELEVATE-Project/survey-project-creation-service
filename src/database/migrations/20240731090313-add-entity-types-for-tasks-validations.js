@@ -72,6 +72,7 @@ module.exports = {
 				updated_by: 0,
 				allow_filtering: false,
 				organization_id: defaultOrgId,
+				tenant_code: process.env.DEFAULT_TENANT_CODE,
 				has_entities,
 				allow_custom_entities: false,
 				validations: validation ? JSON.stringify(validation) : null,
@@ -93,6 +94,7 @@ module.exports = {
 				for (let pointerToModel = 0; pointerToModel < entity.model.length; pointerToModel++) {
 					let data = {
 						entity_type_id: entityType.id,
+						tenant_code: process.env.DEFAULT_TENANT_CODE,
 						model: entity.model[pointerToModel],
 						status: 'ACTIVE',
 						updated_at: new Date(),

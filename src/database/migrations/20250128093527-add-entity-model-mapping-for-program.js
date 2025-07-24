@@ -62,6 +62,7 @@ module.exports = {
 				updated_by: 0,
 				allow_filtering: false,
 				organization_id: defaultOrgId,
+				tenant_code: process.env.DEFAULT_TENANT_CODE,
 				has_entities,
 				allow_custom_entities: false,
 				validations: validation ? JSON.stringify(validation) : null,
@@ -86,6 +87,7 @@ module.exports = {
 				entity.model.forEach((model) => {
 					let data = {
 						entity_type_id: entityType.id,
+						tenant_code: process.env.DEFAULT_TENANT_CODE,
 						model: model,
 						status: 'ACTIVE',
 						updated_at: new Date(),

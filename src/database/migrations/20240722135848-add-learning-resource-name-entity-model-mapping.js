@@ -23,6 +23,7 @@ module.exports = {
 		let entity_model_mapping_bulk_insert = [
 			{
 				entity_type_id: entityTypeIdMap['learning_resources'],
+				tenant_code: process.env.DEFAULT_TENANT_CODE,
 				model: 'project',
 				status: 'ACTIVE',
 				updated_at: new Date(),
@@ -30,6 +31,7 @@ module.exports = {
 			},
 			{
 				entity_type_id: entityTypeIdMap['learning_resources'],
+				tenant_code: process.env.DEFAULT_TENANT_CODE,
 				model: 'tasks',
 				status: 'ACTIVE',
 				updated_at: new Date(),
@@ -37,6 +39,7 @@ module.exports = {
 			},
 			{
 				entity_type_id: entityTypeIdMap['name'],
+				tenant_code: process.env.DEFAULT_TENANT_CODE,
 				model: 'subTasks',
 				status: 'ACTIVE',
 				updated_at: new Date(),

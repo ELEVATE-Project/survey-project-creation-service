@@ -103,7 +103,11 @@ let environmentVariables = {
 		optional: false,
 	},
 	DEFAULT_ORG_ID: {
-		message: 'Default organization ID',
+		message: 'Default organization code',
+		optional: false,
+	},
+	DEFAULT_TENANT_CODE: {
+		message: 'Default tenant code',
 		optional: false,
 	},
 	ALLOWED_HOST: {

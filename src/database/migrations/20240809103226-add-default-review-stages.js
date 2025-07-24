@@ -17,6 +17,7 @@ module.exports = {
 					level: 1,
 					resource_type: resource,
 					organization_id: defaultOrgId,
+					tenant_code: process.env.DEFAULT_TENANT_CODE,
 					created_at: new Date(),
 					updated_at: new Date(),
 				}
@@ -40,6 +41,7 @@ module.exports = {
 					role: role,
 					resource_type: resource,
 					organization_id: defaultOrgId,
+					tenant_code: process.env.DEFAULT_TENANT_CODE,
 				}
 				defaultReviewStageValues.push(resourceWiseRows)
 			})
