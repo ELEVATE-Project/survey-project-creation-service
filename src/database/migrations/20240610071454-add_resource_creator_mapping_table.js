@@ -39,15 +39,6 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
-
-		// Add an index for the 'value' column
-		await queryInterface.addIndex('resource_creator_mapping', ['resource_id', 'creator_id'], {
-			unique: true,
-			name: 'unique_creator_resource',
-			where: {
-				deleted_at: null,
-			},
-		})
 	},
 
 	async down(queryInterface, Sequelize) {

@@ -144,6 +144,7 @@ const utils = require('../generics/utils')
 				...currentPointerArray,
 				url: uploadedFilePath,
 				organization_id: utils.convertToString(process.env.DEFAULT_ORG_ID),
+				tenant_code: utils.convertToString(process.env.DEFAULT_TENANT_CODE),
 				resource_type: common.PROJECT,
 				created_by: common.CREATED_BY_SYSTEM,
 				created_at: new Date(),
