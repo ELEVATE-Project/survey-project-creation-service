@@ -74,7 +74,7 @@ module.exports = class ProgramsHelper {
 					})
 				}
 
-				const programDetails = await this.details(referenceId, referenceProgram.organization_id, userToken)
+				const programDetails = await this.details(referenceId, referenceProgram.organization_code, userToken)
 				if (programDetails.statusCode != httpStatusCode.ok && !Object.keys(programDetails?.result).length > 0) {
 					return responses.failureResponse({
 						message: 'PROGRAM_NOT_FOUND',
@@ -92,7 +92,7 @@ module.exports = class ProgramsHelper {
 				programData = {
 					..._.omit(programDetails.result, [
 						'id',
-						'organization_id',
+						'organization_code',
 						'organization',
 						'stage',
 						'status',
@@ -135,7 +135,7 @@ module.exports = class ProgramsHelper {
 				stage: common.RESOURCE_STAGE_CREATION,
 				user_id: loggedInUserId,
 				review_type: orgConfigList[common.RESOURCE_TYPE_PROGRAM],
-				organization_id: orgId,
+				organization_code: orgId,
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 				link: null,
@@ -152,7 +152,7 @@ module.exports = class ProgramsHelper {
 			const mappingData = {
 				resource_id: programId,
 				creator_id: loggedInUserId,
-				organization_id: orgId,
+				organization_code: orgId,
 			}
 			await resourceCreatorMappingQueries.create(mappingData)
 
@@ -219,7 +219,7 @@ module.exports = class ProgramsHelper {
 			// Fetch the program to be updated
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
-				organization_id: orgId,
+				organization_code: orgId,
 				status: {
 					[Op.notIn]: forbidden_resource_statuses,
 				},
@@ -237,7 +237,7 @@ module.exports = class ProgramsHelper {
 			// Check if the program is in the review stage and has no requested changes
 			const countReviews = await reviewsQueries.distinctResources(
 				{
-					organization_id: orgId,
+					organization_code: orgId,
 					resource_id: resourceId,
 					status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
 				},
@@ -259,7 +259,7 @@ module.exports = class ProgramsHelper {
 			bodyData = _.omit(bodyData, [
 				'review_type',
 				'type',
-				'organization_id',
+				'organization_code',
 				'user_id',
 				'is_resuable',
 				'stage',
@@ -269,7 +269,7 @@ module.exports = class ProgramsHelper {
 			// Fetch existing resource mappings for the program
 			const existingMappings = await programResourceMappingQueries.findAll({
 				program_id: programId,
-				organization_id: fetchResource.organization_id,
+				organization_code: fetchResource.organization_code,
 			})
 
 			const existingResourceIds = existingMappings.map((mapping) => mapping.resource_id)
@@ -325,7 +325,7 @@ module.exports = class ProgramsHelper {
 			}
 
 			const [updateCount, updatedProgram] = await resourceQueries.updateOne(
-				{ id: resourceId, organization_id: orgId },
+				{ id: resourceId, organization_code: orgId },
 				updateData,
 				{ returning: true, raw: true }
 			)
@@ -398,7 +398,7 @@ module.exports = class ProgramsHelper {
 							model: common.ENTITY_TYPE_MODELS[program.type],
 							status: common.STATUS_ACTIVE,
 						},
-						program.organization_id,
+						program.organization_code,
 						['id', 'value', 'label', 'has_entities']
 					)
 
@@ -464,15 +464,15 @@ module.exports = class ProgramsHelper {
 
 			// Fetch organization details and associated resources
 			const [organizationDetails, associatedResources] = await Promise.all([
-				orgExtensionService.fetchOrganizationDetails([program.organization_id], userToken),
+				orgExtensionService.fetchOrganizationDetails([program.organization_code], userToken),
 				programResourceMappingQueries.findAll({
 					program_id: programId,
-					organization_id: program.organization_id,
+					organization_code: program.organization_code,
 				}),
 			])
 
-			if (organizationDetails?.[program.organization_id]) {
-				result.organization = _.pick(organizationDetails[program.organization_id], ['id', 'name', 'code'])
+			if (organizationDetails?.[program.organization_code]) {
+				result.organization = _.pick(organizationDetails[program.organization_code], ['id', 'name', 'code'])
 			}
 
 			// Fetch resource details if associated resources exist
@@ -482,7 +482,7 @@ module.exports = class ProgramsHelper {
 				const [resources, openComments] = await Promise.all([
 					resourceQueries.findAll({
 						id: { [Op.in]: resourceIds },
-						organization_id: program.organization_id,
+						organization_code: program.organization_code,
 					}),
 					commentQueries.findAll({
 						resource_id: { [Op.in]: resourceIds },
@@ -494,7 +494,7 @@ module.exports = class ProgramsHelper {
 					const resourceCommentSet = new Set(openComments.map((comment) => comment.resource_id))
 					// Process each resource and store in result.resources
 					const resourceDetailsPromises = resources.map((resource) =>
-						resourceService.getDetails(resource.id, resource.organization_id, userToken)
+						resourceService.getDetails(resource.id, resource.organization_code, userToken)
 					)
 					const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
 					result.resources = resourceDetailsResults
@@ -662,7 +662,7 @@ module.exports = class ProgramsHelper {
 		try {
 			// Fetch program details
 			const program = await resourceQueries.findOne(
-				{ id: programId, organization_id: orgId },
+				{ id: programId, organization_code: orgId },
 				{
 					attributes: ['id', 'status', 'published_id', 'published_on'],
 				}
@@ -763,7 +763,7 @@ module.exports = class ProgramsHelper {
 					resource_id: resourceId,
 					creator_id: loggedInUserId,
 				},
-				['id', 'organization_id']
+				['id', 'organization_code']
 			)
 
 			if (!resourceCreatorMapping?.id) {
@@ -778,11 +778,11 @@ module.exports = class ProgramsHelper {
 				{
 					id: resourceId,
 					type: common.RESOURCE_TYPE_PROGRAM,
-					organization_id: resourceCreatorMapping.organization_id,
+					organization_code: resourceCreatorMapping.organization_code,
 					status: common.RESOURCE_STATUS_DRAFT,
 					stage: common.RESOURCE_STAGE_CREATION,
 				},
-				{ attributes: ['id', 'organization_id', 'published_id'] }
+				{ attributes: ['id', 'organization_code', 'published_id'] }
 			)
 
 			if (!resource?.id) {
@@ -793,7 +793,7 @@ module.exports = class ProgramsHelper {
 				})
 			}
 
-			let updatedResource = await resourceQueries.deleteOne(resourceId, resource.organization_id)
+			let updatedResource = await resourceQueries.deleteOne(resourceId, resource.organization_code)
 			let updatedResourceCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
 				resourceCreatorMapping.id,
 				loggedInUserId
@@ -869,7 +869,7 @@ module.exports = class ProgramsHelper {
 	 */
 	static async submitForReview(programId, bodyData, userDetails) {
 		try {
-			let programDetails = await this.details(programId, userDetails.organization_id, userDetails.token)
+			let programDetails = await this.details(programId, userDetails.organization_code, userDetails.token)
 			if (programDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROGRAM_ACCESS',
@@ -980,7 +980,7 @@ module.exports = class ProgramsHelper {
 						resource_id: programData.id,
 						reviewer_id,
 						status: common.REVIEW_STATUS_NOT_STARTED,
-						organization_id: userDetails.organization_id,
+						organization_code: userDetails.organization_code,
 					}))
 
 				// Prepare updates for existing reviewers
@@ -1022,7 +1022,7 @@ module.exports = class ProgramsHelper {
 				//Update the review status if the resource has been submitted before
 				let updatedReviewCount = await reviewsQueries.update(
 					{
-						organization_id: programData.organization_id,
+						organization_code: programData.organization_code,
 						resource_id: programData.id,
 						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 					},
@@ -1051,7 +1051,7 @@ module.exports = class ProgramsHelper {
 			//check review is required or not
 			const isReviewMandatory = await resourceService.isReviewMandatory(
 				programData.type,
-				programData.organization_id
+				programData.organization_code
 			)
 
 			// this will be handled while taking up program publish
@@ -1090,7 +1090,7 @@ module.exports = class ProgramsHelper {
 				userId: userDetails.id,
 				objectId: programData.id,
 				objectType: common.MODEL_NAMES.RESOURCE,
-				orgId: userDetails.organization_id,
+				orgId: userDetails.organization_code,
 			})
 
 			return responses.successResponse({
@@ -1116,7 +1116,7 @@ module.exports = class ProgramsHelper {
 	 */
 	static async publish(programId, userDetails) {
 		try {
-			let programDetails = await this.details(programId, userDetails.organization_id, userDetails.token)
+			let programDetails = await this.details(programId, userDetails.organization_code, userDetails.token)
 			if (programDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROGRAM_ACCESS',
@@ -1170,7 +1170,7 @@ module.exports = class ProgramsHelper {
 			const publishRollout = await rolloutService.publish(
 				rolloutId,
 				programData.user_id,
-				programData.organization_id,
+				programData.organization_code,
 				userDetails.token
 			)
 
@@ -1184,7 +1184,7 @@ module.exports = class ProgramsHelper {
 
 			//update the program resource
 			await resourceQueries.updateOne(
-				{ id: programId, organization_id: programData.organization_id },
+				{ id: programId, organization_code: programData.organization_code },
 				{
 					status: common.RESOURCE_STATUS_PUBLISHED,
 					stage: common.RESOURCE_STAGE_COMPLETION,
@@ -1253,7 +1253,7 @@ module.exports = class ProgramsHelper {
 					model: common.RESOURCE_TYPE_PROGRAM,
 					status: common.STATUS_ACTIVE,
 				},
-				programData.organization_id,
+				programData.organization_code,
 				['id', 'value', 'has_entities', 'validations']
 			)
 
@@ -1275,7 +1275,7 @@ module.exports = class ProgramsHelper {
 						},
 						status: common.STATUS_ACTIVE,
 					},
-					programData.organization_id,
+					programData.organization_code,
 					['id', 'value', 'has_entities', 'validations']
 				)
 				let { programTopLevelTargetingEntities, programLevelRoles } = await fetchProgramTopLevelEntities(
@@ -1359,7 +1359,7 @@ async function handleProgramRollouts(resourceData, resourceId, userId, userToken
 			resourceId,
 			resourceData,
 			userId,
-			resourceData.organization_id,
+			resourceData.organization_code,
 			userToken
 		)
 	} else {
@@ -1400,14 +1400,14 @@ async function handleResources(
 		// Fetch resources from the database
 		const resourceList = await resourceQueries.findAll({
 			id: { [Op.in]: resourceIds },
-			organization_id: orgId,
+			organization_code: orgId,
 		})
 
 		if (!resourceList?.length) return
 
 		// Fetch details for all resources in parallel
 		const resourceDetailsPromises = resourceList.map(async (resource) => {
-			const details = await resourceService.getDetails(resource.id, resource.organization_id, userToken)
+			const details = await resourceService.getDetails(resource.id, resource.organization_code, userToken)
 			return { id: resource.id, result: details?.result }
 		})
 
@@ -1431,7 +1431,7 @@ async function handleResources(
 
 				const commonFields = {
 					user_id: loggedInUserId,
-					organization_id: orgId,
+					organization_code: orgId,
 					updated_by: loggedInUserId,
 					created_at: new Date(),
 					updated_at: new Date(),
@@ -1464,13 +1464,13 @@ async function handleResources(
 							resourceCreatorMappingQueries.create({
 								resource_id: duplicateResource.id,
 								creator_id: loggedInUserId,
-								organization_id: orgId,
+								organization_code: orgId,
 							}),
 							// Map the duplicated resource to the program
 							programResourceMappingQueries.create({
 								program_id: programId,
 								resource_id: duplicateResource.id,
-								organization_id: orgId,
+								organization_code: orgId,
 							}),
 						])
 
@@ -1718,7 +1718,7 @@ async function validateReviewers(reviewerIds, userDetails) {
 		'',
 		'',
 		'',
-		userDetails.organization_id,
+		userDetails.organization_code,
 		{
 			user_ids: uniqueReviewerIds,
 			excluded_user_ids: [userDetails.id],

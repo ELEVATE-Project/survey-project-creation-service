@@ -3,7 +3,7 @@ const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
 const certificateQueries = require('@database/queries/certificateBaseTemplate')
 const { UniqueConstraintError } = require('sequelize')
-const defaultOrgId = process.env.DEFAULT_ORG_ID
+const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
 const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const filesService = require('@services/files')
@@ -23,7 +23,7 @@ module.exports = class certificatesHelper {
 			}
 
 			let filter = {
-				organization_id: {
+				organization_code: {
 					[Op.in]: [orgId, defaultOrgId],
 				},
 			}
@@ -110,7 +110,7 @@ module.exports = class certificatesHelper {
 				})
 			} else {
 				bodyData.created_by = loggedInUserId
-				bodyData.organization_id = orgId
+				bodyData.organization_code = orgId
 				const certificate = await certificateQueries.create(bodyData)
 				return responses.successResponse({
 					statusCode: httpStatusCode.created,

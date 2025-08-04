@@ -57,6 +57,15 @@ module.exports = {
 				deleted_at: null,
 			},
 		})
+		await queryInterface.addConstraint('entities', {
+			fields: ['entity_type_id', 'tenant_code'],
+			type: 'foreign key',
+			name: 'fk_entities_entity_type',
+			references: {
+				table: 'entity_types',
+				fields: ['id', 'tenant_code'],
+			},
+		})
 	},
 	async down(queryInterface, Sequelize) {
 		await queryInterface.dropTable('entities')

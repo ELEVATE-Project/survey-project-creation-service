@@ -28,7 +28,7 @@ module.exports = class UserActionHelper {
 				user_id: userId,
 				object_id: objectId,
 				object_type: objectType,
-				organization_id: orgId,
+				organization_code: orgId,
 			}
 
 			//create the activity

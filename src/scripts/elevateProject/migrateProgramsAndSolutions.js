@@ -494,7 +494,7 @@ const dbName = mongoUrl.split('/').pop()
 					programIdStr,
 					convertedProgramTemplate,
 					convertedProgramTemplate.created_by,
-					convertedProgramTemplate.organization_id,
+					convertedProgramTemplate.organization_code,
 					validSolutionIds
 				)
 
@@ -525,7 +525,7 @@ const dbName = mongoUrl.split('/').pop()
 				// Get the program details
 				let programDetail = await programService.details(
 					programResourceId,
-					convertedProgramTemplate.organization_id
+					convertedProgramTemplate.organization_code
 				)
 
 				// Validate the program details
@@ -560,7 +560,7 @@ const dbName = mongoUrl.split('/').pop()
 				const createProgramRolloutResponse = await rolloutService.create(
 					convertedProgramRolloutTemplate,
 					convertedProgramRolloutTemplate.created_by,
-					convertedProgramRolloutTemplate.organization_id,
+					convertedProgramRolloutTemplate.organization_code,
 					false
 				)
 
@@ -585,7 +585,7 @@ const dbName = mongoUrl.split('/').pop()
 					let convertSolutionRolloutTemplate = _.pick(solutionData, [
 						'title',
 						'targeting_criteria',
-						'organization_id',
+						'organization_code',
 						'user_id',
 						'type',
 						'created_by',
@@ -602,7 +602,7 @@ const dbName = mongoUrl.split('/').pop()
 					const createSolutionRolloutResponse = await rolloutService.create(
 						convertSolutionRolloutTemplate,
 						convertSolutionRolloutTemplate.created_by,
-						convertSolutionRolloutTemplate.organization_id,
+						convertSolutionRolloutTemplate.organization_code,
 						true
 					)
 
@@ -806,7 +806,7 @@ async function convertProjectTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 				: [],
 			licenses: 'cc_by_4.0',
 			created_by: userId.toString(),
-			organization_id: orgId.toString(),
+			organization_code: orgId.toString(),
 			published_id: template._id,
 			tasks: template.taskDetails ? template.taskDetails.map(convertTask) : [],
 			targeting_criteria: [],
@@ -920,7 +920,7 @@ async function createProjectAndEntities(
 			templateId,
 			templateData,
 			templateData.created_by,
-			templateData.organization_id
+			templateData.organization_code
 		)
 
 		if (projectCreationResponse.success) {
@@ -1007,7 +1007,7 @@ async function convertProgramTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 			stage: 'COMPLETION',
 			user_id: userId.toString(),
 			published_id: template._id,
-			organization_id: orgId.toString(),
+			organization_code: orgId.toString(),
 			created_by: userId.toString(),
 			updated_by: userId.toString(),
 			published_on: new Date(),
@@ -1063,7 +1063,7 @@ async function createProgram(programId, programData, userId, orgId, solutionIds)
 			await programResourceMappingQueries.create({
 				program_id: createProgramRes.result.id,
 				resource_id: solutionId,
-				organization_id: orgId,
+				organization_code: orgId,
 			})
 		}
 
@@ -1662,7 +1662,7 @@ async function handleCertificateTemplate(solution, projectTemplate, db) {
 				code: certificateBaseTemplate.code,
 				name: certificateBaseTemplate.name,
 				url: uploadedFilePath,
-				organization_id: utils.convertToString(process.env.DEFAULT_ORG_ID),
+				organization_code: utils.convertToString(process.env.DEFAULT_ORG_ID),
 				resource_type: common.PROJECT,
 				created_by: common.CREATED_BY_SYSTEM,
 				created_at: new Date(),

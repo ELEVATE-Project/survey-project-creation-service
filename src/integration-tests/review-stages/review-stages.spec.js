@@ -24,7 +24,7 @@ describe('Review Stages APIs ', function () {
 	})
 
 	it('Update Review Stages with invalid data', async () => {
-		let res = await request.put('/scp/v1/review-stages/update/2?organization_id=1').send({
+		let res = await request.put('/scp/v1/review-stages/update/2?organization_code=1').send({
 			level: 2,
 			resource_type: 'observation',
 		})
@@ -32,7 +32,7 @@ describe('Review Stages APIs ', function () {
 	})
 
 	it('Update Review Stages with valid data', async () => {
-		let res = await request.put('/scp/v1/review-stages/update/2?organization_id=1').send({
+		let res = await request.put('/scp/v1/review-stages/update/2?organization_code=1').send({
 			role: 'reviewer',
 			level: 2,
 			resource_type: 'observation',

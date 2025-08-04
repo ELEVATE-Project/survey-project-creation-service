@@ -32,7 +32,7 @@ module.exports = {
 				),
 				defaultValue: 'NOT_STARTED',
 			},
-			organization_id: {
+			organization_code: {
 				primaryKey: true,
 				allowNull: false,
 				type: Sequelize.STRING,

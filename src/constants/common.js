@@ -246,5 +246,5 @@ module.exports = {
 		project: 'project.json',
 		program: 'program.json',
 	},
-	ORGANIZATION_KEY: 'organization_id',
+	ORGANIZATION_KEY: 'organization_code',
 }

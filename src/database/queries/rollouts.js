@@ -70,12 +70,12 @@ exports.findAllAndCount = async (filter, attributes = [], options = {}) => {
 	}
 }
 
-exports.deleteOne = async (id, organization_id) => {
+exports.deleteOne = async (id, organization_code) => {
 	try {
 		return await Rollout.destroy({
 			where: {
 				id,
-				organization_id,
+				organization_code,
 			},
 			individualHooks: true,
 		})

@@ -19,29 +19,29 @@ module.exports = class orgExtensionsHelper {
 	 * @returns {JSON} - Organization Config created response.
 	 */
 
-	static async createConfig(bodyData, organization_id) {
+	static async createConfig(bodyData, organization_code) {
 		try {
-			bodyData.organization_id = organization_id
+			bodyData.organization_code = organization_code
 			const { resource_type, review_stages, review_type, data_managers, program_managers } = bodyData
 			// check if body have data_managers
 			if (data_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_id,
+						organization_code,
 						meta: { data_managers },
 						updated_at: new Date(),
 					},
-					{ organization_id }
+					{ organization_code }
 				)
 			}
 			if (program_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_id,
+						organization_code,
 						meta: { program_managers },
 						updated_at: new Date(),
 					},
-					{ organization_id }
+					{ organization_code }
 				)
 			}
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
@@ -78,7 +78,7 @@ module.exports = class orgExtensionsHelper {
 				try {
 					const createReviewStages = review_stages.map((stage) => ({
 						...stage,
-						organization_id,
+						organization_code,
 						resource_type,
 					}))
 
@@ -124,11 +124,11 @@ module.exports = class orgExtensionsHelper {
 	 * @name updateConfig
 	 * @param {Object} bodyData - Organization config body data.
 	 * @param {String} id - config id.
-	 * @param {String} organization_id - organization id
+	 * @param {String} organization_code - organization id
 	 * @returns {JSON} - Organization Config updated response.
 	 */
 
-	static async updateConfig(id, resource_type, bodyData, organization_id) {
+	static async updateConfig(id, resource_type, bodyData, organization_code) {
 		try {
 			//validate resource type
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
@@ -146,11 +146,11 @@ module.exports = class orgExtensionsHelper {
 			if (data_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_id,
+						organization_code,
 						meta: { data_managers },
 						updated_at: new Date(),
 					},
-					{ organization_id }
+					{ organization_code }
 				)
 			}
 
@@ -158,25 +158,25 @@ module.exports = class orgExtensionsHelper {
 			if (program_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_id,
+						organization_code,
 						meta: { program_managers },
 						updated_at: new Date(),
 					},
-					{ organization_id }
+					{ organization_code }
 				)
 			}
 
 			const filter = {
 				id: id,
 				resource_type: resource_type,
-				organization_id: organization_id,
+				organization_code: organization_code,
 			}
 
 			if (review_type === common.REVIEW_TYPE_SEQUENTIAL) {
 				// Fetch existing review stages
 				const existingReviewStages = await reviewStageQueries.findAll({
 					resource_type: resource_type,
-					organization_id: organization_id,
+					organization_code: organization_code,
 				})
 
 				// Check if review_stages is not null, undefined, not an array, empty or invalid
@@ -210,7 +210,7 @@ module.exports = class orgExtensionsHelper {
 									existingStage.role === stage.role &&
 									existingStage.level === stage.level &&
 									existingStage.resource_type === resource_type &&
-									existingStage.organization_id === organization_id
+									existingStage.organization_code === organization_code
 							)
 					)
 
@@ -218,7 +218,7 @@ module.exports = class orgExtensionsHelper {
 					if (newReviewStages.length > 0) {
 						const createReviewStages = newReviewStages.map((stage) => ({
 							...stage,
-							organization_id,
+							organization_code,
 							resource_type,
 						}))
 						try {
@@ -260,11 +260,11 @@ module.exports = class orgExtensionsHelper {
 	/**
 	 * Get all details of org from the user service.
 	 * @name fetchOrganizationDetails
-	 * @param {Array} organization_ids - array of organization_ids.
+	 * @param {Array} organization_codes - array of organization_codes.
 	 * @returns {Object} - Response contain object of org details
 	 */
-	static async fetchOrganizationDetails(organization_ids, userToken = '') {
-		const orgDetailsResponse = await userRequests.listOrganization(organization_ids, userToken)
+	static async fetchOrganizationDetails(organization_codes, userToken = '') {
+		const orgDetailsResponse = await userRequests.listOrganization(organization_codes, userToken)
 		let orgDetails = {}
 
 		if (orgDetailsResponse.success && orgDetailsResponse.data?.result?.length > 0) {
@@ -279,13 +279,13 @@ module.exports = class orgExtensionsHelper {
 	 * @name getConfig
 	 * @returns {JSON} - List of configs based on orgId of user as response.
 	 */
-	static async getConfig(organization_id) {
+	static async getConfig(organization_code) {
 		try {
 			let orgExtenstionData = {}
 			let configData = []
 			// define filter
 			const filter = {
-				organization_id,
+				organization_code,
 			}
 			let result = {
 				config: {},
@@ -296,10 +296,10 @@ module.exports = class orgExtensionsHelper {
 					is_auth_token_bearer: process.env.IS_AUTH_TOKEN_BEARER === 'true',
 				},
 			}
-			// fetch org config for organization_id
+			// fetch org config for organization_code
 			const orgConfig = await organizationConfigQueries.findOne(
 				{
-					organization_id,
+					organization_code,
 				},
 				['meta']
 			)

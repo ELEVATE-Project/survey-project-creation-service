@@ -37,7 +37,7 @@ module.exports = {
 					created_by: 0,
 					updated_by: 0,
 					allow_filtering: false,
-					organization_id: defaultOrgId,
+					organization_code: defaultOrgId,
 					tenant_code: defaultTenantCode,
 					has_entities: false,
 					allow_custom_entities: false,

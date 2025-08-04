@@ -39,7 +39,7 @@ module.exports = {
 				allowNull: false,
 				type: Sequelize.STRING,
 			},
-			organization_id: {
+			organization_code: {
 				primaryKey: true,
 				allowNull: false,
 				type: Sequelize.STRING,

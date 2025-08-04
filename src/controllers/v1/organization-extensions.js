@@ -20,11 +20,13 @@ module.exports = class orgExtensions {
 
 	async createConfig(req) {
 		try {
-			let organization_id = req.decodedToken.organization_id
+			let organization_code = req.decodedToken.organization_code
 			if (utils.validateRoleAccess(req.decodedToken.roles, process.env.DEFAULT_ADMIN_ROLE)) {
-				organization_id = req.body.organization_id ? req.body.organization_id : req.decodedToken.organization_id
+				organization_code = req.body.organization_code
+					? req.body.organization_code
+					: req.decodedToken.organization_code
 			}
-			const orgExtension = await orgExtensionService.createConfig(req.body, organization_id)
+			const orgExtension = await orgExtensionService.createConfig(req.body, organization_code)
 			return orgExtension
 		} catch (error) {
 			return error
@@ -41,15 +43,17 @@ module.exports = class orgExtensions {
 
 	async updateConfig(req) {
 		try {
-			let organization_id = req.decodedToken.organization_id
+			let organization_code = req.decodedToken.organization_code
 			if (utils.validateRoleAccess(req.decodedToken.roles, process.env.DEFAULT_ADMIN_ROLE)) {
-				organization_id = req.body.organization_id ? req.body.organization_id : req.decodedToken.organization_id
+				organization_code = req.body.organization_code
+					? req.body.organization_code
+					: req.decodedToken.organization_code
 			}
 			const orgExtension = await orgExtensionService.updateConfig(
 				req.params.id,
 				req.query.resource_type,
 				req.body,
-				organization_id
+				organization_code
 			)
 			return orgExtension
 		} catch (error) {

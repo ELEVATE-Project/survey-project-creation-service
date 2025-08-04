@@ -10,13 +10,13 @@ const entityType = {
 		'status',
 		'created_by',
 		'updated_by',
-		'organization_id',
+		'organization_code',
 		'parent_id',
 		'allow_filtering',
 		'created_at',
 		'updated_at',
 	],
-	update: ['id', 'created_by', 'updated_by', 'allow_filtering', 'organization_id', 'parent_id'],
+	update: ['id', 'created_by', 'updated_by', 'allow_filtering', 'organization_code', 'parent_id'],
 }
 
 const entities = {
@@ -25,8 +25,8 @@ const entities = {
 }
 
 const form = {
-	create: ['id', 'version', 'organization_id', 'created_at', 'updated_at', 'created_by', 'updated_by'],
-	update: ['id', 'version', 'organization_id', 'created_at', 'updated_at', 'created_by', 'updated_by'],
+	create: ['id', 'version', 'organization_code', 'created_at', 'updated_at', 'created_by', 'updated_by'],
+	update: ['id', 'version', 'organization_code', 'created_at', 'updated_at', 'created_by', 'updated_by'],
 }
 
 const modules = {
@@ -49,15 +49,15 @@ const comments = {
 }
 
 const organizationExtensions = {
-	createConfig: ['id', 'organization_id'],
-	updateConfig: ['id', 'organization_id'],
+	createConfig: ['id', 'organization_code'],
+	updateConfig: ['id', 'organization_code'],
 }
 
 const projects = {
 	update: [
 		'id',
 		'user_id',
-		'organization_id',
+		'organization_code',
 		'created_by',
 		'updated_by',
 		'review_type',
@@ -78,7 +78,7 @@ const projects = {
 	],
 	submitForReview: [
 		'id',
-		'organization_id',
+		'organization_code',
 		'created_by',
 		'updated_by',
 		'review_type',
@@ -99,18 +99,18 @@ const projects = {
 }
 
 const reviewStages = {
-	update: ['id', 'organization_id', 'created_at', 'updated_at'],
+	update: ['id', 'organization_code', 'created_at', 'updated_at'],
 }
 
 const certificates = {
-	update: ['id', 'organization_id', 'created_by', 'updated_by', 'created_at', 'updated_at'],
+	update: ['id', 'organization_code', 'created_by', 'updated_by', 'created_at', 'updated_at'],
 }
 
 const rollouts = {
 	update: [
 		'id',
 		'user_id',
-		'organization_id',
+		'organization_code',
 		'created_by',
 		'updated_by',
 		'resource_type',
@@ -130,7 +130,7 @@ const programs = {
 	update: [
 		'id',
 		'user_id',
-		'organization_id',
+		'organization_code',
 		'created_by',
 		'updated_by',
 		'review_type',
@@ -154,7 +154,7 @@ const programs = {
 	],
 	resources: [
 		'user_id',
-		'organization_id',
+		'organization_code',
 		'created_by',
 		'updated_by',
 		'review_type',

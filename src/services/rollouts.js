@@ -29,7 +29,7 @@ module.exports = class RolloutsHelper {
 			//validate the resource
 			let resource = await resourceQueries.findOne({
 				id: bodyData.resource_id,
-				organization_id: orgId,
+				organization_code: orgId,
 				stage: common.RESOURCE_STAGE_COMPLETION,
 			})
 
@@ -48,7 +48,7 @@ module.exports = class RolloutsHelper {
 				status: common.ROLLOUT_STATUS_PENDING,
 				type: isSolutionType ? common.ROLLOUT_TYPE_SOLUTION : common.ROLLOUT_TYPE_PROGRAM,
 				user_id: loggedInUserId,
-				organization_id: orgId,
+				organization_code: orgId,
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 			}
@@ -79,7 +79,7 @@ module.exports = class RolloutsHelper {
 				) {
 					let filter = {
 						id: rolloutId,
-						organization_id: orgId,
+						organization_code: orgId,
 					}
 
 					let updateData = {
@@ -104,12 +104,12 @@ module.exports = class RolloutsHelper {
 				} else {
 					// If file upload fails, rollback the transaction and delete the created entry
 					if (rolloutCreate?.id)
-						await rolloutQueries.deleteOne(rolloutCreate.id, rolloutCreate.organization_id)
+						await rolloutQueries.deleteOne(rolloutCreate.id, rolloutCreate.organization_code)
 					await transaction.rollback()
 					throw new Error('FILE_UPLOADED_FAILED')
 				}
 			} catch (error) {
-				if (rolloutCreate?.id) await rolloutQueries.deleteOne(rolloutCreate.id, rolloutCreate.organization_id)
+				if (rolloutCreate?.id) await rolloutQueries.deleteOne(rolloutCreate.id, rolloutCreate.organization_code)
 				await transaction.rollback()
 				return responses.failureResponse({
 					message: error.message || error,
@@ -151,7 +151,7 @@ module.exports = class RolloutsHelper {
 
 			const rollout = await rolloutQueries.findOne({
 				id: rolloutId,
-				organization_id: orgId,
+				organization_code: orgId,
 				user_id: loggedInUserId,
 			})
 
@@ -195,11 +195,11 @@ module.exports = class RolloutsHelper {
 
 					// fetch the org details from user service
 					const organizationDetails = await orgExtensionService.fetchOrganizationDetails(
-						[rollout.organization_id],
+						[rollout.organization_code],
 						userToken
 					)
-					if (organizationDetails?.[rollout.organization_id]) {
-						resultData.organization = _.pick(organizationDetails[rollout.organization_id], [
+					if (organizationDetails?.[rollout.organization_code]) {
+						resultData.organization = _.pick(organizationDetails[rollout.organization_code], [
 							'id',
 							'name',
 							'code',
@@ -266,7 +266,7 @@ module.exports = class RolloutsHelper {
 	/* Rollout List
 	 * @method
 	 * @name list
-	 * @param {String} organization_id
+	 * @param {String} organization_code
 	 * @param {String} loggedInUserId
 	 * @param {Object} queryParams
 	 * @param {String} searchText
@@ -274,7 +274,7 @@ module.exports = class RolloutsHelper {
 	 * @param {Integer} limit
 	 * @returns {JSON} - List of rollouts
 	 */
-	static async list(organization_id, loggedInUserId, queryParams, searchText = '', page, limit, userToken = '') {
+	static async list(organization_code, loggedInUserId, queryParams, searchText = '', page, limit, userToken = '') {
 		try {
 			let result = {
 				data: [],
@@ -282,7 +282,7 @@ module.exports = class RolloutsHelper {
 			}
 
 			let filters = {
-				organization_id,
+				organization_code,
 				user_id: loggedInUserId,
 				type: common.ROLLOUT_TYPE_PROGRAM,
 			}
@@ -297,7 +297,7 @@ module.exports = class RolloutsHelper {
 			const programRollouts = await rolloutQueries.findAll(
 				{
 					resource_type: common.RESOURCE_TYPE_PROGRAM,
-					organization_id: organization_id,
+					organization_code: organization_code,
 				},
 				{ attributes: ['id'] }
 			)
@@ -340,7 +340,7 @@ module.exports = class RolloutsHelper {
 					'status',
 					'start_date',
 					'end_date',
-					'organization_id',
+					'organization_code',
 					'created_by',
 					'created_at',
 					'updated_at',
@@ -363,7 +363,7 @@ module.exports = class RolloutsHelper {
 			let orgList = []
 
 			rolloutList.result.forEach((eachRollout) => {
-				orgList.push(eachRollout.organization_id)
+				orgList.push(eachRollout.organization_code)
 			})
 
 			// fetch the user details from user service
@@ -378,11 +378,11 @@ module.exports = class RolloutsHelper {
 				eachRollout['creator'] = userDetails[eachRollout.created_by]
 					? userDetails[eachRollout.created_by].name
 					: null
-				eachRollout['organization'] = orgDetails[eachRollout.organization_id]
-					? orgDetails[eachRollout.organization_id]
+				eachRollout['organization'] = orgDetails[eachRollout.organization_code]
+					? orgDetails[eachRollout.organization_code]
 					: null
 				delete eachRollout['created_by']
-				delete eachRollout['organization_id']
+				delete eachRollout['organization_code']
 				rolloutFinalList.push(eachRollout)
 			})
 
@@ -415,7 +415,7 @@ module.exports = class RolloutsHelper {
 		try {
 			let rollout = await rolloutQueries.findOne({
 				id: rolloutId,
-				organization_id: orgId,
+				organization_code: orgId,
 			})
 
 			if (!rollout?.id) {
@@ -446,7 +446,7 @@ module.exports = class RolloutsHelper {
 
 				let resource = await resourceQueries.findOne({
 					id: bodyData.resource_id,
-					organization_id: orgId,
+					organization_code: orgId,
 					stage: common.RESOURCE_STAGE_COMPLETION,
 				})
 
@@ -459,7 +459,7 @@ module.exports = class RolloutsHelper {
 				}
 			}
 
-			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_id', 'user_id', 'status'])
+			bodyData = _.omit(bodyData, ['id', 'resource_type', 'type', 'organization_code', 'user_id', 'status'])
 
 			if (bodyData.start_date == '' || bodyData.start_date == undefined) {
 				bodyData.start_date = null
@@ -487,7 +487,7 @@ module.exports = class RolloutsHelper {
 
 			let filter = {
 				id: rolloutId,
-				organization_id: orgId,
+				organization_code: orgId,
 			}
 
 			let updateData = {
@@ -587,7 +587,7 @@ module.exports = class RolloutsHelper {
 				})
 			}
 
-			let updatedRolledout = await rolloutQueries.deleteOne(rolloutId, rollout.organization_id)
+			let updatedRolledout = await rolloutQueries.deleteOne(rolloutId, rollout.organization_code)
 
 			if (updatedRolledout === 0) {
 				return responses.failureResponse({
@@ -664,7 +664,7 @@ module.exports = class RolloutsHelper {
 					resource_id: resourceDetailsResult?.id,
 					type: common.ROLLOUT_TYPE_SOLUTION,
 					parent_id: rolloutId,
-					organization_id: orgId,
+					organization_code: orgId,
 				})
 
 				if (!solutionRollout?.id) {
@@ -741,7 +741,7 @@ module.exports = class RolloutsHelper {
 				model: common.ROLL_OUT_MODEL,
 				status: common.STATUS_ACTIVE,
 			},
-			rollout.organization_id,
+			rollout.organization_code,
 			['value', 'validations']
 		)
 
@@ -895,7 +895,7 @@ module.exports = class RolloutsHelper {
 						[Op.in]: [programId, ...programResourceIds],
 					},
 					user_id: userId,
-					organization_id: orgId,
+					organization_code: orgId,
 				},
 				{
 					attributes: ['id', 'resource_type', 'resource_id'],
@@ -910,7 +910,10 @@ module.exports = class RolloutsHelper {
 				let createRolloutPromise = []
 				const programResources = programData?.resources || []
 				for (const resource of deltaResources) {
-					const fetchResourceDetails = await resourceService.getDetails(resource, programData.organization_id)
+					const fetchResourceDetails = await resourceService.getDetails(
+						resource,
+						programData.organization_code
+					)
 					const rolloutDetails = _.omit(fetchResourceDetails?.result, [
 						'resource_id',
 						'resource_type',
@@ -933,7 +936,7 @@ module.exports = class RolloutsHelper {
 					}
 
 					createRolloutPromise.push(
-						this.create(resourceRolloutReqBody, userId, programData.organization_id, true)
+						this.create(resourceRolloutReqBody, userId, programData.organization_code, true)
 					)
 				}
 				await Promise.all(createRolloutPromise)
@@ -943,7 +946,7 @@ module.exports = class RolloutsHelper {
 							[Op.in]: [programId, ...programResourceIds],
 						},
 						user_id: userId,
-						organization_id: orgId,
+						organization_code: orgId,
 					},
 					{
 						attributes: ['id', 'resource_type', 'resource_id'],
@@ -992,7 +995,7 @@ module.exports = class RolloutsHelper {
 
 			const rolloutDetails = await this.details(
 				programRolloutId,
-				programData.organization_id,
+				programData.organization_code,
 				programData.user_id,
 				false
 			)
@@ -1032,7 +1035,7 @@ module.exports = class RolloutsHelper {
 					resource_id: {
 						[Op.in]: programResourceIds,
 					},
-					organization_id: programData.organization_id,
+					organization_code: programData.organization_code,
 					created_by: userId,
 				},
 				['id']
@@ -1047,7 +1050,7 @@ module.exports = class RolloutsHelper {
 					resourceIds.push(resource?.id)
 					const fetchResourceDetails = await resourceService.getDetails(
 						resource?.id,
-						programData.organization_id,
+						programData.organization_code,
 						userToken
 					)
 					const rolloutDetails = _.omit(fetchResourceDetails?.result, [
@@ -1078,7 +1081,7 @@ module.exports = class RolloutsHelper {
 					}
 
 					createRolloutPromise.push(
-						this.create(resourceRolloutReqBody, userId, programData.organization_id, true)
+						this.create(resourceRolloutReqBody, userId, programData.organization_code, true)
 					)
 				}
 			}
@@ -1112,7 +1115,7 @@ module.exports = class RolloutsHelper {
 			const createProgramRollout = await this.create(
 				rolloutReqBody,
 				programData.user_id,
-				programData.organization_id
+				programData.organization_code
 			)
 
 			if (createProgramRollout.statusCode !== httpStatusCode.ok) {

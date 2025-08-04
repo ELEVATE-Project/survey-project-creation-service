@@ -19,7 +19,7 @@ module.exports = {
 				primaryKey: true,
 				type: Sequelize.STRING,
 			},
-			organization_id: {
+			organization_code: {
 				allowNull: false,
 				type: Sequelize.STRING,
 			},

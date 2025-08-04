@@ -6,7 +6,7 @@ module.exports = {
 		// Add unique constraint for code per organization
 		await queryInterface.addConstraint('certificate_base_templates', {
 			type: 'unique',
-			fields: ['organization_id', 'code', 'tenant_code'],
+			fields: ['organization_code', 'code', 'tenant_code'],
 			name: 'unique_code_per_organization_tenant',
 		})
 	},

@@ -373,7 +373,7 @@ async function convertTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 				: [],
 			licenses: 'cc_by_4.0',
 			created_by: userId.toString(),
-			organization_id: orgId.toString(),
+			organization_code: orgId.toString(),
 			published_id: template._id,
 			tasks: template.taskDetails ? template.taskDetails.map(convertTask) : [],
 		}
@@ -580,7 +580,7 @@ async function createProjectAndEntities(
 			templateId,
 			templateData,
 			templateData.created_by,
-			templateData.organization_id
+			templateData.organization_code
 		)
 
 		if (projectCreationResponse.success) {

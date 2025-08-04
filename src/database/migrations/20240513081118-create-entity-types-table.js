@@ -32,7 +32,7 @@ module.exports = {
 				allowNull: false,
 				type: Sequelize.STRING,
 			},
-			organization_id: {
+			organization_code: {
 				allowNull: false,
 				primaryKey: true,
 				type: Sequelize.STRING,
@@ -70,12 +70,17 @@ module.exports = {
 		})
 
 		// Add an index for the 'value' column
-		await queryInterface.addIndex('entity_types', ['value', 'organization_id', 'tenant_code'], {
+		await queryInterface.addIndex('entity_types', ['value', 'organization_code', 'tenant_code'], {
 			unique: true,
 			name: 'unique_value_org_id_tenant_code',
 			where: {
 				deleted_at: null,
 			},
+		})
+		//for FK relations
+		await queryInterface.addIndex('entity_types', ['id', 'tenant_code'], {
+			unique: true,
+			name: 'unique_id_tenant_code',
 		})
 	},
 	async down(queryInterface, Sequelize) {

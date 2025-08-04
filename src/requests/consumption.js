@@ -1633,7 +1633,7 @@ const publishProgram = function async(programData) {
 					)
 				const fetchDetails = await rolloutService.details(
 					rolloutId,
-					programData.organization_id,
+					programData.organization_code,
 					programData.created_by,
 					false
 				)
@@ -1657,7 +1657,7 @@ const publishProgram = function async(programData) {
 						} else {
 							const fetchProjectDetails = await projectService.details(
 								programData?.resource?.resource_id,
-								programData?.resource?.organization_id
+								programData?.resource?.organization_code
 							)
 							publishedProject = { templateId: fetchProjectDetails?.result?.published_id }
 							fetchDetails.result = {
@@ -1698,7 +1698,7 @@ const publishProgram = function async(programData) {
 							end_date: template?.endDate,
 							start_date: template?.startDate,
 							created_by: programData.created_by,
-							orgId: programData.organization_id,
+							orgId: programData.organization_code,
 						}
 						if (isProgramResource) {
 							programDetails.start_date = fetchDetails?.result?.start_date

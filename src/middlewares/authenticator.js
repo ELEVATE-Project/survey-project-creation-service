@@ -121,10 +121,10 @@ module.exports = async function (req, res, next) {
 
 		req.decodedToken.id =
 			typeof req.decodedToken?.id === 'number' ? req.decodedToken?.id?.toString() : req.decodedToken?.id
-		req.decodedToken.organization_id =
-			typeof req.decodedToken?.organization_id === 'number'
-				? req.decodedToken?.organization_id?.toString()
-				: req.decodedToken?.organization_id
+		req.decodedToken.organization_code =
+			typeof req.decodedToken?.organization_code === 'number'
+				? req.decodedToken?.organization_code?.toString()
+				: req.decodedToken?.organization_code
 
 		if (!req.decodedToken[organizationKey]) {
 			throw createUnauthorizedResponse()
@@ -165,7 +165,7 @@ module.exports = async function (req, res, next) {
 				})
 			}
 
-			req.decodedToken.organization_id = organizationId.toString()
+			req.decodedToken.organization_code = organizationId.toString()
 			req.decodedToken.tenant_code = tenantId.toString()
 			req.decodedToken.roles.push({ title: common.ADMIN_ROLE })
 		}
@@ -300,8 +300,8 @@ async function authenticateUser(authHeader, req) {
 	}
 
 	if (!decodedToken) throw createUnauthorizedResponse()
-
-	if (decodedToken.data.roles && isAdminRole(decodedToken.data.roles)) {
+	//assuming only one organization / the first organization in the token should be considered
+	if (decodedToken.data.organizations[0].roles && isAdminRole(decodedToken.data.organizations[0].roles)) {
 		req.decodedToken = decodedToken.data
 		return [decodedToken, true]
 	}
@@ -317,7 +317,7 @@ async function authenticateUser(authHeader, req) {
 async function nativeRoleValidation(decodedToken, authHeader) {
 	const userProfile = await fetchUserProfile(authHeader)
 	decodedToken.data.roles = userProfile.user_roles
-	decodedToken.data.organization_id = userProfile.organization_id
+	decodedToken.data.organization_code = userProfile.organization_code
 }
 
 const keycloakPublicKeyPath = `${process.env.KEYCLOAK_PUBLIC_KEY_PATH}/`
@@ -354,12 +354,12 @@ async function keycloakPublicKeyAuthentication(token) {
 		const userRes = await requests.get(userReadAPIUrl, token, false)
 
 		let roles = []
-		let organization_id = verifiedClaims.org
+		let organization_code = verifiedClaims.org
 
 		if (userRes.data.responseCode === 'OK' && userRes?.data?.result) {
 			userRes.result = userRes.data.result
 			roles = userRes.result?.user_roles
-			organization_id = userRes.result?.organization_id
+			organization_code = userRes.result?.organization_code
 		}
 
 		return {
@@ -367,7 +367,7 @@ async function keycloakPublicKeyAuthentication(token) {
 				id: externalUserId,
 				roles: roles || [],
 				name: verifiedClaims.name,
-				organization_id: organization_id || null,
+				organization_code: organization_code || null,
 			},
 		}
 	} catch (err) {
@@ -397,8 +397,8 @@ async function verifyKeycloakToken(token, cert) {
 }
 
 function getOrgId(headers, decodedToken, orgConfigData) {
-	if (headers['organization_id']) {
-		return headers['organization_id'].toString()
+	if (headers['organization_code']) {
+		return headers['organization_code'].toString()
 	} else {
 		const orgIdPath = orgConfigData
 		return getNestedValue(decodedToken, orgIdPath)?.toString()

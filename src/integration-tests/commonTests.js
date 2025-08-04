@@ -70,26 +70,26 @@ const verifyUserRole = async () => {
 			] = await Promise.all([
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'content_creator',
-					organization_id: 1,
+					organization_code: 1,
 				}),
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'reviewer',
-					organization_id: 1,
+					organization_code: 1,
 				}),
 
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'rollout_manager',
-					organization_id: 1,
+					organization_code: 1,
 				}),
 
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'program_designer',
-					organization_id: 1,
+					organization_code: 1,
 				}),
 
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'program_manager',
-					organization_id: 1,
+					organization_code: 1,
 				}),
 			])
 
@@ -101,7 +101,7 @@ const verifyUserRole = async () => {
 				const createCreatorRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'content_creator',
 					user_type: 0,
-					organization_id: 1,
+					organization_code: 1,
 					label: 'Content Creator',
 					visibility: 'PUBLIC',
 				})
@@ -113,7 +113,7 @@ const verifyUserRole = async () => {
 				const createReviewRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'reviewer',
 					user_type: 0,
-					organization_id: 1,
+					organization_code: 1,
 					label: 'Reviewer',
 					visibility: 'PUBLIC',
 				})
@@ -128,7 +128,7 @@ const verifyUserRole = async () => {
 				const createRolloutManagerRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'rollout_manager',
 					user_type: 0,
-					organization_id: 1,
+					organization_code: 1,
 					label: 'Rollout Manager',
 					visibility: 'PUBLIC',
 				})
@@ -143,7 +143,7 @@ const verifyUserRole = async () => {
 				const createProgramDesignerRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'program_designer',
 					user_type: 0,
-					organization_id: 1,
+					organization_code: 1,
 					label: 'Program Designer',
 					visibility: 'PUBLIC',
 				})
@@ -157,7 +157,7 @@ const verifyUserRole = async () => {
 				const createProgramManagerRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'program_manager',
 					user_type: 0,
-					organization_id: 1,
+					organization_code: 1,
 					label: 'Program Manager',
 					visibility: 'PUBLIC',
 				})
@@ -235,7 +235,7 @@ const logIn = async () => {
 				password: password,
 				name: res.body.result.user.name,
 				roles: res.body.result.user.user_roles,
-				organization_id: res.body.result.user.organization_id,
+				organization_code: res.body.result.user.organization_code,
 			}
 		} else {
 			console.error('LOGIN FAILED')

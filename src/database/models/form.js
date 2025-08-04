@@ -24,7 +24,7 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				defaultValue: 0,
 			},
-			organization_id: {
+			organization_code: {
 				type: DataTypes.STRING,
 				allowNull: false,
 				primaryKey: true,

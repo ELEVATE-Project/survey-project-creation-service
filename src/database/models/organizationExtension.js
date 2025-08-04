@@ -9,7 +9,7 @@ module.exports = (sequelize, DataTypes) => {
 				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
-			organization_id: {
+			organization_code: {
 				type: DataTypes.STRING,
 				allowNull: false,
 				primaryKey: true,
@@ -58,7 +58,7 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['organization_id', 'resource_type', 'tenant_code'],
+					fields: ['organization_code', 'resource_type', 'tenant_code'],
 					name: 'unique_org_resource_type_tenant',
 				},
 			],

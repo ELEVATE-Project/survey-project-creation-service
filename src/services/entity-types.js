@@ -3,7 +3,7 @@ const httpStatusCode = require('@generics/http-status')
 const { UniqueConstraintError } = require('sequelize')
 const { Op } = require('sequelize')
 const { removeDefaultOrgEntityTypes } = require('@generics/utils')
-const defaultOrgId = process.env.DEFAULT_ORG_ID
+const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
 const utils = require('@generics/utils')
 const responses = require('@helpers/responses')
 const entityTypeQueries = require('@database/queries/entityType')
@@ -23,7 +23,7 @@ module.exports = class EntityTypeHelper {
 		try {
 			bodyData.created_by = loggedInUserId
 			bodyData.updated_by = loggedInUserId
-			bodyData.organization_id = orgId
+			bodyData.organization_code = orgId
 			bodyData.value = bodyData.value.toLowerCase()
 			bodyData.config = {}
 			if (bodyData?.is_external) {
@@ -35,7 +35,7 @@ module.exports = class EntityTypeHelper {
 			if (bodyData?.depended_on) {
 				const checkDependedEntityType = await entityTypeQueries.findOneEntityType({
 					id: bodyData.depended_on,
-					organization_id: orgId,
+					organization_code: orgId,
 				})
 
 				if (!checkDependedEntityType.id) {
@@ -104,7 +104,7 @@ module.exports = class EntityTypeHelper {
 			if ('depended_on' in bodyData && bodyData.depended_on !== '') {
 				const checkDependedEntityType = await entityTypeQueries.findOneEntityType({
 					id: bodyData.depended_on,
-					organization_id: orgId,
+					organization_code: orgId,
 				})
 
 				if (!checkDependedEntityType.id) {
@@ -194,7 +194,7 @@ module.exports = class EntityTypeHelper {
 			const filter = {
 				value: body.value,
 				status: common.STATUS_ACTIVE,
-				organization_id: {
+				organization_code: {
 					[Op.in]: [orgId, defaultOrgId],
 				},
 			}
@@ -265,7 +265,7 @@ module.exports = class EntityTypeHelper {
 			const filter = {
 				status: common.STATUS_ACTIVE,
 				has_entities: true,
-				organization_id: {
+				organization_code: {
 					[Op.in]: orgIds,
 				},
 				model_names: {
@@ -287,7 +287,7 @@ module.exports = class EntityTypeHelper {
 
 				// Filter entity types based on orgIds and remove parent entity types
 				let entityTypeData = entityTypesWithEntities.filter((obj) =>
-					orgIdToSearch.includes(obj.organization_id)
+					orgIdToSearch.includes(obj.organization_code)
 				)
 				entityTypeData = utils.removeParentEntityTypes(entityTypeData)
 

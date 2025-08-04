@@ -17,7 +17,7 @@ module.exports = class certificates {
 		try {
 			const certificates = await certificateService.list(
 				req.query.resource_type ? req.query.resource_type : '',
-				req.decodedToken.organization_id,
+				req.decodedToken.organization_code,
 				req.searchText
 			)
 
@@ -39,7 +39,7 @@ module.exports = class certificates {
 				req.params.id ? req.params.id : '',
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_code
 			)
 
 			return certificate
