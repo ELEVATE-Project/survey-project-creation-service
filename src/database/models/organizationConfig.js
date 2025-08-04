@@ -33,8 +33,8 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['organization_id', 'resource_type', 'tenant_code'],
-					name: 'unique_org_tenant_resource_type',
+					fields: ['organization_id', 'tenant_code'],
+					name: 'unique_org_tenant_config',
 				},
 			],
 		}

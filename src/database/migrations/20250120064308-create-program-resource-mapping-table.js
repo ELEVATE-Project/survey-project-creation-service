@@ -38,9 +38,9 @@ module.exports = {
 			},
 		})
 
-		await queryInterface.addIndex('program_resource_mapping', ['program_id', 'resource_id'], {
+		await queryInterface.addIndex('program_resource_mapping', ['program_id', 'resource_id', 'tenant_code'], {
 			unique: true,
-			name: 'unique_program_resource',
+			name: 'unique_program_resource_tenant',
 		})
 	},
 

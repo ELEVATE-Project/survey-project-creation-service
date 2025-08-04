@@ -54,15 +54,6 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
-
-		// Add an index for the 'value' column
-		await queryInterface.addIndex('reviews', ['resource_id', 'reviewer_id', 'organization_id', 'tenant_code'], {
-			unique: true,
-			name: 'unique_resource_reviewer_tenant_code',
-			where: {
-				deleted_at: null,
-			},
-		})
 	},
 
 	async down(queryInterface, Sequelize) {

@@ -8,6 +8,11 @@ module.exports = {
 			throw new Error('Default org ID is undefined. Please make sure it is set in sequelize options.')
 		}
 
+		const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+		if (!defaultTenantCode) {
+			throw new Error('DEFAULT_TENANT_CODE environment variable is undefined. Please make sure it is set.')
+		}
+
 		//add model mapping for learning resource
 		const fetchEntityType = await queryInterface.sequelize.query(
 			'SELECT id, value FROM entity_types WHERE value IN (:values) AND organization_id = :defaultOrgId',
@@ -23,7 +28,7 @@ module.exports = {
 		let entity_model_mapping_bulk_insert = [
 			{
 				entity_type_id: entityTypeIdMap['learning_resources'],
-				tenant_code: process.env.DEFAULT_TENANT_CODE,
+				tenant_code: defaultTenantCode,
 				model: 'project',
 				status: 'ACTIVE',
 				updated_at: new Date(),
@@ -31,7 +36,7 @@ module.exports = {
 			},
 			{
 				entity_type_id: entityTypeIdMap['learning_resources'],
-				tenant_code: process.env.DEFAULT_TENANT_CODE,
+				tenant_code: defaultTenantCode,
 				model: 'tasks',
 				status: 'ACTIVE',
 				updated_at: new Date(),
@@ -39,7 +44,7 @@ module.exports = {
 			},
 			{
 				entity_type_id: entityTypeIdMap['name'],
-				tenant_code: process.env.DEFAULT_TENANT_CODE,
+				tenant_code: defaultTenantCode,
 				model: 'subTasks',
 				status: 'ACTIVE',
 				updated_at: new Date(),

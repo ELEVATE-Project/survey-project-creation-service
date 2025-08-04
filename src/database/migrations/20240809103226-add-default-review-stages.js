@@ -4,6 +4,15 @@
 module.exports = {
 	async up(queryInterface, Sequelize) {
 		const defaultOrgId = queryInterface.sequelize.options.defaultOrgId
+		if (!defaultOrgId) {
+			throw new Error('Default org ID is undefined. Please make sure it is set in sequelize options.')
+		}
+
+		const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+		if (!defaultTenantCode) {
+			throw new Error('DEFAULT_TENANT_CODE environment variable is undefined. Please make sure it is set.')
+		}
+
 		const defaultResources = process.env.RESOURCE_TYPES.split(',')
 		const defaultReviewerRoles = process.env.DEFAULT_REVIEWER_ROLE.split(',')
 
@@ -17,7 +26,7 @@ module.exports = {
 					level: 1,
 					resource_type: resource,
 					organization_id: defaultOrgId,
-					tenant_code: process.env.DEFAULT_TENANT_CODE,
+					tenant_code: defaultTenantCode,
 					created_at: new Date(),
 					updated_at: new Date(),
 				}
@@ -30,6 +39,15 @@ module.exports = {
 
 	async down(queryInterface, Sequelize) {
 		const defaultOrgId = queryInterface.sequelize.options.defaultOrgId
+		if (!defaultOrgId) {
+			throw new Error('Default org ID is undefined. Please make sure it is set in sequelize options.')
+		}
+
+		const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+		if (!defaultTenantCode) {
+			throw new Error('DEFAULT_TENANT_CODE environment variable is undefined. Please make sure it is set.')
+		}
+
 		const defaultResources = process.env.RESOURCE_TYPES.split(',')
 		const defaultReviewerRoles = process.env.DEFAULT_REVIEWER_ROLE.split(',')
 		let defaultReviewStageValues = []
@@ -41,7 +59,7 @@ module.exports = {
 					role: role,
 					resource_type: resource,
 					organization_id: defaultOrgId,
-					tenant_code: process.env.DEFAULT_TENANT_CODE,
+					tenant_code: defaultTenantCode,
 				}
 				defaultReviewStageValues.push(resourceWiseRows)
 			})
