@@ -16,6 +16,12 @@ const utils = require('../generics/utils')
 
 ;(async () => {
 	try {
+		if (!process.env.DEFAULT_ORGANISATION_CODE) {
+			throw new Error('DEFAULT_ORGANISATION_CODE must be set')
+		}
+		if (!process.env.DEFAULT_TENANT_CODE) {
+			throw new Error('DEFAULT_TENANT_CODE must be set')
+		}
 		const certificatesArray = [
 			{
 				code: 'one_logo_one_sign',

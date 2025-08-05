@@ -15,4 +15,4 @@ SELECT create_distributed_table('organization_configs', 'tenant_code');
 
 
 SELECT create_distributed_table('rollouts', 'tenant_code');
-SELECT create_distributed_table('program_resource_mapping', 'tenant_code');
+SELECT create_distributed_table('program_resource_mapping', 'program_id');

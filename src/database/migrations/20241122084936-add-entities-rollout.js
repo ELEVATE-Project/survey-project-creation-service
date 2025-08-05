@@ -102,6 +102,7 @@ module.exports = {
 							...eachEntity,
 							entity_type_id: eachType.id,
 							tenant_code: defaultTenantCode,
+							organization_code: defaultOrgId,
 							type: 'SYSTEM',
 							status: 'ACTIVE',
 							created_at: new Date(),

@@ -37,7 +37,7 @@ module.exports = {
 		})
 		await queryInterface.addIndex('organization_configs', ['organization_code', 'tenant_code'], {
 			unique: true,
-			name: 'unique_org_tenant_resource_type',
+			name: 'unique_org_tenant',
 			where: {
 				deleted_at: null,
 			},

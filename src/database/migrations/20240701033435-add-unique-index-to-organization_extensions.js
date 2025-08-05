@@ -9,6 +9,9 @@ module.exports = {
 			{
 				unique: true,
 				name: 'unique_org_resource_type_tenant',
+				where: {
+					deleted_at: null,
+				},
 			}
 		)
 	},

@@ -12,6 +12,12 @@ const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
 	: (() => {
 			throw new Error('DEFAULT_TENANT_CODE is not defined in env')
 	  })()
+const defaultOrgCode = process.env.DEFAULT_ORGANISATION_CODE
+	? process.env.DEFAULT_ORGANISATION_CODE.toString()
+	: (() => {
+			throw new Error('DEFAULT_TENANT_CODE is not defined in env')
+	  })()
+
 const { Op } = require('sequelize')
 const entitiesQueries = require('../database/queries/entities')
 
@@ -77,6 +83,7 @@ const entityTypeEntitiesMapping = {
 					entitiesToCreate.push({
 						entity_type_id: Number(entity_type_id),
 						tenant_code: defaultTenantCode,
+						organization_code: defaultOrgCode,
 						value: entity.value,
 						label: entity.label,
 						status: 'ACTIVE',

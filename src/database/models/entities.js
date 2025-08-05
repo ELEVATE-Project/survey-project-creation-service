@@ -30,8 +30,14 @@ module.exports = (sequelize, DataTypes) => {
 			type: {
 				type: DataTypes.STRING,
 			},
+			organization_code: {
+				type: DataTypes.STRING,
+				primaryKey: true,
+				allowNull: false,
+			},
 			tenant_code: {
 				type: DataTypes.STRING,
+				primaryKey: true,
 				allowNull: false,
 			},
 			created_by: {

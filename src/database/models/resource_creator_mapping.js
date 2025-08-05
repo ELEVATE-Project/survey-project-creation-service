@@ -33,6 +33,9 @@ module.exports = (sequelize, DataTypes) => {
 					unique: true,
 					fields: ['resource_id', 'creator_id'],
 					name: 'unique_creator_resource',
+					where: {
+						deleted_at: null,
+					},
 				},
 			],
 			modelName: 'ResourceCreatorMapping',

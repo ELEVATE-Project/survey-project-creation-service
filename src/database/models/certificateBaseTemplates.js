@@ -51,6 +51,9 @@ module.exports = (sequelize, DataTypes) => {
 					unique: true,
 					fields: ['code', 'organization_code', 'tenant_code'],
 					name: 'unique_code_per_organization_tenant',
+					where: {
+						deleted_at: null,
+					},
 				},
 			],
 			sequelize,

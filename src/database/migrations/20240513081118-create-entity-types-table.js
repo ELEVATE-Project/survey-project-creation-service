@@ -30,6 +30,7 @@ module.exports = {
 			},
 			tenant_code: {
 				allowNull: false,
+				primaryKey: true,
 				type: Sequelize.STRING,
 			},
 			organization_code: {

@@ -33,6 +33,9 @@ module.exports = (sequelize, DataTypes) => {
 					unique: true,
 					fields: ['program_id', 'resource_id'],
 					name: 'unique_program_resource',
+					where: {
+						deleted_at: null,
+					},
 				},
 			],
 			modelName: 'ProgramResourceMapping',
