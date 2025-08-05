@@ -65,6 +65,8 @@ module.exports = {
 				table: 'entity_types',
 				fields: ['id', 'tenant_code'],
 			},
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
 		})
 	},
 	async down(queryInterface, Sequelize) {

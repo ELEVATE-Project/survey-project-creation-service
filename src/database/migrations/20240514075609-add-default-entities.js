@@ -155,6 +155,7 @@ module.exports = {
 					if (entity?.model) {
 						return {
 							entity_type_id: entityType.id,
+							organization_code: defaultOrgId,
 							tenant_code: defaultTenantCode,
 							model: entity.model,
 							status: 'ACTIVE',

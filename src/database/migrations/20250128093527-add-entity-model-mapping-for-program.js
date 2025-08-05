@@ -93,6 +93,7 @@ module.exports = {
 					let data = {
 						entity_type_id: entityType.id,
 						tenant_code: defaultTenantCode,
+						organization_code: defaultOrgId,
 						model: model,
 						status: 'ACTIVE',
 						updated_at: new Date(),

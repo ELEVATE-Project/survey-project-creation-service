@@ -35,12 +35,12 @@ module.exports = (sequelize, DataTypes) => {
 			organization_code: {
 				type: DataTypes.STRING,
 				allowNull: false,
-				defaultValue: 0,
 				primaryKey: true,
 			},
 			tenant_code: {
 				allowNull: false,
 				type: DataTypes.STRING,
+				primaryKey: true,
 			},
 			parent_id: {
 				type: DataTypes.INTEGER,

@@ -21,6 +21,11 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				type: DataTypes.STRING,
 			},
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: DataTypes.STRING,
+			},
 		},
 		{
 			indexes: [

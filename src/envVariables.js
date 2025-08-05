@@ -102,13 +102,15 @@ let environmentVariables = {
 		message: 'Required disable log level',
 		optional: false,
 	},
-	DEFAULT_ORG_ID: {
+	DEFAULT_ORGANISATION_CODE: {
 		message: 'Default organization code',
 		optional: false,
+		default: 'default_code',
 	},
 	DEFAULT_TENANT_CODE: {
 		message: 'Default tenant code',
-		optional: false,
+		optional: true,
+		default: 'default',
 	},
 	ALLOWED_HOST: {
 		message: 'Required CORS allowed host',

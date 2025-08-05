@@ -60,6 +60,7 @@ module.exports = {
 			return {
 				entity_type_id: entityType.id,
 				tenant_code: defaultTenantCode,
+				organization_code: defaultOrgId,
 				model: entity.model,
 				status: 'ACTIVE',
 				updated_at: new Date(),

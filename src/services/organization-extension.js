@@ -279,13 +279,14 @@ module.exports = class orgExtensionsHelper {
 	 * @name getConfig
 	 * @returns {JSON} - List of configs based on orgId of user as response.
 	 */
-	static async getConfig(organization_code) {
+	static async getConfig(organization_code, tenantCode) {
 		try {
 			let orgExtenstionData = {}
 			let configData = []
 			// define filter
 			const filter = {
 				organization_code,
+				tenant_code: tenantCode,
 			}
 			let result = {
 				config: {},

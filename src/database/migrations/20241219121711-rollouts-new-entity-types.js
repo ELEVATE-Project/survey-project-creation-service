@@ -124,6 +124,7 @@ module.exports = {
 					let data = {
 						entity_type_id: entityType.id,
 						tenant_code: defaultTenantCode,
+						organization_code: defaultOrgId,
 						model: entity.model[pointerToModel],
 						status: common.STATUS_ACTIVE,
 						updated_at: new Date(),

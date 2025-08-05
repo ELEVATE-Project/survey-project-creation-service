@@ -22,8 +22,14 @@ module.exports = {
 				type: Sequelize.ENUM('ACTIVE', 'INACTIVE'),
 				defaultValue: 'ACTIVE',
 			},
+			organization_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: Sequelize.STRING,
+			},
 			tenant_code: {
 				allowNull: false,
+				primaryKey: true,
 				type: Sequelize.STRING,
 			},
 			created_at: {

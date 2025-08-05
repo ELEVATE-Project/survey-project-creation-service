@@ -63,6 +63,7 @@ module.exports = {
 			const entityModelMapping = entityTypes.map((entityType) => ({
 				entity_type_id: entityType.id,
 				tenant_code: defaultTenantCode,
+				organization_code: defaultOrgId,
 				model: 'project',
 				status: 'ACTIVE',
 				updated_at: new Date(),

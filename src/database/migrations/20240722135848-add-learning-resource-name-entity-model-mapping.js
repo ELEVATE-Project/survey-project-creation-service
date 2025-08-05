@@ -28,6 +28,7 @@ module.exports = {
 			{
 				entity_type_id: entityTypeIdMap['learning_resources'],
 				tenant_code: defaultTenantCode,
+				organization_code: defaultOrgId,
 				model: 'project',
 				status: 'ACTIVE',
 				updated_at: new Date(),
@@ -36,6 +37,7 @@ module.exports = {
 			{
 				entity_type_id: entityTypeIdMap['learning_resources'],
 				tenant_code: defaultTenantCode,
+				organization_code: defaultOrgId,
 				model: 'tasks',
 				status: 'ACTIVE',
 				updated_at: new Date(),
@@ -44,17 +46,13 @@ module.exports = {
 			{
 				entity_type_id: entityTypeIdMap['name'],
 				tenant_code: defaultTenantCode,
+				organization_code: defaultOrgId,
 				model: 'subTasks',
 				status: 'ACTIVE',
 				updated_at: new Date(),
 				created_at: new Date(),
 			},
 		]
-		for (const key in entityTypeIdMap) {
-			if (entityTypeIdMap.hasOwnProperty(key)) {
-				entity_model_mapping_bulk_insert.push()
-			}
-		}
 		await queryInterface.bulkInsert('entities_model_mapping', entity_model_mapping_bulk_insert, {})
 	},
 	async down(queryInterface, Sequelize) {
