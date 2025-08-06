@@ -16,6 +16,12 @@ const utils = require('../generics/utils')
 
 ;(async () => {
 	try {
+		if (!process.env.DEFAULT_ORGANISATION_CODE) {
+			throw new Error('DEFAULT_ORGANISATION_CODE must be set')
+		}
+		if (!process.env.DEFAULT_TENANT_CODE) {
+			throw new Error('DEFAULT_TENANT_CODE must be set')
+		}
 		const certificatesArray = [
 			{
 				code: 'one_logo_one_sign',
@@ -143,7 +149,8 @@ const utils = require('../generics/utils')
 			const certificateData = {
 				...currentPointerArray,
 				url: uploadedFilePath,
-				organization_id: utils.convertToString(process.env.DEFAULT_ORG_ID),
+				organization_code: utils.convertToString(process.env.DEFAULT_ORGANISATION_CODE),
+				tenant_code: utils.convertToString(process.env.DEFAULT_TENANT_CODE),
 				resource_type: common.PROJECT,
 				created_by: common.CREATED_BY_SYSTEM,
 				created_at: new Date(),

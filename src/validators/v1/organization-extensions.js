@@ -97,10 +97,10 @@ module.exports = {
 			.withMessage(
 				'program_managers must be a comma-separated list of alphabetic strings, an array of alphabetic strings, or an empty array'
 			)
-		req.checkBody('organization_id')
+		req.checkBody('organization_code')
 			.trim()
 			.optional({ checkFalsy: true })
 			.notEmpty()
-			.withMessage('organization_id is empty')
+			.withMessage('organization_code is empty')
 	},
 }

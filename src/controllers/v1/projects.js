@@ -29,7 +29,7 @@ module.exports = class Projects {
 						req.params.id,
 						req.body,
 						req.decodedToken.id,
-						req.decodedToken.organization_id
+						req.decodedToken.organization_code
 					)
 				}
 				return project
@@ -37,7 +37,7 @@ module.exports = class Projects {
 				const project = await projectService.create(
 					req.body,
 					req.decodedToken.id,
-					req.decodedToken.organization_id,
+					req.decodedToken.organization_code,
 					req.query.reference_id ? parseInt(req.query.reference_id) : null
 				)
 				return project
@@ -74,7 +74,7 @@ module.exports = class Projects {
 			const reviewerList = await resourceService.reviewerList(
 				process.env.DEFAULT_REVIEWER_ROLE || common.REVIEWER,
 				req.decodedToken.id,
-				req.decodedToken.organization_id,
+				req.decodedToken.organization_code,
 				req.decodedToken.token,
 				req.pageNo,
 				req.pageSize

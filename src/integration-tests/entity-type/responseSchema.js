@@ -40,7 +40,7 @@ const createSchema = {
 				updated_by: {
 					type: 'string',
 				},
-				organization_id: {
+				organization_code: {
 					type: 'string',
 				},
 				updated_at: {
@@ -70,7 +70,7 @@ const createSchema = {
 				'has_entities',
 				'created_by',
 				'updated_by',
-				'organization_id',
+				'organization_code',
 				'updated_at',
 				'created_at',
 				'parent_id',
@@ -144,7 +144,7 @@ const updateSchema = {
 						data_type: {
 							type: 'string',
 						},
-						organization_id: {
+						organization_code: {
 							type: 'string',
 						},
 						parent_id: {
@@ -229,7 +229,7 @@ const updateSchema = {
 						'status',
 						'allow_filtering',
 						'data_type',
-						'organization_id',
+						'organization_code',
 						'parent_id',
 						'allow_custom_entities',
 						'has_entities',

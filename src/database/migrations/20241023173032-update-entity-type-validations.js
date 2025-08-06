@@ -8,6 +8,11 @@ module.exports = {
 				throw new Error('Default org ID is undefined. Please make sure it is set in sequelize options.')
 			}
 
+			const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+			if (!defaultTenantCode) {
+				throw new Error('DEFAULT_TENANT_CODE environment variable is undefined. Please make sure it is set.')
+			}
+
 			// Insert learning_resource_name entity_type
 			const entityTypeData = [
 				{
@@ -32,7 +37,8 @@ module.exports = {
 					created_by: 0,
 					updated_by: 0,
 					allow_filtering: false,
-					organization_id: defaultOrgId,
+					organization_code: defaultOrgId,
+					tenant_code: defaultTenantCode,
 					has_entities: false,
 					allow_custom_entities: false,
 				},
@@ -58,6 +64,8 @@ module.exports = {
 			const entityModelMapping = models.map((model) => {
 				return {
 					entity_type_id: nameEntityData.id,
+					tenant_code: defaultTenantCode,
+					organization_code: defaultOrgId,
 					model: model,
 					status: 'ACTIVE',
 					updated_at: new Date(),

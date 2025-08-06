@@ -34,7 +34,12 @@ module.exports = {
 			deleted_at: {
 				type: Sequelize.DATE,
 			},
-			organization_id: {
+			organization_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: Sequelize.STRING,
+			},
+			tenant_code: {
 				allowNull: false,
 				primaryKey: true,
 				type: Sequelize.STRING,

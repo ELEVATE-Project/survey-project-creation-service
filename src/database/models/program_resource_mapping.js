@@ -17,8 +17,13 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
-			organization_id: {
+			organization_code: {
 				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
 				type: DataTypes.STRING,
 			},
 		},
@@ -28,6 +33,9 @@ module.exports = (sequelize, DataTypes) => {
 					unique: true,
 					fields: ['program_id', 'resource_id'],
 					name: 'unique_program_resource',
+					where: {
+						deleted_at: null,
+					},
 				},
 			],
 			modelName: 'ProgramResourceMapping',

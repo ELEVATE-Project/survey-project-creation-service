@@ -8,6 +8,11 @@ module.exports = {
 				throw new Error('Default org ID is undefined. Please make sure it is set in sequelize options.')
 			}
 
+			const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+			if (!defaultTenantCode) {
+				throw new Error('DEFAULT_TENANT_CODE environment variable is undefined. Please make sure it is set.')
+			}
+
 			// Insert learning_resource_name entity_type
 			const entityTypeData = [
 				{
@@ -32,7 +37,8 @@ module.exports = {
 					created_by: 0,
 					updated_by: 0,
 					allow_filtering: false,
-					organization_id: defaultOrgId,
+					organization_code: defaultOrgId,
+					tenant_code: defaultTenantCode,
 					has_entities: false,
 					allow_custom_entities: false,
 				},
@@ -41,10 +47,10 @@ module.exports = {
 			await queryInterface.bulkInsert('entity_types', entityTypeData, {})
 
 			const entityTypes = await queryInterface.sequelize.query(
-				'SELECT * FROM entity_types WHERE value = :entityTypeValue AND organization_id = :defaultOrgId',
+				'SELECT * FROM entity_types WHERE value = :entityTypeValue AND organization_code = :defaultOrgId AND tenant_code = :defaultTenantCode',
 				{
 					type: queryInterface.sequelize.QueryTypes.SELECT,
-					replacements: { entityTypeValue: 'recommended_duration', defaultOrgId },
+					replacements: { entityTypeValue: 'recommended_duration', defaultOrgId, defaultTenantCode },
 				}
 			)
 
@@ -56,6 +62,8 @@ module.exports = {
 			// Create entity model mapping for the found entity_type_id
 			const entityModelMapping = entityTypes.map((entityType) => ({
 				entity_type_id: entityType.id,
+				tenant_code: defaultTenantCode,
+				organization_code: defaultOrgId,
 				model: 'project',
 				status: 'ACTIVE',
 				updated_at: new Date(),
@@ -70,12 +78,13 @@ module.exports = {
 
 	async down(queryInterface, Sequelize) {
 		try {
+			const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
 			const entityType = await queryInterface.rawSelect(
 				'entity_types',
 				{
 					where: {
 						value: 'recommended_duration',
-						organization_id: queryInterface.sequelize.options.defaultOrgId,
+						organization_code: queryInterface.sequelize.options.defaultOrgId,
 					},
 				},
 				['id'] // Select only the 'id' field
@@ -86,6 +95,7 @@ module.exports = {
 					'entities_model_mapping',
 					{
 						entity_type_id: entityType,
+						tenant_code: defaultTenantCode,
 					},
 					{}
 				)
@@ -95,7 +105,7 @@ module.exports = {
 					'entity_types',
 					{
 						value: 'recommended_duration',
-						organization_id: queryInterface.sequelize.options.defaultOrgId,
+						organization_code: queryInterface.sequelize.options.defaultOrgId,
 					},
 					{}
 				)

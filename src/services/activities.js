@@ -43,7 +43,7 @@ module.exports = class ActivityHelper {
 			}
 
 			let filter = {
-				organization_id: orgId.toString(),
+				organization_code: orgId.toString(),
 				object_id: resourceId,
 			}
 

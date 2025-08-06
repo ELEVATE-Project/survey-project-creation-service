@@ -7,7 +7,7 @@ const _ = require('lodash')
 
 const { Op } = require('sequelize')
 
-exports.activityDTO = async (activities = [], organization_id, user_id, userToken = '') => {
+exports.activityDTO = async (activities = [], organization_code, user_id, userToken = '') => {
 	try {
 		//get userId and actionIds
 		const userIds = utils.getUniqueElements(activities.map((activity) => activity.user_id))
@@ -15,7 +15,7 @@ exports.activityDTO = async (activities = [], organization_id, user_id, userToke
 
 		// Fetch users and actions
 		const [usersResponse, actions] = await Promise.all([
-			userRequests.list(common.ALL_USER_ROLES, '', '', '', organization_id, { user_ids: userIds }, userToken),
+			userRequests.list(common.ALL_USER_ROLES, '', '', '', organization_code, { user_ids: userIds }, userToken),
 			actionQueries.findAll({ id: { [Op.in]: actionIds } }),
 		])
 

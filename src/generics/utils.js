@@ -389,7 +389,7 @@ const removeDefaultOrgEntityTypes = (entityTypes, orgId) => {
 	const entityTypeMap = new Map()
 	entityTypes.forEach((entityType) => {
 		if (!entityTypeMap.has(entityType.value)) entityTypeMap.set(entityType.value, entityType)
-		else if (entityType.organization_id === orgId) entityTypeMap.set(entityType.value, entityType)
+		else if (entityType.organization_code === orgId) entityTypeMap.set(entityType.value, entityType)
 	})
 	return Array.from(entityTypeMap.values())
 }
@@ -402,7 +402,7 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 	const certificateMap = new Map()
 	certificates.forEach((cert) => {
 		if (!certificateMap.has(cert.code)) certificateMap.set(cert.code, cert)
-		else if (cert.organization_id === orgId) certificateMap.set(cert.code, cert)
+		else if (cert.organization_code === orgId) certificateMap.set(cert.code, cert)
 	})
 	return Array.from(certificateMap.values())
 }

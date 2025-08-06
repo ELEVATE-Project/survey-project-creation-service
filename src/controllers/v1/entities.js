@@ -22,7 +22,7 @@ module.exports = class Entity {
 			const createdEntity = await entityService.create(
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_code
 			)
 			return createdEntity
 		} catch (error) {
