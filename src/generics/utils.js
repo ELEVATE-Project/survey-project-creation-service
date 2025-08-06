@@ -775,6 +775,30 @@ function validateTenantAndOrganizationInHeader(req) {
 	return !req.headers.tenant === !req.headers.organization
 }
 
+/**
++	 * Extract tenant and organization codes based on user role
++	 */
+function _extractTenantAndOrgCodes(req) {
+	let tenantCode = req.decodedToken.tenant_code
+	let orgCode = req.decodedToken.organization_code
+
+	if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
+		const validHeader = validateTenantAndOrganizationInHeader(req)
+		if (!validHeader) {
+			return {
+				error: 'TENANT_ORGANIZATION_HEADER_MISSING',
+			}
+		}
+
+		if (req.headers.tenant && req.headers.organization) {
+			tenantCode = req.headers.tenant
+			orgCode = req.headers.organization
+		}
+	}
+
+	return { tenantCode, orgCode }
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -822,4 +846,5 @@ module.exports = {
 	convertToSingular,
 	md5Hash,
 	validateTenantAndOrganizationInHeader,
+	_extractTenantAndOrgCodes,
 }

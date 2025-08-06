@@ -240,9 +240,9 @@ module.exports = class EntityTypeHelper {
 	 * @returns {JSON} - Entity deleted response.
 	 */
 
-	static async delete(id, organizationId) {
+	static async delete(id, orgCode, tenantCode) {
 		try {
-			const deleteCount = await entityTypeQueries.deleteOneEntityType(id, organizationId)
+			const deleteCount = await entityTypeQueries.deleteOneEntityType(id, orgCode, tenantCode)
 			if (deleteCount === 0) {
 				return responses.failureResponse({
 					message: 'ENTITY_TYPE_NOT_FOUND',

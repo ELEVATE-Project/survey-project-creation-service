@@ -66,7 +66,6 @@ module.exports = class UserEntityData {
 
 			return result
 		} catch (error) {
-			console.error('Error fetching entity types and entities:', error)
 			throw new Error(`Failed to fetch data: ${error.message}`)
 		}
 	}
@@ -97,7 +96,6 @@ module.exports = class UserEntityData {
 
 			return result
 		} catch (error) {
-			console.error('Error fetching data:', error)
 			throw error
 		}
 	}
@@ -117,12 +115,13 @@ module.exports = class UserEntityData {
 		}
 	}
 
-	static async deleteOneEntityType(id, organizationId) {
+	static async deleteOneEntityType(id, organizationId, orgCode, tenantCode) {
 		try {
 			return await EntityType.destroy({
 				where: {
 					id: id,
-					organization_code: organizationId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				},
 				individualHooks: true,
 			})

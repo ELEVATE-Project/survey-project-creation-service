@@ -47,12 +47,14 @@ module.exports = class UserEntityData {
 		}
 	}
 
-	static async deleteOneEntityType(id, userId) {
+	static async deleteOneEntityType(id, userId, orgCode, tenantCode) {
 		try {
 			return await Entity.destroy({
 				where: {
 					id: id,
 					created_by: userId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				},
 			})
 		} catch (error) {

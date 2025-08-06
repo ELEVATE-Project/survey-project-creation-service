@@ -22,23 +22,13 @@ module.exports = class Entity {
 
 	async create(req) {
 		try {
-			let tenantCode = req.decodedToken.tenant_code
-			let orgCode = req.decodedToken.organization_code
-			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-				const validHeader = utils.validateTenantAndOrganizationInHeader(req)
-				if (!validHeader) {
-					return responses.failureResponse({
-						message: 'TENANT_ORGANIZATION_HEADER_MISSING',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
-				}
-
-				if (req.headers.tenant && req.headers.organization) {
-					tenantCode = req.headers.tenant
-					orgCode = req.headers.organization
-				}
-			}
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			const createdEntity = await entityService.create(req.body, req.decodedToken.id, orgCode, tenantCode)
 			return createdEntity
 		} catch (error) {
@@ -57,23 +47,14 @@ module.exports = class Entity {
 	async update(req) {
 		const params = req.body
 		const id = req.params.id
-		let tenantCode = req.decodedToken.tenant_code
-		let orgCode = req.decodedToken.organization_code
-		if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-			const validHeader = utils.validateTenantAndOrganizationInHeader(req)
-			if (!validHeader) {
-				return responses.failureResponse({
-					message: 'TENANT_ORGANIZATION_HEADER_MISSING',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
 
-			if (req.headers.tenant && req.headers.organization) {
-				tenantCode = req.headers.tenant
-				orgCode = req.headers.organization
-			}
-		}
+		const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+		if (error)
+			return responses.failureResponse({
+				message: error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		try {
 			const updatedEntity = await entityService.update(params, id, req.decodedToken.id, orgCode, tenantCode)
 			return updatedEntity
@@ -92,23 +73,13 @@ module.exports = class Entity {
 
 	async read(req) {
 		try {
-			let tenantCode = req.decodedToken.tenant_code
-			let orgCode = req.decodedToken.organization_code
-			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-				const validHeader = utils.validateTenantAndOrganizationInHeader(req)
-				if (!validHeader) {
-					return responses.failureResponse({
-						message: 'TENANT_ORGANIZATION_HEADER_MISSING',
-						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
-					})
-				}
-
-				if (req.headers.tenant && req.headers.organization) {
-					tenantCode = req.headers.tenant
-					orgCode = req.headers.organization
-				}
-			}
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			if (req.query.id || req.query.value) {
 				return await entityService.read(req.query, req.decodedToken.id, orgCode, tenantCode)
 			}
@@ -128,7 +99,14 @@ module.exports = class Entity {
 
 	async delete(req) {
 		try {
-			const updatedEntity = await entityService.delete(req.params.id, req.decodedToken.id)
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			const updatedEntity = await entityService.delete(req.params.id, req.decodedToken.id, orgCode, tenantCode)
 			return updatedEntity
 		} catch (error) {
 			return error
@@ -145,7 +123,14 @@ module.exports = class Entity {
 
 	async list(req) {
 		try {
-			return await entityService.list(req.query, req.searchText, req.pageNo, req.pageSize)
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			return await entityService.list(req.query, orgCode, tenantCode, req.searchText, req.pageNo, req.pageSize)
 		} catch (error) {
 			return error
 		}
