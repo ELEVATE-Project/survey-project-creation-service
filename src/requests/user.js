@@ -17,7 +17,7 @@ const request = require('request')
  * @returns {Promise} A promise that resolves with the organization details or rejects with an error.
  */
 
-const fetchOrg = function (organisationIdentifier) {
+const fetchOrg = function (organisationIdentifier, tenantCode = '') {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let orgReadUrl
@@ -25,6 +25,10 @@ const fetchOrg = function (organisationIdentifier) {
 				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_id=' + organisationIdentifier
 			} else {
 				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_code=' + organisationIdentifier
+			}
+
+			if (tenantCode) {
+				orgReadUrl += '&tenant_code=' + tenantCode
 			}
 
 			let internalToken = true

@@ -60,6 +60,8 @@ const dbName = mongoUrl.split('/').pop()
 
 		// Get default userId
 		const DEFAULT_USER_ID = await getDefaultUserId()
+		console.log('Default User ID:', DEFAULT_USER_ID)
+
 		if (!DEFAULT_USER_ID) {
 			throw new Error('Failed to get default org admin')
 		}
@@ -276,7 +278,7 @@ const dbName = mongoUrl.split('/').pop()
 //get default org admin
 async function getDefaultUserId() {
 	let defaultUserId = null
-	let orgDetails = await userRequest.fetchOrg(process.env.DEFAULT_ORG_ID)
+	let orgDetails = await userRequest.fetchOrg(process.env.DEFAULT_ORGANIZATION_CODE, process.env.DEFAULT_TENANT_CODE)
 	if (
 		orgDetails.success &&
 		Array.isArray(orgDetails?.data?.result?.org_admin) &&
@@ -635,8 +637,8 @@ async function getUserOrgTenantDetails(userIds) {
 		userOrgTenantMap = _.keyBy(users.data.result.data, 'id')
 		// Ensure tenant_id and organization_id are set
 		users.data.result.data.forEach((user) => {
-			userOrgTenantMap[user.id].tenant_id = user.tenant_id || process.env.DEFAULT_TENANT_ID
-			userOrgTenantMap[user.id].organization_id = user.organization?.id || process.env.DEFAULT_ORG_ID
+			userOrgTenantMap[user.id].tenant_id = user.tenant_id
+			userOrgTenantMap[user.id].organization_id = user.organization_id
 		})
 	}
 
