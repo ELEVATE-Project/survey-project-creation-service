@@ -767,11 +767,12 @@ function md5Hash(value) {
  * @function
  * @name validateTenantAndOrganizationInHeader
  * @returns {Boolean} returns true if
- * 1. both organization and tenant are present in header
- * 2. both organization and tenant are not present in header
+ * 1. both organization and tenant have truthy values in headers
+ * 2. both organization and tenant are falsy/missing in headers
  * Otherwise returns false
  */
 function validateTenantAndOrganizationInHeader(req) {
+	if (!req || !req.headers) return false
 	return !req.headers.tenant === !req.headers.organization
 }
 
