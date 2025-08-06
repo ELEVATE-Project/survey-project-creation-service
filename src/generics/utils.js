@@ -761,6 +761,20 @@ const convertToSingular = (plural) => {
 function md5Hash(value) {
 	return md5(value)
 }
+
+/**
+ * Validate tenant and organization key value in header
+ * @function
+ * @name validateTenantAndOrganizationInHeader
+ * @returns {Boolean} returns true if
+ * 1. both organization and tenant are present in header
+ * 2. both organization and tenant are not present in header
+ * Otherwise returns false
+ */
+function validateTenantAndOrganizationInHeader(req) {
+	return !req.headers.tenant === !req.headers.organization
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -807,4 +821,5 @@ module.exports = {
 	escapeXml,
 	convertToSingular,
 	md5Hash,
+	validateTenantAndOrganizationInHeader,
 }

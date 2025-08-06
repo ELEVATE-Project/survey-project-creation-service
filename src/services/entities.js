@@ -14,18 +14,23 @@ module.exports = class EntityHelper {
 	 * @name create
 	 * @param {Object} bodyData - entity body data.
 	 * @param {String} loggedInUserId -  user id.
-	 * @param {String} orgId -  organization id.
+	 * @param {String} orgCode -  organization code.
+	 * @param {String} tenantCode -  tenant code.
 	 * @returns {JSON} - Entity created response.
 	 */
 
-	static async create(bodyData, loggedInUserId, orgId) {
+	static async create(bodyData, loggedInUserId, orgCode, tenantCode) {
 		bodyData.created_by = loggedInUserId
 		bodyData.updated_by = loggedInUserId
+		bodyData.organization_code = orgCode
+		bodyData.tenant_code = tenantCode
 		bodyData.value = bodyData.value.toLowerCase()
 		try {
 			const checkEntity = await entityQueries.findOne({
 				entity_type_id: bodyData.entity_type_id,
 				value: bodyData.value,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 			})
 			if (checkEntity) {
 				return responses.failureResponse({
@@ -38,7 +43,8 @@ module.exports = class EntityHelper {
 			//validate entity type
 			const entityType = await entityTypeQueries.findOneEntityType({
 				id: bodyData.entity_type_id,
-				organization_code: orgId,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 			})
 
 			if (!entityType?.id) {
@@ -85,7 +91,7 @@ module.exports = class EntityHelper {
 	 * @returns {JSON} - Entity updated response.
 	 */
 
-	static async update(bodyData, id, loggedInUserId, orgId) {
+	static async update(bodyData, id, loggedInUserId, orgCode, tenantCode) {
 		bodyData.updated_by = loggedInUserId
 		try {
 			if (bodyData.value) bodyData.value = bodyData.value.toLowerCase()
@@ -94,7 +100,8 @@ module.exports = class EntityHelper {
 				//validate entity type
 				const entityType = await entityTypeQueries.findOneEntityType({
 					id: bodyData.entity_type_id,
-					organization_code: orgId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				})
 
 				if (!entityType?.id) {
@@ -105,10 +112,19 @@ module.exports = class EntityHelper {
 					})
 				}
 			}
-			const [updateCount, updatedEntity] = await entityQueries.updateOneEntity(id, bodyData, loggedInUserId, {
-				returning: true,
-				raw: true,
-			})
+			const [updateCount, updatedEntity] = await entityQueries.updateOneEntity(
+				id,
+				bodyData,
+				loggedInUserId,
+				{
+					organization_code: orgCode,
+					tenant_code: tenantCode,
+				},
+				{
+					returning: true,
+					raw: true,
+				}
+			)
 
 			if (updateCount === 0) {
 				return responses.failureResponse({
@@ -142,7 +158,7 @@ module.exports = class EntityHelper {
 	 * @returns {JSON} - Entity read response.
 	 */
 
-	static async read(query, userId) {
+	static async read(query, userId, orgCode, tenantCode) {
 		try {
 			let filter
 			if (query.id) {
@@ -168,6 +184,8 @@ module.exports = class EntityHelper {
 					],
 				}
 			}
+			filter['organization_code'] = orgCode
+			filter['tenant_code'] = tenantCode
 			const entities = await entityQueries.findAllEntities(filter)
 
 			if (!entities.length) {
@@ -187,7 +205,7 @@ module.exports = class EntityHelper {
 		}
 	}
 
-	static async readAll(query, userId) {
+	static async readAll(query, userId, orgCode, tenantCode) {
 		try {
 			let filter
 			if (query.read_user_entity == true) {
@@ -206,6 +224,8 @@ module.exports = class EntityHelper {
 					created_by: common.CREATED_BY_SYSTEM,
 				}
 			}
+			filter['organization_code'] = orgCode
+			filter['tenant_code'] = tenantCode
 			const entities = await entityQueries.findAllEntities(filter)
 
 			if (!entities.length) {

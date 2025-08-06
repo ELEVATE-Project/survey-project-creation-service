@@ -32,12 +32,13 @@ module.exports = class UserEntityData {
 		}
 	}
 
-	static async updateOneEntity(id, update, userId, options = {}) {
+	static async updateOneEntity(id, update, userId, filter = {}, options = {}) {
 		try {
 			return await Entity.update(update, {
 				where: {
 					id: id,
 					created_by: userId,
+					...filter,
 				},
 				...options,
 			})

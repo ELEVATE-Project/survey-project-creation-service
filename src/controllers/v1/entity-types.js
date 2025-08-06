@@ -1,5 +1,9 @@
 // Dependencies
 const entityTypeService = require('@services/entity-types')
+const utils = require('@generics/utils')
+const common = require('@constants/common')
+const responses = require('@helpers/responses')
+const httpStatusCode = require('@generics/http-status')
 
 module.exports = class Entity {
 	/**
@@ -12,7 +16,24 @@ module.exports = class Entity {
 
 	async create(req) {
 		try {
-			return await entityTypeService.create(req.body, req.decodedToken.id, req.decodedToken.organization_code)
+			let tenantCode = req.decodedToken.tenant_code
+			let orgCode = req.decodedToken.organization_code
+			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
+				const validHeader = utils.validateTenantAndOrganizationInHeader(req)
+				if (!validHeader) {
+					return responses.failureResponse({
+						message: 'TENANT_ORGANIZATION_HEADER_MISSING',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				if (req.headers.tenant && req.headers.organization) {
+					tenantCode = req.headers.tenant
+					orgCode = req.headers.organization
+				}
+			}
+			return await entityTypeService.create(req.body, req.decodedToken.id, orgCode, tenantCode)
 		} catch (error) {
 			return error
 		}
@@ -28,12 +49,24 @@ module.exports = class Entity {
 
 	async update(req) {
 		try {
-			return await entityTypeService.update(
-				req.params.id,
-				req.body,
-				req.decodedToken.id,
-				req.decodedToken.organization_code
-			)
+			let tenantCode = req.decodedToken.tenant_code
+			let orgCode = req.decodedToken.organization_code
+			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
+				const validHeader = utils.validateTenantAndOrganizationInHeader(req)
+				if (!validHeader) {
+					return responses.failureResponse({
+						message: 'TENANT_ORGANIZATION_HEADER_MISSING',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				if (req.headers.tenant && req.headers.organization) {
+					tenantCode = req.headers.tenant
+					orgCode = req.headers.organization
+				}
+			}
+			return await entityTypeService.update(req.params.id, req.body, req.decodedToken.id, tenantCode, orgCode)
 		} catch (error) {
 			return error
 		}
@@ -49,14 +82,27 @@ module.exports = class Entity {
 
 	async read(req) {
 		try {
-			if (req.body.value) {
-				return await entityTypeService.readUserEntityTypes(
-					req.body,
-					req.decodedToken.id,
-					req.decodedToken.organization_code
-				)
+			let tenantCode = req.decodedToken.tenant_code
+			let orgCode = req.decodedToken.organization_code
+			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
+				const validHeader = utils.validateTenantAndOrganizationInHeader(req)
+				if (!validHeader) {
+					return responses.failureResponse({
+						message: 'TENANT_ORGANIZATION_HEADER_MISSING',
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+					})
+				}
+
+				if (req.headers.tenant && req.headers.organization) {
+					tenantCode = req.headers.tenant
+					orgCode = req.headers.organization
+				}
 			}
-			return await entityTypeService.readAllSystemEntityTypes(req.decodedToken.organization_code)
+			if (req.body.value) {
+				return await entityTypeService.readUserEntityTypes(req.body, req.decodedToken.id, orgCode, tenantCode)
+			}
+			return await entityTypeService.readAllSystemEntityTypes(orgCode, tenantCode)
 		} catch (error) {
 			return error
 		}
