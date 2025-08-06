@@ -7,7 +7,10 @@
 
 // Dependencies
 const entityService = require('@services/entities')
-
+const utils = require('@generics/utils')
+const common = require('@constants/common')
+const responses = require('@helpers/responses')
+const httpStatusCode = require('@generics/http-status')
 module.exports = class Entity {
 	/**
 	 * create entity
@@ -19,11 +22,14 @@ module.exports = class Entity {
 
 	async create(req) {
 		try {
-			const createdEntity = await entityService.create(
-				req.body,
-				req.decodedToken.id,
-				req.decodedToken.organization_code
-			)
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			const createdEntity = await entityService.create(req.body, req.decodedToken.id, orgCode, tenantCode)
 			return createdEntity
 		} catch (error) {
 			return error
@@ -41,8 +47,16 @@ module.exports = class Entity {
 	async update(req) {
 		const params = req.body
 		const id = req.params.id
+
+		const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+		if (error)
+			return responses.failureResponse({
+				message: error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		try {
-			const updatedEntity = await entityService.update(params, id, req.decodedToken.id)
+			const updatedEntity = await entityService.update(params, id, req.decodedToken.id, orgCode, tenantCode)
 			return updatedEntity
 		} catch (error) {
 			return error
@@ -59,10 +73,17 @@ module.exports = class Entity {
 
 	async read(req) {
 		try {
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			if (req.query.id || req.query.value) {
-				return await entityService.read(req.query, req.decodedToken.id)
+				return await entityService.read(req.query, req.decodedToken.id, orgCode, tenantCode)
 			}
-			return await entityService.readAll(req.query, req.decodedToken.id)
+			return await entityService.readAll(req.query, req.decodedToken.id, orgCode, tenantCode)
 		} catch (error) {
 			return error
 		}
@@ -78,7 +99,14 @@ module.exports = class Entity {
 
 	async delete(req) {
 		try {
-			const updatedEntity = await entityService.delete(req.params.id, req.decodedToken.id)
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			const updatedEntity = await entityService.delete(req.params.id, req.decodedToken.id, orgCode, tenantCode)
 			return updatedEntity
 		} catch (error) {
 			return error
@@ -95,7 +123,14 @@ module.exports = class Entity {
 
 	async list(req) {
 		try {
-			return await entityService.list(req.query, req.searchText, req.pageNo, req.pageSize)
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			return await entityService.list(req.query, orgCode, tenantCode, req.searchText, req.pageNo, req.pageSize)
 		} catch (error) {
 			return error
 		}

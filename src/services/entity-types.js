@@ -19,11 +19,13 @@ module.exports = class EntityTypeHelper {
 	 * @returns {JSON} - Created entity type response.
 	 */
 
-	static async create(bodyData, loggedInUserId, orgId) {
+	static async create(bodyData, loggedInUserId, orgCode, tenantCode) {
+		let entityTypeId
 		try {
 			bodyData.created_by = loggedInUserId
 			bodyData.updated_by = loggedInUserId
-			bodyData.organization_code = orgId
+			bodyData.organization_code = orgCode
+			bodyData.tenant_code = tenantCode
 			bodyData.value = bodyData.value.toLowerCase()
 			bodyData.config = {}
 			if (bodyData?.is_external) {
@@ -35,7 +37,7 @@ module.exports = class EntityTypeHelper {
 			if (bodyData?.depended_on) {
 				const checkDependedEntityType = await entityTypeQueries.findOneEntityType({
 					id: bodyData.depended_on,
-					organization_code: orgId,
+					organization_code: orgCode,
 				})
 
 				if (!checkDependedEntityType.id) {
@@ -53,15 +55,16 @@ module.exports = class EntityTypeHelper {
 			delete bodyData.is_dependent
 			let entityType = await entityTypeQueries.createEntityType(bodyData)
 
-			if (entityType) {
-				if (bodyData.model) {
-					let entityModelMapping = {
-						entity_type_id: entityType.dataValues.id,
-						model: bodyData.model,
-						status: common.STATUS_ACTIVE,
-					}
-					await entityModelMappingQuery.create(entityModelMapping)
+			if (entityType && bodyData.model) {
+				entityTypeId = entityType.dataValues.id
+				let entityModelMapping = {
+					entity_type_id: entityType.dataValues.id,
+					model: bodyData.model,
+					tenant_code: tenantCode,
+					organization_code: orgCode,
+					status: common.STATUS_ACTIVE,
 				}
+				await entityModelMappingQuery.create(entityModelMapping)
 				return responses.successResponse({
 					statusCode: httpStatusCode.created,
 					message: 'ENTITY_TYPE_CREATED_SUCCESSFULLY',
@@ -87,10 +90,12 @@ module.exports = class EntityTypeHelper {
 	 * @param {Object} bodyData -  body data.
 	 * @param {String} id - entity type id.
 	 * @param {String} loggedInUserId - logged in user id.
+	 * @param {String} orgCode - logged in user orgCode.
+	 * @param {String} tenantCode - logged in user tenantCode.
 	 * @returns {JSON} - Updated Entity Type.
 	 */
 
-	static async update(id, bodyData, loggedInUserId, orgId) {
+	static async update(id, bodyData, loggedInUserId, orgCode, tenantCode) {
 		try {
 			bodyData.updated_by = loggedInUserId
 			if (bodyData.value) bodyData.value = bodyData.value.toLowerCase()
@@ -104,7 +109,8 @@ module.exports = class EntityTypeHelper {
 			if ('depended_on' in bodyData && bodyData.depended_on !== '') {
 				const checkDependedEntityType = await entityTypeQueries.findOneEntityType({
 					id: bodyData.depended_on,
-					organization_code: orgId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				})
 
 				if (!checkDependedEntityType.id) {
@@ -122,10 +128,16 @@ module.exports = class EntityTypeHelper {
 			delete bodyData.is_external
 			delete bodyData.is_dependent
 
-			const [updateCount, updatedEntityType] = await entityTypeQueries.updateOneEntityType(id, orgId, bodyData, {
-				returning: true,
-				raw: true,
-			})
+			const [updateCount, updatedEntityType] = await entityTypeQueries.updateOneEntityType(
+				id,
+				orgCode,
+				tenantCode,
+				bodyData,
+				{
+					returning: true,
+					raw: true,
+				}
+			)
 
 			if (updateCount === 0) {
 				return responses.failureResponse({
@@ -152,9 +164,9 @@ module.exports = class EntityTypeHelper {
 		}
 	}
 
-	static async readAllSystemEntityTypes(orgId) {
+	static async readAllSystemEntityTypes(orgCode, tenantCode) {
 		try {
-			const attributes = ['value', 'label', 'id']
+			const attributes = ['value', 'label', 'id', 'organization_code']
 
 			if (!defaultOrgId)
 				return responses.failureResponse({
@@ -163,7 +175,15 @@ module.exports = class EntityTypeHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 
-			const entities = await entityTypeQueries.findAllEntityTypes([orgId, defaultOrgId], attributes)
+			const entities = await entityTypeQueries.findAllEntityTypes([orgCode, defaultOrgId], tenantCode, attributes)
+
+			const prunedEntities = removeDefaultOrgEntityTypes(entities, orgCode).map((entityType) => {
+				return {
+					id: entityType.id,
+					label: entityType.label,
+					value: entityType.value,
+				}
+			})
 
 			if (!entities.length) {
 				return responses.failureResponse({
@@ -175,14 +195,14 @@ module.exports = class EntityTypeHelper {
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'ENTITY_TYPE_FETCHED_SUCCESSFULLY',
-				result: entities,
+				result: prunedEntities,
 			})
 		} catch (error) {
 			throw error
 		}
 	}
 
-	static async readUserEntityTypes(body, userId, orgId) {
+	static async readUserEntityTypes(body, userId, orgCode, tenantCode) {
 		try {
 			if (!defaultOrgId)
 				return responses.failureResponse({
@@ -194,13 +214,14 @@ module.exports = class EntityTypeHelper {
 			const filter = {
 				value: body.value,
 				status: common.STATUS_ACTIVE,
+				tenant_code: tenantCode,
 				organization_code: {
-					[Op.in]: [orgId, defaultOrgId],
+					[Op.in]: [orgCode, defaultOrgId],
 				},
 			}
 			const entityTypes = await entityTypeQueries.findUserEntityTypeAndEntities(filter)
 
-			const prunedEntities = removeDefaultOrgEntityTypes(entityTypes, orgId)
+			const prunedEntities = removeDefaultOrgEntityTypes(entityTypes, orgCode)
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'ENTITY_TYPE_FETCHED_SUCCESSFULLY',
@@ -219,9 +240,9 @@ module.exports = class EntityTypeHelper {
 	 * @returns {JSON} - Entity deleted response.
 	 */
 
-	static async delete(id, organizationId) {
+	static async delete(id, orgCode, tenantCode) {
 		try {
-			const deleteCount = await entityTypeQueries.deleteOneEntityType(id, organizationId)
+			const deleteCount = await entityTypeQueries.deleteOneEntityType(id, orgCode, tenantCode)
 			if (deleteCount === 0) {
 				return responses.failureResponse({
 					message: 'ENTITY_TYPE_NOT_FOUND',
