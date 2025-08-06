@@ -280,7 +280,7 @@ const detailSchema = {
 				user_id: {
 					type: 'string',
 				},
-				organization_id: {
+				organization_code: {
 					type: 'string',
 				},
 				meta: {
@@ -321,7 +321,7 @@ const detailSchema = {
 				'type',
 				'status',
 				'user_id',
-				'organization_id',
+				'organization_code',
 				'created_by',
 				'updated_by',
 				'submitted_on',

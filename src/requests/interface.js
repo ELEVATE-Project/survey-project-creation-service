@@ -15,13 +15,13 @@ const endpoints = require('@constants/endpoints')
  * @method
  * @name browseExistingList
  * @param {String} resourceType - Type of resources
- * @param {String} organization_id - Organization id of the user.
+ * @param {String} organization_code - Organization id of the user.
  * @param {String} token - bearer auth token of the user.
  * @param {String} searchText - search field.
  * @returns {JSON} - List of resources
  */
 
-const browseExistingList = function (resourceType = '', organization_id = null, token = '', searchText = '') {
+const browseExistingList = function (resourceType = '', organization_code = null, token = '', searchText = '') {
 	return new Promise(async (resolve, reject) => {
 		try {
 			const internalAccessToken = true
@@ -30,7 +30,7 @@ const browseExistingList = function (resourceType = '', organization_id = null, 
 			}
 			let apiUrl = interfaceBaseUrl + endpoints.BROWSE_EXISTING_END_POINT
 			if (searchText != '') body.search = searchText
-			if (organization_id != null) body.organization_id = organization_id
+			if (organization_code != null) body.organization_code = organization_code
 
 			const resourceList = await requests.post(apiUrl, body, token, internalAccessToken)
 

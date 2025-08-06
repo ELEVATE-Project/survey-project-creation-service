@@ -18,9 +18,9 @@ module.exports = class reviewStagesHelper {
 	 * @returns {JSON} - update review stage response.
 	 */
 
-	static async update(id, bodyData, organization_id) {
+	static async update(id, bodyData, organization_code) {
 		try {
-			bodyData.organization_id = organization_id
+			bodyData.organization_code = organization_code
 			//validate resource type
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
 			if (!validResourceTypes.includes(bodyData.resource_type)) {
@@ -33,7 +33,7 @@ module.exports = class reviewStagesHelper {
 
 			//update review stage
 			const [updateCount, updatedReviewStage] = await reviewStageQueries.updateOne(
-				{ id: id, organization_id: organization_id },
+				{ id: id, organization_code: organization_code },
 				bodyData,
 				{
 					returning: true,
@@ -64,11 +64,11 @@ module.exports = class reviewStagesHelper {
 	 * @method
 	 * @name list
 	 * @param {String} resource_type - resource type
-	 * @param {String} organization_id - organization id
+	 * @param {String} organization_code - organization id
 	 * @returns {JSON} - list of review stages.
 	 */
 
-	static async list(resource_type, organization_id) {
+	static async list(resource_type, organization_code) {
 		try {
 			let result = {
 				data: [],
@@ -76,7 +76,7 @@ module.exports = class reviewStagesHelper {
 			}
 
 			let filter = {
-				organization_id,
+				organization_code,
 			}
 			if (resource_type) {
 				filter.resource_type = resource_type

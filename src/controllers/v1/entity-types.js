@@ -12,7 +12,7 @@ module.exports = class Entity {
 
 	async create(req) {
 		try {
-			return await entityTypeService.create(req.body, req.decodedToken.id, req.decodedToken.organization_id)
+			return await entityTypeService.create(req.body, req.decodedToken.id, req.decodedToken.organization_code)
 		} catch (error) {
 			return error
 		}
@@ -32,7 +32,7 @@ module.exports = class Entity {
 				req.params.id,
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_code
 			)
 		} catch (error) {
 			return error
@@ -53,10 +53,10 @@ module.exports = class Entity {
 				return await entityTypeService.readUserEntityTypes(
 					req.body,
 					req.decodedToken.id,
-					req.decodedToken.organization_id
+					req.decodedToken.organization_code
 				)
 			}
-			return await entityTypeService.readAllSystemEntityTypes(req.decodedToken.organization_id)
+			return await entityTypeService.readAllSystemEntityTypes(req.decodedToken.organization_code)
 		} catch (error) {
 			return error
 		}
@@ -72,7 +72,7 @@ module.exports = class Entity {
 
 	async delete(req) {
 		try {
-			return await entityTypeService.delete(req.params.id, req.decodedToken.organization_id)
+			return await entityTypeService.delete(req.params.id, req.decodedToken.organization_code)
 		} catch (error) {
 			return error
 		}

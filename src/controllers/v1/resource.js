@@ -95,7 +95,7 @@ module.exports = class Resource {
 	async getPublishedResources(req) {
 		try {
 			const resourceList = await resourceService.browseExistingList(
-				req.decodedToken.organization_id,
+				req.decodedToken.organization_code,
 				req.decodedToken.roles,
 				req.body.resource_ids ? req.body.resource_ids : [],
 				req.query,

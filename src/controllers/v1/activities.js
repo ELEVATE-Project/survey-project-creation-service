@@ -24,7 +24,7 @@ module.exports = class activities {
 			const activities = await activityService.list(
 				req.params.id,
 				req.decodedToken.id,
-				req.decodedToken.organization_id,
+				req.decodedToken.organization_code,
 				req.pageNo,
 				req.pageSize,
 				req.decodedToken.token

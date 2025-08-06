@@ -32,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
 				),
 				defaultValue: 'NOT_STARTED',
 			},
-			organization_id: {
+			organization_code: {
 				allowNull: false,
 				type: DataTypes.STRING,
 				primaryKey: true,
@@ -55,8 +55,11 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['resource_id', 'reviewer_id', 'organization_id', 'tenant_code'],
+					fields: ['resource_id', 'reviewer_id', 'organization_code', 'tenant_code'],
 					name: 'unique_resource_reviewer_tenant_code',
+					where: {
+						deleted_at: null,
+					},
 				},
 			],
 		}
@@ -68,7 +71,7 @@ module.exports = (sequelize, DataTypes) => {
 			const resource = await sequelize.models.Resource.findOne(
 				{
 					where: { id: instance.resource_id },
-					attributes: ['id', 'organization_id', 'type'],
+					attributes: ['id', 'organization_code', 'type'],
 				},
 				{ raw: true }
 			)
@@ -90,7 +93,7 @@ module.exports = (sequelize, DataTypes) => {
 					userId: instance.reviewer_id,
 					objectId: instance.resource_id,
 					objectType: common.MODEL_NAMES.RESOURCE,
-					orgId: instance.organization_id,
+					orgId: instance.organization_code,
 				})
 			}
 		} catch (error) {

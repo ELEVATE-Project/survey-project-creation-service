@@ -123,7 +123,7 @@ const dbName = mongoUrl.split('/').pop()
 								value: key,
 								label: key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
 								tenant_id: tenantId,
-								organization_id: orgId,
+								organization_code: orgId,
 								status: 'ACTIVE',
 								created_by: DEFAULT_USER_ID,
 								updated_by: DEFAULT_USER_ID,
@@ -392,7 +392,7 @@ async function convertTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 				: [],
 			licenses: 'cc_by_4.0',
 			created_by: userId.toString(),
-			organization_id: orgId.toString(),
+			organization_code: orgId.toString(),
 			published_id: template._id,
 			tasks: template.taskDetails ? template.taskDetails.map(convertTask) : [],
 		}
@@ -602,7 +602,7 @@ async function createProjectAndEntities(
 			{
 				...templateData,
 				tenant_id: tenantId,
-				organization_id: orgId,
+				organization_code: orgId,
 			},
 			templateData.created_by,
 			orgId
@@ -635,10 +635,10 @@ async function getUserOrgTenantDetails(userIds) {
 
 	if (users.success && users.data?.result?.data?.length > 0) {
 		userOrgTenantMap = _.keyBy(users.data.result.data, 'id')
-		// Ensure tenant_id and organization_id are set
+		// Ensure tenant_id and organization_code are set
 		users.data.result.data.forEach((user) => {
-			userOrgTenantMap[user.id].tenant_id = user.tenant_id
-			userOrgTenantMap[user.id].organization_id = user.organization_id
+			userOrgTenantMap[user.id].tenant_code = user.tenant_id
+			userOrgTenantMap[user.id].organization_code = user.organization_id
 		})
 	}
 

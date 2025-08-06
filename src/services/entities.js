@@ -38,7 +38,7 @@ module.exports = class EntityHelper {
 			//validate entity type
 			const entityType = await entityTypeQueries.findOneEntityType({
 				id: bodyData.entity_type_id,
-				organization_id: orgId,
+				organization_code: orgId,
 			})
 
 			if (!entityType?.id) {
@@ -94,7 +94,7 @@ module.exports = class EntityHelper {
 				//validate entity type
 				const entityType = await entityTypeQueries.findOneEntityType({
 					id: bodyData.entity_type_id,
-					organization_id: orgId,
+					organization_code: orgId,
 				})
 
 				if (!entityType?.id) {

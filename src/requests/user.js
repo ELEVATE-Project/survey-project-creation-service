@@ -96,7 +96,7 @@ const list = function (
 	pageNo = '',
 	pageSize = '',
 	searchText = '',
-	organization_id = null,
+	organization_code = null,
 	body = {},
 	userToken = ''
 ) {
@@ -106,7 +106,7 @@ const list = function (
 			if (pageNo != '') apiUrl += '&page=' + pageNo
 			if (pageSize != '') apiUrl += '&limit=' + pageSize
 			if (searchText != '') apiUrl += '&search=' + searchText
-			if (organization_id != null) apiUrl += '&organization_id=' + organization_id
+			if (organization_code != null) apiUrl += '&organization_code=' + organization_code
 
 			const userDetails = await requests.post(apiUrl, body, userToken, true)
 			return resolve(userDetails)

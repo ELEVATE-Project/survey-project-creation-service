@@ -29,7 +29,7 @@ module.exports = class Programs {
 						req.params.id,
 						req.body,
 						req.decodedToken.id,
-						req.decodedToken.organization_id,
+						req.decodedToken.organization_code,
 						req.query?.is_under_edit ? req.query.is_under_edit : false,
 						req.decodedToken.token
 					)
@@ -39,7 +39,7 @@ module.exports = class Programs {
 				const program = await programService.create(
 					req.body,
 					req.decodedToken.id,
-					req.decodedToken.organization_id,
+					req.decodedToken.organization_code,
 					req.query.reference_id ? parseInt(req.query.reference_id) : null,
 					req.decodedToken.token
 				)
@@ -60,7 +60,7 @@ module.exports = class Programs {
 		try {
 			const rollout = await programService.details(
 				req.params.id,
-				req.decodedToken.organization_id,
+				req.decodedToken.organization_code,
 				req.decodedToken.token
 			)
 			return rollout
@@ -81,7 +81,7 @@ module.exports = class Programs {
 				parseInt(req.params.id),
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_id,
+				req.decodedToken.organization_code,
 				req.decodedToken.token
 			)
 		} catch (error) {
@@ -101,7 +101,7 @@ module.exports = class Programs {
 				parseInt(req.params.id),
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_code
 			)
 		} catch (error) {
 			return error
@@ -119,7 +119,7 @@ module.exports = class Programs {
 	async getProgramManagers(req) {
 		try {
 			const dataManagers = await programService.getProgramManagers(
-				req.decodedToken.organization_id,
+				req.decodedToken.organization_code,
 				req.pageNo,
 				req.pageSize,
 				req.decodedToken.token
@@ -142,7 +142,7 @@ module.exports = class Programs {
 			const reviewerList = await resourceService.reviewerList(
 				process.env.DEFAULT_REVIEWER_ROLE || common.REVIEWER,
 				req.decodedToken.id,
-				req.decodedToken.organization_id,
+				req.decodedToken.organization_code,
 				req.decodedToken.token,
 				req.pageNo,
 				req.pageSize

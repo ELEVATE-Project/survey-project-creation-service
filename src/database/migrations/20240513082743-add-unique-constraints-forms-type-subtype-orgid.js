@@ -4,7 +4,7 @@
 module.exports = {
 	async up(queryInterface, Sequelize) {
 		await queryInterface.addConstraint('forms', {
-			fields: ['type', 'sub_type', 'organization_id', 'tenant_code'],
+			fields: ['type', 'sub_type', 'organization_code', 'tenant_code'],
 			type: 'unique',
 			name: 'unique_type_sub_type_org_id_tenant_code',
 		})

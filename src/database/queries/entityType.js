@@ -29,7 +29,7 @@ module.exports = class UserEntityData {
 		try {
 			const entityData = await EntityType.findAll({
 				where: {
-					organization_id: orgIds,
+					organization_code: orgIds,
 					...filter,
 				},
 				attributes,
@@ -77,7 +77,7 @@ module.exports = class UserEntityData {
 			})
 
 			if (!entityType) {
-				filter.organization_id = utils.convertToString(process.env.DEFAULT_ORG_ID)
+				filter.organization_code = utils.convertToString(process.env.DEFAULT_ORGANISATION_CODE)
 				entityType = await EntityType.findOne({
 					where: filter,
 					raw: true,
@@ -106,7 +106,7 @@ module.exports = class UserEntityData {
 			return await EntityType.update(update, {
 				where: {
 					id: id,
-					organization_id: orgId,
+					organization_code: orgId,
 				},
 				...options,
 			})
@@ -120,7 +120,7 @@ module.exports = class UserEntityData {
 			return await EntityType.destroy({
 				where: {
 					id: id,
-					organization_id: organizationId,
+					organization_code: organizationId,
 				},
 				individualHooks: true,
 			})

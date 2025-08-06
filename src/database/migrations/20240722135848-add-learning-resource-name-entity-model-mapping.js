@@ -7,7 +7,6 @@ module.exports = {
 		if (!defaultOrgId) {
 			throw new Error('Default org ID is undefined. Please make sure it is set in sequelize options.')
 		}
-
 		const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
 		if (!defaultTenantCode) {
 			throw new Error('DEFAULT_TENANT_CODE environment variable is undefined. Please make sure it is set.')
@@ -15,10 +14,10 @@ module.exports = {
 
 		//add model mapping for learning resource
 		const fetchEntityType = await queryInterface.sequelize.query(
-			'SELECT id, value FROM entity_types WHERE value IN (:values) AND organization_id = :defaultOrgId',
+			'SELECT id, value FROM entity_types WHERE value IN (:values) AND organization_code = :defaultOrgId AND tenant_code = :defaultTenantCode',
 			{
 				type: queryInterface.sequelize.QueryTypes.SELECT,
-				replacements: { values: ['learning_resources', 'name'], defaultOrgId },
+				replacements: { values: ['learning_resources', 'name'], defaultOrgId, defaultTenantCode },
 			}
 		)
 		const entityTypeIdMap = fetchEntityType.reduce((acc, item) => {
@@ -29,6 +28,7 @@ module.exports = {
 			{
 				entity_type_id: entityTypeIdMap['learning_resources'],
 				tenant_code: defaultTenantCode,
+				organization_code: defaultOrgId,
 				model: 'project',
 				status: 'ACTIVE',
 				updated_at: new Date(),
@@ -37,6 +37,7 @@ module.exports = {
 			{
 				entity_type_id: entityTypeIdMap['learning_resources'],
 				tenant_code: defaultTenantCode,
+				organization_code: defaultOrgId,
 				model: 'tasks',
 				status: 'ACTIVE',
 				updated_at: new Date(),
@@ -45,17 +46,13 @@ module.exports = {
 			{
 				entity_type_id: entityTypeIdMap['name'],
 				tenant_code: defaultTenantCode,
+				organization_code: defaultOrgId,
 				model: 'subTasks',
 				status: 'ACTIVE',
 				updated_at: new Date(),
 				created_at: new Date(),
 			},
 		]
-		for (const key in entityTypeIdMap) {
-			if (entityTypeIdMap.hasOwnProperty(key)) {
-				entity_model_mapping_bulk_insert.push()
-			}
-		}
 		await queryInterface.bulkInsert('entities_model_mapping', entity_model_mapping_bulk_insert, {})
 	},
 	async down(queryInterface, Sequelize) {
@@ -71,7 +68,7 @@ module.exports = {
 
 		// Fetch entity types to identify which rows to delete
 		const fetchEntityType = await queryInterface.sequelize.query(
-			'SELECT id, value FROM entity_types WHERE value IN (:values) AND organization_id = :defaultOrgId',
+			'SELECT id, value FROM entity_types WHERE value IN (:values) AND organization_code = :defaultOrgId',
 			{
 				type: queryInterface.sequelize.QueryTypes.SELECT,
 				replacements: { values: ['learning_resources', 'name'], defaultOrgId },

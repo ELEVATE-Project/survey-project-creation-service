@@ -2,11 +2,18 @@
 
 module.exports = {
 	up: async (queryInterface, Sequelize) => {
-		// Add a unique index on the combination of organization_id and resource_type
-		await queryInterface.addIndex('organization_extensions', ['organization_id', 'resource_type', 'tenant_code'], {
-			unique: true,
-			name: 'unique_org_resource_type_tenant',
-		})
+		// Add a unique index on the combination of organization_code and resource_type
+		await queryInterface.addIndex(
+			'organization_extensions',
+			['organization_code', 'resource_type', 'tenant_code'],
+			{
+				unique: true,
+				name: 'unique_org_resource_type_tenant',
+				where: {
+					deleted_at: null,
+				},
+			}
+		)
 	},
 
 	down: async (queryInterface, Sequelize) => {

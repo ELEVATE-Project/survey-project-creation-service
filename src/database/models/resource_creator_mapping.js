@@ -17,8 +17,13 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 				primaryKey: true,
 			},
-			organization_id: {
+			organization_code: {
 				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
 				type: DataTypes.STRING,
 			},
 		},
@@ -28,6 +33,9 @@ module.exports = (sequelize, DataTypes) => {
 					unique: true,
 					fields: ['resource_id', 'creator_id'],
 					name: 'unique_creator_resource',
+					where: {
+						deleted_at: null,
+					},
 				},
 			],
 			modelName: 'ResourceCreatorMapping',

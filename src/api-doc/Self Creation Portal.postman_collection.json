@@ -1036,7 +1036,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"min_approval\": 2,\n    \"review_type\": \"PARALLEL\",\n    \"organization_id\":2\n}",
+							"raw": "{\n    \"min_approval\": 2,\n    \"review_type\": \"PARALLEL\",\n    \"organization_code\":2\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2023,7 +2023,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"priyanka\",\n    \"email\": \"priyanka@tunerlabs.com\",\n    \"password\": \"Welcome@123\",\n    \"has_accepted_terms_and_conditions\": true,\n    \"organization_id\":1\n}",
+							"raw": "{\n    \"name\": \"priyanka\",\n    \"email\": \"priyanka@tunerlabs.com\",\n    \"password\": \"Welcome@123\",\n    \"has_accepted_terms_and_conditions\": true,\n    \"organization_code\":1\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2137,7 +2137,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{UserBaseURL}}user/v1/account/search?type=all&organization_id=1",
+							"raw": "{{UserBaseURL}}user/v1/account/search?type=all&organization_code=1",
 							"host": ["{{UserBaseURL}}user"],
 							"path": ["v1", "account", "search"],
 							"query": [
@@ -2146,7 +2146,7 @@
 									"value": "all"
 								},
 								{
-									"key": "organization_id",
+									"key": "organization_code",
 									"value": "1"
 								}
 							]
@@ -2699,12 +2699,12 @@
 							}
 						},
 						"url": {
-							"raw": "{{SCPBaseUrl}}scp/v1/review-stages/update/2?organization_id=1",
+							"raw": "{{SCPBaseUrl}}scp/v1/review-stages/update/2?organization_code=1",
 							"host": ["{{SCPBaseUrl}}scp"],
 							"path": ["v1", "review-stages", "update", "2"],
 							"query": [
 								{
-									"key": "organization_id",
+									"key": "organization_code",
 									"value": "1",
 									"description": "Optional parameter"
 								}

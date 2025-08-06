@@ -37,7 +37,7 @@ module.exports = {
 					created_by: 0,
 					updated_by: 0,
 					allow_filtering: false,
-					organization_id: defaultOrgId,
+					organization_code: defaultOrgId,
 					tenant_code: defaultTenantCode,
 					has_entities: false,
 					allow_custom_entities: false,
@@ -47,10 +47,10 @@ module.exports = {
 			await queryInterface.bulkInsert('entity_types', entityTypeData, {})
 
 			const entityTypes = await queryInterface.sequelize.query(
-				'SELECT * FROM entity_types WHERE value = :entityTypeValue AND organization_id = :defaultOrgId',
+				'SELECT * FROM entity_types WHERE value = :entityTypeValue AND organization_code = :defaultOrgId AND tenant_code = :defaultTenantCode',
 				{
 					type: queryInterface.sequelize.QueryTypes.SELECT,
-					replacements: { entityTypeValue: 'recommended_duration', defaultOrgId },
+					replacements: { entityTypeValue: 'recommended_duration', defaultOrgId, defaultTenantCode },
 				}
 			)
 
@@ -63,6 +63,7 @@ module.exports = {
 			const entityModelMapping = entityTypes.map((entityType) => ({
 				entity_type_id: entityType.id,
 				tenant_code: defaultTenantCode,
+				organization_code: defaultOrgId,
 				model: 'project',
 				status: 'ACTIVE',
 				updated_at: new Date(),
@@ -83,7 +84,7 @@ module.exports = {
 				{
 					where: {
 						value: 'recommended_duration',
-						organization_id: queryInterface.sequelize.options.defaultOrgId,
+						organization_code: queryInterface.sequelize.options.defaultOrgId,
 					},
 				},
 				['id'] // Select only the 'id' field
@@ -104,7 +105,7 @@ module.exports = {
 					'entity_types',
 					{
 						value: 'recommended_duration',
-						organization_id: queryInterface.sequelize.options.defaultOrgId,
+						organization_code: queryInterface.sequelize.options.defaultOrgId,
 					},
 					{}
 				)

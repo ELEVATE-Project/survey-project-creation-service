@@ -27,8 +27,14 @@ module.exports = {
 			type: {
 				type: Sequelize.STRING,
 			},
+			organization_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: Sequelize.STRING,
+			},
 			tenant_code: {
 				type: Sequelize.STRING,
+				primaryKey: true,
 				allowNull: false,
 			},
 			created_by: {
@@ -50,12 +56,23 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
-		await queryInterface.addIndex('entities', ['value', 'entity_type_id', 'tenant_code'], {
+		await queryInterface.addIndex('entities', ['value', 'entity_type_id', 'organization_code', 'tenant_code'], {
 			unique: true,
-			name: 'unique_entities_value_type_tenant',
+			name: 'unique_entities_value_type_org_tenant',
 			where: {
 				deleted_at: null,
 			},
+		})
+		await queryInterface.addConstraint('entities', {
+			fields: ['entity_type_id', 'tenant_code'],
+			type: 'foreign key',
+			name: 'fk_entities_entity_type',
+			references: {
+				table: 'entity_types',
+				fields: ['id', 'tenant_code'],
+			},
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
 		})
 	},
 	async down(queryInterface, Sequelize) {

@@ -6,7 +6,7 @@ module.exports = {
 		// Add unique constraint for resource_type per organization extension
 		await queryInterface.addConstraint('organization_extensions', {
 			type: 'unique',
-			fields: ['organization_id', 'resource_type', 'tenant_code'],
+			fields: ['organization_code', 'resource_type', 'tenant_code'],
 			name: 'unique_resource_type_per_organization_tenant',
 		})
 	},

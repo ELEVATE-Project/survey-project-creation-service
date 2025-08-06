@@ -3,7 +3,7 @@
 const EntityModelMapping = require('../models/index').EntityModelMapping
 const EntityType = require('../models/index').EntityType
 const common = require('@constants/common')
-const defaultOrgId = process.env.DEFAULT_ORG_ID
+const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
 const { removeDefaultOrgEntityTypes } = require('@generics/utils')
 const responses = require('@helpers/responses')
 const httpStatusCode = require('@generics/http-status')
@@ -18,7 +18,7 @@ exports.create = async (data) => {
 	}
 }
 
-exports.findEntityTypesAndEntities = async (filter, organization_id, attributes = {}) => {
+exports.findEntityTypesAndEntities = async (filter, organization_code, attributes = {}) => {
 	try {
 		if (!defaultOrgId)
 			return responses.failureResponse({
@@ -36,8 +36,8 @@ exports.findEntityTypesAndEntities = async (filter, organization_id, attributes 
 		const filters = {
 			id: entityTypeIds,
 			status: common.STATUS_ACTIVE,
-			organization_id: {
-				[Op.in]: [organization_id, defaultOrgId],
+			organization_code: {
+				[Op.in]: [organization_code, defaultOrgId],
 			},
 		}
 		const EntityTypes = await EntityType.findAll({
@@ -45,7 +45,7 @@ exports.findEntityTypesAndEntities = async (filter, organization_id, attributes 
 			raw: true,
 			attributes: attributes,
 		})
-		const prunedEntities = removeDefaultOrgEntityTypes(EntityTypes, organization_id)
+		const prunedEntities = removeDefaultOrgEntityTypes(EntityTypes, organization_code)
 
 		let reletedEntityTypeIds = prunedEntities
 			.filter((entityType) => entityType.has_entities)

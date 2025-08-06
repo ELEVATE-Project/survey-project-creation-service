@@ -19,7 +19,7 @@ module.exports = {
 				allowNull: false,
 				primaryKey: true,
 			},
-			organization_id: {
+			organization_code: {
 				allowNull: false,
 				type: Sequelize.STRING,
 			},
@@ -43,7 +43,7 @@ module.exports = {
 		// Enforce unique resource-reviewer assignments per tenant
 		await queryInterface.addIndex(
 			'review_resources',
-			['resource_id', 'reviewer_id', 'organization_id', 'tenant_code'],
+			['resource_id', 'reviewer_id', 'organization_code', 'tenant_code'],
 			{
 				unique: true,
 				name: 'unique_resource_reviewer_tenant_code',

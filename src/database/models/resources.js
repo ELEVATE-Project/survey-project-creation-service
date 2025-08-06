@@ -45,7 +45,7 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				type: DataTypes.STRING,
 			},
-			organization_id: {
+			organization_code: {
 				primaryKey: true,
 				allowNull: false,
 				type: DataTypes.STRING,
@@ -126,7 +126,7 @@ module.exports = (sequelize, DataTypes) => {
 					userId: instance.user_id,
 					objectId: instance.id,
 					objectType: common.MODEL_NAMES.RESOURCE,
-					orgId: instance.organization_id,
+					orgId: instance.organization_code,
 				})
 			}
 		} catch (error) {

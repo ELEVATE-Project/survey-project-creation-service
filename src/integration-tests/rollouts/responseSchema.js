@@ -278,7 +278,7 @@ const detailResponseSchema = {
 				published_on: {
 					type: 'null',
 				},
-				organization_id: {
+				organization_code: {
 					type: 'string',
 				},
 				user_id: {
@@ -340,7 +340,7 @@ const detailResponseSchema = {
 				'resource_type',
 				'status',
 				'published_on',
-				'organization_id',
+				'organization_code',
 				'user_id',
 				'published_id',
 				'parent_id',

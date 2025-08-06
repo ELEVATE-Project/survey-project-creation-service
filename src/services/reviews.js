@@ -43,7 +43,7 @@ module.exports = class reviewsHelper {
 				{
 					id: resourceId,
 				},
-				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_stage', 'stage'] }
+				{ attributes: ['id', 'status', 'organization_code', 'type', 'next_stage', 'stage'] }
 			)
 			// If no resource is found return error
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
@@ -67,7 +67,7 @@ module.exports = class reviewsHelper {
 
 			// Update the status in the reviews table
 			await reviewsQueries.update(
-				{ id: review.id, organization_id: review.organization_id },
+				{ id: review.id, organization_code: review.organization_code },
 				{ status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES }
 			)
 
@@ -78,7 +78,7 @@ module.exports = class reviewsHelper {
 
 			// Update the 'last_reviewed_on' field in the resources table
 			await resourceQueries.updateOne(
-				{ organization_id: resource.organization_id, id: resourceId },
+				{ organization_code: resource.organization_code, id: resourceId },
 				resourceUpdateObj
 			)
 
@@ -112,7 +112,7 @@ module.exports = class reviewsHelper {
 				{
 					id: resourceId,
 				},
-				{ attributes: ['id', 'status', 'organization_id', 'type', 'next_stage', 'stage'] }
+				{ attributes: ['id', 'status', 'organization_code', 'type', 'next_stage', 'stage'] }
 			)
 
 			// If no resource is found return error
@@ -140,7 +140,7 @@ module.exports = class reviewsHelper {
 					reviewer_id: userId,
 					resource_id: resourceId,
 				},
-				{ attributes: ['id', 'organization_id'] }
+				{ attributes: ['id', 'organization_code'] }
 			)
 
 			// If the review resource does not exist create the review
@@ -149,7 +149,7 @@ module.exports = class reviewsHelper {
 					resourceId,
 					reviewType,
 					userId,
-					resource.organization_id,
+					resource.organization_code,
 					orgId,
 					resource.next_stage,
 					userRoles,
@@ -160,7 +160,7 @@ module.exports = class reviewsHelper {
 
 			// If reviewResource exists, fetch the review details for the specific organization, resource
 			const review = await reviewsQueries.findOne({
-				organization_id: reviewResource.organization_id,
+				organization_code: reviewResource.organization_code,
 				resource_id: resourceId,
 				reviewer_id: userId,
 			})
@@ -179,12 +179,12 @@ module.exports = class reviewsHelper {
 			// Update the status in the reviews table
 			// Update the 'last_reviewed_on' field in the resources table
 			await reviewsQueries.update(
-				{ id: review.id, organization_id: review.organization_id },
+				{ id: review.id, organization_code: review.organization_code },
 				{ status: common.REVIEW_STATUS_INPROGRESS }
 			)
 			await resourceQueries.updateOne(
 				{
-					organization_id: resource.organization_id,
+					organization_code: resource.organization_code,
 					id: resourceId,
 					status: { [Op.ne]: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES },
 				},
@@ -221,7 +221,7 @@ module.exports = class reviewsHelper {
 				{
 					id: resourceId,
 				},
-				{ attributes: ['id', 'status', 'organization_id', 'type', 'user_id', 'next_stage'] }
+				{ attributes: ['id', 'status', 'organization_code', 'type', 'user_id', 'next_stage'] }
 			)
 			// If no resource is found return error
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
@@ -258,9 +258,9 @@ module.exports = class reviewsHelper {
 				userId,
 				bodyData.comment,
 				minApproval,
-				review.organization_id,
+				review.organization_code,
 				reviewType,
-				resource.organization_id,
+				resource.organization_code,
 				resource.next_stage,
 				resource.status,
 				resource.type
@@ -303,7 +303,7 @@ module.exports = class reviewsHelper {
 				{
 					id: resourceId,
 				},
-				{ attributes: ['id', 'status', 'organization_id', 'type'] }
+				{ attributes: ['id', 'status', 'organization_code', 'type'] }
 			)
 			// If no resource is found return error
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
@@ -338,11 +338,11 @@ module.exports = class reviewsHelper {
 			// Update the resource record with the status and 'last_reviewed_on'
 			await Promise.all([
 				reviewsQueries.update(
-					{ id: review.id, organization_id: review.organization_id },
+					{ id: review.id, organization_code: review.organization_code },
 					_.omit(updateObj, ['last_reviewed_on'])
 				),
 				resourceQueries.updateOne(
-					{ id: resourceId, organization_id: resource.organization_id },
+					{ id: resourceId, organization_code: resource.organization_code },
 					_.omit(updateObj, ['notes'])
 				),
 			])
@@ -398,7 +398,7 @@ module.exports = class reviewsHelper {
 
 			// Update the review status to 'APPROVED' for the given review.
 			await reviewsQueries.update(
-				{ id: reviewId, organization_id: reviewOrgId },
+				{ id: reviewId, organization_code: reviewOrgId },
 				{ status: common.REVIEW_STATUS_APPROVED }
 			)
 
@@ -422,7 +422,7 @@ module.exports = class reviewsHelper {
 				updateData.status = common.RESOURCE_STATUS_SUBMITTED
 
 			// Update the resource with the last review date and next_stage (if applicable).
-			await resourceQueries.updateOne({ organization_id: resourceOrgId, id: resourceId }, updateData)
+			await resourceQueries.updateOne({ organization_code: resourceOrgId, id: resourceId }, updateData)
 
 			// Determine if the resource should be published based on the number of approved reviews and minimum approval requirements.
 			const publishResource = reviewsApproved >= minApproval
@@ -484,7 +484,7 @@ module.exports = class reviewsHelper {
 				resource_id: resourceId,
 				reviewer_id: userId,
 				status: common.REVIEW_STATUS_INPROGRESS,
-				organization_id: userOrgId,
+				organization_code: userOrgId,
 			}
 
 			// Create a new review entry in the database
@@ -503,7 +503,7 @@ module.exports = class reviewsHelper {
 			// Update the resource table to reflect the review status
 			await resourceQueries.updateOne(
 				{
-					organization_id: resourceOrgId,
+					organization_code: resourceOrgId,
 					id: resourceId,
 					status: { [Op.ne]: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES },
 				},
@@ -603,7 +603,7 @@ module.exports = class reviewsHelper {
 
 			// Fetch the review details of the user
 			const review = await reviewsQueries.findOne({
-				organization_id: reviewResource.organization_id,
+				organization_code: reviewResource.organization_code,
 				resource_id: resourceId,
 				reviewer_id: userId,
 			})
@@ -635,7 +635,7 @@ module.exports = class reviewsHelper {
 		try {
 			// Check if there is an existing active review for the given resource by another user
 			const existingReview = await reviewsQueries.findOne({
-				organization_id: orgId,
+				organization_code: orgId,
 				resource_id: resourceId,
 				reviewer_id: { [Op.not]: userId },
 				status: { [Op.in]: _restrictedReviewStatuses },
@@ -695,7 +695,7 @@ module.exports = class reviewsHelper {
 			// Fetch the resource creator mapping
 			const resource = await resourceCreatorMappingQueries.findOne(
 				{ creator_id: userId, resource_id: resourceId },
-				['id', 'organization_id']
+				['id', 'organization_code']
 			)
 
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
@@ -703,10 +703,14 @@ module.exports = class reviewsHelper {
 			// Fetch resource data
 			let resourceData = await resourceQueries.findOne({
 				id: resourceId,
-				organization_id: resource.organization_id,
+				organization_code: resource.organization_code,
 			})
 
-			let resourceDetails = await resourceService.getDetails(resourceId, resourceData.organization_id, userToken)
+			let resourceDetails = await resourceService.getDetails(
+				resourceId,
+				resourceData.organization_code,
+				userToken
+			)
 			if (resourceDetails.statusCode !== httpStatusCode.ok) {
 				return resourceDetails
 			}
@@ -727,7 +731,7 @@ module.exports = class reviewsHelper {
 						const publishRollout = await rolloutService.publish(
 							rolloutId,
 							resourceData.user_id,
-							resourceData.organization_id,
+							resourceData.organization_code,
 							resourceData.userToken
 						)
 
@@ -749,7 +753,7 @@ module.exports = class reviewsHelper {
 
 			//update resource table
 			await resourceQueries.updateOne(
-				{ id: resourceId, organization_id: resourceData.organization_id },
+				{ id: resourceId, organization_code: resourceData.organization_code },
 				{
 					status: common.RESOURCE_STATUS_PUBLISHED,
 					published_on: new Date(),
@@ -829,7 +833,7 @@ async function handleProgramRollout(resourceData, resourceId, userId, userToken)
 				resourceId,
 				resourceData,
 				userId,
-				resourceData.organization_id
+				resourceData.organization_code
 			)
 		} else {
 			// while program publishing first time

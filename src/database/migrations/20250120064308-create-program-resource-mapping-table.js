@@ -17,7 +17,7 @@ module.exports = {
 				type: Sequelize.INTEGER,
 				allowNull: false,
 			},
-			organization_id: {
+			organization_code: {
 				type: Sequelize.STRING,
 				allowNull: false,
 			},

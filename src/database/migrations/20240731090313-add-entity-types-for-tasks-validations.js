@@ -76,7 +76,7 @@ module.exports = {
 				created_by: 0,
 				updated_by: 0,
 				allow_filtering: false,
-				organization_id: defaultOrgId,
+				organization_code: defaultOrgId,
 				tenant_code: defaultTenantCode,
 				has_entities,
 				allow_custom_entities: false,
@@ -100,6 +100,7 @@ module.exports = {
 					let data = {
 						entity_type_id: entityType.id,
 						tenant_code: defaultTenantCode,
+						organization_code: defaultOrgId,
 						model: entity.model[pointerToModel],
 						status: 'ACTIVE',
 						updated_at: new Date(),

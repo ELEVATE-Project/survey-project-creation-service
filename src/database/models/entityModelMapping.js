@@ -17,6 +17,10 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 				allowNull: false,
 			},
+			organization_code: {
+				type: DataTypes.STRING,
+				allowNull: false,
+			},
 			status: {
 				type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),
 				allowNull: false,
@@ -35,6 +39,19 @@ module.exports = (sequelize, DataTypes) => {
 			paranoid: true,
 		}
 	)
+
+	EntityModelMapping.associate = function (models) {
+		EntityModelMapping.belongsTo(models.EntityType, {
+			foreignKey: {
+				name: 'entity_type_id',
+				field: 'entity_type_id',
+			},
+			targetKey: 'id',
+			as: 'entities',
+			constraints: true,
+			foreignKeyConstraint: true,
+		})
+	}
 
 	return EntityModelMapping
 }

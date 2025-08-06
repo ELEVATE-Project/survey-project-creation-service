@@ -25,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 				allowNull: false,
 			},
-			organization_id: {
+			organization_code: {
 				type: DataTypes.STRING,
 				primaryKey: true,
 				allowNull: false,
@@ -49,8 +49,11 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['code', 'organization_id', 'tenant_code'],
+					fields: ['code', 'organization_code', 'tenant_code'],
 					name: 'unique_code_per_organization_tenant',
+					where: {
+						deleted_at: null,
+					},
 				},
 			],
 			sequelize,

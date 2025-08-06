@@ -136,7 +136,7 @@ module.exports = {
 					created_by: 0,
 					updated_by: 0,
 					allow_filtering: false,
-					organization_id: defaultOrgId,
+					organization_code: defaultOrgId,
 					tenant_code: defaultTenantCode,
 					has_entities,
 					allow_custom_entities: false,
@@ -155,6 +155,7 @@ module.exports = {
 					if (entity?.model) {
 						return {
 							entity_type_id: entityType.id,
+							organization_code: defaultOrgId,
 							tenant_code: defaultTenantCode,
 							model: entity.model,
 							status: 'ACTIVE',
@@ -180,6 +181,7 @@ module.exports = {
 							...eachEntity,
 							entity_type_id: eachType.id,
 							tenant_code: defaultTenantCode,
+							organization_code: defaultOrgId,
 							type: 'SYSTEM',
 							status: 'ACTIVE',
 							created_at: new Date(),

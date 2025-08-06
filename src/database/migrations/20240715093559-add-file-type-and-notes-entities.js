@@ -40,7 +40,7 @@ module.exports = {
 				created_by: 0,
 				updated_by: 0,
 				allow_filtering: false,
-				organization_id: defaultOrgId,
+				organization_code: defaultOrgId,
 				tenant_code: defaultTenantCode,
 				has_entities,
 				allow_custom_entities: false,
@@ -60,6 +60,7 @@ module.exports = {
 			return {
 				entity_type_id: entityType.id,
 				tenant_code: defaultTenantCode,
+				organization_code: defaultOrgId,
 				model: entity.model,
 				status: 'ACTIVE',
 				updated_at: new Date(),
@@ -78,6 +79,7 @@ module.exports = {
 						...eachEntity,
 						entity_type_id: eachType.id,
 						tenant_code: defaultTenantCode,
+						organization_code: defaultOrgId,
 						type: 'SYSTEM',
 						status: 'ACTIVE',
 						created_at: new Date(),
@@ -99,7 +101,7 @@ module.exports = {
 			throw new Error('Default org ID is undefined. Please make sure it is set in sequelize options.')
 		}
 		const entityTypes = await queryInterface.sequelize.query(
-			'SELECT id FROM entity_types WHERE value = :value AND organization_id = :defaultOrgId',
+			'SELECT id FROM entity_types WHERE value = :value AND organization_code = :defaultOrgId',
 			{
 				type: queryInterface.sequelize.QueryTypes.SELECT,
 				replacements: { value: 'file_types', defaultOrgId },

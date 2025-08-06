@@ -32,7 +32,7 @@ module.exports = class CommentsHelper {
 				{
 					id: resourceId,
 				},
-				{ attributes: ['id', 'type', 'status', 'organization_id'] }
+				{ attributes: ['id', 'type', 'status', 'organization_code'] }
 			)
 
 			if (!resource?.id) {
@@ -44,7 +44,7 @@ module.exports = class CommentsHelper {
 				// Check if resource is associated with a program
 				const associatedResources = await programResourceMappingQueries.findOne({
 					resource_id: resourceId,
-					organization_id: resource.organization_id,
+					organization_code: resource.organization_code,
 				})
 
 				//if the resource is a non program and attached to program still reviewer can add comment
@@ -164,7 +164,7 @@ module.exports = class CommentsHelper {
 				{
 					id: resourceId,
 				},
-				{ attributes: ['id', 'type', 'organization_id'] }
+				{ attributes: ['id', 'type', 'organization_code'] }
 			)
 
 			if (resource?.type === common.RESOURCE_TYPE_PROGRAM) {
@@ -172,7 +172,7 @@ module.exports = class CommentsHelper {
 				// Fetch all resources associated with the given program
 				const associatedResources = await programResourceMappingQueries.findAll({
 					program_id: resourceId,
-					organization_id: resource.organization_id,
+					organization_code: resource.organization_code,
 				})
 
 				// If there are associated resources, proceed with fetching their comments

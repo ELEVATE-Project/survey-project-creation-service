@@ -74,7 +74,7 @@ module.exports = class ProjectsHelper {
 				stage: common.RESOURCE_STAGE_CREATION,
 				user_id: loggedInUserId,
 				review_type: orgConfigList[common.PROJECT],
-				organization_id: orgId,
+				organization_code: orgId,
 				meta: {},
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
@@ -89,7 +89,7 @@ module.exports = class ProjectsHelper {
 				const mappingData = {
 					resource_id: projectCreate.id,
 					creator_id: loggedInUserId,
-					organization_id: orgId,
+					organization_code: orgId,
 				}
 				await resourceCreatorMappingQueries.create(mappingData)
 
@@ -110,7 +110,7 @@ module.exports = class ProjectsHelper {
 				) {
 					let filter = {
 						id: resourceId,
-						organization_id: orgId,
+						organization_code: orgId,
 					}
 
 					let updateData = {
@@ -179,7 +179,7 @@ module.exports = class ProjectsHelper {
 			]
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
-				organization_id: orgId,
+				organization_code: orgId,
 				status: {
 					[Op.notIn]: forbidden_resource_statuses,
 				},
@@ -198,7 +198,7 @@ module.exports = class ProjectsHelper {
 
 			const countReviews = await reviewsQueries.distinctResources(
 				{
-					organization_id: orgId,
+					organization_code: orgId,
 					resource_id: resourceId,
 					status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
 				},
@@ -216,7 +216,7 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id', 'user_id'])
+			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_code', 'user_id'])
 
 			//upload to blob
 			const projectUploadStatus = await resourceService.uploadToCloud(
@@ -232,7 +232,7 @@ module.exports = class ProjectsHelper {
 			) {
 				let filter = {
 					id: resourceId,
-					organization_id: orgId,
+					organization_code: orgId,
 				}
 
 				let updateData = {
@@ -295,7 +295,7 @@ module.exports = class ProjectsHelper {
 					resource_id: resourceId,
 					creator_id: loggedInUserId,
 				},
-				['id', 'organization_id']
+				['id', 'organization_code']
 			)
 
 			if (!resourceCreatorMapping?.id) {
@@ -309,11 +309,11 @@ module.exports = class ProjectsHelper {
 			const resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
-					organization_id: resourceCreatorMapping.organization_id,
+					organization_code: resourceCreatorMapping.organization_code,
 					status: common.RESOURCE_STATUS_DRAFT,
 					stage: common.RESOURCE_STAGE_CREATION,
 				},
-				{ attributes: ['id', 'type', 'organization_id'] }
+				{ attributes: ['id', 'type', 'organization_code'] }
 			)
 
 			if (!resource?.id) {
@@ -324,7 +324,7 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			let updatedProject = await resourceQueries.deleteOne(resourceId, resource.organization_id)
+			let updatedProject = await resourceQueries.deleteOne(resourceId, resource.organization_code)
 			let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
 				resourceCreatorMapping.id,
 				loggedInUserId
@@ -394,7 +394,7 @@ module.exports = class ProjectsHelper {
 							model: common.ENTITY_TYPE_MODELS[common.PROJECT],
 							status: common.STATUS_ACTIVE,
 						},
-						project.organization_id,
+						project.organization_code,
 						['id', 'value', 'label', 'has_entities']
 					)
 
@@ -454,7 +454,7 @@ module.exports = class ProjectsHelper {
 			}
 
 			//get organization details
-			let organizationDetails = await userRequests.fetchOrg(project.organization_id)
+			let organizationDetails = await userRequests.fetchOrg(project.organization_code)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				project.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
 			}
@@ -480,7 +480,7 @@ module.exports = class ProjectsHelper {
 	 */
 	static async submitForReview(resourceId, bodyData, userDetails) {
 		try {
-			let projectDetails = await this.details(resourceId, userDetails.organization_id, userDetails.id)
+			let projectDetails = await this.details(resourceId, userDetails.organization_code, userDetails.id)
 			if (projectDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROJECT_ACCESS',
@@ -548,7 +548,7 @@ module.exports = class ProjectsHelper {
 					'',
 					'',
 					'',
-					userDetails.organization_id,
+					userDetails.organization_code,
 					{
 						user_ids: uniqueReviewerIds,
 						excluded_user_ids: [userDetails.id],
@@ -578,7 +578,7 @@ module.exports = class ProjectsHelper {
 					model: common.PROJECT,
 					status: common.STATUS_ACTIVE,
 				},
-				projectData.organization_id,
+				projectData.organization_code,
 				['id', 'value', 'has_entities', 'validations']
 			)
 
@@ -588,7 +588,7 @@ module.exports = class ProjectsHelper {
 					model: common.TASKS,
 					status: common.STATUS_ACTIVE,
 				},
-				projectData.organization_id,
+				projectData.organization_code,
 				['id', 'value', 'validations', 'has_entities']
 			)
 
@@ -618,7 +618,7 @@ module.exports = class ProjectsHelper {
 					model: common.SUBTASKS,
 					status: common.STATUS_ACTIVE,
 				},
-				projectData.organization_id,
+				projectData.organization_code,
 				['value', 'validations']
 			)
 
@@ -685,7 +685,7 @@ module.exports = class ProjectsHelper {
 					resource_id: projectData.id,
 					reviewer_id,
 					status: common.REVIEW_STATUS_NOT_STARTED,
-					organization_id: userDetails.organization_id,
+					organization_code: userDetails.organization_code,
 				}))
 
 				await reviewsQueries.bulkCreate(reviewsData)
@@ -702,7 +702,7 @@ module.exports = class ProjectsHelper {
 				//Update the review status if the resource has been submitted before
 				await reviewsQueries.update(
 					{
-						organization_id: projectData.organization_id,
+						organization_code: projectData.organization_code,
 						resource_id: projectData.id,
 						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 					},
@@ -715,13 +715,13 @@ module.exports = class ProjectsHelper {
 			//check review is required or not
 			const isReviewMandatory = await resourceService.isReviewMandatory(
 				projectData.type,
-				projectData.organization_id
+				projectData.organization_code
 			)
 			if (!isReviewMandatory) {
 				const publishResource = await reviewService.publishResource(
 					resourceId,
 					projectData.user_id,
-					projectData.organization_id
+					projectData.organization_code
 				)
 				return publishResource
 			}
@@ -747,7 +747,7 @@ module.exports = class ProjectsHelper {
 				userId: userDetails.id,
 				objectId: resourceId,
 				objectType: common.MODEL_NAMES.RESOURCE,
-				orgId: userDetails.organization_id,
+				orgId: userDetails.organization_code,
 			})
 
 			return responses.successResponse({
