@@ -44,7 +44,7 @@ module.exports = class orgExtensionsHelper {
 						meta: { program_managers },
 						updated_at: new Date(),
 					},
-					{ organization_code }
+					{ organization_code: orgCode, tenant_code: tenantCode }
 				)
 			}
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
