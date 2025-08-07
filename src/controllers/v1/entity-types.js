@@ -1,7 +1,6 @@
 // Dependencies
 const entityTypeService = require('@services/entity-types')
 const utils = require('@generics/utils')
-const common = require('@constants/common')
 const responses = require('@helpers/responses')
 const httpStatusCode = require('@generics/http-status')
 
