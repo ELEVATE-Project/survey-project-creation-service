@@ -6,6 +6,9 @@
  */
 
 const orgExtensionService = require('@services/organization-extension')
+const utils = require('@generics/utils')
+const responses = require('@helpers/responses')
+const httpStatusCode = require('@generics/http-status')
 module.exports = class configs {
 	/**
 	 * List Configs.
@@ -15,10 +18,15 @@ module.exports = class configs {
 	 */
 	async list(req) {
 		try {
-			const configList = await orgExtensionService.getConfig(
-				req.decodedToken.organization_code,
-				req.decodedToken.tenant_code
-			)
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+
+			const configList = await orgExtensionService.getConfig(orgCode, tenantCode)
 
 			return configList
 		} catch (error) {

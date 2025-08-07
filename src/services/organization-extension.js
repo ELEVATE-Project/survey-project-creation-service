@@ -19,29 +19,32 @@ module.exports = class orgExtensionsHelper {
 	 * @returns {JSON} - Organization Config created response.
 	 */
 
-	static async createConfig(bodyData, organization_code) {
+	static async createConfig(bodyData, orgCode, tenantCode) {
 		try {
-			bodyData.organization_code = organization_code
+			bodyData.organization_code = orgCode
+			bodyData.tenant_code = tenantCode
 			const { resource_type, review_stages, review_type, data_managers, program_managers } = bodyData
 			// check if body have data_managers
 			if (data_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_code,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 						meta: { data_managers },
 						updated_at: new Date(),
 					},
-					{ organization_code }
+					{ organization_code: orgCode, tenant_code: tenantCode }
 				)
 			}
 			if (program_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_code,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 						meta: { program_managers },
 						updated_at: new Date(),
 					},
-					{ organization_code }
+					{ organization_code: orgCode, tenant_code: tenantCode }
 				)
 			}
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
@@ -78,7 +81,8 @@ module.exports = class orgExtensionsHelper {
 				try {
 					const createReviewStages = review_stages.map((stage) => ({
 						...stage,
-						organization_code,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 						resource_type,
 					}))
 
@@ -124,11 +128,12 @@ module.exports = class orgExtensionsHelper {
 	 * @name updateConfig
 	 * @param {Object} bodyData - Organization config body data.
 	 * @param {String} id - config id.
-	 * @param {String} organization_code - organization id
+	 * @param {String} orgCode - organization code
+	 * @param {String} tenantCode - tenant code
 	 * @returns {JSON} - Organization Config updated response.
 	 */
 
-	static async updateConfig(id, resource_type, bodyData, organization_code) {
+	static async updateConfig(id, resource_type, bodyData, orgCode, tenantCode) {
 		try {
 			//validate resource type
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
@@ -146,11 +151,12 @@ module.exports = class orgExtensionsHelper {
 			if (data_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_code,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 						meta: { data_managers },
 						updated_at: new Date(),
 					},
-					{ organization_code }
+					{ organization_code: orgCode, tenant_code: tenantCode }
 				)
 			}
 
@@ -158,25 +164,28 @@ module.exports = class orgExtensionsHelper {
 			if (program_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_code,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 						meta: { program_managers },
 						updated_at: new Date(),
 					},
-					{ organization_code }
+					{ organization_code: orgCode, tenant_code: tenantCode }
 				)
 			}
 
 			const filter = {
 				id: id,
 				resource_type: resource_type,
-				organization_code: organization_code,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 			}
 
 			if (review_type === common.REVIEW_TYPE_SEQUENTIAL) {
 				// Fetch existing review stages
 				const existingReviewStages = await reviewStageQueries.findAll({
 					resource_type: resource_type,
-					organization_code: organization_code,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				})
 
 				// Check if review_stages is not null, undefined, not an array, empty or invalid
@@ -210,7 +219,8 @@ module.exports = class orgExtensionsHelper {
 									existingStage.role === stage.role &&
 									existingStage.level === stage.level &&
 									existingStage.resource_type === resource_type &&
-									existingStage.organization_code === organization_code
+									existingStage.organization_code === orgCode &&
+									existingStage.tenant_code === tenantCode
 							)
 					)
 
@@ -218,7 +228,8 @@ module.exports = class orgExtensionsHelper {
 					if (newReviewStages.length > 0) {
 						const createReviewStages = newReviewStages.map((stage) => ({
 							...stage,
-							organization_code,
+							organization_code: orgCode,
+							tenant_code: tenantCode,
 							resource_type,
 						}))
 						try {
