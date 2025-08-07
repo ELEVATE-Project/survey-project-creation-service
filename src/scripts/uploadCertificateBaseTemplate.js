@@ -13,12 +13,12 @@ const request = require('request')
 const certificateQueries = require('../database/queries/certificateBaseTemplate')
 const common = require('../constants/common')
 const utils = require('../generics/utils')
-const organizarionCode = process.env.DEFAULT_ORGANISATION_CODE || null
+const organizationCode = process.env.DEFAULT_ORGANISATION_CODE || null
 const tenantCode = process.env.DEFAULT_TENANT_CODE || null
 
 ;(async () => {
 	try {
-		if (!organizarionCode) {
+		if (!organizationCode) {
 			throw new Error('DEFAULT_ORGANISATION_CODE must be set')
 		}
 		if (!tenantCode) {
@@ -151,7 +151,7 @@ const tenantCode = process.env.DEFAULT_TENANT_CODE || null
 			const certificateData = {
 				...currentPointerArray,
 				url: uploadedFilePath,
-				organization_code: utils.convertToString(organizarionCode),
+				organization_code: utils.convertToString(organizationCode),
 				tenant_code: utils.convertToString(tenantCode),
 				resource_type: common.PROJECT,
 				created_by: common.CREATED_BY_SYSTEM,
