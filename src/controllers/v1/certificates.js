@@ -6,6 +6,9 @@
  */
 
 const certificateService = require('@services/certificate')
+const utils = require('@generics/utils')
+const responses = require('@helpers/responses')
+const httpStatusCode = require('@generics/http-status')
 module.exports = class certificates {
 	/**
 	 * List certificates.
@@ -15,9 +18,17 @@ module.exports = class certificates {
 	 */
 	async list(req) {
 		try {
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			const certificates = await certificateService.list(
 				req.query.resource_type ? req.query.resource_type : '',
-				req.decodedToken.organization_code,
+				orgCode,
+				tenantCode,
 				req.searchText
 			)
 
@@ -35,11 +46,19 @@ module.exports = class certificates {
 	 */
 	async update(req) {
 		try {
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			const certificate = await certificateService.update(
 				req.params.id ? req.params.id : '',
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_code
+				orgCode,
+				tenantCode
 			)
 
 			return certificate
