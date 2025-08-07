@@ -1,7 +1,7 @@
 const formQueries = require('../database/queries/form')
-async function getAllFormsVersion() {
+async function getAllFormsVersion(orgCode, tenantCode) {
 	try {
-		return await formQueries.findAllTypeFormVersion()
+		return await formQueries.findAllTypeFormVersion(orgCode, tenantCode)
 	} catch (error) {
 		console.error(error)
 	}
