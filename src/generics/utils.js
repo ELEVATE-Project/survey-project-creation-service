@@ -773,31 +773,31 @@ function md5Hash(value) {
  */
 function validateTenantAndOrganizationInHeader(req) {
 	if (!req || !req.headers) return false
-	return !req.headers.tenant === !req.headers.organization
+	return !req.headers?.[process.env.TENANT_ID_HEADER_NAME] === !req.headers?.[process.env.ORG_ID_HEADER_NAME]
 }
 
 /**
 +	 * Extract tenant and organization codes based on user role
 +	 */
 function _extractTenantAndOrgCodes(req) {
-	let tenantCode = req.decodedToken.tenant_code
-	let orgCode = req.decodedToken.organization_code
+	let tenantId = req.decodedToken.tenant_code
+	let organizationId = req.decodedToken.organization_code
 
 	if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
 		const validHeader = validateTenantAndOrganizationInHeader(req)
 		if (!validHeader) {
 			return {
-				error: 'TENANT_ORGANIZATION_HEADER_MISSING',
+				orgTenantError: 'TENANT_ORGANIZATION_HEADER_MISSING',
 			}
 		}
 
-		if (req.headers.tenant && req.headers.organization) {
-			tenantCode = req.headers.tenant
-			orgCode = req.headers.organization
+		if (req.headers?.[process.env.TENANT_ID_HEADER_NAME] && req.headers?.[process.env.ORG_ID_HEADER_NAME]) {
+			tenantId = req.headers?.[process.env.TENANT_ID_HEADER_NAME]
+			organizationId = req.headers?.[process.env.ORG_ID_HEADER_NAME]
 		}
 	}
 
-	return { tenantCode, orgCode }
+	return { tenantId, organizationId }
 }
 
 module.exports = {
