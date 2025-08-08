@@ -15,7 +15,7 @@ module.exports = class certificatesHelper {
 	 * @name list
 	 * @returns {JSON} - List of certificate templates based on orgId of user as response.
 	 */
-	static async list(resource_type = '', orgId, search) {
+	static async list(resource_type = '', orgCode, tenantCode, search) {
 		try {
 			let result = {
 				data: [],
@@ -24,8 +24,9 @@ module.exports = class certificatesHelper {
 
 			let filter = {
 				organization_code: {
-					[Op.in]: [orgId, defaultOrgId],
+					[Op.in]: [orgCode, defaultOrgId],
 				},
+				tenant_code: tenantCode,
 			}
 
 			if (resource_type) {
@@ -37,7 +38,7 @@ module.exports = class certificatesHelper {
 			}
 
 			const certificate = await certificateQueries.findAll(filter)
-			const prunedCertificates = utils.removeDefaultOrgCertificates(certificate, orgId)
+			const prunedCertificates = utils.removeDefaultOrgCertificates(certificate, orgCode)
 
 			//get the downloadable url of certificates
 			if (prunedCertificates.length > 0) {
@@ -85,15 +86,19 @@ module.exports = class certificatesHelper {
 	 * @name update
 	 * @returns {JSON} - certificate templates JSON.
 	 */
-	static async update(id, bodyData, loggedInUserId, orgId) {
+	static async update(id = null, bodyData, loggedInUserId, orgCode, tenantCode) {
 		try {
 			bodyData.updated_by = loggedInUserId
 
 			if (id) {
-				const [updateCount, updatedTemplate] = await certificateQueries.updateOne({ id: id }, bodyData, {
-					returning: true,
-					raw: true,
-				})
+				const [updateCount, updatedTemplate] = await certificateQueries.updateOne(
+					{ id: id, organization_code: orgCode, tenant_code: tenantCode },
+					bodyData,
+					{
+						returning: true,
+						raw: true,
+					}
+				)
 
 				if (updateCount === 0) {
 					return responses.failureResponse({
@@ -110,7 +115,8 @@ module.exports = class certificatesHelper {
 				})
 			} else {
 				bodyData.created_by = loggedInUserId
-				bodyData.organization_code = orgId
+				bodyData.organization_code = orgCode
+				bodyData.tenant_code = tenantCode
 				const certificate = await certificateQueries.create(bodyData)
 				return responses.successResponse({
 					statusCode: httpStatusCode.created,

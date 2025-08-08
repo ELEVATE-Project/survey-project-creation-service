@@ -6,8 +6,9 @@
  */
 
 const orgExtensionService = require('@services/organization-extension')
-const common = require('@constants/common')
 const utils = require('@generics/utils')
+const responses = require('@helpers/responses')
+const httpStatusCode = require('@generics/http-status')
 
 module.exports = class orgExtensions {
 	/**
@@ -20,13 +21,15 @@ module.exports = class orgExtensions {
 
 	async createConfig(req) {
 		try {
-			let organization_code = req.decodedToken.organization_code
-			if (utils.validateRoleAccess(req.decodedToken.roles, process.env.DEFAULT_ADMIN_ROLE)) {
-				organization_code = req.body.organization_code
-					? req.body.organization_code
-					: req.decodedToken.organization_code
-			}
-			const orgExtension = await orgExtensionService.createConfig(req.body, organization_code)
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+
+			const orgExtension = await orgExtensionService.createConfig(req.body, orgCode, tenantCode)
 			return orgExtension
 		} catch (error) {
 			return error
@@ -43,17 +46,19 @@ module.exports = class orgExtensions {
 
 	async updateConfig(req) {
 		try {
-			let organization_code = req.decodedToken.organization_code
-			if (utils.validateRoleAccess(req.decodedToken.roles, process.env.DEFAULT_ADMIN_ROLE)) {
-				organization_code = req.body.organization_code
-					? req.body.organization_code
-					: req.decodedToken.organization_code
-			}
+			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			const orgExtension = await orgExtensionService.updateConfig(
 				req.params.id,
 				req.query.resource_type,
 				req.body,
-				organization_code
+				orgCode,
+				tenantCode
 			)
 			return orgExtension
 		} catch (error) {

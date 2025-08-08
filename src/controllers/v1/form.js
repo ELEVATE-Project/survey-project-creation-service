@@ -7,6 +7,9 @@
 
 // Dependencies
 const formsService = require('@services/form')
+const utils = require('@generics/utils')
+const responses = require('@helpers/responses')
+const httpStatusCode = require('@generics/http-status')
 
 module.exports = class Form {
 	/**
@@ -24,7 +27,14 @@ module.exports = class Form {
 
 	async create(req) {
 		try {
-			const createdForm = await formsService.create(req.body, req.decodedToken.organization_code)
+			const { orgCode, tenantCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			const createdForm = await formsService.create(req.body, orgCode, tenantCode)
 			return createdForm
 		} catch (error) {
 			return error
@@ -46,7 +56,14 @@ module.exports = class Form {
 
 	async update(req) {
 		try {
-			const updatedForm = await formsService.update(req.params.id, req.body, req.decodedToken.organization_code)
+			const { orgCode, tenantCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			const updatedForm = await formsService.update(req.params.id, req.body, orgCode, tenantCode)
 			return updatedForm
 		} catch (error) {
 			return error
@@ -68,11 +85,18 @@ module.exports = class Form {
 
 	async read(req) {
 		try {
+			const { orgCode, tenantCode, error } = utils._extractTenantAndOrgCodes(req)
+			if (error)
+				return responses.failureResponse({
+					message: error,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			if (!req.params.id && Object.keys(req.body).length === 0) {
-				const form = await formsService.readAllFormsVersion()
+				const form = await formsService.readAllFormsVersion(orgCode, tenantCode)
 				return form
 			} else {
-				const form = await formsService.read(req.params.id, req.body, req.decodedToken.organization_code)
+				const form = await formsService.read(req.params.id, req.body, orgCode, tenantCode)
 				return form
 			}
 		} catch (error) {
