@@ -64,6 +64,8 @@ reviews:
     drafts: false
     # Target reviews to development branches.
     base_branches:
+      - "main"
+      - "master" 
       - "develop"
 
   finishing_touches:
