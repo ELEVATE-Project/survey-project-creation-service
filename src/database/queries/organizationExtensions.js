@@ -1,6 +1,6 @@
 const OrgExtensions = require('../models/index').organizationExtension
 
-exports.findMany = async (filter, attributes = []) => {
+exports.findMany = async (filter, attributes) => {
 	try {
 		return await OrgExtensions.findAll({
 			where: filter,
@@ -25,6 +25,18 @@ exports.update = async (filter, update, options = {}) => {
 		return await OrgExtensions.update(update, {
 			where: filter,
 			...options,
+		})
+	} catch (error) {
+		return error
+	}
+}
+
+exports.findOne = async (filter, attributes = []) => {
+	try {
+		return await OrgExtensions.findOne({
+			where: filter,
+			attributes,
+			raw: true,
 		})
 	} catch (error) {
 		return error

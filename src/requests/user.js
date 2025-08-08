@@ -98,7 +98,8 @@ const list = function (
 	searchText = '',
 	organization_code = null,
 	body = {},
-	userToken = ''
+	userToken = '',
+	tenantCode = null
 ) {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -107,6 +108,7 @@ const list = function (
 			if (pageSize != '') apiUrl += '&limit=' + pageSize
 			if (searchText != '') apiUrl += '&search=' + searchText
 			if (organization_code != null) apiUrl += '&organization_code=' + organization_code
+			if (tenantCode) apiUrl += '&tenant_code=' + tenantCode
 
 			const userDetails = await requests.post(apiUrl, body, userToken, true)
 			return resolve(userDetails)
