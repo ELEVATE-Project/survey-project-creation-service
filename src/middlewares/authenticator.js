@@ -43,8 +43,6 @@ module.exports = async function (req, res, next) {
 	try {
 		const authHeader = req.get(process.env.AUTH_TOKEN_HEADER_NAME)
 
-		if (process.env.ADMIN_ACCESS_TOKEN) adminHeader = req.get(process.env.ADMIN_TOKEN_HEADER_NAME)
-
 		const isInternalAccess = common.internalAccessUrls.some((path) => {
 			if (req.path.includes(path)) {
 				if (req.headers.internal_access_token === process.env.INTERNAL_ACCESS_TOKEN) return true

@@ -773,7 +773,10 @@ function md5Hash(value) {
  */
 function validateTenantAndOrganizationInHeader(req) {
 	if (!req || !req.headers) return false
-	return !req.headers?.[process.env.TENANT_ID_HEADER_NAME] === !req.headers?.[process.env.ORG_ID_HEADER_NAME]
+	return (
+		!req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()] ===
+		!req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
+	)
 }
 
 /**
@@ -791,9 +794,12 @@ function _extractTenantAndOrgCodes(req) {
 			}
 		}
 
-		if (req.headers?.[process.env.TENANT_ID_HEADER_NAME] && req.headers?.[process.env.ORG_ID_HEADER_NAME]) {
-			tenantId = req.headers?.[process.env.TENANT_ID_HEADER_NAME]
-			organizationId = req.headers?.[process.env.ORG_ID_HEADER_NAME]
+		if (
+			req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()] &&
+			req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
+		) {
+			tenantId = req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()]
+			organizationId = req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
 		}
 	}
 
