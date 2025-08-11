@@ -7,6 +7,16 @@
 
 require('module-alias/register')
 require('dotenv').config()
+
+// Default tenant and organization codes
+const DEFAULT_TENANT_CODE = process.env.DEFAULT_TENANT_CODE
+const DEFAULT_ORGANIZATION_CODE = process.env.DEFAULT_ORGANIZATION_CODE
+
+if (!DEFAULT_TENANT_CODE || !DEFAULT_ORGANIZATION_CODE) {
+	console.error('Missing DEFAULT_TENANT_CODE or DEFAULT_ORGANIZATION_CODE in environment. Aborting.')
+	process.exit(1)
+}
+
 const path = require('path')
 const _ = require('lodash')
 const fs = require('fs')
@@ -25,10 +35,6 @@ const certificateQueries = require('../database/queries/certificateBaseTemplate'
 
 const EntityModelMapping = require('@database/models/index').EntityModelMapping
 const sequelize = require('@database/models/index').sequelize
-
-// Default tenant and organization codes
-const DEFAULT_TENANT_CODE = process.env.DEFAULT_TENANT_CODE
-const DEFAULT_ORGANIZATION_CODE = process.env.DEFAULT_ORGANIZATION_CODE
 
 // Main setup function
 ;(async () => {
@@ -400,6 +406,19 @@ async function setupCertificateBaseTemplates(newTenantCode, newOrgCode) {
 			},
 			body: fileData,
 		})
+
+		// skip if template already exists
+		const existingTemplate = await certificateQueries.findOne({
+			code: currentPointerArray.code,
+			tenant_code: utils.convertToString(newTenantCode),
+			organization_code: utils.convertToString(newOrgCode),
+			resource_type: common.PROJECT,
+		})
+
+		if (existingTemplate) {
+			console.log(`Certificate template "${currentPointerArray.code}" already exists. Skipping.`)
+			continue
+		}
 
 		const certificateData = {
 			...currentPointerArray,
