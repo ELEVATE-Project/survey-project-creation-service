@@ -19,20 +19,29 @@ const _ = require('lodash')
 const MongoClient = require('mongodb').MongoClient
 const { v4: uuidv4 } = require('uuid')
 const userRequest = require('@requests/user')
-const ObjectId = require('mongodb').ObjectID
 
-const mongoUrl = process.env.MONGODB_URL
+// Constants for environment variables
+const { DEFAULT_TENANT_CODE, DEFAULT_ORGANIZATION_CODE, MONGODB_URL } = process.env
 
-if (!mongoUrl) {
-	throw new Error('MONGODB_URL is not set in the environment variables.')
+// Validate required environment variables
+const missingVariables = [
+	{ name: 'DEFAULT_TENANT_CODE', value: DEFAULT_TENANT_CODE },
+	{ name: 'DEFAULT_ORGANIZATION_CODE', value: DEFAULT_ORGANIZATION_CODE },
+	{ name: 'MONGODB_URL', value: MONGODB_URL },
+]
+	.filter(({ value }) => !value)
+	.map(({ name }) => name)
+
+if (missingVariables.length > 0) {
+	throw new Error(`Missing required environment variables: ${missingVariables.join(', ')}`)
 }
 
-const dbName = mongoUrl.split('/').pop()
+const dbName = MONGODB_URL.split('/').pop()
 
 ;(async () => {
 	try {
 		// Connect to MongoDB
-		const client = new MongoClient(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true })
+		const client = new MongoClient(MONGODB_URL, { useNewUrlParser: true, useUnifiedTopology: true })
 		const connection = await client.connect()
 
 		console.log('Connected to MongoDB')
@@ -56,6 +65,7 @@ const dbName = mongoUrl.split('/').pop()
 		await csvWriter.writeRecords([])
 
 		const entityKeys = ['categories', 'recommended_for', 'languages']
+
 		let entityTypeEntityMap = {}
 
 		// Get default userId
@@ -75,67 +85,81 @@ const dbName = mongoUrl.split('/').pop()
 				tenantId: { $exists: true },
 				orgId: { $exists: true },
 			})
-			.project({ _id: 1 })
+			.project({ _id: 1, tenantId: 1 })
+			.limit(1)
 			.toArray()
 
 		console.log(`${projectTemplates.length} project templates found`)
 
-		// Chunked processing
-		let chunkedTemplates = _.chunk(projectTemplates, 10)
-		let createdEntityIds = {}
-		// let entitiesToCreate = []
+		// Group templates by tenant
+		const groupedTemplates = _.groupBy(projectTemplates, 'tenantId')
+		// Process each tenant group sequentially
+		for (const tenantCode in groupedTemplates) {
+			const templatesForTenant = groupedTemplates[tenantCode]
 
-		// Process each chunk sequentially
-		for (const chunk of chunkedTemplates) {
-			const templateIds = chunk.map((templateDoc) => templateDoc._id)
+			// Chunked processing
+			let chunkedTemplates = _.chunk(templatesForTenant, 10)
+			let createdEntityIds = {}
 
-			// Fetch templates sequentially
-			const templates = await db
-				.collection('projectTemplates')
-				.find({ _id: { $in: templateIds } })
-				.toArray()
+			// Process each chunk sequentially
+			for (const chunk of chunkedTemplates) {
+				const templateIds = chunk.map((templateDoc) => templateDoc._id)
 
-			// Fetch user and org details sequentially
-			let userIds = templates
-				.filter((template) => template.createdBy !== 'SYSTEM')
-				.map((template) => template.createdBy)
-			let userOrgTenantMap = await getUserOrgTenantDetails(userIds)
+				// Fetch templates sequentially
+				const templates = await db
+					.collection('projectTemplates')
+					.find({ _id: { $in: templateIds } })
+					.toArray()
 
-			for (const template of templates) {
-				let templateIdStr = template._id.toString()
-				console.log(`Processing template ${templateIdStr}`)
+				// Fetch user and org details sequentially
+				let userIds = templates
+					.filter((template) => template.createdBy !== 'SYSTEM')
+					.map((template) => template.createdBy)
+				let userOrgTenantMap = await getUserOrgTenantDetails(userIds, tenantCode)
 
-				// --- NEW: Identify tenantId and orgId for this template ---
-				const tenantId = template.tenantId || process.env.DEFAULT_TENANT_ID
-				const orgId = template.orgId || process.env.DEFAULT_ORG_ID
-				const entityTypeMapKey = `${tenantId}_${orgId}`
+				for (const template of templates) {
+					let templateIdStr = template._id.toString()
+					console.log(`Processing template ${templateIdStr}`)
 
-				// --- NEW: Ensure entityTypeEntityMap for this tenant/org ---
-				if (!entityTypeEntityMap[entityTypeMapKey]) {
-					entityTypeEntityMap[entityTypeMapKey] = {}
-					// Fetch entity types for this tenant/org
-					let entities = await entityTypeService.readUserEntityTypes({ value: entityKeys }, tenantId, orgId)
-					let entityTypesWithEntities = entities?.result?.entity_types || []
-					if (!entityTypesWithEntities.length) {
-						// If not found, create entity types for this tenant/org
-						for (const key of entityKeys) {
-							const entityTypePayload = {
-								value: key,
-								label: key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
-								tenant_id: tenantId,
-								organization_code: orgId,
-								status: 'ACTIVE',
-								created_by: DEFAULT_USER_ID,
-								updated_by: DEFAULT_USER_ID,
-							}
-							const createdEntityType = await entityTypeService.create(entityTypePayload, DEFAULT_USER_ID)
-							const entityTypeId = createdEntityType?.result?.id
-							entityTypeEntityMap[entityTypeMapKey][key] = {
-								entity_type_id: entityTypeId,
-								entities: [],
-							}
+					// --- NEW: Identify tenantId and orgId for this template ---
+					const { organization_code, tenant_code, user_id } = await getOrgAndTenant(
+						template.createdBy,
+						userOrgTenantMap,
+						DEFAULT_USER_ID
+					)
+
+					const entityTypeMapKey = `${tenant_code}:::${organization_code}`
+
+					// --- NEW: Ensure entityTypeEntityMap for this tenant/org ---
+					if (!entityTypeEntityMap[entityTypeMapKey]) {
+						entityTypeEntityMap[entityTypeMapKey] = {}
+						// Fetch entity types for this tenant/org
+						let entities = await entityTypeService.readUserEntityTypes(
+							{ value: entityKeys },
+							tenant_code,
+							organization_code
+						)
+
+						let entityTypesWithEntities = entities?.result?.entity_types || []
+						const missingEntityTypes = entityKeys.filter(
+							(key) => !entityTypesWithEntities.some((et) => et.value === key)
+						)
+
+						if (missingEntityTypes.length > 0) {
+							await csvWriter.writeRecords([
+								{
+									templateId: templateIdStr,
+									success: `Error: Missing entity types: ${missingEntityTypes.join(
+										', '
+									)}. Please set up the tenant: ${tenant_code} and organization: ${organization_code} in SCP.`,
+									projectId: null,
+									tenantId: tenant_code,
+									orgId: organization_code,
+								},
+							])
+							continue // Skip to the next template
 						}
-					} else {
+
 						// Map entity types and their entities
 						entityTypesWithEntities.forEach((entityType) => {
 							entityTypeEntityMap[entityTypeMapKey][entityType.value] = {
@@ -144,125 +168,122 @@ const dbName = mongoUrl.split('/').pop()
 							}
 						})
 					}
-				}
 
-				// Check if the project exists
-				const isProjectExist = await checkProjectExist(templateIdStr, tenantId, orgId)
-				if (isProjectExist.success) {
-					console.log(`Project Exist for template ${templateIdStr}`)
-					await csvWriter.writeRecords([
-						{
-							templateId: templateIdStr,
-							success: 'Project Exist',
-							projectId: isProjectExist.projectId,
-							tenantId: tenantId,
-							orgId: orgId,
-						},
-					])
-					continue
-				}
+					// Check if the project exists
+					const isProjectExist = await checkProjectExist(templateIdStr, tenant_code, organization_code)
+					if (isProjectExist.success) {
+						console.log(`Project Exist for template ${templateIdStr}`)
+						await csvWriter.writeRecords([
+							{
+								templateId: templateIdStr,
+								success: 'Project Exist',
+								projectId: isProjectExist.projectId,
+								tenantId: tenant_code,
+								orgId: organization_code,
+							},
+						])
+						continue
+					}
 
-				let taskIdsToRemove = []
-				// Check if template.tasks exist and handle sequentially
-				if (Array.isArray(template.tasks) && template.tasks.length > 0) {
-					const templateTasks = await db
-						.collection('projectTemplateTasks')
-						.find({ _id: { $in: template.tasks } })
-						.toArray()
+					let taskIdsToRemove = []
+					// Check if template.tasks exist and handle sequentially
+					if (Array.isArray(template.tasks) && template.tasks.length > 0) {
+						const templateTasks = await db
+							.collection('projectTemplateTasks')
+							.find({ _id: { $in: template.tasks } })
+							.toArray()
 
-					if (templateTasks.length > 0) {
-						template.taskDetails = templateTasks
+						if (templateTasks.length > 0) {
+							template.taskDetails = templateTasks
 
-						// Handle subtasks sequentially
-						for (const currentTask of templateTasks) {
-							if (Array.isArray(currentTask.children) && currentTask.children.length > 0) {
-								const subTasks = await db
-									.collection('projectTemplateTasks')
-									.find({ _id: { $in: currentTask.children } })
-									.toArray()
+							// Handle subtasks sequentially
+							for (const currentTask of templateTasks) {
+								if (Array.isArray(currentTask.children) && currentTask.children.length > 0) {
+									const subTasks = await db
+										.collection('projectTemplateTasks')
+										.find({ _id: { $in: currentTask.children } })
+										.toArray()
 
-								currentTask.children = subTasks
-								taskIdsToRemove.push(...subTasks.map((task) => task._id))
+									currentTask.children = subTasks
+									taskIdsToRemove.push(...subTasks.map((task) => task._id))
+								}
+							}
+
+							// Remove child tasks from the tasks array
+							if (taskIdsToRemove.length > 0) {
+								template.taskDetails = template.taskDetails.filter(
+									(task) => !taskIdsToRemove.some((id) => id.equals(task._id))
+								)
 							}
 						}
+					}
 
-						// Remove child tasks from the tasks array
-						if (taskIdsToRemove.length > 0) {
-							template.taskDetails = template.taskDetails.filter(
-								(task) => !taskIdsToRemove.some((id) => id.equals(task._id))
+					// Convert template sequentially
+					let convertedTemplate = await convertTemplate(template, user_id, organization_code, tenant_code)
+					if (!convertedTemplate.success) {
+						throw new Error(convertedTemplate.error)
+					}
+					convertedTemplate = convertedTemplate.template
+					let entitiesToCreate = []
+					// Find non-existing entities sequentially
+					for (const key of entityKeys) {
+						let values = convertedTemplate[key]
+						if (Array.isArray(values) && values.length > 0) {
+							values = [...new Set(values)]
+							convertedTemplate[key] = formatValues(values)
+
+							await filterNonExistingEntities(
+								key,
+								values,
+								entityTypeEntityMap[entityTypeMapKey],
+								entitiesToCreate,
+								tenant_code,
+								organization_code
 							)
 						}
 					}
-				}
 
-				// Convert template sequentially
-				let convertedTemplate = await convertTemplate(template, userOrgTenantMap, DEFAULT_USER_ID)
-				if (!convertedTemplate.success) {
-					throw new Error(convertedTemplate.error)
-				}
-				convertedTemplate = convertedTemplate.template
-				let entitiesToCreate = []
-				// Find non-existing entities sequentially
-				for (const key of entityKeys) {
-					let values = convertedTemplate[key]
-					if (Array.isArray(values) && values.length > 0) {
-						values = [...new Set(values)]
-						convertedTemplate[key] = formatValues(values)
-
-						await filterNonExistingEntities(
-							key,
-							values,
-							entityTypeEntityMap[entityTypeMapKey],
-							entitiesToCreate,
-							tenantId,
-							orgId
-						)
-					}
-				}
-
-				// console.log(entitiesToCreate, 'entitiesToCreate before creation')
-				console.log(entityTypeEntityMap, 'entityTypeEntityMap before entity creation')
-
-				// --- NEW: Pass tenant/org info to project/entities creation ---
-				let projectCreateResponse = await createProjectAndEntities(
-					templateIdStr,
-					convertedTemplate,
-					entityTypeEntityMap[entityTypeMapKey],
-					entitiesToCreate,
-					createdEntityIds,
-					tenantId,
-					orgId
-				)
-
-				if (projectCreateResponse.success) {
-					//update scp resource id in mongo
-					await db.collection('projectTemplates').updateOne(
-						{
-							_id: template._id,
-						},
-						{ $set: { scp_reference_id: projectCreateResponse.projectId } }
+					// --- NEW: Pass tenant/org info to project/entities creation ---
+					let projectCreateResponse = await createProjectAndEntities(
+						templateIdStr,
+						convertedTemplate,
+						entityTypeEntityMap[entityTypeMapKey],
+						entitiesToCreate,
+						createdEntityIds,
+						tenant_code,
+						organization_code
 					)
-					await csvWriter.writeRecords([
-						{
-							templateId: templateIdStr,
-							success: 'Project Created',
-							projectId: projectCreateResponse.projectId,
-							tenantId: tenantId,
-							orgId: orgId,
-						},
-					])
-				} else {
-					await csvWriter.writeRecords([
-						{
-							templateId: templateIdStr,
-							success: projectCreateResponse.error?.message
-								? projectCreateResponse.error?.message
-								: projectCreateResponse.error,
-							projectId: null,
-							tenantId: tenantId,
-							orgId: orgId,
-						},
-					])
+
+					if (projectCreateResponse.success) {
+						//update scp resource id in mongo
+						await db.collection('projectTemplates').updateOne(
+							{
+								_id: template._id,
+							},
+							{ $set: { scp_reference_id: projectCreateResponse.projectId } }
+						)
+						await csvWriter.writeRecords([
+							{
+								templateId: templateIdStr,
+								success: 'Project Created',
+								projectId: projectCreateResponse.projectId,
+								tenantId: tenant_code,
+								orgId: organization_code,
+							},
+						])
+					} else {
+						await csvWriter.writeRecords([
+							{
+								templateId: templateIdStr,
+								success: projectCreateResponse.error?.message
+									? projectCreateResponse.error?.message
+									: projectCreateResponse.error,
+								projectId: null,
+								tenantId: tenant_code,
+								orgId: organization_code,
+							},
+						])
+					}
 				}
 			}
 		}
@@ -278,7 +299,8 @@ const dbName = mongoUrl.split('/').pop()
 //get default org admin
 async function getDefaultUserId() {
 	let defaultUserId = null
-	let orgDetails = await userRequest.fetchOrg(process.env.DEFAULT_ORGANIZATION_CODE, process.env.DEFAULT_TENANT_CODE)
+	let orgDetails = await userRequest.fetchOrg(DEFAULT_ORGANIZATION_CODE, DEFAULT_TENANT_CODE)
+	console.log('Default Organization Details:', orgDetails)
 	if (
 		orgDetails.success &&
 		Array.isArray(orgDetails?.data?.result?.org_admin) &&
@@ -290,14 +312,24 @@ async function getDefaultUserId() {
 }
 
 //get user org id
-async function getUserOrgDetails(userIds) {
+async function getUserOrgTenantDetails(userIds, tenantCode) {
 	let userOrgMap = {}
-	const users = await userRequest.list('all', '', '', '', '', {
-		user_ids: userIds,
-	})
+	const users = await userRequest.list(
+		'all',
+		'',
+		'',
+		'',
+		'',
+		{
+			user_ids: userIds,
+		},
+		'',
+		tenantCode
+	)
 
 	if (users.success && users.data?.result?.data?.length > 0) {
-		userOrgMap = _.keyBy(users.data.result.data, 'id')
+		// userOrgMap = _.keyBy(users.data.result.data, 'id')
+		userOrgMap = _.keyBy(users.data.result.data, (item) => String(item.id))
 	}
 
 	return userOrgMap
@@ -308,8 +340,8 @@ async function checkProjectExist(templateId, tenantId, orgId) {
 		let project = await resourceQueries.findOne(
 			{
 				published_id: templateId,
-				// tenantId: tenantId,
-				// orgId: orgId,
+				tenant_code: tenantId,
+				organization_code: orgId,
 			},
 			{
 				attributes: ['id'],
@@ -318,7 +350,11 @@ async function checkProjectExist(templateId, tenantId, orgId) {
 
 		// Check if the project exists
 		if (!project || !project.id) {
-			throw new Error('Project Not Found')
+			// throw new Error('Project Not Found')
+			return {
+				success: false,
+				error: 'Project Not Found',
+			}
 		}
 
 		return {
@@ -333,15 +369,8 @@ async function checkProjectExist(templateId, tenantId, orgId) {
 	}
 }
 
-async function convertTemplate(template, userOrgMap, DEFAULT_USER_ID) {
+async function convertTemplate(template, userId, orgId, tenantId) {
 	try {
-		let userId = DEFAULT_USER_ID
-		let orgId = process.env.DEFAULT_ORG_ID
-		if (userOrgMap[template.createdBy]) {
-			userId = template.createdBy
-			orgId = userOrgMap[template.createdBy].organization.id
-		}
-
 		// Helper function to convert resources
 		const convertResources = (resources) =>
 			resources
@@ -393,6 +422,7 @@ async function convertTemplate(template, userOrgMap, DEFAULT_USER_ID) {
 			licenses: 'cc_by_4.0',
 			created_by: userId.toString(),
 			organization_code: orgId.toString(),
+			tenant_code: tenantId.toString(),
 			published_id: template._id,
 			tasks: template.taskDetails ? template.taskDetails.map(convertTask) : [],
 		}
@@ -504,6 +534,7 @@ async function filterNonExistingEntities(
 					value: formatEntityValue(value),
 					label: formatTitle(value),
 					tenant_code: tenantId,
+					organization_code: orgId,
 				})
 			}
 		})
@@ -513,10 +544,10 @@ async function filterNonExistingEntities(
 }
 
 // function to create project
-async function createProject(templateId, projectData, userId, orgId) {
+async function createProject(templateId, projectData, userId, orgId, tenantId) {
 	try {
 		// Logic to create the project
-		const createProject = await projectService.create(projectData, userId, orgId)
+		const createProject = await projectService.create(projectData, userId, orgId, tenantId)
 		if (!createProject?.result?.id) {
 			throw new Error('Failed to create project')
 		}
@@ -564,6 +595,7 @@ async function createProjectAndEntities(
 						created_by: 0,
 						updated_by: 0,
 						tenant_code: entity.tenant_code || tenantId,
+						organization_code: entity.organization_code || orgId,
 					}
 					const createdEntity = await entityService.create(entityCreationData, '0')
 					if (createdEntity?.result?.id) {
@@ -582,9 +614,6 @@ async function createProjectAndEntities(
 							}
 						}
 
-						console.log(entitiesToCreate, 'entitiesToCreate after creation')
-						console.log(entityTypeEntityMap, 'entityTypeEntityMap after entity creation')
-
 						if (!createdEntityIds[entity.entity_type_id]) {
 							createdEntityIds[entity.entity_type_id] = [] // Initialize if not already done
 						}
@@ -601,11 +630,12 @@ async function createProjectAndEntities(
 			templateId,
 			{
 				...templateData,
-				tenant_id: tenantId,
+				tenant_code: tenantId,
 				organization_code: orgId,
 			},
 			templateData.created_by,
-			orgId
+			orgId,
+			tenantId
 		)
 
 		if (projectCreationResponse.success) {
@@ -626,21 +656,24 @@ async function createProjectAndEntities(
 	}
 }
 
-// Get user, org, and tenant details
-async function getUserOrgTenantDetails(userIds) {
-	let userOrgTenantMap = {}
-	const users = await userRequest.list('all', '', '', '', '', {
-		user_ids: userIds,
-	})
-
-	if (users.success && users.data?.result?.data?.length > 0) {
-		userOrgTenantMap = _.keyBy(users.data.result.data, 'id')
-		// Ensure tenant_id and organization_code are set
-		users.data.result.data.forEach((user) => {
-			userOrgTenantMap[user.id].tenant_code = user.tenant_id
-			userOrgTenantMap[user.id].organization_code = user.organization_id
-		})
+// Get organization and tenant details for a user
+async function getOrgAndTenant(userId, userOrgMap, defaultUserId) {
+	// if (userOrgMap[userId] && userOrgMap[userId].organizations?.[0]?.code && userOrgMap[userId].tenant_code) {
+	if (
+		userOrgMap[userId] &&
+		userOrgMap[userId].user_organizations?.[0]?.organization?.code &&
+		userOrgMap[userId].tenant_code
+	) {
+		return {
+			organization_code: userOrgMap[userId].user_organizations?.[0]?.organization?.code,
+			tenant_code: userOrgMap[userId].tenant_code,
+			user_id: userId,
+		}
+	} else {
+		return {
+			organization_code: DEFAULT_ORGANIZATION_CODE,
+			tenant_code: DEFAULT_TENANT_CODE,
+			user_id: defaultUserId,
+		}
 	}
-
-	return userOrgTenantMap
 }
