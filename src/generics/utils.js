@@ -783,14 +783,14 @@ function validateTenantAndOrganizationInHeader(req) {
 +	 * Extract tenant and organization codes based on user role
 +	 */
 function _extractTenantAndOrgCodes(req) {
-	let tenantId = req.decodedToken.tenant_code
-	let organizationId = req.decodedToken.organization_code
+	let tenantCode = req.decodedToken.tenant_code
+	let organizationCode = req.decodedToken.organization_code
 
 	if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
 		const validHeader = validateTenantAndOrganizationInHeader(req)
 		if (!validHeader) {
 			return {
-				orgTenantError: 'TENANT_ORGANIZATION_HEADER_MISSING',
+				error: 'TENANT_ORGANIZATION_HEADER_MISSING',
 			}
 		}
 
@@ -798,12 +798,12 @@ function _extractTenantAndOrgCodes(req) {
 			req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()] &&
 			req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
 		) {
-			tenantId = req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()]
-			organizationId = req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
+			tenantCode = req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()]
+			organizationCode = req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
 		}
 	}
 
-	return { tenantId, organizationId }
+	return { tenantCode, organizationCode }
 }
 
 module.exports = {

@@ -130,16 +130,16 @@ module.exports = async function (req, res, next) {
 		}
 
 		req.decodedToken.token = authHeader
-		const { tenantId, organizationId, orgTenantError } = utils._extractTenantAndOrgCodes(req)
-		if (orgTenantError) {
+		const { tenantCode, organizationCode, error } = utils._extractTenantAndOrgCodes(req)
+		if (error) {
 			throw responses.failureResponse({
-				message: 'TENANT_ORGANIZATION_HEADER_MISSING',
+				message: error,
 				statusCode: httpStatusCode.bad_request,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
-		req.decodedToken.organization_code = organizationId.toString()
-		req.decodedToken.tenant_code = tenantId.toString()
+		req.decodedToken.organization_code = organizationCode.toString()
+		req.decodedToken.tenant_code = tenantCode.toString()
 
 		if (!skipFurtherChecks) {
 			if (process.env.SESSION_VERIFICATION_METHOD === common.SESSION_VERIFICATION_METHOD.USER_SERVICE)
