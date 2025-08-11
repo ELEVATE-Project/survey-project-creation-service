@@ -394,6 +394,15 @@ const removeDefaultOrgEntityTypes = (entityTypes, orgId) => {
 	return Array.from(entityTypeMap.values())
 }
 
+const removeDefaultOrgEntityMapping = (entityTypes, orgId) => {
+	const entityTypeMap = new Map()
+	entityTypes.forEach((entityType) => {
+		if (!entityTypeMap.has(entityType.value)) entityTypeMap.set(entityType.value, entityType)
+		else if (entityType.organization_code === orgId) entityTypeMap.set(entityType.value, entityType)
+	})
+	return Array.from(entityTypeMap.values())
+}
+
 const generateUniqueId = () => {
 	return uuidV4()
 }
@@ -800,6 +809,45 @@ function _extractTenantAndOrgCodes(req) {
 	return { tenantCode, orgCode }
 }
 
+/**
+ * Flattens data from response of a FK related table
+ * @function
+ * @name flattenRelatedTableData
+ * @param {Array} input - Array of objects or Object with keys prefixed by keyPrefix
+ * @param {String} keyPrefix - Prefix to remove from keys in the inputArray
+ * @returns {Array} - Array of objects with keys flattened (without the prefix)
+ */
+
+function flattenRelatedTableData(input, keyPrefix) {
+	// Handle array input
+	if (Array.isArray(input)) {
+		return input.map((item) => {
+			const result = {}
+			Object.keys(item).forEach((key) => {
+				if (key.startsWith(`${keyPrefix}.`)) {
+					const subKey = key.replace(`${keyPrefix}.`, '')
+					result[subKey] = item[key]
+				}
+			})
+			return result
+		})
+	}
+
+	// Handle single object input
+	if (typeof input === 'object' && input !== null) {
+		const result = {}
+		Object.keys(input).forEach((key) => {
+			if (key.startsWith(`${keyPrefix}.`)) {
+				const subKey = key.replace(`${keyPrefix}.`, '')
+				result[subKey] = input[key]
+			}
+		})
+		return [result]
+	}
+	// Return empty array or object for invalid input
+	return Array.isArray(input) ? [] : {}
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -848,4 +896,5 @@ module.exports = {
 	md5Hash,
 	validateTenantAndOrganizationInHeader,
 	_extractTenantAndOrgCodes,
+	flattenRelatedTableData,
 }

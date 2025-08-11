@@ -117,6 +117,21 @@ module.exports = (sequelize, DataTypes) => {
 			],
 		}
 	)
+
+	// Define the one-to-many association with Comment
+	Resource.associate = (models) => {
+		Resource.hasMany(models.Comment, {
+			foreignKey: {
+				name: 'resource_id',
+				fields: ['resource_id'],
+			},
+			sourceKey: ['id'],
+			as: 'comments',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
+	}
 	// Helper function to emit user actions with dynamic action types
 	const emitUserAction = async (instance, actionType) => {
 		try {

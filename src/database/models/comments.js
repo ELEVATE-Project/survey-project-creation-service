@@ -1,3 +1,5 @@
+'use strict'
+
 module.exports = (sequelize, DataTypes) => {
 	const Comment = sequelize.define(
 		'Comment',
@@ -12,6 +14,14 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				primaryKey: true,
 				type: DataTypes.INTEGER,
+			},
+			organization_code: {
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			tenant_code: {
+				allowNull: false,
+				type: DataTypes.STRING,
 			},
 			comment: {
 				allowNull: false,
@@ -57,8 +67,33 @@ module.exports = (sequelize, DataTypes) => {
 			tableName: 'comments',
 			freezeTableName: true,
 			paranoid: true,
+			indexes: [
+				{
+					unique: true,
+					fields: ['id', 'resource_id', 'organization_code', 'tenant_code'],
+					name: 'unique_comment_resource',
+					where: {
+						deleted_at: null,
+					},
+				},
+			],
 		}
 	)
+
+	// Define the foreign key relationship
+	//   Comment.associate = (models) => {
+	//     Comment.belongsTo(models.Resource, {
+	//       foreignKey: {
+	//         name: 'resource_id',
+	//         fields: ['resource_id'],
+	//       },
+	//       targetKey: ['id'],
+	//       as: 'resource',
+	//       constraints: true,
+	//       onDelete: 'CASCADE',
+	//       onUpdate: 'CASCADE',
+	//     });
+	//   };
 
 	return Comment
 }

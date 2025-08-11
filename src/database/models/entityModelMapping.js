@@ -47,7 +47,7 @@ module.exports = (sequelize, DataTypes) => {
 				field: 'entity_type_id',
 			},
 			targetKey: 'id',
-			as: 'entities',
+			as: 'EntityType',
 			constraints: true,
 			foreignKeyConstraint: true,
 		})

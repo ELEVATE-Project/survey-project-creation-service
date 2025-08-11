@@ -23,7 +23,7 @@ module.exports = class ProjectsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - project id
 	 */
-	static async create(bodyData, loggedInUserId, orgId, reference_id = null) {
+	static async create(bodyData, loggedInUserId, orgCode, tenantCode, reference_id = null) {
 		try {
 			if (reference_id) {
 				// check if the reference project Id is valid or not
@@ -32,13 +32,16 @@ module.exports = class ProjectsHelper {
 						id: reference_id,
 						status: common.RESOURCE_STATUS_PUBLISHED,
 						stage: common.RESOURCE_STAGE_COMPLETION,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
+						type: common.PROJECT,
 					},
 					{
-						attributes: ['type'],
+						attributes: ['id'],
 					}
 				)
 
-				if (!referenceProject || referenceProject.type != common.PROJECT) {
+				if (!referenceProject?.id) {
 					return responses.failureResponse({
 						message: 'PROJECT_NOT_FOUND',
 						statusCode: httpStatusCode.bad_request,
@@ -57,7 +60,7 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const orgConfig = await orgExtensionService.getConfig(orgId)
+			const orgConfig = await orgExtensionService.getConfig(orgCode, tenantCode)
 			const orgConfigList = _.reduce(
 				orgConfig.result.resource,
 				(acc, item) => {
@@ -74,13 +77,13 @@ module.exports = class ProjectsHelper {
 				stage: common.RESOURCE_STAGE_CREATION,
 				user_id: loggedInUserId,
 				review_type: orgConfigList[common.PROJECT],
-				organization_code: orgId,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
+				reference_id: reference_id ? reference_id : null,
 				meta: {},
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 			}
-
-			if (reference_id) projectData.reference_id = reference_id
 
 			let projectCreate
 			try {
@@ -89,7 +92,8 @@ module.exports = class ProjectsHelper {
 				const mappingData = {
 					resource_id: projectCreate.id,
 					creator_id: loggedInUserId,
-					organization_code: orgId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				}
 				await resourceCreatorMappingQueries.create(mappingData)
 
@@ -110,7 +114,8 @@ module.exports = class ProjectsHelper {
 				) {
 					let filter = {
 						id: resourceId,
-						organization_code: orgId,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 					}
 
 					let updateData = {
@@ -158,7 +163,7 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - project update response.
 	 */
 
-	static async update(resourceId, bodyData, loggedInUserId, orgId) {
+	static async update(resourceId, bodyData, loggedInUserId, orgCode, tenantCode) {
 		try {
 			//validate the title length
 			const isTitleInvalid = utils.validateTitle(bodyData.title)
@@ -179,7 +184,8 @@ module.exports = class ProjectsHelper {
 			]
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
-				organization_code: orgId,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 				status: {
 					[Op.notIn]: forbidden_resource_statuses,
 				},
@@ -198,7 +204,8 @@ module.exports = class ProjectsHelper {
 
 			const countReviews = await reviewsQueries.distinctResources(
 				{
-					organization_code: orgId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 					resource_id: resourceId,
 					status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
 				},
@@ -232,7 +239,8 @@ module.exports = class ProjectsHelper {
 			) {
 				let filter = {
 					id: resourceId,
-					organization_code: orgId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				}
 
 				let updateData = {
@@ -288,14 +296,19 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - project delete response.
 	 */
 
-	static async delete(resourceId, loggedInUserId) {
+	static async delete(resourceId, loggedInUserId, organizationCode, tenantCode) {
 		try {
 			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
 				{
 					resource_id: resourceId,
 					creator_id: loggedInUserId,
+					organization_code: organizationCode,
+					tenant_code: tenantCode,
 				},
-				['id', 'organization_code']
+				['id', 'organization_code'],
+				{
+					resourceAttributes: ['id', 'type', 'organization_code'],
+				}
 			)
 
 			if (!resourceCreatorMapping?.id) {
@@ -306,17 +319,13 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const resource = await resourceQueries.findOne(
-				{
-					id: resourceId,
-					organization_code: resourceCreatorMapping.organization_code,
-					status: common.RESOURCE_STATUS_DRAFT,
-					stage: common.RESOURCE_STAGE_CREATION,
-				},
-				{ attributes: ['id', 'type', 'organization_code'] }
-			)
+			const resource = {
+				id: resourceCreatorMapping['resource.id'],
+				type: resourceCreatorMapping['resource.type'],
+				organization_code: resourceCreatorMapping['resource.organization_code'],
+			}
 
-			if (!resource?.id) {
+			if (!resource?.id && resource.type !== common.PROJECT) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -324,11 +333,11 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			let updatedProject = await resourceQueries.deleteOne(resourceId, resource.organization_code)
 			let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
 				resourceCreatorMapping.id,
 				loggedInUserId
 			)
+			let updatedProject = await resourceQueries.deleteOne(resourceId, organizationCode, tenantCode)
 
 			if (updatedProject === 0 && updatedProjectCreatorMapping === 0) {
 				return responses.failureResponse({
@@ -352,21 +361,38 @@ module.exports = class ProjectsHelper {
 	 * @method
 	 * @name details
 	 * @param {String} projectId - Project id
+	 * @param {String} orgCode - Project id
+	 * @param {String} tenantCode - Project id
 	 * @returns {JSON} - Project data.
 	 */
 
-	static async details(projectId) {
+	static async details(projectId, orgCode, tenantCode, userId, commentsOptions = {}) {
 		try {
 			let result = {
 				organization: {},
+			}
+
+			let options = {
+				attributes: { exclude: ['next_stage', 'review_type'] },
+			}
+			if (commentsOptions && Object.keys(commentsOptions).length > 0) {
+				if (commentsOptions.commentsAttributes && commentsOptions.commentsAttributes.length > 0) {
+					options.commentsAttributes = commentsOptions.commentsAttributes
+				}
+				if (commentsOptions.filter && Object.keys(commentsOptions.filter).length > 0) {
+					options.commentsFilter = commentsOptions.filter
+				}
 			}
 
 			const project = await resourceQueries.findOne(
 				{
 					id: projectId,
 					type: common.PROJECT,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
+					created_by: userId,
 				},
-				{ attributes: { exclude: ['next_stage', 'review_type'] } }
+				options
 			)
 
 			if (!project) {
@@ -395,6 +421,7 @@ module.exports = class ProjectsHelper {
 							status: common.STATUS_ACTIVE,
 						},
 						project.organization_code,
+						tenantCode,
 						['id', 'value', 'label', 'has_entities']
 					)
 
@@ -480,7 +507,22 @@ module.exports = class ProjectsHelper {
 	 */
 	static async submitForReview(resourceId, bodyData, userDetails) {
 		try {
-			let projectDetails = await this.details(resourceId, userDetails.organization_code, userDetails.id)
+			const commentsOptions = {
+				commentsAttributes: ['id'],
+				filter: {
+					user_id: {
+						[Op.notIn]: [userDetails.id],
+					},
+					status: common.COMMENT_STATUS_OPEN,
+				},
+			}
+			let projectDetails = await this.details(
+				resourceId,
+				userDetails.organization_code,
+				userDetails.tenant_code,
+				userDetails.id,
+				commentsOptions
+			)
 			if (projectDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROJECT_ACCESS',
@@ -505,15 +547,9 @@ module.exports = class ProjectsHelper {
 			}
 
 			// check any open comments are there for this resource
-			const comments = await commentQueries.findAndCountAll({
-				user_id: {
-					[Op.notIn]: [userDetails.id],
-				},
-				resource_id: resourceId,
-				status: common.COMMENT_STATUS_OPEN,
-			})
+			const comments = projectData?.comments || []
 
-			if (comments.count > 0) {
+			if (comments && comments.length > 0) {
 				return responses.failureResponse({
 					message: 'ALL_COMMENTS_NOT_RESOLVED',
 					statusCode: httpStatusCode.bad_request,
@@ -575,10 +611,13 @@ module.exports = class ProjectsHelper {
 			//get all entity type validations for project
 			let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 				{
-					model: common.PROJECT,
+					model: {
+						[Op.in]: [common.PROJECT],
+					},
 					status: common.STATUS_ACTIVE,
 				},
 				projectData.organization_code,
+				projectData.tenant_code,
 				['id', 'value', 'has_entities', 'validations']
 			)
 
@@ -589,6 +628,7 @@ module.exports = class ProjectsHelper {
 					status: common.STATUS_ACTIVE,
 				},
 				projectData.organization_code,
+				projectData.tenant_code,
 				['id', 'value', 'validations', 'has_entities']
 			)
 
@@ -619,6 +659,7 @@ module.exports = class ProjectsHelper {
 					status: common.STATUS_ACTIVE,
 				},
 				projectData.organization_code,
+				projectData.tenant_code,
 				['value', 'validations']
 			)
 
