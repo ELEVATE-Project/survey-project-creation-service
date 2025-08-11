@@ -27,14 +27,11 @@ module.exports = class Form {
 
 	async create(req) {
 		try {
-			const { orgCode, tenantCode, error } = utils._extractTenantAndOrgCodes(req)
-			if (error)
-				return responses.failureResponse({
-					message: error,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			const createdForm = await formsService.create(req.body, orgCode, tenantCode)
+			const createdForm = await formsService.create(
+				req.body,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 			return createdForm
 		} catch (error) {
 			return error
@@ -56,14 +53,12 @@ module.exports = class Form {
 
 	async update(req) {
 		try {
-			const { orgCode, tenantCode, error } = utils._extractTenantAndOrgCodes(req)
-			if (error)
-				return responses.failureResponse({
-					message: error,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			const updatedForm = await formsService.update(req.params.id, req.body, orgCode, tenantCode)
+			const updatedForm = await formsService.update(
+				req.params.id,
+				req.body,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 			return updatedForm
 		} catch (error) {
 			return error
@@ -85,18 +80,19 @@ module.exports = class Form {
 
 	async read(req) {
 		try {
-			const { orgCode, tenantCode, error } = utils._extractTenantAndOrgCodes(req)
-			if (error)
-				return responses.failureResponse({
-					message: error,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
 			if (!req.params.id && Object.keys(req.body).length === 0) {
-				const form = await formsService.readAllFormsVersion(orgCode, tenantCode)
+				const form = await formsService.readAllFormsVersion(
+					req.decodedToken.organization_code,
+					req.decodedToken.tenant_code
+				)
 				return form
 			} else {
-				const form = await formsService.read(req.params.id, req.body, orgCode, tenantCode)
+				const form = await formsService.read(
+					req.params.id,
+					req.body,
+					req.decodedToken.organization_code,
+					req.decodedToken.tenant_code
+				)
 				return form
 			}
 		} catch (error) {

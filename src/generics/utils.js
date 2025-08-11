@@ -773,7 +773,10 @@ function md5Hash(value) {
  */
 function validateTenantAndOrganizationInHeader(req) {
 	if (!req || !req.headers) return false
-	return !req.headers.tenant === !req.headers.organization
+	return (
+		!req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()] ===
+		!req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
+	)
 }
 
 /**
@@ -781,7 +784,7 @@ function validateTenantAndOrganizationInHeader(req) {
 +	 */
 function _extractTenantAndOrgCodes(req) {
 	let tenantCode = req.decodedToken.tenant_code
-	let orgCode = req.decodedToken.organization_code
+	let organizationCode = req.decodedToken.organization_code
 
 	if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
 		const validHeader = validateTenantAndOrganizationInHeader(req)
@@ -791,13 +794,16 @@ function _extractTenantAndOrgCodes(req) {
 			}
 		}
 
-		if (req.headers.tenant && req.headers.organization) {
-			tenantCode = req.headers.tenant
-			orgCode = req.headers.organization
+		if (
+			req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()] &&
+			req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
+		) {
+			tenantCode = req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()]
+			organizationCode = req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
 		}
 	}
 
-	return { tenantCode, orgCode }
+	return { tenantCode, organizationCode }
 }
 
 module.exports = {
