@@ -18,17 +18,10 @@ module.exports = class certificates {
 	 */
 	async list(req) {
 		try {
-			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
-			if (error)
-				return responses.failureResponse({
-					message: error,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
 			const certificates = await certificateService.list(
 				req.query.resource_type ? req.query.resource_type : '',
-				orgCode,
-				tenantCode,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.searchText
 			)
 
@@ -46,19 +39,12 @@ module.exports = class certificates {
 	 */
 	async update(req) {
 		try {
-			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
-			if (error)
-				return responses.failureResponse({
-					message: error,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
 			const certificate = await certificateService.update(
 				req.params.id ? req.params.id : '',
 				req.body,
 				req.decodedToken.id,
-				orgCode,
-				tenantCode
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
 			)
 
 			return certificate

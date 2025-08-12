@@ -15,6 +15,7 @@ const responses = require('@helpers/responses')
 const { Op } = require('sequelize')
 const fs = require('fs')
 const path = require('path')
+const utils = require('@generics/utils')
 
 async function checkPermissions(roleTitle, requestPath, requestMethod) {
 	const parts = requestPath.match(/[^/]+/g)
@@ -41,8 +42,6 @@ async function checkPermissions(roleTitle, requestPath, requestMethod) {
 module.exports = async function (req, res, next) {
 	try {
 		const authHeader = req.get(process.env.AUTH_TOKEN_HEADER_NAME)
-		let adminHeader = false
-		if (process.env.ADMIN_ACCESS_TOKEN) adminHeader = req.get(process.env.ADMIN_TOKEN_HEADER_NAME)
 
 		const isInternalAccess = common.internalAccessUrls.some((path) => {
 			if (req.path.includes(path)) {
@@ -131,44 +130,16 @@ module.exports = async function (req, res, next) {
 		}
 
 		req.decodedToken.token = authHeader
-		// --- config.json logic end ---
-
-		if (adminHeader) {
-			if (adminHeader != process.env.ADMIN_ACCESS_TOKEN) throw createUnauthorizedResponse()
-			const organizationId = req.get(process.env.ORG_ID_HEADER_NAME)
-			if (!organizationId) {
-				throw responses.failureResponse({
-					message: {
-						key: 'ADD_ORG_HEADER',
-						interpolation: {
-							orgIdHeader: process.env.ORG_ID_HEADER_NAME,
-							adminHeader: process.env.ADMIN_TOKEN_HEADER_NAME,
-						},
-					},
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
-			const tenantId = req.get(process.env.TENANT_ID_HEADER_NAME)
-			if (!tenantId) {
-				throw responses.failureResponse({
-					message: {
-						key: 'ADD_TENANT_ID_HEADER',
-						interpolation: {
-							tenantIdHeader: process.env.TENANT_ID_HEADER_NAME,
-							adminHeader: process.env.ADMIN_TOKEN_HEADER_NAME,
-						},
-					},
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
-			req.decodedToken.organization_code = organizationId.toString()
-			req.decodedToken.tenant_code = tenantId.toString()
-			req.decodedToken.roles.push({ title: common.ADMIN_ROLE })
+		const { tenantCode, organizationCode, error } = utils._extractTenantAndOrgCodes(req)
+		if (error) {
+			throw responses.failureResponse({
+				message: error,
+				statusCode: httpStatusCode.bad_request,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
+		req.decodedToken.organization_code = organizationCode.toString()
+		req.decodedToken.tenant_code = tenantCode.toString()
 
 		if (!skipFurtherChecks) {
 			if (process.env.SESSION_VERIFICATION_METHOD === common.SESSION_VERIFICATION_METHOD.USER_SERVICE)

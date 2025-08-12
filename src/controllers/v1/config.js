@@ -18,15 +18,10 @@ module.exports = class configs {
 	 */
 	async list(req) {
 		try {
-			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
-			if (error)
-				return responses.failureResponse({
-					message: error,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-
-			const configList = await orgExtensionService.getConfig(orgCode, tenantCode)
+			const configList = await orgExtensionService.getConfig(
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 
 			return configList
 		} catch (error) {
