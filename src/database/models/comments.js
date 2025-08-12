@@ -80,20 +80,5 @@ module.exports = (sequelize, DataTypes) => {
 		}
 	)
 
-	// Define the foreign key relationship
-	//   Comment.associate = (models) => {
-	//     Comment.belongsTo(models.Resource, {
-	//       foreignKey: {
-	//         name: 'resource_id',
-	//         fields: ['resource_id'],
-	//       },
-	//       targetKey: ['id'],
-	//       as: 'resource',
-	//       constraints: true,
-	//       onDelete: 'CASCADE',
-	//       onUpdate: 'CASCADE',
-	//     });
-	//   };
-
 	return Comment
 }

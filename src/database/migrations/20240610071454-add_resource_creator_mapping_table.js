@@ -25,6 +25,7 @@ module.exports = {
 					},
 					resource_id: {
 						allowNull: false,
+						primaryKey: true,
 						type: Sequelize.INTEGER,
 					},
 					creator_id: {
@@ -57,7 +58,7 @@ module.exports = {
 						{
 							unique: true,
 							fields: ['resource_id', 'creator_id', 'organization_code', 'tenant_code'],
-							name: 'unique_creator_resource',
+							name: 'unique_creator_resource_org_tenant',
 							where: {
 								deleted_at: null,
 							},

@@ -1,7 +1,6 @@
 'use strict'
 
 const common = require('@constants/common')
-const { log } = require('handlebars')
 const { Sequelize } = require('sequelize')
 const Comment = require('../models/index').Comment
 const Resource = require('../models/index').Resource

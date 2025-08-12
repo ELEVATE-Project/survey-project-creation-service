@@ -56,7 +56,7 @@ module.exports = {
 				},
 				page: {
 					allowNull: false,
-					type: Sequelize.INTEGER,
+					type: Sequelize.STRING,
 				},
 				is_read: {
 					allowNull: false,
@@ -91,12 +91,12 @@ module.exports = {
 
 		// Add foreign key constraint for resource_id, organization_code, and tenant_code
 		await queryInterface.addConstraint('comments', {
-			fields: ['resource_id'],
+			fields: ['resource_id', 'organization_code', 'tenant_code'],
 			type: 'foreign key',
 			name: 'fk_comments_resources',
 			references: {
 				table: 'resources',
-				fields: ['id'],
+				fields: ['id', 'organization_code', 'tenant_code'],
 			},
 			onDelete: 'CASCADE',
 			onUpdate: 'CASCADE',

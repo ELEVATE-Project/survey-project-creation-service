@@ -1,15 +1,12 @@
 'use strict'
 
 const { EntityModelMapping, EntityType, Entity } = require('../models/index')
-const common = require('@constants/common')
 const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
-const { removeDefaultOrgEntityTypes, flattenRelatedTableData } = require('@generics/utils')
+const { removeDefaultOrgEntityTypes } = require('@generics/utils')
 const responses = require('@helpers/responses')
 const httpStatusCode = require('@generics/http-status')
 const { Op } = require('sequelize')
 
-const entityQueries = require('@database/queries/entities')
-const { raw } = require('body-parser')
 exports.create = async (data) => {
 	try {
 		return await EntityModelMapping.create(data)

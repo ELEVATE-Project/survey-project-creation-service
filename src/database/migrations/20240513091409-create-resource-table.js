@@ -97,9 +97,13 @@ module.exports = {
 			{
 				indexes: [
 					{
+						name: 'title_index',
+						fields: ['title'],
+					},
+					{
 						unique: true,
-						fields: ['id', 'organization_code', 'tenant_code'],
 						name: 'unique_creator_resource',
+						fields: ['id', 'organization_code', 'tenant_code'],
 						where: {
 							deleted_at: null,
 						},

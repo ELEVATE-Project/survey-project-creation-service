@@ -12,6 +12,7 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			resource_id: {
 				allowNull: false,
+				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
 			creator_id: {
@@ -27,24 +28,13 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				type: DataTypes.STRING,
 			},
-			created_at: {
-				allowNull: false,
-				type: DataTypes.DATE,
-			},
-			updated_at: {
-				allowNull: false,
-				type: DataTypes.DATE,
-			},
-			deleted_at: {
-				type: DataTypes.DATE,
-			},
 		},
 		{
 			indexes: [
 				{
 					unique: true,
 					fields: ['resource_id', 'creator_id', 'organization_code', 'tenant_code'],
-					name: 'unique_creator_resource',
+					name: 'unique_creator_resource_org_tenant',
 					where: {
 						deleted_at: null,
 					},
