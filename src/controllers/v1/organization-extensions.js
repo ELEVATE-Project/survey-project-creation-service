@@ -21,15 +21,11 @@ module.exports = class orgExtensions {
 
 	async createConfig(req) {
 		try {
-			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
-			if (error)
-				return responses.failureResponse({
-					message: error,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-
-			const orgExtension = await orgExtensionService.createConfig(req.body, orgCode, tenantCode)
+			const orgExtension = await orgExtensionService.createConfig(
+				req.body,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 			return orgExtension
 		} catch (error) {
 			return error
@@ -46,19 +42,12 @@ module.exports = class orgExtensions {
 
 	async updateConfig(req) {
 		try {
-			const { tenantCode, orgCode, error } = utils._extractTenantAndOrgCodes(req)
-			if (error)
-				return responses.failureResponse({
-					message: error,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
 			const orgExtension = await orgExtensionService.updateConfig(
 				req.params.id,
 				req.query.resource_type,
 				req.body,
-				orgCode,
-				tenantCode
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
 			)
 			return orgExtension
 		} catch (error) {
