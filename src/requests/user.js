@@ -93,6 +93,7 @@ const list = function (
 	pageSize = '',
 	searchText = '',
 	organization_code = null,
+	tenant_code = null,
 	body = {},
 	userToken = ''
 ) {
@@ -103,6 +104,7 @@ const list = function (
 			if (pageSize != '') apiUrl += '&limit=' + pageSize
 			if (searchText != '') apiUrl += '&search=' + searchText
 			if (organization_code != null) apiUrl += '&organization_code=' + organization_code
+			if (tenant_code != null) apiUrl += '&tenant_code=' + tenant_code
 
 			const userDetails = await requests.post(apiUrl, body, userToken, true)
 			return resolve(userDetails)

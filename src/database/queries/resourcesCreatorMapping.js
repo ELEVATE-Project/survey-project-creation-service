@@ -41,6 +41,17 @@ exports.findAll = async (filter, attributes = {}, options = {}) => {
 }
 exports.findOne = async (filter, attributes = {}, options = {}) => {
 	try {
+		if (options.resourceAttributes && options.resourceAttributes.length > 0) {
+			options.include = [
+				{
+					model: Resource,
+					attributes: options.resourceAttributes,
+					as: 'resource',
+					where: { tenant_code: filter.tenant_code },
+				},
+			]
+		}
+
 		const res = await ResourceCreatorMapping.findOne({
 			where: filter,
 			attributes,

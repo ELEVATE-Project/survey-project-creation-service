@@ -23,13 +23,19 @@ module.exports = class Projects {
 			if (req.params.id) {
 				let project = {}
 				if (req.method === common.REQUEST_METHOD_DELETE) {
-					project = await projectService.delete(req.params.id, req.decodedToken.id)
+					project = await projectService.delete(
+						req.params.id,
+						req.decodedToken.id,
+						req.decodedToken.organization_code,
+						req.decodedToken.tenant_code
+					)
 				} else {
 					project = await projectService.update(
 						req.params.id,
 						req.body,
 						req.decodedToken.id,
-						req.decodedToken.organization_code
+						req.decodedToken.organization_code,
+						req.decodedToken.tenant_code
 					)
 				}
 				return project
@@ -38,6 +44,7 @@ module.exports = class Projects {
 					req.body,
 					req.decodedToken.id,
 					req.decodedToken.organization_code,
+					req.decodedToken.tenant_code,
 					req.query.reference_id ? parseInt(req.query.reference_id) : null
 				)
 				return project
@@ -56,7 +63,11 @@ module.exports = class Projects {
 
 	async details(req) {
 		try {
-			const project = await projectService.details(req.params.id)
+			const project = await projectService.details(
+				req.params.id,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 			return project
 		} catch (error) {
 			return error
@@ -75,6 +86,7 @@ module.exports = class Projects {
 				process.env.DEFAULT_REVIEWER_ROLE || common.REVIEWER,
 				req.decodedToken.id,
 				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.decodedToken.token,
 				req.pageNo,
 				req.pageSize

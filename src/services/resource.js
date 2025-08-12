@@ -1515,7 +1515,7 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of reviewers from the org
 	 */
 
-	static async reviewerList(role, user_id, organization_code, userToken = '', pageNo, limit) {
+	static async reviewerList(role, user_id, organization_code, tenant_code, userToken = '', pageNo, limit) {
 		try {
 			let result = {
 				data: [],
@@ -1528,6 +1528,7 @@ module.exports = class resourceHelper {
 				limit,
 				'',
 				organization_code,
+				tenant_code,
 				{
 					excluded_user_ids: [user_id],
 				},
