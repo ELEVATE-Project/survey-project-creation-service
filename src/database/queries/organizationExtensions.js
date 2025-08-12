@@ -31,7 +31,7 @@ exports.update = async (filter, update, options = {}) => {
 	}
 }
 
-exports.findOne = async (filter, attributes = []) => {
+exports.findOne = async (filter, attributes = null) => {
 	try {
 		return await OrgExtensions.findOne({
 			where: filter,
