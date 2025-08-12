@@ -248,14 +248,27 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of drafts resources
 	 */
 
-	static async listAllDrafts(userId, queryParams, searchText = '', page, limit, userToken) {
+	static async listAllDrafts(
+		userId,
+		queryParams,
+		searchText = '',
+		page,
+		limit,
+		userToken,
+		organizationCode,
+		tenantCode
+	) {
 		try {
 			let result = {
 				data: [],
 				count: 0,
 			}
 			// fetch all resource ids created by the logged in user
-			const resourcesCreatedByMe = await this.resourcesCreatedByUser(userId, ['resource_id', 'organization_code'])
+			const resourcesCreatedByMe = await this.resourcesCreatedByUser(
+				userId,
+				['resource_id', 'organization_code'],
+				[common.PROJECTION_KEY_ASTERISK]
+			)
 
 			if (resourcesCreatedByMe.length <= 0) {
 				return responses.successResponse({
@@ -534,11 +547,15 @@ module.exports = class resourceHelper {
 	 * @param {String} loggedInUserId -  loggedInUserId.
 	 * @returns {Array} - Response contain array of resources
 	 */
-	static async resourcesCreatedByUser(loggedInUserId, attributes = ['resource_id']) {
+	static async resourcesCreatedByUser(loggedInUserId, attributes = ['resource_id'], resourceAttributes = []) {
 		let resourceData = {}
 		if (loggedInUserId) {
 			// fetch the details of resource and organization from resource creator mapping table by the user
-			resourceData = await resourceCreatorMappingQueries.findAll({ creator_id: loggedInUserId }, attributes)
+			resourceData = await resourceCreatorMappingQueries.findAll(
+				{ creator_id: loggedInUserId },
+				attributes,
+				(options = { resourceAttributes })
+			)
 		}
 		return resourceData
 	}

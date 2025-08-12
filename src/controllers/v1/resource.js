@@ -28,7 +28,9 @@ module.exports = class Resource {
 					req.searchText,
 					req.pageNo,
 					req.pageSize,
-					req.decodedToken.token
+					req.decodedToken.token,
+					req.decodedToken.organization_code,
+					req.decodedToken.tenanat_code
 				)
 			} else if (req.query[common.LISTING] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW) {
 				resourceList = await resourceService.listAllSubmittedResources(

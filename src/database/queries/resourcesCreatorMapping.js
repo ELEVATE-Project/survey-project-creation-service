@@ -1,5 +1,5 @@
 'use strict'
-const ResourceCreatorMapping = require('../models/index').ResourceCreatorMapping
+const { ResourceCreatorMapping, Resource } = require('../models/index')
 
 exports.create = async (data) => {
 	try {
@@ -11,6 +11,22 @@ exports.create = async (data) => {
 
 exports.findAll = async (filter, attributes = {}, options = {}) => {
 	try {
+		if (options.resourceAttributes && options.resourceAttributes.length > 0) {
+			let include = [
+				{
+					model: Resource,
+					as: 'resource',
+					where: { tenant_code: filter.tenant_code },
+				},
+			]
+			if (
+				!options.resourceAttributes.some((attr) => attr === common.PROJECTION_KEY_ASTRICKTS) &&
+				options.resourceAttributes.length != 0
+			)
+				include.attributes = options.resourceAttributes
+			options.include = include
+			delete options.resourceAttributes
+		}
 		const res = await ResourceCreatorMapping.findAll({
 			where: filter,
 			attributes,
