@@ -6,7 +6,7 @@
  */
 
 require('module-alias/register')
-require('dotenv').config()
+require('dotenv').config({ path: '../.env' })
 
 // Default tenant and organization codes
 const DEFAULT_TENANT_CODE = process.env.DEFAULT_TENANT_CODE
@@ -20,21 +20,24 @@ if (!DEFAULT_TENANT_CODE || !DEFAULT_ORGANIZATION_CODE) {
 const path = require('path')
 const _ = require('lodash')
 const fs = require('fs')
+
 // Import queries
 const entityTypeQueries = require('@database/queries/entityType')
-const entityQueries = require('@database/queries/entities')
-const entityModelMappingQueries = require('@database/queries/entityModelMapping')
-const formQueries = require('@database/queries/form')
-const reviewStageQueries = require('@database/queries/reviewStage')
-const organizationExtensionQueries = require('@database/queries/organizationExtensions')
 const fileService = require('@services/files')
-const request = require('request')
+const request = require('request') // Use a more specific name to avoid confusion
 const common = require('@constants/common')
 const utils = require('@generics/utils')
 const certificateQueries = require('../database/queries/certificateBaseTemplate')
+const userRequest = require('@requests/user') // Import user request
 
+const EntityType = require('@database/models/index').EntityType
+const Entity = require('@database/models/index').Entity
 const EntityModelMapping = require('@database/models/index').EntityModelMapping
+
 const sequelize = require('@database/models/index').sequelize
+const Form = require('@database/models/index').Form // Import the Form model
+const ReviewStage = require('@database/models/index').ReviewStage // Import the ReviewStage model
+const OrganizationExtension = require('@database/models/index').organizationExtension // Import the OrganizationExtension model
 
 // Main setup function
 ;(async () => {
@@ -58,17 +61,19 @@ const sequelize = require('@database/models/index').sequelize
 	try {
 		console.log(`Starting setup for tenant: ${tenant_code}, organization: ${organization_code}`)
 
+		// 0. Validate Tenant and Organization
+		// commenting as of now we dont have tenant validation with internal access token
+		// await validateTenantAndOrganization(tenant_code, organization_code)
+
 		// 1. Setup Entity Types and Entities
 		await setupEntityTypes(tenant_code, organization_code)
 
-		// 2. Setup Forms
-		await setupForms(tenant_code, organization_code)
-
-		// 3. Setup Review Stages
-		await setupReviewStages(tenant_code, organization_code)
-
-		// 4. Setup Organization Extension
-		await setupOrganizationExtension(tenant_code, organization_code)
+		// 2, 3, 4. Setup Forms, Review Stages, and Organization Extensions in parallel
+		await Promise.all([
+			setupForms(tenant_code, organization_code),
+			setupReviewStages(tenant_code, organization_code),
+			setupOrganizationExtension(tenant_code, organization_code),
+		])
 
 		// 5. Setup Certificate Base Templates
 		await setupCertificateBaseTemplates(tenant_code, organization_code)
@@ -81,359 +86,574 @@ const sequelize = require('@database/models/index').sequelize
 	}
 })()
 
+//commenting as of now we dont have tenant validation with internal access token
+// async function validateTenantAndOrganization(tenantCode, orgCode) {
+// 	console.log('--- Validating Tenant and Organization ---')
+// 	try {
+// 		const tenantDetails = await userRequest.fetchTenant(tenantCode)
+// 		console.log(tenantDetails,'tenantDetails')
+// 		if (!tenantDetails.success || !tenantDetails.data) {
+// 			throw new Error(`Tenant validation failed for ${tenantCode}: ${tenantDetails.message || 'Not found'}`)
+// 		}
+
+// 		const orgDetails = await userRequest.fetchOrg(orgCode, tenantCode)
+// 		console.log(orgDetails,'orgDetails')
+// 		if (!orgDetails.success || !orgDetails.data) {
+// 			throw new Error(`Organization validation failed for ${orgCode}: ${orgDetails.message || 'Not found'}`)
+// 		}
+
+// 		console.log('--- Tenant and Organization validated successfully ---')
+// 	} catch (error) {
+// 		console.error('Error during tenant/org validation:', error)
+// 		throw error
+// 	}
+// }
+
 async function setupEntityTypes(newTenantCode, newOrgCode) {
 	console.log('--- Setting up Entity Types and Entities ---')
 	const transaction = await sequelize.transaction()
 	try {
+		// Fetch already existing entity types for target tenant/org in one go
+		const defaultEntityTypes = await entityTypeQueries.findUserEntityTypeAndEntities({
+			status: 'ACTIVE',
+			tenant_code: DEFAULT_TENANT_CODE,
+			organization_code: DEFAULT_ORGANIZATION_CODE,
+		})
+
 		// Fetch all entity types from the default organization
-		const defaultEntityTypes = await entityTypeQueries.findAllEntityTypes(
-			[DEFAULT_ORGANIZATION_CODE],
-			DEFAULT_TENANT_CODE
+		const existingEntityTypes = await entityTypeQueries.findUserEntityTypeAndEntities({
+			status: 'ACTIVE',
+			tenant_code: newTenantCode,
+			organization_code: newOrgCode,
+		})
+
+		// Build map of existing entity types
+		const existingEntityTypeMap = new Map(existingEntityTypes.map((et) => [et.value, et]))
+		const existingEntitiesSet = new Set(
+			existingEntityTypes.flatMap((et) => (et.entities ? et.entities.map((e) => `${et.value}|||${e.value}`) : []))
 		)
 
-		for (const defaultType of defaultEntityTypes) {
-			// Check if the entity type already exists for the new tenant/org
-			let newEntityType = await entityTypeQueries.findOneEntityType(
-				{
-					value: defaultType.value,
-					tenant_code: newTenantCode,
-					organization_code: newOrgCode,
-				},
-				{ transaction }
-			)
+		// Prepare entity types for creation
+		const entityTypesToCreate = defaultEntityTypes
+			.filter((dt) => !existingEntityTypeMap.has(dt.value))
+			.map((dt) => ({
+				..._.omit(dt.toJSON ? dt.toJSON() : dt, [
+					'id',
+					'created_at',
+					'updated_at',
+					'deleted_at',
+					'entities',
+					'entity_model_mappings',
+				]),
+				tenant_code: newTenantCode,
+				organization_code: newOrgCode,
+				created_by: '0',
+				updated_by: '0',
+			}))
 
-			if (!newEntityType) {
-				// If it doesn't exist, create it
-				console.log(`Creating entity type: ${defaultType.value}`)
-				const newEntityTypeData = {
-					..._.omit(defaultType, ['id', 'createdAt', 'updatedAt', 'entity_model_mappings']),
-					tenant_code: newTenantCode,
-					organization_code: newOrgCode,
-					created_by: 0,
-					updated_by: 0,
-				}
-				newEntityType = await entityTypeQueries.createEntityType(newEntityTypeData, { transaction })
-			} else {
-				console.log(`Entity type already exists: ${defaultType.value}`)
-			}
-
-			// Fetch and create model mappings for this type
-			const defaultMappings = await EntityModelMapping.findAll({
-				where: {
-					entity_type_id: defaultType.id,
-					tenant_code: DEFAULT_TENANT_CODE,
-					organization_code: DEFAULT_ORGANIZATION_CODE,
-				},
-				raw: true,
+		//  Create new entity types
+		let createdEntityTypes = []
+		if (entityTypesToCreate.length) {
+			createdEntityTypes = await EntityType.bulkCreate(entityTypesToCreate, {
 				transaction,
+				returning: true,
+				raw: true,
 			})
 
-			for (const defaultMapping of defaultMappings) {
-				const newMapping = await EntityModelMapping.findOne({
-					where: {
-						model: defaultMapping.model,
-						entity_type_id: newEntityType.id,
-						tenant_code: newTenantCode,
-						organization_code: newOrgCode,
-					},
-					transaction,
-				})
-
-				if (!newMapping) {
-					console.log(`	Creating model mapping: ${defaultMapping.model}`)
-					await entityModelMappingQueries.create(
-						{
-							..._.omit(defaultMapping, ['id', 'createdAt', 'updatedAt']),
-							entity_type_id: newEntityType.id,
-							tenant_code: newTenantCode,
-							organization_code: newOrgCode,
-						},
-						{ transaction }
-					)
-				}
-			}
-
-			// Fetch and create entities for this type
-			const defaultEntities = await entityQueries.findAllEntities(
-				{
-					entity_type_id: defaultType.id,
-					organization_code: DEFAULT_ORGANIZATION_CODE,
-					tenant_code: DEFAULT_TENANT_CODE,
-				},
-				{ transaction }
-			)
-
-			for (const defaultEntity of defaultEntities) {
-				// Check if entity already exists
-				const newEntity = await entityQueries.findOne(
-					{
-						value: defaultEntity.value,
-						entity_type_id: newEntityType.id,
-						tenant_code: newTenantCode,
-						organization_code: newOrgCode,
-					},
-					{ transaction }
-				)
-
-				if (!newEntity) {
-					console.log(`	Creating entity: ${defaultEntity.label}`)
-					await entityQueries.createEntity(
-						{
-							..._.omit(defaultEntity, ['id', 'created_at', 'updated_at']),
-							entity_type_id: newEntityType.id,
-							tenant_code: newTenantCode,
-							organization_code: newOrgCode,
-							created_by: 0,
-							updated_by: 0,
-						},
-						{ transaction }
-					)
-				}
-			}
+			console.log(`Created ${entityTypesToCreate.length} new entity types`)
 		}
+
+		// Build complete entity type mapping (existing + newly created)
+		const completeEntityTypeMap = new Map()
+		// Add existing entity types
+		existingEntityTypes.forEach((et) => {
+			completeEntityTypeMap.set(et.value, et)
+		})
+
+		// Add newly created entity types
+		createdEntityTypes.forEach((et) => {
+			completeEntityTypeMap.set(et.value, et)
+		})
+
+		// Prepare entities for creation
+		const entitiesToCreate = []
+		defaultEntityTypes.forEach((defaultEntityType) => {
+			if (defaultEntityType.entities && Array.isArray(defaultEntityType.entities)) {
+				defaultEntityType.entities.forEach((entity) => {
+					const entityKey = `${defaultEntityType.value}|||${entity.value}`
+
+					// Only create if entity doesn't exist
+					if (!existingEntitiesSet.has(entityKey)) {
+						const targetEntityType = completeEntityTypeMap.get(defaultEntityType.value)
+
+						if (targetEntityType) {
+							entitiesToCreate.push({
+								..._.omit(entity.toJSON ? entity.toJSON() : entity, [
+									'id',
+									'created_at',
+									'updated_at',
+									'deleted_at',
+								]),
+								entity_type_id: targetEntityType.id,
+								tenant_code: newTenantCode,
+								organization_code: newOrgCode,
+								created_by: '0',
+								updated_by: '0',
+							})
+						}
+					}
+				})
+			}
+		})
+
+		// Create entities
+		if (entitiesToCreate.length > 0) {
+			await Entity.bulkCreate(entitiesToCreate, {
+				transaction,
+			})
+			console.log(`Created ${entitiesToCreate.length} entities`)
+		}
+
+		// Handle entity model mappings
+		const defaultMappings = await EntityModelMapping.findAll({
+			where: {
+				tenant_code: DEFAULT_TENANT_CODE,
+				organization_code: DEFAULT_ORGANIZATION_CODE,
+				status: 'ACTIVE',
+			},
+			raw: true,
+		})
+
+		// Get existing mappings for target tenant/org
+		const existingMappings = await EntityModelMapping.findAll({
+			where: {
+				tenant_code: newTenantCode,
+				organization_code: newOrgCode,
+			},
+			raw: true,
+		})
+
+		// Build mapping from default entity_type_id to entity_type value
+		const defaultEntityTypeIdToValueMap = new Map(defaultEntityTypes.map((et) => [et.id, et.value]))
+
+		// Build set of existing mapping keys using model + entity_type_value
+		const existingMappingKeys = new Set()
+		existingMappings.forEach((mapping) => {
+			// Find the entity type value for this mapping
+			const entityType = [...completeEntityTypeMap.values()].find((et) => et.id === mapping.entity_type_id)
+			if (entityType) {
+				existingMappingKeys.add(`${mapping.model}|||${entityType.value}`)
+			}
+		})
+
+		// Prepare model mappings for creation
+		let mappingsToCreate = []
+		defaultMappings.forEach((mapping) => {
+			// Get the entity type value from default mapping
+			const entityTypeValue = defaultEntityTypeIdToValueMap.get(mapping.entity_type_id)
+
+			if (entityTypeValue) {
+				const mappingKey = `${mapping.model}|||${entityTypeValue}`
+
+				// Only create if mapping doesn't exist
+				if (!existingMappingKeys.has(mappingKey)) {
+					const targetEntityType = completeEntityTypeMap.get(entityTypeValue)
+
+					if (targetEntityType) {
+						mappingsToCreate.push({
+							..._.omit(mapping, ['id', 'created_at', 'updated_at', 'deleted_at']),
+							entity_type_id: targetEntityType.id,
+							tenant_code: newTenantCode,
+							organization_code: newOrgCode,
+						})
+					}
+				}
+			}
+		})
+
+		// Create model mappings
+		if (mappingsToCreate.length > 0) {
+			await EntityModelMapping.bulkCreate(mappingsToCreate, {
+				transaction,
+			})
+			console.log(`Created ${mappingsToCreate.length} model mappings`)
+		}
+
+		// Commit transaction
 		await transaction.commit()
 		console.log('--- Entity Types and Entities setup completed successfully ---')
 	} catch (error) {
-		await transaction.rollback()
 		console.error('Error during entity types setup:', error)
+		await transaction.rollback()
 		throw error
 	}
 }
 
 async function setupForms(newTenantCode, newOrgCode) {
 	console.log('--- Setting up Forms ---')
-	const defaultForms = await formQueries.findAll({
-		tenant_code: DEFAULT_TENANT_CODE,
-		organization_code: DEFAULT_ORGANIZATION_CODE,
+	// Fetch default forms
+	const defaultForms = await Form.findAll({
+		where: {
+			tenant_code: DEFAULT_TENANT_CODE,
+			organization_code: DEFAULT_ORGANIZATION_CODE,
+		},
+		raw: true,
 	})
-	for (const defaultForm of defaultForms) {
-		const newForm = await formQueries.findOne({
-			type: defaultForm.type,
-			sub_type: defaultForm.sub_type,
+
+	// Fetch existing forms for target tenant/org to avoid duplicates
+	const existingForms = await Form.findAll({
+		where: {
 			tenant_code: newTenantCode,
 			organization_code: newOrgCode,
-		})
+		},
+		raw: true,
+	})
 
-		if (!newForm) {
-			console.log(`Creating form: ${defaultForm.type} - ${defaultForm.sub_type}`)
-			await formQueries.create({
-				..._.omit(defaultForm, ['id', 'created_at', 'updated_at']),
-				tenant_code: newTenantCode,
-				organization_code: newOrgCode,
-				created_by: 0,
-				updated_by: 0,
-			})
-		}
+	// Build set of existing form identifiers
+	const existingFormKeys = new Set(existingForms.map((form) => `${form.type}|||${form.sub_type}`))
+
+	// Filter out forms that already exist
+	const formsToCreate = defaultForms
+		.filter((defaultForm) => {
+			const formKey = `${defaultForm.type}|||${defaultForm.sub_type}`
+			return !existingFormKeys.has(formKey)
+		})
+		.map((defaultForm) => ({
+			..._.omit(defaultForm.toJSON ? defaultForm.toJSON() : defaultForm, [
+				'id',
+				'created_at',
+				'updated_at',
+				'deleted_at',
+			]),
+			tenant_code: newTenantCode,
+			organization_code: newOrgCode,
+			created_by: '0', // String instead of number for consistency
+			updated_by: '0',
+		}))
+	// Create forms if any need to be created
+	if (formsToCreate.length > 0) {
+		await Form.bulkCreate(formsToCreate, {
+			ignoreDuplicates: true,
+		})
+		console.log(`Created ${formsToCreate.length} forms`)
+	} else {
+		console.log('No new forms to create - all already exist')
 	}
+	console.log('--- Forms setup completed successfully ---')
 }
 
 async function setupReviewStages(newTenantCode, newOrgCode) {
-	console.log('--- Setting up Review Stages ---')
-	const defaultReviewStages = await reviewStageQueries.findAll({
-		tenant_code: DEFAULT_TENANT_CODE,
-		organization_code: DEFAULT_ORGANIZATION_CODE,
-	})
-	for (const defaultStage of defaultReviewStages) {
-		const newStage = await reviewStageQueries.findOne({
-			role: defaultStage.role,
-			level: defaultStage.level,
-			resource_type: defaultStage.resource_type,
-			tenant_code: newTenantCode,
-			organization_code: newOrgCode,
+	try {
+		console.log('--- Setting up Review Stages ---')
+		// Fetch default review stages
+		const defaultReviewStages = await ReviewStage.findAll({
+			where: { tenant_code: DEFAULT_TENANT_CODE, organization_code: DEFAULT_ORGANIZATION_CODE },
+			raw: true,
 		})
 
-		if (!newStage) {
-			console.log(`Creating review stage: ${defaultStage.resource_type}`)
-			await reviewStageQueries.create({
-				..._.omit(defaultStage, ['id', 'created_at', 'updated_at']),
+		// Fetch existing review stages for target tenant/org to avoid duplicates
+		const existingReviewStages = await ReviewStage.findAll({
+			where: {
 				tenant_code: newTenantCode,
 				organization_code: newOrgCode,
-				created_by: 0,
-				updated_by: 0,
+			},
+			raw: true,
+		})
+
+		// Adjust the key based on your ReviewStage model's unique identifier field
+		const existingStageKeys = new Set(
+			existingReviewStages.map((stage) => `${stage.resource_type}|||${stage.role}|||${stage.level}`)
+		)
+
+		// Filter out review stages that already exist
+		const reviewStagesToCreate = defaultReviewStages
+			.filter((defaultStage) => {
+				const stageKey = `${defaultStage.resource_type}|||${defaultStage.role}|||${defaultStage.level}`
+				return !existingStageKeys.has(stageKey)
 			})
+			.map((defaultStage) => ({
+				..._.omit(defaultStage.toJSON ? defaultStage.toJSON() : defaultStage, [
+					'id',
+					'created_at',
+					'updated_at',
+					'deleted_at',
+				]),
+				tenant_code: newTenantCode,
+				organization_code: newOrgCode,
+				created_by: '0', // String instead of number for consistency
+				updated_by: '0',
+			}))
+
+		// Create review stages if any need to be created
+		if (reviewStagesToCreate.length > 0) {
+			await ReviewStage.bulkCreate(reviewStagesToCreate, {
+				ignoreDuplicates: true,
+			})
+			console.log(`Created ${reviewStagesToCreate.length} review stages`)
+		} else {
+			console.log('No new review stages to create - all already exist')
 		}
+	} catch (error) {
+		console.error('Error during review stages setup:', error)
+		throw error
 	}
 }
 
 async function setupOrganizationExtension(newTenantCode, newOrgCode) {
 	console.log('--- Setting up Organization Extension ---')
-	const defaultExtensions = await organizationExtensionQueries.findMany({
-		tenant_code: DEFAULT_TENANT_CODE,
-		organization_code: DEFAULT_ORGANIZATION_CODE,
-	})
-
-	for (const defaultExt of defaultExtensions) {
-		const newExt = await organizationExtensionQueries.findOne({
-			tenant_code: newTenantCode,
-			organization_code: newOrgCode,
-			resource_type: defaultExt.resource_type,
+	try {
+		// Fetch default organization extensions
+		const defaultExtensions = await OrganizationExtension.findAll({
+			where: {
+				tenant_code: DEFAULT_TENANT_CODE,
+				organization_code: DEFAULT_ORGANIZATION_CODE,
+			},
+			raw: true,
 		})
 
-		if (!newExt) {
-			console.log(`Creating organization extension ${defaultExt.resource_type}`)
-			await organizationExtensionQueries.create({
-				..._.omit(defaultExt, ['id', 'created_at', 'updated_at']),
+		// Fetch existing organization extensions for target tenant/org to avoid duplicates
+		const existingExtensions = await OrganizationExtension.findAll({
+			where: {
 				tenant_code: newTenantCode,
 				organization_code: newOrgCode,
-				created_by: 0,
-				updated_by: 0,
+			},
+			raw: true,
+		})
+
+		// Build set of existing extension identifiers
+		const existingExtensionKeys = new Set(existingExtensions.map((ext) => ext.resource_type))
+
+		// Filter out organization extensions that already exist
+		const extensionsToCreate = defaultExtensions
+			.filter((defaultExt) => {
+				const extKey = defaultExt.resource_type
+				return !existingExtensionKeys.has(extKey)
 			})
+			.map((defaultExt) => ({
+				..._.omit(defaultExt.toJSON ? defaultExt.toJSON() : defaultExt, [
+					'id',
+					'created_at',
+					'updated_at',
+					'deleted_at',
+				]),
+				tenant_code: newTenantCode,
+				organization_code: newOrgCode,
+			}))
+
+		// Create organization extensions if any need to be created
+		if (extensionsToCreate.length > 0) {
+			await OrganizationExtension.bulkCreate(extensionsToCreate, {
+				ignoreDuplicates: true,
+			})
+			console.log(`Created ${extensionsToCreate.length} organization extensions`)
+		} else {
+			console.log('No new organization extensions to create - all already exist')
 		}
+
+		console.log('--- Organization Extension setup completed successfully ---')
+	} catch (error) {
+		console.error('Error during organization extensions setup:', error)
+		throw error
 	}
 }
 
 async function setupCertificateBaseTemplates(newTenantCode, newOrgCode) {
 	console.log('--- Setting up Certificate Base Templates ---')
+	try {
+		const certificatesArray = [
+			{
+				code: 'one_logo_one_sign',
+				name: 'One Logo One Signature',
+				meta: {
+					logos: {
+						no_of_logos: 1,
+						stateLogo1: null,
+					},
+					signature: {
+						no_of_signature: 1,
+						signatureImg1: null,
+					},
+					signatureTitleName1: 'Name',
+					signatureTitleDesignation1: 'Designation',
+					QrCode: null,
+				},
+			},
+			{
+				code: 'one_logo_two_sign',
+				name: 'One Logo Two Signature',
+				meta: {
+					logos: {
+						no_of_logos: 1,
+						stateLogo1: null,
+					},
+					signature: {
+						no_of_signature: 2,
+						signatureImg1: null,
+						signatureImg2: null,
+					},
+					signatureTitleName1: 'Name',
+					signatureTitleDesignation1: 'Designation',
+					signatureTitleName2: 'Name',
+					signatureTitleDesignation2: 'Designation',
+					QrCode: null,
+				},
+			},
+			{
+				code: 'two_logo_one_sign',
+				name: 'Two Logo One Signature',
+				meta: {
+					logos: {
+						no_of_logos: 2,
+						stateLogo1: null,
+						stateLogo2: null,
+					},
+					signature: {
+						no_of_signature: 1,
+						signatureImg1: null,
+					},
+					signatureTitleName1: 'Name',
+					signatureTitleDesignation1: 'Designation',
+					QrCode: null,
+				},
+			},
+			{
+				code: 'two_logo_two_sign',
+				name: 'Two Logo Two Signature',
+				meta: {
+					logos: {
+						no_of_logos: 2,
+						stateLogo1: null,
+						stateLogo2: null,
+					},
+					signature: {
+						no_of_signature: 2,
+						signatureImg1: null,
+						signatureImg2: null,
+					},
+					signatureTitleName1: 'Name',
+					signatureTitleDesignation1: 'Designation',
+					signatureTitleName2: 'Name',
+					signatureTitleDesignation2: 'Designation',
+					QrCode: null,
+				},
+			},
+		]
 
-	const certificatesArray = [
-		{
-			code: 'one_logo_one_sign',
-			name: 'One Logo One Signature',
-			meta: {
-				logos: {
-					no_of_logos: 1,
-					stateLogo1: null,
-				},
-				signature: {
-					no_of_signature: 1,
-					signatureImg1: null,
-				},
-				signatureTitleName1: 'Name',
-				signatureTitleDesignation1: 'Designation',
-				QrCode: null,
-			},
-		},
-		{
-			code: 'one_logo_two_sign',
-			name: 'One Logo Two Signature',
-			meta: {
-				logos: {
-					no_of_logos: 1,
-					stateLogo1: null,
-				},
-				signature: {
-					no_of_signature: 2,
-					signatureImg1: null,
-					signatureImg2: null,
-				},
-				signatureTitleName1: 'Name',
-				signatureTitleDesignation1: 'Designation',
-				signatureTitleName2: 'Name',
-				signatureTitleDesignation2: 'Designation',
-				QrCode: null,
-			},
-		},
-		{
-			code: 'two_logo_one_sign',
-			name: 'Two Logo One Signature',
-			meta: {
-				logos: {
-					no_of_logos: 2,
-					stateLogo1: null,
-					stateLogo2: null,
-				},
-				signature: {
-					no_of_signature: 1,
-					signatureImg1: null,
-				},
-				signatureTitleName1: 'Name',
-				signatureTitleDesignation1: 'Designation',
-				QrCode: null,
-			},
-		},
-		{
-			code: 'two_logo_two_sign',
-			name: 'Two Logo Two Signature',
-			meta: {
-				logos: {
-					no_of_logos: 2,
-					stateLogo1: null,
-					stateLogo2: null,
-				},
-				signature: {
-					no_of_signature: 2,
-					signatureImg1: null,
-					signatureImg2: null,
-				},
-				signatureTitleName1: 'Name',
-				signatureTitleDesignation1: 'Designation',
-				signatureTitleName2: 'Name',
-				signatureTitleDesignation2: 'Designation',
-				QrCode: null,
-			},
-		},
-	]
+		// First, check which templates already exist to avoid duplicates
+		const existingTemplates = await certificateQueries.findAll({
+			tenant_code: utils.convertToString(newTenantCode),
+			organization_code: utils.convertToString(newOrgCode),
+			resource_type: common.PROJECT,
+		})
 
-	for (let certPointer = 0; certPointer < certificatesArray.length; certPointer++) {
-		let currentPointerArray = certificatesArray[certPointer]
+		// Build set of existing template codes
+		const existingTemplateCodes = new Set(existingTemplates.map((template) => template.code))
 
-		let fileName = currentPointerArray.code + '.svg'
-		let filePath = path.join(__dirname, '../public/assets/certificate/', fileName)
-		//check file exist
-		fs.access(filePath, fs.constants.F_OK, (err) => {
-			if (err) {
-				console.error('The file does not exist in the folder.')
-			} else {
-				console.log('The file exists in the folder.')
+		// Filter out certificates that already exist
+		const certificatesToProcess = certificatesArray.filter((cert) => !existingTemplateCodes.has(cert.code))
+
+		if (certificatesToProcess.length === 0) {
+			console.log('All certificate templates already exist. Skipping setup.')
+			return
+		}
+
+		console.log(`Processing ${certificatesToProcess.length} new certificate templates`)
+
+		// Process certificates in batches to avoid overwhelming the system
+		const BATCH_SIZE = 2 // Process 2 certificates at a time
+		const certificatesCreated = []
+
+		for (let i = 0; i < certificatesToProcess.length; i += BATCH_SIZE) {
+			const batch = certificatesToProcess.slice(i, i + BATCH_SIZE)
+
+			const batchPromises = batch.map(async (currentCertificate) => {
+				try {
+					const fileName = currentCertificate.code + '.svg'
+					const filePath = path.join(__dirname, '../public/assets/certificate/', fileName)
+
+					// Check if file exists
+					try {
+						fs.accessSync(filePath, fs.constants.F_OK)
+						console.log(`  File ${fileName} exists, processing...`)
+					} catch (err) {
+						console.warn(
+							`  File ${fileName} does not exist. Skipping certificate "${currentCertificate.code}".`
+						)
+						return null // Skip this certificate
+					}
+
+					// Prepare file upload payload
+					const payloadData = {
+						cert: {
+							files: [fileName],
+						},
+						ref: common.CERTIFICATE,
+					}
+
+					// Get signed URL for file upload
+					const getSignedUrl = await fileService.getSignedUrl(payloadData, 'BASE_TEMPLATE', 'system', false)
+					if (!getSignedUrl.result) {
+						throw new Error(`Failed to generate signed URL for ${fileName}`)
+					}
+
+					const fileUploadUrl = getSignedUrl.result['cert']['files'][0].url
+					const uploadedFilePath = getSignedUrl.result['cert']['files'][0].file
+					const fileData = fs.readFileSync(filePath)
+
+					// Upload file to cloud storage
+					await request({
+						url: fileUploadUrl,
+						method: 'put',
+						headers: {
+							'Content-Type': 'application/multipart/form-data',
+						},
+						body: fileData,
+					})
+
+					// Prepare certificate data for database insertion
+					const certificateData = {
+						...currentCertificate,
+						url: uploadedFilePath,
+						organization_code: utils.convertToString(newOrgCode),
+						tenant_code: utils.convertToString(newTenantCode),
+						resource_type: common.PROJECT,
+						created_by: common.CREATED_BY_SYSTEM,
+						created_at: new Date(),
+						updated_at: new Date(),
+					}
+
+					// Create certificate template in database
+					const certificate = await certificateQueries.create(certificateData)
+					if (!certificate.id) {
+						throw new Error(`Failed to create certificate template: ${currentCertificate.code}`)
+					}
+
+					console.log(`  ✓ Certificate template "${currentCertificate.code}" created successfully`)
+					return certificate
+				} catch (error) {
+					console.error(`  ✗ Error setting up certificate "${currentCertificate.code}":`, error.message)
+					// Don't throw here - let other certificates in the batch continue
+					return null
+				}
+			})
+
+			// Wait for current batch to complete before processing next batch
+			const batchResults = await Promise.all(batchPromises)
+			const successfulResults = batchResults.filter((result) => result !== null)
+			certificatesCreated.push(...successfulResults)
+
+			// Small delay between batches to avoid overwhelming the system
+			if (i + BATCH_SIZE < certificatesToProcess.length) {
+				await new Promise((resolve) => setTimeout(resolve, 1000)) // 1 second delay
 			}
-		})
 
-		let payloadData = {
-			cert: {
-				files: [fileName],
-			},
-			ref: common.CERTIFICATE,
+			console.log(
+				`--- Certificate Base Templates setup completed: ${certificatesCreated.length}/${certificatesToProcess.length} templates created successfully ---`
+			)
 		}
+	} catch (error) {
+		console.error('Error during certificate templates setup:', error)
 
-		const getSignedUrl = await fileService.getSignedUrl(payloadData, 'BASE_TEMPLATE', 'system', false)
-		if (!getSignedUrl.result) {
-			throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
-		}
-
-		if (!getSignedUrl.result) {
-			throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
-		}
-
-		const fileUploadUrl = getSignedUrl.result['cert']['files'][0].url
-		let uploadedFilePath = getSignedUrl.result['cert']['files'][0].file
-		const fileData = fs.readFileSync(filePath)
-		//upload file
-		await request({
-			url: fileUploadUrl,
-			method: 'put',
-			headers: {
-				'Content-Type': 'application/multipart/form-data',
-			},
-			body: fileData,
-		})
-
-		// skip if template already exists
-		const existingTemplate = await certificateQueries.findOne({
-			code: currentPointerArray.code,
-			tenant_code: utils.convertToString(newTenantCode),
-			organization_code: utils.convertToString(newOrgCode),
-			resource_type: common.PROJECT,
-		})
-
-		if (existingTemplate) {
-			console.log(`Certificate template "${currentPointerArray.code}" already exists. Skipping.`)
-			continue
-		}
-
-		const certificateData = {
-			...currentPointerArray,
-			url: uploadedFilePath,
-			organization_code: utils.convertToString(newOrgCode),
-			tenant_code: utils.convertToString(newTenantCode),
-			resource_type: common.PROJECT,
-			created_by: common.CREATED_BY_SYSTEM,
-			created_at: new Date(),
-			updated_at: new Date(),
-		}
-
-		let certificate = await certificateQueries.create(certificateData)
-		if (!certificate.id) {
-			throw new Error('FAILED_TO_CREATE_CERTIFICATE_TEMPLATE')
-		}
+		throw error
 	}
 }

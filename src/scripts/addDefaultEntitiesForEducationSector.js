@@ -50,6 +50,7 @@ const entityTypeEntitiesMapping = {
 			},
 			status: 'ACTIVE',
 			tenant_code: defaultTenantCode,
+			organization_code: defaultOrgCode,
 		})
 		let existingEntities = []
 		// create entity id map
