@@ -17,21 +17,17 @@ const request = require('request')
  * @returns {Promise} A promise that resolves with the organization details or rejects with an error.
  */
 
-const fetchOrg = function (organisationIdentifier, tenantCode = '') {
+const fetchOrg = function (organisationIdentifier, tenantCode, internalToken = true) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let orgReadUrl
-			if (!isNaN(organisationIdentifier)) {
-				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_id=' + organisationIdentifier
-			} else {
-				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_code=' + organisationIdentifier
+			if (!organisationIdentifier || !tenantCode) {
+				throw new Error('Organisation identifier and tenant code are required')
 			}
+			const isNumericId = !isNaN(organisationIdentifier) && !isNaN(parseFloat(organisationIdentifier))
+			const queryParam = isNumericId ? 'organisation_id' : 'organisation_code'
 
-			if (tenantCode) {
-				orgReadUrl += '&tenant_code=' + tenantCode
-			}
-
-			let internalToken = true
+			// Build URL with query parameters
+			const orgReadUrl = `${userBaseUrl}${endpoints.ORGANIZATION_READ}?${queryParam}=${organisationIdentifier}&tenant_code=${tenantCode}`
 
 			const orgDetails = await requests.get(
 				orgReadUrl,
