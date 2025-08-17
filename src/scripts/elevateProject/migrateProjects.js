@@ -21,6 +21,7 @@ const entityService = require('@services/entities')
 const resourceService = require('@services/resource')
 
 const resourceQueries = require('@database/queries/resources')
+const common = require('@constants/common')
 const userRequest = require('@requests/user')
 
 // Constants for environment variables
@@ -163,54 +164,52 @@ const dbName = MONGODB_URL.split('/').pop()
 					// EntityType uniqueness - Generate unique identifier
 					const entityTypeMapKey = generateEntityTypeMapKey(tenant_code, organization_code)
 
-					// Ensure entityTypeEntityMap for this tenant/org
+					// Initialize entityTypeEntityMap for this tenant/org if not already present
 					if (!entityTypeEntityMap[entityTypeMapKey]) {
 						entityTypeEntityMap[entityTypeMapKey] = {}
+					}
 
-						// Fetch entity types for this tenant/org
-						let entities = await entityTypeService.readUserEntityTypes(
-							{ value: entityKeys },
-							'',
-							organization_code,
-							tenant_code
-						)
+					// Fetch entity types for this tenant/org
+					let entities = await entityTypeService.readUserEntityTypes(
+						{ value: entityKeys },
+						'',
+						organization_code,
+						tenant_code
+					)
 
-						let entityTypesWithEntities = entities?.result?.entity_types || []
+					let entityTypesWithEntities = entities?.result?.entity_types || []
 
-						// Check for missing EntityTypes
-						const missingEntityTypes = entityKeys.filter(
-							(key) => !entityTypesWithEntities.some((et) => et.value === key)
-						)
-
-						if (missingEntityTypes.length > 0) {
-							console.log(
-								`Skipping template ${templateIdStr}: Missing EntityTypes: ${missingEntityTypes.join(
-									', '
-								)}`
-							)
-							await csvWriter.writeRecords([
-								{
-									templateId: templateIdStr,
-									success: `Skipped: Missing EntityTypes: ${missingEntityTypes.join(
-										', '
-									)}. Please set up tenant: ${tenant_code} and organization: ${organization_code} in SCP.`,
-									projectId: null,
-									tenantId: tenant_code,
-									orgId: organization_code,
-									creatorId: template.createdBy || 'N/A',
-									assignedTo: assignedTo,
-								},
-							])
-							continue
+					// Clear existing mappings for this tenant/org and rebuild
+					entityTypeEntityMap[entityTypeMapKey] = {}
+					entityTypesWithEntities.forEach((entityType) => {
+						entityTypeEntityMap[entityTypeMapKey][entityType.value] = {
+							entity_type_id: entityType.id,
+							entities: (entityType.entities || []).map((entity) => entity.value),
 						}
+					})
 
-						// Map entity types and their entities
-						entityTypesWithEntities.forEach((entityType) => {
-							entityTypeEntityMap[entityTypeMapKey][entityType.value] = {
-								entity_type_id: entityType.id,
-								entities: (entityType.entities || []).map((entity) => entity.value),
-							}
-						})
+					const currentEntityTypes = Object.keys(entityTypeEntityMap[entityTypeMapKey])
+					// Check for missing EntityTypes
+					const missingEntityTypes = entityKeys.filter((key) => !currentEntityTypes.includes(key))
+
+					if (missingEntityTypes.length > 0) {
+						console.log(
+							`Skipping template ${templateIdStr}: Missing EntityTypes: ${missingEntityTypes.join(', ')}`
+						)
+						await csvWriter.writeRecords([
+							{
+								templateId: templateIdStr,
+								success: `Skipped: Missing EntityTypes: ${missingEntityTypes.join(
+									', '
+								)}. Please set up tenant: ${tenant_code} and organization: ${organization_code} in SCP.`,
+								projectId: null,
+								tenantId: tenant_code,
+								orgId: organization_code,
+								creatorId: template.createdBy || 'N/A',
+								assignedTo: assignedTo,
+							},
+						])
+						continue
 					}
 
 					// Check if the project already exists
@@ -658,6 +657,17 @@ async function createProject(templateId, projectData, userId, orgId, tenantId) {
 		if (!createProject?.result?.id) {
 			throw new Error('Failed to create project - no ID returned')
 		}
+
+		// update the project status from draft to submitted before publish
+		await resourceQueries.updateOne(
+			{
+				id: createProject.result.id,
+			},
+			{
+				status: common.RESOURCE_STATUS_SUBMITTED,
+				stage: common.RESOURCE_STAGE_REVIEW,
+			}
+		)
 
 		const updateProject = await resourceService.publishCallback(createProject.result.id, templateId.toString())
 		if (updateProject.statusCode != 202) {
