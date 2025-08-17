@@ -8,16 +8,19 @@
 require('module-alias/register')
 require('dotenv').config({ path: '../../.env' })
 require('../../configs/events')()
+
 const path = require('path')
 const createCsvWriter = require('csv-writer').createObjectCsvWriter
+const MongoClient = require('mongodb').MongoClient
+const { v4: uuidv4 } = require('uuid')
+const _ = require('lodash')
+
 const entityTypeService = require('@services/entity-types')
 const projectService = require('@services/projects')
 const entityService = require('@services/entities')
 const resourceService = require('@services/resource')
+
 const resourceQueries = require('@database/queries/resources')
-const _ = require('lodash')
-const MongoClient = require('mongodb').MongoClient
-const { v4: uuidv4 } = require('uuid')
 const userRequest = require('@requests/user')
 
 // Constants for environment variables
@@ -57,47 +60,43 @@ const dbName = MONGODB_URL.split('/').pop()
 				{ id: 'projectId', title: 'Project ID' },
 				{ id: 'tenantId', title: 'Tenant ID' },
 				{ id: 'orgId', title: 'Organization ID' },
+				{ id: 'creatorId', title: 'Creator ID' },
+				{ id: 'assignedTo', title: 'Assigned To' },
 			],
-			append: false, // Overwrite file at start
+			append: false,
 		})
 
 		// Write CSV header by writing an empty array (csv-writer creates header on first write)
 		await csvWriter.writeRecords([])
 
 		const entityKeys = ['categories', 'recommended_for', 'languages']
-
 		let entityTypeEntityMap = {}
+		let orgAdminCache = {}
 
-		// Get default userId
-		const DEFAULT_USER_ID = await getDefaultUserId()
-		console.log('Default User ID:', DEFAULT_USER_ID)
-
-		if (!DEFAULT_USER_ID) {
-			throw new Error('Failed to get default org admin')
-		}
-
-		// Get all project templates
+		// Get all project templates with STRICT tenant and org requirements
 		const projectTemplates = await db
 			.collection('projectTemplates')
 			.find({
 				status: 'published',
 				isReusable: true,
-				tenantId: { $exists: true },
-				orgId: { $exists: true },
+				//Skip projects without tenant/org details
+				tenantId: { $nin: [null, ''] },
+				orgId: { $nin: [null, ''] },
 			})
-			.project({ _id: 1, tenantId: 1 })
-			.limit(1)
+			.project({ _id: 1, tenantId: 1, orgId: 1, createdBy: 1 })
 			.toArray()
 
-		console.log(`${projectTemplates.length} project templates found`)
+		console.log(`${projectTemplates.length} project templates found with valid tenant and org details`)
 
 		// Group templates by tenant
 		const groupedTemplates = _.groupBy(projectTemplates, 'tenantId')
+
 		// Process each tenant group sequentially
 		for (const tenantCode in groupedTemplates) {
 			const templatesForTenant = groupedTemplates[tenantCode]
+			console.log(`Processing ${templatesForTenant.length} templates for tenant: ${tenantCode}`)
 
-			// Chunked processing
+			// Chunked processing for better memory management
 			let chunkedTemplates = _.chunk(templatesForTenant, 10)
 			let createdEntityIds = {}
 
@@ -105,7 +104,7 @@ const dbName = MONGODB_URL.split('/').pop()
 			for (const chunk of chunkedTemplates) {
 				const templateIds = chunk.map((templateDoc) => templateDoc._id)
 
-				// Fetch templates sequentially
+				// Fetch full template details
 				const templates = await db
 					.collection('projectTemplates')
 					.find({ _id: { $in: templateIds } })
@@ -115,49 +114,101 @@ const dbName = MONGODB_URL.split('/').pop()
 				let userIds = templates
 					.filter((template) => template.createdBy !== 'SYSTEM')
 					.map((template) => template.createdBy)
+
+				// Remove duplicates
+				userIds = [...new Set(userIds)]
+
 				let userOrgTenantMap = await getUserOrgTenantDetails(userIds, tenantCode)
 
 				for (const template of templates) {
 					let templateIdStr = template._id.toString()
 					console.log(`Processing template ${templateIdStr}`)
 
-					// --- NEW: Identify tenantId and orgId for this template ---
-					const { organization_code, tenant_code, user_id } = await getOrgAndTenant(
+					// Additional check - Skip if tenantId or orgId is missing/invalid
+					if (!template.tenantId || !template.orgId || template.tenantId === '' || template.orgId === '') {
+						console.log(`Skipping template ${templateIdStr}: Missing tenant or org details`)
+						await csvWriter.writeRecords([
+							{
+								templateId: templateIdStr,
+								success: 'Skipped: Missing tenant or organization details',
+								projectId: null,
+								tenantId: template.tenantId || 'N/A',
+								orgId: template.orgId || 'N/A',
+								creatorId: template.createdBy || 'N/A',
+								assignedTo: 'N/A',
+							},
+						])
+						continue
+					}
+
+					// Handle missing creator in user service
+					const { organization_code, tenant_code, user_id, assignedTo } = await getOrgAndTenantWithFallback(
 						template.createdBy,
 						userOrgTenantMap,
-						DEFAULT_USER_ID
+						template.tenantId,
+						template.orgId,
+						orgAdminCache
 					)
 
-					const entityTypeMapKey = `${tenant_code}:::${organization_code}`
+					// Skip if no valid user found
+					if (!user_id) {
+						console.log(`Skipping template ${templateIdStr}: No valid user or org admin found`)
+						await csvWriter.writeRecords([
+							{
+								templateId: templateIdStr,
+								success: 'Skipped: No valid creator or org admin found',
+								projectId: null,
+								tenantId: tenant_code,
+								orgId: organization_code,
+								creatorId: template.createdBy || 'N/A',
+								assignedTo: 'N/A',
+							},
+						])
+						continue
+					}
 
-					// --- NEW: Ensure entityTypeEntityMap for this tenant/org ---
+					// EntityType uniqueness - Generate unique identifier
+					const entityTypeMapKey = generateEntityTypeMapKey(tenant_code, organization_code)
+
+					// Ensure entityTypeEntityMap for this tenant/org
 					if (!entityTypeEntityMap[entityTypeMapKey]) {
 						entityTypeEntityMap[entityTypeMapKey] = {}
+
 						// Fetch entity types for this tenant/org
 						let entities = await entityTypeService.readUserEntityTypes(
 							{ value: entityKeys },
-							tenant_code,
-							organization_code
+							'',
+							organization_code,
+							tenant_code
 						)
 
 						let entityTypesWithEntities = entities?.result?.entity_types || []
+
+						// Check for missing EntityTypes
 						const missingEntityTypes = entityKeys.filter(
 							(key) => !entityTypesWithEntities.some((et) => et.value === key)
 						)
 
 						if (missingEntityTypes.length > 0) {
+							console.log(
+								`Skipping template ${templateIdStr}: Missing EntityTypes: ${missingEntityTypes.join(
+									', '
+								)}`
+							)
 							await csvWriter.writeRecords([
 								{
 									templateId: templateIdStr,
-									success: `Error: Missing entity types: ${missingEntityTypes.join(
+									success: `Skipped: Missing EntityTypes: ${missingEntityTypes.join(
 										', '
-									)}. Please set up the tenant: ${tenant_code} and organization: ${organization_code} in SCP.`,
+									)}. Please set up tenant: ${tenant_code} and organization: ${organization_code} in SCP.`,
 									projectId: null,
 									tenantId: tenant_code,
 									orgId: organization_code,
+									creatorId: template.createdBy || 'N/A',
+									assignedTo: assignedTo,
 								},
 							])
-							continue // Skip to the next template
+							continue
 						}
 
 						// Map entity types and their entities
@@ -169,24 +220,26 @@ const dbName = MONGODB_URL.split('/').pop()
 						})
 					}
 
-					// Check if the project exists
+					// Check if the project already exists
 					const isProjectExist = await checkProjectExist(templateIdStr, tenant_code, organization_code)
 					if (isProjectExist.success) {
-						console.log(`Project Exist for template ${templateIdStr}`)
+						console.log(`Project already exists for template ${templateIdStr}`)
 						await csvWriter.writeRecords([
 							{
 								templateId: templateIdStr,
-								success: 'Project Exist',
+								success: 'Project Already Exists',
 								projectId: isProjectExist.projectId,
 								tenantId: tenant_code,
 								orgId: organization_code,
+								creatorId: template.createdBy || 'N/A',
+								assignedTo: assignedTo,
 							},
 						])
 						continue
 					}
 
+					// Process template tasks
 					let taskIdsToRemove = []
-					// Check if template.tasks exist and handle sequentially
 					if (Array.isArray(template.tasks) && template.tasks.length > 0) {
 						const templateTasks = await db
 							.collection('projectTemplateTasks')
@@ -218,18 +271,34 @@ const dbName = MONGODB_URL.split('/').pop()
 						}
 					}
 
-					// Convert template sequentially
+					// Convert template
 					let convertedTemplate = await convertTemplate(template, user_id, organization_code, tenant_code)
 					if (!convertedTemplate.success) {
-						throw new Error(convertedTemplate.error)
+						console.error(`Error converting template ${templateIdStr}:`, convertedTemplate.error)
+						await csvWriter.writeRecords([
+							{
+								templateId: templateIdStr,
+								success: `Conversion Error: ${
+									convertedTemplate.error.message || convertedTemplate.error
+								}`,
+								projectId: null,
+								tenantId: tenant_code,
+								orgId: organization_code,
+								creatorId: template.createdBy || 'N/A',
+								assignedTo: assignedTo,
+							},
+						])
+						continue
 					}
+
 					convertedTemplate = convertedTemplate.template
 					let entitiesToCreate = []
-					// Find non-existing entities sequentially
+
+					// RULE 4: Find and handle missing entities
 					for (const key of entityKeys) {
 						let values = convertedTemplate[key]
 						if (Array.isArray(values) && values.length > 0) {
-							values = [...new Set(values)]
+							values = [...new Set(values)] // Remove duplicates
 							convertedTemplate[key] = formatValues(values)
 
 							await filterNonExistingEntities(
@@ -243,7 +312,7 @@ const dbName = MONGODB_URL.split('/').pop()
 						}
 					}
 
-					// --- NEW: Pass tenant/org info to project/entities creation ---
+					// Create project and entities
 					let projectCreateResponse = await createProjectAndEntities(
 						templateIdStr,
 						convertedTemplate,
@@ -255,32 +324,35 @@ const dbName = MONGODB_URL.split('/').pop()
 					)
 
 					if (projectCreateResponse.success) {
-						//update scp resource id in mongo
-						await db.collection('projectTemplates').updateOne(
-							{
-								_id: template._id,
-							},
-							{ $set: { scp_reference_id: projectCreateResponse.projectId } }
-						)
+						// Update MongoDB with SCP reference ID
+						await db
+							.collection('projectTemplates')
+							.updateOne(
+								{ _id: template._id },
+								{ $set: { scp_reference_id: projectCreateResponse.projectId } }
+							)
+
 						await csvWriter.writeRecords([
 							{
 								templateId: templateIdStr,
-								success: 'Project Created',
+								success: 'Project Created Successfully',
 								projectId: projectCreateResponse.projectId,
 								tenantId: tenant_code,
 								orgId: organization_code,
+								creatorId: template.createdBy || 'N/A',
+								assignedTo: assignedTo,
 							},
 						])
 					} else {
 						await csvWriter.writeRecords([
 							{
 								templateId: templateIdStr,
-								success: projectCreateResponse.error?.message
-									? projectCreateResponse.error?.message
-									: projectCreateResponse.error,
+								success: projectCreateResponse.error?.message || projectCreateResponse.error,
 								projectId: null,
 								tenantId: tenant_code,
 								orgId: organization_code,
+								creatorId: template.createdBy || 'N/A',
+								assignedTo: assignedTo,
 							},
 						])
 					}
@@ -288,51 +360,120 @@ const dbName = MONGODB_URL.split('/').pop()
 			}
 		}
 
-		console.log('Migration completed')
+		console.log('Migration completed successfully')
 		await client.close()
-		console.log('Connection closed')
+		console.log('Database connection closed')
 	} catch (error) {
 		console.error('Error during migration:', error)
 	}
 })()
 
-//get default org admin
-async function getDefaultUserId() {
-	let defaultUserId = null
-	let orgDetails = await userRequest.fetchOrg(DEFAULT_ORGANIZATION_CODE, DEFAULT_TENANT_CODE)
-	console.log('Default Organization Details:', orgDetails)
-	if (
-		orgDetails.success &&
-		Array.isArray(orgDetails?.data?.result?.org_admin) &&
-		orgDetails.data.result.org_admin.length > 0
-	) {
-		defaultUserId = orgDetails.data.result.org_admin[0]
-	}
-	return defaultUserId
+// RULE 3: Generate unique identifier for EntityType mapping
+function generateEntityTypeMapKey(tenantCode, organizationCode) {
+	return `${tenantCode}:::${organizationCode}`
 }
 
-//get user org id
-async function getUserOrgTenantDetails(userIds, tenantCode) {
-	let userOrgMap = {}
-	const users = await userRequest.list(
-		'all',
-		'',
-		'',
-		'',
-		'',
-		{
-			user_ids: userIds,
-		},
-		'',
-		tenantCode
-	)
+// Enhanced function to get organization and tenant details with fallback
+async function getOrgAndTenantWithFallback(userId, userOrgMap, templateTenantId, templateOrgId, orgAdminCache) {
+	let assignedTo = 'original_creator'
 
-	if (users.success && users.data?.result?.data?.length > 0) {
-		// userOrgMap = _.keyBy(users.data.result.data, 'id')
-		userOrgMap = _.keyBy(users.data.result.data, (item) => String(item.id))
+	// Debug logging
+	console.log(`Processing user ${userId} for template tenant: ${templateTenantId}, org: ${templateOrgId}`)
+
+	// Check if creator exists in user service
+	if (
+		userOrgMap[userId] &&
+		userOrgMap[userId].user_organizations?.[0]?.organization?.code &&
+		userOrgMap[userId].tenant_code
+	) {
+		const result = {
+			organization_code: userOrgMap[userId].user_organizations[0].organization.code,
+			tenant_code: userOrgMap[userId].tenant_code,
+			user_id: userId,
+			assignedTo: assignedTo,
+		}
+
+		return result
 	}
 
-	return userOrgMap
+	// RULE 2: Creator not found, look up org admin
+	console.log(
+		`Creator ${userId} not found in user service, looking up org admin for tenant: ${templateTenantId}, org: ${templateOrgId}`
+	)
+
+	// Validate template tenant and org IDs before proceeding
+	if (!templateTenantId || !templateOrgId || templateTenantId === '' || templateOrgId === '') {
+		console.log(`Invalid template tenant (${templateTenantId}) or org (${templateOrgId}) IDs`)
+		return { organization_code: null, tenant_code: null, user_id: null, assignedTo: 'invalid_template_data' }
+	}
+
+	const orgAdminKey = `${templateTenantId}:::${templateOrgId}`
+
+	// Check cache first
+	if (orgAdminCache[orgAdminKey]) {
+		if (orgAdminCache[orgAdminKey] === 'NOT_FOUND') {
+			return { organization_code: null, tenant_code: null, user_id: null, assignedTo: 'not_found' }
+		}
+		const result = {
+			organization_code: templateOrgId,
+			tenant_code: templateTenantId,
+			user_id: orgAdminCache[orgAdminKey],
+			assignedTo: 'org_admin',
+		}
+		console.log(`Found cached org admin:`, result)
+		return result
+	}
+
+	// Fetch org admin
+	try {
+		let orgDetails = await userRequest.fetchOrg(templateOrgId, templateTenantId)
+
+		if (
+			orgDetails.success &&
+			Array.isArray(orgDetails?.data?.result?.org_admin) &&
+			orgDetails.data.result.org_admin.length > 0
+		) {
+			const orgAdminId = orgDetails.data.result.org_admin[0]
+			orgAdminCache[orgAdminKey] = orgAdminId
+
+			const result = {
+				organization_code: templateOrgId,
+				tenant_code: templateTenantId,
+				user_id: orgAdminId,
+				assignedTo: 'org_admin',
+			}
+			console.log(`Found org admin:`, result)
+			return result
+		} else {
+			// No org admin found
+			orgAdminCache[orgAdminKey] = 'NOT_FOUND'
+			console.log(`No org admin found for tenant: ${templateTenantId}, org: ${templateOrgId}`)
+			return { organization_code: null, tenant_code: null, user_id: null, assignedTo: 'not_found' }
+		}
+	} catch (error) {
+		console.error(`Error fetching org admin for tenant: ${templateTenantId}, org: ${templateOrgId}`, error)
+		orgAdminCache[orgAdminKey] = 'NOT_FOUND'
+		return { organization_code: null, tenant_code: null, user_id: null, assignedTo: 'error' }
+	}
+}
+
+// Get user organization and tenant details
+async function getUserOrgTenantDetails(userIds, tenantCode) {
+	if (!userIds || userIds.length === 0) {
+		return {}
+	}
+
+	try {
+		const users = await userRequest.list('all', '', '', '', '', { user_ids: userIds }, '', tenantCode)
+
+		if (users.success && users.data?.result?.data?.length > 0) {
+			return _.keyBy(users.data.result.data, (item) => String(item.id))
+		}
+	} catch (error) {
+		console.error(`Error fetching user details for tenant ${tenantCode}:`, error)
+	}
+
+	return {}
 }
 
 async function checkProjectExist(templateId, tenantId, orgId) {
@@ -343,35 +484,22 @@ async function checkProjectExist(templateId, tenantId, orgId) {
 				tenant_code: tenantId,
 				organization_code: orgId,
 			},
-			{
-				attributes: ['id'],
-			}
+			{ attributes: ['id'] }
 		)
 
-		// Check if the project exists
 		if (!project || !project.id) {
-			// throw new Error('Project Not Found')
-			return {
-				success: false,
-				error: 'Project Not Found',
-			}
+			return { success: false, error: 'Project Not Found' }
 		}
 
-		return {
-			success: true,
-			projectId: project.id,
-		}
+		return { success: true, projectId: project.id }
 	} catch (error) {
-		return {
-			success: false,
-			error,
-		}
+		console.error(`Error checking project existence for template ${templateId}:`, error)
+		return { success: false, error }
 	}
 }
 
 async function convertTemplate(template, userId, orgId, tenantId) {
 	try {
-		// Helper function to convert resources
 		const convertResources = (resources) =>
 			resources
 				.filter(({ link }) => !!link)
@@ -380,7 +508,6 @@ async function convertTemplate(template, userId, orgId, tenantId) {
 					url: link,
 				}))
 
-		// Helper function to convert tasks and their children
 		const convertTask = (task, index) => ({
 			id: uuidv4(),
 			name: task.name,
@@ -403,7 +530,7 @@ async function convertTemplate(template, userId, orgId, tenantId) {
 				Array.isArray(template.categories) && template.categories.length > 0
 					? template.categories.map(({ name }) => name.toLowerCase())
 					: [],
-			recommended_duration: convertDuration(template.duration || template.metaInformation.duration),
+			recommended_duration: convertDuration(template.duration || template.metaInformation?.duration),
 			keywords: convertKeywords(template.keywords),
 			recommended_for:
 				Array.isArray(template.recommendedFor) && template.recommendedFor.length > 0
@@ -423,7 +550,7 @@ async function convertTemplate(template, userId, orgId, tenantId) {
 			created_by: userId.toString(),
 			organization_code: orgId.toString(),
 			tenant_code: tenantId.toString(),
-			published_id: template._id,
+			published_id: template._id.toString(),
 			tasks: template.taskDetails ? template.taskDetails.map(convertTask) : [],
 		}
 
@@ -434,15 +561,9 @@ async function convertTemplate(template, userId, orgId, tenantId) {
 	}
 }
 
-/**
- * Converts a duration object
- * @param {Object} duration - The duration object to convert.
- * @returns {Object} - The converted duration object.
- */
 function convertDuration(duration) {
 	let durationString
 
-	// Check if duration is an object with a 'value' property or a direct string
 	if (typeof duration === 'object' && duration !== null && 'value' in duration) {
 		durationString = duration.value
 	} else if (typeof duration === 'string') {
@@ -450,7 +571,6 @@ function convertDuration(duration) {
 	} else if (typeof duration === 'object' && duration !== null && 'duration' in duration) {
 		durationString = duration.duration
 	} else {
-		// Return empty if no valid duration is provided
 		return {}
 	}
 
@@ -458,7 +578,6 @@ function convertDuration(duration) {
 	const durationNumber = durationMatch ? parseInt(durationMatch[1], 10) : 0
 	const durationUnit = durationMatch ? durationMatch[2].toUpperCase() : ''
 
-	// Map units to types
 	const unitMapping = {
 		W: 'weeks',
 		D: 'days',
@@ -473,31 +592,24 @@ function convertDuration(duration) {
 
 	const durationType = unitMapping[durationUnit] || ''
 
-	return {
-		duration: durationType,
-		number: durationNumber,
-	}
+	return { duration: durationType, number: durationNumber }
 }
 
 function convertKeywords(keywords) {
 	if (Array.isArray(keywords) && keywords.length > 0) {
 		return keywords.join(',')
 	}
-
 	return ''
 }
 
-//format the entity values
 function formatValues(arr) {
-	const formatedArray = arr.map((value) => {
+	return arr.map((value) => {
 		return value
 			.replace(/\s*\(.*?\)\s*/g, '')
 			.toLowerCase()
 			.trim()
 			.replace(/\s+/g, '_')
 	})
-
-	return formatedArray
 }
 
 function formatEntityValue(value) {
@@ -508,7 +620,7 @@ function formatEntityValue(value) {
 		.replace(/\s+/g, '_')
 }
 
-//to get all entities which is not present
+// RULE 4: Enhanced function to filter non-existing entities
 async function filterNonExistingEntities(
 	entityTypeKey,
 	values,
@@ -517,60 +629,63 @@ async function filterNonExistingEntities(
 	tenantId,
 	orgId
 ) {
-	if (entityTypeEntityMap.hasOwnProperty(entityTypeKey)) {
-		const entityTypeId = entityTypeEntityMap[entityTypeKey].entity_type_id
-		const existingEntities = new Set(entityTypeEntityMap[entityTypeKey].entities)
-		// Filter and push non-existing values in one step
-		values.forEach((value) => {
-			// Check if the value already exists in entitiesToCreate with the same entity_type_id
-			const alreadyExists = entitiesToCreate.some(
-				(entity) => entity.entity_type_id == entityTypeId && entity.value == formatEntityValue(value)
-			)
-
-			// If the value is not present in existingEntities and not already in entitiesToCreate
-			if (value && !existingEntities.has(formatEntityValue(value)) && !alreadyExists) {
-				entitiesToCreate.push({
-					entity_type_id: entityTypeId,
-					value: formatEntityValue(value),
-					label: formatTitle(value),
-					tenant_code: tenantId,
-					organization_code: orgId,
-				})
-			}
-		})
+	if (!entityTypeEntityMap.hasOwnProperty(entityTypeKey)) {
+		console.warn(`EntityType ${entityTypeKey} not found in mapping`)
+		return entitiesToCreate
 	}
+
+	const entityTypeId = entityTypeEntityMap[entityTypeKey].entity_type_id
+	const existingEntities = new Set(entityTypeEntityMap[entityTypeKey].entities)
+
+	values.forEach((value) => {
+		const formattedValue = formatEntityValue(value)
+
+		// Check if entity already exists or is already queued for creation
+		const alreadyExists = entitiesToCreate.some(
+			(entity) => entity.entity_type_id == entityTypeId && entity.value == formattedValue
+		)
+
+		if (value && !existingEntities.has(formattedValue) && !alreadyExists) {
+			entitiesToCreate.push({
+				entity_type_id: entityTypeId,
+				value: formattedValue,
+				label: formatTitle(value),
+				tenant_code: tenantId,
+				organization_code: orgId,
+			})
+		}
+	})
 
 	return entitiesToCreate
 }
 
-// function to create project
 async function createProject(templateId, projectData, userId, orgId, tenantId) {
 	try {
-		// Logic to create the project
 		const createProject = await projectService.create(projectData, userId, orgId, tenantId)
 		if (!createProject?.result?.id) {
-			throw new Error('Failed to create project')
+			throw new Error('Failed to create project - no ID returned')
 		}
 
 		const updateProject = await resourceService.publishCallback(createProject.result.id, templateId.toString())
 		if (updateProject.statusCode != 202) {
-			throw new Error('Failed to update project')
+			throw new Error(`Failed to update project - status: ${updateProject.statusCode}`)
 		}
+
 		return { success: true, projectId: createProject.result.id }
 	} catch (error) {
-		console.log('Failed to create project ', projectData.published_id)
+		console.error('Failed to create project for template:', templateId, error)
 		return { success: false, error }
 	}
 }
 
 function formatTitle(str) {
 	return str
-		.replace(/_/g, ' ') // Replace underscores with a space
-		.trim() // Trim any leading/trailing spaces
-		.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize each word
+		.replace(/_/g, ' ')
+		.trim()
+		.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1))
 }
 
-// function to create project and entities
+// Enhanced function to create project and entities
 async function createProjectAndEntities(
 	templateId,
 	templateData,
@@ -581,51 +696,61 @@ async function createProjectAndEntities(
 	orgId
 ) {
 	try {
+		// Create missing entities first
 		if (entitiesToCreate.length > 0) {
-			for (const entity of entitiesToCreate) {
-				if (entity.value) {
-					let entityCreationData = {
-						entity_type_id: entity.entity_type_id,
-						value: entity.value,
-						label: entity.label || entity.value,
-						type: 'SYSTEM',
-						status: 'ACTIVE',
-						created_at: new Date(),
-						updated_at: new Date(),
-						created_by: 0,
-						updated_by: 0,
-						tenant_code: entity.tenant_code || tenantId,
-						organization_code: entity.organization_code || orgId,
-					}
-					const createdEntity = await entityService.create(entityCreationData, '0')
-					if (createdEntity?.result?.id) {
-						console.log(`Entity ${entity.value} created successfully.`)
-						//remove entity from create
-						entitiesToCreate = entitiesToCreate.filter(
-							(e) => !(e.entity_type_id === entity.entity_type_id && e.value === entity.value)
-						)
+			console.log(`Creating ${entitiesToCreate.length} missing entities for template ${templateId}`)
 
-						//add this to entityTypeEntityMap
+			for (const entity of entitiesToCreate) {
+				if (!entity.value) continue
+
+				let entityCreationData = {
+					entity_type_id: entity.entity_type_id,
+					value: entity.value,
+					label: entity.label || entity.value,
+					type: 'SYSTEM',
+					status: 'ACTIVE',
+					created_at: new Date(),
+					updated_at: new Date(),
+					created_by: 0,
+					updated_by: 0,
+					tenant_code: entity.tenant_code || tenantId,
+					organization_code: entity.organization_code || orgId,
+				}
+
+				try {
+					const createdEntity = await entityService.create(
+						entityCreationData,
+						'0',
+						entityCreationData.organization_code,
+						entityCreationData.tenant_code
+					)
+
+					if (createdEntity?.result?.id) {
+						console.log(`Entity ${entity.value} created successfully with ID: ${createdEntity.result.id}`)
+
+						// Update entityTypeEntityMap
 						for (let [key, entityData] of Object.entries(entityTypeEntityMap)) {
 							if (entityData.entity_type_id && entityData.entity_type_id === entity.entity_type_id) {
-								entityTypeEntityMap[key].entity_type_id = entity.entity_type_id
 								entityTypeEntityMap[key].entities.push(entity.value)
 								break
 							}
 						}
 
+						// Track created entity
 						if (!createdEntityIds[entity.entity_type_id]) {
-							createdEntityIds[entity.entity_type_id] = [] // Initialize if not already done
+							createdEntityIds[entity.entity_type_id] = []
 						}
 						createdEntityIds[entity.entity_type_id].push(createdEntity.result.id)
 					} else {
-						console.error(`Failed to create entity: ${entity.value}`, createdEntity.error)
+						console.error(`Failed to create entity: ${entity.value}`, createdEntity?.error)
 					}
+				} catch (entityError) {
+					console.error(`Error creating entity ${entity.value}:`, entityError)
 				}
 			}
 		}
 
-		// Proceed to create the project after entities are processed
+		// Create the project
 		const projectCreationResponse = await createProject(
 			templateId,
 			{
@@ -639,41 +764,23 @@ async function createProjectAndEntities(
 		)
 
 		if (projectCreationResponse.success) {
-			console.log('Project created successfully:', projectCreationResponse.projectId)
+			console.log(`Project created successfully for template ${templateId}: ${projectCreationResponse.projectId}`)
 			return {
 				success: true,
 				projectId: projectCreationResponse.projectId,
 			}
 		} else {
-			console.error('Failed to create project:', projectCreationResponse.error)
-			throw new Error(projectCreationResponse.error)
+			console.error(`Failed to create project for template ${templateId}:`, projectCreationResponse.error)
+			return {
+				success: false,
+				error: projectCreationResponse.error,
+			}
 		}
 	} catch (error) {
+		console.error(`Critical error in createProjectAndEntities for template ${templateId}:`, error)
 		return {
 			success: false,
-			error,
-		}
-	}
-}
-
-// Get organization and tenant details for a user
-async function getOrgAndTenant(userId, userOrgMap, defaultUserId) {
-	// if (userOrgMap[userId] && userOrgMap[userId].organizations?.[0]?.code && userOrgMap[userId].tenant_code) {
-	if (
-		userOrgMap[userId] &&
-		userOrgMap[userId].user_organizations?.[0]?.organization?.code &&
-		userOrgMap[userId].tenant_code
-	) {
-		return {
-			organization_code: userOrgMap[userId].user_organizations?.[0]?.organization?.code,
-			tenant_code: userOrgMap[userId].tenant_code,
-			user_id: userId,
-		}
-	} else {
-		return {
-			organization_code: DEFAULT_ORGANIZATION_CODE,
-			tenant_code: DEFAULT_TENANT_CODE,
-			user_id: defaultUserId,
+			error: error.message || error,
 		}
 	}
 }
