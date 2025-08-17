@@ -24,21 +24,14 @@ const resourceQueries = require('@database/queries/resources')
 const userRequest = require('@requests/user')
 
 // Constants for environment variables
-const { DEFAULT_TENANT_CODE, DEFAULT_ORGANIZATION_CODE, MONGODB_URL } = process.env
-
-// Validate required environment variables
-const missingVariables = [
-	{ name: 'DEFAULT_TENANT_CODE', value: DEFAULT_TENANT_CODE },
-	{ name: 'DEFAULT_ORGANIZATION_CODE', value: DEFAULT_ORGANIZATION_CODE },
-	{ name: 'MONGODB_URL', value: MONGODB_URL },
-]
-	.filter(({ value }) => !value)
-	.map(({ name }) => name)
+const requiredEnv = ['MONGODB_URL']
+const missingVariables = requiredEnv.filter((key) => !process.env[key])
 
 if (missingVariables.length > 0) {
 	throw new Error(`Missing required environment variables: ${missingVariables.join(', ')}`)
 }
 
+const { MONGODB_URL } = process.env
 const dbName = MONGODB_URL.split('/').pop()
 
 ;(async () => {
