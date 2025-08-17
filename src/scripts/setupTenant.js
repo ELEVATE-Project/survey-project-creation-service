@@ -62,8 +62,10 @@ const OrganizationExtension = require('@database/models/index').organizationExte
 		console.log(`Starting setup for tenant: ${tenant_code}, organization: ${organization_code}`)
 
 		// 0. Validate Tenant and Organization
-		// commenting as of now we dont have tenant validation with internal access token
-		// await validateTenantAndOrganization(tenant_code, organization_code)
+		let validateTenantandOrg = await validateTenantAndOrganization(tenant_code, organization_code)
+		if (!validateTenantandOrg.success) {
+			throw new Error(`Tenant or Organization validation failed: ${validateTenantandOrg.message}`)
+		}
 
 		// 1. Setup Entity Types and Entities
 		await setupEntityTypes(tenant_code, organization_code)
@@ -78,36 +80,33 @@ const OrganizationExtension = require('@database/models/index').organizationExte
 		// 5. Setup Certificate Base Templates
 		await setupCertificateBaseTemplates(tenant_code, organization_code)
 
-		console.log('Tenant setup completed successfully!')
+		console.log('***********Tenant setup completed successfully!***********')
 		process.exit(0)
 	} catch (error) {
-		console.error('Error during tenant setup:', error)
+		console.error(`********Error during tenant setup: ${error.message || error}`)
 		process.exit(1)
 	}
 })()
 
 //commenting as of now we dont have tenant validation with internal access token
-// async function validateTenantAndOrganization(tenantCode, orgCode) {
-// 	console.log('--- Validating Tenant and Organization ---')
-// 	try {
-// 		const tenantDetails = await userRequest.fetchTenant(tenantCode)
-// 		console.log(tenantDetails,'tenantDetails')
-// 		if (!tenantDetails.success || !tenantDetails.data) {
-// 			throw new Error(`Tenant validation failed for ${tenantCode}: ${tenantDetails.message || 'Not found'}`)
-// 		}
+async function validateTenantAndOrganization(tenantCode, orgCode) {
+	console.log('--- Validating Tenant and Organization ---')
+	try {
+		const orgDetails = await userRequest.fetchOrg(orgCode, tenantCode)
+		if (!orgDetails.success || !orgDetails?.data?.result?.id) {
+			throw new Error(`Organization validation failed for ${orgCode}: ${orgDetails.message || 'Not found'}`)
+		}
 
-// 		const orgDetails = await userRequest.fetchOrg(orgCode, tenantCode)
-// 		console.log(orgDetails,'orgDetails')
-// 		if (!orgDetails.success || !orgDetails.data) {
-// 			throw new Error(`Organization validation failed for ${orgCode}: ${orgDetails.message || 'Not found'}`)
-// 		}
-
-// 		console.log('--- Tenant and Organization validated successfully ---')
-// 	} catch (error) {
-// 		console.error('Error during tenant/org validation:', error)
-// 		throw error
-// 	}
-// }
+		return {
+			success: true,
+		}
+	} catch (error) {
+		return {
+			success: false,
+			message: error.message || 'Organization or Tenant is not valid',
+		}
+	}
+}
 
 async function setupEntityTypes(newTenantCode, newOrgCode) {
 	console.log('--- Setting up Entity Types and Entities ---')
