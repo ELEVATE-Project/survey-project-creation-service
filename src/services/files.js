@@ -28,8 +28,8 @@ module.exports = class FilesHelper {
 	 */
 	static async getSignedUrl(
 		payloadData,
-		organization_code,
-		tenant_code,
+		organization_code = process.env.DEFAULT_ORGANISATION_CODE,
+		tenant_code = process.env.DEFAULT_TENANT_CODE,
 		referenceType,
 		userId = '',
 		serviceUpload = false
