@@ -28,8 +28,8 @@ module.exports = class FilesHelper {
 	 */
 	static async getSignedUrl(
 		payloadData,
-		organization_code = process.env.DEFAULT_ORGANISATION_CODE,
-		tenant_code = process.env.DEFAULT_TENANT_CODE,
+		organization_code,
+		tenant_code,
 		referenceType,
 		userId = '',
 		serviceUpload = false
@@ -42,6 +42,14 @@ module.exports = class FilesHelper {
 			}
 
 			let folderPath = ''
+
+			if (!organization_code || !tenant_code) {
+				return responses.failureResponse({
+					message: 'MISSING_TENANT_OR_ORGANIZATION',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 
 			// let referenceTypes = [common.CERTIFICATE, common.LOGO, common.SIGNATURE, common.BASE_TEMPLATE]
 
@@ -88,7 +96,7 @@ module.exports = class FilesHelper {
 			let linkExpireTime = common.CLOUD_SERVICE_EXPIRY_TIME * common.LINK_EXPIRY_TIME
 
 			const signedUrlsPromises = fileNames.map(async (fileName) => {
-				let file = folderPath && folderPath !== '' ? folderPath + fileName : fileName
+				let file = folderPath && folderPath !== '' ? path.join(folderPath, fileName) : fileName
 				let response = {
 					file: file,
 					payload: { sourcePath: file },
@@ -107,7 +115,7 @@ module.exports = class FilesHelper {
 						actionPermission // read/write
 					)
 				} else {
-					response.url = `${process.env.PUBLIC_BASE_URL}/${endpoints.UPLOAD_FILE}?file=${file}`
+					response.url = utils.buildUrl(process.env.PUBLIC_BASE_URL, endpoints.UPLOAD_FILE, { file })
 				}
 
 				return response

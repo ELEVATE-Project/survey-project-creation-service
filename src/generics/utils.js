@@ -806,6 +806,40 @@ function _extractTenantAndOrgCodes(req) {
 	return { tenantCode, organizationCode }
 }
 
+/**
+ * Build URL with query parameters
+ * @function
+ * @name buildUrl
+ * @param {String} baseUrl - Input base URL
+ * @param {String} endpoint - Input endPoint
+ * @param {Object} queryParams - Input Object of query params
+ * @returns {String} Returns constructed URL.
+ */
+
+function buildUrl(baseUrl, endpoint, queryParams = {}) {
+	// Ensure baseUrl ends with a single slash
+	const normalizedBase = baseUrl.replace(/\/+$/, '') + '/'
+
+	// Ensure endpoint starts without a slash and doesn't end with a slash
+	const normalizedEndpoint = endpoint.replace(/^\/+|\/+$/g, '')
+
+	// Build the base URL
+	let url = `${normalizedBase}${normalizedEndpoint}`
+
+	// Handle query parameters
+	const queryString = Object.entries(queryParams)
+		.filter(([_, value]) => value !== undefined && value !== null)
+		.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+		.join('&')
+
+	// Append query string if present
+	if (queryString) {
+		url += `?${queryString}`
+	}
+
+	return url
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -854,4 +888,5 @@ module.exports = {
 	md5Hash,
 	validateTenantAndOrganizationInHeader,
 	_extractTenantAndOrgCodes,
+	buildUrl,
 }
