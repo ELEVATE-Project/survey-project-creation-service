@@ -320,9 +320,9 @@ module.exports = class ProjectsHelper {
 			}
 
 			const resource = {
-				id: resourceCreatorMapping['resource.id'],
-				type: resourceCreatorMapping['resource.type'],
-				organization_code: resourceCreatorMapping['resource.organization_code'],
+				id: resourceCreatorMapping.resource.id,
+				type: resourceCreatorMapping.resource.type,
+				organization_code: resourceCreatorMapping.resource.organization_code,
 			}
 
 			if (!resource?.id && resource.type !== common.PROJECT) {
@@ -481,7 +481,7 @@ module.exports = class ProjectsHelper {
 			}
 
 			//get organization details
-			let organizationDetails = await userRequests.fetchOrg(project.organization_code)
+			let organizationDetails = await userRequests.fetchOrg(project.organization_code, project.tenant_code)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				project.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
 			}
@@ -756,13 +756,15 @@ module.exports = class ProjectsHelper {
 			//check review is required or not
 			const isReviewMandatory = await resourceService.isReviewMandatory(
 				projectData.type,
-				projectData.organization_code
+				projectData.organization_code,
+				projectData.tenant_code
 			)
 			if (!isReviewMandatory) {
 				const publishResource = await reviewService.publishResource(
 					resourceId,
 					projectData.user_id,
-					projectData.organization_code
+					projectData.organization_code,
+					projectData.tenant_code
 				)
 				return publishResource
 			}

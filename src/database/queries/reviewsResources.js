@@ -1,5 +1,5 @@
 'use strict'
-const ReviewResource = require('../models/index').ReviewResource
+const { ReviewResource, Resource } = require('../models/index')
 
 exports.findAll = async (filter, attributes = {}) => {
 	try {

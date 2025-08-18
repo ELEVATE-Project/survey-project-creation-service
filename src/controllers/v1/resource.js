@@ -30,11 +30,12 @@ module.exports = class Resource {
 					req.pageSize,
 					req.decodedToken.token,
 					req.decodedToken.organization_code,
-					req.decodedToken.tenanat_code
+					req.decodedToken.tenant_code
 				)
 			} else if (req.query[common.LISTING] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW) {
 				resourceList = await resourceService.listAllSubmittedResources(
 					req.decodedToken.id,
+					req.decodedToken.tenant_code,
 					req.query,
 					req.searchText,
 					req.pageNo,
@@ -98,6 +99,7 @@ module.exports = class Resource {
 		try {
 			const resourceList = await resourceService.browseExistingList(
 				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.decodedToken.roles,
 				req.body.resource_ids ? req.body.resource_ids : [],
 				req.query,

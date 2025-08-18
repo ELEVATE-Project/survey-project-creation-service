@@ -48,6 +48,8 @@ const entityTypeEntitiesMapping = {
 			value: {
 				[Op.in]: entityTypes,
 			},
+			tenant_code: defaultTenantCode,
+			organization_code: defaultOrgCode,
 		})
 		let existingEntities = []
 		// create entity id map

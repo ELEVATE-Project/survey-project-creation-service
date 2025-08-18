@@ -65,6 +65,17 @@ module.exports = (sequelize, DataTypes) => {
 		}
 	)
 
+	// Define associations (foreign key constraints)
+	Review.associate = (models) => {
+		Review.belongsTo(models.Resource, {
+			foreignKey: 'resource_id',
+			targetKey: 'id',
+			as: 'reviews',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+	}
+
 	Review.addHook('afterSave', async (instance, options) => {
 		try {
 			//get resource type

@@ -9,6 +9,7 @@
 const userBaseUrl = process.env.USER_SERVICE_HOST + process.env.USER_SERVICE_BASE_URL
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
+const utils = require('@generics/utils')
 const request = require('request')
 
 /**
@@ -17,14 +18,26 @@ const request = require('request')
  * @returns {Promise} A promise that resolves with the organization details or rejects with an error.
  */
 
-const fetchOrg = function (organisationIdentifier) {
+const fetchOrg = function (organisationIdentifier, tenantCode = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let orgReadUrl
+			/*
+			Note : here the spelling of organization is given as organisation in the user service.
+			We are using the same spelling to avoid breaking changes.
+			This cannot be changed in the user-service as it will create issue in mentoring. 
+			Incase of future update , please handle it here
+			*/
 			if (!isNaN(organisationIdentifier)) {
-				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_id=' + organisationIdentifier
+				orgReadUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_READ, {
+					organisation_id: organisationIdentifier,
+				})
 			} else {
-				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_code=' + organisationIdentifier
+				let queryParams = {
+					organisation_code: organisationIdentifier,
+				}
+				if (tenantCode) queryParams.tenant_code = tenantCode
+				orgReadUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_READ, queryParams)
 			}
 
 			let internalToken = true
@@ -99,12 +112,16 @@ const list = function (
 ) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let apiUrl = userBaseUrl + endpoints.USERS_LIST + '?type=' + userType
-			if (pageNo != '') apiUrl += '&page=' + pageNo
-			if (pageSize != '') apiUrl += '&limit=' + pageSize
-			if (searchText != '') apiUrl += '&search=' + searchText
-			if (organization_code != null) apiUrl += '&organization_code=' + organization_code
-			if (tenant_code != null) apiUrl += '&tenant_code=' + tenant_code
+			let queryParams = {
+				type: userType,
+			}
+			if (pageNo != '') queryParams.page = pageNo
+			if (pageSize != '') queryParams.limit = pageSize
+			if (searchText != '') queryParams.search = searchText
+			if (organization_code != null) queryParams.organization_code = organization_code
+			if (tenant_code != null) queryParams.tenant_code = tenant_code
+
+			let apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
 
 			const userDetails = await requests.post(apiUrl, body, userToken, true)
 			return resolve(userDetails)
@@ -235,16 +252,16 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
  * @returns
  */
 
-const listOrganization = function (organizationIds = [], userToken = '') {
+const listOrganization = function (OrganizationCodes = [], tenantCode = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const apiUrl = userBaseUrl + endpoints.ORGANIZATION_LIST
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_LIST, { tenantCode })
 			let body = {}
-			if (organizationIds) {
-				body.organizationIds = organizationIds
+			if (OrganizationCodes.length > 0) {
+				body.organization_codes = OrganizationCodes
 			}
 
-			const orgDetails = await requests.post(apiUrl, body, userToken, true)
+			const orgDetails = await requests.post(apiUrl, body, '', true)
 			return resolve(orgDetails)
 		} catch (error) {
 			return reject(error)
