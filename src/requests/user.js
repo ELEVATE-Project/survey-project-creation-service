@@ -253,21 +253,15 @@ const listOrganization = function (organizationIds = [], userToken = '') {
 }
 
 /**
- * Fetches tenant details for a given tenant code.
+ * Fetches tenant public details for a given tenant code.
  * @param {string} tenantCode - The code of the tenant.
  * @returns {Promise} A promise that resolves with the tenant details or rejects with an error.
  */
-const fetchTenant = function (tenantCode) {
+const fetchPublicTenantDetails = function (tenantCode) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const tenantReadUrl = `${userBaseUrl}${endpoints.TENANT_READ}/${tenantCode}`
-			const internalToken = true
-
-			const tenantDetails = await requests.get(
-				tenantReadUrl,
-				'', // X-auth-token not required for internal call
-				internalToken
-			)
+			const tenantReadUrl = `${userBaseUrl}${endpoints.PUBLIC_TENANT_DETAILS}`
+			const tenantDetails = await requests.get(tenantReadUrl, '', '', '', { tenantid: tenantCode })
 			return resolve(tenantDetails)
 		} catch (error) {
 			return reject(error)
@@ -284,5 +278,5 @@ module.exports = {
 	getListOfUserRoles,
 	listOrganization,
 	read,
-	fetchTenant,
+	fetchPublicTenantDetails,
 }
