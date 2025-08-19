@@ -19,18 +19,15 @@ module.exports = {
 				{
 					id: {
 						allowNull: false,
-						primaryKey: true,
 						autoIncrement: true,
 						type: Sequelize.INTEGER,
 					},
 					resource_id: {
 						allowNull: false,
-						primaryKey: true,
 						type: Sequelize.INTEGER,
 					},
 					creator_id: {
 						allowNull: false,
-						primaryKey: true,
 						type: Sequelize.STRING,
 					},
 					organization_code: {
@@ -66,6 +63,16 @@ module.exports = {
 					],
 					transaction,
 				}
+			)
+
+			await addConstraintSafely(
+				'resource_creator_mapping',
+				{
+					type: 'primary key',
+					name: 'pk_resource_creator_mapping',
+					fields: ['id', 'resource_id', 'creator_id'],
+				},
+				{ transaction }
 			)
 
 			await addConstraintSafely(

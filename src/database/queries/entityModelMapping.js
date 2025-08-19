@@ -62,7 +62,8 @@ exports.findEntityTypesAndEntities = async (filter, organization_code, tenantCod
 		})
 
 		const EntityTypesMapping = entityModelMappingData ? entityModelMappingData.map((item) => item.toJSON()) : []
-		const EntityTypes = EntityTypesMapping.length > 0 ? EntityTypesMapping.map((item) => item.EntityType) : []
+		const EntityTypes =
+			EntityTypesMapping.length > 0 ? EntityTypesMapping.map((item) => item.EntityType).filter(Boolean) : []
 
 		const prunedEntities = removeDefaultOrgEntityTypes(EntityTypes, organization_code)
 

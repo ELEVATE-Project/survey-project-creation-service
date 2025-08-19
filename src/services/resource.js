@@ -806,14 +806,14 @@ module.exports = class resourceHelper {
 				})
 			)
 
-			const userDetails = await this.fetchUserDetails(uniqueCreatorIds, userToken)
-			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds)
+			const userDetails = await this.fetchUserDetails(uniqueCreatorIds, null, tenant_code, userToken)
+			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds, tenant_code)
 			const reviewDetails = await reviewsQueries.findAll(
 				{
 					organization_code: {
 						[Op.in]: uniqueOrganizationIds,
 					},
-					tenant_code: tenant_code,
+					tenant_code,
 					resource_id: {
 						[Op.in]: finalResourceIds,
 					},
@@ -1493,7 +1493,12 @@ module.exports = class resourceHelper {
 
 			if (internalResources.result.length > 0) {
 				// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
-				const userDetails = await this.fetchUserDetails(utils.getUniqueElements(userIds), userToken)
+				const userDetails = await this.fetchUserDetails(
+					utils.getUniqueElements(userIds),
+					null,
+					tenantCode,
+					userToken
+				)
 				const orgDetails = await orgExtension.fetchOrganizationDetails(
 					utils.getUniqueElements(organizationIds),
 					tenantCode
