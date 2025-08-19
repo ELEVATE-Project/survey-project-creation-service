@@ -54,7 +54,7 @@ module.exports = {
 				},
 				page: {
 					allowNull: false,
-					type: Sequelize.STRING,
+					type: Sequelize.STRING(225), // VARCHAR(225)
 				},
 				is_read: {
 					allowNull: false,

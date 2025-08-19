@@ -50,6 +50,10 @@ module.exports = {
 			validations: {
 				type: Sequelize.JSONB,
 			},
+			config: {
+				type: Sequelize.JSONB,
+				allowNull: true,
+			},
 			created_by: {
 				allowNull: false,
 				type: Sequelize.STRING,
