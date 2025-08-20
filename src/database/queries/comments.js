@@ -52,9 +52,11 @@ module.exports = class CommentData {
 	 * @param {Integer} id - comment id
 	 * @param {Integer} resourceId - resource id
 	 * @param {String} userId - user id
+	 * @param {String} orgCode - organization code
+	 * @param {String} tenantCode - tenant code
 	 * @returns {JSON} - comment delete response.
 	 */
-	static async deleteOne(id, resourceId, userId) {
+	static async deleteOne(id, resourceId, userId, orgCode, tenantCode) {
 		try {
 			const filter = {
 				where: {
@@ -62,6 +64,8 @@ module.exports = class CommentData {
 					resource_id: resourceId,
 					user_id: userId,
 					status: common.COMMENT_STATUS_DRAFT,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				},
 			}
 
@@ -88,10 +92,12 @@ module.exports = class CommentData {
 		}
 	}
 
-	static async list(resourceId, userId, page_value, context) {
+	static async list(resourceId, userId, page_value, context, orgCode, tenantCode) {
 		try {
 			let filterQuery = {
 				resource_id: resourceId,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 				[Op.or]: [
 					{ status: { [Op.ne]: common.COMMENT_STATUS_DRAFT } },
 					{ status: common.COMMENT_STATUS_DRAFT, user_id: userId },
