@@ -45,7 +45,6 @@ module.exports = class comments {
 	 */
 	async update(req) {
 		try {
-			console.log(req.decodedToken.tenant_code, req.decodedToken, 'verifyyy tenant')
 			let comment
 			if (req.method === common.REQUEST_METHOD_DELETE) {
 				comment = await commentService.delete(
