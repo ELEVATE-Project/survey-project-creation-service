@@ -2,11 +2,16 @@ const OrgExtensions = require('../models/index').organizationExtension
 
 exports.findMany = async (filter, attributes) => {
 	try {
-		return await OrgExtensions.findAll({
+		const queryOptions = {
 			where: filter,
-			attributes,
 			raw: true,
-		})
+		}
+
+		if (attributes && attributes.length > 0) {
+			queryOptions.attributes = attributes
+		}
+
+		return await OrgExtensions.findAll(queryOptions)
 	} catch (error) {
 		return error
 	}
