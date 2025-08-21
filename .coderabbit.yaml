@@ -31,42 +31,42 @@ reviews:
 
   #Exclude non-source code directories from reviews.
   path_filters:
-    - "!deployment/**"
-    - "!dev-ops/**"
-    - "!release-notes/**"
-    - "!src/api-doc/**"
-    - "!src/assets/**"
-    - "!src/configs/**"
-    - "!src/public/**"
-    - "!src/temp/**"
-    - "!**/*.md"
+    - '!deployment/**'
+    - '!dev-ops/**'
+    - '!release-notes/**'
+    - '!src/api-doc/**'
+    - '!src/assets/**'
+    - '!src/configs/**'
+    - '!src/public/**'
+    - '!src/temp/**'
+    - '!**/*.md'
 
   # Add specific review instructions for critical paths.
   path_instructions:
-    - path: "src/services/**"
-      instructions: "This is core business logic. Please check for correctness, efficiency, and potential edge cases."
-    - path: "src/controllers/**"
-      instructions: "These are API controllers. Focus on request/response handling, security (auth middleware usage), and proper status codes."
-    - path: "src/database/queries/**"
-      instructions: "Review database queries for performance. Check for N+1 problems and ensure indexes can be used."
-    - path: "src/validators/**"
-      instructions: "Validate all incoming data thoroughly. Check for missing or incomplete validation rules."
-    - path: "src/middlewares/**"
-      instructions: "This is security-sensitive middleware. Scrutinize for potential vulnerabilities."
+    - path: 'src/services/**'
+      instructions: 'This is core business logic. Please check for correctness, efficiency, and potential edge cases.'
+    - path: 'src/controllers/**'
+      instructions: 'These are API controllers. Focus on request/response handling, security (auth middleware usage), and proper status codes.'
+    - path: 'src/database/queries/**'
+      instructions: 'Review database queries for performance. Check for N+1 problems and ensure indexes can be used.'
+    - path: 'src/validators/**'
+      instructions: 'Validate all incoming data thoroughly. Check for missing or incomplete validation rules.'
+    - path: 'src/middlewares/**'
+      instructions: 'This is security-sensitive middleware. Scrutinize for potential vulnerabilities.'
 
   abort_on_close: true
   disable_cache: false
   auto_review:
     enabled: true
     auto_incremental_review: true
-    ignore_title_keywords: ["WIP", "skip-review"]
+    ignore_title_keywords: ['WIP', 'skip-review']
     labels: []
     drafts: false
     # Target reviews to development branches.
     base_branches:
-      - "main"
-      - "master" 
-      - "develop"
+      - 'main'
+      - 'master'
+      - 'develop'
 
   finishing_touches:
     docstrings:
@@ -114,7 +114,7 @@ reviews:
     biome:
       enabled: true
     languagetool:
-      enabled: false  # optional
+      enabled: false # optional
     ast-grep:
       essential_rules: true
       rule_dirs: []
