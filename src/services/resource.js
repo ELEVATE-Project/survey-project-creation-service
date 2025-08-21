@@ -25,6 +25,8 @@ const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
 const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
 const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
+const certificateBasetemplateQueries = require('@database/queries/certificateBaseTemplate')
+
 module.exports = class resourceHelper {
 	/**
 	 * List up for listAllSubmittedResources
@@ -927,6 +929,22 @@ module.exports = class resourceHelper {
 			let organizationDetails = await userRequests.fetchOrg(resource.organization_code, userToken)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
+			}
+
+			//Add path in getDownloadUrl
+			if (result.certificate && result.certificate.base_template_url && result.certificate.base_template_id) {
+				const baseTemplate = await certificateBasetemplateQueries.findOne(
+					{
+						id: result.certificate.base_template_id,
+					},
+					{ attributes: ['id', 'name', 'url'] }
+				)
+				if (baseTemplate) {
+					result.certificate.base_template_url = {
+						url: result.certificate.base_template_url,
+						filepath: baseTemplate.url,
+					}
+				}
 			}
 
 			result = { ...result, ...resource }

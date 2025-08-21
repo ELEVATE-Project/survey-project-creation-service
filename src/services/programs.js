@@ -364,6 +364,7 @@ module.exports = class ProgramsHelper {
 			// Fetch the program details
 			const program = await resourceQueries.findOne({
 				id: programId,
+				type: common.RESOURCE_TYPE_PROGRAM,
 			})
 
 			if (!program?.id) {
@@ -454,7 +455,6 @@ module.exports = class ProgramsHelper {
 					// fetch the user if viewer is present
 					if (response?.result?.viewers?.length > 0) {
 						const userDetails = await this.fetchUserDetails(response.result.viewers, userToken)
-						console.log(userDetails, 'userDetails')
 						if (userDetails && Object.keys(userDetails).length > 0) {
 							result.viewers = response.result.viewers.map((userId) => userDetails[userId])
 						}
