@@ -721,7 +721,8 @@ module.exports = class ProjectsHelper {
 				const publishResource = await reviewService.publishResource(
 					resourceId,
 					projectData.user_id,
-					projectData.organization_code
+					projectData.organization_code,
+					tenantCode
 				)
 				return publishResource
 			}

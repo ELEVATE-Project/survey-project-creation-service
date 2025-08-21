@@ -32,42 +32,44 @@ module.exports = class reviewsHelper {
 	 * @param {Boolean} startReview - To identity the status of review
 	 * @param {Integer} resourceId - resource id.
 	 * @param {String} userId - logged in user id.
-	 * @param {String} orgId - organization id
+	 * @param {String} orgCode - organization code
 	 * @returns {JSON} - review updated response.
 	 */
 
-	static async update(resourceId, bodyData, userId, orgId) {
+	static async update(resourceId, bodyData, userId, orgCode, tenantCode) {
 		try {
 			// Retrieve resource details based on the provided resourceId.
 			const resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				},
 				{ attributes: ['id', 'status', 'organization_code', 'type', 'next_stage', 'stage'] }
 			)
 			// If no resource is found return error
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
 
-			// Validate if there is an ongoing review for the given resourceId, userId, resource status, and orgId.
-			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgId)
-			if (ongoingReview.statusCode !== httpStatusCode.ok) {
+			// Validate if there is an ongoing review for the given resourceId, userId, resource status, and orgCode.
+			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgCode, tenantCode)
+			if (ongoingReview?.statusCode !== httpStatusCode.ok) {
 				return ongoingReview
 			}
 
-			const review = ongoingReview.result
+			const review = ongoingReview?.result || {}
 
 			// if already requested for changes then throw error
-			if (review.status === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)
+			if (review?.status === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)
 				throw new Error('CHANGES_ALREADY_REQUESTED')
 
 			// If the bodyData contains a comment Add or update comments
-			if (bodyData.comment) {
-				await handleComments(bodyData.comment, resourceId, userId, true, resource.type)
+			if (bodyData?.comment) {
+				await handleComments(bodyData.comment, resourceId, userId, true, resource.type, orgCode, tenantCode)
 			}
 
 			// Update the status in the reviews table
 			await reviewsQueries.update(
-				{ id: review.id, organization_code: review.organization_code },
+				{ id: review.id, organization_code: review.organization_code, tenant_code: tenantCode },
 				{ status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES }
 			)
 
@@ -78,7 +80,7 @@ module.exports = class reviewsHelper {
 
 			// Update the 'last_reviewed_on' field in the resources table
 			await resourceQueries.updateOne(
-				{ organization_code: resource.organization_code, id: resourceId },
+				{ organization_code: resource.organization_code, tenant_code: tenantCode, id: resourceId },
 				resourceUpdateObj
 			)
 
@@ -101,16 +103,18 @@ module.exports = class reviewsHelper {
 	 * @name start
 	 * @param {Integer} resourceId - resource id.
 	 * @param {String} userId - logged in user id.
-	 * @param {String} orgId - organization id
+	 * @param {String} orgCode - organization id
 	 * @param {String} userRoles - roles
 	 * @returns {JSON} - review started response.
 	 */
-	static async start(resourceId, userId, orgId, userRoles) {
+	static async start(resourceId, userId, orgCode, tenantCode, userRoles) {
 		try {
 			// Retrieve resource details based on the provided resourceId.
 			const resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				},
 				{ attributes: ['id', 'status', 'organization_code', 'type', 'next_stage', 'stage'] }
 			)
@@ -122,8 +126,8 @@ module.exports = class reviewsHelper {
 			const validateResourceStatus = await this.isResourceAvailableForReview(resource.status)
 			if (!validateResourceStatus) throw new Error(`Resource is already ${resource.status}. You can't review it`)
 
-			// Fetch the configuration settings for the organization based on the provided orgId.
-			const orgConfig = await orgExtensionService.getConfig(orgId)
+			// Fetch the configuration settings for the organization based on the provided orgCode.
+			const orgConfig = await orgExtensionService.getConfig(orgCode, tenantCode)
 			const orgConfigList = orgConfig.result.resource.reduce((acc, item) => {
 				acc[item.resource_type] = {
 					review_type: item.review_type,
@@ -139,6 +143,8 @@ module.exports = class reviewsHelper {
 				{
 					reviewer_id: userId,
 					resource_id: resourceId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				},
 				{ attributes: ['id', 'organization_code'] }
 			)
@@ -150,7 +156,7 @@ module.exports = class reviewsHelper {
 					reviewType,
 					userId,
 					resource.organization_code,
-					orgId,
+					orgCode,
 					resource.next_stage,
 					userRoles,
 					resource.type,
@@ -161,6 +167,7 @@ module.exports = class reviewsHelper {
 			// If reviewResource exists, fetch the review details for the specific organization, resource
 			const review = await reviewsQueries.findOne({
 				organization_code: reviewResource.organization_code,
+				tenant_code: tenantCode,
 				resource_id: resourceId,
 				reviewer_id: userId,
 			})
@@ -169,8 +176,8 @@ module.exports = class reviewsHelper {
 			if (!review?.id) throw new Error('REVIEW_NOT_FOUND')
 
 			// If the review status is 'NOT_STARTED', validate that no active review is being conducted by others.
-			if (review.status === common.REVIEW_STATUS_NOT_STARTED) {
-				const reviewCheck = await this.validateNoActiveReviewByOthers(resourceId, userId, orgId)
+			if (review?.status === common.REVIEW_STATUS_NOT_STARTED) {
+				const reviewCheck = await this.validateNoActiveReviewByOthers(resourceId, userId, orgCode, tenantCode)
 				if (reviewCheck.statusCode !== httpStatusCode.ok) {
 					return reviewCheck
 				}
@@ -179,12 +186,13 @@ module.exports = class reviewsHelper {
 			// Update the status in the reviews table
 			// Update the 'last_reviewed_on' field in the resources table
 			await reviewsQueries.update(
-				{ id: review.id, organization_code: review.organization_code },
+				{ id: review.id, organization_code: review.organization_code, tenant_code: tenantCode },
 				{ status: common.REVIEW_STATUS_INPROGRESS }
 			)
 			await resourceQueries.updateOne(
 				{
 					organization_code: resource.organization_code,
+					tenant_code: tenantCode,
 					id: resourceId,
 					status: { [Op.ne]: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES },
 				},
@@ -214,12 +222,14 @@ module.exports = class reviewsHelper {
 	 * @param {String} orgId - The ID of the organization that owns the resource.
 	 * @returns {JSON} - The response indicating the result of the resource approval.
 	 */
-	static async approveResource(resourceId, bodyData, userId, orgId, userToken) {
+	static async approveResource(resourceId, bodyData, userId, orgId, tenantCode, userToken) {
 		try {
 			// Retrieve resource details based on the provided resourceId.
 			const resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
+					tenant_code: tenantCode,
+					organization_code: orgId,
 				},
 				{ attributes: ['id', 'status', 'organization_code', 'type', 'user_id', 'next_stage'] }
 			)
@@ -227,7 +237,7 @@ module.exports = class reviewsHelper {
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
 
 			// Validate if there is an ongoing review for the given resourceId, userId, resource status, and orgId.
-			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgId)
+			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgId, tenantCode)
 			if (ongoingReview.statusCode !== httpStatusCode.ok) {
 				return ongoingReview
 			}
@@ -239,7 +249,7 @@ module.exports = class reviewsHelper {
 			}
 
 			// Fetch organization configuration and determine review type and minimum approval
-			const orgConfig = await orgExtensionService.getConfig(orgId)
+			const orgConfig = await orgExtensionService.getConfig(orgId, tenantCode)
 			const orgConfigList = orgConfig.result.resource.reduce((acc, item) => {
 				acc[item.resource_type] = {
 					review_type: item.review_type,
@@ -259,6 +269,7 @@ module.exports = class reviewsHelper {
 				bodyData.comment,
 				minApproval,
 				review.organization_code,
+				tenantCode,
 				reviewType,
 				resource.organization_code,
 				resource.next_stage,
@@ -382,9 +393,10 @@ module.exports = class reviewsHelper {
 		userId,
 		comments = [],
 		minApproval,
-		reviewOrgId,
+		reviewOrgCode,
+		tenantCode,
 		reviewType,
-		resourceOrgId,
+		resourceOrgCode,
 		currentReviewStage,
 		status,
 		resourceType
@@ -393,18 +405,20 @@ module.exports = class reviewsHelper {
 			let updateNextLevel = false
 			// Add or update comments if provided.
 			if (Array.isArray(comments) ? comments.length > 0 : Object.keys(comments).length > 0) {
-				await handleComments(comments, resourceId, userId, true, resourceType)
+				await handleComments(comments, resourceId, userId, true, resourceType, resourceOrgCode, tenantCode)
 			}
 
 			// Update the review status to 'APPROVED' for the given review.
 			await reviewsQueries.update(
-				{ id: reviewId, organization_code: reviewOrgId },
+				{ id: reviewId, organization_code: reviewOrgCode, tenant_code: tenantCode },
 				{ status: common.REVIEW_STATUS_APPROVED }
 			)
 
 			// Count the number of approved reviews for the resource.
 			const reviewsApproved = await reviewsQueries.count({
 				resource_id: resourceId,
+				organization_code: reviewOrgCode,
+				tenant_code: tenantCode,
 				status: common.REVIEW_STATUS_APPROVED,
 			})
 
@@ -422,7 +436,10 @@ module.exports = class reviewsHelper {
 				updateData.status = common.RESOURCE_STATUS_SUBMITTED
 
 			// Update the resource with the last review date and next_stage (if applicable).
-			await resourceQueries.updateOne({ organization_code: resourceOrgId, id: resourceId }, updateData)
+			await resourceQueries.updateOne(
+				{ tenant_code: tenantCode, organization_code: resourceOrgCode, id: resourceId },
+				updateData
+			)
 
 			// Determine if the resource should be published based on the number of approved reviews and minimum approval requirements.
 			const publishResource = reviewsApproved >= minApproval
@@ -450,6 +467,7 @@ module.exports = class reviewsHelper {
 		reviewType,
 		userId,
 		resourceOrgId,
+		tenantCode,
 		userOrgId,
 		nextStage = null,
 		userRoles,
@@ -462,7 +480,8 @@ module.exports = class reviewsHelper {
 				const activeReviewValidation = await this.validateNoActiveReviewByOthers(
 					resourceId,
 					userId,
-					resourceOrgId
+					resourceOrgId,
+					tenantCode
 				)
 
 				if (activeReviewValidation.statusCode !== httpStatusCode.ok) return activeReviewValidation
@@ -471,6 +490,7 @@ module.exports = class reviewsHelper {
 				const validateNextLevel = await this.canUserReviewAResource(
 					userRoles,
 					userOrgId,
+					tenantCode,
 					resourceType,
 					nextStage
 				)
@@ -485,6 +505,7 @@ module.exports = class reviewsHelper {
 				reviewer_id: userId,
 				status: common.REVIEW_STATUS_INPROGRESS,
 				organization_code: userOrgId,
+				tenant_code: tenantCode,
 			}
 
 			// Create a new review entry in the database
@@ -504,6 +525,7 @@ module.exports = class reviewsHelper {
 			await resourceQueries.updateOne(
 				{
 					organization_code: resourceOrgId,
+					tenant_code: tenantCode,
 					id: resourceId,
 					status: { [Op.ne]: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES },
 				},
@@ -526,11 +548,11 @@ module.exports = class reviewsHelper {
 	 * @param {Integer} resourceId - resource id.
 	 * @param {String} userId - logged in user id.
 	 * @param {String} resourceStatus - resource status
-	 * @param {String} orgId - organization Id
+	 * @param {String} orgCode - organization code
 	 * @returns {JSON} - review validation response.
 	 */
 
-	static async validateReview(resourceId, userId, resourceStatus, orgId) {
+	static async validateReview(resourceId, userId, resourceStatus, orgCode, tenantCode) {
 		try {
 			// Validate resource status to check if it's reviewable
 			const validateResourceStatus = await this.isResourceAvailableForReview(resourceStatus)
@@ -544,11 +566,16 @@ module.exports = class reviewsHelper {
 				return reviewValidation
 			}
 
-			const review = reviewValidation.result
+			const review = reviewValidation?.result || {}
 
 			// If the review has not started, check if another reviewer is already working on it
-			if (review.status === common.REVIEW_STATUS_NOT_STARTED) {
-				const activeReviewCheck = await this.validateNoActiveReviewByOthers(resourceId, userId, orgId)
+			if (review?.status === common.REVIEW_STATUS_NOT_STARTED) {
+				const activeReviewCheck = await this.validateNoActiveReviewByOthers(
+					resourceId,
+					userId,
+					orgCode,
+					tenantCode
+				)
 				if (activeReviewCheck.statusCode !== httpStatusCode.ok) {
 					return activeReviewCheck
 				}
@@ -588,12 +615,13 @@ module.exports = class reviewsHelper {
 	 * @param {Integer} resourceId - The ID of the resource being reviewed.
 	 * @returns {JSON} -  Returns a success response with review details or an error response if the review is not found.
 	 */
-	static async getReviewDetails(userId, resourceId) {
+	static async getReviewDetails(userId, resourceId, tenantCode) {
 		try {
 			//Check if the logged-in user started the review
 			const reviewResource = await reviewResourceQueries.findOne({
 				reviewer_id: userId,
 				resource_id: resourceId,
+				tenant_code: tenantCode,
 			})
 
 			// If the review resource is not found, return an error response
@@ -604,6 +632,7 @@ module.exports = class reviewsHelper {
 			// Fetch the review details of the user
 			const review = await reviewsQueries.findOne({
 				organization_code: reviewResource.organization_code,
+				tenant_code: tenantCode,
 				resource_id: resourceId,
 				reviewer_id: userId,
 			})
@@ -628,15 +657,17 @@ module.exports = class reviewsHelper {
 	 * @name validateNoActiveReviewByOthers
 	 * @param {String} userId - user Id
 	 * @param {Integer} resourceId - resource Id
-	 * @param {String} orgId - organization Id
+	 * @param {String} orgCode - organization Id
+	 * @param {String} tenantCode - tenant code
 	 * @returns {JSON} - return error if any
 	 */
-	static async validateNoActiveReviewByOthers(resourceId, userId, orgId) {
+	static async validateNoActiveReviewByOthers(resourceId, userId, orgCode, tenantCode) {
 		try {
 			// Check if there is an existing active review for the given resource by another user
 			const existingReview = await reviewsQueries.findOne({
-				organization_code: orgId,
+				organization_code: orgCode,
 				resource_id: resourceId,
+				tenant_code: tenantCode,
 				reviewer_id: { [Op.not]: userId },
 				status: { [Op.in]: _restrictedReviewStatuses },
 			})
@@ -662,11 +693,13 @@ module.exports = class reviewsHelper {
 	 * @param {Integer} currentLevel - current stage of resource
 	 * @returns {JSON} - return error if any
 	 */
-	static async canUserReviewAResource(roles, userOrgId, resourceType, currentLevel) {
+	static async canUserReviewAResource(roles, userOrgId, tenantCode, resourceType, currentLevel) {
 		// Extract unique role titles from the roles array.
 		const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
 		// Fetch the review levels for the resource based on the user's organization ID, role titles, and resource type.
-		const resourceWiseLevels = await resourceService.fetchReviewLevels(userOrgId, userRoleTitles, [resourceType])
+		const resourceWiseLevels = await resourceService.fetchReviewLevels(userOrgId, tenantCode, userRoleTitles, [
+			resourceType,
+		])
 		/**
 		 * sample response
 			{
@@ -690,11 +723,11 @@ module.exports = class reviewsHelper {
 	 * @param {String} userId - The ID of the user
 	 * @returns {JSON} - Publish Response
 	 */
-	static async publishResource(resourceId, userId, userToken = '') {
+	static async publishResource(resourceId, orgCode, tenantCode, userId, userToken = '') {
 		try {
 			// Fetch the resource creator mapping
 			const resource = await resourceCreatorMappingQueries.findOne(
-				{ creator_id: userId, resource_id: resourceId },
+				{ creator_id: userId, resource_id: resourceId, organization_code: orgCode, tenant_code: tenantCode },
 				['id', 'organization_code']
 			)
 
@@ -859,7 +892,15 @@ async function handleProgramRollout(resourceData, resourceId, userId, userToken)
  * @param {String} resourceType - Type of resource
  * @returns {Promise<Object>} - Returns a promise that resolves to an object indicating success or an error.
  */
-async function handleComments(comments, resourceId, userId, setCommentsToOpen = false, resourceType) {
+async function handleComments(
+	comments,
+	resourceId,
+	userId,
+	setCommentsToOpen = false,
+	resourceType,
+	orgCode,
+	tenantCode
+) {
 	try {
 		// Normalize comments to an array if it's a single object
 		if (!Array.isArray(comments)) {
@@ -898,7 +939,7 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 			}
 		}
 
-		const isCommentValid = await isParantCommentValid(parentCommentIds, resourceId)
+		const isCommentValid = await isParantCommentValid(parentCommentIds, resourceId, orgCode, tenantCode)
 		if (!isCommentValid) throw new Error('COMMENT_PARENT_INVALID')
 
 		//update the associated draft comment to open if the resource is program
@@ -906,6 +947,8 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 			//fetch all associated resources
 			const associatedResources = await programResourceMappingQueries.findAll({
 				program_id: resourceId,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 			})
 
 			if (associatedResources.length > 0) {
@@ -918,6 +961,8 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 						},
 						status: common.COMMENT_STATUS_DRAFT,
 						user_id: userId,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 					},
 					{
 						status: common.COMMENT_STATUS_OPEN,
@@ -929,7 +974,13 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 		// Handle updating comments
 		const updatePromises = commentsToUpdate.map((comment) =>
 			commentQueries.update(
-				{ id: comment.id, parent_id: comment.parent_id, resource_id: resourceId },
+				{
+					id: comment.id,
+					parent_id: comment.parent_id,
+					resource_id: resourceId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
+				},
 				_.omit(comment, ['id'])
 			)
 		)
@@ -950,13 +1001,17 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
  * @name isParantCommentValid
  * @param {Array} parentIds - List of parent ids of the comments
  * @param {Integer} resourceId - Resource Id
+ * @param {String} orgCode - Org Code
+ * @param {String} tenantCode - Tenant code
  * @returns {Boolean} - Returns a true / false indicating if the parent id is a valid id for the resource.
  */
-async function isParantCommentValid(parentIds, resourceId) {
+async function isParantCommentValid(parentIds, resourceId, orgCode, tenantCode) {
 	try {
 		const filter = {
 			id: { [Op.in]: parentIds },
 			resource_id: resourceId,
+			organization_code: orgCode,
+			tenant_code: tenantCode,
 		}
 		const comments = await commentQueries.findAll(filter, ['id', 'resource_id'])
 

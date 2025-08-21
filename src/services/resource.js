@@ -1120,7 +1120,7 @@ module.exports = class resourceHelper {
 	 * 	observation : 4
 	 * }
 	 */
-	static async fetchReviewLevels(organization_code, userRoleTitles, resourceTypeList) {
+	static async fetchReviewLevels(organization_code, tenantCode, userRoleTitles, resourceTypeList) {
 		// list of organizations to search in review stages
 		const orgIds = organization_code == defaultOrgId ? [organization_code] : [organization_code, defaultOrgId]
 
@@ -1128,6 +1128,7 @@ module.exports = class resourceHelper {
 		const reviewLevelDetails = await reviewStagesQueries.findAll(
 			{
 				organization_code: { [Op.in]: orgIds },
+				tenant_code: tenantCode,
 				role: {
 					[Op.in]: userRoleTitles,
 				},
