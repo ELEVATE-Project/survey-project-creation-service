@@ -11,16 +11,10 @@ var get = function (
 		try {
 			let headers = {
 				'content-type': 'application/json',
+				...(additionalHeaders || {}), // Safe against null/undefined
+				...(internal_access_token && { [internalAccessTokenKey]: process.env.INTERNAL_ACCESS_TOKEN }),
+				...(token && { [process.env.AUTH_TOKEN_HEADER_NAME]: token }),
 			}
-			if (internal_access_token) {
-				headers[internalAccessTokenKey] = process.env.INTERNAL_ACCESS_TOKEN
-			}
-
-			if (token) {
-				headers[process.env.AUTH_TOKEN_HEADER_NAME] = token
-			}
-
-			headers = Object.assign(headers, additionalHeaders)
 
 			const options = {
 				headers: headers,
