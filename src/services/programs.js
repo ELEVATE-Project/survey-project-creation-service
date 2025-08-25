@@ -1062,7 +1062,8 @@ module.exports = class ProgramsHelper {
 			//check review is required or not
 			const isReviewMandatory = await resourceService.isReviewMandatory(
 				programData.type,
-				programData.organization_code
+				programData.organization_code,
+				programData.tenant_code
 			)
 
 			// this will be handled while taking up program publish
@@ -1070,6 +1071,8 @@ module.exports = class ProgramsHelper {
 				const publishResource = await reviewService.publishResource(
 					programData.id,
 					programData.user_id,
+					programData.organization_code,
+					programData.tenant_code,
 					userDetails.token
 				)
 				return publishResource

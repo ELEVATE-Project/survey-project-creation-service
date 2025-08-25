@@ -156,6 +156,7 @@ module.exports = class reviewsHelper {
 					reviewType,
 					userId,
 					resource.organization_code,
+					tenantCode,
 					orgCode,
 					resource.next_stage,
 					userRoles,
@@ -279,7 +280,7 @@ module.exports = class reviewsHelper {
 
 			// Publish resource if isPublishResource is true
 			if (isPublishResource) {
-				const publishResource = await this.publishResource(resourceId, resource.user_id, userToken)
+				const publishResource = await this.publishResource(resourceId, resource.user_id, tenantCode, userToken)
 				return publishResource
 			}
 
@@ -307,12 +308,13 @@ module.exports = class reviewsHelper {
 	 * @param {String} orgId - The ID of the organization that owns the resource.
 	 * @returns {JSON} - The response indicating the result of the resource rejection or report.
 	 */
-	static async rejectOrReportResource(resourceId, isReported, bodyData, userId, orgId) {
+	static async rejectOrReportResource(resourceId, isReported, bodyData, userId, orgId, tenantCode) {
 		try {
 			// Retrieve resource details based on the provided resourceId.
 			const resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
+					tenant_code: tenantCode,
 				},
 				{ attributes: ['id', 'status', 'organization_code', 'type'] }
 			)
@@ -326,7 +328,7 @@ module.exports = class reviewsHelper {
 			}
 
 			// Validate if there is an ongoing review for the given resourceId, userId, resource status, and orgId.
-			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgId)
+			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgId, tenantCode)
 			if (ongoingReview.statusCode !== httpStatusCode.ok) {
 				return ongoingReview
 			}
@@ -335,7 +337,7 @@ module.exports = class reviewsHelper {
 
 			// If the bodyData contains a comment Add or update comments
 			if (bodyData.comment) {
-				await handleComments(bodyData.comment, resourceId, userId, true, resource.type)
+				await handleComments(bodyData.comment, resourceId, userId, true, resource.type, orgId, tenantCode)
 			}
 
 			let updateObj = {
@@ -349,11 +351,11 @@ module.exports = class reviewsHelper {
 			// Update the resource record with the status and 'last_reviewed_on'
 			await Promise.all([
 				reviewsQueries.update(
-					{ id: review.id, organization_code: review.organization_code },
+					{ id: review.id, organization_code: review.organization_code, tenant_code: tenantCode },
 					_.omit(updateObj, ['last_reviewed_on'])
 				),
 				resourceQueries.updateOne(
-					{ id: resourceId, organization_code: resource.organization_code },
+					{ id: resourceId, organization_code: resource.organization_code, tenant_code: tenantCode },
 					_.omit(updateObj, ['notes'])
 				),
 			])

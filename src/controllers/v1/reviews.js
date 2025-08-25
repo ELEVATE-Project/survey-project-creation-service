@@ -95,7 +95,8 @@ module.exports = class reviews {
 				req.query.isReported ? req.query.isReported : false,
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_code
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
 			)
 			return updateReview
 		} catch (error) {
