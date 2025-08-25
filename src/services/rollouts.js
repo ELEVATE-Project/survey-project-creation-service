@@ -199,10 +199,10 @@ module.exports = class RolloutsHelper {
 					}
 
 					// fetch the org details from user service
-					const organizationDetails = await orgExtensionService.fetchOrganizationDetails([
-						rollout.organization_code,
-						rollout.tenant_code,
-					])
+					const organizationDetails = await orgExtensionService.fetchOrganizationDetails(
+						[rollout.organization_code],
+						rollout.tenant_code
+					)
 					if (organizationDetails?.[rollout.organization_code]) {
 						resultData.organization = _.pick(organizationDetails[rollout.organization_code], [
 							'id',
