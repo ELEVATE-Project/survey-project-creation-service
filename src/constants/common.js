@@ -247,4 +247,5 @@ module.exports = {
 		program: 'program.json',
 	},
 	ORGANIZATION_KEY: 'organization_code',
+	PROJECTION_KEY_ASTERISK: '*',
 }

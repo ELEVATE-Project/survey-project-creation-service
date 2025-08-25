@@ -51,7 +51,6 @@ module.exports = class UserEntityData {
 						model: Entity,
 						as: 'entities',
 						where: { status: filter.status, tenant_code: filter.tenant_code }, // Ensure tenant isolation and citus compatibility
-						required: false, // LEFT JOIN to include entity types with no entities
 					},
 				],
 			})

@@ -21,17 +21,16 @@ const utils = require('@generics/utils')
 const fetchOrg = function (organisationIdentifier, tenantCode, internalToken = true) {
 	return new Promise(async (resolve, reject) => {
 		try {
-      
-      if (!organisationIdentifier || !tenantCode) {
+			if (!organisationIdentifier || !tenantCode) {
 				throw new Error('Organisation identifier and tenant code are required')
 			}
-      
+
 			// if identifier is Numeric , add query param organisation_id else organisation_code
 			let queryParam = utils.isNumeric(organisationIdentifier)
 				? { organisation_id: organisationIdentifier }
 				: { organisation_code: organisationIdentifier } || {}
-      
-      queryParam.tenant_code = tenantCode
+
+			queryParam.tenant_code = tenantCode
 
 			const orgReadUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_READ, queryParam)
 
@@ -95,20 +94,20 @@ const list = function (
 	pageSize = '',
 	searchText = '',
 	organization_code = null,
+	tenant_code = null,
 	body = {},
 	userToken = '',
 	tenantCode = null
 ) {
 	return new Promise(async (resolve, reject) => {
 		try {
-      
 			const queryParams = {
 				type: userType,
 				...(pageNo != null && pageNo !== '' && { page: pageNo }),
 				...(pageSize != null && pageSize !== '' && { limit: pageSize }),
 				...(searchText != null && searchText !== '' && { search: searchText }),
 				...(organization_code != null && { organization_code }),
-				...(tenantCode != null && { tenant_code : tenantCode }),
+				...(tenantCode != null && { tenant_code: tenantCode }),
 			}
 
 			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
