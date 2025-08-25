@@ -221,8 +221,8 @@ function isAdminRole(roles) {
  * @param {string} authHeader - The access token extracted from the request header.
  */
 async function validateSession(authHeader) {
-	const userBaseUrl = `${process.env.USER_SERVICE_HOST}${process.env.USER_SERVICE_BASE_URL}`
-	const validateSessionEndpoint = `${userBaseUrl}${endpoints.VALIDATE_SESSIONS}`
+	const userBaseUrl = utils.buildUrl(process.env.USER_SERVICE_HOST, process.env.USER_SERVICE_BASE_URL)
+	const validateSessionEndpoint = utils.buildUrl(userBaseUrl, endpoints.VALIDATE_SESSIONS)
 	const reqBody = { token: authHeader }
 
 	const isSessionActive = await requests.post(validateSessionEndpoint, reqBody, '', true)
