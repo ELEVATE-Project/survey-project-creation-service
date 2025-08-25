@@ -18,17 +18,22 @@ const utils = require('@generics/utils')
  * @returns {Promise} A promise that resolves with the organization details or rejects with an error.
  */
 
-const fetchOrg = function (organisationIdentifier) {
+const fetchOrg = function (organisationIdentifier, tenantCode, internalToken = true) {
 	return new Promise(async (resolve, reject) => {
 		try {
+      
+      if (!organisationIdentifier || !tenantCode) {
+				throw new Error('Organisation identifier and tenant code are required')
+			}
+      
 			// if identifier is Numeric , add query param organisation_id else organisation_code
-			const queryParam = utils.isNumeric(organisationIdentifier)
+			let queryParam = utils.isNumeric(organisationIdentifier)
 				? { organisation_id: organisationIdentifier }
 				: { organisation_code: organisationIdentifier } || {}
+      
+      queryParam.tenant_code = tenantCode
 
 			const orgReadUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_READ, queryParam)
-
-			let internalToken = true
 
 			const orgDetails = await requests.get(
 				orgReadUrl,
@@ -91,16 +96,19 @@ const list = function (
 	searchText = '',
 	organization_code = null,
 	body = {},
-	userToken = ''
+	userToken = '',
+	tenantCode = null
 ) {
 	return new Promise(async (resolve, reject) => {
 		try {
+      
 			const queryParams = {
 				type: userType,
 				...(pageNo != null && pageNo !== '' && { page: pageNo }),
 				...(pageSize != null && pageSize !== '' && { limit: pageSize }),
 				...(searchText != null && searchText !== '' && { search: searchText }),
 				...(organization_code != null && { organization_code }),
+				...(tenantCode != null && { tenant_code : tenantCode }),
 			}
 
 			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
@@ -257,6 +265,29 @@ const listOrganization = function (organizationIds = [], userToken = '') {
 	})
 }
 
+/**
+ * Fetches tenant details for a given tenant code.
+ * @param {string} tenantCode - The code of the tenant.
+ * @returns {Promise} A promise that resolves with the tenant details or rejects with an error.
+ */
+const fetchTenant = function (tenantCode) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			const tenantReadUrl = `${userBaseUrl}${endpoints.TENANT_READ}/${tenantCode}`
+			const internalToken = true
+
+			const tenantDetails = await requests.get(
+				tenantReadUrl,
+				'', // X-auth-token not required for internal call
+				internalToken
+			)
+			return resolve(tenantDetails)
+		} catch (error) {
+			return reject(error)
+		}
+	})
+}
+
 module.exports = {
 	fetchOrg,
 	details,
@@ -266,4 +297,5 @@ module.exports = {
 	getListOfUserRoles,
 	listOrganization,
 	read,
+	fetchTenant,
 }

@@ -12,4 +12,5 @@ module.exports = {
 	VALIDATE_SESSIONS: 'v1/account/validateUserSession',
 	BROWSE_EXISTING_END_POINT: '/scp/v1/resource/browseExisting',
 	CALLBACK_URL_FOR_RESOURCE_PUBLISH: 'v1/resource/publishCallback',
+	TENANT_READ: process.env.TENANT_READ_ENDPOINT ? process.env.TENANT_READ_ENDPOINT : 'v1/tenant/read',
 }
