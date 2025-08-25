@@ -42,11 +42,11 @@ module.exports = {
 				type: Sequelize.STRING,
 			},
 			start_date: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.DATE,
 			},
 			end_date: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.DATE,
 			},
 			published_id: {

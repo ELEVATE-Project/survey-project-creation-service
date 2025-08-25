@@ -27,6 +27,11 @@ module.exports = {
 				allowNull: false,
 				type: Sequelize.BOOLEAN,
 			},
+			review_required_after_publish: {
+				allowNull: false,
+				defaultValue: true,
+				type: Sequelize.BOOLEAN,
+			},
 			show_reviewer_list: {
 				allowNull: false,
 				defaultValue: true,
@@ -54,6 +59,18 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
+		// Add a unique index on the combination of organization_code and resource_type
+		await queryInterface.addIndex(
+			'organization_extensions',
+			['organization_code', 'resource_type', 'tenant_code'],
+			{
+				unique: true,
+				name: 'unique_org_resource_type_tenant',
+				where: {
+					deleted_at: null,
+				},
+			}
+		)
 	},
 
 	async down(queryInterface, Sequelize) {
