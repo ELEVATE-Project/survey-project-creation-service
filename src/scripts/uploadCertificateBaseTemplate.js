@@ -124,7 +124,14 @@ const tenantCode = process.env.DEFAULT_TENANT_CODE || null
 				ref: common.CERTIFICATE,
 			}
 
-			const getSignedUrl = await fileService.getSignedUrl(payloadData, 'BASE_TEMPLATE', 'system', false)
+			const getSignedUrl = await fileService.getSignedUrl(
+				payloadData,
+				organizationCode,
+				tenantCode,
+				'BASE_TEMPLATE',
+				'system',
+				false
+			)
 			if (!getSignedUrl.result) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}

@@ -30,7 +30,7 @@ module.exports = class ProgramsHelper {
 	 * @param {Integer} referenceId - The ID of program need to copy
 	 * @returns {JSON} - Program ID or error response.
 	 */
-	static async create(bodyData, loggedInUserId, orgId, referenceId = null, userToken = '') {
+	static async create(bodyData, loggedInUserId, orgId, tenantCode, referenceId = null, userToken = '') {
 		try {
 			let programData = {}
 			let isDuplicateProgramCreation = false
@@ -174,6 +174,7 @@ module.exports = class ProgramsHelper {
 					await resourceService.uploadAndUpdateResource(
 						programId,
 						orgId,
+						tenantCode,
 						loggedInUserId,
 						bodyData,
 						common.PROGRAM_UPLOAD_FILE_NAME,
@@ -208,7 +209,15 @@ module.exports = class ProgramsHelper {
 	 * @param {string} is_under_edit_param - Frontend Paramenter to update the is_under_edit key.
 	 * @returns {JSON} - Program ID or error response.
 	 */
-	static async update(resourceId, bodyData, loggedInUserId, orgId, is_under_edit_param = false, userToken = '') {
+	static async update(
+		resourceId,
+		bodyData,
+		loggedInUserId,
+		orgId,
+		tenantCode,
+		is_under_edit_param = false,
+		userToken = ''
+	) {
 		try {
 			const forbidden_resource_statuses = [
 				common.RESOURCE_STATUS_REJECTED,
@@ -302,6 +311,7 @@ module.exports = class ProgramsHelper {
 			await resourceService.uploadAndUpdateResource(
 				programId,
 				orgId,
+				tenantCode,
 				loggedInUserId,
 				bodyData,
 				common.PROGRAM_UPLOAD_FILE_NAME,
@@ -558,7 +568,7 @@ module.exports = class ProgramsHelper {
 	 * @param {string} orgId - The ID of the organization.
 	 * @returns {JSON} - Program ID or error response.
 	 */
-	static async addResources(programId, updateBody, loggedInUserId, orgId, userToken = '') {
+	static async addResources(programId, updateBody, loggedInUserId, orgId, tenantCode, userToken = '') {
 		try {
 			// Convert resource IDs to integers
 			const resourceIds = updateBody.resource_ids.map(Number)
@@ -632,6 +642,7 @@ module.exports = class ProgramsHelper {
 			await resourceService.uploadAndUpdateResource(
 				programId,
 				orgId,
+				tenantCode,
 				loggedInUserId,
 				programData,
 				common.PROGRAM_UPLOAD_FILE_NAME,
@@ -1385,6 +1396,7 @@ async function handleResources(
 	resources,
 	programId,
 	orgId,
+	tenantCode,
 	loggedInUserId,
 	isResuableFalseResourceCreate = false,
 	userToken = ''
@@ -1478,6 +1490,7 @@ async function handleResources(
 						await resourceService.uploadAndUpdateResource(
 							duplicateResource.id,
 							orgId,
+							tenantCode,
 							loggedInUserId,
 							duplicatedResourceData,
 							common.UPLOAD_FILE_NAME[duplicateResource.type],
@@ -1510,6 +1523,7 @@ async function handleResources(
 						await resourceService.uploadAndUpdateResource(
 							updatedResourceData.id,
 							orgId,
+							tenantCode,
 							loggedInUserId,
 							updatedResourceData,
 							common.UPLOAD_FILE_NAME[resourceDetails.type],
