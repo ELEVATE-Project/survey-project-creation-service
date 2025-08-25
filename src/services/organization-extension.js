@@ -274,12 +274,12 @@ module.exports = class orgExtensionsHelper {
 	 * @param {Array} organization_codes - array of organization_codes.
 	 * @returns {Object} - Response contain object of org details
 	 */
-	static async fetchOrganizationDetails(organization_codes, userToken = '') {
-		const orgDetailsResponse = await userRequests.listOrganization(organization_codes, userToken)
+	static async fetchOrganizationDetails(OrganizationCodes, tenantCode) {
+		const orgDetailsResponse = await userRequests.listOrganization(OrganizationCodes, tenantCode)
 		let orgDetails = {}
 
 		if (orgDetailsResponse.success && orgDetailsResponse.data?.result?.length > 0) {
-			orgDetails = _.keyBy(orgDetailsResponse.data.result, 'id')
+			orgDetails = _.keyBy(orgDetailsResponse.data.result, 'code')
 		}
 		return orgDetails
 	}
@@ -394,6 +394,14 @@ module.exports = class orgExtensionsHelper {
 			})
 
 			result.resource = configData
+
+			//get the factors and optional factors from user service
+			const tenantDetails = await userRequests.fetchPublicTenantDetails(tenantCode)
+			// add scope related factors to the result
+			const meta = tenantDetails?.success ? tenantDetails?.data?.result?.meta : {}
+			result.factors = meta?.factors ?? []
+			result.optional_factors = meta?.optional_factors ?? []
+
 			// return success message
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,

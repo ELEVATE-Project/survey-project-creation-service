@@ -21,6 +21,8 @@ module.exports = class File {
 		try {
 			const signedUrlResponse = await filesService.getSignedUrl(
 				req.body.request,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.body.ref,
 				req.decodedToken ? req.decodedToken.id : '',
 				req.query.serviceUpload == 'true' ? true : false

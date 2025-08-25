@@ -2,6 +2,7 @@
 
 const common = require('@constants/common')
 const { Sequelize } = require('sequelize')
+const Comment = require('../models/index').Comment
 const Resource = require('../models/index').Resource
 const { ValidationError } = require('sequelize')
 
@@ -20,11 +21,34 @@ exports.create = async (data) => {
 
 exports.findOne = async (filter, options = {}) => {
 	try {
-		return await Resource.findOne({
+		let raw = options?.raw || true
+		if (options.commentsAttributes && options.commentsAttributes.length > 0) {
+			let include = {
+				model: Comment,
+				as: 'comments',
+				required: false,
+			}
+			// if commentsAttributes is not empty, add attributes to include * retrun all columns else ,
+			// return only the specified attributes
+			if (
+				!options.commentsAttributes.some((attr) => attr === common.PROJECTION_KEY_ASTRICKTS) &&
+				options.commentsAttributes.length != 0
+			)
+				include.attributes = options.commentsAttributes
+			// if commentsFilter is provided, add it to the where clause
+			if (options.commentsFilter && Object.keys(options.commentsFilter).length > 0)
+				include.where = options.commentsFilter
+
+			options.include = [include]
+			raw = false
+		}
+		const resource = await Resource.findOne({
 			where: filter,
 			...options,
-			raw: true,
+			raw,
 		})
+		if (raw) return resource
+		return resource ? resource.toJSON() : {}
 	} catch (error) {
 		throw error
 	}

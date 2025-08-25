@@ -30,6 +30,7 @@ module.exports = class Programs {
 						req.body,
 						req.decodedToken.id,
 						req.decodedToken.organization_code,
+						req.decodedToken.tenant_code,
 						req.query?.is_under_edit ? req.query.is_under_edit : false,
 						req.decodedToken.token
 					)
@@ -40,6 +41,7 @@ module.exports = class Programs {
 					req.body,
 					req.decodedToken.id,
 					req.decodedToken.organization_code,
+					req.decodedToken.tenant_code,
 					req.query.reference_id ? parseInt(req.query.reference_id) : null,
 					req.decodedToken.token
 				)

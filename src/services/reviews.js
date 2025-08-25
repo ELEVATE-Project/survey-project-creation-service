@@ -723,25 +723,35 @@ module.exports = class reviewsHelper {
 	 * @param {String} userId - The ID of the user
 	 * @returns {JSON} - Publish Response
 	 */
-	static async publishResource(resourceId, orgCode, tenantCode, userId, userToken = '') {
+	static async publishResource(resourceId, userId, organizationCode, tenantCode, userToken = '') {
 		try {
 			// Fetch the resource creator mapping
 			const resource = await resourceCreatorMappingQueries.findOne(
-				{ creator_id: userId, resource_id: resourceId, organization_code: orgCode, tenant_code: tenantCode },
-				['id', 'organization_code']
+				{
+					creator_id: userId,
+					resource_id: resourceId,
+					organization_code: organizationCode,
+					tenant_code: tenantCode,
+				},
+				['id'],
+				{
+					resourceAttributes: ['id', 'organization_code', 'tenant_code'],
+				}
 			)
 
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
 
+			// this has to be further checked as part of review flow
 			// Fetch resource data
-			let resourceData = await resourceQueries.findOne({
-				id: resourceId,
-				organization_code: resource.organization_code,
-			})
+			// let resourceData = await resourceQueries.findOne({
+			// 	id: resourceId,
+			// 	organization_code: resource.organization_code,
+			// 	tenant_code: tenantCode,
+			// })
 
 			let resourceDetails = await resourceService.getDetails(
-				resourceId,
-				resourceData.organization_code,
+				resource.resource.id,
+				resource.resource.organization_code,
 				userToken
 			)
 			if (resourceDetails.statusCode !== httpStatusCode.ok) {
@@ -907,7 +917,6 @@ async function handleComments(
 			comments = [comments]
 		}
 		comments = comments.filter((comment) => Object.keys(comment).length > 0)
-
 		if (comments.length > 0) {
 			const isValidComment = utils.validateComment(comments)
 			if (!isValidComment) throw new Error('COMMENT_INVALID')
@@ -935,6 +944,8 @@ async function handleComments(
 				comment.user_id = userId
 				comment.resource_id = resourceId
 				comment.status = setCommentsToOpen ? common.COMMENT_STATUS_OPEN : comment.status
+				comment.tenant_code = tenantCode
+				comment.organization_code = orgCode
 				commentsToCreate.push(comment)
 			}
 		}
@@ -1010,8 +1021,8 @@ async function isParantCommentValid(parentIds, resourceId, orgCode, tenantCode) 
 		const filter = {
 			id: { [Op.in]: parentIds },
 			resource_id: resourceId,
-			organization_code: orgCode,
 			tenant_code: tenantCode,
+			organization_code: orgCode,
 		}
 		const comments = await commentQueries.findAll(filter, ['id', 'resource_id'])
 

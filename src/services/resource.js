@@ -25,6 +25,8 @@ const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
 const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
 const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
+const certificateBasetemplateQueries = require('@database/queries/certificateBaseTemplate')
+
 module.exports = class resourceHelper {
 	/**
 	 * List up for listAllSubmittedResources
@@ -38,7 +40,15 @@ module.exports = class resourceHelper {
 	 * @param {Integer} limit -  Used to limit the data. Used for pagination . If value is not passed, by default it will be 100
 	 * @returns {JSON} - List of up for review resources
 	 */
-	static async listAllSubmittedResources(userId, queryParams, searchText = '', page, limit, userToken = '') {
+	static async listAllSubmittedResources(
+		userId,
+		tenantCode,
+		queryParams,
+		searchText = '',
+		page,
+		limit,
+		userToken = ''
+	) {
 		let result = {
 			data: [],
 			count: 0,
@@ -46,42 +56,12 @@ module.exports = class resourceHelper {
 		}
 		let primaryFilter = {}
 		let filter = {}
-		// fetch all resource ids created by the logged in user
-		const resourcesCreatedByMe = await this.resourcesCreatedByUser(userId, ['resource_id', 'organization_code'])
-		if (resourcesCreatedByMe.length <= 0) {
-			return responses.successResponse({
-				statusCode: httpStatusCode.ok,
-				message: 'RESOURCE_LISTED_SUCCESSFULLY',
-				result,
-			})
-		}
-
-		let uniqueResourceIds = resourcesCreatedByMe.map((item) => item.resource_id)
-
-		// get the unique organization ids from resource creator mapping table by the user
-		const OrganizationIds = utils.getUniqueElements(resourcesCreatedByMe.map((item) => item.organization_code))
-
-		// get the review details of all the resources created by the logged in user
-		const resourceReviews = await reviewsQueries.findAll(
-			{
-				organization_code: {
-					[Op.in]: OrganizationIds,
-				},
-				resource_id: {
-					[Op.in]: uniqueResourceIds,
-				},
-			},
-			['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes']
-		)
-
 		// create the final filter by combining primary filters , query params and search text
 		filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
 
 		// Add id, organization_code, and status filters
 		filter = {
 			...filter,
-			id: { [Op.in]: uniqueResourceIds },
-			organization_code: { [Op.in]: OrganizationIds },
 			status: {
 				[Op.in]: queryParams.status?.trim()
 					? queryParams.status.split(',')
@@ -90,33 +70,72 @@ module.exports = class resourceHelper {
 			is_reusable: true,
 		}
 
-		// return a sort object with sorting parameters. if no params are provided returns {}
-		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
+		// fetch all resource ids created by the logged in user
+		const { count, rows } = await this.resourcesCreatedByUser(
+			userId,
+			tenantCode,
+			['resource_id', 'organization_code'],
+			{
+				resourceAttributes: [
+					'id',
+					'title',
+					'organization_code',
+					'type',
+					'status',
+					'stage',
+					'user_id',
+					'created_at',
+					'updated_at',
+					'submitted_on',
+					'published_on',
+					'last_reviewed_on',
+					'meta',
+					'is_under_edit',
+					'published_id',
+				],
+				resourceFilter: filter,
+				resourceOptions: {
+					limit,
+					offset: common.getPaginationOffset(page, limit),
+				},
+			}, // resource related options
+			{
+				reviewsAttributes: ['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes'],
+				reviewsFilter: {
+					tenant_code: tenantCode,
+				},
+			} // reviews related options
+		)
+		if (count <= 0) {
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'RESOURCE_LISTED_SUCCESSFULLY',
+				result,
+			})
+		}
+		let uniqueResourceIds = []
+		let OrganizationIds = []
+
+		const resourcesCreatedByMe = rows.map((item) => {
+			uniqueResourceIds.push(item.resource.id)
+			OrganizationIds.push(item.organization_code)
+			return item.resource
+		})
+
+		// get the unique organization ids from resource creator mapping table by the user
+		OrganizationIds = utils.getUniqueElements(OrganizationIds)
+
+		// get the review details of all the resources created by the logged in user
+		const resourceReviews = resourcesCreatedByMe.map((resource) => resource.reviews)
 
 		// fetches data from resource table with the passed filters
-		const response = await resourceQueries.resourceList(
-			filter,
-			[
-				'id',
-				'title',
-				'organization_code',
-				'type',
-				'status',
-				'stage',
-				'user_id',
-				'created_at',
-				'updated_at',
-				'submitted_on',
-				'published_on',
-				'last_reviewed_on',
-				'meta',
-				'is_under_edit',
-				'published_id',
-			],
-			sort,
-			page,
-			limit
-		)
+		const response = {
+			result: resourcesCreatedByMe.map((resource) => {
+				if (resource?.reviews) delete resource.reviews
+				return resource
+			}),
+		}
+
 		let requestedForChangesResourcesFilter = {
 			id: {
 				[Op.in]: uniqueResourceIds,
@@ -142,10 +161,7 @@ module.exports = class resourceHelper {
 			})
 		}
 		// fetch the organization details from user service
-		const orgDetails = await orgExtension.fetchOrganizationDetails(
-			utils.getUniqueElements(response.result.map((item) => item.organization_code)),
-			userToken
-		)
+		const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds, tenantCode)
 
 		// fetch all open comments for the resources which are in review
 		const commentMapping = await this.fetchOpenComments(
@@ -182,6 +198,7 @@ module.exports = class resourceHelper {
 		// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
 		const userDetails = await this.fetchUserDetails(
 			utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds]),
+			tenantCode,
 			userToken
 		)
 
@@ -248,14 +265,53 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of drafts resources
 	 */
 
-	static async listAllDrafts(userId, queryParams, searchText = '', page, limit, userToken) {
+	static async listAllDrafts(userId, queryParams, searchText = '', page, limit, userToken, orgCode, tenantCode) {
 		try {
 			let result = {
 				data: [],
 				count: 0,
 			}
-			// fetch all resource ids created by the logged in user
-			const resourcesCreatedByMe = await this.resourcesCreatedByUser(userId, ['resource_id', 'organization_code'])
+			const resourceFilter = await this.constructCustomFilter(
+				{
+					status: {
+						[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_DRAFTS],
+					},
+				},
+				queryParams,
+				searchText
+			)
+
+			// return a sort object with sorting parameters. if no params are provided returns {}
+			const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
+
+			// fetch all resources created by the logged in user
+			const { count, rows } = await this.resourcesCreatedByUser(
+				userId, // loggedIn userId
+				tenantCode, // user's tenant code
+				['resource_id', 'organization_code', 'tenant_code'], // mapping table attributes
+				{
+					resourceAttributes: [
+						'id',
+						'title',
+						'organization_code',
+						'type',
+						'status',
+						'user_id',
+						'created_at',
+						'updated_at',
+						'stage',
+						'meta',
+					], // resource table attributes
+					resourceFilter, // resource table filter
+					resourceOptions: {
+						limit,
+						offset: common.getPaginationOffset(page, limit), // pagination offset
+						...sort,
+					}, // resource table related options
+				} // resource table related options
+			)
+
+			const resourcesCreatedByMe = rows
 
 			if (resourcesCreatedByMe.length <= 0) {
 				return responses.successResponse({
@@ -265,48 +321,15 @@ module.exports = class resourceHelper {
 				})
 			}
 
-			const uniqueResourceIds = resourcesCreatedByMe.map((item) => item.resource_id)
-
 			// get the unique organization ids from resource creator mapping table by the user
-			const OrganizationIds = utils.getUniqueElements(resourcesCreatedByMe.map((item) => item.organization_code))
-
-			const filter = await this.constructCustomFilter(
-				{
-					organization_code: {
-						[Op.in]: OrganizationIds,
-					},
-					id: {
-						[Op.in]: uniqueResourceIds,
-					},
-					status: {
-						[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_DRAFTS],
-					},
-				},
-				queryParams,
-				searchText
+			const OrganizationCodes = utils.getUniqueElements(
+				resourcesCreatedByMe.map((item) => item.organization_code)
 			)
-			// return a sort object with sorting parameters. if no params are provided returns {}
-			const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
 
 			// fetches data from resource table with the passed filters
-			const response = await resourceQueries.resourceList(
-				filter,
-				[
-					'id',
-					'title',
-					'organization_code',
-					'type',
-					'status',
-					'user_id',
-					'created_at',
-					'updated_at',
-					'stage',
-					'meta',
-				],
-				sort,
-				page,
-				limit
-			)
+			const response = {
+				result: resourcesCreatedByMe.map((r) => r.resource),
+			}
 
 			if (response.result.length <= 0) {
 				return responses.successResponse({
@@ -317,11 +340,12 @@ module.exports = class resourceHelper {
 			}
 
 			// fetch the user details from user service
-			const userDetails = await this.fetchUserDetails([userId], userToken)
+			const userDetails = await this.fetchUserDetails([userId], orgCode, tenantCode, userToken)
 
 			// fetch the org details from user service
-			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds, userToken)
+			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationCodes, tenantCode)
 			result = await this.responseBuilder(response, userDetails, orgDetails, {})
+			result.count = count
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -520,10 +544,11 @@ module.exports = class resourceHelper {
 		let sort = {}
 		if (sort_by && sort_order) {
 			sort.sort_by = sort_by
-			sort.order = sort_order.toUpperCase() == common.SORT_DESC.toUpperCase() ? common.SORT_DESC : common.SORT_ASC
+			sort.order =
+				sort_order.toUpperCase() == common.SORT_DESC.toUpperCase() ? [common.SORT_DESC] : [common.SORT_ASC]
 		} else {
 			sort.sort_by = defaultSortBy
-			sort.order = common.SORT_DESC
+			sort.order = [common.SORT_DESC]
 		}
 		return sort
 	}
@@ -534,11 +559,21 @@ module.exports = class resourceHelper {
 	 * @param {String} loggedInUserId -  loggedInUserId.
 	 * @returns {Array} - Response contain array of resources
 	 */
-	static async resourcesCreatedByUser(loggedInUserId, attributes = ['resource_id']) {
+	static async resourcesCreatedByUser(
+		loggedInUserId,
+		tenantCode,
+		attributes = ['resource_id'],
+		resourceOptions = {},
+		reviewOptions = {}
+	) {
 		let resourceData = {}
-		if (loggedInUserId) {
+		if (loggedInUserId && tenantCode) {
 			// fetch the details of resource and organization from resource creator mapping table by the user
-			resourceData = await resourceCreatorMappingQueries.findAll({ creator_id: loggedInUserId }, attributes)
+			resourceData = await resourceCreatorMappingQueries.findAndCountAll(
+				{ creator_id: loggedInUserId, tenant_code: tenantCode },
+				attributes,
+				{ ...resourceOptions, ...reviewOptions }
+			)
 		}
 		return resourceData
 	}
@@ -565,6 +600,7 @@ module.exports = class resourceHelper {
 			// get user details from token
 			const user_id = tokenDetails.id
 			const organization_code = tokenDetails.organization_code
+			const tenant_code = tokenDetails.tenant_code
 			const roles = tokenDetails.roles
 
 			let result = {
@@ -586,6 +622,7 @@ module.exports = class resourceHelper {
 			const fetchReviewResourceDetails = await reviewResourcesQueries.findAll(
 				{
 					reviewer_id: user_id,
+					tenant_code: tenant_code,
 				},
 				['organization_code']
 			)
@@ -601,6 +638,7 @@ module.exports = class resourceHelper {
 						},
 						reviewer_id: user_id,
 						status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
+						tenant_code: tenant_code,
 					},
 					['resource_id']
 				)
@@ -611,6 +649,7 @@ module.exports = class resourceHelper {
 						[Op.in]: inProgressResources,
 					},
 					status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
+					tenant_code: tenant_code,
 				}
 				if (queryParams.type && queryParams.type != '') {
 					inProgressCountFilter.type = {
@@ -624,7 +663,7 @@ module.exports = class resourceHelper {
 			if (!(common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS)) {
 				// fetch the resources types of an organization based on parallel and sequential review type
 				let { sequential: resourceTypesInSequentialReview, parallel: resourceTypesInParallelReview } =
-					await this.fetchResourceReviewTypes(organization_code)
+					await this.fetchResourceReviewTypes(organization_code, tenant_code)
 
 				if (common.TYPE in queryParams && queryParams[common.TYPE]) {
 					let filterResourceTypes = queryParams[common.TYPE].split(',')
@@ -704,6 +743,7 @@ module.exports = class resourceHelper {
 
 			let resourceFilter = {
 				organization_code: { [Op.in]: uniqueOrganizationIds },
+				tenant_code: tenant_code,
 				id: { [Op.in]: finalResourceIds },
 				user_id: {
 					[Op.notIn]: [user_id],
@@ -768,13 +808,14 @@ module.exports = class resourceHelper {
 				})
 			)
 
-			const userDetails = await this.fetchUserDetails(uniqueCreatorIds, userToken)
-			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds, userToken)
+			const userDetails = await this.fetchUserDetails(uniqueCreatorIds, null, tenant_code, userToken)
+			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds, tenant_code)
 			const reviewDetails = await reviewsQueries.findAll(
 				{
 					organization_code: {
 						[Op.in]: uniqueOrganizationIds,
 					},
+					tenant_code,
 					resource_id: {
 						[Op.in]: finalResourceIds,
 					},
@@ -927,6 +968,22 @@ module.exports = class resourceHelper {
 			let organizationDetails = await userRequests.fetchOrg(resource.organization_code, userToken)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
+			}
+
+			//Add path in getDownloadUrl
+			if (result.certificate && result.certificate.base_template_url && result.certificate.base_template_id) {
+				const baseTemplate = await certificateBasetemplateQueries.findOne(
+					{
+						id: result.certificate.base_template_id,
+					},
+					{ attributes: ['id', 'name', 'url'] }
+				)
+				if (baseTemplate) {
+					result.certificate.base_template_url = {
+						url: result.certificate.base_template_url,
+						filepath: baseTemplate.url,
+					}
+				}
 			}
 
 			result = { ...result, ...resource }
@@ -1178,10 +1235,10 @@ module.exports = class resourceHelper {
 	 * @param {String} organization_code - organization_code of the logged in user.
 	 * @returns {Object} - Response contain object , with list of sequential and parallel resource types
 	 */
-	static async fetchResourceReviewTypes(organization_code) {
+	static async fetchResourceReviewTypes(organization_code, tenantCode) {
 		try {
 			// Fetch organization-based configurations for resources
-			const orgConfig = await orgExtensionService.getConfig(organization_code)
+			const orgConfig = await orgExtensionService.getConfig(organization_code, tenantCode)
 
 			// Map resource types to their review types
 			const resourceWiseReviewType = orgConfig.result.resource.reduce((acc, item) => {
@@ -1252,13 +1309,14 @@ module.exports = class resourceHelper {
 	 * @param {Array} userIds - array of userIds.
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds, userToken = '') {
+	static async fetchUserDetails(userIds, organisationCode = null, tenantCode = null, userToken = '') {
 		const userDetailsResponse = await userRequests.list(
 			common.FILTER_ALL.toLowerCase(),
 			'',
 			'',
 			'',
-			'',
+			organisationCode,
+			tenantCode,
 			{
 				user_ids: userIds,
 			},
@@ -1284,12 +1342,14 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - upload  response.
 	 */
 
-	static async uploadToCloud(fileName, resourceId, resourceType, loggedInUserId, bodyData) {
+	static async uploadToCloud(fileName, orgCode, tenantCode, resourceId, resourceType, loggedInUserId, bodyData) {
 		try {
 			//sample blob path
 			// resource/162/6/06f444d0-03e1-4c36-92a4-78f27c18caf6/162624project.json
 			let getSignedUrl = await filesService.getSignedUrl(
 				{ [resourceId]: { files: [fileName] } },
+				orgCode,
+				tenantCode,
 				resourceType,
 				loggedInUserId
 			)
@@ -1323,8 +1383,8 @@ module.exports = class resourceHelper {
 	 * @name isReviewMandatory
 	 * @returns {Boolean} - Review required or not
 	 */
-	static async isReviewMandatory(resourceType, organizationId) {
-		const orgConfig = await orgExtensionService.getConfig(organizationId)
+	static async isReviewMandatory(resourceType, organizationId, tenantCode) {
+		const orgConfig = await orgExtensionService.getConfig(organizationId, tenantCode)
 		const orgConfigList = _.reduce(
 			orgConfig.result.resource,
 			(acc, item) => {
@@ -1351,6 +1411,7 @@ module.exports = class resourceHelper {
 	 */
 	static async browseExistingList(
 		organization_code,
+		tenantCode,
 		userRoles,
 		resourceIds = [],
 		query,
@@ -1401,6 +1462,7 @@ module.exports = class resourceHelper {
 
 			let filterQuery = {
 				organization_code,
+				tenant_code: tenantCode,
 				status: common.RESOURCE_STATUS_PUBLISHED,
 				is_reusable: true,
 			}
@@ -1439,6 +1501,7 @@ module.exports = class resourceHelper {
 				{
 					resource_id: internalResourcesIds,
 					status: common.REVIEW_STATUS_APPROVED,
+					tenant_code: tenantCode,
 				},
 				['reviewer_id', 'resource_id']
 			)
@@ -1451,10 +1514,15 @@ module.exports = class resourceHelper {
 
 			if (internalResources.result.length > 0) {
 				// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
-				const userDetails = await this.fetchUserDetails(utils.getUniqueElements(userIds), userToken)
+				const userDetails = await this.fetchUserDetails(
+					utils.getUniqueElements(userIds),
+					null,
+					tenantCode,
+					userToken
+				)
 				const orgDetails = await orgExtension.fetchOrganizationDetails(
 					utils.getUniqueElements(organizationIds),
-					userToken
+					tenantCode
 				)
 				result.count = internalResources.count
 				internalResources.result.forEach((resource) => {
@@ -1499,7 +1567,7 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of reviewers from the org
 	 */
 
-	static async reviewerList(role, user_id, organization_code, userToken = '', pageNo, limit) {
+	static async reviewerList(role, user_id, organization_code, tenant_code, userToken = '', pageNo, limit) {
 		try {
 			let result = {
 				data: [],
@@ -1512,6 +1580,7 @@ module.exports = class resourceHelper {
 				limit,
 				'',
 				organization_code,
+				tenant_code,
 				{
 					excluded_user_ids: [user_id],
 				},
@@ -1556,9 +1625,17 @@ module.exports = class resourceHelper {
 	 * @param {string} resourceType - The type of the resource (e.g., 'program', 'project').
 	 * @returns {Promise<void>} - Resolves when the upload and update are successful.
 	 */
-	static async uploadAndUpdateResource(resourceId, orgId, loggedInUserId, data, fileName, resourceType) {
+	static async uploadAndUpdateResource(resourceId, orgId, tenantCode, loggedInUserId, data, fileName, resourceType) {
 		try {
-			const uploadStatus = await this.uploadToCloud(fileName, resourceId, resourceType, loggedInUserId, data)
+			const uploadStatus = await this.uploadToCloud(
+				fileName,
+				orgId,
+				tenantCode,
+				resourceId,
+				resourceType,
+				loggedInUserId,
+				data
+			)
 
 			if (
 				uploadStatus.result.status === httpStatusCode.ok ||

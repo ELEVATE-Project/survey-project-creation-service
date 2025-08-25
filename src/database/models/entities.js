@@ -55,7 +55,7 @@ module.exports = (sequelize, DataTypes) => {
 	Entity.associate = (models) => {
 		Entity.belongsTo(models.EntityType, {
 			foreignKey: 'entity_type_id',
-			as: 'entity_type',
+			as: 'Entity',
 			targetKey: 'id',
 			scope: {
 				deleted_at: null, // Only associate with active EntityType records

@@ -56,6 +56,12 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
+		// Add unique constraint for code per organization
+		await queryInterface.addConstraint('certificate_base_templates', {
+			type: 'unique',
+			fields: ['organization_code', 'code', 'tenant_code'],
+			name: 'unique_code_per_organization_tenant',
+		})
 	},
 
 	async down(queryInterface, Sequelize) {

@@ -1,3 +1,5 @@
+'use strict'
+
 module.exports = (sequelize, DataTypes) => {
 	const ResourceCreatorMapping = sequelize.define(
 		'ResourceCreatorMapping',
@@ -10,12 +12,13 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			resource_id: {
 				allowNull: false,
+				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
 			creator_id: {
 				allowNull: false,
-				type: DataTypes.STRING,
 				primaryKey: true,
+				type: DataTypes.STRING,
 			},
 			organization_code: {
 				allowNull: false,
@@ -23,7 +26,6 @@ module.exports = (sequelize, DataTypes) => {
 			},
 			tenant_code: {
 				allowNull: false,
-				primaryKey: true,
 				type: DataTypes.STRING,
 			},
 		},
@@ -31,8 +33,8 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['resource_id', 'creator_id'],
-					name: 'unique_creator_resource',
+					fields: ['resource_id', 'creator_id', 'organization_code', 'tenant_code'],
+					name: 'unique_creator_resource_org_tenant',
 					where: {
 						deleted_at: null,
 					},
@@ -44,6 +46,17 @@ module.exports = (sequelize, DataTypes) => {
 			paranoid: true,
 		}
 	)
+
+	// Define associations (foreign key constraints)
+	ResourceCreatorMapping.associate = (models) => {
+		ResourceCreatorMapping.belongsTo(models.Resource, {
+			foreignKey: 'resource_id',
+			targetKey: 'id',
+			as: 'resource',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+	}
 
 	return ResourceCreatorMapping
 }
