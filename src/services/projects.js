@@ -11,6 +11,7 @@ const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
+const certificateBasetemplateQueries = require('@database/queries/certificateBaseTemplate')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
@@ -479,7 +480,21 @@ module.exports = class ProjectsHelper {
 					}
 				}
 			}
-
+			//Add path in getDownloadUrl
+			if (result.certificate && result.certificate.base_template_url && result.certificate.base_template_id) {
+				const baseTemplate = await certificateBasetemplateQueries.findOne(
+					{
+						id: result.certificate.base_template_id,
+					},
+					{ attributes: ['id', 'name', 'url'] }
+				)
+				if (baseTemplate) {
+					result.certificate.base_template_url = {
+						url: result.certificate.base_template_url,
+						filepath: baseTemplate.url,
+					}
+				}
+			}
 			//get organization details
 			let organizationDetails = await userRequests.fetchOrg(project.organization_code, project.tenant_code)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {

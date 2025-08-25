@@ -869,14 +869,21 @@ async function handleProgramRollout(resourceData, resourceId, userId, userToken)
  * @param {String} resourceType - Type of resource
  * @returns {Promise<Object>} - Returns a promise that resolves to an object indicating success or an error.
  */
-async function handleComments(comments, resourceId, userId, setCommentsToOpen = false, resourceType) {
+async function handleComments(
+	comments,
+	resourceId,
+	userId,
+	setCommentsToOpen = false,
+	resourceType,
+	orgCode,
+	tenantCode
+) {
 	try {
 		// Normalize comments to an array if it's a single object
 		if (!Array.isArray(comments)) {
 			comments = [comments]
 		}
 		comments = comments.filter((comment) => Object.keys(comment).length > 0)
-
 		if (comments.length > 0) {
 			const isValidComment = utils.validateComment(comments)
 			if (!isValidComment) throw new Error('COMMENT_INVALID')
@@ -904,11 +911,13 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 				comment.user_id = userId
 				comment.resource_id = resourceId
 				comment.status = setCommentsToOpen ? common.COMMENT_STATUS_OPEN : comment.status
+				comment.tenant_code = tenantCode
+				comment.organization_code = orgCode
 				commentsToCreate.push(comment)
 			}
 		}
 
-		const isCommentValid = await isParantCommentValid(parentCommentIds, resourceId)
+		const isCommentValid = await isParantCommentValid(parentCommentIds, resourceId, orgCode, tenantCode)
 		if (!isCommentValid) throw new Error('COMMENT_PARENT_INVALID')
 
 		//update the associated draft comment to open if the resource is program
@@ -916,6 +925,8 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 			//fetch all associated resources
 			const associatedResources = await programResourceMappingQueries.findAll({
 				program_id: resourceId,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 			})
 
 			if (associatedResources.length > 0) {
@@ -928,6 +939,8 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 						},
 						status: common.COMMENT_STATUS_DRAFT,
 						user_id: userId,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 					},
 					{
 						status: common.COMMENT_STATUS_OPEN,
@@ -939,7 +952,13 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
 		// Handle updating comments
 		const updatePromises = commentsToUpdate.map((comment) =>
 			commentQueries.update(
-				{ id: comment.id, parent_id: comment.parent_id, resource_id: resourceId },
+				{
+					id: comment.id,
+					parent_id: comment.parent_id,
+					resource_id: resourceId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
+				},
 				_.omit(comment, ['id'])
 			)
 		)
@@ -962,11 +981,13 @@ async function handleComments(comments, resourceId, userId, setCommentsToOpen = 
  * @param {Integer} resourceId - Resource Id
  * @returns {Boolean} - Returns a true / false indicating if the parent id is a valid id for the resource.
  */
-async function isParantCommentValid(parentIds, resourceId) {
+async function isParantCommentValid(parentIds, resourceId, orgCode, tenantCode) {
 	try {
 		const filter = {
 			id: { [Op.in]: parentIds },
 			resource_id: resourceId,
+			tenant_code: tenantCode,
+			organization_code: orgCode,
 		}
 		const comments = await commentQueries.findAll(filter, ['id', 'resource_id'])
 
