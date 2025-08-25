@@ -118,7 +118,7 @@ module.exports = (sequelize, DataTypes) => {
 		}
 	)
 
-	// Define the one-to-many association with Comment
+	// Define associations
 	Resource.associate = (models) => {
 		Resource.hasMany(models.Comment, {
 			foreignKey: 'resource_id',
@@ -128,7 +128,26 @@ module.exports = (sequelize, DataTypes) => {
 			onDelete: 'CASCADE',
 			onUpdate: 'CASCADE',
 		})
+		Resource.hasMany(models.Review, {
+			// Fix: Change from models.Comment to models.Review
+			foreignKey: 'resource_id',
+			sourceKey: 'id',
+			as: 'reviews',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
+		Resource.hasMany(models.ReviewResource, {
+			// Fix: Change from models.Comment to models.Review
+			foreignKey: 'resource_id',
+			sourceKey: 'id',
+			as: 'ReviewResource',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
 	}
+
 	// Helper function to emit user actions with dynamic action types
 	const emitUserAction = async (instance, actionType) => {
 		try {
@@ -148,7 +167,6 @@ module.exports = (sequelize, DataTypes) => {
 	}
 
 	Resource.addHook('afterCreate', (instance) => emitUserAction(instance, 'RESOURCE_CREATED'))
-
 	Resource.addHook('afterDestroy', (instance) => emitUserAction(instance, 'RESOURCE_DELETED'))
 	Resource.addHook('afterUpdate', (instance) => {
 		const statusActionMap = {

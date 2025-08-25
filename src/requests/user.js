@@ -9,6 +9,7 @@
 const userBaseUrl = process.env.USER_SERVICE_HOST + process.env.USER_SERVICE_BASE_URL
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
+const utils = require('@generics/utils')
 const request = require('request')
 const utils = require('@generics/utils')
 
@@ -17,18 +18,15 @@ const utils = require('@generics/utils')
  * @param {string} organisationIdentifier - The code/id of the organization.
  * @returns {Promise} A promise that resolves with the organization details or rejects with an error.
  */
-
 const fetchOrg = function (organisationIdentifier, tenantCode, internalToken = true) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			if (!organisationIdentifier || !tenantCode) {
-				throw new Error('Organisation identifier and tenant code are required')
+			let orgReadUrl
+			if (!isNaN(organisationIdentifier)) {
+				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_id=' + organisationIdentifier
+			} else {
+				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_code=' + organisationIdentifier
 			}
-
-			// if identifier is Numeric , add query param organisation_id else organisation_code
-			let queryParam = utils.isNumeric(organisationIdentifier)
-				? { organisation_id: organisationIdentifier }
-				: { organisation_code: organisationIdentifier } || {}
 
 			queryParam.tenant_code = tenantCode
 
@@ -247,16 +245,16 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
  * @returns
  */
 
-const listOrganization = function (organizationIds = [], userToken = '') {
+const listOrganization = function (OrganizationCodes = [], tenantCode = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_LIST)
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_LIST, { tenantCode })
 			let body = {}
-			if (organizationIds) {
-				body.organizationIds = organizationIds
+			if (OrganizationCodes.length > 0) {
+				body.organization_codes = OrganizationCodes
 			}
 
-			const orgDetails = await requests.post(apiUrl, body, userToken, true)
+			const orgDetails = await requests.post(apiUrl, body, '', true)
 			return resolve(orgDetails)
 		} catch (error) {
 			return reject(error)

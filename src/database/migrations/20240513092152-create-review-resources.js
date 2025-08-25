@@ -50,6 +50,19 @@ module.exports = {
 				where: { deleted_at: null },
 			}
 		)
+
+		// Add foreign key constraint for resource_id, organization_code, and tenant_code
+		await queryInterface.addConstraint('review_resources', {
+			fields: ['resource_id', 'organization_code', 'tenant_code'],
+			type: 'foreign key',
+			name: 'fk_reviews_resources',
+			references: {
+				table: 'resources',
+				fields: ['id', 'organization_code', 'tenant_code'],
+			},
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
 	},
 
 	async down(queryInterface, Sequelize) {

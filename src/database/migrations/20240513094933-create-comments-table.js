@@ -9,12 +9,10 @@ module.exports = {
 				id: {
 					allowNull: false,
 					autoIncrement: true,
-					primaryKey: true,
 					type: Sequelize.INTEGER,
 				},
 				resource_id: {
 					allowNull: false,
-					primaryKey: true,
 					type: Sequelize.INTEGER,
 				},
 				organization_code: {
@@ -76,18 +74,22 @@ module.exports = {
 				},
 			},
 			{
+				// adding index on 'resource_id', 'organization_code', 'tenant_code' for better searching
 				indexes: [
 					{
-						unique: true,
-						fields: ['id', 'resource_id', 'organization_code', 'tenant_code'],
-						name: 'unique_comment_resource',
-						where: {
-							deleted_at: null,
-						},
+						name: 'idx_comments_resource_org_tenant_active',
+						unique: false,
+						fields: ['resource_id', 'organization_code', 'tenant_code'],
+						where: { deleted_at: null },
 					},
 				],
 			}
 		)
+		await queryInterface.addConstraint('comments', {
+			type: 'primary key',
+			name: 'pk_comments_id_resource',
+			fields: ['id', 'resource_id'],
+		})
 
 		// Add foreign key constraint for resource_id, organization_code, and tenant_code
 		await queryInterface.addConstraint('comments', {

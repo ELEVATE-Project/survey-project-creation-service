@@ -690,25 +690,35 @@ module.exports = class reviewsHelper {
 	 * @param {String} userId - The ID of the user
 	 * @returns {JSON} - Publish Response
 	 */
-	static async publishResource(resourceId, userId, userToken = '') {
+	static async publishResource(resourceId, userId, organizationCode, tenantCode, userToken = '') {
 		try {
 			// Fetch the resource creator mapping
 			const resource = await resourceCreatorMappingQueries.findOne(
-				{ creator_id: userId, resource_id: resourceId },
-				['id', 'organization_code']
+				{
+					creator_id: userId,
+					resource_id: resourceId,
+					organization_code: organizationCode,
+					tenant_code: tenantCode,
+				},
+				['id'],
+				{
+					resourceAttributes: ['id', 'organization_code', 'tenant_code'],
+				}
 			)
 
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
 
+			// this has to be further checked as part of review flow
 			// Fetch resource data
-			let resourceData = await resourceQueries.findOne({
-				id: resourceId,
-				organization_code: resource.organization_code,
-			})
+			// let resourceData = await resourceQueries.findOne({
+			// 	id: resourceId,
+			// 	organization_code: resource.organization_code,
+			// 	tenant_code: tenantCode,
+			// })
 
 			let resourceDetails = await resourceService.getDetails(
-				resourceId,
-				resourceData.organization_code,
+				resource.resource.id,
+				resource.resource.organization_code,
 				userToken
 			)
 			if (resourceDetails.statusCode !== httpStatusCode.ok) {

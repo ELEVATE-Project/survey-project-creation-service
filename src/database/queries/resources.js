@@ -47,6 +47,7 @@ exports.findOne = async (filter, options = {}) => {
 			...options,
 			raw,
 		})
+		if (raw) return resource
 		return resource ? resource.toJSON() : {}
 	} catch (error) {
 		throw error
