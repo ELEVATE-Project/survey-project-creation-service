@@ -1638,7 +1638,14 @@ async function handleCertificateTemplate(solution, projectTemplate, db) {
 			}
 
 			// Get Signed URL to upload
-			const getSignedUrl = await fileService.getSignedUrl(payloadData, 'BASE_TEMPLATE', 'system', false)
+			const getSignedUrl = await fileService.getSignedUrl(
+				payloadData,
+				solution?.orgId,
+				solution?.tenantId,
+				'BASE_TEMPLATE',
+				'system',
+				false
+			)
 			if (!getSignedUrl.result) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}

@@ -48,6 +48,7 @@ const entityTypeEntitiesMapping = {
 			value: {
 				[Op.in]: entityTypes,
 			},
+			status: 'ACTIVE',
 			tenant_code: defaultTenantCode,
 			organization_code: defaultOrgCode,
 		})

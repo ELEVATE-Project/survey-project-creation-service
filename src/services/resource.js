@@ -1323,12 +1323,14 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - upload  response.
 	 */
 
-	static async uploadToCloud(fileName, resourceId, resourceType, loggedInUserId, bodyData) {
+	static async uploadToCloud(fileName, orgCode, tenantCode, resourceId, resourceType, loggedInUserId, bodyData) {
 		try {
 			//sample blob path
 			// resource/162/6/06f444d0-03e1-4c36-92a4-78f27c18caf6/162624project.json
 			let getSignedUrl = await filesService.getSignedUrl(
 				{ [resourceId]: { files: [fileName] } },
+				orgCode,
+				tenantCode,
 				resourceType,
 				loggedInUserId
 			)
@@ -1604,9 +1606,17 @@ module.exports = class resourceHelper {
 	 * @param {string} resourceType - The type of the resource (e.g., 'program', 'project').
 	 * @returns {Promise<void>} - Resolves when the upload and update are successful.
 	 */
-	static async uploadAndUpdateResource(resourceId, orgId, loggedInUserId, data, fileName, resourceType) {
+	static async uploadAndUpdateResource(resourceId, orgId, tenantCode, loggedInUserId, data, fileName, resourceType) {
 		try {
-			const uploadStatus = await this.uploadToCloud(fileName, resourceId, resourceType, loggedInUserId, data)
+			const uploadStatus = await this.uploadToCloud(
+				fileName,
+				orgId,
+				tenantCode,
+				resourceId,
+				resourceType,
+				loggedInUserId,
+				data
+			)
 
 			if (
 				uploadStatus.result.status === httpStatusCode.ok ||

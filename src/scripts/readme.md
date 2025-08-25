@@ -38,6 +38,10 @@ This script creates default entities relevant to the education domain.
     ```bash
           node addDefaultEntitiesForEducationSector.js
     ```
+3. Set up new tenant dependencies in SCP
+    ```bash
+    node setupTenant.js --tenant_code=shikshagraha --organization_code=blr
+    ```
 
 ### 🔄 Migration Scripts
 
