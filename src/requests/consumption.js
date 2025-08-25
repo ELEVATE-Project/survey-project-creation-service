@@ -1635,7 +1635,8 @@ const publishProgram = function async(programData) {
 					rolloutId,
 					programData.organization_code,
 					programData.created_by,
-					false
+					false,
+					programData.tenant_code
 				)
 
 				if (!fetchDetails?.result?.published_id) {

@@ -23,7 +23,7 @@ module.exports = class RolloutsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - rollout id
 	 */
-	static async create(bodyData, loggedInUserId, orgId, isSolutionType = false) {
+	static async create(bodyData, loggedInUserId, orgId, isSolutionType = false, tenantCode) {
 		const transaction = await db.sequelize.transaction()
 		try {
 			//validate the resource
@@ -51,6 +51,7 @@ module.exports = class RolloutsHelper {
 				organization_code: orgId,
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
+				tenant_code: tenantCode,
 			}
 
 			if (bodyData.start_date) rolloutData.start_date = bodyData.start_date
@@ -67,6 +68,8 @@ module.exports = class RolloutsHelper {
 
 				const rolloutUploadStatus = await resourceService.uploadToCloud(
 					common.ROLLOUT_UPLOAD_FILE_NAME,
+					orgId,
+					tenantCode,
 					rolloutCreate.id,
 					common.ROLL_OUT,
 					loggedInUserId,
@@ -80,6 +83,7 @@ module.exports = class RolloutsHelper {
 					let filter = {
 						id: rolloutId,
 						organization_code: orgId,
+						tenant_code: tenantCode,
 					}
 
 					let updateData = {
@@ -143,7 +147,7 @@ module.exports = class RolloutsHelper {
 	 * @param {String} loggedInUserId - User id
 	 * @returns {JSON} - Rollout Details
 	 */
-	static async details(rolloutId, orgId, loggedInUserId, returnBlobPath = false, userToken = '') {
+	static async details(rolloutId, orgId, loggedInUserId, returnBlobPath = false, userToken = '', tenantCode) {
 		try {
 			let result = {
 				organization: {},
@@ -153,6 +157,7 @@ module.exports = class RolloutsHelper {
 				id: rolloutId,
 				organization_code: orgId,
 				user_id: loggedInUserId,
+				tenant_code: tenantCode,
 			})
 
 			if (!rollout?.id) {
@@ -196,6 +201,7 @@ module.exports = class RolloutsHelper {
 					// fetch the org details from user service
 					const organizationDetails = await orgExtensionService.fetchOrganizationDetails([
 						rollout.organization_code,
+						rollout.tenant_code,
 					])
 					if (organizationDetails?.[rollout.organization_code]) {
 						resultData.organization = _.pick(organizationDetails[rollout.organization_code], [
@@ -225,12 +231,13 @@ module.exports = class RolloutsHelper {
 	 * @param orgId  - Organization Id
 	 * @param pageNo - Page number
 	 * @param pageSize - Page size
+	 * @param {String} tenantCode -tenantCode
 	 * @returns {JSON} - List of data managers
 	 */
-	static async getDataManagers(orgId, pageNo, pageSize, userToken = '') {
+	static async getDataManagers(orgId, pageNo, pageSize, userToken = '', tenantCode) {
 		try {
 			// get org config based on orgId
-			const orgConfigs = await orgExtensionService.getConfig(orgId)
+			const orgConfigs = await orgExtensionService.getConfig(orgId, tenantCode)
 			// identify the roles have data manager access
 			const dataManagerRoles = orgConfigs?.result?.config?.data_managers
 			// fetch the users from user service
@@ -262,7 +269,7 @@ module.exports = class RolloutsHelper {
 		}
 	}
 
-	/* Rollout List
+	/**Rollout List
 	 * @method
 	 * @name list
 	 * @param {String} organization_code
@@ -271,9 +278,20 @@ module.exports = class RolloutsHelper {
 	 * @param {String} searchText
 	 * @param {Integer} page
 	 * @param {Integer} limit
+	 * @param {String} userToken
+	 * @param {String} tenantCode - tenant code
 	 * @returns {JSON} - List of rollouts
-	 */
-	static async list(organization_code, loggedInUserId, queryParams, searchText = '', page, limit, userToken = '') {
+	 **/
+	static async list(
+		organization_code,
+		loggedInUserId,
+		queryParams,
+		searchText = '',
+		page,
+		limit,
+		userToken = '',
+		tenantCode
+	) {
 		try {
 			let result = {
 				data: [],
@@ -284,6 +302,7 @@ module.exports = class RolloutsHelper {
 				organization_code,
 				user_id: loggedInUserId,
 				type: common.ROLLOUT_TYPE_PROGRAM,
+				tenant_code: tenantCode,
 			}
 
 			if (searchText && searchText != '') {
@@ -297,6 +316,7 @@ module.exports = class RolloutsHelper {
 				{
 					resource_type: common.RESOURCE_TYPE_PROGRAM,
 					organization_code: organization_code,
+					tenant_code: tenantCode,
 				},
 				{ attributes: ['id'] }
 			)
@@ -369,7 +389,7 @@ module.exports = class RolloutsHelper {
 			const userDetails = await this.fetchUserDetails([loggedInUserId], userToken)
 
 			// fetch the org details from user service
-			const orgDetails = await orgExtensionService.fetchOrganizationDetails(orgList)
+			const orgDetails = await orgExtensionService.fetchOrganizationDetails(orgList, tenantCode)
 
 			let rolloutFinalList = []
 
@@ -407,14 +427,16 @@ module.exports = class RolloutsHelper {
 	 * @param {Object} bodyData - request data.
 	 * @param {String} loggedInUserId - userId
 	 * @param {String} orgId - organization id
+	 * @param {String} tenantCode - tenant code
 	 * @returns {JSON} - rollout update response.
 	 */
 
-	static async update(rolloutId, bodyData, loggedInUserId, orgId) {
+	static async update(rolloutId, bodyData, loggedInUserId, orgId, tenantCode) {
 		try {
 			let rollout = await rolloutQueries.findOne({
 				id: rolloutId,
 				organization_code: orgId,
+				tenant_code: tenantCode,
 			})
 
 			if (!rollout?.id) {
@@ -447,6 +469,7 @@ module.exports = class RolloutsHelper {
 					id: bodyData.resource_id,
 					organization_code: orgId,
 					stage: common.RESOURCE_STAGE_COMPLETION,
+					tenant_code: tenantCode,
 				})
 
 				if (!resource?.id) {
@@ -470,6 +493,8 @@ module.exports = class RolloutsHelper {
 
 			const rolloutUploadStatus = await resourceService.uploadToCloud(
 				common.ROLLOUT_UPLOAD_FILE_NAME,
+				orgId,
+				tenantCode,
 				rolloutId,
 				common.ROLL_OUT,
 				loggedInUserId,
@@ -487,6 +512,7 @@ module.exports = class RolloutsHelper {
 			let filter = {
 				id: rolloutId,
 				organization_code: orgId,
+				tenant_code: tenantCode,
 			}
 
 			let updateData = {
@@ -586,7 +612,11 @@ module.exports = class RolloutsHelper {
 				})
 			}
 
-			let updatedRolledout = await rolloutQueries.deleteOne(rolloutId, rollout.organization_code)
+			let updatedRolledout = await rolloutQueries.deleteOne(
+				rolloutId,
+				rollout.organization_code,
+				rollout.tenant_code
+			)
 
 			if (updatedRolledout === 0) {
 				return responses.failureResponse({
@@ -613,13 +643,14 @@ module.exports = class RolloutsHelper {
 	 * @param {Integer} userToken - user token for consumption side creations.
 	 * @param {String} loggedInUserId - userId
 	 * @param {String} orgId - organization id
+	 * @param {String} tenantCode -tenant_code
 	 * @returns {JSON} - rollout publish response.
 	 */
 
-	static async publish(rolloutId, loggedInUserId, orgId, userToken = '') {
+	static async publish(rolloutId, loggedInUserId, orgId, userToken = '', tenantCode) {
 		try {
 			// fetch rollout details
-			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, false, userToken)
+			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, false, userToken, tenantCode)
 			let solutionRolloutId
 			const rolloutDetailsResult = rolloutDetails?.result
 
@@ -640,7 +671,8 @@ module.exports = class RolloutsHelper {
 			const resourceDetails = await resourceService.getDetails(
 				rolloutDetailsResult?.resource_id,
 				orgId,
-				userToken
+				userToken,
+				tenantCode
 			)
 
 			// if resource status is in the forbidden list , cannot proceed to rollout
@@ -664,13 +696,20 @@ module.exports = class RolloutsHelper {
 					type: common.ROLLOUT_TYPE_SOLUTION,
 					parent_id: rolloutId,
 					organization_code: orgId,
+					tenant_code: tenantCode,
 				})
 
 				if (!solutionRollout?.id) {
 					let solutionRollout = _.omit(rolloutDetailsResult, ['id', 'blob_path', 'created_at', 'updated_at'])
 					solutionRollout.type = common.ROLLOUT_TYPE_SOLUTION
 					solutionRollout.parent_id = rolloutId
-					const resultCreateRollout = await this.create(solutionRollout, loggedInUserId, orgId, true)
+					const resultCreateRollout = await this.create(
+						solutionRollout,
+						loggedInUserId,
+						orgId,
+						true,
+						tenantCode
+					)
 					if (resultCreateRollout.statusCode !== httpStatusCode.ok) {
 						return responses.failureResponse({
 							statusCode: httpStatusCode[resultCreateRollout.statusCode],
