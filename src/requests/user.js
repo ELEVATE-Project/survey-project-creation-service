@@ -10,6 +10,7 @@ const userBaseUrl = process.env.USER_SERVICE_HOST + process.env.USER_SERVICE_BAS
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 const request = require('request')
+const utils = require('@generics/utils')
 
 /**
  * Fetches the default organization details for a given organization code/id.
@@ -20,12 +21,12 @@ const request = require('request')
 const fetchOrg = function (organisationIdentifier) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let orgReadUrl
-			if (!isNaN(organisationIdentifier)) {
-				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_id=' + organisationIdentifier
-			} else {
-				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_code=' + organisationIdentifier
-			}
+			// if identifier is Numeric , add query param organisation_id else organisation_code
+			const queryParam = utils.isNumeric(organisationIdentifier)
+				? { organisation_id: organisationIdentifier }
+				: { organisation_code: organisationIdentifier } || {}
+
+			const orgReadUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_READ, queryParam)
 
 			let internalToken = true
 
@@ -54,12 +55,8 @@ const fetchOrg = function (organisationIdentifier) {
 const details = function (token = '', userId = '') {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let profileUrl = userBaseUrl + endpoints.USER_PROFILE_DETAILS
 			let internalToken = true // All internal api calls require internal access token
-
-			if (userId != '') {
-				profileUrl = profileUrl + '/' + userId
-			}
+			let profileUrl = utils.buildUrl(userBaseUrl, endpoints.USER_PROFILE_DETAILS, {}, userId || null)
 			const profileDetails = await requests.get(profileUrl, token, internalToken)
 			return resolve(profileDetails)
 		} catch (error) {
@@ -98,11 +95,15 @@ const list = function (
 ) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let apiUrl = userBaseUrl + endpoints.USERS_LIST + '?type=' + userType
-			if (pageNo != '') apiUrl += '&page=' + pageNo
-			if (pageSize != '') apiUrl += '&limit=' + pageSize
-			if (searchText != '') apiUrl += '&search=' + searchText
-			if (organization_code != null) apiUrl += '&organization_code=' + organization_code
+			const queryParams = {
+				type: userType,
+				...(pageNo != null && pageNo !== '' && { page: pageNo }),
+				...(pageSize != null && pageSize !== '' && { limit: pageSize }),
+				...(searchText != null && searchText !== '' && { search: searchText }),
+				...(organization_code != null && { organization_code }),
+			}
+
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
 
 			const userDetails = await requests.post(apiUrl, body, userToken, true)
 			return resolve(userDetails)
@@ -115,7 +116,7 @@ const list = function (
 const read = function (userId, userToken = '') {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let apiUrl = userBaseUrl + endpoints.USER_PROFILE_DETAILS + userId
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USER_PROFILE_DETAILS, {}, userId)
 			const userDetails = await requests.get(apiUrl, userToken, false)
 			return resolve(userDetails)
 		} catch (error) {
@@ -134,7 +135,7 @@ const read = function (userId, userToken = '') {
  * @returns {JSON} - List of roles
  */
 
-const getListOfUserRoles = async (page, limit, search) => {
+const getListOfUserRoles = async (page = null, limit = null, search = null) => {
 	const options = {
 		headers: {
 			'Content-Type': 'application/json',
@@ -142,8 +143,13 @@ const getListOfUserRoles = async (page, limit, search) => {
 		},
 		json: true,
 	}
+	const queryParams = {
+		...(page != null && { page }),
+		...(limit != null && { limit }),
+		...(search != null && { search }),
+	}
 
-	const apiUrl = userBaseUrl + endpoints.USERS_ROLE_LIST + `?page=${page}&limit=${limit}&search=${search}`
+	const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_ROLE_LIST, queryParams)
 
 	try {
 		const data = await new Promise((resolve, reject) => {
@@ -186,7 +192,11 @@ const getListOfUserRoles = async (page, limit, search) => {
 const listWithoutLimit = function (userType, searchText) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const apiUrl = userBaseUrl + endpoints.USERS_LIST + '?type=' + userType + '&search=' + searchText
+			const queryParams = {
+				...(type != null && { userType }),
+				...(search != null && { searchText }),
+			}
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
 			const userDetails = await requests.get(apiUrl, false, true)
 
 			return resolve(userDetails)
@@ -205,17 +215,14 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
 	}
 	return new Promise(async (resolve, reject) => {
 		try {
-			const apiUrl =
-				userBaseUrl +
-				endpoints.USERS_LIST +
-				'?type=' +
-				userType +
-				'&page=' +
-				pageNo +
-				'&limit=' +
-				pageSize +
-				'&search=' +
-				searchText
+			const queryParams = {
+				...(type != null && { userType }),
+				...(page != null && { pageNo }),
+				...(limit != null && { pageSize }),
+				...(search != null && { searchText }),
+			}
+
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
 			const userDetails = await requests.post(apiUrl, { ...userSearchBody }, '', true)
 
 			return resolve(userDetails)
@@ -236,7 +243,7 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
 const listOrganization = function (organizationIds = [], userToken = '') {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const apiUrl = userBaseUrl + endpoints.ORGANIZATION_LIST
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_LIST)
 			let body = {}
 			if (organizationIds) {
 				body.organizationIds = organizationIds
