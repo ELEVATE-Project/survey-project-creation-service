@@ -725,7 +725,7 @@ module.exports = class reviewsHelper {
 				return resourceDetails
 			}
 
-			resourceData = resourceDetails.result
+			let resourceData = resourceDetails.result
 
 			//publish the resource
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
@@ -742,7 +742,8 @@ module.exports = class reviewsHelper {
 							rolloutId,
 							resourceData.user_id,
 							resourceData.organization_code,
-							resourceData.userToken
+							resourceData.userToken,
+							resourceData.tenant_code
 						)
 
 						if (publishRollout.statusCode !== httpStatusCode.accepted) {

@@ -27,7 +27,8 @@ module.exports = class rollouts {
 						req.params.id,
 						req.body,
 						req.decodedToken.id,
-						req.decodedToken.organization_code
+						req.decodedToken.organization_code,
+						req.decodedToken.tenant_code
 					)
 				}
 				return rollout
@@ -35,7 +36,9 @@ module.exports = class rollouts {
 				const rollout = await rolloutService.create(
 					req.body,
 					req.decodedToken.id,
-					req.decodedToken.organization_code
+					req.decodedToken.organization_code,
+					false, //isSolutionType
+					req.decodedToken.tenant_code
 				)
 				return rollout
 			}
@@ -58,7 +61,8 @@ module.exports = class rollouts {
 				req.decodedToken.organization_code,
 				req.pageNo,
 				req.pageSize,
-				req.decodedToken.token
+				req.decodedToken.token,
+				req.decodedToken.tenant_code
 			)
 			return dataManagers
 		} catch (error) {
@@ -78,7 +82,9 @@ module.exports = class rollouts {
 				req.params.id,
 				req.decodedToken.organization_code,
 				req.decodedToken.id,
-				req.decodedToken.token
+				true, //return bulb path
+				req.decodedToken.token,
+				req.decodedToken.tenant_code
 			)
 			return rollout
 		} catch (error) {
@@ -106,7 +112,8 @@ module.exports = class rollouts {
 				req.searchText,
 				req.pageNo,
 				req.pageSize,
-				req.decodedToken.token
+				req.decodedToken.token,
+				req.decodedToken.tenant_code
 			)
 
 			return rolloutList
@@ -127,7 +134,8 @@ module.exports = class rollouts {
 				req.params.id,
 				req.decodedToken.id,
 				req.decodedToken.organization_code,
-				req.decodedToken.token
+				req.decodedToken.token,
+				req.decodedToken.tenant_code
 			)
 			return rollout
 		} catch (error) {
