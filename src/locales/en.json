@@ -166,5 +166,6 @@
 	"CANNOT_REMOVE_RESOURCES_ADDED_BEFORE_PUBLISHING": "Resource cannot be removed after the program has been published.",
 	"INVALID_RESOURCES_FOUND": "Invalid resource ids",
 	"FORBIDEN_RESOURCE_STATUS_FOR_ROLLOUT": "Resource status not eligible for Rollout.",
-	"INVALID_TENANT_OR_ORGANIZATION": "Invalid tenant or organization code provided in the request header."
+	"INVALID_TENANT_OR_ORGANIZATION": "Invalid tenant or organization code provided in the request header.",
+	"MISSING_TENANT_OR_ORGANIZATION": "organization_code or tenant_code missing."
 }

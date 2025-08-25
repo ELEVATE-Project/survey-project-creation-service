@@ -1,17 +1,19 @@
 const request = require('request')
 const parser = require('xml2json')
-var get = function (url, token = '', internal_access_token = false, internalAccessTokenKey = 'internal_access_token') {
+var get = function (
+	url,
+	token = '',
+	internal_access_token = false,
+	internalAccessTokenKey = 'internal_access_token',
+	additionalHeaders = {}
+) {
 	return new Promise((resolve, reject) => {
 		try {
 			let headers = {
 				'content-type': 'application/json',
-			}
-			if (internal_access_token) {
-				headers[internalAccessTokenKey] = process.env.INTERNAL_ACCESS_TOKEN
-			}
-
-			if (token) {
-				headers[process.env.AUTH_TOKEN_HEADER_NAME] = token
+				...(additionalHeaders || {}), // Safe against null/undefined
+				...(internal_access_token && { [internalAccessTokenKey]: process.env.INTERNAL_ACCESS_TOKEN }),
+				...(token && { [process.env.AUTH_TOKEN_HEADER_NAME]: token }),
 			}
 
 			const options = {

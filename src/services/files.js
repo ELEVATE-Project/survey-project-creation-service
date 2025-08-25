@@ -13,6 +13,7 @@ const { cloudClient } = require('@configs/cloud-service')
 const endpoints = require('@constants/endpoints')
 const cloudStorage = process.env.CLOUD_STORAGE_PROVIDER
 const bucketName = process.env.CLOUD_STORAGE_BUCKETNAME
+const path = require('path')
 
 module.exports = class FilesHelper {
 	/**
@@ -25,7 +26,14 @@ module.exports = class FilesHelper {
 	 * @param {boolean} serviceUpload - needed for nic server
 	 * @returns {JSON} - Response contains signed url
 	 */
-	static async getSignedUrl(payloadData, referenceType, userId = '', serviceUpload = false) {
+	static async getSignedUrl(
+		payloadData,
+		organization_code,
+		tenant_code,
+		referenceType,
+		userId = '',
+		serviceUpload = false
+	) {
 		try {
 			let payloadIds = Object.keys(payloadData)
 
@@ -34,6 +42,14 @@ module.exports = class FilesHelper {
 			}
 
 			let folderPath = ''
+
+			if (!organization_code || !tenant_code) {
+				return responses.failureResponse({
+					message: 'MISSING_TENANT_OR_ORGANIZATION',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 
 			// let referenceTypes = [common.CERTIFICATE, common.LOGO, common.SIGNATURE, common.BASE_TEMPLATE]
 
@@ -47,10 +63,29 @@ module.exports = class FilesHelper {
 			}
 
 			if (referenceTypes.hasOwnProperty(referenceType)) {
-				folderPath =
-					referenceTypes[referenceType] + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
+				// dynamically generate path
+				// path example : tenant_code/organization_code/userId/{referenceType}}/payloadId/unique UUID/
+				folderPath = path.join(
+					tenant_code,
+					organization_code,
+					userId,
+					referenceTypes[referenceType],
+					payloadIds[0],
+					utils.generateUniqueId(),
+					'/'
+				)
 			} else {
-				folderPath = common.RESOURCE_PATH + userId + '/' + payloadIds[0] + '/' + utils.generateUniqueId() + '/'
+				// dynamically generate path
+				// path example : tenant_code/organization_code/userId/resource/payloadId/unique UUID/
+				folderPath = path.join(
+					tenant_code,
+					organization_code,
+					userId,
+					common.RESOURCE_PATH,
+					payloadIds[0],
+					utils.generateUniqueId(),
+					'/'
+				)
 			}
 
 			let actionPermission = common.WRITE_ACCESS
@@ -61,7 +96,7 @@ module.exports = class FilesHelper {
 			let linkExpireTime = common.CLOUD_SERVICE_EXPIRY_TIME * common.LINK_EXPIRY_TIME
 
 			const signedUrlsPromises = fileNames.map(async (fileName) => {
-				let file = folderPath && folderPath !== '' ? folderPath + fileName : fileName
+				let file = folderPath && folderPath !== '' ? path.join(folderPath, fileName) : fileName
 				let response = {
 					file: file,
 					payload: { sourcePath: file },
@@ -80,7 +115,7 @@ module.exports = class FilesHelper {
 						actionPermission // read/write
 					)
 				} else {
-					response.url = `${process.env.PUBLIC_BASE_URL}/${endpoints.UPLOAD_FILE}?file=${file}`
+					response.url = utils.buildUrl(process.env.PUBLIC_BASE_URL, endpoints.UPLOAD_FILE, { file })
 				}
 
 				return response
