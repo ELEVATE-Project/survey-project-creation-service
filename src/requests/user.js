@@ -11,36 +11,28 @@ const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 const utils = require('@generics/utils')
 const request = require('request')
+const utils = require('@generics/utils')
 
 /**
  * Fetches the default organization details for a given organization code/id.
  * @param {string} organisationIdentifier - The code/id of the organization.
  * @returns {Promise} A promise that resolves with the organization details or rejects with an error.
  */
-
-const fetchOrg = function (organisationIdentifier, tenantCode = null) {
+const fetchOrg = function (organisationIdentifier, tenantCode, internalToken = true) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let orgReadUrl
-			/*
-			Note : here the spelling of organization is given as organisation in the user service.
-			We are using the same spelling to avoid breaking changes.
-			This cannot be changed in the user-service as it will create issue in mentoring. 
-			Incase of future update , please handle it here
-			*/
-			if (!isNaN(organisationIdentifier)) {
-				orgReadUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_READ, {
-					organisation_id: organisationIdentifier,
-				})
-			} else {
-				let queryParams = {
-					organisation_code: organisationIdentifier,
-				}
-				if (tenantCode) queryParams.tenant_code = tenantCode
-				orgReadUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_READ, queryParams)
+			if (!organisationIdentifier || !tenantCode) {
+				throw new Error('Organisation identifier and tenant code are required')
 			}
 
-			let internalToken = true
+			// if identifier is Numeric , add query param organisation_id else organisation_code
+			let queryParam = utils.isNumeric(organisationIdentifier)
+				? { organisation_id: organisationIdentifier }
+				: { organisation_code: organisationIdentifier } || {}
+
+			queryParam.tenant_code = tenantCode
+
+			const orgReadUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_READ, queryParam)
 
 			const orgDetails = await requests.get(
 				orgReadUrl,
@@ -67,12 +59,8 @@ const fetchOrg = function (organisationIdentifier, tenantCode = null) {
 const details = function (token = '', userId = '') {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let profileUrl = userBaseUrl + endpoints.USER_PROFILE_DETAILS
 			let internalToken = true // All internal api calls require internal access token
-
-			if (userId != '') {
-				profileUrl = profileUrl + '/' + userId
-			}
+			let profileUrl = utils.buildUrl(userBaseUrl, endpoints.USER_PROFILE_DETAILS, {}, userId || null)
 			const profileDetails = await requests.get(profileUrl, token, internalToken)
 			return resolve(profileDetails)
 		} catch (error) {
@@ -108,20 +96,21 @@ const list = function (
 	organization_code = null,
 	tenant_code = null,
 	body = {},
-	userToken = ''
+	userToken = '',
+	tenantCode = null
 ) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let queryParams = {
+			const queryParams = {
 				type: userType,
+				...(pageNo != null && pageNo !== '' && { page: pageNo }),
+				...(pageSize != null && pageSize !== '' && { limit: pageSize }),
+				...(searchText != null && searchText !== '' && { search: searchText }),
+				...(organization_code != null && { organization_code }),
+				...(tenantCode != null && { tenant_code: tenantCode }),
 			}
-			if (pageNo != '') queryParams.page = pageNo
-			if (pageSize != '') queryParams.limit = pageSize
-			if (searchText != '') queryParams.search = searchText
-			if (organization_code != null) queryParams.organization_code = organization_code
-			if (tenant_code != null) queryParams.tenant_code = tenant_code
 
-			let apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
 
 			const userDetails = await requests.post(apiUrl, body, userToken, true)
 			return resolve(userDetails)
@@ -134,7 +123,7 @@ const list = function (
 const read = function (userId, userToken = '') {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let apiUrl = userBaseUrl + endpoints.USER_PROFILE_DETAILS + userId
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USER_PROFILE_DETAILS, {}, userId)
 			const userDetails = await requests.get(apiUrl, userToken, false)
 			return resolve(userDetails)
 		} catch (error) {
@@ -153,7 +142,7 @@ const read = function (userId, userToken = '') {
  * @returns {JSON} - List of roles
  */
 
-const getListOfUserRoles = async (page, limit, search) => {
+const getListOfUserRoles = async (page = null, limit = null, search = null) => {
 	const options = {
 		headers: {
 			'Content-Type': 'application/json',
@@ -161,8 +150,13 @@ const getListOfUserRoles = async (page, limit, search) => {
 		},
 		json: true,
 	}
+	const queryParams = {
+		...(page != null && { page }),
+		...(limit != null && { limit }),
+		...(search != null && { search }),
+	}
 
-	const apiUrl = userBaseUrl + endpoints.USERS_ROLE_LIST + `?page=${page}&limit=${limit}&search=${search}`
+	const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_ROLE_LIST, queryParams)
 
 	try {
 		const data = await new Promise((resolve, reject) => {
@@ -205,7 +199,11 @@ const getListOfUserRoles = async (page, limit, search) => {
 const listWithoutLimit = function (userType, searchText) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const apiUrl = userBaseUrl + endpoints.USERS_LIST + '?type=' + userType + '&search=' + searchText
+			const queryParams = {
+				...(type != null && { userType }),
+				...(search != null && { searchText }),
+			}
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
 			const userDetails = await requests.get(apiUrl, false, true)
 
 			return resolve(userDetails)
@@ -224,17 +222,14 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
 	}
 	return new Promise(async (resolve, reject) => {
 		try {
-			const apiUrl =
-				userBaseUrl +
-				endpoints.USERS_LIST +
-				'?type=' +
-				userType +
-				'&page=' +
-				pageNo +
-				'&limit=' +
-				pageSize +
-				'&search=' +
-				searchText
+			const queryParams = {
+				...(type != null && { userType }),
+				...(page != null && { pageNo }),
+				...(limit != null && { pageSize }),
+				...(search != null && { searchText }),
+			}
+
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
 			const userDetails = await requests.post(apiUrl, { ...userSearchBody }, '', true)
 
 			return resolve(userDetails)
@@ -269,6 +264,23 @@ const listOrganization = function (OrganizationCodes = [], tenantCode = null) {
 	})
 }
 
+/**
+ * Fetches tenant public details for a given tenant code.
+ * @param {string} tenantCode - The code of the tenant.
+ * @returns {Promise} A promise that resolves with the tenant details or rejects with an error.
+ */
+const fetchPublicTenantDetails = function (tenantCode) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			const tenantReadUrl = `${userBaseUrl}${endpoints.PUBLIC_TENANT_DETAILS}`
+			const tenantDetails = await requests.get(tenantReadUrl, '', '', '', { tenantid: tenantCode })
+			return resolve(tenantDetails)
+		} catch (error) {
+			return reject(error)
+		}
+	})
+}
+
 module.exports = {
 	fetchOrg,
 	details,
@@ -278,4 +290,5 @@ module.exports = {
 	getListOfUserRoles,
 	listOrganization,
 	read,
+	fetchPublicTenantDetails,
 }

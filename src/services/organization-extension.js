@@ -394,6 +394,14 @@ module.exports = class orgExtensionsHelper {
 			})
 
 			result.resource = configData
+
+			//get the factors and optional factors from user service
+			const tenantDetails = await userRequests.fetchPublicTenantDetails(tenantCode)
+			// add scope related factors to the result
+			const meta = tenantDetails?.success ? tenantDetails?.data?.result?.meta : {}
+			result.factors = meta?.factors ?? []
+			result.optional_factors = meta?.optional_factors ?? []
+
 			// return success message
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,

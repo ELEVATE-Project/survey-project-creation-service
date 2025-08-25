@@ -813,31 +813,27 @@ function _extractTenantAndOrgCodes(req) {
  * @param {String} baseUrl - Input base URL
  * @param {String} endpoint - Input endPoint
  * @param {Object} queryParams - Input Object of query params
+ * @param {Object} idParam - Input id as url param
  * @returns {String} Returns constructed URL.
  */
 
-function buildUrl(baseUrl, endpoint, queryParams = {}) {
-	// Ensure baseUrl ends with a single slash
-	const normalizedBase = baseUrl.replace(/\/+$/, '') + '/'
+function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
+	const cleanBaseUrl = baseUrl.replace(/\/+$/, '')
+	let cleanEndpoint = endpoint.replace(/^\/+/, '')
+	if (idParam) cleanEndpoint = `${cleanEndpoint}/${idParam}`
 
-	// Ensure endpoint starts without a slash and doesn't end with a slash
-	const normalizedEndpoint = endpoint.replace(/^\/+|\/+$/g, '')
+	// Create URL object from host string
+	let url = new URL(`${cleanBaseUrl}/${cleanEndpoint}`)
 
-	// Build the base URL
-	let url = `${normalizedBase}${normalizedEndpoint}`
+	// Get existing search parameters
+	const searchParams = url.searchParams
 
-	// Handle query parameters
-	const queryString = Object.entries(queryParams)
-		.filter(([_, value]) => value !== undefined && value !== null)
-		.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-		.join('&')
+	// Append new parameters
+	Object.entries(queryParams).forEach(([key, value]) => {
+		searchParams.append(key, value)
+	})
 
-	// Append query string if present
-	if (queryString) {
-		url += `?${queryString}`
-	}
-
-	return url
+	return url.toString()
 }
 
 module.exports = {

@@ -9,6 +9,7 @@
 const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
+const utils = require('@generics/utils')
 
 /**
  * browse Existing resources List
@@ -28,7 +29,9 @@ const browseExistingList = function (resourceType = '', organization_code = null
 			let body = {
 				resourceType: resourceType ? resourceType.split(',') : [],
 			}
-			let apiUrl = interfaceBaseUrl + endpoints.BROWSE_EXISTING_END_POINT
+
+			const apiUrl = utils.buildUrl(interfaceBaseUrl, endpoints.BROWSE_EXISTING_END_POINT)
+
 			if (searchText != '') body.search = searchText
 			if (organization_code != null) body.organization_code = organization_code
 
