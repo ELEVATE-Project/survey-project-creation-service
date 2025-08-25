@@ -11,7 +11,6 @@ const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 const utils = require('@generics/utils')
 const request = require('request')
-const utils = require('@generics/utils')
 
 /**
  * Fetches the default organization details for a given organization code/id.
