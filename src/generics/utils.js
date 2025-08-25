@@ -818,22 +818,26 @@ function _extractTenantAndOrgCodes(req) {
  */
 
 function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
-	const cleanBaseUrl = baseUrl.replace(/\/+$/, '')
-	let cleanEndpoint = endpoint.replace(/^\/+/, '')
-	if (idParam) cleanEndpoint = `${cleanEndpoint}/${idParam}`
+	try {
+		const cleanBaseUrl = baseUrl.replace(/\/+$/, '')
+		let cleanEndpoint = endpoint.replace(/^\/+/, '')
+		if (idParam) cleanEndpoint = `${cleanEndpoint}/${idParam}`
 
-	// Create URL object from host string
-	let url = new URL(`${cleanBaseUrl}/${cleanEndpoint}`)
+		// Create URL object from host string
+		let url = new URL(`${cleanBaseUrl}/${cleanEndpoint}`)
 
-	// Get existing search parameters
-	const searchParams = url.searchParams
+		// Get existing search parameters
+		const searchParams = url.searchParams
 
-	// Append new parameters
-	Object.entries(queryParams).forEach(([key, value]) => {
-		searchParams.append(key, value)
-	})
+		// Append new parameters
+		Object.entries(queryParams).forEach(([key, value]) => {
+			searchParams.append(key, value)
+		})
 
-	return url.toString()
+		return url.toString()
+	} catch {
+		throw new Error('INVALID URL INPUT')
+	}
 }
 
 module.exports = {
