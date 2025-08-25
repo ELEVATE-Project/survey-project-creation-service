@@ -95,8 +95,7 @@ const list = function (
 	organization_code = null,
 	tenant_code = null,
 	body = {},
-	userToken = '',
-	tenantCode = null
+	userToken = ''
 ) {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -106,7 +105,7 @@ const list = function (
 				...(pageSize != null && pageSize !== '' && { limit: pageSize }),
 				...(searchText != null && searchText !== '' && { search: searchText }),
 				...(organization_code != null && { organization_code }),
-				...(tenantCode != null && { tenant_code: tenantCode }),
+				...(tenant_code != null && { tenant_code: tenant_code }),
 			}
 
 			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)

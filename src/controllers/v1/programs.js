@@ -124,7 +124,8 @@ module.exports = class Programs {
 				req.decodedToken.organization_code,
 				req.pageNo,
 				req.pageSize,
-				req.decodedToken.token
+				req.decodedToken.token,
+				req.decodedToken.tenant_code
 			)
 			return dataManagers
 		} catch (error) {

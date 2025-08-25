@@ -844,11 +844,13 @@ async function handleProgramRollout(resourceData, resourceId, userId, userToken)
 				resourceId,
 				resourceData,
 				userId,
-				resourceData.organization_code
+				resourceData.organization_code,
+				false,
+				resourceData.tenant_code
 			)
 		} else {
 			// while program publishing first time
-			rolloutData = await rolloutService.createProgramRollout(resourceData, userId, userToken)
+			let rolloutData = await rolloutService.createProgramRollout(resourceData, userId, userToken)
 			if (!rolloutData?.success) {
 				throw new Error(rolloutData?.error)
 			}

@@ -189,7 +189,7 @@ module.exports = class RolloutsHelper {
 					// fetch the user if viewer is present
 					if (response?.result?.viewers?.length > 0) {
 						const viewerUserIds = response.result.viewers
-						const userDetails = await this.fetchUserDetails(viewerUserIds, userToken)
+						const userDetails = await this.fetchUserDetails(viewerUserIds, userToken, orgId, tenantCode)
 
 						if (userDetails && Object.keys(userDetails).length > 0) {
 							resultData.viewers = viewerUserIds.map((user) => {
@@ -247,6 +247,7 @@ module.exports = class RolloutsHelper {
 				pageSize,
 				'',
 				orgId,
+				tenantCode,
 				{},
 				userToken
 			)
@@ -386,7 +387,7 @@ module.exports = class RolloutsHelper {
 			})
 
 			// fetch the user details from user service
-			const userDetails = await this.fetchUserDetails([loggedInUserId], userToken)
+			const userDetails = await this.fetchUserDetails([loggedInUserId], userToken, organization_code, tenantCode)
 
 			// fetch the org details from user service
 			const orgDetails = await orgExtensionService.fetchOrganizationDetails(orgList, tenantCode)
@@ -547,15 +548,19 @@ module.exports = class RolloutsHelper {
 	 * Get all details of users from the user service.
 	 * @name fetchUserDetails
 	 * @param {Array} userIds - array of userIds.
+	 * @param {String} userToken - user token of loggedin user.
+	 * @param {String} orgId - organization id
+	 * @param {String} tenantCode - tenant code
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds, userToken = '') {
+	static async fetchUserDetails(userIds, userToken = '', orgId, tenantCode) {
 		const userDetailsResponse = await userRequests.list(
 			common.FILTER_ALL.toLowerCase(),
 			'',
 			'',
 			'',
-			'',
+			orgId,
+			tenantCode,
 			{
 				user_ids: userIds,
 			},
@@ -919,9 +924,11 @@ module.exports = class RolloutsHelper {
 	 * @param {Object} programData - Program data object
 	 * @param {String} userId - The ID of the user
 	 * @param {String} orgId - The ID of the Organization
+	 * @param {String} userToken -user token
+	 * @param {String} tenantCode - tenant code
 	 * @returns {Integer} - program rollout id
 	 */
-	static async updateProgramRollout(programId, programData, userId, orgId, userToken = false) {
+	static async updateProgramRollout(programId, programData, userId, orgId, userToken = false, tenantCode) {
 		try {
 			// fetch the resource ids from the program
 			const programResourceIds = programData.resources.map((resource) => resource.id)
@@ -934,6 +941,7 @@ module.exports = class RolloutsHelper {
 					},
 					user_id: userId,
 					organization_code: orgId,
+					tenant_code: tenantCode,
 				},
 				{
 					attributes: ['id', 'resource_type', 'resource_id'],
@@ -974,7 +982,7 @@ module.exports = class RolloutsHelper {
 					}
 
 					createRolloutPromise.push(
-						this.create(resourceRolloutReqBody, userId, programData.organization_code, true)
+						this.create(resourceRolloutReqBody, userId, programData.organization_code, true, tenantCode)
 					)
 				}
 				await Promise.all(createRolloutPromise)
@@ -985,6 +993,7 @@ module.exports = class RolloutsHelper {
 						},
 						user_id: userId,
 						organization_code: orgId,
+						tenant_code: tenantCode,
 					},
 					{
 						attributes: ['id', 'resource_type', 'resource_id'],
@@ -1019,12 +1028,18 @@ module.exports = class RolloutsHelper {
 				rolloutUpdate.resources.push(resource)
 			})
 			// create a promise variable and add program rollout update
-			let rolloutUpdatePromise = [this.update(programRolloutId, rolloutUpdate, userId, orgId)]
+			let rolloutUpdatePromise = [this.update(programRolloutId, rolloutUpdate, userId, orgId, tenantCode)]
 
 			// append resource rollout update promises
 			rolloutUpdate.resources.forEach(async (resource) => {
 				rolloutUpdatePromise.push(
-					this.update(resourceRolloutResourceIdMap[resource.id], { ...resource, viewers }, userId, orgId)
+					this.update(
+						resourceRolloutResourceIdMap[resource.id],
+						{ ...resource, viewers },
+						userId,
+						orgId,
+						tenantCode
+					)
 				)
 			})
 
@@ -1035,7 +1050,9 @@ module.exports = class RolloutsHelper {
 				programRolloutId,
 				programData.organization_code,
 				programData.user_id,
-				false
+				false,
+				userToken,
+				tenantCode
 			)
 
 			const validateRollout = await this.validateRollout(rolloutDetails.result)
@@ -1059,6 +1076,8 @@ module.exports = class RolloutsHelper {
 	 * @method
 	 * @name createProgramRollout
 	 * @param {Object} programData - Program data object
+	 * @param {String} userId - User id
+	 * @param {String} userToken -userToken
 	 * @returns {Integer} - program rollout id
 	 */
 
@@ -1075,6 +1094,7 @@ module.exports = class RolloutsHelper {
 					},
 					organization_code: programData.organization_code,
 					created_by: userId,
+					tenant_code: programData.tenant_code,
 				},
 				['id']
 			)
@@ -1119,7 +1139,13 @@ module.exports = class RolloutsHelper {
 					}
 
 					createRolloutPromise.push(
-						this.create(resourceRolloutReqBody, userId, programData.organization_code, true)
+						this.create(
+							resourceRolloutReqBody,
+							userId,
+							programData.organization_code,
+							true,
+							programData.tenant_code
+						)
 					)
 				}
 			}
@@ -1153,7 +1179,9 @@ module.exports = class RolloutsHelper {
 			const createProgramRollout = await this.create(
 				rolloutReqBody,
 				programData.user_id,
-				programData.organization_code
+				programData.organization_code,
+				false,
+				programData.tenant_code
 			)
 
 			if (createProgramRollout.statusCode !== httpStatusCode.ok) {

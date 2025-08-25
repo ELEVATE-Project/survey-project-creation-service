@@ -828,15 +828,17 @@ module.exports = class ProgramsHelper {
 		}
 	}
 
-	/* Get Program Managers list
+	/** Get Program Managers list
 	 * @method
 	 * @name getProgramManagers
 	 * @param orgId  - Organization Id
 	 * @param pageNo - Page number
 	 * @param pageSize - Page size
+	 * @param {String} userToken - User token
+	 * @param {String} tenantCode -Tenant code
 	 * @returns {JSON} - List of program managers
-	 */
-	static async getProgramManagers(orgId, pageNo, pageSize, userToken = '') {
+	 **/
+	static async getProgramManagers(orgId, pageNo, pageSize, userToken = '', tenantCode) {
 		try {
 			// get org config based on orgId
 			const orgConfigs = await orgExtensionService.getConfig(orgId)
@@ -848,6 +850,7 @@ module.exports = class ProgramsHelper {
 				pageSize,
 				'',
 				orgId,
+				tenantCode,
 				{},
 				userToken
 			)
@@ -1182,7 +1185,8 @@ module.exports = class ProgramsHelper {
 				rolloutId,
 				programData.user_id,
 				programData.organization_code,
-				userDetails.token
+				userDetails.token,
+				programData.tenant_code
 			)
 
 			if (![httpStatusCode.ok, httpStatusCode.accepted].includes(publishRollout.statusCode)) {
@@ -1371,11 +1375,12 @@ async function handleProgramRollouts(resourceData, resourceId, userId, userToken
 			resourceData,
 			userId,
 			resourceData.organization_code,
-			userToken
+			userToken,
+			resourceData.tenant_code
 		)
 	} else {
 		// while program publishing first time
-		rolloutData = await rolloutService.createProgramRollout(resourceData, userId, userToken)
+		let rolloutData = await rolloutService.createProgramRollout(resourceData, userId, userToken)
 		if (!rolloutData?.success) {
 			throw new Error(rolloutData?.error)
 		}

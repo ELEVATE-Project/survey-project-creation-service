@@ -600,6 +600,7 @@ module.exports = class ProjectsHelper {
 					'',
 					'',
 					userDetails.organization_code,
+					userDetails.tenant_code,
 					{
 						user_ids: uniqueReviewerIds,
 						excluded_user_ids: [userDetails.id],
