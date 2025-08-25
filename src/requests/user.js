@@ -21,12 +21,14 @@ const utils = require('@generics/utils')
 const fetchOrg = function (organisationIdentifier, tenantCode, internalToken = true) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let orgReadUrl
-			if (!isNaN(organisationIdentifier)) {
-				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_id=' + organisationIdentifier
-			} else {
-				orgReadUrl = userBaseUrl + endpoints.ORGANIZATION_READ + '?organisation_code=' + organisationIdentifier
+			if (!organisationIdentifier || !tenantCode) {
+				throw new Error('Organisation identifier and tenant code are required')
 			}
+
+			// if identifier is Numeric , add query param organisation_id else organisation_code
+			let queryParam = utils.isNumeric(organisationIdentifier)
+				? { organisation_id: organisationIdentifier }
+				: { organisation_code: organisationIdentifier } || {}
 
 			queryParam.tenant_code = tenantCode
 
