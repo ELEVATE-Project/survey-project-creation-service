@@ -280,7 +280,13 @@ module.exports = class reviewsHelper {
 
 			// Publish resource if isPublishResource is true
 			if (isPublishResource) {
-				const publishResource = await this.publishResource(resourceId, resource.user_id, tenantCode, userToken)
+				const publishResource = await this.publishResource(
+					resourceId,
+					resource.user_id,
+					resource.organization_code,
+					tenantCode,
+					userToken
+				)
 				return publishResource
 			}
 
@@ -563,7 +569,7 @@ module.exports = class reviewsHelper {
 			}
 
 			// Check if a review exists for the specified user and resource
-			const reviewValidation = await this.getReviewDetails(userId, resourceId)
+			const reviewValidation = await this.getReviewDetails(userId, resourceId, tenantCode)
 			if (reviewValidation.statusCode !== httpStatusCode.ok) {
 				return reviewValidation
 			}
@@ -728,7 +734,7 @@ module.exports = class reviewsHelper {
 	static async publishResource(resourceId, userId, organizationCode, tenantCode, userToken = '') {
 		try {
 			// Fetch the resource creator mapping
-			const resource = await resourceCreatorMappingQueries.findOne(
+			const resourceMapping = await resourceCreatorMappingQueries.findOne(
 				{
 					creator_id: userId,
 					resource_id: resourceId,
@@ -741,26 +747,19 @@ module.exports = class reviewsHelper {
 				}
 			)
 
-			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
-
-			// this has to be further checked as part of review flow
-			// Fetch resource data
-			// let resourceData = await resourceQueries.findOne({
-			// 	id: resourceId,
-			// 	organization_code: resource.organization_code,
-			// 	tenant_code: tenantCode,
-			// })
+			if (!resourceMapping?.id) throw new Error('RESOURCE_NOT_FOUND')
 
 			let resourceDetails = await resourceService.getDetails(
-				resource.resource.id,
-				resource.resource.organization_code,
+				resourceMapping.resource.id,
+				resourceMapping.resource.organization_code,
+				tenantCode,
 				userToken
 			)
 			if (resourceDetails.statusCode !== httpStatusCode.ok) {
 				return resourceDetails
 			}
 
-			resourceData = resourceDetails.result
+			const resourceData = resourceDetails.result
 
 			//publish the resource
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
@@ -798,7 +797,11 @@ module.exports = class reviewsHelper {
 
 			//update resource table
 			await resourceQueries.updateOne(
-				{ id: resourceId, organization_code: resourceData.organization_code },
+				{
+					id: resourceId,
+					organization_code: resourceData.organization_code,
+					tenant_code: resourceData.tenant_code,
+				},
 				{
 					status: common.RESOURCE_STATUS_PUBLISHED,
 					published_on: new Date(),

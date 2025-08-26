@@ -93,10 +93,9 @@ const list = function (
 	pageSize = '',
 	searchText = '',
 	organization_code = null,
-	tenant_code = null,
+	tenantCode = null,
 	body = {},
-	userToken = '',
-	tenantCode = null
+	userToken = ''
 ) {
 	return new Promise(async (resolve, reject) => {
 		try {

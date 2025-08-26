@@ -103,6 +103,8 @@ module.exports = class ProjectsHelper {
 
 				const projectUploadStatus = await resourceService.uploadToCloud(
 					common.PROJECT_UPLOAD_FILE_NAME,
+					orgCode,
+					tenantCode,
 					projectCreate.id,
 					common.PROJECT,
 					loggedInUserId,
@@ -600,6 +602,7 @@ module.exports = class ProjectsHelper {
 					'',
 					'',
 					userDetails.organization_code,
+					userDetails.tenant_code,
 					{
 						user_ids: uniqueReviewerIds,
 						excluded_user_ids: [userDetails.id],
