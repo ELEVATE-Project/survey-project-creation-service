@@ -229,6 +229,7 @@ module.exports = class ProjectsHelper {
 			}
 
 			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_code', 'user_id'])
+			bodyData = await this.getResourceCertificateurl(bodyData)
 			//upload to blob
 			const projectUploadStatus = await resourceService.uploadToCloud(
 				common.PROJECT_UPLOAD_FILE_NAME,
@@ -1056,6 +1057,39 @@ module.exports = class ProjectsHelper {
 			}
 		} catch (error) {
 			return error
+		}
+	}
+
+	/**
+	 * get the base_template_url as a string to store in the certificate
+	 * @param {Object} bodyData - req body data
+	 * @returns {Promise<void>} - BodyData with basetemplateURL
+	 */
+
+	static async getResourceCertificateurl(bodyData) {
+		try {
+			if (bodyData?.certificate?.base_template_url) {
+				let ceritificateBaseTemplateUrl = bodyData.certificate.base_template_url
+
+				if (typeof ceritificateBaseTemplateUrl === common.STRING && ceritificateBaseTemplateUrl.trim() !== '') {
+					return bodyData
+				} else if (
+					typeof ceritificateBaseTemplateUrl === common.OBJECT &&
+					ceritificateBaseTemplateUrl !== null &&
+					ceritificateBaseTemplateUrl.url
+				) {
+					// If it's an object with `url`, set it
+					bodyData.certificate.base_template_url = ceritificateBaseTemplateUrl.url
+					return bodyData
+				} else {
+					// Fallback if it's empty string, null, or unexpected type
+					bodyData.certificate.base_template_url = ''
+					return bodyData
+				}
+			}
+			return bodyData
+		} catch (error) {
+			throw error
 		}
 	}
 }
