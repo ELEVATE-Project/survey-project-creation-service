@@ -955,7 +955,7 @@ async function handleComments(
 			}
 		}
 
-		const isCommentValid = await isParantCommentValid(parentCommentIds, resourceId, orgCode, tenantCode)
+		const isCommentValid = await isParentCommentValid(parentCommentIds, resourceId, orgCode, tenantCode)
 		if (!isCommentValid) throw new Error('COMMENT_PARENT_INVALID')
 
 		//update the associated draft comment to open if the resource is program
@@ -1014,14 +1014,14 @@ async function handleComments(
 /**
  * Check if the given parent ids are valid or not for the resource
  * @method
- * @name isParantCommentValid
+ * @name isParentCommentValid
  * @param {Array} parentIds - List of parent ids of the comments
  * @param {Integer} resourceId - Resource Id
  * @param {String} orgCode - Org Code
  * @param {String} tenantCode - Tenant code
  * @returns {Boolean} - Returns a true / false indicating if the parent id is a valid id for the resource.
  */
-async function isParantCommentValid(parentIds, resourceId, orgCode, tenantCode) {
+async function isParentCommentValid(parentIds, resourceId, orgCode, tenantCode) {
 	try {
 		const filter = {
 			id: { [Op.in]: parentIds },
