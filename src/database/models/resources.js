@@ -154,6 +154,22 @@ module.exports = (sequelize, DataTypes) => {
 			onDelete: 'CASCADE',
 			onUpdate: 'CASCADE',
 		})
+		Resource.hasMany(models.ProgramResourceMapping, {
+			foreignKey: 'resource_id',
+			sourceKey: 'id',
+			as: 'ProgramResources',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
+		Resource.hasMany(models.ProgramResourceMapping, {
+			foreignKey: 'program_id',
+			sourceKey: 'id',
+			as: 'Program',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
 	}
 
 	// Helper function to emit user actions with dynamic action types
