@@ -23,10 +23,6 @@
         release_path: "{{ project_path }}/releases/{{ lookup('pipe','date +%Y%m%d%H%M%S') }}"
         current_path: "{{ project_path }}/survey-project-creation-service"
 
-    - name: Get config.json 
-      shell: "curl --location --request GET '{{ vaultAddress }}scpConfig' --header 'X-Vault-Token: {{ slurpfile['content'] | b64decode }}' | jq '.data.data' > '{{ release_path 
-}}/config.json'"
-
     - name: Retrieve current release folder
       command: readlink -f survey-project-creation-service
       register: current_release_path
@@ -62,9 +58,9 @@
       shell: cat {{ project_path }}/data2.json | {{ current_path }}/src/scripts/json2env.sh > {{ current_path }}/src/.env
       register: envConfig 
     - debug: msg=" cred {{ envConfig }} "
-
-    - name: move config.json  
-      shell: mv {{ current_path }}/config.json  {{ current_path }}/src/
+    
+    - name: Get config.json
+      shell: "curl --location --request GET '{{ vaultAddress }}scpConfig' --header 'X-Vault-Token: {{ slurpfile['content'] | b64decode }}' | jq '.data.data' > '{{ release_path }}/src/config.json'"
 
     - name: move gcp credentials 
       shell: mv {{ project_path }}/gcp.json  {{ current_path }}/src/
