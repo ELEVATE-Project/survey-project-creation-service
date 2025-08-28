@@ -148,18 +148,33 @@ module.exports = class RolloutsHelper {
 	 * @param {String} loggedInUserId - User id
 	 * @returns {JSON} - Rollout Details
 	 */
-	static async details(rolloutId, orgId, loggedInUserId, returnBlobPath = false, userToken = '', tenantCode) {
+	static async details(
+		rolloutId,
+		orgId,
+		loggedInUserId,
+		returnBlobPath = false,
+		userToken = '',
+		tenantCode,
+		getResourceData = false
+	) {
 		try {
 			let result = {
 				organization: {},
 			}
 
-			const rollout = await rolloutQueries.findOne({
+			const filter = {
 				id: rolloutId,
 				organization_code: orgId,
 				user_id: loggedInUserId,
 				tenant_code: tenantCode,
-			})
+			}
+
+			let rollout
+			if (getResourceData) {
+				rollout = await rolloutQueries.findOne(filter, {}, true) // include resourceDetails
+			} else {
+				rollout = await rolloutQueries.findOne(filter) // plain query
+			}
 
 			if (!rollout?.id) {
 				return responses.failureResponse({
@@ -656,7 +671,15 @@ module.exports = class RolloutsHelper {
 	static async publish(rolloutId, loggedInUserId, orgId, userToken = '', tenantCode) {
 		try {
 			// fetch rollout details
-			const rolloutDetails = await this.details(rolloutId, orgId, loggedInUserId, false, userToken, tenantCode)
+			const rolloutDetails = await this.details(
+				rolloutId,
+				orgId,
+				loggedInUserId,
+				false,
+				userToken,
+				tenantCode,
+				true
+			)
 			let solutionRolloutId
 			const rolloutDetailsResult = rolloutDetails?.result
 
@@ -673,9 +696,16 @@ module.exports = class RolloutsHelper {
 				})
 			}
 
+			if (!rolloutDetailsResult?.resourceDetails.id) {
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					message: 'RESOURCE_NOT_FOUND',
+				})
+			}
+
 			// fetch resource details
 			const resourceDetails = await resourceService.getDetails(
-				rolloutDetailsResult?.resource_id,
+				rolloutDetailsResult?.resourceDetails,
 				orgId,
 				userToken,
 				tenantCode

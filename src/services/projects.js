@@ -229,7 +229,6 @@ module.exports = class ProjectsHelper {
 			}
 
 			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_code', 'user_id'])
-			bodyData = await this.getResourceCertificateurl(bodyData)
 			//upload to blob
 			const projectUploadStatus = await resourceService.uploadToCloud(
 				common.PROJECT_UPLOAD_FILE_NAME,
@@ -485,20 +484,21 @@ module.exports = class ProjectsHelper {
 				}
 			}
 			//Add path in getDownloadUrl
-			if (result.certificate && result.certificate.base_template_url && result.certificate.base_template_id) {
-				const baseTemplate = await certificateBasetemplateQueries.findOne(
-					{
-						id: result.certificate.base_template_id,
-						organization_code: orgCode,
-						tenant_code: tenantCode,
-					},
-					{ attributes: ['id', 'name', 'url'] }
-				)
-				if (baseTemplate) {
-					result.certificate.base_template_url = {
-						url: result.certificate.base_template_url,
-						filepath: baseTemplate.url,
-					}
+			if (
+				result.certificate &&
+				result.certificate.base_template_url &&
+				typeof result.certificate.base_template_url === common.OBJECT
+			) {
+				let getResourceCertificateurl = result.certificate.base_template_url
+				let certificatesUrl = await filesService.getDownloadableUrl([getResourceCertificateurl.filePath])
+
+				if (
+					certificatesUrl &&
+					certificatesUrl.statusCode === httpStatusCode.ok &&
+					certificatesUrl.result &&
+					certificatesUrl.result.length > 0
+				) {
+					result.certificate.base_template_url.url = certificatesUrl.result?.[0]?.url
 				}
 			}
 			//get organization details

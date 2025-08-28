@@ -876,17 +876,23 @@ module.exports = class resourceHelper {
 	 * @name getDetails
 	 * @returns {JSON} - details of resource
 	 */
-	static async getDetails(resourceId, orgId, userToken = '') {
+	static async getDetails(resourceInfo, orgId, userToken = '') {
 		try {
+			let resource
 			let result = {
 				organization: {},
 			}
-			const resource = await resourceQueries.findOne({
-				id: resourceId,
-			})
+			// if resourceInfo string then get resource details from resource table or it will already has details so we can skip DB query
+			if (typeof resourceInfo === common.STRING) {
+				resource = await resourceQueries.findOne({
+					id: resourceInfo,
+				})
 
-			if (!resource?.id) {
-				throw new Error('RESOURCE_NOT_FOUND')
+				if (!resource?.id) {
+					throw new Error('RESOURCE_NOT_FOUND')
+				}
+			} else {
+				resource = resourceInfo
 			}
 
 			if (resource.blob_path) {
@@ -971,21 +977,23 @@ module.exports = class resourceHelper {
 			}
 
 			//Add path in getDownloadUrl
-			if (result.certificate && result.certificate.base_template_url && result.certificate.base_template_id) {
-				const baseTemplate = await certificateBasetemplateQueries.findOne(
-					{
-						id: result.certificate.base_template_id,
-					},
-					{ attributes: ['id', 'name', 'url'] }
-				)
-				if (baseTemplate) {
-					result.certificate.base_template_url = {
-						url: result.certificate.base_template_url,
-						filepath: baseTemplate.url,
-					}
+			if (
+				result.certificate &&
+				result.certificate.base_template_url &&
+				typeof result.certificate.base_template_url === common.OBJECT
+			) {
+				let getResourceCertificateurl = result.certificate.base_template_url
+				let certificatesUrl = await filesService.getDownloadableUrl([getResourceCertificateurl.filePath])
+
+				if (
+					certificatesUrl &&
+					certificatesUrl.statusCode === httpStatusCode.ok &&
+					certificatesUrl.result &&
+					certificatesUrl.result.length > 0
+				) {
+					result.certificate.base_template_url.url = certificatesUrl.result?.[0]?.url
 				}
 			}
-
 			result = { ...result, ...resource }
 			if (result.meta) {
 				Object.assign(result, result.meta)
