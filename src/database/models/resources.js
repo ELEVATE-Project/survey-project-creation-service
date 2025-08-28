@@ -147,10 +147,9 @@ module.exports = (sequelize, DataTypes) => {
 			onUpdate: 'CASCADE',
 		})
 		Resource.hasMany(models.Rollout, {
-			// Fix: Change from models.Comment to models.Review
 			foreignKey: 'resource_id',
 			sourceKey: 'id',
-			as: 'Rollout',
+			as: 'rollouts',
 			constraints: true,
 			onDelete: 'CASCADE',
 			onUpdate: 'CASCADE',

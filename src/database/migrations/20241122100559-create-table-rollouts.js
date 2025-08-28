@@ -111,7 +111,7 @@ module.exports = {
 		await queryInterface.addConstraint('rollouts', {
 			fields: ['resource_id', 'organization_code', 'tenant_code'],
 			type: 'foreign key',
-			name: 'fk_comments_resources',
+			name: 'fk_rollouts_resources',
 			references: {
 				table: 'resources',
 				fields: ['id', 'organization_code', 'tenant_code'],
