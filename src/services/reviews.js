@@ -220,25 +220,26 @@ module.exports = class reviewsHelper {
 	 * @param {Object} bodyData - Data related to the review, including approval comments
 	 * @param {Integer} resourceId - The ID of the resource being approved.
 	 * @param {String} userId - The ID of the user who is approving the resource.
-	 * @param {String} orgId - The ID of the organization that owns the resource.
+	 * @param {String} orgCode - The Code of the organization that owns the resource.
+	 * @param {String} tenantCode - The Code of the tenant that owns the resource.
+	 * @param {String} userToken - Token of the user reviewing this resource
 	 * @returns {JSON} - The response indicating the result of the resource approval.
 	 */
-	static async approveResource(resourceId, bodyData, userId, orgId, tenantCode, userToken) {
+	static async approveResource(resourceId, bodyData, userId, orgCode, tenantCode, userToken) {
 		try {
 			// Retrieve resource details based on the provided resourceId.
 			const resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
 					tenant_code: tenantCode,
-					organization_code: orgId,
 				},
 				{ attributes: ['id', 'status', 'organization_code', 'type', 'user_id', 'next_stage'] }
 			)
 			// If no resource is found return error
 			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
 
-			// Validate if there is an ongoing review for the given resourceId, userId, resource status, and orgId.
-			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgId, tenantCode)
+			// Validate if there is an ongoing review for the given resourceId, userId, resource status, and orgCode.
+			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgCode, tenantCode)
 			if (ongoingReview.statusCode !== httpStatusCode.ok) {
 				return ongoingReview
 			}
@@ -250,7 +251,7 @@ module.exports = class reviewsHelper {
 			}
 
 			// Fetch organization configuration and determine review type and minimum approval
-			const orgConfig = await orgExtensionService.getConfig(orgId, tenantCode)
+			const orgConfig = await orgExtensionService.getConfig(orgCode, tenantCode)
 			const orgConfigList = orgConfig.result.resource.reduce((acc, item) => {
 				acc[item.resource_type] = {
 					review_type: item.review_type,
@@ -311,10 +312,12 @@ module.exports = class reviewsHelper {
 	 * @param {Integer} resourceId - The ID of the resource being reported or rejected.
 	 * @param {Boolean} isReported - Indicates whether the resource is reported (true) or just rejected (false).
 	 * @param {String} userId - The ID of the user who is reporting or rejecting the resource.
-	 * @param {String} orgId - The ID of the organization that owns the resource.
+	 * @param {String} orgCode - The Code of the organization that owns the resource.
+	 * @param {String} tenantCode - The Code of the tenant that owns the resource.
+	 * @param {String} userToken - Token of the user reviewing this resource
 	 * @returns {JSON} - The response indicating the result of the resource rejection or report.
 	 */
-	static async rejectOrReportResource(resourceId, isReported, bodyData, userId, orgId, tenantCode) {
+	static async rejectOrReportResource(resourceId, isReported, bodyData, userId, orgCode, tenantCode) {
 		try {
 			// Retrieve resource details based on the provided resourceId.
 			const resource = await resourceQueries.findOne(
@@ -333,8 +336,8 @@ module.exports = class reviewsHelper {
 				throw new Error(`The ${resource.type} cannot be rejected or reported`)
 			}
 
-			// Validate if there is an ongoing review for the given resourceId, userId, resource status, and orgId.
-			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgId, tenantCode)
+			// Validate if there is an ongoing review for the given resourceId, userId, resource status, and orgCode.
+			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgCode, tenantCode)
 			if (ongoingReview.statusCode !== httpStatusCode.ok) {
 				return ongoingReview
 			}
@@ -343,7 +346,7 @@ module.exports = class reviewsHelper {
 
 			// If the bodyData contains a comment Add or update comments
 			if (bodyData.comment) {
-				await handleComments(bodyData.comment, resourceId, userId, true, resource.type, orgId, tenantCode)
+				await handleComments(bodyData.comment, resourceId, userId, true, resource.type, orgCode, tenantCode)
 			}
 
 			let updateObj = {

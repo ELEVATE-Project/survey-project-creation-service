@@ -15,7 +15,7 @@ exports.create = async (data) => {
 	}
 }
 
-exports.findEntityTypesAndEntities = async (filter, organization_code, tenantCode, attributes = null) => {
+exports.findEntityTypesAndEntities = async (filter, organization_code, tenantCode, attributes = []) => {
 	try {
 		if (!defaultOrgId)
 			return responses.failureResponse({
@@ -37,7 +37,7 @@ exports.findEntityTypesAndEntities = async (filter, organization_code, tenantCod
 					model: EntityType,
 					as: 'EntityType',
 					required: false,
-					attributes,
+					...(attributes && Array.isArray(attributes) && attributes.length > 0 ? { attributes } : {}), // omit when empty/undefined,
 					where: {
 						organization_code: {
 							[Op.in]: [organization_code, defaultOrgId],
