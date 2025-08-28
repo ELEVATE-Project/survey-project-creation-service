@@ -741,8 +741,8 @@ module.exports = class reviewsHelper {
 						const publishRollout = await rolloutService.publish(
 							rolloutId,
 							resourceData.user_id,
-							resourceData.organization_code,
 							resourceData.userToken,
+							resourceData.organization_code,
 							resourceData.tenant_code
 						)
 

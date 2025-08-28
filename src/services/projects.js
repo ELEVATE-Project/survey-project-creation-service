@@ -493,8 +493,7 @@ module.exports = class ProjectsHelper {
 				let certificatesUrl = await filesService.getDownloadableUrl([getResourceCertificateurl.filePath])
 
 				if (
-					certificatesUrl &&
-					certificatesUrl.statusCode === httpStatusCode.ok &&
+					certificatesUrl?.statusCode === httpStatusCode.ok &&
 					certificatesUrl.result &&
 					certificatesUrl.result.length > 0
 				) {

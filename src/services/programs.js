@@ -1184,8 +1184,8 @@ module.exports = class ProgramsHelper {
 			const publishRollout = await rolloutService.publish(
 				rolloutId,
 				programData.user_id,
-				programData.organization_code,
 				userDetails.token,
+				programData.organization_code,
 				programData.tenant_code
 			)
 

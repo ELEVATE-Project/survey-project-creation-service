@@ -23,7 +23,7 @@ module.exports = class RolloutsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - rollout id
 	 */
-	static async create(bodyData, loggedInUserId, orgId, isSolutionType = false, tenantCode) {
+	static async create(bodyData, loggedInUserId, orgId, tenantCode, isSolutionType = false) {
 		const transaction = await db.sequelize.transaction()
 		try {
 			//validate the resource
@@ -150,10 +150,10 @@ module.exports = class RolloutsHelper {
 	 */
 	static async details(
 		rolloutId,
-		orgId,
 		loggedInUserId,
 		returnBlobPath = false,
 		userToken = '',
+		orgId,
 		tenantCode,
 		getResourceData = false
 	) {
@@ -245,12 +245,12 @@ module.exports = class RolloutsHelper {
 	 * @method
 	 * @name getDataManagers
 	 * @param orgId  - Organization Id
+	 * @param {String} tenantCode -tenantCode
 	 * @param pageNo - Page number
 	 * @param pageSize - Page size
-	 * @param {String} tenantCode -tenantCode
 	 * @returns {JSON} - List of data managers
 	 */
-	static async getDataManagers(orgId, pageNo, pageSize, userToken = '', tenantCode) {
+	static async getDataManagers(orgId, tenantCode, pageNo, pageSize, userToken = '') {
 		try {
 			// get org config based on orgId
 			const orgConfigs = await orgExtensionService.getConfig(orgId, tenantCode)
@@ -300,13 +300,13 @@ module.exports = class RolloutsHelper {
 	 * @returns {JSON} - List of rollouts
 	 **/
 	static async list(
-		organization_code,
 		loggedInUserId,
 		queryParams,
 		searchText = '',
 		page,
 		limit,
 		userToken = '',
+		organization_code,
 		tenantCode
 	) {
 		try {
@@ -668,15 +668,15 @@ module.exports = class RolloutsHelper {
 	 * @returns {JSON} - rollout publish response.
 	 */
 
-	static async publish(rolloutId, loggedInUserId, orgId, userToken = '', tenantCode) {
+	static async publish(rolloutId, loggedInUserId, userToken = '', orgId, tenantCode) {
 		try {
 			// fetch rollout details
 			const rolloutDetails = await this.details(
 				rolloutId,
-				orgId,
 				loggedInUserId,
 				false,
 				userToken,
+				orgId,
 				tenantCode,
 				true
 			)
@@ -1079,10 +1079,10 @@ module.exports = class RolloutsHelper {
 
 			const rolloutDetails = await this.details(
 				programRolloutId,
-				programData.organization_code,
 				programData.user_id,
 				false,
 				userToken,
+				programData.organization_code,
 				tenantCode
 			)
 
