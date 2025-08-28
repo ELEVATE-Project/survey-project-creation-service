@@ -146,6 +146,14 @@ module.exports = (sequelize, DataTypes) => {
 			onDelete: 'CASCADE',
 			onUpdate: 'CASCADE',
 		})
+		Resource.hasMany(models.Rollout, {
+			foreignKey: 'resource_id',
+			sourceKey: 'id',
+			as: 'rollouts',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
 	}
 
 	// Helper function to emit user actions with dynamic action types
