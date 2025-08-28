@@ -106,6 +106,19 @@ module.exports = {
 		await queryInterface.addIndex('rollouts', ['title'], {
 			name: 'rollouts_title_index',
 		})
+
+		// Add foreign key constraint for resource_id, organization_code, and tenant_code
+		await queryInterface.addConstraint('rollouts', {
+			fields: ['resource_id', 'organization_code', 'tenant_code'],
+			type: 'foreign key',
+			name: 'fk_comments_resources',
+			references: {
+				table: 'resources',
+				fields: ['id', 'organization_code', 'tenant_code'],
+			},
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
 	},
 
 	async down(queryInterface, Sequelize) {
