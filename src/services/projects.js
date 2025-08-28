@@ -229,7 +229,6 @@ module.exports = class ProjectsHelper {
 			}
 
 			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_code', 'user_id'])
-			bodyData = await this.getResourceCertificateurl(bodyData)
 			//upload to blob
 			const projectUploadStatus = await resourceService.uploadToCloud(
 				common.PROJECT_UPLOAD_FILE_NAME,
