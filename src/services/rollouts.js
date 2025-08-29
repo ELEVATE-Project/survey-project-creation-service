@@ -743,8 +743,8 @@ module.exports = class RolloutsHelper {
 						solutionRollout,
 						loggedInUserId,
 						orgId,
-						true,
-						tenantCode
+						tenantCode,
+						true
 					)
 					if (resultCreateRollout.statusCode !== httpStatusCode.ok) {
 						return responses.failureResponse({
@@ -1013,7 +1013,7 @@ module.exports = class RolloutsHelper {
 					}
 
 					createRolloutPromise.push(
-						this.create(resourceRolloutReqBody, userId, programData.organization_code, true, tenantCode)
+						this.create(resourceRolloutReqBody, userId, programData.organization_code, tenantCode, true)
 					)
 				}
 				await Promise.all(createRolloutPromise)
@@ -1174,8 +1174,8 @@ module.exports = class RolloutsHelper {
 							resourceRolloutReqBody,
 							userId,
 							programData.organization_code,
-							true,
-							programData.tenant_code
+							programData.tenant_code,
+							true
 						)
 					)
 				}
@@ -1211,8 +1211,8 @@ module.exports = class RolloutsHelper {
 				rolloutReqBody,
 				programData.user_id,
 				programData.organization_code,
-				false,
-				programData.tenant_code
+				programData.tenant_code,
+				false
 			)
 
 			if (createProgramRollout.statusCode !== httpStatusCode.ok) {
