@@ -813,30 +813,36 @@ function _extractTenantAndOrgCodes(req) {
  * @returns {String} - The percent-encoded string.
  */
 function percentEncodeQuery(input) {
+	// return input if it is numeric
+	if (isNumeric(input)) return input.toString()
+
 	let output = ''
-	for (let i = 0; i < input.length; ) {
-		const codePoint = input.codePointAt(i)
-		const char = String.fromCodePoint(codePoint)
-		if (
-			codePoint <= 0x1f || // C0 controls (U+0000 to U+001F)
-			codePoint === 0x7f || // DEL
-			codePoint > 0x7e || // greater than ~
-			codePoint === 0x20 || // space
-			codePoint === 0x22 || // "
-			codePoint === 0x23 || // #
-			codePoint === 0x3c || // <
-			codePoint === 0x3e // >
-		) {
-			// Percent-encode after UTF-8 encoding
-			const bytes = new TextEncoder().encode(char)
-			for (const byte of bytes) {
-				output += '%' + byte.toString(16).toUpperCase().padStart(2, '0')
+	if (input != null || input != undefined) {
+		for (let i = 0; i < input.length; ) {
+			const codePoint = input.codePointAt(i)
+			const char = String.fromCodePoint(codePoint)
+			if (
+				codePoint <= 0x1f || // C0 controls (U+0000 to U+001F)
+				codePoint === 0x7f || // DEL
+				codePoint > 0x7e || // greater than ~
+				codePoint === 0x20 || // space
+				codePoint === 0x22 || // "
+				codePoint === 0x23 || // #
+				codePoint === 0x3c || // <
+				codePoint === 0x3e // >
+			) {
+				// Percent-encode after UTF-8 encoding
+				const bytes = new TextEncoder().encode(char)
+				for (const byte of bytes) {
+					output += '%' + byte.toString(16).toUpperCase().padStart(2, '0')
+				}
+			} else {
+				output += char
 			}
-		} else {
-			output += char
+			i += codePoint > 0xffff ? 2 : 1
 		}
-		i += codePoint > 0xffff ? 2 : 1
 	}
+
 	return output
 }
 
@@ -885,27 +891,6 @@ function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
 		throw new Error('INVALID URL INPUT')
 	}
 }
-// function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
-// 	try {
-// 		const cleanBaseUrl = baseUrl.replace(/\/+$/, '')
-// 		let cleanEndpoint = endpoint.replace(/^\/+/, '')
-// 		if (idParam) cleanEndpoint = `${cleanEndpoint}/${idParam}`
-
-// 		// Create URL object from host string
-// 		let url = new URL(`${cleanBaseUrl}/${cleanEndpoint}`)
-
-// 		// Get existing search parameters
-// 		const searchParams = url.searchParams
-
-// 		// Append new parameters
-// 		Object.entries(queryParams).forEach(([key, value]) => {
-// 			searchParams.append(key, value)
-// 		})
-// 		return url.toJSON()
-// 	} catch {
-// 		throw new Error('INVALID URL INPUT')
-// 	}
-// }
 
 module.exports = {
 	composeEmailBody,
