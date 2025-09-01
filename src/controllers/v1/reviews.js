@@ -20,6 +20,7 @@ module.exports = class reviews {
 				req.params.id,
 				req.decodedToken.id,
 				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.decodedToken.roles
 			)
 			return startReview
@@ -43,7 +44,8 @@ module.exports = class reviews {
 				req.params.id,
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_code
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
 			)
 			return updateReview
 		} catch (error) {
@@ -67,6 +69,7 @@ module.exports = class reviews {
 				req.body,
 				req.decodedToken.id,
 				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.userToken
 			)
 			return updateReview
@@ -92,7 +95,8 @@ module.exports = class reviews {
 				req.query.isReported ? req.query.isReported : false,
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_code
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
 			)
 			return updateReview
 		} catch (error) {

@@ -198,6 +198,7 @@ module.exports = class resourceHelper {
 		// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
 		const userDetails = await this.fetchUserDetails(
 			utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds]),
+			null,
 			tenantCode,
 			userToken
 		)
@@ -876,13 +877,15 @@ module.exports = class resourceHelper {
 	 * @name getDetails
 	 * @returns {JSON} - details of resource
 	 */
-	static async getDetails(resourceId, orgId, userToken = '') {
+	static async getDetails(resourceId, orgCode, tenantCode, userToken = '') {
 		try {
 			let result = {
 				organization: {},
 			}
 			const resource = await resourceQueries.findOne({
 				id: resourceId,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 			})
 
 			if (!resource?.id) {
@@ -906,6 +909,7 @@ module.exports = class resourceHelper {
 							status: common.STATUS_ACTIVE,
 						},
 						resource.organization_code,
+						resource.tenant_code,
 						['id', 'value', 'label', 'has_entities']
 					)
 
@@ -965,7 +969,11 @@ module.exports = class resourceHelper {
 			}
 
 			//get organization details
-			let organizationDetails = await userRequests.fetchOrg(resource.organization_code, userToken)
+			let organizationDetails = await userRequests.fetchOrg(
+				resource.organization_code,
+				resource.tenant_code,
+				true
+			)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
 			}
@@ -975,6 +983,10 @@ module.exports = class resourceHelper {
 				const baseTemplate = await certificateBasetemplateQueries.findOne(
 					{
 						id: result.certificate.base_template_id,
+						tenant_code: resource.tenant_code,
+						organization_code: {
+							[Op.or]: [resource.organization_code, defaultOrgId],
+						},
 					},
 					{ attributes: ['id', 'name', 'url'] }
 				)
@@ -1177,7 +1189,7 @@ module.exports = class resourceHelper {
 	 * 	observation : 4
 	 * }
 	 */
-	static async fetchReviewLevels(organization_code, userRoleTitles, resourceTypeList) {
+	static async fetchReviewLevels(organization_code, tenantCode, userRoleTitles, resourceTypeList) {
 		// list of organizations to search in review stages
 		const orgIds = organization_code == defaultOrgId ? [organization_code] : [organization_code, defaultOrgId]
 
@@ -1185,6 +1197,7 @@ module.exports = class resourceHelper {
 		const reviewLevelDetails = await reviewStagesQueries.findAll(
 			{
 				organization_code: { [Op.in]: orgIds },
+				tenant_code: tenantCode,
 				role: {
 					[Op.in]: userRoleTitles,
 				},
