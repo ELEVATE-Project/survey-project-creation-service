@@ -231,6 +231,8 @@ module.exports = class ProjectsHelper {
 			//upload to blob
 			const projectUploadStatus = await resourceService.uploadToCloud(
 				common.PROJECT_UPLOAD_FILE_NAME,
+				orgCode,
+				tenantCode,
 				resourceId,
 				common.PROJECT,
 				loggedInUserId,
