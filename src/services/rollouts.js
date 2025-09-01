@@ -67,6 +67,8 @@ module.exports = class RolloutsHelper {
 
 				const rolloutUploadStatus = await resourceService.uploadToCloud(
 					common.ROLLOUT_UPLOAD_FILE_NAME,
+					orgCode,
+					tenantCode,
 					rolloutCreate.id,
 					common.ROLL_OUT,
 					loggedInUserId,
@@ -470,6 +472,8 @@ module.exports = class RolloutsHelper {
 
 			const rolloutUploadStatus = await resourceService.uploadToCloud(
 				common.ROLLOUT_UPLOAD_FILE_NAME,
+				orgCode,
+				tenantCode,
 				rolloutId,
 				common.ROLL_OUT,
 				loggedInUserId,

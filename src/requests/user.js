@@ -93,10 +93,9 @@ const list = function (
 	pageSize = '',
 	searchText = '',
 	organization_code = null,
-	tenant_code = null,
+	tenantCode = null,
 	body = {},
-	userToken = '',
-	tenantCode = null
+	userToken = ''
 ) {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -111,7 +110,7 @@ const list = function (
 
 			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
 
-			const userDetails = await requests.post(apiUrl, body, userToken, true)
+			const userDetails = await requests.post(apiUrl, body, '', true)
 			return resolve(userDetails)
 		} catch (error) {
 			return reject(error)
