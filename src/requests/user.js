@@ -245,16 +245,15 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
  * @returns
  */
 
-const listOrganization = function (OrganizationCodes = [], tenantCode = null) {
+const listOrganization = function (organizationCodes = [], tenantCode = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_LIST, { tenantCode })
-			let body = {}
-			if (OrganizationCodes.length > 0) {
-				body.organization_codes = OrganizationCodes
+			const queryParams = {
+				tenant_code: tenantCode,
+				...(organizationCodes.length > 0 && { organization_codes: organizationCodes.join(',') }),
 			}
-
-			const orgDetails = await requests.post(apiUrl, body, '', true)
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_LIST, queryParams)
+			const orgDetails = await requests.get(apiUrl, '', true)
 			return resolve(orgDetails)
 		} catch (error) {
 			return reject(error)
