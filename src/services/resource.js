@@ -685,6 +685,7 @@ module.exports = class resourceHelper {
 					// fetch all sequential resource ids from org which are open to all
 					const sequentialResourcesIds = await this.findSequentialResources(
 						organization_code,
+						tenant_code,
 						roles,
 						resourceTypesInSequentialReview
 					)
@@ -1027,12 +1028,17 @@ module.exports = class resourceHelper {
 	 * @returns {Array} - Response contain array of resource ids
 	 */
 
-	static async findSequentialResources(organization_code, roles, resourceTypes = []) {
+	static async findSequentialResources(organization_code, tenant_code, roles, resourceTypes = []) {
 		// get unique user roles
 		const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
 
 		// fetch the resource wise review levels
-		const resourceWiseLevels = await this.fetchReviewLevels(organization_code, userRoleTitles, resourceTypes)
+		const resourceWiseLevels = await this.fetchReviewLevels(
+			organization_code,
+			tenant_code,
+			userRoleTitles,
+			resourceTypes
+		)
 		let resourceTypeStagesConfig = []
 		resourceTypes.filter((type) => {
 			if (resourceWiseLevels[type]) {
@@ -1044,6 +1050,7 @@ module.exports = class resourceHelper {
 
 		let resourceFilter = {
 			organization_code,
+			tenant_code,
 			[Op.or]: resourceTypeStagesConfig,
 			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED] },
 			stage: common.RESOURCE_STAGE_REVIEW,

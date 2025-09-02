@@ -747,6 +747,7 @@ module.exports = class ProjectsHelper {
 					reviewer_id,
 					status: common.REVIEW_STATUS_NOT_STARTED,
 					organization_code: userDetails.organization_code,
+					tenant_code: userDetails.tenant_code,
 				}))
 
 				await reviewsQueries.bulkCreate(reviewsData)
