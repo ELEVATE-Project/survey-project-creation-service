@@ -248,6 +248,7 @@ module.exports = class CommentsHelper {
 				'',
 				'',
 				orgId,
+				tenantCode,
 				{
 					user_ids: userIds,
 				},
