@@ -26,7 +26,7 @@ const tenantCode = process.env.DEFAULT_TENANT_CODE || null
 		}
 		const certificatesArray = [
 			{
-				code: 'one_logo_one_sign',
+				code: 'onelogo_onesign',
 				name: 'One Logo One Signature',
 				meta: {
 					logos: {
@@ -43,7 +43,7 @@ const tenantCode = process.env.DEFAULT_TENANT_CODE || null
 				},
 			},
 			{
-				code: 'one_logo_two_sign',
+				code: 'onelogo_twosign',
 				name: 'One Logo Two Signature',
 				meta: {
 					logos: {
@@ -63,7 +63,7 @@ const tenantCode = process.env.DEFAULT_TENANT_CODE || null
 				},
 			},
 			{
-				code: 'two_logo_one_sign',
+				code: 'twologo_onesign',
 				name: 'Two Logo One Signature',
 				meta: {
 					logos: {
@@ -81,7 +81,7 @@ const tenantCode = process.env.DEFAULT_TENANT_CODE || null
 				},
 			},
 			{
-				code: 'two_logo_two_sign',
+				code: 'twologo_twosign',
 				name: 'Two Logo Two Signature',
 				meta: {
 					logos: {
