@@ -2849,8 +2849,8 @@ paths:
                     - label: Community
                       value: community
                   recommented_duration:
-                    - type: week
-                      number: 5
+                    type: week
+                    number: 5
                   keywords:
                     - test
                   recommeneded_for:
@@ -2898,8 +2898,8 @@ paths:
                     - label: Community
                       value: community
                   recommented_duration:
-                    - type: week
-                      number: 5
+                    type: week
+                    number: 5
                   keywords:
                     - test
                   recommeneded_for:
@@ -2939,8 +2939,8 @@ paths:
                     - label: Community
                       value: community
                   recommented_duration:
-                    - type: week
-                      number: 5
+                    type: week
+                    number: 5
                   keywords:
                     - test
                   recommeneded_for:

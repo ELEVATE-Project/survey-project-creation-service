@@ -103,6 +103,8 @@ module.exports = class ProjectsHelper {
 
 				const projectUploadStatus = await resourceService.uploadToCloud(
 					common.PROJECT_UPLOAD_FILE_NAME,
+					orgCode,
+					tenantCode,
 					projectCreate.id,
 					common.PROJECT,
 					loggedInUserId,
@@ -232,6 +234,8 @@ module.exports = class ProjectsHelper {
 			//upload to blob
 			const projectUploadStatus = await resourceService.uploadToCloud(
 				common.PROJECT_UPLOAD_FILE_NAME,
+				orgCode,
+				tenantCode,
 				resourceId,
 				common.PROJECT,
 				loggedInUserId,
@@ -748,6 +752,7 @@ module.exports = class ProjectsHelper {
 					reviewer_id,
 					status: common.REVIEW_STATUS_NOT_STARTED,
 					organization_code: userDetails.organization_code,
+					tenant_code: userDetails.tenant_code,
 				}))
 
 				await reviewsQueries.bulkCreate(reviewsData)

@@ -93,7 +93,7 @@ const list = function (
 	pageSize = '',
 	searchText = '',
 	organization_code = null,
-	tenant_code = null,
+	tenantCode = null,
 	body = {},
 	userToken = ''
 ) {
@@ -110,7 +110,7 @@ const list = function (
 
 			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
 
-			const userDetails = await requests.post(apiUrl, body, userToken, true)
+			const userDetails = await requests.post(apiUrl, body, '', true)
 			return resolve(userDetails)
 		} catch (error) {
 			return reject(error)
@@ -245,16 +245,15 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
  * @returns
  */
 
-const listOrganization = function (OrganizationCodes = [], tenantCode = null) {
+const listOrganization = function (organizationCodes = [], tenantCode = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_LIST, { tenantCode })
-			let body = {}
-			if (OrganizationCodes.length > 0) {
-				body.organization_codes = OrganizationCodes
+			const queryParams = {
+				tenant_code: tenantCode,
+				...(organizationCodes.length > 0 && { organization_codes: organizationCodes.join(',') }),
 			}
-
-			const orgDetails = await requests.post(apiUrl, body, '', true)
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_LIST, queryParams)
+			const orgDetails = await requests.get(apiUrl, '', true)
 			return resolve(orgDetails)
 		} catch (error) {
 			return reject(error)

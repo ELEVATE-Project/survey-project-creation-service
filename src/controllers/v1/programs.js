@@ -23,7 +23,11 @@ module.exports = class Programs {
 			if (req.params.id) {
 				let program = {}
 				if (req.method === common.REQUEST_METHOD_DELETE) {
-					program = await programService.delete(req.params.id, req.decodedToken.id)
+					program = await programService.delete(
+						req.params.id,
+						req.decodedToken.id,
+						req.decodedToken.tenant_code
+					)
 				} else {
 					program = await programService.update(
 						req.params.id,
@@ -103,7 +107,8 @@ module.exports = class Programs {
 				parseInt(req.params.id),
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_code
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
 			)
 		} catch (error) {
 			return error
@@ -122,6 +127,7 @@ module.exports = class Programs {
 		try {
 			const dataManagers = await programService.getProgramManagers(
 				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.pageNo,
 				req.pageSize,
 				req.decodedToken.token,
@@ -146,6 +152,7 @@ module.exports = class Programs {
 				process.env.DEFAULT_REVIEWER_ROLE || common.REVIEWER,
 				req.decodedToken.id,
 				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.decodedToken.token,
 				req.pageNo,
 				req.pageSize
