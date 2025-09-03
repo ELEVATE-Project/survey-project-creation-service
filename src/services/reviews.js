@@ -778,9 +778,9 @@ module.exports = class reviewsHelper {
 						const publishRollout = await rolloutService.publish(
 							rolloutId,
 							resourceData.user_id,
-							resourceData.userToken,
 							resourceData.organization_code,
-							resourceData.tenant_code
+							resourceData.tenant_code,
+							resourceData.userToken
 						)
 
 						if (publishRollout.statusCode !== httpStatusCode.accepted) {
@@ -886,7 +886,6 @@ async function handleProgramRollout(resourceData, resourceId, userId, userToken)
 				resourceData,
 				userId,
 				resourceData.organization_code,
-				false,
 				resourceData.tenant_code
 			)
 		} else {

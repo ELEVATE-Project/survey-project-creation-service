@@ -37,8 +37,7 @@ module.exports = class rollouts {
 					req.body,
 					req.decodedToken.id,
 					req.decodedToken.organization_code,
-					req.decodedToken.tenant_code,
-					false //isSolutionType
+					req.decodedToken.tenant_code
 				)
 				return rollout
 			}
@@ -81,10 +80,9 @@ module.exports = class rollouts {
 			const rollout = await rolloutService.details(
 				req.params.id,
 				req.decodedToken.id,
-				true, //return bulb path
-				req.decodedToken.token,
 				req.decodedToken.organization_code,
-				req.decodedToken.tenant_code
+				req.decodedToken.tenant_code,
+				req.decodedToken.token
 			)
 			return rollout
 		} catch (error) {
@@ -111,9 +109,9 @@ module.exports = class rollouts {
 				req.searchText,
 				req.pageNo,
 				req.pageSize,
-				req.decodedToken.token,
 				req.decodedToken.organization_code,
-				req.decodedToken.tenant_code
+				req.decodedToken.tenant_code,
+				req.decodedToken.token
 			)
 
 			return rolloutList
@@ -133,9 +131,9 @@ module.exports = class rollouts {
 			const rollout = await rolloutService.publish(
 				req.params.id,
 				req.decodedToken.id,
-				req.decodedToken.token,
 				req.decodedToken.organization_code,
-				req.decodedToken.tenant_code
+				req.decodedToken.tenant_code,
+				req.decodedToken.token
 			)
 			return rollout
 		} catch (error) {

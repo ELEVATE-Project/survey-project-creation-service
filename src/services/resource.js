@@ -42,7 +42,7 @@ module.exports = class resourceHelper {
 	 */
 	static async listAllSubmittedResources(
 		userId,
-		tenantCode,
+		tenant_code,
 		queryParams,
 		searchText = '',
 		page,
@@ -73,7 +73,7 @@ module.exports = class resourceHelper {
 		// fetch all resource ids created by the logged in user
 		const { count, rows } = await this.resourcesCreatedByUser(
 			userId,
-			tenantCode,
+			tenant_code,
 			['resource_id', 'organization_code'],
 			{
 				resourceAttributes: [
@@ -102,7 +102,7 @@ module.exports = class resourceHelper {
 			{
 				reviewsAttributes: ['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes'],
 				reviewsFilter: {
-					tenant_code: tenantCode,
+					tenant_code: tenant_code,
 				},
 			} // reviews related options
 		)
@@ -161,7 +161,7 @@ module.exports = class resourceHelper {
 			})
 		}
 		// fetch the organization details from user service
-		const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds, tenantCode)
+		const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds, tenant_code)
 
 		// fetch all open comments for the resources which are in review
 		const commentMapping = await this.fetchOpenComments(
@@ -199,7 +199,7 @@ module.exports = class resourceHelper {
 		const userDetails = await this.fetchUserDetails(
 			utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds]),
 			null,
-			tenantCode,
+			tenant_code,
 			userToken
 		)
 
@@ -266,7 +266,7 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of drafts resources
 	 */
 
-	static async listAllDrafts(userId, queryParams, searchText = '', page, limit, userToken, orgCode, tenantCode) {
+	static async listAllDrafts(userId, queryParams, searchText = '', page, limit, userToken, org_code, tenant_code) {
 		try {
 			let result = {
 				data: [],
@@ -288,7 +288,7 @@ module.exports = class resourceHelper {
 			// fetch all resources created by the logged in user
 			const { count, rows } = await this.resourcesCreatedByUser(
 				userId, // loggedIn userId
-				tenantCode, // user's tenant code
+				tenant_code, // user's tenant code
 				['resource_id', 'organization_code', 'tenant_code'], // mapping table attributes
 				{
 					resourceAttributes: [
@@ -341,10 +341,10 @@ module.exports = class resourceHelper {
 			}
 
 			// fetch the user details from user service
-			const userDetails = await this.fetchUserDetails([userId], orgCode, tenantCode, userToken)
+			const userDetails = await this.fetchUserDetails([userId], org_code, tenant_code, userToken)
 
 			// fetch the org details from user service
-			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationCodes, tenantCode)
+			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationCodes, tenant_code)
 			result = await this.responseBuilder(response, userDetails, orgDetails, {})
 			result.count = count
 
@@ -562,16 +562,16 @@ module.exports = class resourceHelper {
 	 */
 	static async resourcesCreatedByUser(
 		loggedInUserId,
-		tenantCode,
+		tenant_code,
 		attributes = ['resource_id'],
 		resourceOptions = {},
 		reviewOptions = {}
 	) {
 		let resourceData = {}
-		if (loggedInUserId && tenantCode) {
+		if (loggedInUserId && tenant_code) {
 			// fetch the details of resource and organization from resource creator mapping table by the user
 			resourceData = await resourceCreatorMappingQueries.findAndCountAll(
-				{ creator_id: loggedInUserId, tenant_code: tenantCode },
+				{ creator_id: loggedInUserId, tenant_code: tenant_code },
 				attributes,
 				{ ...resourceOptions, ...reviewOptions }
 			)
@@ -878,7 +878,7 @@ module.exports = class resourceHelper {
 	 * @name getDetails
 	 * @returns {JSON} - details of resource
 	 */
-	static async getDetails(resourceInfo, orgCode, tenantCode, userToken = '') {
+	static async getDetails(resourceInfo, org_code, tenant_code, userToken = '') {
 		try {
 			let resource
 			let result = {
@@ -888,8 +888,8 @@ module.exports = class resourceHelper {
 			if (typeof resourceInfo === common.STRING) {
 				resource = await resourceQueries.findOne({
 					id: resourceInfo,
-					organization_code: orgCode,
-					tenant_code: tenantCode,
+					organization_code: org_code,
+					tenant_code: tenant_code,
 				})
 
 				if (!resource?.id) {
@@ -1200,7 +1200,7 @@ module.exports = class resourceHelper {
 	 * 	observation : 4
 	 * }
 	 */
-	static async fetchReviewLevels(organization_code, tenantCode, userRoleTitles, resourceTypeList) {
+	static async fetchReviewLevels(organization_code, tenant_code, userRoleTitles, resourceTypeList) {
 		// list of organizations to search in review stages
 		const orgIds = organization_code == defaultOrgId ? [organization_code] : [organization_code, defaultOrgId]
 
@@ -1208,7 +1208,7 @@ module.exports = class resourceHelper {
 		const reviewLevelDetails = await reviewStagesQueries.findAll(
 			{
 				organization_code: { [Op.in]: orgIds },
-				tenant_code: tenantCode,
+				tenant_code: tenant_code,
 				role: {
 					[Op.in]: userRoleTitles,
 				},
@@ -1258,10 +1258,10 @@ module.exports = class resourceHelper {
 	 * @param {String} organization_code - organization_code of the logged in user.
 	 * @returns {Object} - Response contain object , with list of sequential and parallel resource types
 	 */
-	static async fetchResourceReviewTypes(organization_code, tenantCode) {
+	static async fetchResourceReviewTypes(organization_code, tenant_code) {
 		try {
 			// Fetch organization-based configurations for resources
-			const orgConfig = await orgExtensionService.getConfig(organization_code, tenantCode)
+			const orgConfig = await orgExtensionService.getConfig(organization_code, tenant_code)
 
 			// Map resource types to their review types
 			const resourceWiseReviewType = orgConfig.result.resource.reduce((acc, item) => {
@@ -1332,14 +1332,14 @@ module.exports = class resourceHelper {
 	 * @param {Array} userIds - array of userIds.
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds, organisationCode = null, tenantCode = null, userToken = '') {
+	static async fetchUserDetails(userIds, organisationCode = null, tenant_code = null, userToken = '') {
 		const userDetailsResponse = await userRequests.list(
 			common.FILTER_ALL.toLowerCase(),
 			'',
 			'',
 			'',
 			organisationCode,
-			tenantCode,
+			tenant_code,
 			{
 				user_ids: userIds,
 			},
@@ -1365,14 +1365,14 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - upload  response.
 	 */
 
-	static async uploadToCloud(fileName, orgCode, tenantCode, resourceId, resourceType, loggedInUserId, bodyData) {
+	static async uploadToCloud(fileName, org_code, tenant_code, resourceId, resourceType, loggedInUserId, bodyData) {
 		try {
 			//sample blob path
 			// resource/162/6/06f444d0-03e1-4c36-92a4-78f27c18caf6/162624project.json
 			let getSignedUrl = await filesService.getSignedUrl(
 				{ [resourceId]: { files: [fileName] } },
-				orgCode,
-				tenantCode,
+				org_code,
+				tenant_code,
 				resourceType,
 				loggedInUserId
 			)
@@ -1406,8 +1406,8 @@ module.exports = class resourceHelper {
 	 * @name isReviewMandatory
 	 * @returns {Boolean} - Review required or not
 	 */
-	static async isReviewMandatory(resourceType, organizationId, tenantCode) {
-		const orgConfig = await orgExtensionService.getConfig(organizationId, tenantCode)
+	static async isReviewMandatory(resourceType, organizationId, tenant_code) {
+		const orgConfig = await orgExtensionService.getConfig(organizationId, tenant_code)
 		const orgConfigList = _.reduce(
 			orgConfig.result.resource,
 			(acc, item) => {
@@ -1434,7 +1434,7 @@ module.exports = class resourceHelper {
 	 */
 	static async browseExistingList(
 		organization_code,
-		tenantCode,
+		tenant_code,
 		userRoles,
 		resourceIds = [],
 		query,
@@ -1485,7 +1485,7 @@ module.exports = class resourceHelper {
 
 			let filterQuery = {
 				organization_code,
-				tenant_code: tenantCode,
+				tenant_code: tenant_code,
 				status: common.RESOURCE_STATUS_PUBLISHED,
 				is_reusable: true,
 			}
@@ -1524,7 +1524,7 @@ module.exports = class resourceHelper {
 				{
 					resource_id: internalResourcesIds,
 					status: common.REVIEW_STATUS_APPROVED,
-					tenant_code: tenantCode,
+					tenant_code: tenant_code,
 				},
 				['reviewer_id', 'resource_id']
 			)
@@ -1540,12 +1540,12 @@ module.exports = class resourceHelper {
 				const userDetails = await this.fetchUserDetails(
 					utils.getUniqueElements(userIds),
 					null,
-					tenantCode,
+					tenant_code,
 					userToken
 				)
 				const orgDetails = await orgExtension.fetchOrganizationDetails(
 					utils.getUniqueElements(organizationIds),
-					tenantCode
+					tenant_code
 				)
 				result.count = internalResources.count
 				internalResources.result.forEach((resource) => {
@@ -1641,19 +1641,27 @@ module.exports = class resourceHelper {
 	/**
 	 * Uploads a resource to the cloud and updates its metadata in the database.
 	 * @param {string} resourceId - The ID of the resource to upload and update.
-	 * @param {string} orgId - The ID of the organization associated with the resource.
+	 * @param {string} org_code - The ID of the organization associated with the resource.
 	 * @param {string} loggedInUserId - The ID of the user performing the operation.
 	 * @param {Object} data - The data to be uploaded to the cloud.
 	 * @param {string} fileName - The name of the file to be uploaded.
 	 * @param {string} resourceType - The type of the resource (e.g., 'program', 'project').
 	 * @returns {Promise<void>} - Resolves when the upload and update are successful.
 	 */
-	static async uploadAndUpdateResource(resourceId, orgId, tenantCode, loggedInUserId, data, fileName, resourceType) {
+	static async uploadAndUpdateResource(
+		resourceId,
+		org_code,
+		tenant_code,
+		loggedInUserId,
+		data,
+		fileName,
+		resourceType
+	) {
 		try {
 			const uploadStatus = await this.uploadToCloud(
 				fileName,
-				orgId,
-				tenantCode,
+				org_code,
+				tenant_code,
 				resourceId,
 				resourceType,
 				loggedInUserId,
@@ -1664,7 +1672,7 @@ module.exports = class resourceHelper {
 				uploadStatus.result.status === httpStatusCode.ok ||
 				uploadStatus.result.status === httpStatusCode.created
 			) {
-				const filter = { id: resourceId, organization_code: orgId }
+				const filter = { id: resourceId, organization_code: org_code }
 				const updateData = { updated_by: loggedInUserId, blob_path: uploadStatus.blob_path }
 				if (data.title) {
 					updateData.title = data.title

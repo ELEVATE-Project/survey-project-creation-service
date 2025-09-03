@@ -93,7 +93,7 @@ const list = function (
 	pageSize = '',
 	searchText = '',
 	organization_code = null,
-	tenantCode = null,
+	tenant_code = null,
 	body = {},
 	userToken = ''
 ) {
