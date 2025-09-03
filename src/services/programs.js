@@ -310,7 +310,7 @@ module.exports = class ProgramsHelper {
 					orgCode,
 					tenantCode,
 					loggedInUserId,
-					'',
+					false,
 					userToken
 				)
 			}
@@ -325,7 +325,7 @@ module.exports = class ProgramsHelper {
 			const newResources = bodyData.resources?.filter((res) => !existingResourceIds.includes(res.id)) || []
 			// Handle new resources (create duplicates, upload to cloud, and map to program)
 			if (newResources.length > 0) {
-				await handleResources(newResources, resourceId, orgCode, loggedInUserId, '', userToken)
+				await handleResources(newResources, resourceId, orgCode, tenantCode, loggedInUserId, false, userToken)
 			}
 
 			//Upload program information to cloud
@@ -647,7 +647,7 @@ module.exports = class ProgramsHelper {
 			const [createdResources, fetchProgramDetails] = await Promise.all([
 				// Create copies of reusable resources in parallel
 				resourceToCreate.length > 0
-					? handleResources(resourceToCreate, programId, orgId, tenantCode, loggedInUserId, '', userToken)
+					? handleResources(resourceToCreate, programId, orgId, tenantCode, loggedInUserId, false, userToken)
 					: Promise.resolve([]),
 
 				// Fetch program details in parallel
