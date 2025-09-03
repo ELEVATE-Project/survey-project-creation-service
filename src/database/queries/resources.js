@@ -115,12 +115,13 @@ exports.count = async (filter) => {
 	}
 }
 
-exports.deleteOne = async (id, organization_code) => {
+exports.deleteOne = async (id, organization_code, tenantCode) => {
 	try {
 		return await Resource.destroy({
 			where: {
 				id,
 				organization_code,
+				tenant_code: tenantCode,
 			},
 			individualHooks: true,
 		})

@@ -250,12 +250,14 @@ exports.updateOne = async (filter, update, options = {}) => {
 	}
 }
 
-exports.deleteOne = async (id, creator_id) => {
+exports.deleteOne = async (id, creator_id, orgCode, tenantCode) => {
 	try {
 		return await ResourceCreatorMapping.destroy({
 			where: {
 				id,
 				creator_id,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 			},
 			individualHooks: true,
 		})

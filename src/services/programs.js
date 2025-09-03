@@ -39,6 +39,7 @@ module.exports = class ProgramsHelper {
 				const referenceProgram = await resourceQueries.findOne(
 					{
 						id: referenceId,
+						tenant_code: tenantCode,
 						status: common.RESOURCE_STATUS_PUBLISHED,
 						stage: common.RESOURCE_STAGE_COMPLETION,
 						type: common.RESOURCE_TYPE_PROGRAM,
@@ -61,12 +62,13 @@ module.exports = class ProgramsHelper {
 								'published_on',
 								'last_reviewed_on',
 								'is_under_edit',
+								'is_reusable',
 							],
 						},
 					}
 				)
 
-				if (!referenceProgram?.id) {
+				if (!referenceProgram?.id || !referenceProgram.is_reusable) {
 					return responses.failureResponse({
 						message: 'PROGRAM_NOT_FOUND',
 						statusCode: httpStatusCode.bad_request,
@@ -74,7 +76,12 @@ module.exports = class ProgramsHelper {
 					})
 				}
 
-				const programDetails = await this.details(referenceId, referenceProgram.organization_code, userToken)
+				const programDetails = await this.details(
+					referenceId,
+					referenceProgram.organization_code,
+					referenceProgram.tenant_code,
+					userToken
+				)
 				if (programDetails.statusCode != httpStatusCode.ok && !Object.keys(programDetails?.result).length > 0) {
 					return responses.failureResponse({
 						message: 'PROGRAM_NOT_FOUND',
@@ -116,7 +123,7 @@ module.exports = class ProgramsHelper {
 			}
 
 			// Get the review type of the organization
-			const orgConfig = await orgExtensionService.getConfig(orgId)
+			const orgConfig = await orgExtensionService.getConfig(orgId, tenantCode)
 			const orgConfigList = _.reduce(
 				orgConfig.result.resource,
 				(acc, item) => {
@@ -136,6 +143,7 @@ module.exports = class ProgramsHelper {
 				user_id: loggedInUserId,
 				review_type: orgConfigList[common.RESOURCE_TYPE_PROGRAM],
 				organization_code: orgId,
+				tenant_code: tenantCode,
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 				link: null,
@@ -153,6 +161,7 @@ module.exports = class ProgramsHelper {
 				resource_id: programId,
 				creator_id: loggedInUserId,
 				organization_code: orgId,
+				tenant_code: tenantCode,
 			}
 			await resourceCreatorMappingQueries.create(mappingData)
 
@@ -162,6 +171,7 @@ module.exports = class ProgramsHelper {
 					bodyData.resources,
 					programId,
 					orgId,
+					tenantCode,
 					loggedInUserId,
 					isDuplicateProgramCreation,
 					userToken
@@ -205,7 +215,7 @@ module.exports = class ProgramsHelper {
 	 * @name update
 	 * @param {Object} bodyData - Request body data.
 	 * @param {string} loggedInUserId - The ID of the logged-in user.
-	 * @param {string} orgId - The ID of the organization.
+	 * @param {string} orgCode - The ID of the organization.
 	 * @param {string} is_under_edit_param - Frontend Paramenter to update the is_under_edit key.
 	 * @returns {JSON} - Program ID or error response.
 	 */
@@ -213,7 +223,7 @@ module.exports = class ProgramsHelper {
 		resourceId,
 		bodyData,
 		loggedInUserId,
-		orgId,
+		orgCode,
 		tenantCode,
 		is_under_edit_param = false,
 		userToken = ''
@@ -228,7 +238,8 @@ module.exports = class ProgramsHelper {
 			// Fetch the program to be updated
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
-				organization_code: orgId,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 				status: {
 					[Op.notIn]: forbidden_resource_statuses,
 				},
@@ -246,7 +257,8 @@ module.exports = class ProgramsHelper {
 			// Check if the program is in the review stage and has no requested changes
 			const countReviews = await reviewsQueries.distinctResources(
 				{
-					organization_code: orgId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 					resource_id: resourceId,
 					status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
 				},
@@ -278,6 +290,7 @@ module.exports = class ProgramsHelper {
 			// Fetch existing resource mappings for the program
 			const existingMappings = await programResourceMappingQueries.findAll({
 				program_id: programId,
+				tenant_code: tenantCode,
 				organization_code: fetchResource.organization_code,
 			})
 
@@ -291,26 +304,34 @@ module.exports = class ProgramsHelper {
 				) || []
 
 			if (existingResourcesToUpdate.length > 0) {
-				await handleResources(existingResourcesToUpdate, resourceId, orgId, loggedInUserId, '', userToken)
+				await handleResources(
+					existingResourcesToUpdate,
+					resourceId,
+					orgCode,
+					tenantCode,
+					loggedInUserId,
+					false,
+					userToken
+				)
 			}
 
 			// Delete removed resources from programResourceMapping
 			const resourcesToRemove = existingResourceIds.filter((id) => !updatedResourceIds.includes(id))
 			if (resourcesToRemove.length > 0) {
-				await programResourceMappingQueries.deleteMany(resourceId, resourcesToRemove)
+				await programResourceMappingQueries.deleteMany(resourceId, resourcesToRemove, tenantCode)
 			}
 
 			// Identify new resources to be added
 			const newResources = bodyData.resources?.filter((res) => !existingResourceIds.includes(res.id)) || []
 			// Handle new resources (create duplicates, upload to cloud, and map to program)
 			if (newResources.length > 0) {
-				await handleResources(newResources, resourceId, orgId, loggedInUserId, '', userToken)
+				await handleResources(newResources, resourceId, orgCode, tenantCode, loggedInUserId, false, userToken)
 			}
 
 			//Upload program information to cloud
 			await resourceService.uploadAndUpdateResource(
 				programId,
-				orgId,
+				orgCode,
 				tenantCode,
 				loggedInUserId,
 				bodyData,
@@ -335,7 +356,7 @@ module.exports = class ProgramsHelper {
 			}
 
 			const [updateCount, updatedProgram] = await resourceQueries.updateOne(
-				{ id: resourceId, organization_code: orgId },
+				{ id: resourceId, organization_code: orgCode, tenant_code: tenantCode },
 				updateData,
 				{ returning: true, raw: true }
 			)
@@ -369,11 +390,12 @@ module.exports = class ProgramsHelper {
 	 * @param {String} loggedInUserId - User id
 	 * @returns {JSON} - Program Details
 	 */
-	static async details(programId, orgId, userToken = '') {
+	static async details(programId, orgCode, tenantCode, userToken = '') {
 		try {
 			// Fetch the program details
 			const program = await resourceQueries.findOne({
 				id: programId,
+				tenant_code: tenantCode,
 				type: common.RESOURCE_TYPE_PROGRAM,
 			})
 
@@ -410,6 +432,7 @@ module.exports = class ProgramsHelper {
 							status: common.STATUS_ACTIVE,
 						},
 						program.organization_code,
+						tenantCode,
 						['id', 'value', 'label', 'has_entities']
 					)
 
@@ -474,10 +497,11 @@ module.exports = class ProgramsHelper {
 
 			// Fetch organization details and associated resources
 			const [organizationDetails, associatedResources] = await Promise.all([
-				orgExtensionService.fetchOrganizationDetails([program.organization_code], userToken),
+				orgExtensionService.fetchOrganizationDetails([program.organization_code], tenantCode, userToken),
 				programResourceMappingQueries.findAll({
 					program_id: programId,
 					organization_code: program.organization_code,
+					tenant_code: tenantCode,
 				}),
 			])
 
@@ -493,10 +517,12 @@ module.exports = class ProgramsHelper {
 					resourceQueries.findAll({
 						id: { [Op.in]: resourceIds },
 						organization_code: program.organization_code,
+						tenant_code: tenantCode,
 					}),
 					commentQueries.findAll({
 						resource_id: { [Op.in]: resourceIds },
 						status: common.COMMENT_STATUS_OPEN,
+						tenant_code: tenantCode,
 					}),
 				])
 
@@ -504,7 +530,7 @@ module.exports = class ProgramsHelper {
 					const resourceCommentSet = new Set(openComments.map((comment) => comment.resource_id))
 					// Process each resource and store in result.resources
 					const resourceDetailsPromises = resources.map((resource) =>
-						resourceService.getDetails(resource.id, resource.organization_code, userToken)
+						resourceService.getDetails(resource.id, resource.organization_code, tenantCode, userToken)
 					)
 					const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
 					result.resources = resourceDetailsResults
@@ -519,7 +545,7 @@ module.exports = class ProgramsHelper {
 				}
 			}
 
-			if (result.meta) {
+			if (result?.meta) {
 				Object.assign(result, result.meta)
 			}
 			delete result.blob_path
@@ -547,10 +573,10 @@ module.exports = class ProgramsHelper {
 			'',
 			'',
 			'',
+			tenantCode,
 			{
 				user_ids: userIds,
-			},
-			userToken
+			}
 		)
 		let userDetails = {}
 		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
@@ -621,11 +647,11 @@ module.exports = class ProgramsHelper {
 			const [createdResources, fetchProgramDetails] = await Promise.all([
 				// Create copies of reusable resources in parallel
 				resourceToCreate.length > 0
-					? handleResources(resourceToCreate, programId, orgId, loggedInUserId, '', userToken)
+					? handleResources(resourceToCreate, programId, orgId, tenantCode, loggedInUserId, false, userToken)
 					: Promise.resolve([]),
 
 				// Fetch program details in parallel
-				resourceService.getDetails(programId, orgId, userToken),
+				resourceService.getDetails(programId, orgId, tenantCode, userToken),
 			])
 
 			// Prepare data for upload
@@ -669,11 +695,11 @@ module.exports = class ProgramsHelper {
 	 * @param {string} orgId - The ID of the organization.
 	 * @returns {JSON} - Success response or error response.
 	 */
-	static async removeResources(programId, bodyData, loggedInUserId, orgId) {
+	static async removeResources(programId, bodyData, loggedInUserId, orgId, tenantCode) {
 		try {
 			// Fetch program details
 			const program = await resourceQueries.findOne(
-				{ id: programId, organization_code: orgId },
+				{ id: programId, organization_code: orgId, tenant_code: tenantCode },
 				{
 					attributes: ['id', 'status', 'published_id', 'published_on'],
 				}
@@ -693,6 +719,7 @@ module.exports = class ProgramsHelper {
 				// Fetch all resources linked to the program
 				const mappedResources = await programResourceMappingQueries.findAll({
 					program_id: programId,
+					tenant_code: tenantCode,
 				})
 
 				if (!mappedResources.length) {
@@ -737,7 +764,11 @@ module.exports = class ProgramsHelper {
 			const resourceIdsToRemove = bodyData.resource_ids.map(Number)
 
 			// Remove resources
-			const deletedCount = await programResourceMappingQueries.deleteMany(programId, resourceIdsToRemove)
+			const deletedCount = await programResourceMappingQueries.deleteMany(
+				programId,
+				resourceIdsToRemove,
+				tenantCode
+			)
 
 			// Check if any resources were removed
 			if (!deletedCount) {
@@ -767,12 +798,13 @@ module.exports = class ProgramsHelper {
 	 * @returns {JSON} - program delete response.
 	 */
 
-	static async delete(resourceId, loggedInUserId) {
+	static async delete(resourceId, loggedInUserId, tenantCode) {
 		try {
 			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
 				{
 					resource_id: resourceId,
 					creator_id: loggedInUserId,
+					tenant_code: tenantCode,
 				},
 				['id', 'organization_code']
 			)
@@ -790,6 +822,7 @@ module.exports = class ProgramsHelper {
 					id: resourceId,
 					type: common.RESOURCE_TYPE_PROGRAM,
 					organization_code: resourceCreatorMapping.organization_code,
+					tenant_code: tenantCode,
 					status: common.RESOURCE_STATUS_DRAFT,
 					stage: common.RESOURCE_STAGE_CREATION,
 				},
@@ -804,10 +837,16 @@ module.exports = class ProgramsHelper {
 				})
 			}
 
-			let updatedResource = await resourceQueries.deleteOne(resourceId, resource.organization_code)
+			let updatedResource = await resourceQueries.deleteOne(
+				resourceId,
+				resource.organization_code,
+				resource.tenant_code
+			)
 			let updatedResourceCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
 				resourceCreatorMapping.id,
-				loggedInUserId
+				loggedInUserId,
+				resource.organization_code,
+				resource.tenant_code
 			)
 
 			if (updatedResource === 0 && updatedResourceCreatorMapping === 0) {
@@ -836,7 +875,7 @@ module.exports = class ProgramsHelper {
 	 * @param pageSize - Page size
 	 * @returns {JSON} - List of program managers
 	 */
-	static async getProgramManagers(orgId, pageNo, pageSize, userToken = '') {
+	static async getProgramManagers(orgId, tenantCode, pageNo, pageSize, userToken = '') {
 		try {
 			// get org config based on orgId
 			const orgConfigs = await orgExtensionService.getConfig(orgId)
@@ -848,6 +887,7 @@ module.exports = class ProgramsHelper {
 				pageSize,
 				'',
 				orgId,
+				tenantCode,
 				{},
 				userToken
 			)
@@ -880,7 +920,12 @@ module.exports = class ProgramsHelper {
 	 */
 	static async submitForReview(programId, bodyData, userDetails) {
 		try {
-			let programDetails = await this.details(programId, userDetails.organization_code, userDetails.token)
+			let programDetails = await this.details(
+				programId,
+				userDetails.organization_code,
+				userDetails.tenant_code,
+				userDetails.token
+			)
 			if (programDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROGRAM_ACCESS',
@@ -918,6 +963,7 @@ module.exports = class ProgramsHelper {
 					[Op.in]: [programId, ...resourceIds],
 				},
 				status: common.COMMENT_STATUS_OPEN,
+				tenant_code: userDetails.tenant_code,
 			})
 
 			if (comments.count > 0) {
@@ -1130,7 +1176,12 @@ module.exports = class ProgramsHelper {
 	 */
 	static async publish(programId, userDetails) {
 		try {
-			let programDetails = await this.details(programId, userDetails.organization_code, userDetails.token)
+			let programDetails = await this.details(
+				programId,
+				userDetails.organization_code,
+				userDetails.tenant_code,
+				userDetails.token
+			)
 			if (programDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROGRAM_ACCESS',
@@ -1230,7 +1281,7 @@ module.exports = class ProgramsHelper {
 	 * @param {Array} resourceTypes - List of resource Types
 	 * @returns {Array} - Return array of error objects
 	 */
-	static async handleProgramValidation(programData, resourceIds, resourceData, resourceTypes) {
+	static async handleProgramValidation(programData, resourceIds, resourceData, resourceTypes, tenantCode) {
 		try {
 			const programTargeting = programData?.targeting_criteria
 			// fetch the top level of entity in the hierarchy
@@ -1268,6 +1319,7 @@ module.exports = class ProgramsHelper {
 					status: common.STATUS_ACTIVE,
 				},
 				programData.organization_code,
+				tenantCode,
 				['id', 'value', 'has_entities', 'validations']
 			)
 
@@ -1290,6 +1342,7 @@ module.exports = class ProgramsHelper {
 						status: common.STATUS_ACTIVE,
 					},
 					programData.organization_code,
+					tenantCode,
 					['id', 'value', 'has_entities', 'validations']
 				)
 				let { programTopLevelTargetingEntities, programLevelRoles } = await fetchProgramTopLevelEntities(
@@ -1416,13 +1469,19 @@ async function handleResources(
 		const resourceList = await resourceQueries.findAll({
 			id: { [Op.in]: resourceIds },
 			organization_code: orgId,
+			tenant_code: tenantCode,
 		})
 
 		if (!resourceList?.length) return
 
 		// Fetch details for all resources in parallel
 		const resourceDetailsPromises = resourceList.map(async (resource) => {
-			const details = await resourceService.getDetails(resource.id, resource.organization_code, userToken)
+			const details = await resourceService.getDetails(
+				resource.id,
+				resource.organization_code,
+				tenantCode,
+				userToken
+			)
 			return { id: resource.id, result: details?.result }
 		})
 
@@ -1447,6 +1506,7 @@ async function handleResources(
 				const commonFields = {
 					user_id: loggedInUserId,
 					organization_code: orgId,
+					tenant_code: tenantCode,
 					updated_by: loggedInUserId,
 					created_at: new Date(),
 					updated_at: new Date(),
@@ -1480,12 +1540,14 @@ async function handleResources(
 								resource_id: duplicateResource.id,
 								creator_id: loggedInUserId,
 								organization_code: orgId,
+								tenant_code: tenantCode,
 							}),
 							// Map the duplicated resource to the program
 							programResourceMappingQueries.create({
 								program_id: programId,
 								resource_id: duplicateResource.id,
 								organization_code: orgId,
+								tenant_code: tenantCode,
 							}),
 						])
 
@@ -1736,6 +1798,7 @@ async function validateReviewers(reviewerIds, userDetails) {
 		'',
 		'',
 		userDetails.organization_code,
+		userDetails.tenant_code,
 		{
 			user_ids: uniqueReviewerIds,
 			excluded_user_ids: [userDetails.id],
