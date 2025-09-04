@@ -888,7 +888,7 @@ module.exports = class ProgramsHelper {
 	static async getProgramManagers(org_code, tenant_code, pageNo, pageSize, userToken = '') {
 		try {
 			// get org config based on org_code
-			const orgConfigs = await orgExtensionService.getConfig(org_code)
+			const orgConfigs = await orgExtensionService.getConfig(org_code, tenant_code)
 			const programManagerRoles = orgConfigs?.result?.config?.program_managers
 			// fetch the users from user service
 			const programManagersList = await userRequests.list(

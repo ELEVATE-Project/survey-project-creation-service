@@ -891,12 +891,12 @@ module.exports = class resourceHelper {
 					organization_code: org_code,
 					tenant_code: tenant_code,
 				})
-
-				if (!resource?.id) {
-					throw new Error('RESOURCE_NOT_FOUND')
-				}
 			} else {
 				resource = resourceInfo
+			}
+
+			if (!resource?.id) {
+				throw new Error('RESOURCE_NOT_FOUND')
 			}
 
 			if (resource.blob_path) {
