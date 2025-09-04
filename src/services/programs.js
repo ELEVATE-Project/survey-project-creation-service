@@ -602,6 +602,8 @@ module.exports = class ProgramsHelper {
 			// Fetch all resources in a single query
 			const fetchProgramAndResources = await resourceQueries.findAll({
 				id: { [Op.in]: [programId, ...resourceIds] },
+				organization_code: org_code,
+				tenant_code: tenant_code,
 			})
 
 			// Early validation: Check if the program exists and belongs to the logged-in user
@@ -1003,7 +1005,8 @@ module.exports = class ProgramsHelper {
 				programData,
 				resourceIds,
 				resourceData,
-				resourceTypes
+				resourceTypes,
+				userDetails.tenant_code
 			)
 
 			if (validationErrors.length > 0) {
@@ -1222,7 +1225,8 @@ module.exports = class ProgramsHelper {
 				programData,
 				resourceIds,
 				resourceData,
-				resourceTypes
+				resourceTypes,
+				userDetails.tenant_code
 			)
 
 			if (validationErrors.length > 0) {

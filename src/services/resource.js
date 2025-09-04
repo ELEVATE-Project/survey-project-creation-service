@@ -703,6 +703,7 @@ module.exports = class resourceHelper {
 					// fetch all parallel resource ids from org which is open to all
 					const parallelResourcesIds = await this.findParallelResources(
 						organization_code,
+						tenant_code,
 						resourceTypesInParallelReview
 					)
 					// add the resource ids in the final array
@@ -1077,9 +1078,10 @@ module.exports = class resourceHelper {
 	 * @param {Array} resourceTypes -  resourceTypes which are in parallel review in the org.
 	 * @returns {Array} - Response contain array of resource ids
 	 */
-	static async findParallelResources(organization_code, resourceTypes = []) {
+	static async findParallelResources(organization_code, tenant_code, resourceTypes = []) {
 		const resourceFilter = {
 			organization_code,
+			tenant_code,
 			type: {
 				[Op.in]: resourceTypes,
 			},
@@ -1672,7 +1674,7 @@ module.exports = class resourceHelper {
 				uploadStatus.result.status === httpStatusCode.ok ||
 				uploadStatus.result.status === httpStatusCode.created
 			) {
-				const filter = { id: resourceId, organization_code: org_code }
+				const filter = { id: resourceId, organization_code: org_code, tenant_code: tenant_code }
 				const updateData = { updated_by: loggedInUserId, blob_path: uploadStatus.blob_path }
 				if (data.title) {
 					updateData.title = data.title
