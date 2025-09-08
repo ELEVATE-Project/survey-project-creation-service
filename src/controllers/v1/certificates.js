@@ -6,9 +6,6 @@
  */
 
 const certificateService = require('@services/certificate')
-const utils = require('@generics/utils')
-const responses = require('@helpers/responses')
-const httpStatusCode = require('@generics/http-status')
 module.exports = class certificates {
 	/**
 	 * List certificates.
