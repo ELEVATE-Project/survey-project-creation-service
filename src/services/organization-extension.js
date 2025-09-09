@@ -10,6 +10,9 @@ const userRequests = require('@requests/user')
 const utils = require('@generics/utils')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
 const organizationConfigQueries = require('@database/queries/organizationConfig')
+const Op = require('sequelize').Op
+const fs = require('fs')
+const path = require('path')
 module.exports = class orgExtensionsHelper {
 	/**
 	 * Create Organization Config.
@@ -310,15 +313,27 @@ module.exports = class orgExtensionsHelper {
 				},
 			}
 			// fetch org config for organization_code
-			const orgConfig = await organizationConfigQueries.findOne(
+			const orgConfig = await organizationConfigQueries.findAll(
 				{
-					organization_code,
+					organization_code: {
+						[Op.or]: [organization_code, process.env.DEFAULT_ORGANIZATION_CODE],
+					},
+					tenant_code: tenantCode,
 				},
 				['meta']
 			)
 
-			if (orgConfig?.meta && Object.keys(orgConfig.meta).length > 0) {
-				result.config = orgConfig?.meta
+			if (orgConfig && orgConfig.length > 0) {
+				if (orgConfig.length > 1) {
+					const findOrgConfig = orgConfig.find((config) => config.organization_code === organization_code)
+					result.config = findOrgConfig.meta
+				} else {
+					result.config = orgConfig[0]?.meta
+				}
+			}
+			if (Object.keys(result.config).length === 0) {
+				const filePath = path.join(__dirname, '../constants/', 'defaultOrgConfigForTargetingCriteria.json')
+				result.config = await readJsonFileSync(filePath)
 			}
 
 			if (orgConfig?.meta?.data_managers?.length == 0 || orgConfig?.meta?.data_managers?.length == undefined) {
@@ -417,5 +432,18 @@ module.exports = class orgExtensionsHelper {
 				result: [],
 			})
 		}
+	}
+}
+
+function readJsonFileSync(filePath) {
+	try {
+		// Read the file content synchronously
+		const data = fs.readFileSync(filePath, 'utf8')
+		// Parse JSON data
+		const jsonData = JSON.parse(data)
+		return jsonData
+	} catch (error) {
+		console.error('Error reading or parsing JSON file:', error)
+		throw error
 	}
 }
