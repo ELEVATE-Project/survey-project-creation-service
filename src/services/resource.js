@@ -879,7 +879,7 @@ module.exports = class resourceHelper {
 	 * @name getDetails
 	 * @returns {JSON} - details of resource
 	 */
-	static async getDetails(resourceInfo, org_code, tenant_code, userToken = '') {
+	static async getDetails(resourceInfo, org_code, tenant_code) {
 		try {
 			let resource
 			let result = {

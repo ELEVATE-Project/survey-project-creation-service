@@ -157,7 +157,6 @@ module.exports = class RolloutsHelper {
 		loggedInUserId,
 		org_code,
 		tenant_code,
-		userToken = '',
 		returnBlobPath = false,
 		getResourceData = false
 	) {
@@ -209,7 +208,7 @@ module.exports = class RolloutsHelper {
 					// fetch the user if viewer is present
 					if (response?.result?.viewers?.length > 0) {
 						const viewerUserIds = response.result.viewers
-						const userDetails = await this.fetchUserDetails(viewerUserIds, userToken, org_code, tenant_code)
+						const userDetails = await this.fetchUserDetails(viewerUserIds, org_code, tenant_code)
 
 						if (userDetails && Object.keys(userDetails).length > 0) {
 							resultData.viewers = viewerUserIds.map((user) => {
@@ -573,18 +572,17 @@ module.exports = class RolloutsHelper {
 	 * @param {String} tenant_code - tenant code
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds, userToken = '', org_code, tenant_code) {
+	static async fetchUserDetails(userIds, org_code, tenant_code) {
 		const userDetailsResponse = await userRequests.list(
-			common.FILTER_ALL.toLowerCase(),
-			'',
-			'',
-			'',
-			org_code,
-			tenant_code,
+			common.FILTER_ALL.toLowerCase(), //type
+			'', // page number
+			'', // page size
+			'', // search text
+			org_code, // organization_code
+			tenant_code, // tenant_code
 			{
 				user_ids: userIds,
-			},
-			userToken
+			} // body
 		)
 		let userDetails = {}
 		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
@@ -711,7 +709,6 @@ module.exports = class RolloutsHelper {
 			const resourceDetails = await resourceService.getDetails(
 				rolloutDetailsResult?.resourceDetails,
 				org_code,
-				userToken,
 				tenant_code
 			)
 
@@ -775,16 +772,15 @@ module.exports = class RolloutsHelper {
 				status: common.ROLLOUT_STATUS_PROCESSING,
 			}
 
-			await rolloutQueries.updateOne({ id: rolloutId }, updateBody)
+			await rolloutQueries.updateOne({ id: rolloutId, tenant_code, organization_code: org_code }, updateBody)
 
 			const rolloutKafkaPayload = {
-				...rolloutDetails.result,
-				rolloutId: rolloutDetails.result.id,
-				resource: {
-					...resourceDetails?.result,
-					rolloutId: solutionRolloutId,
-				},
+				id: rolloutDetails.result.id,
+				tenant_code,
+				organization_code: org_code,
+				type: common.ROLL_OUT,
 				userToken,
+				userId: loggedInUserId,
 			}
 
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {

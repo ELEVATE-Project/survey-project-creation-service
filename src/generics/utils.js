@@ -892,6 +892,8 @@ function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
 	}
 }
 
+function validateTargetingCriteria(targetingCriteria, orgCode, tenantCode) {}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -941,4 +943,5 @@ module.exports = {
 	validateTenantAndOrganizationInHeader,
 	_extractTenantAndOrgCodes,
 	buildUrl,
+	validateTargetingCriteria,
 }

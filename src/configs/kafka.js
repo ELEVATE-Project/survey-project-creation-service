@@ -113,10 +113,9 @@ module.exports = async () => {
 						if (streamingData.type == 'CLEAR_INTERNAL_CACHE') {
 							utils.internalDel(streamingData)
 						} else if (topic == process.env.PROJECT_PUBLISH_KAFKA_TOPIC) {
-							const abc = await consumptionService.publishProjectTemplates(streamingData)
-							console.log(abc)
+							await consumptionService.publishProjectTemplates(streamingData)
 						} else if (topic == process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC) {
-							// await consumptionService.publishProgram(streamingData)
+							await consumptionService.publishProgram(streamingData)
 						}
 					} catch (error) {
 						logger.error('Error processing Kafka message:', { error })

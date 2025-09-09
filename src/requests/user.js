@@ -94,8 +94,7 @@ const list = function (
 	searchText = '',
 	organization_code = null,
 	tenant_code = null,
-	body = {},
-	userToken = ''
+	body = {}
 ) {
 	return new Promise(async (resolve, reject) => {
 		try {
