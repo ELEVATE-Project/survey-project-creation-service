@@ -162,9 +162,13 @@ module.exports = class ProjectsHelper {
 	 * project update
 	 * @method
 	 * @name update
-	 * @param {Object} req - request data.
+	 * @param {String} resourceId - resourceId.
+	 * @param {Object} bodyData- reqData
+	 * @param {String} loggedInUserId - loggedInUserId.
+	 * @param {String} orgCode - orgCode.
+	 * @param {String} tenantCode - tenantCode.
 	 * @returns {JSON} - project update response.
-	 */
+	 **/
 
 	static async update(resourceId, bodyData, loggedInUserId, orgCode, tenantCode) {
 		try {
@@ -227,7 +231,6 @@ module.exports = class ProjectsHelper {
 			}
 
 			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_code', 'user_id'])
-
 			//upload to blob
 			const projectUploadStatus = await resourceService.uploadToCloud(
 				common.PROJECT_UPLOAD_FILE_NAME,
@@ -483,18 +486,20 @@ module.exports = class ProjectsHelper {
 				}
 			}
 			//Add path in getDownloadUrl
-			if (result.certificate && result.certificate.base_template_url && result.certificate.base_template_id) {
-				const baseTemplate = await certificateBasetemplateQueries.findOne(
-					{
-						id: result.certificate.base_template_id,
-					},
-					{ attributes: ['id', 'name', 'url'] }
-				)
-				if (baseTemplate) {
-					result.certificate.base_template_url = {
-						url: result.certificate.base_template_url,
-						filepath: baseTemplate.url,
-					}
+			if (
+				result.certificate &&
+				result.certificate.base_template_url &&
+				typeof result.certificate.base_template_url === common.OBJECT
+			) {
+				let getResourceCertificateurl = result.certificate.base_template_url
+				let certificatesUrl = await filesService.getDownloadableUrl([getResourceCertificateurl.filePath])
+
+				if (
+					certificatesUrl?.statusCode === httpStatusCode.ok &&
+					certificatesUrl.result &&
+					certificatesUrl.result.length > 0
+				) {
+					result.certificate.base_template_url.url = certificatesUrl.result?.[0]?.url
 				}
 			}
 			//get organization details

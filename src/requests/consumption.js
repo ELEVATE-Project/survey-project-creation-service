@@ -1633,9 +1633,10 @@ const publishProgram = function async(programData) {
 					)
 				const fetchDetails = await rolloutService.details(
 					rolloutId,
-					programData.organization_code,
 					programData.created_by,
-					false
+					programData.organization_code,
+					programData.tenant_code,
+					userToken
 				)
 
 				if (!fetchDetails?.result?.published_id) {
