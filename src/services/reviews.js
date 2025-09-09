@@ -762,7 +762,7 @@ module.exports = class reviewsHelper {
 				return resourceDetails
 			}
 
-			const resourceData = resourceDetails.result
+			let resourceData = resourceDetails.result
 
 			//publish the resource
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
@@ -779,6 +779,7 @@ module.exports = class reviewsHelper {
 							rolloutId,
 							resourceData.user_id,
 							resourceData.organization_code,
+							resourceData.tenant_code,
 							resourceData.userToken
 						)
 
@@ -884,11 +885,12 @@ async function handleProgramRollout(resourceData, resourceId, userId, userToken)
 				resourceId,
 				resourceData,
 				userId,
-				resourceData.organization_code
+				resourceData.organization_code,
+				resourceData.tenant_code
 			)
 		} else {
 			// while program publishing first time
-			rolloutData = await rolloutService.createProgramRollout(resourceData, userId, userToken)
+			let rolloutData = await rolloutService.createProgramRollout(resourceData, userId, userToken)
 			if (!rolloutData?.success) {
 				throw new Error(rolloutData?.error)
 			}
