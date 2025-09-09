@@ -27,7 +27,8 @@ module.exports = class rollouts {
 						req.params.id,
 						req.body,
 						req.decodedToken.id,
-						req.decodedToken.organization_code
+						req.decodedToken.organization_code,
+						req.decodedToken.tenant_code
 					)
 				}
 				return rollout
@@ -35,7 +36,8 @@ module.exports = class rollouts {
 				const rollout = await rolloutService.create(
 					req.body,
 					req.decodedToken.id,
-					req.decodedToken.organization_code
+					req.decodedToken.organization_code,
+					req.decodedToken.tenant_code
 				)
 				return rollout
 			}
@@ -56,6 +58,7 @@ module.exports = class rollouts {
 		try {
 			const dataManagers = await rolloutService.getDataManagers(
 				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.pageNo,
 				req.pageSize,
 				req.decodedToken.token
@@ -76,8 +79,9 @@ module.exports = class rollouts {
 		try {
 			const rollout = await rolloutService.details(
 				req.params.id,
-				req.decodedToken.organization_code,
 				req.decodedToken.id,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.decodedToken.token
 			)
 			return rollout
@@ -100,12 +104,13 @@ module.exports = class rollouts {
 	async list(req) {
 		try {
 			const rolloutList = await rolloutService.list(
-				req.decodedToken.organization_code,
 				req.decodedToken.id,
 				req.query,
 				req.searchText,
 				req.pageNo,
 				req.pageSize,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.decodedToken.token
 			)
 
@@ -127,6 +132,7 @@ module.exports = class rollouts {
 				req.params.id,
 				req.decodedToken.id,
 				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.decodedToken.token
 			)
 			return rollout

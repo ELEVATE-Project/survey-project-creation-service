@@ -9,10 +9,45 @@ const utils = require('@generics/utils')
 const { elevateLog } = require('elevate-logger')
 const logger = elevateLog.init()
 const { Kafka } = require('kafkajs')
-const consumptionService = require('@requests/consumption')
-const rolloutService = require('@services/rollouts')
-const httpStatusCode = require('@generics/http-status')
+// const consumptionService = require('@requests/consumption')
+const { consumptionService } = require('@consumption/index')
 
+const topics = [
+	process.env.CLEAR_INTERNAL_CACHE,
+	process.env.PROJECT_PUBLISH_KAFKA_TOPIC,
+	process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC,
+	process.env.PROGRAM_PUBLISH_KAFKA_TOPIC,
+]
+async function ensureTopics(admin) {
+	try {
+		// Connect to the Kafka admin client
+		await admin.connect()
+
+		// Check existing topics
+		const existingTopics = await admin.listTopics()
+		const topicsToCreate = topics.filter((topic) => !existingTopics.includes(topic))
+
+		if (topicsToCreate.length > 0) {
+			// Create missing topics
+			await admin.createTopics({
+				topics: topicsToCreate.map((topic) => ({
+					topic,
+					numPartitions: 1, // Adjust as needed
+					replicationFactor: 1, // Adjust as needed
+				})),
+			})
+			console.log(`Created topics: ${topicsToCreate.join(', ')}`)
+		} else {
+			console.log('All topics already exist')
+		}
+
+		// Disconnect admin client
+		await admin.disconnect()
+	} catch (error) {
+		console.error('Error ensuring topics:', error)
+		throw error
+	}
+}
 module.exports = async () => {
 	const kafkaIps = process.env.KAFKA_URL.split(',')
 	const KafkaClient = new Kafka({
@@ -21,7 +56,9 @@ module.exports = async () => {
 	})
 
 	const producer = KafkaClient.producer()
+	const admin = KafkaClient.admin()
 	const consumer = KafkaClient.consumer({ groupId: process.env.KAFKA_GROUP_ID })
+	ensureTopics(admin)
 
 	await producer.connect()
 
@@ -49,12 +86,7 @@ module.exports = async () => {
 	const subscribeToConsumer = async () => {
 		try {
 			await consumer.subscribe({
-				topics: [
-					process.env.CLEAR_INTERNAL_CACHE,
-					process.env.PROJECT_PUBLISH_KAFKA_TOPIC,
-					process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC,
-					process.env.PROGRAM_PUBLISH_KAFKA_TOPIC,
-				],
+				topics,
 			})
 			logger.info(
 				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} , ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC}, ${process.env.PROGRAM_PUBLISH_KAFKA_TOPIC} and ${process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC}`
@@ -81,9 +113,10 @@ module.exports = async () => {
 						if (streamingData.type == 'CLEAR_INTERNAL_CACHE') {
 							utils.internalDel(streamingData)
 						} else if (topic == process.env.PROJECT_PUBLISH_KAFKA_TOPIC) {
-							await consumptionService.publishProjectTemplates(streamingData)
+							const abc = await consumptionService.publishProjectTemplates(streamingData)
+							console.log(abc)
 						} else if (topic == process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC) {
-							await consumptionService.publishProgram(streamingData)
+							// await consumptionService.publishProgram(streamingData)
 						}
 					} catch (error) {
 						logger.error('Error processing Kafka message:', { error })

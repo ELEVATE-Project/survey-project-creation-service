@@ -20,7 +20,7 @@ const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const kafkaCommunication = require('@generics/kafka-communication')
-const consumptionRequests = require('@requests/consumption')
+const consumptionRequests = require('@consumption/index')
 const rolloutService = require('@services/rollouts')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
 module.exports = class reviewsHelper {
@@ -790,7 +790,12 @@ module.exports = class reviewsHelper {
 							})
 						}
 					} else if (resourceData.type == common.PROJECT) {
-						await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
+						const payload = {
+							id: resourceData.id,
+							organization_code: resourceData.organization_code,
+							tenant_code: resourceData.tenant_code,
+						}
+						await kafkaCommunication.pushResourceToKafka(payload, resourceData.type)
 					}
 				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
 					//resource creation through api

@@ -1360,7 +1360,6 @@ module.exports = class resourceHelper {
 	 * @param {Object} bodyData - bodyData
 	 * @returns {JSON} - upload  response.
 	 */
-
 	static async uploadToCloud(fileName, orgCode, tenantCode, resourceId, resourceType, loggedInUserId, bodyData) {
 		try {
 			//sample blob path

@@ -241,6 +241,7 @@ module.exports = {
 	PUBLISHED_STATUS: 'published',
 	CONSUMPTION_SERVICE_SELF: 'self',
 	SUNBIRD: 'sunbird',
+	ELEVATE: 'elevate',
 	INTERNAL_ACCESS_TOKEN: 'internal-access-token',
 	UPLOAD_FILE_NAME: {
 		project: 'project.json',
@@ -248,4 +249,6 @@ module.exports = {
 	},
 	ORGANIZATION_KEY: 'organization_code',
 	PROJECTION_KEY_ASTERISK: '*',
+	MONGO_DB_MODE_INDIVIDUAL: 'individual',
+	MONGO_DB_MODE_SHARED: 'shared',
 }

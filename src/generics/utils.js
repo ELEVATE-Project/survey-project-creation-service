@@ -659,7 +659,7 @@ const convertResources = (resources) =>
  * @returns {Array} - Formatted keywords
  */
 function formatKeywords(keywords) {
-	if (Array.isArray(keywords)) return keywords.map((k) => k.trim())
+	if (Array.isArray(keywords) && keywords.length > 0) return keywords.map((k) => k.trim())
 	if (typeof keywords === 'string') return keywords.split(',').map((k) => k.trim())
 	return []
 }
@@ -787,7 +787,7 @@ function _extractTenantAndOrgCodes(req) {
 	let organizationCode = req.decodedToken.organization_code
 
 	if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-		const validHeader = validateTenantAndOrganizationInHeader(req)
+		const validHeader = validateTenantAndOrganizationInHeader({ headers: req.headers })
 		if (!validHeader) {
 			return {
 				error: 'TENANT_ORGANIZATION_HEADER_MISSING',

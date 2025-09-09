@@ -366,12 +366,11 @@ module.exports = class ProjectsHelper {
 	 * @method
 	 * @name details
 	 * @param {String} projectId - Project id
-	 * @param {String} orgCode - Project id
-	 * @param {String} tenantCode - Project id
+	 * @param {String} tenantCode - tenant code
 	 * @returns {JSON} - Project data.
 	 */
 
-	static async details(projectId, orgCode, tenantCode, userId, commentsOptions = {}) {
+	static async details(projectId, tenantCode, orgCode, commentsOptions = {}) {
 		try {
 			let result = {
 				organization: {},
@@ -395,7 +394,6 @@ module.exports = class ProjectsHelper {
 					type: common.PROJECT,
 					organization_code: orgCode,
 					tenant_code: tenantCode,
-					created_by: userId,
 				},
 				options
 			)
@@ -537,9 +535,8 @@ module.exports = class ProjectsHelper {
 			}
 			let projectDetails = await this.details(
 				resourceId,
-				userDetails.organization_code,
 				userDetails.tenant_code,
-				userDetails.id,
+				userDetails.organization_code,
 				commentsOptions
 			)
 			if (projectDetails.statusCode !== httpStatusCode.ok) {
