@@ -313,36 +313,32 @@ module.exports = class orgExtensionsHelper {
 				},
 			}
 			// fetch org config for organization_code
-			const orgConfig = await organizationConfigQueries.findAll(
+			const orgConfigs = await organizationConfigQueries.findAll(
 				{
 					organization_code: {
-						[Op.or]: [organization_code, process.env.DEFAULT_ORGANIZATION_CODE],
+						[Op.in]: [organization_code, process.env.DEFAULT_ORGANIZATION_CODE].filter(Boolean),
 					},
 					tenant_code: tenantCode,
 				},
-				['meta']
+				['meta', 'organization_code']
 			)
 
-			if (orgConfig && orgConfig.length > 0) {
-				if (orgConfig.length > 1) {
-					const findOrgConfig = orgConfig.find((config) => config.organization_code === organization_code)
+			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
+				if (orgConfigs.length > 1) {
+					const findOrgConfig = orgConfigs.find((config) => config.organization_code === organization_code)
 					result.config = findOrgConfig.meta
 				} else {
-					result.config = orgConfig[0]?.meta
+					result.config = orgConfigs[0]?.meta
 				}
 			}
-			if (Object.keys(result.config).length === 0) {
-				const filePath = path.join(__dirname, '../constants/', 'defaultOrgConfigForTargetingCriteria.json')
-				result.config = await readJsonFileSync(filePath)
-			}
 
-			if (orgConfig?.meta?.data_managers?.length == 0 || orgConfig?.meta?.data_managers?.length == undefined) {
+			if (orgConfigs?.meta?.data_managers?.length == 0 || orgConfigs?.meta?.data_managers?.length == undefined) {
 				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
 			}
 
 			if (
-				orgConfig?.meta?.program_managers?.length == 0 ||
-				orgConfig?.meta?.program_managers?.length == undefined
+				orgConfigs?.meta?.program_managers?.length == 0 ||
+				orgConfigs?.meta?.program_managers?.length == undefined
 			) {
 				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',')
 			}
@@ -411,13 +407,6 @@ module.exports = class orgExtensionsHelper {
 
 			result.resource = configData
 
-			//get the factors and optional factors from user service
-			const tenantDetails = await userRequests.fetchPublicTenantDetails(tenantCode)
-			// add scope related factors to the result
-			const meta = tenantDetails?.success ? tenantDetails?.data?.result?.meta : {}
-			result.factors = meta?.factors ?? []
-			result.optional_factors = meta?.optional_factors ?? []
-
 			// return success message
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -432,18 +421,5 @@ module.exports = class orgExtensionsHelper {
 				result: [],
 			})
 		}
-	}
-}
-
-function readJsonFileSync(filePath) {
-	try {
-		// Read the file content synchronously
-		const data = fs.readFileSync(filePath, 'utf8')
-		// Parse JSON data
-		const jsonData = JSON.parse(data)
-		return jsonData
-	} catch (error) {
-		console.error('Error reading or parsing JSON file:', error)
-		throw error
 	}
 }
