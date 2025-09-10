@@ -68,7 +68,7 @@
 				"depends_on": ["entityType"],
 				"type": "selection",
 				"default": null,
-				"multi_select": true,
+				"multi_select": false,
 				"api": {
 					"service": "entity-service",
 					"base_name": "entity-management",

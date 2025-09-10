@@ -316,14 +316,14 @@ module.exports = class orgExtensionsHelper {
 			const orgConfig = await organizationConfigQueries.findAll(
 				{
 					organization_code: {
-						[Op.or]: [organization_code, process.env.DEFAULT_ORGANIZATION_CODE],
+						[Op.in]: [organization_code, process.env.DEFAULT_ORGANIZATION_CODE].filter(Boolean),
 					},
 					tenant_code: tenantCode,
 				},
-				['meta']
+				['meta', 'organization_code']
 			)
 
-			if (orgConfig && orgConfig.length > 0) {
+			if (Array.isArray(orgConfigs) && orgConfig.length > 0) {
 				if (orgConfig.length > 1) {
 					const findOrgConfig = orgConfig.find((config) => config.organization_code === organization_code)
 					result.config = findOrgConfig.meta
@@ -410,13 +410,6 @@ module.exports = class orgExtensionsHelper {
 			})
 
 			result.resource = configData
-
-			//get the factors and optional factors from user service
-			const tenantDetails = await userRequests.fetchPublicTenantDetails(tenantCode)
-			// add scope related factors to the result
-			const meta = tenantDetails?.success ? tenantDetails?.data?.result?.meta : {}
-			result.factors = meta?.factors ?? []
-			result.optional_factors = meta?.optional_factors ?? []
 
 			// return success message
 			return responses.successResponse({
