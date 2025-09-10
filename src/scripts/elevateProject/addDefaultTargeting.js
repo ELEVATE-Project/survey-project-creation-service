@@ -10,7 +10,6 @@ const fs = require('fs')
 const utils = require('@generics/utils')
 const path = require('path')
 const organizationConfigQueries = require('@database/queries/organizationConfig')
-const { or } = require('sequelize')
 
 // find the path of src folder in the structure
 const srcPath = `${path.sep}${utils.pathFinder(__dirname, 'src')}`
