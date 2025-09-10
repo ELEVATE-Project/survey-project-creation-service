@@ -331,10 +331,6 @@ module.exports = class orgExtensionsHelper {
 					result.config = orgConfigs[0]?.meta
 				}
 			}
-			if (Object.keys(result.config).length === 0) {
-				const filePath = path.join(__dirname, '../constants/', 'defaultOrgConfigForTargetingCriteria.json')
-				result.config = await readJsonFileSync(filePath)
-			}
 
 			if (orgConfigs?.meta?.data_managers?.length == 0 || orgConfigs?.meta?.data_managers?.length == undefined) {
 				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')

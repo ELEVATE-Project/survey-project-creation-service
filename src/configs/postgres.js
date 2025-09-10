@@ -1,4 +1,8 @@
-require('dotenv').config()
+require('module-alias/register')
+const utils = require('@generics/utils')
+const path = require('path')
+const srcPath = `${path.sep}${utils.pathFinder(__dirname, 'src')}`
+require('dotenv').config({ path: `${path.sep}${path.join(srcPath, '.env')}` })
 const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
 	? process.env.DEFAULT_ORGANISATION_CODE.toString()
 	: (() => {

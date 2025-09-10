@@ -12,6 +12,7 @@ const { v4: uuidV4 } = require('uuid')
 const _ = require('lodash')
 const md5 = require('md5')
 const { transliterate: tr } = require('transliteration')
+const path = require('path')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -891,7 +892,15 @@ function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
 		throw new Error('INVALID URL INPUT')
 	}
 }
-
+function pathFinder(__dirname, targetFolder) {
+	const pathComponents = __dirname.split(path.sep)
+	const lastIndex = pathComponents.lastIndexOf(targetFolder)
+	if (lastIndex === -1) {
+		throw new Error(`Folder "${targetFolder}" not found in the path`)
+	}
+	// Join components up to and including targetFolder
+	return path.join(...pathComponents.slice(0, lastIndex + 1))
+}
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -941,4 +950,5 @@ module.exports = {
 	validateTenantAndOrganizationInHeader,
 	_extractTenantAndOrgCodes,
 	buildUrl,
+	pathFinder,
 }
