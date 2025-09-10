@@ -11,8 +11,6 @@ const utils = require('@generics/utils')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
 const organizationConfigQueries = require('@database/queries/organizationConfig')
 const Op = require('sequelize').Op
-const fs = require('fs')
-const path = require('path')
 module.exports = class orgExtensionsHelper {
 	/**
 	 * Create Organization Config.
@@ -421,18 +419,5 @@ module.exports = class orgExtensionsHelper {
 				result: [],
 			})
 		}
-	}
-}
-
-function readJsonFileSync(filePath) {
-	try {
-		// Read the file content synchronously
-		const data = fs.readFileSync(filePath, 'utf8')
-		// Parse JSON data
-		const jsonData = JSON.parse(data)
-		return jsonData
-	} catch (error) {
-		console.error('Error reading or parsing JSON file:', error)
-		throw error
 	}
 }
