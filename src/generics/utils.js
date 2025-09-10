@@ -892,14 +892,23 @@ function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
 		throw new Error('INVALID URL INPUT')
 	}
 }
+
 function pathFinder(__dirname, targetFolder) {
+	// Check if __dirname starts with the platform-specific path separator
+	const hasLeadingSeparator = __dirname.startsWith(path.sep)
+	// Split the path into components
 	const pathComponents = __dirname.split(path.sep)
-	const lastIndex = pathComponents.lastIndexOf(targetFolder)
+	// Remove empty string from start if path is absolute (e.g., ['', 'Users', ...])
+	const cleanedComponents = hasLeadingSeparator ? pathComponents.slice(1) : pathComponents
+	// Find the last index of the target folder
+	const lastIndex = cleanedComponents.lastIndexOf(targetFolder)
 	if (lastIndex === -1) {
 		throw new Error(`Folder "${targetFolder}" not found in the path`)
 	}
-	// Join components up to and including targetFolder
-	return path.join(...pathComponents.slice(0, lastIndex + 1))
+	// Take components up to and including targetFolder
+	const targetComponents = cleanedComponents.slice(0, lastIndex + 1)
+	// Join components, adding back the leading separator if it existed
+	return (hasLeadingSeparator ? path.sep : '') + path.join(...targetComponents)
 }
 module.exports = {
 	composeEmailBody,

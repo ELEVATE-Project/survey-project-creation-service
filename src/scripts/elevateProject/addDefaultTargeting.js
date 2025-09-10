@@ -12,9 +12,9 @@ const path = require('path')
 const organizationConfigQueries = require('@database/queries/organizationConfig')
 
 // find the path of src folder in the structure
-const srcPath = `${path.sep}${utils.pathFinder(__dirname, 'src')}`
+const srcPath = `${utils.pathFinder(__dirname, 'src')}`
 // find the path of .env file
-const envPath = `${path.sep}${path.join(srcPath, '.env')}`
+const envPath = `${path.join(srcPath, '.env')}`
 
 // load .env file
 require('dotenv').config({ path: envPath })
@@ -35,7 +35,7 @@ const defaultOrgCode = process.env.DEFAULT_ORGANISATION_CODE
 const readJsonFile = (filePath) => {
 	try {
 		// Read the file content
-		const data = fs.readFileSync(filePath)
+		const data = fs.readFileSync(filePath, 'utf8')
 		// Parse JSON data
 		const jsonData = JSON.parse(data)
 		return jsonData
@@ -50,27 +50,28 @@ if (!process?.env?.AUTH_CONFIG_FILE_PATH) throw new Error('AUTH_CONFIG_FILE_PATH
 let filePath = path.join(srcPath, process.env.AUTH_CONFIG_FILE_PATH)
 // read the config file
 const config = readJsonFile(filePath)
+
+if (!config?.targeting_criteria) {
+	throw new Error('targeting_criteria missing in auth config')
+}
 // fetch targeting criteria from config
-const targetingCriteria = { targeting_criteria: config?.targeting_criteria }
+const targetingCriteria = { targeting_criteria: config.targeting_criteria }
 
 ;(async () => {
 	try {
-		// create the given config in organization config table for default org and tenant
-		await organizationConfigQueries
-			.create({
-				organization_code: defaultOrgCode,
-				tenant_code: defaultTenantCode,
-				meta: targetingCriteria,
-			})
-			.then((response) => {
-				console.log('Default Targeting added successfully')
-				process.exit(0)
-			})
-			.catch((err) => {
-				console.log(err)
-				process.exit(1)
-			})
+		await organizationConfigQueries.create({
+			organization_code: defaultOrgCode,
+			tenant_code: defaultTenantCode,
+			meta: targetingCriteria,
+		})
+		console.log('Default Targeting added successfully')
+		process.exit(0)
 	} catch (error) {
-		console.log(error)
+		if (error?.name && error.name.includes('UniqueConstraint')) {
+			console.log('Default Targeting already exists; skipping')
+			process.exit(0)
+		}
+		console.error(error)
+		process.exit(1)
 	}
-})().catch((err) => console.error(err))
+})()
