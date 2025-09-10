@@ -313,7 +313,7 @@ module.exports = class orgExtensionsHelper {
 				},
 			}
 			// fetch org config for organization_code
-			const orgConfig = await organizationConfigQueries.findAll(
+			const orgConfigs = await organizationConfigQueries.findAll(
 				{
 					organization_code: {
 						[Op.in]: [organization_code, process.env.DEFAULT_ORGANIZATION_CODE].filter(Boolean),
@@ -323,12 +323,12 @@ module.exports = class orgExtensionsHelper {
 				['meta', 'organization_code']
 			)
 
-			if (Array.isArray(orgConfigs) && orgConfig.length > 0) {
-				if (orgConfig.length > 1) {
-					const findOrgConfig = orgConfig.find((config) => config.organization_code === organization_code)
+			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
+				if (orgConfigs.length > 1) {
+					const findOrgConfig = orgConfigs.find((config) => config.organization_code === organization_code)
 					result.config = findOrgConfig.meta
 				} else {
-					result.config = orgConfig[0]?.meta
+					result.config = orgConfigs[0]?.meta
 				}
 			}
 			if (Object.keys(result.config).length === 0) {
@@ -336,13 +336,13 @@ module.exports = class orgExtensionsHelper {
 				result.config = await readJsonFileSync(filePath)
 			}
 
-			if (orgConfig?.meta?.data_managers?.length == 0 || orgConfig?.meta?.data_managers?.length == undefined) {
+			if (orgConfigs?.meta?.data_managers?.length == 0 || orgConfigs?.meta?.data_managers?.length == undefined) {
 				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
 			}
 
 			if (
-				orgConfig?.meta?.program_managers?.length == 0 ||
-				orgConfig?.meta?.program_managers?.length == undefined
+				orgConfigs?.meta?.program_managers?.length == 0 ||
+				orgConfigs?.meta?.program_managers?.length == undefined
 			) {
 				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',')
 			}
