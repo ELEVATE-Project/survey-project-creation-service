@@ -11,8 +11,6 @@ const utils = require('@generics/utils')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
 const organizationConfigQueries = require('@database/queries/organizationConfig')
 const Op = require('sequelize').Op
-const fs = require('fs')
-const path = require('path')
 module.exports = class orgExtensionsHelper {
 	/**
 	 * Create Organization Config.

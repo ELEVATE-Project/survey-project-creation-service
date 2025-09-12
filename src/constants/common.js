@@ -180,10 +180,12 @@ module.exports = {
 	ENTITY_TYPE_MODELS: {
 		project: ['project', 'tasks', 'subTasks'],
 		program: ['program'],
+		targeting: ['targeting'],
 	},
 	MODEL_NAMES: {
 		RESOURCE: 'Resource',
 		ROLLOUT: 'Rollouts',
+		TARGETING: 'targeting',
 	},
 	USER_ACTIONS: {
 		project: getResourceActions('PROJECT'),
@@ -251,4 +253,5 @@ module.exports = {
 	PROJECTION_KEY_ASTERISK: '*',
 	MONGO_DB_MODE_INDIVIDUAL: 'individual',
 	MONGO_DB_MODE_SHARED: 'shared',
+	TARGETING: 'targeting',
 }
