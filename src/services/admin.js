@@ -64,7 +64,7 @@ function validateQueryInput(data) {
 		throw new Error('Query must be a valid string')
 	}
 
-	if (!rawQuery.toLowerCase().startsWith('select')) {
+	if (!/^\s*select\b/i.test(rawQuery)) {
 		throw new Error('Only SELECT queries are allowed')
 	}
 

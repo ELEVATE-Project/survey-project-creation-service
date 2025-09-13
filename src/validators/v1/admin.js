@@ -13,7 +13,7 @@ module.exports = {
 			.withMessage('Query is required')
 			.isString()
 			.withMessage('Query must be a string')
-			.matches(/^\s*SELECT/i)
+			.matches(/^\s*SELECT\b/i)
 			.withMessage('Only SELECT queries are allowed')
 	},
 }
