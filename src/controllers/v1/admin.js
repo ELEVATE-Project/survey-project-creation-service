@@ -13,7 +13,11 @@ module.exports = class admin {
 	 * which validates the query and returns results only for SELECT statements.
 	 * @param {Object} req - The Express request object.
 	 * @param {Object} req.body - The request body containing the query.
-	 * @param {string} req.body.query - The raw SQL SELECT query string.
+	 * @param {string} req.body.query - The raw SQL SELECT query string. {
+		"query": "SELECT id, title from resources WHERE status='PUBLISHED'"
+	}
+	 * @param {number} req.pageNo - Page number for pagination.
+	 * @param {number} req.pageSize - Page size for pagination.
 	 * @returns {Promise<Object>} - The response returned by the admin service.
 	 * @throws {Error} - Returns the error object if execution fails.
 	 */

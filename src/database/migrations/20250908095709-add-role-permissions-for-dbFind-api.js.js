@@ -24,7 +24,7 @@ module.exports = {
 		const rolePermissionsData = [
 			{
 				role_title: process.env.DEFAULT_ADMIN_ROLE,
-				permission_id: await getPermissionId('db_find', ['POST'], '/scp/v1/admin/dbFind'),
+				permission_id: await getPermissionId('admin', ['POST'], '/scp/v1/admin/dbFind'),
 				module: 'admin',
 				request_type: ['POST'],
 				api_path: '/scp/v1/admin/dbFind',
