@@ -57,6 +57,7 @@ module.exports = class certificatesHelper {
 					// Replace the URL in prunedCertificates
 					prunedCertificates.forEach((certificate) => {
 						if (urlMap[certificate[common.URL]]) {
+							certificate[common.FILE_PATH] = certificate.url
 							certificate[common.URL] = urlMap[certificate[common.URL]].url
 						}
 					})
