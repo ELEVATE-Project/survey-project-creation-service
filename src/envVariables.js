@@ -102,7 +102,7 @@ let environmentVariables = {
 		message: 'Required disable log level',
 		optional: false,
 	},
-	DEFAULT_ORGANISATION_CODE: {
+	DEFAULT_ORGANIZATION_CODE: {
 		message: 'Default organization code',
 		optional: false,
 		default: 'default_code',

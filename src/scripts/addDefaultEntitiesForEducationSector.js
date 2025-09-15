@@ -12,8 +12,8 @@ const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
 	: (() => {
 			throw new Error('DEFAULT_TENANT_CODE is not defined in env')
 	  })()
-const defaultOrgCode = process.env.DEFAULT_ORGANISATION_CODE
-	? process.env.DEFAULT_ORGANISATION_CODE.toString()
+const defaultOrgCode = process.env.DEFAULT_ORGANIZATION_CODE
+	? process.env.DEFAULT_ORGANIZATION_CODE.toString()
 	: (() => {
 			throw new Error('DEFAULT_TENANT_CODE is not defined in env')
 	  })()
