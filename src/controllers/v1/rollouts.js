@@ -82,7 +82,7 @@ module.exports = class rollouts {
 				req.decodedToken.id,
 				req.decodedToken.organization_code,
 				req.decodedToken.tenant_code,
-				req.decodedToken.token
+				false // return blob path
 			)
 			return rollout
 		} catch (error) {

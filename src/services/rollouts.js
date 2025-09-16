@@ -14,6 +14,7 @@ const { Op } = require('sequelize')
 const kafkaCommunication = require('@generics/kafka-communication')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
+const targetingHelper = require('@helpers/targetingCriteria')
 
 module.exports = class RolloutsHelper {
 	/**
@@ -172,12 +173,7 @@ module.exports = class RolloutsHelper {
 				tenant_code: tenant_code,
 			}
 
-			let rollout
-			if (getResourceData) {
-				rollout = await rolloutQueries.findOne(filter, {}, true) // include resourceDetails
-			} else {
-				rollout = await rolloutQueries.findOne(filter) // plain query
-			}
+			const rollout = await rolloutQueries.findOne(filter, {}, getResourceData)
 
 			if (!rollout?.id) {
 				return responses.failureResponse({
@@ -678,10 +674,11 @@ module.exports = class RolloutsHelper {
 				loggedInUserId,
 				org_code,
 				tenant_code,
-				userToken,
+				// userToken,
 				false,
 				true
 			)
+
 			let solutionRolloutId
 			const rolloutDetailsResult = rolloutDetails?.result
 
@@ -698,10 +695,25 @@ module.exports = class RolloutsHelper {
 				})
 			}
 
-			if (!rolloutDetailsResult?.resourceDetails.id) {
+			if (!rolloutDetailsResult?.resource_details.id) {
 				return responses.failureResponse({
 					statusCode: httpStatusCode.bad_request,
 					message: 'RESOURCE_NOT_FOUND',
+				})
+			}
+			const validateTargeting = await targetingHelper.validateTargetingCriteria(
+				rolloutDetails.result[common.TARGETING],
+				org_code,
+				tenant_code
+			)
+			if (!validateTargeting.success && validateTargeting?.errors?.length > 0) {
+				const result = Array.isArray(validateTargeting?.errors)
+					? validateTargeting?.errors.flat()
+					: validateTargeting?.errors || []
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					result,
+					message: 'ROLLOUT_VALIDATION_FAILED',
 				})
 			}
 

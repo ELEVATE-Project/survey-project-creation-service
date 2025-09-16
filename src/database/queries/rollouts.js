@@ -24,7 +24,7 @@ exports.findOne = async (filter, options = {}, addResourceConstraints = false) =
 				...(options.include || []),
 				{
 					model: Resource,
-					as: 'resourceDetails',
+					as: 'resource_details',
 					required: true,
 				},
 			]

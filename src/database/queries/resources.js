@@ -81,23 +81,63 @@ exports.findAll = async (filter, attributes = {}) => {
 		return error
 	}
 }
+// exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = common.LIMIT) => {
+// 	try {
+// 		let order;
+// 		if (sort && sort.sort_by === common.RESOURCE_TITLE) {
+// 			order = [Sequelize.fn('LOWER', Sequelize.col(common.RESOURCE_TITLE)), sort.order];
+// 		} else if (sort && sort.sort_by && sort.order) {
+// 			order = [Sequelize.col(sort.sort_by), sort.order];
+// 		} else {
+// 			order = [Sequelize.col(common.CREATED_AT), common.SORT_DESC];
+// 		}
+
+// 		let resourceFilter = {
+// 			where: filter,
+// 			attributes,
+// 			raw: true,
+// 		};
+// 		if (limit) resourceFilter.limit = limit;
+// 		if (page) resourceFilter.offset = limit * (page - 1);
+// 		resourceFilter.order = order;
+// 		const res = await Resource.findAndCountAll(resourceFilter);
+
+// 		return { result: res.rows, count: res.count };
+// 	} catch (error) {
+// 		return error;
+// 	}
+// };
 exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = common.LIMIT) => {
 	try {
-		let order =
-			sort.sort_by === common.RESOURCE_TITLE
-				? [[Sequelize.fn('LOWER', Sequelize.col(sort.sort_by)), sort.order]]
-				: !sort.sort_by || !sort.order
-				? [common.CREATED_AT, common.SORT_DESC]
-				: [[sort.sort_by, sort.order]]
-
 		let resourceFilter = {
 			where: filter,
 			attributes,
 			raw: true,
 		}
-		if (limit) resourceFilter.limit = limit
-		if (page) resourceFilter.offset = limit * (page - 1)
-		if (sort) resourceFilter.order = [order]
+
+		// Handle ordering with explicit table alias
+		if (sort && sort.sort_by === common.RESOURCE_TITLE) {
+			const direction = sort.order || 'ASC'
+			// Use explicit table reference for LOWER function
+			resourceFilter.order = [
+				Sequelize.literal(`LOWER("${common.MODEL_NAMES.RESOURCE}"."${common.RESOURCE_TITLE}") ${direction}`),
+			]
+		} else if (sort && sort.sort_by && sort.order) {
+			// Convert to Sequelize.literal for consistency
+			const validOrder = ['ASC', 'DESC'].includes(sort.order[0].toUpperCase())
+				? sort.order[0].toUpperCase()
+				: 'ASC'
+			resourceFilter.order = [Sequelize.literal(`"${sort.sort_by}" ${validOrder}`)]
+		} else {
+			resourceFilter.order = [Sequelize.literal(`"created_at" ${common.SORT_DESC}`)]
+		}
+		// Handle pagination
+		if (limit) {
+			resourceFilter.limit = limit
+		}
+		if (page && page > 0) {
+			resourceFilter.offset = limit * (page - 1)
+		}
 
 		const res = await Resource.findAndCountAll(resourceFilter)
 

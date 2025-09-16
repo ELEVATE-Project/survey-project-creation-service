@@ -253,5 +253,5 @@ module.exports = {
 	PROJECTION_KEY_ASTERISK: '*',
 	MONGO_DB_MODE_INDIVIDUAL: 'individual',
 	MONGO_DB_MODE_SHARED: 'shared',
-	TARGETING: 'targeting',
+	TARGETING: 'targeting_criteria',
 }

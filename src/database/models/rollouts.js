@@ -85,6 +85,16 @@ module.exports = (sequelize, DataTypes) => {
 			paranoid: true,
 		}
 	)
+	// Define associations (foreign key constraints)
+	Rollout.associate = (models) => {
+		Rollout.belongsTo(models.Resource, {
+			foreignKey: 'resource_id',
+			targetKey: 'id',
+			as: 'resource_details',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+	}
 	// Helper function to emit user actions with dynamic action types
 	const emitUserAction = async (instance, actionType) => {
 		try {
