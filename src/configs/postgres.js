@@ -1,12 +1,11 @@
-require('module-alias/register')
 const utils = require('@generics/utils')
 const path = require('path')
 const srcPath = `${path.sep}${utils.pathFinder(__dirname, 'src')}`
 require('dotenv').config({ path: `${path.sep}${path.join(srcPath, '.env')}` })
-const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
-	? process.env.DEFAULT_ORGANISATION_CODE.toString()
+const defaultOrgId = process.env.DEFAULT_ORGANIZATION_CODE
+	? process.env.DEFAULT_ORGANIZATION_CODE.toString()
 	: (() => {
-			throw new Error('DEFAULT_ORGANISATION_CODE is not defined in env')
+			throw new Error('DEFAULT_ORGANIZATION_CODE is not defined in env')
 	  })()
 
 module.exports = {

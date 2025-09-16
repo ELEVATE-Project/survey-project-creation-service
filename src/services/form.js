@@ -106,7 +106,7 @@ module.exports = class FormsHelper {
 
 	static async read(id, bodyData, orgCode, tenantCode) {
 		try {
-			const defaultOrgId = utils.convertToString(process.env.DEFAULT_ORGANISATION_CODE)
+			const defaultOrgId = utils.convertToString(process.env.DEFAULT_ORGANIZATION_CODE)
 			let filter = id ? { id } : { ...bodyData }
 			filter = {
 				...filter,

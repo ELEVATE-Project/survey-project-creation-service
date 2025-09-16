@@ -11,7 +11,7 @@ exports.findOne = async (filter, attributes = []) => {
 		return error
 	}
 }
-exports.findAll = async (filter, attributes = []) => {
+exports.findAll = async (filter, attributes = null) => {
 	try {
 		return await organizationConfig.findAll({
 			where: filter,

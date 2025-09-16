@@ -30,6 +30,8 @@ const defaultOrgCode = process.env.DEFAULT_ORGANISATION_CODE
 	: (() => {
 			throw new Error('DEFAULT_TENANT_CODE is not defined in env')
 	  })()
+// check if auth file config is defined
+if (!process?.env?.AUTH_CONFIG_FILE_PATH) throw new Error('AUTH_CONFIG_FILE_PATH is not defined in env')
 
 // function to read a json file from the file system
 const readJsonFile = (filePath) => {
@@ -44,8 +46,7 @@ const readJsonFile = (filePath) => {
 		throw error
 	}
 }
-// check if auth file config is defined
-if (!process?.env?.AUTH_CONFIG_FILE_PATH) throw new Error('AUTH_CONFIG_FILE_PATH is not defined in env')
+
 // find path to auth config file
 let filePath = path.join(srcPath, process.env.AUTH_CONFIG_FILE_PATH)
 // read the config file

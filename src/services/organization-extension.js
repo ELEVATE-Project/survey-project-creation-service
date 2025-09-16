@@ -322,12 +322,10 @@ module.exports = class orgExtensionsHelper {
 			)
 
 			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
-				if (orgConfigs.length > 1) {
-					const findOrgConfig = orgConfigs.find((config) => config.organization_code === organization_code)
-					result.config = findOrgConfig.meta
-				} else {
-					result.config = orgConfigs[0]?.meta
-				}
+				result.config =
+					orgConfigs.length > 1
+						? orgConfigs.find((config) => config.organization_code == organization_code)?.meta
+						: orgConfigs[0]?.meta
 			}
 
 			if (orgConfigs?.meta?.data_managers?.length == 0 || orgConfigs?.meta?.data_managers?.length == undefined) {
