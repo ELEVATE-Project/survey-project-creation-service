@@ -23,7 +23,7 @@ const commentQueries = require('@database/queries/comments')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
-const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
+const defaultOrgId = process.env.DEFAULT_ORGANIZATION_CODE
 const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
 const certificateBasetemplateQueries = require('@database/queries/certificateBaseTemplate')
 

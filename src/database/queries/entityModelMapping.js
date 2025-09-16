@@ -1,7 +1,7 @@
 'use strict'
 
 const { EntityModelMapping, EntityType, Entity } = require('../models/index')
-const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
+const defaultOrgId = process.env.DEFAULT_ORGANIZATION_CODE
 const { removeDefaultOrgEntityTypes } = require('@generics/utils')
 const responses = require('@helpers/responses')
 const httpStatusCode = require('@generics/http-status')
