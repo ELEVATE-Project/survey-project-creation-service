@@ -34,10 +34,23 @@ const createSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array'
-				}
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
+				},
 			},
-			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
@@ -79,10 +92,23 @@ const updateSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array'
-				}
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
+				},
 			},
-			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
@@ -104,10 +130,26 @@ const deleteSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array'
-				}
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
+				},
+				correlation: {
+					type: 'string',
+				},
 			},
-			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result'],
@@ -152,100 +194,95 @@ const listSchema = {
 }
 
 const getPermissionSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'message': {
-			'type': 'string'
+		message: {
+			type: 'string',
 		},
-		'result': {
-			'type': 'object',
-			'properties': {
-				'data': {
-					'type': 'array',
-					'items': [
+		result: {
+			type: 'object',
+			properties: {
+				data: {
+					type: 'array',
+					items: [
 						{
-							'type': 'object',
-							'properties': {
-								'id': {
-									'type': 'integer'
+							type: 'object',
+							properties: {
+								id: {
+									type: 'integer',
 								},
-								'code': {
-									'type': 'string'
+								code: {
+									type: 'string',
 								},
-								'module': {
-									'type': 'string'
+								module: {
+									type: 'string',
 								},
-								'request_type': {
-									'type': 'array',
-									'items': [
+								request_type: {
+									type: 'array',
+									items: [
 										{
-											'type': 'string'
+											type: 'string',
 										},
 										{
-											'type': 'string'
+											type: 'string',
 										},
 										{
-											'type': 'string'
-										}
-									]
+											type: 'string',
+										},
+									],
 								},
-								'api_path': {
-									'type': 'string'
+								api_path: {
+									type: 'string',
 								},
-								'status': {
-									'type': 'string'
-								}
+								status: {
+									type: 'string',
+								},
 							},
-							'required': [
-								'id',
-								'code',
-								'module',
-								'request_type',
-								'api_path',
-								'status'
-							]
-						}
-					]
+							required: ['id', 'code', 'module', 'request_type', 'api_path', 'status'],
+						},
+					],
 				},
-				'count': {
-					'type': 'integer'
-				}
+				count: {
+					type: 'integer',
+				},
 			},
-			'required': [
-				'data',
-				'count'
-			]
+			required: ['data', 'count'],
 		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'formsVersion': {
-					'type': 'array',
-					'items': {}
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
-				'correlation': {
-					'type': 'string'
-				}
+				correlation: {
+					type: 'string',
+				},
 			},
-			'required': [
-				'formsVersion'
-			]
-		}
+		},
 	},
-	'required': [
-		'responseCode',
-		'message',
-		'result',
-		'meta'
-	]
+	required: ['responseCode', 'message', 'result', 'meta'],
 }
 module.exports = {
 	createSchema,
 	updateSchema,
 	deleteSchema,
 	listSchema,
-	getPermissionSchema
+	getPermissionSchema,
 }

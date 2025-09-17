@@ -67,6 +67,7 @@ module.exports = class Programs {
 			const rollout = await programService.details(
 				req.params.id,
 				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.decodedToken.token
 			)
 			return rollout
@@ -88,6 +89,7 @@ module.exports = class Programs {
 				req.body,
 				req.decodedToken.id,
 				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.decodedToken.token
 			)
 		} catch (error) {
@@ -126,6 +128,7 @@ module.exports = class Programs {
 	async getProgramManagers(req) {
 		try {
 			const dataManagers = await programService.getProgramManagers(
+				req.decodedToken.id,
 				req.decodedToken.organization_code,
 				req.decodedToken.tenant_code,
 				req.pageNo,

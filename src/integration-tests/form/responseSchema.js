@@ -15,94 +15,87 @@ const createSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
 						},
 					],
 				},
+				correlation: {
+					type: 'string',
+				},
 			},
-			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
 }
 const readSchema = {
-	'type': 'object',
-	'properties': {
-		'responseCode': {
-			'type': 'string'
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
 		},
-		'message': {
-			'type': 'string'
+		message: {
+			type: 'string',
 		},
-		'result': {
-			'type': 'array',
-			'items': [
+		result: {
+			type: 'array',
+			items: [
 				{
-					'type': 'object',
-					'properties': {
-						'id': {
-							'type': 'integer'
+					type: 'object',
+					properties: {
+						id: {
+							type: 'integer',
 						},
-						'type': {
-							'type': 'string'
+						type: {
+							type: 'string',
 						},
-						'version': {
-							'type': 'integer'
-						}
+						version: {
+							type: 'integer',
+						},
 					},
-					'required': [
-						'id',
-						'type',
-						'version'
-					]
-				}
-			]
-		},
-		'meta': {
-			'type': 'object',
-			'properties': {
-				'formsVersion': {
-					'type': 'array',
-					'items': [
-						{
-							'type': 'object',
-							'properties': {
-								'id': {
-									'type': 'integer'
-								},
-								'type': {
-									'type': 'string'
-								},
-								'version': {
-									'type': 'integer'
-								}
-							},
-							'required': [
-								'id',
-								'type',
-								'version'
-							]
-						}
-					]
+					required: ['id', 'type', 'version'],
 				},
-				'correlation': {
-					'type': 'string'
-				}
+			],
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
+				},
+				correlation: {
+					type: 'string',
+				},
 			},
-			'required': [
-				'formsVersion'
-			]
-		}
+			required: ['formsVersion', 'correlation'],
+		},
 	},
-	'required': [
-		'responseCode',
-		'message',
-		'result',
-		'meta'
-	]
+	required: ['responseCode', 'message', 'result', 'meta'],
 }
 const updateSchema = {
 	type: 'object',
@@ -121,15 +114,23 @@ const updateSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
 						},
 					],
 				},
 			},
-			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
