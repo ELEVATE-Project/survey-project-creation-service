@@ -226,12 +226,6 @@ const getPermissionSchema = {
 										{
 											type: 'string',
 										},
-										{
-											type: 'string',
-										},
-										{
-											type: 'string',
-										},
 									],
 								},
 								api_path: {

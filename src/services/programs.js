@@ -913,7 +913,11 @@ module.exports = class ProgramsHelper {
 				count: 0,
 			}
 
-			if (programManagersList.success && programManagersList?.data?.result?.data.length) {
+			if (
+				programManagersList.success &&
+				Array.isArray(programManagersList?.data?.result?.data) &&
+				programManagersList.data.result.data.length > 0
+			) {
 				result.data = programManagersList?.data?.result?.data
 					.filter((user) => user.id != user_id)
 					.map((user) => {

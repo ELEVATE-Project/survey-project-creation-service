@@ -60,7 +60,7 @@ module.exports = class EntityTypeHelper {
 					statusCode: httpStatusCode.bad_request,
 				}
 			}
-			let entityTypeId = entityType.id
+			entityTypeId = entityType.id
 			if (entityType && bodyData.model) {
 				let entityModelMapping = {
 					entity_type_id: entityTypeId,

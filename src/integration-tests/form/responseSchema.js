@@ -37,7 +37,7 @@ const createSchema = {
 			},
 		},
 	},
-	required: ['responseCode', 'message', 'result', 'meta'],
+	required: ['responseCode', 'message', 'result'],
 }
 const readSchema = {
 	type: 'object',
@@ -95,7 +95,7 @@ const readSchema = {
 			required: ['formsVersion', 'correlation'],
 		},
 	},
-	required: ['responseCode', 'message', 'result', 'meta'],
+	required: ['responseCode', 'message', 'result'],
 }
 const updateSchema = {
 	type: 'object',
@@ -133,7 +133,7 @@ const updateSchema = {
 			},
 		},
 	},
-	required: ['responseCode', 'message', 'result', 'meta'],
+	required: ['responseCode', 'message', 'result'],
 }
 
 module.exports = {
