@@ -254,7 +254,7 @@ module.exports = class RolloutsHelper {
 	 * @param pageSize - Page size
 	 * @returns {JSON} - List of data managers
 	 */
-	static async getDataManagers(org_code, tenant_code, pageNo, pageSize, userToken = '') {
+	static async getDataManagers(user_id, org_code, tenant_code, pageNo, pageSize, userToken = '') {
 		try {
 			// get org config based on org_code
 			const orgConfigs = await orgExtensionService.getConfig(org_code, tenant_code)
@@ -277,7 +277,23 @@ module.exports = class RolloutsHelper {
 			}
 
 			if (dataManagersList.success && dataManagersList?.data?.result?.data.length) {
-				result = dataManagersList?.data?.result
+				result.data = dataManagersList.data?.result?.data
+					.filter((user) => user.id != user_id)
+					.map((user) => {
+						return {
+							id: user.id,
+							email: user?.email || '',
+							name: user?.name,
+							username: user?.username,
+							phone_code: user?.phone_code || '',
+							phone: user?.phone || '',
+							status: user?.status,
+							organization: user?.user_organizations?.[0]?.organization || {},
+							organization_code: user?.user_organizations?.[0]?.organization_code || '',
+						}
+					})
+
+				result.count = dataManagersList.data?.result?.count
 			}
 
 			return responses.successResponse({
@@ -700,7 +716,7 @@ module.exports = class RolloutsHelper {
 				})
 			}
 
-			if (!rolloutDetailsResult?.resourceDetails.id) {
+			if (!rolloutDetailsResult?.resource_details.id) {
 				return responses.failureResponse({
 					statusCode: httpStatusCode.bad_request,
 					message: 'RESOURCE_NOT_FOUND',
@@ -709,7 +725,7 @@ module.exports = class RolloutsHelper {
 
 			// fetch resource details
 			const resourceDetails = await resourceService.getDetails(
-				rolloutDetailsResult?.resourceDetails,
+				rolloutDetailsResult?.resource_details,
 				org_code,
 				userToken,
 				tenant_code

@@ -487,7 +487,12 @@ module.exports = class ProgramsHelper {
 					}
 					// fetch the user if viewer is present
 					if (response?.result?.viewers?.length > 0) {
-						const userDetails = await this.fetchUserDetails(response.result.viewers, userToken)
+						const userDetails = await this.fetchUserDetails(
+							response.result.viewers,
+							null,
+							tenant_code,
+							userToken
+						)
 						if (userDetails && Object.keys(userDetails).length > 0) {
 							result.viewers = response.result.viewers.map((userId) => userDetails[userId])
 						}
@@ -566,13 +571,13 @@ module.exports = class ProgramsHelper {
 	 * @param {Array} userIds - array of userIds.
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds, userToken = '') {
+	static async fetchUserDetails(userIds, organisationCode = null, tenant_code = null, userToken = '') {
 		const userDetailsResponse = await userRequests.list(
 			common.FILTER_ALL.toLowerCase(),
 			'',
 			'',
 			'',
-			'',
+			organisationCode,
 			tenant_code,
 			{
 				user_ids: userIds,
@@ -836,7 +841,7 @@ module.exports = class ProgramsHelper {
 					status: common.RESOURCE_STATUS_DRAFT,
 					stage: common.RESOURCE_STAGE_CREATION,
 				},
-				{ attributes: ['id', 'organization_code', 'published_id'] }
+				{ attributes: ['id', 'organization_code', 'published_id', 'tenant_code'] }
 			)
 
 			if (!resource?.id) {
@@ -887,7 +892,7 @@ module.exports = class ProgramsHelper {
 	 * @param {String} tenant_code -Tenant code
 	 * @returns {JSON} - List of program managers
 	 */
-	static async getProgramManagers(org_code, tenant_code, pageNo, pageSize, userToken = '') {
+	static async getProgramManagers(user_id, org_code, tenant_code, pageNo, pageSize, userToken = '') {
 		try {
 			// get org config based on org_code
 			const orgConfigs = await orgExtensionService.getConfig(org_code, tenant_code)
@@ -908,8 +913,28 @@ module.exports = class ProgramsHelper {
 				count: 0,
 			}
 
-			if (programManagersList.success && programManagersList?.data?.result?.data.length) {
-				result = programManagersList?.data?.result
+			if (
+				programManagersList.success &&
+				Array.isArray(programManagersList?.data?.result?.data) &&
+				programManagersList.data.result.data.length > 0
+			) {
+				result.data = programManagersList?.data?.result?.data
+					.filter((user) => user.id != user_id)
+					.map((user) => {
+						return {
+							id: user.id,
+							email: user?.email || '',
+							name: user?.name,
+							username: user?.username,
+							phone_code: user?.phone_code || '',
+							phone: user?.phone || '',
+							status: user?.status,
+							organization: user?.user_organizations?.[0]?.organization || {},
+							organization_code: user?.user_organizations?.[0]?.organization_code || '',
+						}
+					})
+
+				result.count = programManagersList.data?.result?.count
 			}
 
 			return responses.successResponse({

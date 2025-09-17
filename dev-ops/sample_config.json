@@ -1,0 +1,11 @@
+{
+  "authTokenUserInformation": {
+    "id": "data.id",
+    "name": "data.name",
+    "organization_id": "data.organization_ids[0]",
+    "organization_code": "data.organization_codes[0]",
+    "organizations": "data.organizations",
+    "roles": "data.organizations[?code={{organization_code}}].roles",
+    "tenant_code": "data.tenant_code"
+  }
+}
