@@ -886,7 +886,7 @@ module.exports = class resourceHelper {
 				organization: {},
 			}
 			// if resourceInfo string then get resource details from resource table or it will already has details so we can skip DB query
-			if (typeof resourceInfo === common.STRING) {
+			if (typeof resourceInfo === common.STRING || typeof resourceInfo === common.NUMBER) {
 				resource = await resourceQueries.findOne({
 					id: resourceInfo,
 					organization_code: org_code,

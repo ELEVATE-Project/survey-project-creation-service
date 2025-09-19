@@ -719,7 +719,7 @@ module.exports = class RolloutsHelper {
 
 			// fetch resource details
 			const resourceDetails = await resourceService.getDetails(
-				rolloutDetailsResult?.resourceDetails,
+				rolloutDetailsResult?.resource_details,
 				org_code,
 				tenant_code
 			)

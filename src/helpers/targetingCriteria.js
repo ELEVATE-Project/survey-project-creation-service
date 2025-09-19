@@ -4,7 +4,10 @@ const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const common = require('@constants/common')
 const utils = require('@generics/utils')
-const targetingPath = `${common.TARGETING}`
+const targetingPath = (index = '') => {
+	return `${common.TARGETING}${index !== '' ? `[${index}]` : ''}`
+}
+
 module.exports = class targetingCriteria {
 	/**
 	 * Add activity of user
@@ -21,43 +24,11 @@ module.exports = class targetingCriteria {
 		let result = { success: false, errors: [] }
 		let validationErrors = []
 		try {
-			// added for testing , remove later
-			// targeting = [
-			// 	{
-			// 		state: '6687b8d38ead9320cf997c65',
-			// 		entityType: 'district',
-			// 		district: '671097d667b6747799a761a4',
-			// 		block: '6710d01167b6747799a7671d',
-			// 		professional_role: 'teacher',
-			// 		professional_subroles: [
-			// 			{
-			// 				_id: '66b9df998d2c4516ea1b4494',
-			// 				label: 'Block Education Officer',
-			// 				value: 'beo',
-			// 			},
-			// 		],
-			// 	},
-			// 	{
-			// 		state: '6687b8d38ead9320cf997c70',
-			// 		entityType: 'district',
-			// 		district: '671097d667b6747799a761a3',
-			// 		block: '6710d01167b6747799a7671e',
-			// 		professional_role: 'teacher',
-			// 		professional_subroles: [
-			// 			{
-			// 				_id: '66b9df998d2c4516ea1b4495',
-			// 				label: 'District Education Officer',
-			// 				value: 'deo',
-			// 			},
-			// 		],
-			// 	},
-			// ]
-
 			if (!targeting && !Array.isArray(targeting) && targeting.length <= 0) {
 				validationErrors.push(
 					utils.errorObject(
-						targetingPath,
-						targetingPath,
+						targetingPath(),
+						targetingPath(),
 						`${targetingPath} must be an array with at least one selection`
 					)
 				)
@@ -76,17 +47,18 @@ module.exports = class targetingCriteria {
 
 			const orgConfig = await getConfig(orgCode, tenantCode)
 			const targerting_factors = orgConfig?.result?.config?.targeting_criteria?.factors || {}
-
+			let index = 0
 			for (let eachTargeting of Object.keys(targeting)) {
 				for (let eachEntity of Object.keys(targeting[eachTargeting])) {
 					const findFactor = targerting_factors.find((factor) => factor.key.trim() == eachEntity.trim())
-					if (Object.keys(findFactor).length > 0) {
+					if (findFactor && Object.keys(findFactor).length > 0) {
 						validationErrors = [
 							...validationErrors,
-							...validateFactors(targeting[eachTargeting][eachEntity], findFactor),
+							...validateFactors(targeting[eachTargeting][eachEntity], findFactor, index),
 						]
 					}
 				}
+				index++
 			}
 
 			if (validationErrors.length > 0) {
@@ -140,9 +112,22 @@ module.exports = class targetingCriteria {
 			return result
 		}
 	}
+
+	static async scopeKeys(orgCode, tenantCode) {
+		const orgConfig = await getConfig(orgCode, tenantCode)
+		const targerting_factors = orgConfig?.result?.config?.targeting_criteria?.factors || {}
+		const scopeKeys = targerting_factors.reduce((acc, index) => {
+			acc[index.key] = {
+				multi_select: index.multi_select,
+				mandatory: index.mandatory,
+			}
+			return acc
+		}, {})
+		return scopeKeys
+	}
 }
 
-function validateFactors(entity, factor) {
+function validateFactors(entity, factor, index) {
 	let validationErrors = []
 
 	// mandatory factor checks
@@ -150,24 +135,26 @@ function validateFactors(entity, factor) {
 		if (factor.multi_select && (!Array.isArray(entity) || entity.length === 0)) {
 			validationErrors.push(
 				utils.errorObject(
-					targetingPath,
+					targetingPath(index),
 					factor.key,
 					`${factor.key} must be an array with at least one selection`
 				)
 			)
 		}
 		if (!factor.multi_select && !entity) {
-			validationErrors.push(utils.errorObject(targetingPath, factor.key, `${factor.key} must not be empty`))
+			validationErrors.push(
+				utils.errorObject(targetingPath(index), factor.key, `${factor.key} must not be empty`)
+			)
 		}
 	}
 
 	// check if the entity is multi-select and if the provided entity is an array
 	if (factor.multi_select && !Array.isArray(entity)) {
-		validationErrors.push(utils.errorObject(targetingPath, factor.key, `${factor.key} must be an array`))
+		validationErrors.push(utils.errorObject(targetingPath(index), factor.key, `${factor.key} must be an array`))
 	}
 
 	if (!factor.multi_select && typeof entity != 'string') {
-		validationErrors.push(utils.errorObject(targetingPath, factor.key, `${factor.key} must be a string`))
+		validationErrors.push(utils.errorObject(targetingPath(index), factor.key, `${factor.key} must be a string`))
 	}
 
 	// if (Object.keys(factor.api).length > 0) {
