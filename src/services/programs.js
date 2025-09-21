@@ -1,4 +1,9 @@
-/* eslint-disable no-useless-catch */
+/**
+ * name : programs.js
+ * author : Priyanka Pradeep
+ * created-date : 23-Jan-2025
+ * Description : Programs Helper.
+ */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
@@ -205,7 +210,11 @@ module.exports = class ProgramsHelper {
 				result: { id: programId },
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -377,7 +386,11 @@ module.exports = class ProgramsHelper {
 				result: updatedProgram[0].id,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -561,7 +574,11 @@ module.exports = class ProgramsHelper {
 				result: result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -696,7 +713,11 @@ module.exports = class ProgramsHelper {
 				result: programId,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -800,7 +821,11 @@ module.exports = class ProgramsHelper {
 				result: programId,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -878,7 +903,11 @@ module.exports = class ProgramsHelper {
 				result: {},
 			})
 		} catch (error) {
-			return error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -943,7 +972,11 @@ module.exports = class ProgramsHelper {
 				result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**

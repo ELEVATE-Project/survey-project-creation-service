@@ -1,3 +1,9 @@
+/**
+ * name : validators/v1/permissions.js
+ * author : Priyanka Pradeep
+ * Date : 24-May-2024
+ * Description : Validations of permissions controller
+ */
 const filterRequestBody = require('../common')
 const { permissions } = require('@constants/blacklistConfig')
 const Permission = require('@database/models/index').Permission

@@ -55,7 +55,11 @@ module.exports = class modulesHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -90,7 +94,11 @@ module.exports = class modulesHelper {
 				result: {},
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -140,7 +148,11 @@ module.exports = class modulesHelper {
 				result: { permissions },
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 }

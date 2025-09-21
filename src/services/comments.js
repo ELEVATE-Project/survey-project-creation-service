@@ -122,7 +122,7 @@ module.exports = class CommentsHelper {
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
@@ -152,7 +152,7 @@ module.exports = class CommentsHelper {
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}

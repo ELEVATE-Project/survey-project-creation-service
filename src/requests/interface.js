@@ -1,5 +1,5 @@
 /**
- * name : user.js
+ * name : interface.js
  * author : Adithya Dinesh
  * Date : 20 - Aug - 2024
  * Description : Internal calls to elevate-interface service.

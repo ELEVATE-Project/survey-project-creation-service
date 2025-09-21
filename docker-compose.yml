@@ -139,7 +139,7 @@ services:
     depends_on:
       - kafka
       - user
-      - postgres
+      - citus
       - redis
     networks:
       - elevate_net

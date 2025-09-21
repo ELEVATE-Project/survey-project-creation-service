@@ -79,12 +79,13 @@ module.exports = {
 	async down(queryInterface, Sequelize) {
 		try {
 			const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+			const defaultOrgCode = queryInterface.sequelize.options.defaultOrgId
 			const entityType = await queryInterface.rawSelect(
 				'entity_types',
 				{
 					where: {
 						value: 'recommended_duration',
-						organization_code: queryInterface.sequelize.options.defaultOrgId,
+						organization_code: defaultOrgCode,
 					},
 				},
 				['id'] // Select only the 'id' field
@@ -105,7 +106,8 @@ module.exports = {
 					'entity_types',
 					{
 						value: 'recommended_duration',
-						organization_code: queryInterface.sequelize.options.defaultOrgId,
+						organization_code: defaultOrgCode,
+						tenant_code: defaultTenantCode,
 					},
 					{}
 				)

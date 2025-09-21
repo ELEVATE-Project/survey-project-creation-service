@@ -1,3 +1,9 @@
+/**
+ * name : generics/requests
+ * author : Priyanka Pradeep
+ * Date : 29 - April - 2024
+ * Description : Generic request methods
+ */
 const request = require('request')
 const parser = require('xml2json')
 var get = function (
