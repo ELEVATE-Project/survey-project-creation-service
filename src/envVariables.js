@@ -353,6 +353,11 @@ let environmentVariables = {
 		optional: false,
 		default: 'config.json',
 	},
+	USERSERVICE_TENANT_EVENT: {
+		message: 'Required user service tenant event',
+		optional: false,
+		default: 'dev.tenantEvent',
+	},
 }
 
 let success = true
