@@ -20,27 +20,26 @@ const createSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
 							},
-							required: ['id', 'type', 'version'],
 						},
 					],
 				},
+				correlation: {
+					type: 'string',
+				},
 			},
-			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
@@ -63,14 +62,26 @@ const reviewResponse = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',
 				},
 			},
-			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],

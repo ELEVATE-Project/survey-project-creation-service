@@ -95,8 +95,7 @@ const list = function (
 	organization_code = null,
 	tenant_code = null,
 	body = {},
-	userToken = '',
-	tenantCode = null
+	userToken = ''
 ) {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -106,7 +105,7 @@ const list = function (
 				...(pageSize != null && pageSize !== '' && { limit: pageSize }),
 				...(searchText != null && searchText !== '' && { search: searchText }),
 				...(organization_code != null && { organization_code }),
-				...(tenantCode != null && { tenant_code: tenantCode }),
+				...(tenant_code != null && { tenant_code: tenant_code }),
 			}
 
 			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
@@ -246,16 +245,15 @@ const search = function (userType, pageNo, pageSize, searchText, userServiceQuer
  * @returns
  */
 
-const listOrganization = function (OrganizationCodes = [], tenantCode = null) {
+const listOrganization = function (organizationCodes = [], tenantCode = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_LIST, { tenantCode })
-			let body = {}
-			if (OrganizationCodes.length > 0) {
-				body.organization_codes = OrganizationCodes
+			const queryParams = {
+				tenant_code: tenantCode,
+				...(organizationCodes.length > 0 && { organization_codes: organizationCodes.join(',') }),
 			}
-
-			const orgDetails = await requests.post(apiUrl, body, '', true)
+			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_LIST, queryParams)
+			const orgDetails = await requests.get(apiUrl, '', true)
 			return resolve(orgDetails)
 		} catch (error) {
 			return reject(error)

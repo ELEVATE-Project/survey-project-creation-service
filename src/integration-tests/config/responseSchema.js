@@ -68,14 +68,26 @@ const listSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',
 				},
 			},
-			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],

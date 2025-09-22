@@ -1,7 +1,7 @@
 'use strict'
 
 const { EntityModelMapping, EntityType, Entity } = require('../models/index')
-const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
+const defaultOrgId = process.env.DEFAULT_ORGANIZATION_CODE
 const { removeDefaultOrgEntityTypes } = require('@generics/utils')
 const responses = require('@helpers/responses')
 const httpStatusCode = require('@generics/http-status')
@@ -15,7 +15,7 @@ exports.create = async (data) => {
 	}
 }
 
-exports.findEntityTypesAndEntities = async (filter, organization_code, tenantCode, attributes = {}) => {
+exports.findEntityTypesAndEntities = async (filter, organization_code, tenantCode, attributes = []) => {
 	try {
 		if (!defaultOrgId)
 			return responses.failureResponse({
@@ -37,6 +37,7 @@ exports.findEntityTypesAndEntities = async (filter, organization_code, tenantCod
 					model: EntityType,
 					as: 'EntityType',
 					required: false,
+					...(attributes && Array.isArray(attributes) && attributes.length > 0 ? { attributes } : {}), // omit when empty/undefined,
 					where: {
 						organization_code: {
 							[Op.in]: [organization_code, defaultOrgId],

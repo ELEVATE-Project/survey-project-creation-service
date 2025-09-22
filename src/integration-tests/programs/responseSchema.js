@@ -20,8 +20,21 @@ const createSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',
@@ -148,8 +161,21 @@ const detailSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',
@@ -173,11 +199,27 @@ const addOrRemoveResourceFailtureSchema = {
 		meta: {
 			type: 'object',
 			properties: {
+				formsVersion: {
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
+				},
 				correlation: {
 					type: 'string',
 				},
 			},
-			required: ['correlation'],
 		},
 		message: {
 			type: 'string',
@@ -224,14 +266,26 @@ const getProgramManagersEmptyResponseSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',
 				},
 			},
-			required: [],
 		},
 	},
 	required: ['responseCode', 'message', 'result'],
@@ -260,15 +314,6 @@ const getProgramManagersSchema = {
 								name: {
 									type: 'string',
 								},
-								email: {
-									type: 'string',
-								},
-								about: {
-									type: 'null',
-								},
-								image: {
-									type: 'null',
-								},
 								organization: {
 									type: 'object',
 									properties: {
@@ -285,7 +330,7 @@ const getProgramManagersSchema = {
 									required: ['id', 'code', 'name'],
 								},
 							},
-							required: ['id', 'name', 'email', 'about', 'image', 'organization'],
+							required: ['id', 'name', 'organization'],
 						},
 					],
 				},
@@ -299,14 +344,26 @@ const getProgramManagersSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',
 				},
 			},
-			required: [],
 		},
 	},
 	required: ['responseCode', 'message', 'result'],

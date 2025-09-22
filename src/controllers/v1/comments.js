@@ -25,8 +25,8 @@ module.exports = class comments {
 				req.query.context ? req.query.context : '',
 				req.decodedToken.id,
 				req.decodedToken.organization_code,
-				req.decodedToken.token,
-				req.decodedToken.tenant_code
+				req.decodedToken.tenant_code,
+				req.decodedToken.token
 			)
 			return comments
 		} catch (error) {

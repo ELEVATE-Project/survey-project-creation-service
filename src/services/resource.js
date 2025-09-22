@@ -23,7 +23,7 @@ const commentQueries = require('@database/queries/comments')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
 const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
-const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
+const defaultOrgId = process.env.DEFAULT_ORGANIZATION_CODE
 const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
 const certificateBasetemplateQueries = require('@database/queries/certificateBaseTemplate')
 
@@ -42,7 +42,7 @@ module.exports = class resourceHelper {
 	 */
 	static async listAllSubmittedResources(
 		userId,
-		tenantCode,
+		tenant_code,
 		queryParams,
 		searchText = '',
 		page,
@@ -73,7 +73,7 @@ module.exports = class resourceHelper {
 		// fetch all resource ids created by the logged in user
 		const { count, rows } = await this.resourcesCreatedByUser(
 			userId,
-			tenantCode,
+			tenant_code,
 			['resource_id', 'organization_code'],
 			{
 				resourceAttributes: [
@@ -102,7 +102,7 @@ module.exports = class resourceHelper {
 			{
 				reviewsAttributes: ['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes'],
 				reviewsFilter: {
-					tenant_code: tenantCode,
+					tenant_code: tenant_code,
 				},
 			} // reviews related options
 		)
@@ -161,7 +161,7 @@ module.exports = class resourceHelper {
 			})
 		}
 		// fetch the organization details from user service
-		const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds, tenantCode)
+		const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationIds, tenant_code)
 
 		// fetch all open comments for the resources which are in review
 		const commentMapping = await this.fetchOpenComments(
@@ -198,7 +198,8 @@ module.exports = class resourceHelper {
 		// fetching user details from user servicecatalog. passing it as unique because there can be repeated values in reviewerIds
 		const userDetails = await this.fetchUserDetails(
 			utils.getUniqueElements([...response.result.map((item) => item.user_id), ...reviewerIds]),
-			tenantCode,
+			null,
+			tenant_code,
 			userToken
 		)
 
@@ -265,7 +266,7 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - List of drafts resources
 	 */
 
-	static async listAllDrafts(userId, queryParams, searchText = '', page, limit, userToken, orgCode, tenantCode) {
+	static async listAllDrafts(userId, queryParams, searchText = '', page, limit, userToken, org_code, tenant_code) {
 		try {
 			let result = {
 				data: [],
@@ -287,7 +288,7 @@ module.exports = class resourceHelper {
 			// fetch all resources created by the logged in user
 			const { count, rows } = await this.resourcesCreatedByUser(
 				userId, // loggedIn userId
-				tenantCode, // user's tenant code
+				tenant_code, // user's tenant code
 				['resource_id', 'organization_code', 'tenant_code'], // mapping table attributes
 				{
 					resourceAttributes: [
@@ -340,10 +341,10 @@ module.exports = class resourceHelper {
 			}
 
 			// fetch the user details from user service
-			const userDetails = await this.fetchUserDetails([userId], orgCode, tenantCode, userToken)
+			const userDetails = await this.fetchUserDetails([userId], org_code, tenant_code, userToken)
 
 			// fetch the org details from user service
-			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationCodes, tenantCode)
+			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationCodes, tenant_code)
 			result = await this.responseBuilder(response, userDetails, orgDetails, {})
 			result.count = count
 
@@ -561,16 +562,16 @@ module.exports = class resourceHelper {
 	 */
 	static async resourcesCreatedByUser(
 		loggedInUserId,
-		tenantCode,
+		tenant_code,
 		attributes = ['resource_id'],
 		resourceOptions = {},
 		reviewOptions = {}
 	) {
 		let resourceData = {}
-		if (loggedInUserId && tenantCode) {
+		if (loggedInUserId && tenant_code) {
 			// fetch the details of resource and organization from resource creator mapping table by the user
 			resourceData = await resourceCreatorMappingQueries.findAndCountAll(
-				{ creator_id: loggedInUserId, tenant_code: tenantCode },
+				{ creator_id: loggedInUserId, tenant_code: tenant_code },
 				attributes,
 				{ ...resourceOptions, ...reviewOptions }
 			)
@@ -684,6 +685,7 @@ module.exports = class resourceHelper {
 					// fetch all sequential resource ids from org which are open to all
 					const sequentialResourcesIds = await this.findSequentialResources(
 						organization_code,
+						tenant_code,
 						roles,
 						resourceTypesInSequentialReview
 					)
@@ -701,6 +703,7 @@ module.exports = class resourceHelper {
 					// fetch all parallel resource ids from org which is open to all
 					const parallelResourcesIds = await this.findParallelResources(
 						organization_code,
+						tenant_code,
 						resourceTypesInParallelReview
 					)
 					// add the resource ids in the final array
@@ -876,14 +879,23 @@ module.exports = class resourceHelper {
 	 * @name getDetails
 	 * @returns {JSON} - details of resource
 	 */
-	static async getDetails(resourceId, orgId, userToken = '') {
+	static async getDetails(resourceInfo, org_code, tenant_code, userToken = '') {
 		try {
+			let resource
 			let result = {
 				organization: {},
 			}
-			const resource = await resourceQueries.findOne({
-				id: resourceId,
-			})
+
+			// if resourceInfo string then get resource details from resource table or it will already has details so we can skip DB query
+			if ([common.STRING, common.NUMBER].includes(typeof resourceInfo)) {
+				resource = await resourceQueries.findOne({
+					id: resourceInfo,
+					organization_code: org_code,
+					tenant_code: tenant_code,
+				})
+			} else {
+				resource = resourceInfo
+			}
 
 			if (!resource?.id) {
 				throw new Error('RESOURCE_NOT_FOUND')
@@ -906,6 +918,7 @@ module.exports = class resourceHelper {
 							status: common.STATUS_ACTIVE,
 						},
 						resource.organization_code,
+						resource.tenant_code,
 						['id', 'value', 'label', 'has_entities']
 					)
 
@@ -965,27 +978,33 @@ module.exports = class resourceHelper {
 			}
 
 			//get organization details
-			let organizationDetails = await userRequests.fetchOrg(resource.organization_code, userToken)
+			let organizationDetails = await userRequests.fetchOrg(
+				resource.organization_code,
+				resource.tenant_code,
+				true
+			)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
 			}
 
 			//Add path in getDownloadUrl
-			if (result.certificate && result.certificate.base_template_url && result.certificate.base_template_id) {
-				const baseTemplate = await certificateBasetemplateQueries.findOne(
-					{
-						id: result.certificate.base_template_id,
-					},
-					{ attributes: ['id', 'name', 'url'] }
-				)
-				if (baseTemplate) {
-					result.certificate.base_template_url = {
-						url: result.certificate.base_template_url,
-						filepath: baseTemplate.url,
-					}
+			if (
+				result.certificate &&
+				result.certificate.base_template_url &&
+				typeof result.certificate.base_template_url === common.OBJECT
+			) {
+				let getResourceCertificateurl = result.certificate.base_template_url
+				let certificatesUrl = await filesService.getDownloadableUrl([getResourceCertificateurl.filePath])
+
+				if (
+					certificatesUrl &&
+					certificatesUrl.statusCode === httpStatusCode.ok &&
+					certificatesUrl.result &&
+					certificatesUrl.result.length > 0
+				) {
+					result.certificate.base_template_url.url = certificatesUrl.result?.[0]?.url
 				}
 			}
-
 			result = { ...result, ...resource }
 			if (result.meta) {
 				Object.assign(result, result.meta)
@@ -1015,12 +1034,17 @@ module.exports = class resourceHelper {
 	 * @returns {Array} - Response contain array of resource ids
 	 */
 
-	static async findSequentialResources(organization_code, roles, resourceTypes = []) {
+	static async findSequentialResources(organization_code, tenant_code, roles, resourceTypes = []) {
 		// get unique user roles
 		const userRoleTitles = utils.getUniqueElements(roles.map((item) => item.title))
 
 		// fetch the resource wise review levels
-		const resourceWiseLevels = await this.fetchReviewLevels(organization_code, userRoleTitles, resourceTypes)
+		const resourceWiseLevels = await this.fetchReviewLevels(
+			organization_code,
+			tenant_code,
+			userRoleTitles,
+			resourceTypes
+		)
 		let resourceTypeStagesConfig = []
 		resourceTypes.filter((type) => {
 			if (resourceWiseLevels[type]) {
@@ -1032,6 +1056,7 @@ module.exports = class resourceHelper {
 
 		let resourceFilter = {
 			organization_code,
+			tenant_code,
 			[Op.or]: resourceTypeStagesConfig,
 			status: { [Op.in]: [common.RESOURCE_STATUS_SUBMITTED] },
 			stage: common.RESOURCE_STAGE_REVIEW,
@@ -1054,9 +1079,10 @@ module.exports = class resourceHelper {
 	 * @param {Array} resourceTypes -  resourceTypes which are in parallel review in the org.
 	 * @returns {Array} - Response contain array of resource ids
 	 */
-	static async findParallelResources(organization_code, resourceTypes = []) {
+	static async findParallelResources(organization_code, tenant_code, resourceTypes = []) {
 		const resourceFilter = {
 			organization_code,
+			tenant_code,
 			type: {
 				[Op.in]: resourceTypes,
 			},
@@ -1177,7 +1203,7 @@ module.exports = class resourceHelper {
 	 * 	observation : 4
 	 * }
 	 */
-	static async fetchReviewLevels(organization_code, userRoleTitles, resourceTypeList) {
+	static async fetchReviewLevels(organization_code, tenant_code, userRoleTitles, resourceTypeList) {
 		// list of organizations to search in review stages
 		const orgIds = organization_code == defaultOrgId ? [organization_code] : [organization_code, defaultOrgId]
 
@@ -1185,6 +1211,7 @@ module.exports = class resourceHelper {
 		const reviewLevelDetails = await reviewStagesQueries.findAll(
 			{
 				organization_code: { [Op.in]: orgIds },
+				tenant_code: tenant_code,
 				role: {
 					[Op.in]: userRoleTitles,
 				},
@@ -1234,10 +1261,10 @@ module.exports = class resourceHelper {
 	 * @param {String} organization_code - organization_code of the logged in user.
 	 * @returns {Object} - Response contain object , with list of sequential and parallel resource types
 	 */
-	static async fetchResourceReviewTypes(organization_code, tenantCode) {
+	static async fetchResourceReviewTypes(organization_code, tenant_code) {
 		try {
 			// Fetch organization-based configurations for resources
-			const orgConfig = await orgExtensionService.getConfig(organization_code, tenantCode)
+			const orgConfig = await orgExtensionService.getConfig(organization_code, tenant_code)
 
 			// Map resource types to their review types
 			const resourceWiseReviewType = orgConfig.result.resource.reduce((acc, item) => {
@@ -1308,14 +1335,14 @@ module.exports = class resourceHelper {
 	 * @param {Array} userIds - array of userIds.
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds, organisationCode = null, tenantCode = null, userToken = '') {
+	static async fetchUserDetails(userIds, organisationCode = null, tenant_code = null, userToken = '') {
 		const userDetailsResponse = await userRequests.list(
 			common.FILTER_ALL.toLowerCase(),
 			'',
 			'',
 			'',
 			organisationCode,
-			tenantCode,
+			tenant_code,
 			{
 				user_ids: userIds,
 			},
@@ -1341,14 +1368,14 @@ module.exports = class resourceHelper {
 	 * @returns {JSON} - upload  response.
 	 */
 
-	static async uploadToCloud(fileName, orgCode, tenantCode, resourceId, resourceType, loggedInUserId, bodyData) {
+	static async uploadToCloud(fileName, org_code, tenant_code, resourceId, resourceType, loggedInUserId, bodyData) {
 		try {
 			//sample blob path
 			// resource/162/6/06f444d0-03e1-4c36-92a4-78f27c18caf6/162624project.json
 			let getSignedUrl = await filesService.getSignedUrl(
 				{ [resourceId]: { files: [fileName] } },
-				orgCode,
-				tenantCode,
+				org_code,
+				tenant_code,
 				resourceType,
 				loggedInUserId
 			)
@@ -1382,8 +1409,8 @@ module.exports = class resourceHelper {
 	 * @name isReviewMandatory
 	 * @returns {Boolean} - Review required or not
 	 */
-	static async isReviewMandatory(resourceType, organizationId, tenantCode) {
-		const orgConfig = await orgExtensionService.getConfig(organizationId, tenantCode)
+	static async isReviewMandatory(resourceType, organizationId, tenant_code) {
+		const orgConfig = await orgExtensionService.getConfig(organizationId, tenant_code)
 		const orgConfigList = _.reduce(
 			orgConfig.result.resource,
 			(acc, item) => {
@@ -1410,7 +1437,7 @@ module.exports = class resourceHelper {
 	 */
 	static async browseExistingList(
 		organization_code,
-		tenantCode,
+		tenant_code,
 		userRoles,
 		resourceIds = [],
 		query,
@@ -1461,7 +1488,7 @@ module.exports = class resourceHelper {
 
 			let filterQuery = {
 				organization_code,
-				tenant_code: tenantCode,
+				tenant_code: tenant_code,
 				status: common.RESOURCE_STATUS_PUBLISHED,
 				is_reusable: true,
 			}
@@ -1500,7 +1527,7 @@ module.exports = class resourceHelper {
 				{
 					resource_id: internalResourcesIds,
 					status: common.REVIEW_STATUS_APPROVED,
-					tenant_code: tenantCode,
+					tenant_code: tenant_code,
 				},
 				['reviewer_id', 'resource_id']
 			)
@@ -1516,12 +1543,12 @@ module.exports = class resourceHelper {
 				const userDetails = await this.fetchUserDetails(
 					utils.getUniqueElements(userIds),
 					null,
-					tenantCode,
+					tenant_code,
 					userToken
 				)
 				const orgDetails = await orgExtension.fetchOrganizationDetails(
 					utils.getUniqueElements(organizationIds),
-					tenantCode
+					tenant_code
 				)
 				result.count = internalResources.count
 				internalResources.result.forEach((resource) => {
@@ -1598,7 +1625,21 @@ module.exports = class resourceHelper {
 
 			//written as a beckup will remove once the user service PR merged
 			if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
-				userList = reviewers.data.result.data.filter((user) => user.id != user_id)
+				userList = reviewers.data.result.data
+					.filter((user) => user.id != user_id)
+					.map((user) => {
+						return {
+							id: user.id,
+							email: user?.email || '',
+							name: user?.name,
+							username: user?.username,
+							phone_code: user?.phone_code || '',
+							phone: user?.phone || '',
+							status: user?.status,
+							organization: user?.user_organizations?.[0]?.organization || {},
+							organization_code: user?.user_organizations?.[0]?.organization_code || '',
+						}
+					})
 			}
 
 			return responses.successResponse({
@@ -1617,19 +1658,27 @@ module.exports = class resourceHelper {
 	/**
 	 * Uploads a resource to the cloud and updates its metadata in the database.
 	 * @param {string} resourceId - The ID of the resource to upload and update.
-	 * @param {string} orgId - The ID of the organization associated with the resource.
+	 * @param {string} org_code - The ID of the organization associated with the resource.
 	 * @param {string} loggedInUserId - The ID of the user performing the operation.
 	 * @param {Object} data - The data to be uploaded to the cloud.
 	 * @param {string} fileName - The name of the file to be uploaded.
 	 * @param {string} resourceType - The type of the resource (e.g., 'program', 'project').
 	 * @returns {Promise<void>} - Resolves when the upload and update are successful.
 	 */
-	static async uploadAndUpdateResource(resourceId, orgId, tenantCode, loggedInUserId, data, fileName, resourceType) {
+	static async uploadAndUpdateResource(
+		resourceId,
+		org_code,
+		tenant_code,
+		loggedInUserId,
+		data,
+		fileName,
+		resourceType
+	) {
 		try {
 			const uploadStatus = await this.uploadToCloud(
 				fileName,
-				orgId,
-				tenantCode,
+				org_code,
+				tenant_code,
 				resourceId,
 				resourceType,
 				loggedInUserId,
@@ -1640,7 +1689,7 @@ module.exports = class resourceHelper {
 				uploadStatus.result.status === httpStatusCode.ok ||
 				uploadStatus.result.status === httpStatusCode.created
 			) {
-				const filter = { id: resourceId, organization_code: orgId }
+				const filter = { id: resourceId, organization_code: org_code, tenant_code: tenant_code }
 				const updateData = { updated_by: loggedInUserId, blob_path: uploadStatus.blob_path }
 				if (data.title) {
 					updateData.title = data.title

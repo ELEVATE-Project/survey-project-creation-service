@@ -69,7 +69,7 @@ describe('Program APIs ', function () {
 			})
 
 			expect(addResourceRes.statusCode).toBe(200)
-			expect(res.body).toMatchSchema(schema.addOrRemoveResourceSchema)
+			expect(addResourceRes.body).toMatchSchema(schema.addOrRemoveResourceSchema)
 		}
 	})
 
