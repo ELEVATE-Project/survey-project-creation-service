@@ -11,6 +11,7 @@ const logger = elevateLog.init()
 const { Kafka } = require('kafkajs')
 const consumptionService = require('@requests/consumption')
 const rolloutService = require('@services/rollouts')
+const adminService = require('@services/admin')
 const httpStatusCode = require('@generics/http-status')
 
 module.exports = async () => {
@@ -54,10 +55,11 @@ module.exports = async () => {
 					process.env.PROJECT_PUBLISH_KAFKA_TOPIC,
 					process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC,
 					process.env.PROGRAM_PUBLISH_KAFKA_TOPIC,
+					process.env.USERSERVICE_TENANT_EVENT,
 				],
 			})
 			logger.info(
-				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} , ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC}, ${process.env.PROGRAM_PUBLISH_KAFKA_TOPIC} and ${process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC}`
+				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} , ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC}, ${process.env.PROGRAM_PUBLISH_KAFKA_TOPIC} , ${process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC} and ${process.env.USERSERVICE_TENANT_EVENT}`
 			)
 			await consumer.run({
 				eachMessage: async ({ topic, partition, message }) => {
@@ -84,6 +86,8 @@ module.exports = async () => {
 							await consumptionService.publishProjectTemplates(streamingData)
 						} else if (topic == process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC) {
 							await consumptionService.publishProgram(streamingData)
+						} else if (topic == process.env.USERSERVICE_TENANT_EVENT) {
+							await adminService.create(streamingData)
 						}
 					} catch (error) {
 						logger.error('Error processing Kafka message:', { error })
