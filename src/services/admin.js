@@ -23,6 +23,7 @@ const filesService = require('@services/files')
 const request = require('request')
 const path = require('path')
 const fs = require('fs')
+const _ = require('lodash')
 
 // Global regex cache for performance (moved outside function)
 const regexCache = new Map()
