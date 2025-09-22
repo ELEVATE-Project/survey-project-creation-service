@@ -57,7 +57,7 @@ exports.updateOne = async (filter, update, options = {}) => {
 	}
 }
 
-exports.deleteMany = async (programId, resourceIds) => {
+exports.deleteMany = async (programId, resourceIds, tenantCode) => {
 	try {
 		if (!Array.isArray(resourceIds) || resourceIds.length === 0) {
 			throw new Error('Invalid or empty IDs array')
@@ -66,6 +66,7 @@ exports.deleteMany = async (programId, resourceIds) => {
 		const res = await ProgramResourceMapping.destroy({
 			where: {
 				program_id: programId,
+				tenant_code: tenantCode,
 				resource_id: { [Op.in]: resourceIds },
 			},
 			individualHooks: true,

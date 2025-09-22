@@ -23,18 +23,18 @@ module.exports = class CommentsHelper {
 	 * @param {Integer} resourceId - Resource ID
 	 * @param {Object} bodyData - Request Body
 	 * @param {String} userId - User ID
-	 * @param {String} orgCode - organization code
-	 * @param {String} tenantCode - tenant code
+	 * @param {String} org_code - organization code
+	 * @param {String} tenant_code - tenant code
 	 * @returns {JSON} - comment id
 	 */
-	static async update(commentId = '', resourceId, bodyData, userId, orgCode, tenantCode) {
+	static async update(commentId = '', resourceId, bodyData, userId, org_code, tenant_code) {
 		try {
 			//validate resource
 			const resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
-					organization_code: orgCode,
-					tenant_code: tenantCode,
+					organization_code: org_code,
+					tenant_code: tenant_code,
 				},
 				{ attributes: ['id', 'type', 'status', 'organization_code'] }
 			)
@@ -49,7 +49,7 @@ module.exports = class CommentsHelper {
 				const associatedResources = await programResourceMappingQueries.findOne({
 					resource_id: resourceId,
 					organization_code: resource.organization_code,
-					tenant_code: tenantCode,
+					tenant_code: tenant_code,
 				})
 
 				//if the resource is a non program and attached to program still reviewer can add comment
@@ -67,8 +67,8 @@ module.exports = class CommentsHelper {
 					userId,
 					'',
 					resource.type,
-					orgCode,
-					tenantCode
+					org_code,
+					tenant_code
 				)
 
 				// convert body data to array if its not
@@ -100,8 +100,8 @@ module.exports = class CommentsHelper {
 			const filter = {
 				resource_id: resourceId,
 				id: commentId,
-				tenant_code: tenantCode,
-				organization_code: orgCode,
+				tenant_code: tenant_code,
+				organization_code: org_code,
 			}
 
 			const [updateCount, updatedComment] = await commentQueries.update(filter, bodyData.comment, {
@@ -135,14 +135,14 @@ module.exports = class CommentsHelper {
 	 * @param {Integer} commentId - Comment ID
 	 * @param {Integer} resourceId - Resource ID
 	 * @param {String} userId - User ID
-	 * @param {String} orgCode - organization code
-	 * @param {String} tenantCode - tenant code
+	 * @param {String} org_code - organization code
+	 * @param {String} tenant_code - tenant code
 	 * @returns {JSON}
 	 */
-	static async delete(commentId, resourceId, userId, orgCode, tenantCode) {
+	static async delete(commentId, resourceId, userId, org_code, tenant_code) {
 		try {
 			// soft delete comment
-			await commentQueries.deleteOne(commentId, resourceId, userId, orgCode, tenantCode)
+			await commentQueries.deleteOne(commentId, resourceId, userId, org_code, tenant_code)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -165,12 +165,12 @@ module.exports = class CommentsHelper {
 	 * @param {String} pageValue - Page number or name
 	 * @param {String} context - Context page or tag
 	 * @param {String} userId - User ID
-	 * @param {String} orgId - organization id
+	 * @param {String} org_code - organization id
+	 * @param {String} tenant_code - tenant code
 	 * @param {String} userToken - User token
-	 * @param {String} tenantCode - tenant code
 	 * @returns {JSON} - comment list
 	 */
-	static async list(resourceId, pageValue = '', context = '', userId, orgId, userToken = '', tenantCode) {
+	static async list(resourceId, pageValue = '', context = '', userId, org_code, tenant_code, userToken = '') {
 		try {
 			let result = {
 				resource_id: resourceId,
@@ -180,14 +180,14 @@ module.exports = class CommentsHelper {
 			}
 
 			//get all comments
-			const comments = await commentQueries.list(resourceId, userId, pageValue, context, orgId, tenantCode)
+			const comments = await commentQueries.list(resourceId, userId, pageValue, context, org_code, tenant_code)
 
 			// Check if the resource is of type 'program' and fetch child resources
 			let resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
-					organization_code: orgId,
-					tenant_code: tenantCode,
+					organization_code: org_code,
+					tenant_code: tenant_code,
 				},
 				{ attributes: ['id', 'type', 'organization_code'] }
 			)
@@ -198,7 +198,7 @@ module.exports = class CommentsHelper {
 				const associatedResources = await programResourceMappingQueries.findAll({
 					program_id: resourceId,
 					organization_code: resource.organization_code,
-					tenant_code: tenantCode,
+					tenant_code: tenant_code,
 				})
 
 				// If there are associated resources, proceed with fetching their comments
@@ -211,7 +211,7 @@ module.exports = class CommentsHelper {
 							resource_id: { [Op.in]: resourceIds },
 							status: common.COMMENT_STATUS_DRAFT,
 							organization_code: resource.organization_code,
-							tenant_code: tenantCode,
+							tenant_code: tenant_code,
 						},
 						['resource_id', [Sequelize.literal('COUNT(id)'), 'count']],
 						{ group: ['resource_id'] }
@@ -247,7 +247,8 @@ module.exports = class CommentsHelper {
 				'',
 				'',
 				'',
-				orgId,
+				org_code,
+				tenant_code,
 				{
 					user_ids: userIds,
 				},

@@ -807,6 +807,46 @@ function _extractTenantAndOrgCodes(req) {
 }
 
 /**
+ * Supporting function for build url. Percent-encode a string according to the query percent-encode set.
+ * This function ensures that characters not allowed in URL query parameters are properly encoded.
+ * @param {String} input - The input string to be percent-encoded.
+ * @returns {String} - The percent-encoded string.
+ */
+function percentEncodeQuery(input) {
+	// return input if it is numeric
+	if (isNumeric(input)) return input.toString()
+
+	let output = ''
+	if (input != null || input != undefined) {
+		for (let i = 0; i < input.length; ) {
+			const codePoint = input.codePointAt(i)
+			const char = String.fromCodePoint(codePoint)
+			if (
+				codePoint <= 0x1f || // C0 controls (U+0000 to U+001F)
+				codePoint === 0x7f || // DEL
+				codePoint > 0x7e || // greater than ~
+				codePoint === 0x20 || // space
+				codePoint === 0x22 || // "
+				codePoint === 0x23 || // #
+				codePoint === 0x3c || // <
+				codePoint === 0x3e // >
+			) {
+				// Percent-encode after UTF-8 encoding
+				const bytes = new TextEncoder().encode(char)
+				for (const byte of bytes) {
+					output += '%' + byte.toString(16).toUpperCase().padStart(2, '0')
+				}
+			} else {
+				output += char
+			}
+			i += codePoint > 0xffff ? 2 : 1
+		}
+	}
+
+	return output
+}
+
+/**
  * Build URL with query parameters
  * @function
  * @name buildUrl
@@ -823,18 +863,30 @@ function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
 		let cleanEndpoint = endpoint.replace(/^\/+/, '')
 		if (idParam) cleanEndpoint = `${cleanEndpoint}/${idParam}`
 
-		// Create URL object from host string
-		let url = new URL(`${cleanBaseUrl}/${cleanEndpoint}`)
+		// Create base URL without query parameters
+		let url = `${cleanBaseUrl}/${cleanEndpoint}`
 
-		// Get existing search parameters
-		const searchParams = url.searchParams
-
-		// Append new parameters
+		// Manually construct query string using query percent-encode set
+		const queryStringParts = []
 		Object.entries(queryParams).forEach(([key, value]) => {
-			searchParams.append(key, value)
+			let encodedKey = percentEncodeQuery(key)
+			let encodedValue
+			if (Array.isArray(value)) {
+				// Join array values with a literal comma and encode
+				encodedValue = percentEncodeQuery(value.join(','))
+			} else {
+				// Encode non-array values
+				encodedValue = percentEncodeQuery(value)
+			}
+			queryStringParts.push(`${encodedKey}=${encodedValue}`)
 		})
 
-		return url.toString()
+		// Append query string to URL if there are parameters
+		if (queryStringParts.length > 0) {
+			url += `?${queryStringParts.join('&')}`
+		}
+
+		return url
 	} catch {
 		throw new Error('INVALID URL INPUT')
 	}

@@ -26,142 +26,19 @@ const createSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
+							properties: {},
+							additionalProperties: true,
 						},
 						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
 							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
 						},
 					],
 				},
@@ -202,142 +79,19 @@ const updateSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
+							properties: {},
+							additionalProperties: true,
 						},
 						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
 							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
 						},
 					],
 				},
@@ -367,142 +121,19 @@ const deleteSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
+							properties: {},
+							additionalProperties: true,
 						},
 						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
 							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
 						},
 					],
 				},
@@ -602,142 +233,19 @@ const listSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
+							properties: {},
+							additionalProperties: true,
 						},
 						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
 							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
-						},
-						{
-							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
-							},
-							required: ['id', 'type', 'version'],
 						},
 					],
 				},

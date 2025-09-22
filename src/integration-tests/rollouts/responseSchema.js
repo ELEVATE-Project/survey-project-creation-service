@@ -25,12 +25,6 @@ const getDataManagersSchema = {
 								email: {
 									type: 'string',
 								},
-								about: {
-									type: 'null',
-								},
-								image: {
-									type: 'null',
-								},
 								organization: {
 									type: 'object',
 									properties: {
@@ -47,7 +41,7 @@ const getDataManagersSchema = {
 									required: ['id', 'code', 'name'],
 								},
 							},
-							required: ['id', 'name', 'email', 'about', 'image', 'organization'],
+							required: ['id', 'name', 'email', 'organization'],
 						},
 					],
 				},
@@ -61,14 +55,26 @@ const getDataManagersSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',
 				},
 			},
-			required: [],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
@@ -99,14 +105,26 @@ const getDataManagersEmptyResponseSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',
 				},
 			},
-			required: [],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
@@ -230,14 +248,26 @@ const listEmptyResponseSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',
 				},
 			},
-			required: [],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
