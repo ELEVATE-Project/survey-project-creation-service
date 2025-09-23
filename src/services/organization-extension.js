@@ -272,6 +272,7 @@ module.exports = class orgExtensionsHelper {
 	 * Get all details of org from the user service.
 	 * @name fetchOrganizationDetails
 	 * @param {Array} organization_codes - array of organization_codes.
+	 * @param {String} tenantCode - tenant code
 	 * @returns {Object} - Response contain object of org details
 	 */
 	static async fetchOrganizationDetails(OrganizationCodes, tenantCode) {

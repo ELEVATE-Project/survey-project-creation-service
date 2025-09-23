@@ -167,5 +167,9 @@
 	"INVALID_RESOURCES_FOUND": "Invalid resource ids",
 	"FORBIDEN_RESOURCE_STATUS_FOR_ROLLOUT": "Resource status not eligible for Rollout.",
 	"INVALID_TENANT_OR_ORGANIZATION": "Invalid tenant or organization code provided in the request header.",
-	"MISSING_TENANT_OR_ORGANIZATION": "organization_code or tenant_code missing."
+	"MISSING_TENANT_OR_ORGANIZATION": "organization_code or tenant_code missing.",
+	"DATA_FETCHED": "Data fetched successfully",
+	"QUERY_INVALID_OR_UNBALANCED_QUOTES": "Query contains invalid or unbalanced quotes",
+	"QUERY_FORBIDDEN_INJECTION_PATTERNS": "Query contains forbidden injection patterns",
+	"QUERY_FORBIDDEN_PATTERNS": "Query is not allowed or references restricted operations/tables"
 }

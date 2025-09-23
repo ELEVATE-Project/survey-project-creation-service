@@ -7,7 +7,8 @@ const utils = require('@generics/utils')
 module.exports = class UserEntityData {
 	static async createEntityType(data) {
 		try {
-			return await EntityType.create(data, { returning: true })
+			const createEntityType = await EntityType.create(data, { returning: true })
+			return createEntityType.toJSON()
 		} catch (error) {
 			throw error
 		}
@@ -78,7 +79,7 @@ module.exports = class UserEntityData {
 			})
 
 			if (!entityType) {
-				filter.organization_code = utils.convertToString(process.env.DEFAULT_ORGANISATION_CODE)
+				filter.organization_code = utils.convertToString(process.env.DEFAULT_ORGANIZATION_CODE)
 				entityType = await EntityType.findOne({
 					where: filter,
 					raw: true,

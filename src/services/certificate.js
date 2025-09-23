@@ -3,7 +3,7 @@ const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
 const certificateQueries = require('@database/queries/certificateBaseTemplate')
 const { UniqueConstraintError } = require('sequelize')
-const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
+const defaultOrgId = process.env.DEFAULT_ORGANIZATION_CODE
 const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const filesService = require('@services/files')
@@ -57,6 +57,7 @@ module.exports = class certificatesHelper {
 					// Replace the URL in prunedCertificates
 					prunedCertificates.forEach((certificate) => {
 						if (urlMap[certificate[common.URL]]) {
+							certificate[common.FILE_PATH] = certificate.url
 							certificate[common.URL] = urlMap[certificate[common.URL]].url
 						}
 					})

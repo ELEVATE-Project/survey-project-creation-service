@@ -3,7 +3,7 @@ const httpStatusCode = require('@generics/http-status')
 const { UniqueConstraintError } = require('sequelize')
 const { Op } = require('sequelize')
 const { removeDefaultOrgEntityTypes } = require('@generics/utils')
-const defaultOrgId = process.env.DEFAULT_ORGANISATION_CODE
+const defaultOrgId = process.env.DEFAULT_ORGANIZATION_CODE
 const utils = require('@generics/utils')
 const responses = require('@helpers/responses')
 const entityTypeQueries = require('@database/queries/entityType')
@@ -54,23 +54,28 @@ module.exports = class EntityTypeHelper {
 			delete bodyData.is_external
 			delete bodyData.is_dependent
 			let entityType = await entityTypeQueries.createEntityType(bodyData)
-
+			if (!entityType?.id) {
+				throw {
+					message: 'ENTITY_TYPE_CREATION_FAILED',
+					statusCode: httpStatusCode.bad_request,
+				}
+			}
+			entityTypeId = entityType.id
 			if (entityType && bodyData.model) {
-				entityTypeId = entityType.dataValues.id
 				let entityModelMapping = {
-					entity_type_id: entityType.dataValues.id,
+					entity_type_id: entityTypeId,
 					model: bodyData.model,
 					tenant_code: tenantCode,
 					organization_code: orgCode,
 					status: common.STATUS_ACTIVE,
 				}
 				await entityModelMappingQuery.create(entityModelMapping)
-				return responses.successResponse({
-					statusCode: httpStatusCode.created,
-					message: 'ENTITY_TYPE_CREATED_SUCCESSFULLY',
-					result: entityType,
-				})
 			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.created,
+				message: 'ENTITY_TYPE_CREATED_SUCCESSFULLY',
+				result: entityType,
+			})
 		} catch (error) {
 			if (error instanceof UniqueConstraintError) {
 				return responses.failureResponse({
@@ -79,7 +84,11 @@ module.exports = class EntityTypeHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -160,7 +169,11 @@ module.exports = class EntityTypeHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -198,7 +211,11 @@ module.exports = class EntityTypeHelper {
 				result: prunedEntities,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -230,7 +247,11 @@ module.exports = class EntityTypeHelper {
 			})
 		} catch (error) {
 			console.log(error)
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -257,7 +278,11 @@ module.exports = class EntityTypeHelper {
 				message: 'ENTITY_TYPE_DELETED_SUCCESSFULLY',
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 

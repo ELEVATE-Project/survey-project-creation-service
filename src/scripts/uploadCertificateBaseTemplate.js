@@ -13,13 +13,13 @@ const request = require('request')
 const certificateQueries = require('../database/queries/certificateBaseTemplate')
 const common = require('../constants/common')
 const utils = require('../generics/utils')
-const organizationCode = process.env.DEFAULT_ORGANISATION_CODE || null
+const organizationCode = process.env.DEFAULT_ORGANIZATION_CODE || null
 const tenantCode = process.env.DEFAULT_TENANT_CODE || null
 
 ;(async () => {
 	try {
 		if (!organizationCode) {
-			throw new Error('DEFAULT_ORGANISATION_CODE must be set')
+			throw new Error('DEFAULT_ORGANIZATION_CODE must be set')
 		}
 		if (!tenantCode) {
 			throw new Error('DEFAULT_TENANT_CODE must be set')

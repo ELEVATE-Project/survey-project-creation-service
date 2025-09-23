@@ -93,7 +93,7 @@ const list = function (
 	pageSize = '',
 	searchText = '',
 	organization_code = null,
-	tenantCode = null,
+	tenant_code = null,
 	body = {},
 	userToken = ''
 ) {
@@ -105,12 +105,12 @@ const list = function (
 				...(pageSize != null && pageSize !== '' && { limit: pageSize }),
 				...(searchText != null && searchText !== '' && { search: searchText }),
 				...(organization_code != null && { organization_code }),
-				...(tenantCode != null && { tenant_code: tenantCode }),
+				...(tenant_code != null && { tenant_code: tenant_code }),
 			}
 
 			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
 
-			const userDetails = await requests.post(apiUrl, body, '', true)
+			const userDetails = await requests.post(apiUrl, body, userToken, true)
 			return resolve(userDetails)
 		} catch (error) {
 			return reject(error)

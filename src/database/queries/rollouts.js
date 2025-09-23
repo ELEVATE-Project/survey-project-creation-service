@@ -1,6 +1,7 @@
 'use strict'
 const Rollout = require('../models/index').Rollout
 const { ValidationError } = require('sequelize')
+const Resource = require('../models/index').Resource
 
 exports.create = async (data) => {
 	try {
@@ -15,12 +16,25 @@ exports.create = async (data) => {
 	}
 }
 
-exports.findOne = async (filter, options = {}) => {
+exports.findOne = async (filter, options = {}, addResourceConstraints = false) => {
 	try {
+		// Add resource_details to options.include if flag is true
+		if (addResourceConstraints) {
+			options.include = [
+				...(options.include || []),
+				{
+					model: Resource,
+					as: 'resource_details',
+					required: true,
+				},
+			]
+		}
+
 		return await Rollout.findOne({
 			where: filter,
 			...options,
 			raw: true,
+			nest: true,
 		})
 	} catch (error) {
 		return error
