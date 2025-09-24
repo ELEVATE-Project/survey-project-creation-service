@@ -1,5 +1,5 @@
 /**
- * name : migrateProgram.js
+ * name : migrateProgramsAndSolutions.js
  * author : Priyanka Pradeep
  * created-date : 24-Aug-2024
  * Description : Script to migrate programs and solutions with tenant support (Refactored)
@@ -122,7 +122,7 @@ const CURSOR_TIMEOUT = 30 * 60 * 1000 // 30 minutes cursor timeout
 					components: { $exists: true, $type: 'array', $not: { $size: 0 } },
 					tenantId: { $nin: [null, ''] },
 					orgId: { $nin: [null, ''] },
-					_id: ObjectId('682c3e4076d1f500145763cf'),
+					_id: ObjectId('682c147bba875600144d91bb'),
 				},
 			},
 			{
@@ -407,6 +407,9 @@ async function processProgram(
 
 	// generate targeting criteria for program scope
 	let programTargetingCriteriaRes = await generateTargetingCriteria(program.scope, tenant_code, validateScopeRes)
+	console.log(JSON.stringify(program?.scope, null, 2), 'program scope')
+	console.log(JSON.stringify(programTargetingCriteriaRes?.result, null, 2), 'programTargetingCriteriaRes')
+	process.exit(1)
 	if (!programTargetingCriteriaRes.success) {
 		console.error(`Failed to generate targeting criteria for program ${programIdStr}`)
 		await writeErrorRecord(
@@ -1605,275 +1608,6 @@ async function checkResourceExist(publishedId, type, tenant_code, organization_c
 	}
 }
 
-async function generateTargetingCriteria(scope = {}, tenant_code) {
-	try {
-		if (!scope || Object.keys(scope).length === 0) {
-			console.log('No valid targeting-related data found in scope. Returning empty targeting criteria.')
-			return { success: true, result: [] }
-		}
-
-		const entityTypeIds = scope.entityType ? scope.entityType.split(',').map((item) => item.trim()) : []
-		const apiCalls = []
-
-		// Prepare API calls for each entity type in the scope
-		for (const type of entityTypeIds) {
-			if (scope[type] && scope[type].length > 0) {
-				apiCalls.push(
-					fetchEntitiesByQuery(scope[type], tenant_code, type).then((entities) => ({ type, entities }))
-				)
-			}
-		}
-
-		// Fetch all entities in parallel
-		const fetchedEntitiesByType = await Promise.all(apiCalls)
-
-		const professionalEntities = {}
-		const locationEntities = []
-
-		// Separate entities into professional and location-based
-		fetchedEntitiesByType.forEach(({ type, entities }) => {
-			if (type === 'professional_role' || type === 'professional_subroles') {
-				professionalEntities[type] = entities.map((entity) => ({
-					_id: entity._id,
-					value: entity.code || entity.metaInformation?.code,
-					label: entity.title || entity.metaInformation?.name,
-					code: entity.code || entity.metaInformation?.code,
-				}))
-			} else {
-				entities.forEach((entity) => {
-					locationEntities.push({
-						_id: entity._id,
-						externalId: entity.registryDetails?.code || entity.metaInformation?.externalId,
-						name: entity.metaInformation?.name,
-						entityType: entity.entityType,
-					})
-				})
-			}
-		})
-
-		const targetingCriteriaByHighestEntity = new Map()
-
-		for (const entity of locationEntities) {
-			const highestParent = await findHighestEntityInHierarchy(entity._id, tenant_code)
-			const highestParentId = highestParent?._id
-
-			if (!highestParentId) {
-				continue // Skip if no highest parent is found
-			}
-
-			if (!targetingCriteriaByHighestEntity.has(highestParentId)) {
-				// Initialize the targeting object for this highest-level entity
-				const highestParentType = highestParent.entityType
-				const newTargetingObject = {
-					[highestParentType]: [
-						{
-							_id: highestParent._id,
-							name: highestParent.metaInformation?.name,
-							externalId:
-								highestParent.registryDetails?.code || highestParent.metaInformation?.externalId,
-						},
-					],
-					entity_targeting: {
-						_id: entityTypeIds[0], // Assuming the first entityType in the list is the primary one
-						value: entityTypeIds[0],
-						name: entityTypeIds[0],
-					},
-				}
-				// Add all professional roles and subroles to this new targeting object
-				Object.assign(newTargetingObject, professionalEntities)
-				targetingCriteriaByHighestEntity.set(highestParentId, newTargetingObject)
-			}
-
-			const currentTargeting = targetingCriteriaByHighestEntity.get(highestParentId)
-			if (!currentTargeting[entity.entityType]) {
-				currentTargeting[entity.entityType] = []
-			}
-			currentTargeting[entity.entityType].push({
-				_id: entity._id,
-				externalId: entity.registryDetails?.code || entity.metaInformation?.externalId,
-				name: entity.metaInformation?.name || entity.label,
-				entityType: entity.entityType,
-			})
-		}
-
-		const finalTargeting = Array.from(targetingCriteriaByHighestEntity.values())
-
-		return { success: true, result: finalTargeting }
-	} catch (error) {
-		console.error('Error in generateTargetingCriteria:', error)
-		return { success: false, error: error.message }
-	}
-}
-
-// async function generateTargetingCriteria(scope = {}, tenant_code) {
-//     try {
-//         if (!scope || Object.keys(scope).length === 0) {
-//             console.log('No valid targeting-related data found in scope. Returning empty targeting criteria.')
-//             return { success: true, result: [] }
-//         }
-
-//         const entityTypeIds = scope.entityType ? scope.entityType.split(',').map((item) => item.trim()) : []
-//         const apiCalls = []
-
-//         // Prepare API calls for each entity type in the scope
-//         for (const type of entityTypeIds) {
-//             if (scope[type] && scope[type].length > 0) {
-//                 apiCalls.push(
-//                     fetchEntitiesByQuery(scope[type], tenant_code, type).then((entities) => ({ type, entities }))
-//                 )
-//             }
-//         }
-
-//         // Fetch all entities in parallel
-//         const fetchedEntitiesByType = await Promise.all(apiCalls)
-
-//         const professionalEntities = {}
-//         const locationEntities = []
-
-//         // Separate entities into professional and location-based
-//         fetchedEntitiesByType.forEach(({ type, entities }) => {
-//             if (type === 'professional_role' || type === 'professional_subroles') {
-//                 professionalEntities[type] = entities.map((entity) => ({
-//                     _id: entity._id,
-//                     value: entity.code || entity.metaInformation?.code,
-//                     label: entity.title || entity.metaInformation?.name,
-//                     code: entity.code || entity.metaInformation?.code,
-//                 }))
-//             } else {
-//                 entities.forEach((entity) => {
-//                     locationEntities.push({
-//                         _id: entity._id,
-//                         externalId: entity.registryDetails?.code || entity.metaInformation?.externalId,
-//                         name: entity.metaInformation?.name,
-//                         entityType: entity.entityType,
-//                     })
-//                 })
-//             }
-//         })
-
-//         const targetingCriteriaByHighestEntity = new Map()
-
-//         for (const entity of locationEntities) {
-//             const highestParent = await findHighestEntityInHierarchy(entity._id, tenant_code)
-//             const highestParentId = highestParent?._id
-
-//             if (!highestParentId) {
-//                 continue // Skip if no highest parent is found
-//             }
-
-//             if (!targetingCriteriaByHighestEntity.has(highestParentId)) {
-//                 // Initialize the targeting object for this highest-level entity
-//                 const highestParentType = highestParent.entityType
-//                 const newTargetingObject = {
-//                     [highestParentType]: [
-//                         {
-//                             _id: highestParent._id,
-//                             name: highestParent.metaInformation?.name,
-//                             externalId:
-//                                 highestParent.registryDetails?.code || highestParent.metaInformation?.externalId,
-//                         },
-//                     ],
-//                     entity_targeting: {
-//                         _id: entityTypeIds[0], // Assuming the first entityType in the list is the primary one
-//                         value: entityTypeIds[0],
-//                         name: entityTypeIds[0],
-//                     },
-//                 }
-//                 // Add all professional roles and subroles to this new targeting object
-//                 Object.assign(newTargetingObject, professionalEntities)
-//                 targetingCriteriaByHighestEntity.set(highestParentId, newTargetingObject)
-//             }
-
-//             const currentTargeting = targetingCriteriaByHighestEntity.get(highestParentId)
-//             if (!currentTargeting[entity.entityType]) {
-//                 currentTargeting[entity.entityType] = []
-//             }
-//             currentTargeting[entity.entityType].push({
-//                 _id: entity._id,
-//                 externalId: entity.registryDetails?.code || entity.metaInformation?.externalId,
-//                 name: entity.metaInformation?.name || entity.label,
-//                 entityType: entity.entityType,
-//             })
-//         }
-
-//         const finalTargeting = Array.from(targetingCriteriaByHighestEntity.values())
-
-//         return { success: true, result: finalTargeting }
-//     } catch (error) {
-//         console.error('Error in generateTargetingCriteria:', error)
-//         return { success: false, error: error.message }
-//     }
-// }
-
-async function fetchEntitiesByQuery(entityIds, tenantId, entityType) {
-	try {
-		const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${endpoints.FIND_ENTITIES_BY_QUERY}`
-
-		const payload = {
-			query: {
-				_id: {
-					$in: entityIds,
-				},
-				entityType: entityType,
-				tenantId: tenantId,
-			},
-			projection: [
-				'_id',
-				'metaInformation',
-				'entityType',
-				'entityTypeId',
-				'childHierarchyPath',
-				'registryDetails',
-			],
-		}
-
-		const response = await axios.post(apiUrl, payload, {
-			headers: {
-				'content-type': 'application/json',
-				'internal-access-token': process.env.INTERNAL_ACCESS_TOKEN,
-			},
-		})
-
-		if (response.status === 200 && response.data && Array.isArray(response.data.result)) {
-			return response.data.result || []
-		} else {
-			console.error(`Failed to fetch ${entityType}:`, response.status, response.data)
-			return []
-		}
-	} catch (error) {
-		console.error(`Error fetching ${entityType}:`, error)
-		return []
-	}
-}
-
-async function findHighestEntityInHierarchy(entityId, tenant_code) {
-	try {
-		let currentEntityId = entityId
-		let highestEntity = null
-
-		while (currentEntityId) {
-			const entities = await fetchEntitiesByQuery([currentEntityId], tenant_code)
-			const currentEntity = entities[0]
-
-			if (!currentEntity) {
-				return highestEntity
-			}
-
-			highestEntity = currentEntity
-			if (currentEntity.parent && currentEntity.parent._id) {
-				currentEntityId = currentEntity.parent._id
-			} else {
-				// No parent found, this is the highest entity
-				currentEntityId = null
-			}
-		}
-		return highestEntity
-	} catch (error) {
-		console.error('Error finding highest entity in hierarchy:', error)
-		return null
-	}
-}
-
 /**
  * Creates a program and maps associated resources to it
  * @name createProgram
@@ -2404,5 +2138,349 @@ async function fetchEntityTypesByQuery(entityTypeNames, tenantId) {
 	} catch (error) {
 		console.error('Error fetching entityTypes:', error)
 		return []
+	}
+}
+
+async function fetchEntitiesByQuery(entityIds, tenantId, entityType) {
+	try {
+		const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${endpoints.FIND_ENTITIES_BY_QUERY}`
+
+		const payload = {
+			query: {
+				_id: {
+					$in: entityIds,
+				},
+				entityType: entityType,
+				tenantId: tenantId,
+			},
+			projection: [
+				'_id',
+				'metaInformation',
+				'entityType',
+				'entityTypeId',
+				'childHierarchyPath',
+				'registryDetails',
+				'parent',
+			],
+		}
+
+		const response = await axios.post(apiUrl, payload, {
+			headers: {
+				'content-type': 'application/json',
+				'internal-access-token': process.env.INTERNAL_ACCESS_TOKEN,
+			},
+		})
+
+		if (response.status === 200 && response.data && Array.isArray(response.data.result)) {
+			return response.data.result || []
+		} else {
+			console.error(`Failed to fetch ${entityType}:`, response.status, response.data)
+			return []
+		}
+	} catch (error) {
+		console.error(`Error fetching ${entityType}:`, error)
+		return []
+	}
+}
+
+async function fetchEntityDetails(entityId, tenantId) {
+	try {
+		const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}v1/entities/details/${entityId}`
+		const response = await axios.get(apiUrl, {
+			headers: {
+				'content-type': 'application/json',
+				tenantId: tenantId,
+			},
+		})
+
+		if (response.status === 200 && response.data) {
+			return response.data
+		} else {
+			console.error(`Failed to fetch entity details for ${entityId}:`, response.status)
+			return null
+		}
+	} catch (error) {
+		console.error(`Error fetching entity details for ${entityId}:`, error)
+		return null
+	}
+}
+
+async function generateTargetingCriteria(scope = {}, tenant_code) {
+	try {
+		if (!scope || Object.keys(scope).length === 0) {
+			console.log('No valid targeting-related data found in scope. Returning empty targeting criteria.')
+			return { success: true, result: [] }
+		}
+
+		// Define role entity types and excluded keys
+		const roleEntityTypes = ['professional_role', 'professional_subroles']
+		const excludedKeys = ['entityType', 'organizations', 'roles']
+
+		// Filter scope keys to exclude irrelevant ones
+		const scopeKeys = Object.keys(scope).filter((key) => !excludedKeys.includes(key))
+		if (scopeKeys.length === 0) {
+			return { success: true, result: [] }
+		}
+
+		// Fetch entity type details to determine location and role entities
+		const entityTypeDetails = await fetchEntityTypesByQuery(scopeKeys, tenant_code)
+		let locationEntityTypes = entityTypeDetails.filter((et) => et.isObservable === true).map((et) => et.name)
+		const validRoleEntityTypes = entityTypeDetails
+			.filter((et) => roleEntityTypes.includes(et.name))
+			.map((et) => et.name)
+
+		// Fetch entity details to determine hierarchy and parent information
+		const entityDetailsCalls = []
+		for (const key of scopeKeys) {
+			if (
+				locationEntityTypes.includes(key) &&
+				scope[key] &&
+				Array.isArray(scope[key]) &&
+				scope[key].length > 0 &&
+				!scope[key].includes('ALL')
+			) {
+				scope[key].forEach((id) => {
+					entityDetailsCalls.push(
+						fetchEntityDetails(id, tenant_code).then((details) => ({
+							entityId: id,
+							entityType: key,
+							details,
+						}))
+					)
+				})
+			}
+		}
+
+		const entityDetailsResults = await Promise.all(entityDetailsCalls)
+
+		// Collect all unique parent types from parentInformation
+		const parentTypesSet = new Set()
+		entityDetailsResults.forEach(({ details }) => {
+			if (details?.result?.[0]?.parentInformation) {
+				const parentInfo = details.result[0].parentInformation
+				Object.keys(parentInfo).forEach((type) => {
+					if (parentInfo[type] && parentInfo[type].length > 0) {
+						parentTypesSet.add(type)
+					}
+				})
+			}
+		})
+
+		// Fetch entity types for additional parent types
+		const additionalEntityTypes = Array.from(parentTypesSet).filter((type) => !locationEntityTypes.includes(type))
+		if (additionalEntityTypes.length > 0) {
+			const additionalEntityTypeDetails = await fetchEntityTypesByQuery(additionalEntityTypes, tenant_code)
+			const additionalLocationTypes = additionalEntityTypeDetails
+				.filter((et) => et.isObservable === true)
+				.map((et) => et.name)
+			locationEntityTypes.push(...additionalLocationTypes)
+		}
+
+		const entityHierarchyMap = new Map()
+
+		// Build hierarchy with all parent types and entity details
+		entityDetailsResults.forEach(({ entityId, entityType, details }) => {
+			if (details?.result?.[0]?.parentInformation) {
+				const parentInfo = details.result[0].parentInformation
+				const hierarchy = Object.keys(parentInfo).filter(
+					(type) => parentInfo[type] && parentInfo[type].length > 0
+				)
+				hierarchy.push(entityType)
+				entityHierarchyMap.set(entityId, {
+					types: hierarchy,
+					parentDetails: parentInfo,
+				})
+			} else {
+				entityHierarchyMap.set(entityId, {
+					types: [entityType],
+					parentDetails: {},
+				})
+			}
+		})
+
+		// Log entity hierarchy for debugging
+		console.log('Entity Hierarchy Map:', entityHierarchyMap)
+
+		// Determine the lowest entity type for entity_targeting
+		let lowestEntityType = locationEntityTypes[0] || null
+		if (entityHierarchyMap.size > 0) {
+			const allHierarchies = Array.from(entityHierarchyMap.values()).map((h) => h.types)
+			const commonHierarchy = allHierarchies.reduce((common, current) => {
+				return common.filter((type) => current.includes(type))
+			}, allHierarchies[0] || [])
+
+			lowestEntityType = scopeKeys
+				.filter((key) => locationEntityTypes.includes(key) && scope[key] !== 'ALL')
+				.reduce((lowest, key) => {
+					const currentIndex = commonHierarchy.indexOf(key)
+					const lowestIndex = commonHierarchy.indexOf(lowest)
+					return currentIndex > lowestIndex && currentIndex !== -1 ? key : lowest
+				}, commonHierarchy[0] || locationEntityTypes[0] || null)
+		}
+
+		// Prepare API calls for fetching entities
+		const apiCalls = []
+		for (const key of scopeKeys) {
+			if (scope[key] && (Array.isArray(scope[key]) || scope[key] === 'ALL')) {
+				const idsToFetch = scope[key] === 'ALL' ? [] : scope[key].filter((id) => id !== 'ALL')
+				if (idsToFetch.length > 0 || scope[key] === 'ALL') {
+					apiCalls.push(
+						fetchEntitiesByQuery(idsToFetch, tenant_code, key).then((entities) => ({
+							type: key,
+							entities,
+							hasAllValue: scope[key] === 'ALL' || scope[key].includes('ALL'),
+						}))
+					)
+				}
+			}
+		}
+
+		const fetchedEntitiesByType = await Promise.all(apiCalls)
+
+		// Organize entities into role and location categories
+		const professionalEntities = {}
+		const locationEntities = []
+
+		fetchedEntitiesByType.forEach(({ type, entities, hasAllValue }) => {
+			if (validRoleEntityTypes.includes(type)) {
+				professionalEntities[type] = entities.map((entity) => ({
+					_id: entity._id,
+					name: entity.metaInformation?.name || entity.title,
+					externalId: entity.registryDetails?.code || entity.metaInformation?.externalId || entity.code,
+				}))
+			} else if (locationEntityTypes.includes(type)) {
+				locationEntities.push({
+					type,
+					entities: entities.map((entity) => ({
+						_id: entity._id,
+						name: entity.metaInformation?.name || entity.title,
+						externalId: entity.registryDetails?.code || entity.metaInformation?.externalId || entity.code,
+						entityType: entity.entityType,
+					})),
+					hasAllValue,
+				})
+			}
+		})
+
+		// Build targeting criteria
+		const targetingCriteria = []
+
+		// Handle case when only role entities are present
+		if (scopeKeys.every((key) => validRoleEntityTypes.includes(key))) {
+			const targetingObject = {}
+			validRoleEntityTypes.forEach((roleType) => {
+				if (professionalEntities[roleType]) {
+					const key = roleType === 'professional_role' ? 'professional_roles' : 'professional_subroles'
+					targetingObject[key] = professionalEntities[roleType]
+				}
+			})
+			if (Object.keys(targetingObject).length > 0) {
+				targetingCriteria.push(targetingObject)
+			}
+			return { success: true, result: targetingCriteria }
+		}
+
+		// Group entities by their top parent
+		const entitiesByTopParent = new Map()
+		entityDetailsResults.forEach(({ entityId, entityType, details }) => {
+			let topParentId = null
+			let parentInfo = {}
+			if (details?.result?.[0]?.parentInformation) {
+				parentInfo = details.result[0].parentInformation
+				const topParentType = Object.keys(parentInfo)
+					.filter((type) => parentInfo[type] && parentInfo[type].length > 0)
+					.shift()
+				topParentId =
+					topParentType && parentInfo[topParentType][0]?._id ? parentInfo[topParentType][0]._id : null
+			}
+			if (!entitiesByTopParent.has(topParentId)) {
+				entitiesByTopParent.set(topParentId, [])
+			}
+			entitiesByTopParent.get(topParentId).push({ entityId, entityType, parentInfo })
+		})
+
+		// Create targeting criteria for each top parent
+		for (const [topParentId, entities] of entitiesByTopParent) {
+			// Temporary object to collect properties
+			const tempTargetingObject = {}
+
+			// Add role entities
+			validRoleEntityTypes.forEach((roleType) => {
+				if (professionalEntities[roleType]) {
+					const key = roleType === 'professional_role' ? 'professional_roles' : 'professional_subroles'
+					tempTargetingObject[key] = professionalEntities[roleType]
+				}
+			})
+
+			// Add location entities from scope as arrays
+			locationEntities.forEach(({ type, entities: locEntities, hasAllValue }) => {
+				if (hasAllValue) {
+					tempTargetingObject[type] = 'ALL'
+				} else {
+					const relevantEntities = locEntities.filter((entity) =>
+						entities.some((e) => e.entityId === entity._id)
+					)
+					if (relevantEntities.length > 0) {
+						tempTargetingObject[type] = relevantEntities.map((entity) => ({
+							_id: entity._id,
+							name: entity.name,
+							externalId: entity.externalId,
+						}))
+					}
+				}
+			})
+
+			// Add all parent entities as single objects
+			const parentTypesAdded = new Set()
+			entities.forEach(({ parentInfo }) => {
+				Object.keys(parentInfo).forEach((type) => {
+					if (parentInfo[type] && parentInfo[type].length > 0 && !parentTypesAdded.has(type)) {
+						const parentEntity = parentInfo[type][0]
+						tempTargetingObject[type] = {
+							_id: parentEntity._id,
+							name: parentEntity.name,
+							externalId: parentEntity.externalId,
+						}
+						parentTypesAdded.add(type)
+					}
+				})
+			})
+
+			// Set entity_targeting to the lowest entity type
+			let entityTargeting = null
+			if (locationEntityTypes.some((type) => tempTargetingObject[type] && tempTargetingObject[type] !== 'ALL')) {
+				entityTargeting = lowestEntityType
+			}
+
+			// Construct final targeting object with desired property order
+			const targetingObject = {}
+			// 1. Add location entities in hierarchical order
+			const allLocationTypes = Array.from(new Set([...parentTypesSet, ...locationEntities.map((e) => e.type)]))
+			allLocationTypes.forEach((type) => {
+				if (tempTargetingObject[type]) {
+					targetingObject[type] = tempTargetingObject[type]
+				}
+			})
+			// 2. Add entity_targeting
+			if (entityTargeting) {
+				targetingObject.entity_targeting = entityTargeting
+			}
+			// 3. Add role entities
+			validRoleEntityTypes.forEach((roleType) => {
+				const key = roleType === 'professional_role' ? 'professional_roles' : 'professional_subroles'
+				if (tempTargetingObject[key]) {
+					targetingObject[key] = tempTargetingObject[key]
+				}
+			})
+
+			if (Object.keys(targetingObject).length > 0) {
+				targetingCriteria.push(targetingObject)
+			}
+		}
+
+		return { success: true, result: targetingCriteria }
+	} catch (error) {
+		console.error('Error in generateTargetingCriteria:', error)
+		return { success: false, error: error.message }
 	}
 }
