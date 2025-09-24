@@ -418,7 +418,7 @@ module.exports = class ProjectsHelper {
 					Object.keys(response.result).length > 0
 				) {
 					//modify the response as label value pair
-					let resultData = response.result
+					let resultData = response?.result || {}
 
 					//get all entity types with entities
 					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
@@ -480,9 +480,8 @@ module.exports = class ProjectsHelper {
 								}
 							})
 						)
-
-						result = { ...result, ...resultData }
 					}
+					result = { ...result, ...resultData }
 				}
 			}
 			//Add path in getDownloadUrl

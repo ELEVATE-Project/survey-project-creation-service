@@ -45,10 +45,14 @@ const COLLECTIONS_MAP = new Map(
  * @returns {Object} - Connection Object
  */
 const connectMongo = async (url) => {
-	mongoConnection = new MongoDBConnection(url)
-	await mongoConnection.connect() // This returns the db, but it's not stored
-	// Get the database instance
-	return mongoConnection.getDb()
+	try {
+		mongoConnection = new MongoDBConnection(url)
+		await mongoConnection.connect() // This returns the db, but it's not stored
+		// Get the database instance
+		return mongoConnection.getDb()
+	} catch (error) {
+		throw new Error('Error in mongo connection.')
+	}
 }
 
 /**
@@ -62,6 +66,7 @@ const formatTemplate = (templateData) => {
 		let template = {
 			title: templateData.title,
 			tenantId: templateData.tenant_code,
+			orgId: templateData.organization_code,
 			description: templateData.objective || '',
 			keywords: utils.formatKeywords(templateData.keywords),
 			isDeleted: false,
@@ -512,6 +517,8 @@ const formatProgramTemplate = async (programData) => {
 					description: programData?.resource?.objective || '',
 					createdAt: new Date(),
 					scp_reference_id: programData.resource_id,
+					orgId: programData.organization_code,
+					tenantId: programData.tenant_code,
 				},
 			}
 		}
@@ -552,7 +559,7 @@ const publishProjectTemplates = function (templateData) {
 				throw new Error('FAILED_TO_FETCH_PROJECT')
 			}
 			// Format the template
-			let formattedTemplate = formatTemplate(projectData)
+			let formattedTemplate = formatTemplate({ ...projectData })
 			if (!formattedTemplate.success) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
@@ -833,6 +840,33 @@ async function generatePresignedUrlInConsumption(url, body, headers) {
 	}
 }
 
+async function uploadFile(dirPath, fileName, fileUploadUrl) {
+	try {
+		// Read the file data
+		const fileData = fs.readFileSync(path.join(dirPath, fileName))
+
+		const headers = {
+			'Content-Type': 'multipart/form-data',
+		}
+
+		// Perform the PUT request
+		const fileUploadToSignedUrl = await axios.put(fileUploadUrl, fileData, { headers })
+
+		// Check the response status
+		if (fileUploadToSignedUrl.status === 200) {
+			console.log('File uploaded successfully!')
+			console.log('Response status:', fileUploadToSignedUrl.status)
+		} else {
+			console.error('Unexpected response:', fileUploadToSignedUrl.status)
+		}
+	} catch (error) {
+		console.error('Error uploading file:', error.message)
+		if (error.response) {
+			console.error('Response status:', error.response.status)
+			console.error('Response data:', error.response.data)
+		}
+	}
+}
 /**
  * create svg template by editing base template.
  * @method
@@ -1008,7 +1042,15 @@ async function checkCertificateBaseTemplate(baseTemplateDetails) {
  * @param {String} solutionId - solutionId of the created solution
  * @param {String} programId - programId of the created program
  */
-async function insertCertificateTemplate(certificateData, solutionId, programId, loggedInUserId, userToken) {
+async function insertCertificateTemplate(
+	certificateData,
+	solutionId,
+	programId,
+	loggedInUserId,
+	userToken,
+	orgCode,
+	tenantCode
+) {
 	const svgTemplateCreation = await createSvg(certificateData, loggedInUserId, userToken)
 	const baseTemplate = await checkCertificateBaseTemplate(certificateData)
 	const certificateDocument = {
@@ -1022,6 +1064,8 @@ async function insertCertificateTemplate(certificateData, solutionId, programId,
 		templateUrl: svgTemplateCreation.filePath,
 		issuer: { name: certificateData.issuer },
 		criteria: certificateData.criteria,
+		tenantId: tenantCode,
+		orgId: orgCode,
 	}
 
 	// Insert the template into the database
@@ -1032,10 +1076,12 @@ async function insertCertificateTemplate(certificateData, solutionId, programId,
 
 	// Validate the result of the template creation
 	if (!result || !result.insertedId) {
-		throw new Error(`Failed to insert the template into the ${COLLECTIONS.CERTIFICATE_TEMPLATE} collection.`)
+		throw new Error(
+			`Failed to insert the template into the ${COLLECTIONS_MAP.get('CERTIFICATE_TEMPLATE')} collection.`
+		)
 	}
 	// update the solution with the certificate template id
-	const solutionTemplateCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('COLLECTIONS'))
+	const solutionTemplateCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('SOLUTIONS'))
 	const resultUpdateSolution = await solutionTemplateCollection.updateOne(
 		{ _id: solutionId },
 		{
@@ -1047,10 +1093,12 @@ async function insertCertificateTemplate(certificateData, solutionId, programId,
 
 	// Validate the result of the template creation
 	if (!resultUpdateSolution) {
-		throw new Error(`Failed to update the template into the ${COLLECTIONS.SOLUTIONS} collection.`)
+		throw new Error(`Failed to update the template into the ${COLLECTIONS_MAP.get('SOLUTIONS')} collection.`)
 	}
 	// update the template into projectTemplate collection
 	const projectTemplateCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
+	const strSol = solutionId.toString()
+	console.log('------->', strSol)
 	const resultUpdateProjecTemplate = await projectTemplateCollection.updateOne(
 		{ solutionId },
 		{
@@ -1062,12 +1110,16 @@ async function insertCertificateTemplate(certificateData, solutionId, programId,
 
 	// Validate the result of the template creation
 	if (!resultUpdateProjecTemplate.matchedCount) {
-		throw new Error(`No document found with solutionId: ${solutionId} in the ${COLLECTIONS.TEMPLATES} collection.`)
+		throw new Error(
+			`No document found with solutionId: ${solutionId} in the ${COLLECTIONS_MAP.get('TEMPLATES')} collection.`
+		)
 	}
 
 	if (resultUpdateProjecTemplate.modifiedCount === 0) {
 		throw new Error(
-			`Document with solutionId: ${solutionId} was found but not updated in the ${COLLECTIONS.TEMPLATES} collection.`
+			`Document with solutionId: ${solutionId} was found but not updated in the ${COLLECTIONS_MAP.get(
+				'TEMPLATES'
+			)} collection.`
 		)
 	}
 
@@ -1464,23 +1516,6 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				}
 			})
 		)
-
-		if (solutionCertificateMap && solutionCertificateMap.length > 0) {
-			solutionCertificateMap.forEach((solutionMap) => {
-				const targetSolution = createdSolutions.find(
-					(solution) => String(solution.externalId).trim() === String(solutionMap.externalId).trim()
-				)
-				if (targetSolution) {
-					insertCertificateTemplate(
-						solutionMap.certificate,
-						targetSolution._id,
-						programDetails._id,
-						programDetails.created_by,
-						userToken
-					)
-				}
-			})
-		}
 		const projectTemplateCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
 
 		const createdSolutionsResponse = await Promise.all(
@@ -1500,7 +1535,9 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				// Validate the result of the template updation
 				if (!updateProjectTemplate) {
 					throw new Error(
-						`Failed to update the child project template with solution details into the ${COLLECTIONS.TEMPLATES} collection.`
+						`Failed to update the child project template with solution details into the ${COLLECTIONS_MAP.get(
+							'TEMPLATES'
+						)} collection.`
 					)
 				}
 
@@ -1510,6 +1547,26 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				}
 			})
 		)
+
+		if (solutionCertificateMap && solutionCertificateMap.length > 0) {
+			for (const solutionMap of solutionCertificateMap) {
+				const targetSolution = createdSolutions.find(
+					(solution) => String(solution.externalId).trim() === String(solutionMap.externalId).trim()
+				)
+				if (targetSolution) {
+					await insertCertificateTemplate(
+						solutionMap.certificate,
+						targetSolution._id,
+						programDetails._id,
+						programDetails.created_by,
+						userToken,
+						programDetails.orgId,
+						programDetails.tenantId
+					)
+				}
+			}
+		}
+
 		result.success = true
 		result.data = createdSolutionsResponse
 		return result
@@ -1533,24 +1590,19 @@ const publishProgram = function async(programData) {
 		try {
 			console.log(' ======= START Publish Program =======')
 			const userToken = programData.userToken
-			const resource_type = programData.type
 			const loggedInUserId = programData.userId
-			const isProgramResource = resource_type === common.RESOURCE_TYPE_PROGRAM
 			scopeKeys = await targetingHelpers.scopeKeys(programData.organization_code, programData.tenant_code)
-			let rolloutDetails = null
-			if (isProgramResource) {
-				// fetch program details
-			} else {
-				rolloutDetails = await rolloutService.details(
-					programData.id,
-					loggedInUserId,
-					programData.organization_code,
-					programData.tenant_code,
-					false, //return blob path
-					true // return resource details
-				)
-				rolloutDetails = rolloutDetails?.result || {}
-			}
+			let rolloutDetails = await rolloutService.details(
+				programData.id,
+				loggedInUserId,
+				programData.organization_code,
+				programData.tenant_code,
+				false, //return blob path
+				true // return resource details
+			)
+			rolloutDetails = rolloutDetails?.result || {}
+			const isProgramResource = rolloutDetails.resource_type === common.RESOURCE_TYPE_PROGRAM
+			const programResourceTableId = isProgramResource ? rolloutDetails.resource_id : null
 
 			// Format the program template
 			let formattedTemplate = await formatProgramTemplate(rolloutDetails)
@@ -1565,7 +1617,7 @@ const publishProgram = function async(programData) {
 			let programResourceIds = []
 			if (isProgramResource) {
 				// get the resource ids in a program
-				programResourceIds = rolloutDetails?.resource_details.map((resource) => resource.id)
+				programResourceIds = rolloutDetails?.resources.map((resource) => resource.id)
 			} else {
 				if (rolloutDetails?.resource_details?.id) programResourceIds.push(rolloutDetails?.resource_details?.id)
 			}
@@ -1613,11 +1665,9 @@ const publishProgram = function async(programData) {
 				programId = createProgramResponse._id
 			}
 
-			const resourceWithInProgram =
-				typeof rolloutDetails?.resource_details == 'object' &&
-				Object.keys(rolloutDetails?.resource_details).length > 0
-					? [rolloutDetails?.resource_details]
-					: rolloutDetails?.resource_details
+			const resourceWithInProgram = isProgramResource
+				? rolloutDetails?.resources
+				: [rolloutDetails?.resource_details]
 			if (resourceWithInProgram.length === 0) {
 				console.error('Consumption Error : Program Resources Empty.')
 				throw new Error('NO_RESOURCE_ADDED')
@@ -1725,7 +1775,16 @@ const publishProgram = function async(programData) {
 						if (!createSolutionsData.success)
 							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
 						solutions = [...solutions, ...createSolutionsData.data]
-						solutionIds = [...new Set([...solutionIds, ...solutions.map((solution) => solution._id)])]
+						solutionIds = [
+							...new Set([
+								...solutionIds,
+								...solutions.reduce((acc, index) => {
+									acc['_id'] = index._id
+									acc['order'] = index?.order || null
+									return acc
+								}, []),
+							]),
+						]
 					}
 				} else {
 					solutionIds.push(fetchDetails?.result?.published_id)
@@ -1757,19 +1816,27 @@ const publishProgram = function async(programData) {
 			}
 
 			if (solutionIds.length > 0) {
+				let counter = 1
+				const components = solutionIds.map((sol) => {
+					if (typeof sol == 'string')
+						return {
+							_id: sol,
+							order: counter,
+						}
+					if (typeof sol == 'object') {
+						if (!sol?.order) sol.order = counter
+					}
+					counter++
+					return sol
+				})
+
 				await updateProgram(programId, {
-					components: Array.from(
-						new Set(
-							solutionIds.map((solution) =>
-								solution instanceof ObjectId ? solution : ObjectId(solution)
-							)
-						)
-					),
+					components,
 				})
 			}
-			if (isProgramResource) {
+			if (isProgramResource && programResourceTableId) {
 				// update resource table with published Id
-				await resourceService.publishCallback(programData.id, programId ? programId.toString() : null)
+				await resourceService.publishCallback(programResourceTableId, programId ? programId.toString() : null)
 			}
 			// update rollout table with published Id
 			await rolloutService.publishCallback(

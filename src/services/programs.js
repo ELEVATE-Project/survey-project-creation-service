@@ -396,6 +396,7 @@ module.exports = class ProgramsHelper {
 			const program = await resourceQueries.findOne({
 				id: programId,
 				tenant_code: tenant_code,
+				organization_code: orgCode,
 				type: common.RESOURCE_TYPE_PROGRAM,
 			})
 

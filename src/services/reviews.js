@@ -780,7 +780,7 @@ module.exports = class reviewsHelper {
 							resourceData.user_id,
 							resourceData.organization_code,
 							resourceData.tenant_code,
-							resourceData.userToken
+							userToken
 						)
 
 						if (publishRollout.statusCode !== httpStatusCode.accepted) {

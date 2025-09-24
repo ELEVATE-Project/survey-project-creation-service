@@ -70,7 +70,7 @@ module.exports = class reviews {
 				req.decodedToken.id,
 				req.decodedToken.organization_code,
 				req.decodedToken.tenant_code,
-				req.userToken
+				req.decodedToken.token
 			)
 			return updateReview
 		} catch (error) {
