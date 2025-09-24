@@ -19,4 +19,7 @@ module.exports = {
 	FIND_ENTITIES_BY_QUERY: process.env.FIND_ENTITIES_BY_QUERY_ENDPOINT
 		? process.env.FIND_ENTITIES_BY_QUERY_ENDPOINT
 		: 'v1/entities/find',
+	ENTITY_TYPES_FIND_BY_QUERY: process.env.ENTITY_TYPES_FIND_BY_QUERY_ENDPOINT
+		? process.env.ENTITY_TYPES_FIND_BY_QUERY_ENDPOINT
+		: 'v1/entityTypes/find',
 }
