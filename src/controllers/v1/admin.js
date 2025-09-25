@@ -31,17 +31,16 @@ module.exports = class admin {
 	}
 
 	/**
-	 * Create data for new tenant .
+	 * Create dependencies data for new tenant .
 	 * @method
-	 * @name create
-	 * @param {Integer} id  action id.
-	 * @param {Object} body  action data
-	 * @returns {JSON} - Detail of action as response.
+	 * @name createTenantDependencies
+	 * @param {Object} req  req data
+	 * @returns {Promise<Object>} -  JSON response indicating success or failure.
 	 */
-	async create(req) {
+	async createTenantDependencies(req) {
 		try {
-			let action = await adminService.create(req.body)
-			return action
+			let tenantDependeciesData = await adminService.createTenantDependencies(req.body, req.decodedToken.id)
+			return tenantDependeciesData
 		} catch (error) {
 			return error
 		}

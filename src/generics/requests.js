@@ -99,7 +99,36 @@ var post = function (
 	})
 }
 
+var put = function (fileUploadUrl, fileData) {
+	return new Promise((resolve, reject) => {
+		try {
+			request(
+				{
+					url: fileUploadUrl,
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/multipart/form-data', // cloud storage usually ignores boundary
+					},
+					body: fileData,
+				},
+				(err, res, body) => {
+					if (err) return reject(err)
+
+					resolve({
+						statusCode: res.statusCode,
+						headers: res.headers,
+						body: body,
+					})
+				}
+			)
+		} catch (error) {
+			return reject(error)
+		}
+	})
+}
+
 module.exports = {
 	get: get,
 	post: post,
+	put: put,
 }

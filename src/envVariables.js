@@ -353,10 +353,14 @@ let environmentVariables = {
 		optional: false,
 		default: 'config.json',
 	},
-	USERSERVICE_TENANT_EVENT: {
+	USER_SERVICE_TENANT_CREATION_TOPIC: {
 		message: 'Required user service tenant event',
-		optional: false,
-		default: 'dev.tenantEvent',
+		optional: true,
+		requiredIf: {
+			key: 'RESOURCE_KAFKA_PUSH_ON_OFF',
+			operator: 'EQUALS',
+			value: 'ON',
+		},
 	},
 }
 

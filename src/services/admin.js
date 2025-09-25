@@ -20,13 +20,15 @@ const reviewStageQueries = require('@database/queries/reviewStage')
 const organizationExtensionQueries = require('@database/queries/organizationExtensions')
 const certificateQueries = require('@database/queries/certificateBaseTemplate')
 const filesService = require('@services/files')
-const request = require('request')
 const path = require('path')
 const fs = require('fs')
 const _ = require('lodash')
-
+const requests = require('@generics/requests')
+const utils = require('@generics/utils')
 // Global regex cache for performance (moved outside function)
 const regexCache = new Map()
+const DEFAULT_TENANT_CODE = process.env.DEFAULT_TENANT_CODE
+const DEFAULT_ORGANIZATION_CODE = process.env.DEFAULT_ORGANIZATION_CODE
 
 module.exports = class AdminService {
 	/**
@@ -69,32 +71,35 @@ module.exports = class AdminService {
 	}
 
 	/**
-	 * Create tenant data
+	 * Create tenant Dependencies data
 	 * @method
-	 * @name create
+	 * @name createTenantDependencies
 	 * @param {String} bodyData - action creation data
 	 * @returns {JSON} - action creation response
 	 */
-	static async create(bodyData) {
+	static async createTenantDependencies(bodyData, loggedInUserId) {
 		try {
 			if (!bodyData.code || !bodyData.org_code) {
-				throw new Error(`Tenant or Organization code Missing `)
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					message: `Tenant or Organization code Missing `,
+				})
 			}
 			let tenant_code = bodyData?.code
 			let organization_code = bodyData?.org_code
-
+			let userId = bodyData?.created_by ?? loggedInUserId
 			// 1. Setup Entity Types and Entities
-			await this.setupEntityTypes(tenant_code, organization_code)
+			await this.setupEntityTypes(tenant_code, organization_code, userId)
 
 			// 2, 3, 4. Setup Forms, Review Stages, and Organization Extensions in parallel
 			await Promise.all([
-				this.setupForms(tenant_code, organization_code),
-				this.setupReviewStages(tenant_code, organization_code),
-				this.setupOrganizationExtension(tenant_code, organization_code),
+				this.setupForms(tenant_code, organization_code, userId),
+				this.setupReviewStages(tenant_code, organization_code, userId),
+				this.setupOrganizationExtension(tenant_code, organization_code, userId),
 			])
 
 			// 5. Setup Certificate Base Templates
-			await this.setupCertificateBaseTemplates(tenant_code, organization_code)
+			await this.setupCertificateBaseTemplates(tenant_code, organization_code, userId)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -103,34 +108,46 @@ module.exports = class AdminService {
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
 	}
 
-	static async setupEntityTypes(newTenantCode, newOrgCode) {
+	/**
+	 * Create entityType and mapping for new tenant
+	 * @method
+	 * @name setupEntityTypes
+	 * @param {String} newTenantCode - tenantCode
+	 * @param {String} newOrgCode - orgCode
+	 * @param {String} userId -UserId
+	 * @returns {JSON}
+	 */
+	static async setupEntityTypes(newTenantCode, newOrgCode, userId) {
 		const transaction = await db.sequelize.transaction()
 		try {
 			// Fetch already existing entity types for target tenant/org in one go
 			const defaultEntityTypes = await entityTypeQueries.findUserEntityTypeAndEntities({
-				status: 'ACTIVE',
-				tenant_code: process.env.DEFAULT_TENANT_CODE,
-				organization_code: process.env.DEFAULT_ORGANIZATION_CODE,
+				status: common.STATUS_ACTIVE,
+				tenant_code: DEFAULT_TENANT_CODE,
+				organization_code: DEFAULT_ORGANIZATION_CODE,
 			})
-
 			// Fetch all entity types from the default organization
 			const existingEntityTypes = await entityTypeQueries.findUserEntityTypeAndEntities({
-				status: 'ACTIVE',
+				status: common.STATUS_ACTIVE,
 				tenant_code: newTenantCode,
 				organization_code: newOrgCode,
 			})
 
 			// Build map of existing entity types
-			const existingEntityTypeMap = new Map(existingEntityTypes.map((et) => [et.value, et]))
+			const existingEntityTypeMap = new Map(
+				existingEntityTypes.map((entityType) => [entityType.value, entityType])
+			)
 			const existingEntitiesSet = new Set(
-				existingEntityTypes.flatMap((et) =>
-					et.entities ? et.entities.map((e) => `${et.value}|||${e.value}`) : []
+				existingEntityTypes.flatMap((entityType) =>
+					entityType.entities
+						? entityType.entities.map((entity) => `${entityType.value}|||${entity.value}`)
+						: []
 				)
 			)
 
@@ -148,8 +165,8 @@ module.exports = class AdminService {
 					]),
 					tenant_code: newTenantCode,
 					organization_code: newOrgCode,
-					created_by: '0',
-					updated_by: '0',
+					created_by: userId,
+					updated_by: userId,
 				}))
 
 			//  Create new entity types
@@ -167,13 +184,13 @@ module.exports = class AdminService {
 			// Build complete entity type mapping (existing + newly created)
 			const completeEntityTypeMap = new Map()
 			// Add existing entity types
-			existingEntityTypes.forEach((et) => {
-				completeEntityTypeMap.set(et.value, et)
+			existingEntityTypes.forEach((entityType) => {
+				completeEntityTypeMap.set(entityType.value, entityType)
 			})
 
 			// Add newly created entity types
-			createdEntityTypes.forEach((et) => {
-				completeEntityTypeMap.set(et.value, et)
+			createdEntityTypes.forEach((entityType) => {
+				completeEntityTypeMap.set(entityType.value, entityType)
 			})
 
 			// Prepare entities for creation
@@ -198,8 +215,8 @@ module.exports = class AdminService {
 									entity_type_id: targetEntityType.id,
 									tenant_code: newTenantCode,
 									organization_code: newOrgCode,
-									created_by: '0',
-									updated_by: '0',
+									created_by: userId,
+									updated_by: userId,
 								})
 							}
 						}
@@ -217,9 +234,9 @@ module.exports = class AdminService {
 
 			// Handle entity model mappings
 			const defaultMappings = await entityModelMappingQuery.findAll({
-				tenant_code: process.env.DEFAULT_TENANT_CODE,
-				organization_code: process.env.DEFAULT_ORGANIZATION_CODE,
-				status: 'ACTIVE',
+				tenant_code: DEFAULT_TENANT_CODE,
+				organization_code: DEFAULT_ORGANIZATION_CODE,
+				status: common.STATUS_ACTIVE,
 			})
 
 			// Get existing mappings for target tenant/org
@@ -229,13 +246,17 @@ module.exports = class AdminService {
 			})
 
 			// Build mapping from default entity_type_id to entity_type value
-			const defaultEntityTypeIdToValueMap = new Map(defaultEntityTypes.map((et) => [et.id, et.value]))
+			const defaultEntityTypeIdToValueMap = new Map(
+				defaultEntityTypes.map((entityType) => [entityType.id, entityType.value])
+			)
 
 			// Build set of existing mapping keys using model + entity_type_value
 			const existingMappingKeys = new Set()
 			existingMappings.forEach((mapping) => {
 				// Find the entity type value for this mapping
-				const entityType = [...completeEntityTypeMap.values()].find((et) => et.id === mapping.entity_type_id)
+				const entityType = [...completeEntityTypeMap.values()].find(
+					(entityType) => entityType.id === mapping.entity_type_id
+				)
 				if (entityType) {
 					existingMappingKeys.add(`${mapping.model}|||${entityType.value}`)
 				}
@@ -284,12 +305,21 @@ module.exports = class AdminService {
 		}
 	}
 
-	static async setupForms(newTenantCode, newOrgCode) {
+	/**
+	 * Create forms  for new tenant
+	 * @method
+	 * @name setupForms
+	 * @param {String} newTenantCode - tenantCode
+	 * @param {String} newOrgCode - orgCode
+	 * @param {String} userId -UserId
+	 * @returns {JSON}
+	 */
+	static async setupForms(newTenantCode, newOrgCode, userId) {
 		console.log('--- Setting up Forms ---')
 		// Fetch default forms
 		const defaultForms = await formQueries.findAll({
-			tenant_code: process.env.DEFAULT_TENANT_CODE,
-			organization_code: process.env.DEFAULT_ORGANIZATION_CODE,
+			tenant_code: DEFAULT_TENANT_CODE,
+			organization_code: DEFAULT_ORGANIZATION_CODE,
 		})
 
 		// Fetch existing forms for target tenant/org to avoid duplicates
@@ -316,8 +346,8 @@ module.exports = class AdminService {
 				]),
 				tenant_code: newTenantCode,
 				organization_code: newOrgCode,
-				created_by: '0', // String instead of number for consistency
-				updated_by: '0',
+				created_by: userId, // String instead of number for consistency
+				updated_by: userId,
 			}))
 		// Create forms if any need to be created
 		if (formsToCreate.length > 0) {
@@ -331,13 +361,22 @@ module.exports = class AdminService {
 		console.log('--- Forms setup completed successfully ---')
 	}
 
-	static async setupReviewStages(newTenantCode, newOrgCode) {
+	/**
+	 * Create reviewStages  for new tenant
+	 * @method
+	 * @name setupForms
+	 * @param {String} newTenantCode - tenantCode
+	 * @param {String} newOrgCode - orgCode
+	 * @param {String} userId -UserId
+	 * @returns {JSON}
+	 */
+	static async setupReviewStages(newTenantCode, newOrgCode, userId) {
 		try {
 			console.log('--- Setting up Review Stages ---')
 			// Fetch default review stages
 			const defaultReviewStages = await reviewStageQueries.findAll({
-				tenant_code: process.env.DEFAULT_TENANT_CODE,
-				organization_code: process.env.DEFAULT_ORGANIZATION_CODE,
+				tenant_code: DEFAULT_TENANT_CODE,
+				organization_code: DEFAULT_ORGANIZATION_CODE,
 			})
 
 			// Fetch existing review stages for target tenant/org to avoid duplicates
@@ -366,8 +405,8 @@ module.exports = class AdminService {
 					]),
 					tenant_code: newTenantCode,
 					organization_code: newOrgCode,
-					created_by: '0', // String instead of number for consistency
-					updated_by: '0',
+					created_by: userId, // String instead of number for consistency
+					updated_by: userId,
 				}))
 
 			// Create review stages if any need to be created
@@ -385,13 +424,22 @@ module.exports = class AdminService {
 		}
 	}
 
-	static async setupOrganizationExtension(newTenantCode, newOrgCode) {
+	/**
+	 * Create orgExtension for new tenant
+	 * @method
+	 * @name setupForms
+	 * @param {String} newTenantCode - tenantCode
+	 * @param {String} newOrgCode - orgCode
+	 * @param {String} userId -UserId
+	 * @returns {JSON}
+	 */
+	static async setupOrganizationExtension(newTenantCode, newOrgCode, userId) {
 		console.log('--- Setting up Organization Extension ---')
 		try {
 			// Fetch default organization extensions
 			const defaultExtensions = await organizationExtensionQueries.findMany({
-				tenant_code: process.env.DEFAULT_TENANT_CODE,
-				organization_code: process.env.DEFAULT_ORGANIZATION_CODE,
+				tenant_code: DEFAULT_TENANT_CODE,
+				organization_code: DEFAULT_ORGANIZATION_CODE,
 			})
 
 			// Fetch existing organization extensions for target tenant/org to avoid duplicates
@@ -437,13 +485,22 @@ module.exports = class AdminService {
 		}
 	}
 
-	static async setupCertificateBaseTemplates(newTenantCode, newOrgCode) {
+	/**
+	 * Create certificatesBaseTemplates for new tenant
+	 * @method
+	 * @name setupForms
+	 * @param {String} newTenantCode - tenantCode
+	 * @param {String} newOrgCode - orgCode
+	 * @param {String} userId -UserId
+	 * @returns {JSON}
+	 */
+	static async setupCertificateBaseTemplates(newTenantCode, newOrgCode, userId) {
 		console.log('--- Setting up Certificate Base Templates ---')
 		try {
 			// First, check which default templates already exista
 			const certificatesArray = await certificateQueries.findAll({
-				tenant_code: process.env.DEFAULT_TENANT_CODE,
-				organization_code: process.env.DEFAULT_ORGANIZATION_CODE,
+				tenant_code: DEFAULT_TENANT_CODE,
+				organization_code: DEFAULT_ORGANIZATION_CODE,
 			})
 
 			// First, check which templates already exist to avoid duplicates
@@ -474,12 +531,12 @@ module.exports = class AdminService {
 				const batch = certificatesToProcess.slice(i, i + BATCH_SIZE)
 
 				const batchPromises = batch.map(async (currentCertificate) => {
+					const fileName = currentCertificate.code + newTenantCode + '.svg'
+					const filePath = path.join(__dirname, '../public/assets/certificate/', fileName)
 					try {
-						const fileName = currentCertificate.code + newTenantCode + '.svg'
-						const filePath = path.join(__dirname, '../public/assets/certificate/', fileName)
 						const response = await filesService.getDownloadableUrl([currentCertificate.url])
 						//Download and store it in local
-						await downloadFile(response.result?.[0].url, filePath)
+						await utils.downloadFile(response.result?.[0].url, filePath)
 
 						// Check if file exists
 						try {
@@ -516,14 +573,8 @@ module.exports = class AdminService {
 						const fileData = fs.readFileSync(filePath)
 
 						// Upload file to cloud storage
-						await request({
-							url: fileUploadUrl,
-							method: 'put',
-							headers: {
-								'Content-Type': 'application/multipart/form-data',
-							},
-							body: fileData,
-						})
+						await requests.put(fileUploadUrl, fileData, 'application/multipart/form-data')
+
 						currentCertificate = _.omit(currentCertificate, ['id'])
 						// Prepare certificate data for database insertion
 						const certificateData = {
@@ -531,8 +582,7 @@ module.exports = class AdminService {
 							url: uploadedFilePath,
 							organization_code: newOrgCode,
 							tenant_code: newTenantCode,
-							resource_type: common.PROJECT,
-							created_by: common.CREATED_BY_SYSTEM,
+							created_by: userId,
 							created_at: new Date(),
 							updated_at: new Date(),
 						}
@@ -544,12 +594,14 @@ module.exports = class AdminService {
 						}
 
 						console.log(`  ✓ Certificate template "${currentCertificate.code}" created successfully`)
-						removeFile(filePath)
 						return certificate
 					} catch (error) {
 						console.error(`  ✗ Error setting up certificate "${currentCertificate.code}":`, error.message)
 						// Don't throw here - let other certificates in the batch continue
 						return null
+					} finally {
+						//remove file from local
+						utils.removeFile(filePath)
 					}
 				})
 
@@ -745,29 +797,4 @@ function hasValidQuotes(query) {
 
 	// All strings must be properly closed
 	return !inSingleQuote && !inDoubleQuote
-}
-
-/**
- * Downloads a file from a URL and saves it to a local file
- */
-
-async function downloadFile(url, filePath) {
-	return new Promise((resolve, reject) => {
-		const writer = fs.createWriteStream(filePath)
-		request(url)
-			.pipe(writer)
-			.on('finish', () => resolve(filePath))
-			.on('error', reject)
-	})
-}
-
-/**
- * Removes a file from the file system
- */
-
-function removeFile(filePath) {
-	if (fs.existsSync(filePath)) {
-		fs.unlinkSync(filePath)
-		console.log(`Deleted: ${filePath}`)
-	}
 }

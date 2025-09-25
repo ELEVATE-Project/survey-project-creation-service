@@ -47,20 +47,20 @@ module.exports = async () => {
 		logger.error('KafkaConsumer: crashed', { event })
 	})
 
+	const kafkaTopics = [
+		process.env.CLEAR_INTERNAL_CACHE,
+		process.env.PROJECT_PUBLISH_KAFKA_TOPIC,
+		process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC,
+		process.env.PROGRAM_PUBLISH_KAFKA_TOPIC,
+		process.env.USER_SERVICE_TENANT_CREATION_TOPIC,
+	]
+
 	const subscribeToConsumer = async () => {
 		try {
 			await consumer.subscribe({
-				topics: [
-					process.env.CLEAR_INTERNAL_CACHE,
-					process.env.PROJECT_PUBLISH_KAFKA_TOPIC,
-					process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC,
-					process.env.PROGRAM_PUBLISH_KAFKA_TOPIC,
-					process.env.USERSERVICE_TENANT_EVENT,
-				],
+				topics: kafkaTopics,
 			})
-			logger.info(
-				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} , ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC}, ${process.env.PROGRAM_PUBLISH_KAFKA_TOPIC} , ${process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC} and ${process.env.USERSERVICE_TENANT_EVENT}`
-			)
+			logger.info(`Subscribed to topics: ${kafkaTopics.join(',')}`)
 			await consumer.run({
 				eachMessage: async ({ topic, partition, message }) => {
 					try {
@@ -86,8 +86,8 @@ module.exports = async () => {
 							await consumptionService.publishProjectTemplates(streamingData)
 						} else if (topic == process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC) {
 							await consumptionService.publishProgram(streamingData)
-						} else if (topic == process.env.USERSERVICE_TENANT_EVENT) {
-							await adminService.create(streamingData)
+						} else if (topic == process.env.USER_SERVICE_TENANT_CREATION_TOPIC) {
+							await adminService.createTenantDependencies(streamingData)
 						}
 					} catch (error) {
 						logger.error('Error processing Kafka message:', { error })
