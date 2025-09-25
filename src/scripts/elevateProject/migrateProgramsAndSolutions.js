@@ -122,7 +122,6 @@ const CURSOR_TIMEOUT = 30 * 60 * 1000 // 30 minutes cursor timeout
 					components: { $exists: true, $type: 'array', $not: { $size: 0 } },
 					tenantId: { $nin: [null, ''] },
 					orgId: { $nin: [null, ''] },
-					_id: ObjectId('682c147bba875600144d91bb'),
 				},
 			},
 			{
@@ -138,7 +137,7 @@ const CURSOR_TIMEOUT = 30 * 60 * 1000 // 30 minutes cursor timeout
 				},
 			},
 			{ $sort: { tenantId: 1, orgId: 1 } },
-			{ $limit: 1 }, // For testing - remove or comment out in production
+			// { $limit: 1 }, // For testing - remove or comment out in production
 		]
 
 		// Use cursor for memory-efficient processing
@@ -340,7 +339,28 @@ async function processProgram(
 
 	// Initialize entityTypeEntityMap for this tenant/org if not already present
 	if (!entityTypeEntityMap[entityTypeMapKey]) {
-		await initializeEntityTypes(entityTypeMapKey, entityTypeEntityMap, entityKeys, organization_code, tenant_code)
+		let entityTypeDetails = await initializeEntityTypes(
+			entityTypeMapKey,
+			entityTypeEntityMap,
+			entityKeys,
+			organization_code,
+			tenant_code
+		)
+		if (!entityTypeDetails || Object.keys(entityTypeDetails).length === 0) {
+			await writeSkippedRecord(
+				csvWriter,
+				programIdStr,
+				null,
+				`No entityType found Please set up tenant: ${tenant_code} and organization: ${organization_code} in SCP.`,
+				null,
+				null,
+				tenant_code,
+				organization_code,
+				program.createdBy || 'N/A',
+				assignedTo
+			)
+			return
+		}
 	}
 
 	const currentEntityTypes = Object.keys(entityTypeEntityMap[entityTypeMapKey])
@@ -386,31 +406,12 @@ async function processProgram(
 		return
 	}
 
-	let validateScopeRes = await validateScope(program?.scope, tenant_code)
-	if (!validateScopeRes.isScopeValid) {
-		console.log(`Scope is not found for program id ${programIdStr}, `)
-		await writeErrorRecord(
-			csvWriter,
-			programIdStr,
-			null,
-			common.RESOURCE_TYPE_PROGRAM,
-			'program scope is not valid',
-			null,
-			null,
-			tenant_code,
-			organization_code,
-			program.createdBy || 'N/A',
-			assignedTo
-		)
-		return
-	}
-
-	// generate targeting criteria for program scope
-	let programTargetingCriteriaRes = await generateTargetingCriteria(program.scope, tenant_code, validateScopeRes)
-	console.log(JSON.stringify(program?.scope, null, 2), 'program scope')
-	console.log(JSON.stringify(programTargetingCriteriaRes?.result, null, 2), 'programTargetingCriteriaRes')
-	process.exit(1)
-	if (!programTargetingCriteriaRes.success) {
+	let programTargetingCriteriaRes = await generateTargetingCriteria(program.scope, tenant_code)
+	if (
+		!programTargetingCriteriaRes.success ||
+		!Array.isArray(programTargetingCriteriaRes.result) ||
+		programTargetingCriteriaRes?.result?.length === 0
+	) {
 		console.error(`Failed to generate targeting criteria for program ${programIdStr}`)
 		await writeErrorRecord(
 			csvWriter,
@@ -432,7 +433,6 @@ async function processProgram(
 	let validSolutionIds = []
 
 	const solutionMongoIds = migrationUtils.normalizeToObjectIds(program.components)
-	console.log(JSON.stringify(solutionMongoIds, null, 2), 'solutionMongoIds')
 	const solutions = await db
 		.collection('solutions')
 		.find({
@@ -480,20 +480,24 @@ async function processProgram(
 			continue
 		}
 
-		let isSolutionScopeValid = (await validateScope(solution?.scope, tenant_code)) || false
-		if (!isSolutionScopeValid) {
-			console.log(`Scope is not found for solution id ${solutionIdStr}, `)
+		let solutionTargetingCriteriaRes = await generateTargetingCriteria(solution.scope, tenant_code)
+		if (
+			!solutionTargetingCriteriaRes.success ||
+			!Array.isArray(solutionTargetingCriteriaRes.result) ||
+			solutionTargetingCriteriaRes?.result?.length === 0
+		) {
+			console.error(`Failed to generate targeting criteria for solution ${solutionIdStr}`)
 			await writeErrorRecord(
 				csvWriter,
 				programIdStr,
 				solutionIdStr,
 				common.ROLLOUT_TYPE_SOLUTION,
-				'solution scope is not valid',
+				'Failed to generate targeting criteria',
 				null,
 				null,
 				tenant_code,
 				organization_code,
-				solution.createdBy || 'N/A',
+				program.createdBy || 'N/A',
 				assignedTo
 			)
 			return
@@ -622,27 +626,8 @@ async function processProgram(
 				start_date: solution.startDate || null,
 				end_date: solution.endDate || null,
 			}
-			convertedTemplate.targeting_criteria = []
-			if (solution?.scope) {
-				let targetingCriteriaRes = await generateTargetingCriteria(solution.scope, tenant_code)
-				if (!targetingCriteriaRes.success) {
-					await writeErrorRecord(
-						csvWriter,
-						programIdStr,
-						solutionIdStr,
-						common.ROLLOUT_TYPE_SOLUTION,
-						'Failed to generate targeting criteria',
-						null,
-						null,
-						tenant_code,
-						organization_code,
-						program.createdBy || 'N/A',
-						assignedTo
-					)
-					continue
-				}
-				convertedTemplate.targeting_criteria = targetingCriteriaRes.result || []
-			}
+
+			convertedTemplate.targeting_criteria = solutionTargetingCriteriaRes.result || []
 
 			let entitiesToCreate = []
 			for (const key of entityKeys) {
@@ -791,11 +776,8 @@ async function processProgram(
 		return
 	}
 	convertedProgramTemplate = convertedProgramTemplate.template
-
-	convertedProgramTemplate.targeting_criteria = []
-	if (program?.scope) {
-		convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result || []
-	}
+	// Assign targeting criteria for program
+	convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result || []
 
 	convertedProgramTemplate.meta = {
 		start_date: program.startDate || null,
@@ -1711,6 +1693,7 @@ async function initializeEntityTypes(
 			organization_code,
 			tenant_code
 		)
+
 		if (entityTypes.statusCode != 200 || !entityTypes?.result?.entity_types?.length) {
 			throw new Error(`Failed to fetch entities for tenant: ${tenant_code}, org: ${organization_code}`)
 		}
@@ -1723,9 +1706,10 @@ async function initializeEntityTypes(
 				}
 			}
 		})
+		return entityTypeEntityMap
 	} catch (error) {
 		console.error(`Error initializing entity types for ${entityTypeMapKey}:`, error)
-		entityTypeEntityMap[entityTypeMapKey] = {} // Ensure map is initialized to avoid future errors
+		return (entityTypeEntityMap[entityTypeMapKey] = {})
 	}
 }
 
@@ -1925,189 +1909,6 @@ async function cleanupCaches(userCache, entityTypeEntityMap) {
 	)
 }
 
-// Enhanced validation function that uses isObservable to categorize entities
-async function validateScope(scope, tenant_code) {
-	try {
-		if (!scope || typeof scope !== 'object' || Object.keys(scope).length === 0) {
-			return {
-				isValid: false,
-				error: 'Scope is empty or invalid',
-				entities: [],
-				scopeKeys: [],
-				entityTypes: [],
-			}
-		}
-
-		let excludedKeys = ['roles', 'entityType', 'organizations']
-
-		const scopeKeys = Object.keys(scope)
-		const filteredScopeKeys = scopeKeys.filter((key) => !excludedKeys.includes(key))
-
-		if (filteredScopeKeys.length === 0) {
-			return {
-				isValid: false,
-				error: 'No valid entities found in scope after excluding ignored keys',
-				entities: [],
-				scopeKeys: [],
-				entityTypes: [],
-			}
-		}
-
-		let entityTypeDetails = await fetchEntityTypesByQuery(filteredScopeKeys, tenant_code)
-		if (!entityTypeDetails || entityTypeDetails.length === 0) {
-			return {
-				isValid: false,
-				error: 'No valid entity types found for the given scope',
-				entities: [],
-				scopeKeys: [],
-				entityTypes: [],
-			}
-		}
-
-		// Check if all scope keys have corresponding entity types
-		const foundEntityTypeNames = entityTypeDetails.map((et) => et.name)
-		const missingEntityTypes = filteredScopeKeys.filter((key) => !foundEntityTypeNames.includes(key))
-
-		if (missingEntityTypes.length > 0) {
-			return {
-				isScopeValid: false,
-				error: `Entity types not found for: ${missingEntityTypes.join(', ')}`,
-				entities: [],
-				scopeKeys: filteredScopeKeys,
-				entityTypes: entityTypeDetails,
-			}
-		}
-
-		const validationPromises = []
-		const entityCategories = {
-			roleEntities: [],
-			locationEntities: [],
-		}
-
-		const allEntitiesData = []
-
-		// Process each filtered scope key
-		for (const scopeKey of filteredScopeKeys) {
-			if (scope[scopeKey] && Array.isArray(scope[scopeKey]) && scope[scopeKey].length > 0) {
-				// Get entity type info for categorization
-				const entityTypeInfo = entityTypeDetails.find((et) => et.name === scopeKey)
-
-				if (entityTypeInfo) {
-					// Categorize based on isObservable property from entity type
-					if (entityTypeInfo.isObservable === false) {
-						entityCategories.roleEntities.push(scopeKey)
-					} else {
-						entityCategories.locationEntities.push(scopeKey)
-					}
-				}
-
-				// Filter out "ALL" values for entity fetching
-				const idsToValidate = scope[scopeKey].filter((id) => id !== 'ALL')
-
-				if (idsToValidate.length > 0) {
-					// Fetch actual entities to validate they exist
-					validationPromises.push(
-						fetchEntitiesByQuery(idsToValidate, tenant_code, scopeKey).then((entities) => ({
-							scopeKey,
-							entities,
-							originalIds: idsToValidate,
-							hasAllValue: scope[scopeKey].includes('ALL') || scope[scopeKey] == 'ALL',
-							entityTypeInfo,
-						}))
-					)
-				} else if (scope[scopeKey].includes('ALL')) {
-					// Handle ALL-only case
-					validationPromises.push(
-						Promise.resolve({
-							scopeKey,
-							entities: [],
-							originalIds: [],
-							hasAllValue: true,
-							isAllOnly: true,
-							entityTypeInfo,
-						})
-					)
-				}
-			}
-		}
-
-		if (validationPromises.length === 0) {
-			return {
-				isScopeValid: false,
-				error: 'No valid entity values found in scope',
-				entities: [],
-				scopeKeys: filteredScopeKeys,
-				entityTypes: entityTypeDetails,
-			}
-		}
-
-		const validationResults = await Promise.all(validationPromises)
-
-		// Categorize entities based on isObservable property
-		// Validate entities and collect data
-		for (const result of validationResults) {
-			const { scopeKey, entities, originalIds, hasAllValue, isAllOnly, entityTypeInfo } = result
-
-			// Skip entity existence check for ALL-only cases
-			if (!isAllOnly) {
-				// Check if all entities exist
-				if (entities.length !== originalIds.length) {
-					return {
-						isScopeValid: false,
-						error: `Some ${scopeKey} entities not found. Expected: ${originalIds.length}, Found: ${entities.length}`,
-						entities: allEntitiesData,
-						scopeKeys: filteredScopeKeys,
-						entityTypes: entityTypeDetails,
-					}
-				}
-			}
-
-			// Collect entity data for response
-			allEntitiesData.push({
-				scopeKey,
-				entityType: entityTypeInfo,
-				entities: entities,
-				hasAllValue,
-				isAllOnly: isAllOnly || false,
-				originalScopeValues: scope[scopeKey],
-			})
-		}
-
-		// Final validation: ensure we have at least some valid data
-		if (entityCategories.roleEntities.length === 0 && entityCategories.locationEntities.length === 0) {
-			return {
-				isScopeValid: false,
-				error: 'No valid role or location entities found in scope',
-				entities: allEntitiesData,
-				scopeKeys: filteredScopeKeys,
-				entityTypes: entityTypeDetails,
-			}
-		}
-
-		return {
-			isScopeValid: true,
-			entities: allEntitiesData,
-			scopeKeys: filteredScopeKeys,
-			entityTypes: entityTypeDetails,
-			entityCategories: entityCategories,
-			summary: {
-				roleEntities: entityCategories.roleEntities,
-				locationEntities: entityCategories.locationEntities,
-				totalValidKeys: filteredScopeKeys.length,
-				totalEntitiesFound: allEntitiesData.reduce((sum, item) => sum + item.entities.length, 0),
-			},
-		}
-	} catch (error) {
-		return {
-			isScopeValid: false,
-			error: error.message,
-			entities: [],
-			scopeKeys: [],
-			entityTypes: [],
-		}
-	}
-}
-
 async function fetchEntityTypesByQuery(entityTypeNames, tenantId) {
 	try {
 		const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${endpoints.ENTITY_TYPES_FIND_BY_QUERY}`
@@ -2141,27 +1942,12 @@ async function fetchEntityTypesByQuery(entityTypeNames, tenantId) {
 	}
 }
 
-async function fetchEntitiesByQuery(entityIds, tenantId, entityType) {
+async function fetchEntitiesByQuery(filter, projection, tenantId, entityType) {
 	try {
 		const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${endpoints.FIND_ENTITIES_BY_QUERY}`
-
 		const payload = {
-			query: {
-				_id: {
-					$in: entityIds,
-				},
-				entityType: entityType,
-				tenantId: tenantId,
-			},
-			projection: [
-				'_id',
-				'metaInformation',
-				'entityType',
-				'entityTypeId',
-				'childHierarchyPath',
-				'registryDetails',
-				'parent',
-			],
+			query: filter,
+			projection: projection,
 		}
 
 		const response = await axios.post(apiUrl, payload, {
@@ -2216,268 +2002,495 @@ async function generateTargetingCriteria(scope = {}, tenant_code) {
 		const roleEntityTypes = ['professional_role', 'professional_subroles']
 		const excludedKeys = ['entityType', 'organizations', 'roles']
 
-		// Filter scope keys to exclude irrelevant ones
+		// Step 1: Filter scope keys to exclude irrelevant ones
 		const scopeKeys = Object.keys(scope).filter((key) => !excludedKeys.includes(key))
 		if (scopeKeys.length === 0) {
 			return { success: true, result: [] }
 		}
 
-		// Fetch entity type details to determine location and role entities
+		console.log('Scope Keys:', scopeKeys)
+		console.log('Scope:', scope)
+
+		// Step 2: Fetch entity type details to determine location and role entities
 		const entityTypeDetails = await fetchEntityTypesByQuery(scopeKeys, tenant_code)
+		console.log('Entity Type Details:', entityTypeDetails)
+
 		let locationEntityTypes = entityTypeDetails.filter((et) => et.isObservable === true).map((et) => et.name)
 		const validRoleEntityTypes = entityTypeDetails
 			.filter((et) => roleEntityTypes.includes(et.name))
 			.map((et) => et.name)
 
-		// Fetch entity details to determine hierarchy and parent information
-		const entityDetailsCalls = []
-		for (const key of scopeKeys) {
-			if (
-				locationEntityTypes.includes(key) &&
-				scope[key] &&
-				Array.isArray(scope[key]) &&
-				scope[key].length > 0 &&
-				!scope[key].includes('ALL')
-			) {
-				scope[key].forEach((id) => {
-					entityDetailsCalls.push(
-						fetchEntityDetails(id, tenant_code).then((details) => ({
-							entityId: id,
-							entityType: key,
-							details,
-						}))
-					)
-				})
-			}
-		}
+		console.log('Location Entity Types:', locationEntityTypes)
+		console.log('Valid Role Entity Types:', validRoleEntityTypes)
 
-		const entityDetailsResults = await Promise.all(entityDetailsCalls)
+		// Step 3: Check if state is "ALL" - if yes, fetch all states with full entity details
+		const isStateAll = scope.state === 'ALL' || (Array.isArray(scope.state) && scope.state.includes('ALL'))
 
-		// Collect all unique parent types from parentInformation
-		const parentTypesSet = new Set()
-		entityDetailsResults.forEach(({ details }) => {
-			if (details?.result?.[0]?.parentInformation) {
-				const parentInfo = details.result[0].parentInformation
-				Object.keys(parentInfo).forEach((type) => {
-					if (parentInfo[type] && parentInfo[type].length > 0) {
-						parentTypesSet.add(type)
-					}
-				})
-			}
-		})
-
-		// Fetch entity types for additional parent types
-		const additionalEntityTypes = Array.from(parentTypesSet).filter((type) => !locationEntityTypes.includes(type))
-		if (additionalEntityTypes.length > 0) {
-			const additionalEntityTypeDetails = await fetchEntityTypesByQuery(additionalEntityTypes, tenant_code)
-			const additionalLocationTypes = additionalEntityTypeDetails
-				.filter((et) => et.isObservable === true)
-				.map((et) => et.name)
-			locationEntityTypes.push(...additionalLocationTypes)
-		}
-
-		const entityHierarchyMap = new Map()
-
-		// Build hierarchy with all parent types and entity details
-		entityDetailsResults.forEach(({ entityId, entityType, details }) => {
-			if (details?.result?.[0]?.parentInformation) {
-				const parentInfo = details.result[0].parentInformation
-				const hierarchy = Object.keys(parentInfo).filter(
-					(type) => parentInfo[type] && parentInfo[type].length > 0
-				)
-				hierarchy.push(entityType)
-				entityHierarchyMap.set(entityId, {
-					types: hierarchy,
-					parentDetails: parentInfo,
-				})
-			} else {
-				entityHierarchyMap.set(entityId, {
-					types: [entityType],
-					parentDetails: {},
-				})
-			}
-		})
-
-		// Log entity hierarchy for debugging
-		console.log('Entity Hierarchy Map:', entityHierarchyMap)
-
-		// Determine the lowest entity type for entity_targeting
-		let lowestEntityType = locationEntityTypes[0] || null
-		if (entityHierarchyMap.size > 0) {
-			const allHierarchies = Array.from(entityHierarchyMap.values()).map((h) => h.types)
-			const commonHierarchy = allHierarchies.reduce((common, current) => {
-				return common.filter((type) => current.includes(type))
-			}, allHierarchies[0] || [])
-
-			lowestEntityType = scopeKeys
-				.filter((key) => locationEntityTypes.includes(key) && scope[key] !== 'ALL')
-				.reduce((lowest, key) => {
-					const currentIndex = commonHierarchy.indexOf(key)
-					const lowestIndex = commonHierarchy.indexOf(lowest)
-					return currentIndex > lowestIndex && currentIndex !== -1 ? key : lowest
-				}, commonHierarchy[0] || locationEntityTypes[0] || null)
-		}
-
-		// Prepare API calls for fetching entities
+		// Fetch entities for non-"ALL" values and handle state "ALL" case
 		const apiCalls = []
 		for (const key of scopeKeys) {
-			if (scope[key] && (Array.isArray(scope[key]) || scope[key] === 'ALL')) {
-				const idsToFetch = scope[key] === 'ALL' ? [] : scope[key].filter((id) => id !== 'ALL')
-				if (idsToFetch.length > 0 || scope[key] === 'ALL') {
+			if (scope[key] && Array.isArray(scope[key]) && scope[key].length > 0) {
+				const idsToFetch = scope[key].filter((id) => id !== 'ALL')
+				if (idsToFetch.length > 0) {
+					console.log(`Fetching entities for ${key}:`, idsToFetch)
 					apiCalls.push(
-						fetchEntitiesByQuery(idsToFetch, tenant_code, key).then((entities) => ({
-							type: key,
-							entities,
-							hasAllValue: scope[key] === 'ALL' || scope[key].includes('ALL'),
-						}))
+						fetchEntitiesByQuery(
+							{ _id: { $in: idsToFetch }, entityType: key, tenantId: tenant_code },
+							[
+								'_id',
+								'metaInformation',
+								'entityType',
+								'entityTypeId',
+								'childHierarchyPath',
+								'registryDetails',
+								'parent',
+							],
+							tenant_code,
+							key
+						)
+							.then((entities) => {
+								console.log(`Fetched ${key} entities:`, entities)
+								return {
+									type: key,
+									entities,
+									isAll: false,
+								}
+							})
+							.catch((error) => {
+								console.error(`Error fetching ${key}:`, error)
+								return { type: key, entities: [], isAll: false }
+							})
 					)
 				}
+			} else if (key === 'state' && isStateAll) {
+				// Fetch all states with their childHierarchyPath for determining next level
+				console.log('Fetching all entities for state (ALL case)')
+				apiCalls.push(
+					fetchEntitiesByQuery(
+						{ entityType: 'state', tenantId: tenant_code },
+						[
+							'_id',
+							'metaInformation',
+							'entityType',
+							'entityTypeId',
+							'childHierarchyPath',
+							'registryDetails',
+							'parent',
+						],
+						tenant_code,
+						'state'
+					)
+						.then((entities) => {
+							console.log(`Fetched all state entities:`, entities)
+							return {
+								type: 'state',
+								entities,
+								isAll: true,
+							}
+						})
+						.catch((error) => {
+							console.error(`Error fetching all states:`, error)
+							return { type: 'state', entities: [], isAll: true }
+						})
+				)
 			}
 		}
 
 		const fetchedEntitiesByType = await Promise.all(apiCalls)
+		console.log('All Fetched Entities:', fetchedEntitiesByType)
 
-		// Organize entities into role and location categories
+		// Step 4: Organize entities into role and location categories
 		const professionalEntities = {}
-		const locationEntities = []
+		const locationEntitiesByType = {}
 
-		fetchedEntitiesByType.forEach(({ type, entities, hasAllValue }) => {
+		fetchedEntitiesByType.forEach(({ type, entities, isAll }) => {
 			if (validRoleEntityTypes.includes(type)) {
-				professionalEntities[type] = entities.map((entity) => ({
+				const formattedEntities = entities.map((entity) => ({
 					_id: entity._id,
 					name: entity.metaInformation?.name || entity.title,
 					externalId: entity.registryDetails?.code || entity.metaInformation?.externalId || entity.code,
 				}))
+				if (formattedEntities.length > 0) {
+					professionalEntities[type] = formattedEntities
+				}
 			} else if (locationEntityTypes.includes(type)) {
-				locationEntities.push({
-					type,
-					entities: entities.map((entity) => ({
-						_id: entity._id,
-						name: entity.metaInformation?.name || entity.title,
-						externalId: entity.registryDetails?.code || entity.metaInformation?.externalId || entity.code,
-						entityType: entity.entityType,
-					})),
-					hasAllValue,
-				})
+				locationEntitiesByType[type] = entities.map((entity) => ({
+					_id: entity._id,
+					name: entity.metaInformation?.name || entity.title,
+					externalId: entity.registryDetails?.code || entity.metaInformation?.externalId || entity.code,
+					childHierarchyPath: entity.childHierarchyPath || [], // Keep hierarchy info
+				}))
 			}
 		})
 
-		// Build targeting criteria
-		const targetingCriteria = []
+		console.log('Professional Entities:', professionalEntities)
+		console.log('Location Entities by Type:', locationEntitiesByType)
 
-		// Handle case when only role entities are present
+		// Step 5: Handle case when only role entities are present
 		if (scopeKeys.every((key) => validRoleEntityTypes.includes(key))) {
+			console.log('Only role entities present')
 			const targetingObject = {}
 			validRoleEntityTypes.forEach((roleType) => {
-				if (professionalEntities[roleType]) {
-					const key = roleType === 'professional_role' ? 'professional_roles' : 'professional_subroles'
+				const key = roleType === 'professional_role' ? 'professional_roles' : 'professional_subroles'
+				if (professionalEntities[roleType] && professionalEntities[roleType].length > 0) {
 					targetingObject[key] = professionalEntities[roleType]
 				}
 			})
 			if (Object.keys(targetingObject).length > 0) {
+				return { success: true, result: [targetingObject] }
+			}
+			return { success: true, result: [] }
+		}
+
+		// Step 6: If state is "ALL", create targeting criteria for each state
+		if (isStateAll && locationEntitiesByType.state && locationEntitiesByType.state.length > 0) {
+			console.log('Processing state "ALL" case with fetched states')
+
+			const targetingCriteria = []
+
+			// For each state, create a targeting object
+			for (const stateEntity of locationEntitiesByType.state) {
+				const targetingObject = {}
+
+				// Add state information (without childHierarchyPath in final output)
+				targetingObject.state = {
+					_id: stateEntity._id,
+					name: stateEntity.name,
+					externalId: stateEntity.externalId,
+				}
+
+				// Determine the immediate next entity type from childHierarchyPath
+				let nextEntityType = null
+				if (stateEntity.childHierarchyPath && stateEntity.childHierarchyPath.length > 0) {
+					nextEntityType = stateEntity.childHierarchyPath[0] // First element is the immediate next level
+				}
+
+				// If no childHierarchyPath or empty, default to 'district'
+				if (!nextEntityType) {
+					nextEntityType = 'district'
+				}
+
+				// Set the next entity type as "ALL" and set entity_targeting
+				targetingObject[nextEntityType] = 'ALL'
+				targetingObject.entity_targeting = nextEntityType
+
+				// Add professional entities only if they have data
+				validRoleEntityTypes.forEach((roleType) => {
+					const key = roleType === 'professional_role' ? 'professional_roles' : 'professional_subroles'
+					if (professionalEntities[roleType] && professionalEntities[roleType].length > 0) {
+						targetingObject[key] = professionalEntities[roleType]
+					}
+				})
+
 				targetingCriteria.push(targetingObject)
 			}
+
+			console.log('Final targeting criteria for state ALL:', targetingCriteria)
 			return { success: true, result: targetingCriteria }
 		}
 
-		// Group entities by their top parent
-		const entitiesByTopParent = new Map()
-		entityDetailsResults.forEach(({ entityId, entityType, details }) => {
-			let topParentId = null
-			let parentInfo = {}
-			if (details?.result?.[0]?.parentInformation) {
-				parentInfo = details.result[0].parentInformation
-				const topParentType = Object.keys(parentInfo)
-					.filter((type) => parentInfo[type] && parentInfo[type].length > 0)
-					.shift()
-				topParentId =
-					topParentType && parentInfo[topParentType][0]?._id ? parentInfo[topParentType][0]._id : null
-			}
-			if (!entitiesByTopParent.has(topParentId)) {
-				entitiesByTopParent.set(topParentId, [])
-			}
-			entitiesByTopParent.get(topParentId).push({ entityId, entityType, parentInfo })
-		})
+		// Step 7: Handle normal case (no state "ALL")
+		const hasLocationEntities = Object.keys(locationEntitiesByType).length > 0
+		console.log('Has Location Entities:', hasLocationEntities)
 
-		// Create targeting criteria for each top parent
-		for (const [topParentId, entities] of entitiesByTopParent) {
-			// Temporary object to collect properties
-			const tempTargetingObject = {}
-
-			// Add role entities
-			validRoleEntityTypes.forEach((roleType) => {
-				if (professionalEntities[roleType]) {
-					const key = roleType === 'professional_role' ? 'professional_roles' : 'professional_subroles'
-					tempTargetingObject[key] = professionalEntities[roleType]
-				}
-			})
-
-			// Add location entities from scope as arrays
-			locationEntities.forEach(({ type, entities: locEntities, hasAllValue }) => {
-				if (hasAllValue) {
-					tempTargetingObject[type] = 'ALL'
-				} else {
-					const relevantEntities = locEntities.filter((entity) =>
-						entities.some((e) => e.entityId === entity._id)
-					)
-					if (relevantEntities.length > 0) {
-						tempTargetingObject[type] = relevantEntities.map((entity) => ({
-							_id: entity._id,
-							name: entity.name,
-							externalId: entity.externalId,
-						}))
-					}
-				}
-			})
-
-			// Add all parent entities as single objects
-			const parentTypesAdded = new Set()
-			entities.forEach(({ parentInfo }) => {
-				Object.keys(parentInfo).forEach((type) => {
-					if (parentInfo[type] && parentInfo[type].length > 0 && !parentTypesAdded.has(type)) {
-						const parentEntity = parentInfo[type][0]
-						tempTargetingObject[type] = {
-							_id: parentEntity._id,
-							name: parentEntity.name,
-							externalId: parentEntity.externalId,
-						}
-						parentTypesAdded.add(type)
-					}
-				})
-			})
-
-			// Set entity_targeting to the lowest entity type
-			let entityTargeting = null
-			if (locationEntityTypes.some((type) => tempTargetingObject[type] && tempTargetingObject[type] !== 'ALL')) {
-				entityTargeting = lowestEntityType
-			}
-
-			// Construct final targeting object with desired property order
+		if (!hasLocationEntities) {
+			console.log('No location entities found')
 			const targetingObject = {}
-			// 1. Add location entities in hierarchical order
-			const allLocationTypes = Array.from(new Set([...parentTypesSet, ...locationEntities.map((e) => e.type)]))
-			allLocationTypes.forEach((type) => {
-				if (tempTargetingObject[type]) {
-					targetingObject[type] = tempTargetingObject[type]
+
+			// Add professional entities only if they have data
+			validRoleEntityTypes.forEach((roleType) => {
+				const key = roleType === 'professional_role' ? 'professional_roles' : 'professional_subroles'
+				if (professionalEntities[roleType] && professionalEntities[roleType].length > 0) {
+					targetingObject[key] = professionalEntities[roleType]
 				}
 			})
-			// 2. Add entity_targeting
+
+			// Get dynamic hierarchy order from scope or use default
+			const defaultHierarchy = ['state', 'district', 'block', 'cluster', 'school']
+			let entityTargeting = null
+
+			defaultHierarchy.forEach((type) => {
+				if (scope[type] === 'ALL' || (Array.isArray(scope[type]) && scope[type].includes('ALL'))) {
+					targetingObject[type] = 'ALL'
+					if (!entityTargeting) {
+						entityTargeting = type
+					}
+				}
+			})
+
 			if (entityTargeting) {
 				targetingObject.entity_targeting = entityTargeting
 			}
-			// 3. Add role entities
+
+			if (Object.keys(targetingObject).length > 0) {
+				console.log('Returning basic targeting object:', targetingObject)
+				return { success: true, result: [targetingObject] }
+			}
+			return { success: true, result: [] }
+		}
+
+		// Step 8: Fetch detailed information for location entities to get parent hierarchy
+		const entityDetailsCalls = []
+
+		Object.entries(locationEntitiesByType).forEach(([type, entities]) => {
+			entities.forEach((entity) => {
+				entityDetailsCalls.push(
+					fetchEntityDetails(entity._id, tenant_code)
+						.then((details) => {
+							console.log(`Details for ${type} ${entity._id}:`, details)
+							return {
+								entityId: entity._id,
+								entityType: type,
+								entityData: entity,
+								details,
+							}
+						})
+						.catch((error) => {
+							console.error(`Error fetching details for ${entity._id}:`, error)
+							return {
+								entityId: entity._id,
+								entityType: type,
+								entityData: entity,
+								details: null,
+							}
+						})
+				)
+			})
+		})
+
+		const entityDetailsResults = await Promise.all(entityDetailsCalls)
+		console.log('Entity Details Results:', entityDetailsResults)
+
+		// Step 9: Build hierarchy and group entities by state with all parent information
+		const entitiesByState = new Map()
+
+		entityDetailsResults.forEach(({ entityId, entityType, entityData, details }) => {
+			let stateInfo = null
+			let allParentInfo = {}
+			let hierarchyOrder = ['state', 'district', 'block', 'cluster', 'school'] // default
+
+			if (entityType === 'state') {
+				stateInfo = {
+					_id: entityData._id,
+					name: entityData.name,
+					externalId: entityData.externalId,
+				}
+				// Use the state's childHierarchyPath as the hierarchy order
+				if (entityData.childHierarchyPath && entityData.childHierarchyPath.length > 0) {
+					hierarchyOrder = ['state', ...entityData.childHierarchyPath]
+				}
+			} else if (details?.result?.[0]?.parentInformation) {
+				const parentInfo = details.result[0].parentInformation
+
+				// Extract state information
+				if (parentInfo.state && parentInfo.state[0]) {
+					const parentState = parentInfo.state[0]
+					stateInfo = {
+						_id: parentState._id,
+						name: parentState.name,
+						externalId: parentState.externalId,
+					}
+				}
+
+				// Extract all parent information for all hierarchy levels
+				Object.keys(parentInfo).forEach((level) => {
+					if (parentInfo[level] && parentInfo[level].length > 0) {
+						allParentInfo[level] = parentInfo[level].map((parent) => ({
+							_id: parent._id,
+							name: parent.name,
+							externalId: parent.externalId,
+						}))
+					}
+				})
+			}
+
+			if (stateInfo) {
+				if (!entitiesByState.has(stateInfo._id)) {
+					entitiesByState.set(stateInfo._id, {
+						stateInfo: stateInfo,
+						parentInfo: {},
+						childEntities: new Map(),
+						hierarchyOrder: hierarchyOrder, // Store hierarchy for this state
+					})
+				}
+
+				const stateData = entitiesByState.get(stateInfo._id)
+
+				// Store parent information for this state
+				Object.keys(allParentInfo).forEach((level) => {
+					if (!stateData.parentInfo[level]) {
+						stateData.parentInfo[level] = new Map()
+					}
+					allParentInfo[level].forEach((parent) => {
+						stateData.parentInfo[level].set(parent._id, parent)
+					})
+				})
+
+				if (entityType !== 'state') {
+					if (!stateData.childEntities.has(entityType)) {
+						stateData.childEntities.set(entityType, [])
+					}
+					stateData.childEntities.get(entityType).push({
+						_id: entityData._id,
+						name: entityData.name,
+						externalId: entityData.externalId,
+						parentInfo: allParentInfo, // Store parent info for this specific entity
+					})
+				}
+			}
+		})
+
+		console.log('Entities grouped by state with parent info:', entitiesByState)
+
+		// Step 10: Build targeting criteria with correct hierarchy handling
+		const targetingCriteria = []
+
+		if (entitiesByState.size === 0) {
+			console.log('No state grouping found, creating single targeting object')
+			const targetingObject = {}
+
+			// Use default hierarchy order
+			const defaultHierarchy = ['state', 'district', 'block', 'cluster', 'school']
+			let entityTargeting = null
+
+			defaultHierarchy.forEach((type) => {
+				if (locationEntitiesByType[type] && locationEntitiesByType[type].length > 0) {
+					// Remove childHierarchyPath from final output
+					targetingObject[type] = locationEntitiesByType[type].map((entity) => ({
+						_id: entity._id,
+						name: entity.name,
+						externalId: entity.externalId,
+					}))
+					entityTargeting = type
+				} else if (scope[type] === 'ALL' || (Array.isArray(scope[type]) && scope[type].includes('ALL'))) {
+					targetingObject[type] = 'ALL'
+					if (!entityTargeting) {
+						entityTargeting = type
+					}
+				}
+			})
+
+			if (entityTargeting) {
+				targetingObject.entity_targeting = entityTargeting
+			}
+
+			// Add professional entities only if they have data
 			validRoleEntityTypes.forEach((roleType) => {
 				const key = roleType === 'professional_role' ? 'professional_roles' : 'professional_subroles'
-				if (tempTargetingObject[key]) {
-					targetingObject[key] = tempTargetingObject[key]
+				if (professionalEntities[roleType] && professionalEntities[roleType].length > 0) {
+					targetingObject[key] = professionalEntities[roleType]
 				}
 			})
 
 			if (Object.keys(targetingObject).length > 0) {
 				targetingCriteria.push(targetingObject)
 			}
+		} else {
+			console.log(`Creating ${entitiesByState.size} targeting objects for states`)
+
+			for (const [stateId, stateData] of entitiesByState) {
+				const targetingObject = {}
+
+				// Add state information
+				targetingObject.state = stateData.stateInfo
+
+				// Use the dynamic hierarchy order for this state
+				const hierarchyOrder = stateData.hierarchyOrder || ['state', 'district', 'block', 'cluster', 'school']
+
+				// Find the first "ALL" level in scope to determine where to stop
+				let firstAllLevel = null
+				let firstAllLevelIndex = -1
+
+				for (let i = 0; i < hierarchyOrder.length; i++) {
+					const level = hierarchyOrder[i]
+					if (scope[level] === 'ALL' || (Array.isArray(scope[level]) && scope[level].includes('ALL'))) {
+						firstAllLevel = level
+						firstAllLevelIndex = i
+						break
+					}
+				}
+
+				// If we found an ALL level, add all parent entities up to that level
+				if (firstAllLevel && firstAllLevelIndex > 0) {
+					// Add all parent levels up to the ALL level
+					for (let i = 1; i < firstAllLevelIndex; i++) {
+						// Skip state (index 0)
+						const currentLevel = hierarchyOrder[i]
+
+						// Check if we have entities for this level
+						if (
+							stateData.childEntities.has(currentLevel) &&
+							stateData.childEntities.get(currentLevel).length > 0
+						) {
+							targetingObject[currentLevel] = stateData.childEntities.get(currentLevel).map((entity) => ({
+								_id: entity._id,
+								name: entity.name,
+								externalId: entity.externalId,
+							}))
+						} else if (stateData.parentInfo[currentLevel] && stateData.parentInfo[currentLevel].size > 0) {
+							// Use parent info if no direct entities
+							targetingObject[currentLevel] = Array.from(stateData.parentInfo[currentLevel].values())
+						}
+					}
+
+					// Add the ALL level
+					targetingObject[firstAllLevel] = 'ALL'
+					targetingObject.entity_targeting = firstAllLevel
+				} else {
+					// No ALL level found, find the deepest level that has entities
+					let entityTargeting = 'state'
+					let deepestLevel = 'state'
+
+					// Find the deepest level that has entities
+					for (const level of hierarchyOrder) {
+						if (stateData.childEntities.has(level) && stateData.childEntities.get(level).length > 0) {
+							deepestLevel = level
+							entityTargeting = level
+						}
+					}
+
+					// Add all parent entities up to the deepest level
+					const deepestLevelIndex = hierarchyOrder.indexOf(deepestLevel)
+
+					for (let i = 1; i <= deepestLevelIndex; i++) {
+						// Skip state (index 0)
+						const currentLevel = hierarchyOrder[i]
+
+						if (i === deepestLevelIndex) {
+							// This is the deepest level - add the actual entities
+							if (stateData.childEntities.has(currentLevel)) {
+								targetingObject[currentLevel] = stateData.childEntities
+									.get(currentLevel)
+									.map((entity) => ({
+										_id: entity._id,
+										name: entity.name,
+										externalId: entity.externalId,
+									}))
+							}
+						} else {
+							// This is a parent level - add parent entities if available
+							if (stateData.parentInfo[currentLevel] && stateData.parentInfo[currentLevel].size > 0) {
+								targetingObject[currentLevel] = Array.from(stateData.parentInfo[currentLevel].values())
+							}
+						}
+					}
+
+					targetingObject.entity_targeting = entityTargeting
+				}
+
+				// Add professional entities only if they have data
+				validRoleEntityTypes.forEach((roleType) => {
+					const key = roleType === 'professional_role' ? 'professional_roles' : 'professional_subroles'
+					if (professionalEntities[roleType] && professionalEntities[roleType].length > 0) {
+						targetingObject[key] = professionalEntities[roleType]
+					}
+				})
+
+				targetingCriteria.push(targetingObject)
+			}
 		}
 
+		console.log('Final targeting criteria:', targetingCriteria)
 		return { success: true, result: targetingCriteria }
 	} catch (error) {
 		console.error('Error in generateTargetingCriteria:', error)
