@@ -16,4 +16,7 @@ module.exports = {
 	PUBLIC_TENANT_DETAILS: process.env.PUBLIC_TENANT_DETAIL_ENDPOINT
 		? process.env.PUBLIC_TENANT_DETAIL_ENDPOINT
 		: 'v1/public/branding',
+	FIND_ENTITIES_BY_QUERY: process.env.FIND_ENTITIES_BY_QUERY_ENDPOINT
+		? process.env.FIND_ENTITIES_BY_QUERY_ENDPOINT
+		: 'v1/entities/find',
 }
