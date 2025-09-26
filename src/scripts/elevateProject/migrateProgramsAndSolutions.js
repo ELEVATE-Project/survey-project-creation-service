@@ -46,8 +46,11 @@ const requiredEnv = [
 	'DEFAULT_ORG_ID',
 	'CONSUMPTION_SERVICE_DOWNLOADBLE_URL',
 ]
+
+// Filter out any missing environment variables
 const missingVariables = requiredEnv.filter((key) => !process.env[key])
 
+// Throw error and exit if any required variables are missing
 if (missingVariables.length > 0) {
 	throw new Error(`Missing required environment variables: ${missingVariables.join(', ')}`)
 	process.exit(1)
@@ -156,6 +159,7 @@ const CURSOR_TIMEOUT = 30 * 60 * 1000 // 30 minutes cursor timeout
 			const program = await cursor.next()
 
 			// Group by tenant for batch processing
+			// Check if we've encountered a different tenant than the current batch
 			if (currentTenant !== program.tenantId) {
 				if (currentBatch.length > 0) {
 					await processProgramBatch(
@@ -222,7 +226,18 @@ const CURSOR_TIMEOUT = 30 * 60 * 1000 // 30 minutes cursor timeout
 	}
 })()
 
-// Process a batch of programs efficiently
+/**
+ * Processes a batch of programs for a specific tenant
+ * Handles user caching, fetches program details, and processes each program individually
+ * @param {Array} programBatch - Array of program objects to process
+ * @param {Object} db - Database connection object
+ * @param {Object} csvWriter - CSV writer instance for output
+ * @param {Array} entityKeys - Array of entity key identifiers
+ * @param {Map} entityTypeEntityMap - Map of entity types to entities
+ * @param {Map} orgAdminCache - Cache for organization admin data
+ * @param {Map} userCache - Cache for user data to avoid repeated database queries
+ * @returns {Promise<void>} - Resolves when batch processing is complete
+ */
 async function processProgramBatch(
 	programBatch,
 	db,
@@ -235,19 +250,21 @@ async function processProgramBatch(
 	const tenantCode = programBatch[0].tenantId
 	console.log(`Processing batch of ${programBatch.length} programs for tenant: ${tenantCode}`)
 
-	// Get unique user IDs for this batch
+	// Extract unique user IDs from programs, excluding system-created programs
 	const userIds = [
 		...new Set(programBatch.filter((p) => p.createdBy && p.createdBy !== 'SYSTEM').map((p) => p.createdBy)),
 	]
 
-	// Batch fetch user details if not in cache
+	// Identify users not already in cache to minimize database queries
 	const uncachedUserIds = userIds.filter((id) => !userCache.has(id))
 	if (uncachedUserIds.length > 0) {
+		// Batch fetch user details for uncached users only
 		const userOrgTenantMap = await getUserOrgTenantDetails(uncachedUserIds, tenantCode)
 
-		// Update cache with size limit
+		// Update cache with fetched user data, maintaining cache size limit
 		Object.entries(userOrgTenantMap).forEach(([userId, userData]) => {
 			if (userCache.size >= USER_CACHE_SIZE) {
+				// Remove oldest entry if cache is at capacity
 				const firstKey = userCache.keys().next().value
 				userCache.delete(firstKey)
 			}
@@ -255,7 +272,7 @@ async function processProgramBatch(
 		})
 	}
 
-	// Build user map from cache
+	// Build user organization-tenant mapping from cache for current batch
 	const userOrgTenantMap = {}
 	userIds.forEach((id) => {
 		if (userCache.has(id)) {
@@ -263,20 +280,33 @@ async function processProgramBatch(
 		}
 	})
 
-	// Fetch full program details efficiently
+	// Efficiently fetch complete program details for all programs in batch
 	const programIds = programBatch.map((p) => p._id)
 	const programs = await db
 		.collection('programs')
 		.find({ _id: { $in: programIds } })
 		.toArray()
 
-	// Process each program
+	// Process each program individually with all required context data
 	for (const program of programs) {
 		await processProgram(program, db, csvWriter, entityKeys, entityTypeEntityMap, orgAdminCache, userOrgTenantMap)
 	}
 }
 
-// Process individual program (main processing logic)
+/**
+ * Processes a program by performing necessary operations using database, CSV writer,
+ * and various caches and mappings.
+ * @async
+ * @function processProgram
+ * @param {Object} program - The program object to process.
+ * @param {Object} db - Database instance or connection to perform operations.
+ * @param {Object} csvWriter - CSV writer instance for logging records.
+ * @param {Array<string>} entityKeys - List of entity keys relevant to the program.
+ * @param {Object} entityTypeEntityMap - Mapping of entity types to their entities.
+ * @param {Map} orgAdminCache - Cache storing organization admin data.
+ * @param {Object} userOrgTenantMap - Mapping of user IDs to their tenant and organization info.
+ * @returns {Promise<void>} Resolves when the program processing is complete.
+ */
 async function processProgram(
 	program,
 	db,
@@ -339,6 +369,7 @@ async function processProgram(
 
 	// Initialize entityTypeEntityMap for this tenant/org if not already present
 	if (!entityTypeEntityMap[entityTypeMapKey]) {
+		// Fetch and cache entity types for this tenant/org
 		let entityTypeDetails = await initializeEntityTypes(
 			entityTypeMapKey,
 			entityTypeEntityMap,
@@ -346,6 +377,7 @@ async function processProgram(
 			organization_code,
 			tenant_code
 		)
+		// If still not found, log and skip
 		if (!entityTypeDetails || Object.keys(entityTypeDetails).length === 0) {
 			await writeSkippedRecord(
 				csvWriter,
@@ -366,9 +398,10 @@ async function processProgram(
 	const currentEntityTypes = Object.keys(entityTypeEntityMap[entityTypeMapKey])
 	// Check for missing EntityTypes
 	const missingEntityTypes = entityKeys.filter((key) => !currentEntityTypes.includes(key))
-
+	// If any required EntityTypes are missing, log and skip
 	if (missingEntityTypes.length > 0) {
 		console.log(`Skipping program ${programIdStr}: Missing EntityTypes: ${missingEntityTypes.join(', ')}`)
+		// Log the missing EntityTypes
 		await writeSkippedRecord(
 			csvWriter,
 			programIdStr,
@@ -388,6 +421,7 @@ async function processProgram(
 
 	// Check if the project already exists
 	const isProgramExist = await checkResourceExist(programIdStr, 'program', tenant_code, organization_code)
+	// If it exists, log and skip further processing
 	if (isProgramExist.success) {
 		console.log(`Project already exists for program ${programIdStr}`)
 		await writeSuccessRecord(
@@ -405,13 +439,15 @@ async function processProgram(
 		)
 		return
 	}
-
+	// Generate targeting criteria for the program
 	let programTargetingCriteriaRes = await generateTargetingCriteria(program.scope, tenant_code)
+	// Validate targeting criteria generation
 	if (
 		!programTargetingCriteriaRes.success ||
 		!Array.isArray(programTargetingCriteriaRes.result) ||
 		programTargetingCriteriaRes?.result?.length === 0
 	) {
+		// If failed, log error and skip processing
 		console.error(`Failed to generate targeting criteria for program ${programIdStr}`)
 		await writeErrorRecord(
 			csvWriter,
@@ -428,10 +464,10 @@ async function processProgram(
 		)
 		return
 	}
-
+	// Process each solution/component within the program
 	let solutionTargetingMap = {}
 	let validSolutionIds = []
-
+	// Normalize solution IDs to ObjectId format
 	const solutionMongoIds = migrationUtils.normalizeToObjectIds(program.components)
 	const solutions = await db
 		.collection('solutions')
@@ -440,7 +476,7 @@ async function processProgram(
 			type: 'improvementProject',
 		})
 		.toArray()
-
+	// If no solutions found, log and skip
 	if (solutions.length <= 0) {
 		console.log(`No project solution found ${programIdStr}`)
 		await writeErrorRecord(
@@ -458,11 +494,13 @@ async function processProgram(
 		)
 		return
 	}
-
+	// Process each solution individually
 	for (let solution of solutions) {
 		console.log(`processing solution ${solution._id}`)
 		let solutionIdStr = solution._id.toString()
+		// Validate presence of project template
 		if (!solution?.projectTemplateId) {
+			// If not found, log and skip
 			console.log(`No project template found for solution id ${solutionIdStr}, `)
 			await writeErrorRecord(
 				csvWriter,
@@ -480,12 +518,15 @@ async function processProgram(
 			continue
 		}
 
+		// Generate targeting criteria for the solution
 		let solutionTargetingCriteriaRes = await generateTargetingCriteria(solution.scope, tenant_code)
+		// Validate targeting criteria generation
 		if (
 			!solutionTargetingCriteriaRes.success ||
 			!Array.isArray(solutionTargetingCriteriaRes.result) ||
 			solutionTargetingCriteriaRes?.result?.length === 0
 		) {
+			// If failed, log error and skip processing
 			console.error(`Failed to generate targeting criteria for solution ${solutionIdStr}`)
 			await writeErrorRecord(
 				csvWriter,
@@ -504,8 +545,9 @@ async function processProgram(
 		}
 
 		let projectTemplateIdStr = solution.projectTemplateId.toString()
+		// Check if project resource already exists for the solution's project template
 		const isProjectExist = await checkResourceExist(projectTemplateIdStr, 'project', tenant_code, organization_code)
-
+		// If it exists, log and map for program creation
 		if (isProjectExist.success) {
 			console.log(`Project Resource Exist for template ${projectTemplateIdStr}`)
 			validSolutionIds.push(isProjectExist.resourceId)
@@ -515,12 +557,14 @@ async function processProgram(
 				solutionId: solutionIdStr,
 			}
 		} else {
+			// If not, fetch project template details
 			console.log(`Project Resource Not Exist for template ${projectTemplateIdStr}`)
 			const projectTemplate = await db
 				.collection('projectTemplates')
 				.findOne({ _id: ObjectId(projectTemplateIdStr) })
 
 			if (!projectTemplate?._id) {
+				// If not found, log and skip
 				console.log(`No project template found for solution id ${solutionIdStr}, `)
 				await writeErrorRecord(
 					csvWriter,
@@ -537,8 +581,9 @@ async function processProgram(
 				)
 				continue
 			}
-
+			// Validate presence of tasks in the project template
 			if (!Array.isArray(projectTemplate.tasks) || projectTemplate.tasks.length === 0) {
+				// If no tasks, log and skip
 				console.log(`No Task Found for Project Template ${solutionIdStr}, `)
 				await writeErrorRecord(
 					csvWriter,
@@ -557,11 +602,13 @@ async function processProgram(
 			}
 
 			let taskIdsToRemove = []
+			// Fetch all tasks associated with the project template
 			const templateTasks = await db
 				.collection('projectTemplateTasks')
 				.find({ _id: { $in: projectTemplate.tasks } })
 				.toArray()
 
+			// If no tasks found, log and skip
 			if (templateTasks.length === 0) {
 				console.log(`No Task Found for Project Template ${solutionIdStr}, `)
 				await writeErrorRecord(
@@ -581,8 +628,10 @@ async function processProgram(
 			}
 
 			projectTemplate.taskDetails = templateTasks
+			// Identify and remove child tasks to avoid duplication
 			for (const currentTask of templateTasks) {
 				if (Array.isArray(currentTask.children) && currentTask.children.length > 0) {
+					// Fetch child tasks
 					const subTasks = await db
 						.collection('projectTemplateTasks')
 						.find({ _id: { $in: currentTask.children } })
@@ -591,19 +640,23 @@ async function processProgram(
 					taskIdsToRemove.push(...subTasks.map((task) => task._id))
 				}
 			}
+			// Filter out child tasks from the main task list
 			if (taskIdsToRemove.length > 0) {
 				projectTemplate.taskDetails = projectTemplate.taskDetails.filter(
 					(task) => !taskIdsToRemove.some((id) => id.equals(task._id))
 				)
 			}
 
+			// Convert project template to SCP format
 			let convertedTemplate = await convertProjectTemplate(
 				projectTemplate,
 				user_id,
 				organization_code,
 				tenant_code
 			)
+			// Validate conversion success
 			if (!convertedTemplate.success) {
+				// If failed, log error and skip processing
 				await writeErrorRecord(
 					csvWriter,
 					programIdStr,
@@ -619,7 +672,7 @@ async function processProgram(
 				)
 				continue
 			}
-
+			// Extract taskIdMap and template from conversion result
 			let taskIdMap = convertedTemplate.taskIdMap
 			convertedTemplate = convertedTemplate.template
 			convertedTemplate.meta = {
@@ -628,13 +681,14 @@ async function processProgram(
 			}
 
 			convertedTemplate.targeting_criteria = solutionTargetingCriteriaRes.result || []
-
+			// Ensure unique entity values and prepare for creation
 			let entitiesToCreate = []
 			for (const key of entityKeys) {
 				let values = convertedTemplate[key]
 				if (Array.isArray(values) && values.length > 0) {
 					values = [...new Set(values)]
 					convertedTemplate[key] = formatValues(values)
+					// Check and filter non-existing entities
 					await filterNonExistingEntities(
 						key,
 						values,
@@ -645,8 +699,9 @@ async function processProgram(
 					)
 				}
 			}
-
+			// Handle certificate template if associated
 			if (solution?.certificateTemplateId) {
+				// Process certificate template
 				let certificateRes = await handleCertificateTemplate(
 					solution,
 					projectTemplate,
@@ -654,6 +709,7 @@ async function processProgram(
 					tenant_code,
 					organization_code
 				)
+				// Validate certificate processing
 				if (
 					certificateRes &&
 					certificateRes.success &&
@@ -661,18 +717,20 @@ async function processProgram(
 					certificateRes?.certificateTemplate?.criteria &&
 					certificateRes?.certificateBaseTemplate
 				) {
+					// Generate certificate criteria
 					let certificateCeriteriaRes = await generateCertificateCriteria(
 						certificateRes.certificateTemplate,
 						certificateRes.certificateBaseTemplate,
 						certificateRes.scpCertificateBaseTemplate,
 						taskIdMap
 					)
+					// If successful, assign to project template
 					if (certificateCeriteriaRes.success && certificateCeriteriaRes.certificate) {
 						convertedTemplate.certificate = certificateCeriteriaRes.certificate
 					}
 				}
 			}
-
+			// Create project and associated entities in SCP
 			let projectCreateResponse = await createProjectAndEntities(
 				convertedTemplate,
 				entityTypeEntityMap[entityTypeMapKey],
@@ -681,7 +739,9 @@ async function processProgram(
 				tenant_code,
 				organization_code
 			)
+			// Validate project creation
 			if (!projectCreateResponse.success) {
+				// If failed, log error and skip processing
 				await writeErrorRecord(
 					csvWriter,
 					programIdStr,
@@ -697,7 +757,7 @@ async function processProgram(
 				)
 				continue
 			}
-
+			// Update and publish the created project resource
 			const updatePayload = {
 				meta: {
 					start_date: solution.startDate || null,
@@ -709,7 +769,9 @@ async function processProgram(
 				status: common.RESOURCE_STATUS_PUBLISHED,
 				stage: common.RESOURCE_STAGE_COMPLETION,
 			}
+			//	Validate update and publish
 			let updateResourceRes = await updateResource(projectCreateResponse.projectId, updatePayload)
+			// If failed, log error and skip processing
 			if (!updateResourceRes.success) {
 				await writeErrorRecord(
 					csvWriter,
@@ -726,12 +788,13 @@ async function processProgram(
 				)
 				continue
 			}
-
+			// Map solution to created project resource
 			await db
 				.collection('solutions')
 				.updateOne({ _id: solution._id }, { $set: { scp_reference_id: projectCreateResponse.projectId } })
 
 			validSolutionIds.push(projectCreateResponse.projectId)
+			// Store mapping for program creation
 			solutionTargetingMap[projectTemplate._id.toString()] = {
 				projectResourceId: projectCreateResponse.projectId,
 				projectId: projectTemplate._id.toString(),
@@ -739,7 +802,7 @@ async function processProgram(
 			}
 		}
 	}
-
+	// If no valid solutions were processed, log and skip program creation
 	if (validSolutionIds.length === 0) {
 		await writeErrorRecord(
 			csvWriter,
@@ -757,7 +820,9 @@ async function processProgram(
 		return
 	}
 
+	// Convert program template to SCP format
 	let convertedProgramTemplate = await convertProgramTemplate(program, user_id, organization_code, tenant_code)
+	// Validate conversion success
 	if (!convertedProgramTemplate.success) {
 		console.error(`Error converting program ${programIdStr}:`, convertedProgramTemplate.error)
 		await writeErrorRecord(
@@ -778,12 +843,12 @@ async function processProgram(
 	convertedProgramTemplate = convertedProgramTemplate.template
 	// Assign targeting criteria for program
 	convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result || []
-
+	// Assign metadata
 	convertedProgramTemplate.meta = {
 		start_date: program.startDate || null,
 		end_date: program.endDate || null,
 	}
-
+	// Create program in SCP with associated solutions
 	const programCreationResponse = await createProgram(
 		programIdStr,
 		convertedProgramTemplate,
@@ -792,8 +857,9 @@ async function processProgram(
 		convertedProgramTemplate.tenant_code,
 		validSolutionIds
 	)
-
+	// Validate program creation
 	if (!programCreationResponse.success || !programCreationResponse?.programId) {
+		//	If failed, log error and skip further processing
 		console.log(`Failed to create program ${programIdStr}: ${programCreationResponse.error}`)
 		await writeErrorRecord(
 			csvWriter,
@@ -812,12 +878,18 @@ async function processProgram(
 	}
 
 	let programResourceId = programCreationResponse.programId
-
+	// Update original program with SCP reference ID
 	await db.collection('programs').updateOne({ _id: program._id }, { $set: { scp_reference_id: programResourceId } })
 
-	let programDetail = await programService.details(programResourceId, convertedProgramTemplate.organization_code)
-
+	// Fetch complete program details for rollout creation
+	let programDetail = await programService.details(
+		programResourceId,
+		convertedProgramTemplate.organization_code,
+		convertedProgramTemplate.tenant_code
+	)
+	// Validate fetch success
 	if (programDetail.statusCode !== 200 || !programDetail?.result) {
+		// If failed, log error and skip further processing
 		console.error(`Failed to fetch program details for ${programIdStr}`)
 		await writeErrorRecord(
 			csvWriter,
@@ -863,10 +935,12 @@ async function processProgram(
 		convertedProgramRolloutTemplate,
 		convertedProgramRolloutTemplate.created_by,
 		convertedProgramRolloutTemplate.organization_code,
+		convertedProgramRolloutTemplate.tenant_code,
 		false
 	)
-
+	// Validate program rollout creation
 	if (createProgramRolloutResponse.success) {
+		// If successful, log success
 		await writeSuccessRecord(
 			csvWriter,
 			programIdStr,
@@ -881,6 +955,8 @@ async function processProgram(
 			assignedTo
 		)
 	} else {
+		// If failed, log error and skip further processing
+		console.log(`Failed to create program rollout ${programIdStr}`, createProgramRolloutResponse.error)
 		await writeErrorRecord(
 			csvWriter,
 			programIdStr,
@@ -897,7 +973,7 @@ async function processProgram(
 	}
 
 	let programRolloutId = createProgramRolloutResponse.result.id
-
+	// Process each solution within the program for rollout creation
 	for (let solutionData of programDetail.resources) {
 		// Convert solution rollout data
 		let convertSolutionRolloutTemplate = _.pick(solutionData, [
@@ -909,6 +985,7 @@ async function processProgram(
 			'created_by',
 		])
 
+		// Assign additional required fields
 		convertSolutionRolloutTemplate.parent_id = programRolloutId
 		convertSolutionRolloutTemplate.start_date = solutionData?.meta?.start_date || null
 		convertSolutionRolloutTemplate.end_date = solutionData?.meta?.end_date || null
@@ -921,11 +998,13 @@ async function processProgram(
 			convertSolutionRolloutTemplate,
 			convertSolutionRolloutTemplate.created_by,
 			convertSolutionRolloutTemplate.organization_code,
+			convertSolutionRolloutTemplate.tenant_code,
 			true
 		)
 
 		// Validate the solution rollout creation
 		if (createSolutionRolloutResponse.statusCode != 200) {
+			// If failed, log error and skip to next solution
 			console.log(`Failed to create solution rollout ${programIdStr}`, createSolutionRolloutResponse.error)
 			await writeErrorRecord(
 				csvWriter,
@@ -949,7 +1028,7 @@ async function processProgram(
 			solutionTargetingMap[solutionData.published_id].solutionId,
 			solutionTargetingMap[solutionData.published_id].projectId
 		)
-
+		// Log success for the solution rollout
 		await writeSuccessRecord(
 			csvWriter,
 			programIdStr,
@@ -967,7 +1046,7 @@ async function processProgram(
 
 	//update the program rollout status
 	await rolloutService.publishCallback(programRolloutId, programIdStr)
-
+	// Log final success for the program rollout
 	await writeSuccessRecord(
 		csvWriter,
 		programIdStr,
@@ -983,30 +1062,54 @@ async function processProgram(
 	)
 }
 
+/**
+ * Converts a program object into a standardized program template format
+ * @param {Object} program - The source program object to convert
+ * @param {string|number} user_id - ID of the user creating the template
+ * @param {string|number} organization_code - Code identifying the organization
+ * @param {string|number} tenant_code - Code identifying the tenant
+ * @returns {Object} Returns success status and converted template or error
+ */
 async function convertProgramTemplate(program, user_id, organization_code, tenant_code) {
 	try {
+		// Create a standardized template object from the program data
 		const convertedTemplate = {
 			title: program.title,
 			objective: program.description,
+			// Process categories array, converting names to lowercase
 			categories: Array.isArray(program.categories) ? program.categories.map((c) => c.name.toLowerCase()) : [],
+
+			// Set duration from program or fallback to metaInformation
 			recommended_duration: program.duration || program.metaInformation?.duration,
 			keywords: program.keywords,
+
+			// Process recommended_for array, converting to lowercase
 			recommended_for: Array.isArray(program.recommendedFor)
 				? program.recommendedFor.map((r) => r.toLowerCase())
 				: [],
 			languages: program.languages || ['en'],
 			learning_resources: program.learningResources,
 			licenses: 'cc_by_4.0',
+
+			// Template metadata and identification
 			created_by: user_id.toString(),
 			organization_code: organization_code.toString(),
 			tenant_code: tenant_code.toString(),
 			type: 'program',
 			published_id: program._id,
+
+			// Set template status and stage
 			status: common.RESOURCE_STATUS_PUBLISHED,
 			stage: common.RESOURCE_STAGE_DRAFT,
+
+			// Template configuration flags
 			is_reusable: false,
 			is_deleted: false,
+
+			// Store program dates in meta object
 			meta: { start_date: program.startDate, end_date: program.endDate },
+
+			// Initialize empty arrays for future use
 			targeting_criteria: [],
 			solutions: [],
 		}
@@ -1016,9 +1119,25 @@ async function convertProgramTemplate(program, user_id, organization_code, tenan
 	}
 }
 
+/**
+ * Converts a project template from one format to another with comprehensive task mapping
+ * @param {Object} template - The original project template object to convert
+ * @param {string|number} user_id - The ID of the user creating the converted template
+ * @param {string|number} organization_code - The organization code associated with the template
+ * @param {string|number} tenant_code - The tenant code for multi-tenancy support
+ * @returns {Object} Object containing success status, converted template, and task ID mapping
+ */
 async function convertProjectTemplate(template, user_id, organization_code, tenant_code) {
 	try {
+		// Map to track original task IDs to new UUIDs for reference mapping
 		const taskIdMap = {}
+
+		/**
+		 * Recursively converts a task object to the new format
+		 * @param {Object} task - Original task object
+		 * @param {number} index - Index position for sequence numbering
+		 * @returns {Object} Converted task object with new structure
+		 */
 		const convertTask = (task, index) => {
 			const newTaskId = uuidv4()
 			taskIdMap[task._id] = newTaskId
@@ -1026,27 +1145,42 @@ async function convertProjectTemplate(template, user_id, organization_code, tena
 				id: newTaskId,
 				name: task.name,
 				type: task.type,
+
+				// Set mandatory status - if task is deletable, it's not mandatory
 				is_mandatory: task.isDeletable ? false : true,
 				allow_evidences: true,
+
+				// Configure evidence collection settings
 				evidence_details: {
 					file_types: task.evidenceDetails?.fileTypes || ['images', 'document', 'videos', 'audio'],
 					min_no_of_evidences: task.evidenceDetails?.minNoOfEvidences || 1,
 				},
+
+				// Convert learning resources if they exist
 				learning_resources: Array.isArray(task.learningResources)
 					? convertResources(task.learningResources)
 					: [],
 				sequence_no: task.sequenceNumber ? Number(task.sequenceNumber) : index + 1,
+
+				// Recursively convert child tasks if they exist
 				children: task.children ? task.children.map(convertTask) : [],
 			}
 		}
+
+		// Build the converted template object with standardized structure
 		const convertedTemplate = {
 			title: template.title,
 			objective: template.description,
+			// Convert categories to lowercase strings, handle empty arrays
 			categories:
 				Array.isArray(template.categories) && template.categories.length > 0
 					? template.categories.map(({ name }) => name.toLowerCase())
 					: [],
+
+			// Convert duration using helper function, with fallback to meta information
 			recommended_duration: convertDuration(template.duration || template.metaInformation.duration),
+
+			// Convert keywords using helper function
 			keywords: convertKeywords(template.keywords),
 			recommended_for:
 				Array.isArray(template.recommendedFor) && template.recommendedFor.length > 0
@@ -1059,6 +1193,8 @@ async function convertProjectTemplate(template, user_id, organization_code, tena
 					  )
 					: [],
 			languages: ['en'],
+
+			// Convert learning resources if available
 			learning_resources: Array.isArray(template.learningResources)
 				? convertResources(template.learningResources)
 				: [],
@@ -1081,8 +1217,19 @@ async function convertProjectTemplate(template, user_id, organization_code, tena
 	}
 }
 
+/**
+ * Handles certificate template processing for project solutions
+ * Creates or retrieves certificate base templates in the SCP system
+ * @param {Object} solution - Solution object containing certificate template reference
+ * @param {Object} projectTemplate - The project template being processed
+ * @param {Object} db - Database connection object
+ * @param {string} tenant_code - Tenant identifier
+ * @param {string} organization_code - Organization identifier
+ * @returns {Object} - Result object with certificate template data and processing status
+ */
 async function handleCertificateTemplate(solution, projectTemplate, db, tenant_code, organization_code) {
 	try {
+		// Initialize result object with default structure
 		let result = {
 			success: true,
 			scpCertificateBaseTemplate: {},
@@ -1090,26 +1237,32 @@ async function handleCertificateTemplate(solution, projectTemplate, db, tenant_c
 			certificateBaseTemplate: {},
 		}
 
+		// Validate that solution has a certificate template ID
 		if (!solution?.certificateTemplateId) {
 			return { success: false, error: 'No certificate template ID found' }
 		}
 
+		// Fetch the certificate template from database
 		const certificateTemplate = await db
 			.collection('certificateTemplates')
 			.findOne({ _id: ObjectId(solution.certificateTemplateId) })
 
+		// Validate that certificate template has a base template reference
 		if (!certificateTemplate?.baseTemplateId) {
 			throw new Error('baseTemplateId not found in certificateTemplate')
 		}
 
-		// Get the certificate base template
+		// Fetch the certificate base template
 		let certificateBaseTemplate = await db
 			.collection('certificateBaseTemplates')
 			.findOne({ _id: certificateTemplate.baseTemplateId })
 
+		// Validate that base template exists
 		if (!certificateBaseTemplate?._id) {
 			throw new Error('certificateBaseTemplate not found')
 		}
+
+		// Check if certificate base template already exists in SCP
 		const certificateTemplateInSCP = await isCertificateBaseTemplateExist(
 			certificateBaseTemplate.code,
 			'project',
@@ -1118,25 +1271,25 @@ async function handleCertificateTemplate(solution, projectTemplate, db, tenant_c
 		)
 		let scpCertificateBaseTemplate = {}
 		if (certificateTemplateInSCP.success) {
+			// Use existing certificate base template from SCP
 			console.log(`Certificate Base template Exist for template ${projectTemplate._id.toString()}`)
 			scpCertificateBaseTemplate = certificateTemplateInSCP.certificateBaseTemplate
 		} else {
 			//create certificate base template in scp
 			console.log('certificateBaseTemplate Not found in SCP')
 
-			//get svg template
+			// Download SVG template from consumption service
 			let templatesvgRes = await getSvgTemplate(certificateBaseTemplate)
 			if (!templatesvgRes.success) {
 				throw new Error('Failed to download svg template from consumption')
 			}
 
-			// Create the certificate base template in scp
-			// Create a temporary file to store SVG content
+			// Create temporary file for SVG content
 			const fileName = `template_${Date.now()}.svg`
 			const filePath = path.join(__dirname, fileName)
 			fs.writeFileSync(filePath, templatesvgRes.svgTemplate, 'utf-8') // Save the SVG content to file
 
-			// Prepare payload for signed URL
+			// Prepare payload for file upload signed URL request
 			const payloadData = {
 				cert: {
 					files: [fileName],
@@ -1144,7 +1297,7 @@ async function handleCertificateTemplate(solution, projectTemplate, db, tenant_c
 				ref: common.CERTIFICATE,
 			}
 
-			// Get Signed URL to upload
+			// Get signed URL for file upload
 			const getSignedUrl = await fileService.getSignedUrl(
 				payloadData,
 				solution?.orgId,
@@ -1157,10 +1310,11 @@ async function handleCertificateTemplate(solution, projectTemplate, db, tenant_c
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}
 
+			// Extract upload URL and file path from signed URL response
 			const fileUploadUrl = getSignedUrl.result['cert']['files'][0].url
 			const uploadedFilePath = getSignedUrl.result['cert']['files'][0].file
 
-			// Upload the file to signed URL
+			// Upload SVG file to cloud storage using signed URL
 			const fileData = fs.readFileSync(filePath)
 			await request({
 				url: fileUploadUrl,
@@ -1171,7 +1325,7 @@ async function handleCertificateTemplate(solution, projectTemplate, db, tenant_c
 				body: fileData,
 			})
 
-			// Prepare certificate data to save in DB
+			// Prepare certificate base template data for database storage
 			const certificateData = {
 				code: certificateBaseTemplate.code,
 				name: certificateBaseTemplate.name,
@@ -1195,6 +1349,7 @@ async function handleCertificateTemplate(solution, projectTemplate, db, tenant_c
 			console.log('Certificate Template Created Successfully:', scpCertificateBaseTemplate)
 		}
 
+		// Populate result object with all certificate template data
 		result.scpCertificateBaseTemplate = scpCertificateBaseTemplate
 		result.certificateTemplate = certificateTemplate
 		result.certificateBaseTemplate = certificateBaseTemplate
@@ -1241,24 +1396,26 @@ async function isCertificateBaseTemplateExist(code, type, tenant_code, organizat
 }
 
 /**
- * Downloads and parses SVG template to extract metadata like logos and signatures.
- * @param {Object} certificateBaseTemplate - Certificate base template containing the URL.
- * @returns {Promise<Object>} - An object with success status, SVG content, and extracted metadata.
+ * Downloads and processes SVG certificate template, extracting metadata about logos and signatures
+ * @param {Object} certificateBaseTemplate - Certificate base template object containing URL
+ * @returns {Object} Success/error response with SVG content and extracted metadata
  */
 async function getSvgTemplate(certificateBaseTemplate) {
 	try {
+		// Initialize result object
 		let result = {
 			success: true,
 			svgTemplate: null,
 			certificateMeta: {},
 		}
 
+		// Validate template URL exists
 		let templateUrl = certificateBaseTemplate?.url
 		if (!templateUrl) {
 			throw new Error('Template URL not provided')
 		}
 
-		//download the svg template
+		// Download SVG template from consumption service
 		const svgTemplateRes = await generateDownloadableUrlInConsumption(
 			process.env.INTERFACE_SERVICE_HOST +
 				process.env.CONSUMPTION_SERVICE_BASE_URL +
@@ -1267,19 +1424,22 @@ async function getSvgTemplate(certificateBaseTemplate) {
 				templateUrl
 		)
 
+		// Validate download was successful
 		if (!svgTemplateRes.success || !svgTemplateRes?.file) {
 			throw new Error('svg Template Not Found')
 		}
 
 		result.svgTemplate = svgTemplateRes.file
 
-		// Parse SVG Content
+		// Parse SVG content using DOM parser
 		const parser = new DOMParser()
 		const svgDoc = parser.parseFromString(svgTemplateRes.file, 'image/svg+xml')
 
+		// Get all image elements for logo and signature detection
 		const logoImages = svgDoc.getElementsByTagName('image')
 		const signatureImages = svgDoc.getElementsByTagName('image')
 
+		// Initialize metadata objects
 		const logos = {}
 		const signatures = {}
 		const signatureTitles = {}
@@ -1287,7 +1447,7 @@ async function getSvgTemplate(certificateBaseTemplate) {
 		let logoCount = 0
 		let signatureCount = 0
 
-		// Identify and count logos
+		// Identify and count logo images by ID or class name
 		for (let i = 0; i < logoImages.length; i++) {
 			const id = logoImages[i].getAttribute('id') || ''
 			const className = logoImages[i].getAttribute('class') || ''
@@ -1297,12 +1457,13 @@ async function getSvgTemplate(certificateBaseTemplate) {
 			}
 		}
 
-		// Identify and count signatures
+		// Identify and count signature images by ID or class name
 		for (let i = 0; i < signatureImages.length; i++) {
 			const id = signatureImages[i].getAttribute('id') || ''
 			const className = signatureImages[i].getAttribute('class') || ''
 			if (id.toLowerCase().includes('signature') || className.toLowerCase().includes('signature')) {
 				signatureCount++
+				// Create signature metadata with default titles
 				signatures[`signatureImg${signatureCount}`] = null
 				signatureTitles[`signatureTitleName${signatureCount}`] = 'Name'
 				signatureTitles[`signatureTitleDesignation${signatureCount}`] = 'Designation'
@@ -1313,6 +1474,7 @@ async function getSvgTemplate(certificateBaseTemplate) {
 		logos['no_of_logos'] = logoCount
 		signatures['no_of_signature'] = signatureCount
 
+		// Build complete certificate metadata
 		result.certificateMeta = {
 			logos,
 			signature: signatures,
@@ -1486,6 +1648,17 @@ async function generateCertificateCriteria(
 	}
 }
 
+/**
+ * Creates entities and a project based on a converted template
+ * @param {Object} convertedTemplate - The project template data to create
+ * @param {Object} entityTypeEntityMap - Map of entity types to their entities
+ * @param {Array} entitiesToCreate - Array of entities that need to be created
+ * @param {Object} createdEntityIds - Object to store IDs of created entities by type
+ * @param {string} tenant_code - Tenant identifier code
+ * @param {string} organization_code - Organization identifier code
+ * @param {Array} [solutions=[]] - Optional array of solutions to associate with the project
+ * @returns {Promise<Object>} Returns success status and projectId or error details
+ */
 async function createProjectAndEntities(
 	convertedTemplate,
 	entityTypeEntityMap,
@@ -1496,15 +1669,15 @@ async function createProjectAndEntities(
 	solutions = []
 ) {
 	try {
+		// Process and create entities if any are provided
 		if (entitiesToCreate.length > 0) {
 			for (const entity of entitiesToCreate) {
 				if (entity.value) {
+					// Prepare entity creation payload
 					let entityCreationData = {
 						entity_type_id: entity.entity_type_id,
 						value: entity.value,
 						label: entity.label || entity.value,
-						tenant_code: tenant_code,
-						organization_code: organization_code,
 						type: 'SYSTEM',
 						status: 'ACTIVE',
 						created_at: new Date(),
@@ -1512,16 +1685,21 @@ async function createProjectAndEntities(
 						created_by: 0,
 						updated_by: 0,
 					}
-					const createdEntity = await entityService.create(entityCreationData, '0')
+					const createdEntity = await entityService.create(
+						entityCreationData,
+						'0',
+						organization_code,
+						tenant_code
+					)
 					if (createdEntity?.result?.id) {
 						console.log(`Entity ${entity.value} created successfully.`)
-						//remove entity from create
+						// Remove the created entity from the entities to create list
 						entitiesToCreate = entitiesToCreate.filter(
 							(entity) =>
 								!(entity.entity_type_id === entity.entity_type_id && entity.value === entity.value)
 						)
 
-						//add this to entityTypeEntityMap
+						// Update the entity type mapping with the new entity
 						for (let [key, entityData] of Object.entries(entityTypeEntityMap)) {
 							if (entityData.entity_type_id && entityData.entity_type_id === entity.entity_type_id) {
 								entityTypeEntityMap[key].entity_type_id = entity.entity_type_id
@@ -1530,9 +1708,11 @@ async function createProjectAndEntities(
 							}
 						}
 
+						// Track created entity IDs by type
 						if (!createdEntityIds[entity.entity_type_id]) {
 							createdEntityIds[entity.entity_type_id] = [] // Initialize if not already done
 						}
+						// Add the new entity ID to the list for this entity type
 						createdEntityIds[entity.entity_type_id].push(createdEntity.result.id)
 					} else {
 						console.error(`Failed to create entity: ${entity.value}`, createdEntity.error)
@@ -1541,32 +1721,45 @@ async function createProjectAndEntities(
 			}
 		}
 
+		// Create the project with the converted template and associated solutions
 		const project = await projectService.create(
 			{ ...convertedTemplate, solutions, is_reusable: false },
 			convertedTemplate.created_by,
 			organization_code,
 			tenant_code
 		)
+		// Validate project creation response
 		if (project.statusCode != 200) {
 			return { success: false, error: project.error }
 		}
+		// Return success with the new project ID
 		return { success: true, projectId: project.result.id }
 	} catch (error) {
 		return { success: false, error }
 	}
 }
 
+/**
+ * Updates a resource by ID and returns the updated resource
+ * @param {string|number} resourceId - The ID of the resource to update
+ * @param {Object} payload - The data to update the resource with
+ * @returns {Promise<{success: boolean, updatedResource?: Object, error?: Error}>} Result object with success status and updated resource or error
+ */
 async function updateResource(resourceId, payload) {
 	try {
+		// Initialize result object
 		let result = {
 			success: true,
 			updatedResource: null,
 		}
+
+		// Define options to return the updated resource
 		const updateOptions = {
 			returning: true,
 			raw: true,
 		}
 
+		// Perform the update operation
 		const updatedResource = await resourceQueries.updateOne({ id: resourceId }, payload, updateOptions)
 		result.updatedResource = updatedResource
 		return result
@@ -1575,15 +1768,26 @@ async function updateResource(resourceId, payload) {
 	}
 }
 
+/**
+ * Checks if a resource exists based on published ID, type, tenant code, and organization code
+ * @param {string|number} publishedId - The published ID of the resource
+ * @param {string} type - The type of the resource
+ * @param {string} tenant_code - The tenant code
+ * @param {string} organization_code - The organization code
+ * @returns {Promise<{success: boolean, resourceId?: string|number, error?: Error}>} Result object with success status and resource ID or error
+ */
 async function checkResourceExist(publishedId, type, tenant_code, organization_code) {
 	try {
+		// Check if the resource exists
 		let resource = await resourceQueries.findOne(
 			{ published_id: publishedId, type: type, tenant_code, organization_code },
 			{ attributes: ['id'] }
 		)
+		// If resource does not exist, throw an error
 		if (!resource || !resource.id) {
 			throw new Error('Resource Not Found')
 		}
+		// Return success with the resource ID
 		return { success: true, resourceId: resource.id }
 	} catch (error) {
 		return { success: false, error }
@@ -1628,11 +1832,12 @@ async function createProgram(programId, programData, userId, orgId, tenantCode, 
 			})
 		}
 
+		//publish the program
 		const updateProgram = await resourceService.publishCallback(createProgramRes.result.id, programId.toString())
 		if (updateProgram.statusCode != 202) {
 			throw new Error('Failed to update program')
 		}
-
+		// Return success with the created program ID
 		return { success: true, programId: createProgramRes.result.id }
 	} catch (error) {
 		console.log('Failed to create program ', programId)
@@ -1640,26 +1845,41 @@ async function createProgram(programId, programData, userId, orgId, tenantCode, 
 	}
 }
 
+/**
+ * Gets organization and tenant information with fallback logic
+ * @param {string} createdBy - User ID who created the resource
+ * @param {Object} userOrgTenantMap - Map of user IDs to their org/tenant info
+ * @param {string} programTenantId - Default program tenant ID
+ * @param {string} programOrgId - Default program organization ID
+ * @param {Object} orgAdminCache - Cache for organization admin IDs
+ * @returns {Promise<Object>} Object containing organization_code, tenant_code, user_id, and assignedTo
+ */
 async function getOrgAndTenantWithFallback(createdBy, userOrgTenantMap, programTenantId, programOrgId, orgAdminCache) {
+	// Default to program's org and tenant
 	let organization_code = programOrgId
 	let tenant_code = programTenantId
 	let user_id = createdBy
 
+	// Override with user's org and tenant if available
 	if (createdBy && userOrgTenantMap[createdBy]) {
 		organization_code = userOrgTenantMap[createdBy]?.user_organizations?.[0]?.organization_code || programOrgId
 		tenant_code = userOrgTenantMap[createdBy]?.tenant_code || programTenantId
 	}
-
+	// If no user ID or system user, fallback to org admin
 	if (!user_id || user_id === 'SYSTEM') {
 		const cacheKey = `${organization_code}:${tenant_code}`
+		// Check cache first
 		if (!orgAdminCache[cacheKey]) {
 			const orgAdminId = await getDefaultOrgAdmin(tenant_code, organization_code)
+			// If no org admin found, log warning and assign to SYSTEM
 			if (!orgAdminId) {
 				console.warn(`No default org admin found for org: ${organization_code}, tenant: ${tenant_code}`)
 				return { organization_code, tenant_code, user_id: null, assignedTo: 'SYSTEM' }
 			}
+			// Cache the org admin ID for future lookups
 			orgAdminCache[cacheKey] = orgAdminId
 		}
+		// Assign org admin as the user
 		user_id = orgAdminCache[cacheKey]
 		return { organization_code, tenant_code, user_id, assignedTo: 'SYSTEM_ADMIN' }
 	}
@@ -1667,8 +1887,17 @@ async function getOrgAndTenantWithFallback(createdBy, userOrgTenantMap, programT
 	return { organization_code, tenant_code, user_id, assignedTo: user_id }
 }
 
+/**
+ * Retrieves the default organization admin for a given tenant and organization
+ * @param {string} tenantId - The tenant identifier
+ * @param {string} orgId - The organization identifier
+ * @returns {Promise<string|null>} The default org admin ID or null if not found
+ */
 async function getDefaultOrgAdmin(tenantId, orgId) {
+	// Fetch organization details to get the org admin
 	const orgDetails = await userRequest.fetchOrg(orgId, tenantId)
+
+	// Return the first org admin if available
 	if (
 		orgDetails.success &&
 		Array.isArray(orgDetails?.data?.result?.org_admin) &&
@@ -1679,6 +1908,17 @@ async function getDefaultOrgAdmin(tenantId, orgId) {
 	return null
 }
 
+/**
+ * Initializes entity types mapping for a given organization and tenant
+ * @async
+ * @function initializeEntityTypes
+ * @param {string} entityTypeMapKey - Key for the entity type map
+ * @param {Object} entityTypeEntityMap - Map to store entity type data
+ * @param {Array<string>} entityKeys - Array of entity keys to fetch
+ * @param {string} organization_code - Organization code
+ * @param {string} tenant_code - Tenant code
+ * @returns {Promise<Object>} Updated entity type entity map
+ */
 async function initializeEntityTypes(
 	entityTypeMapKey,
 	entityTypeEntityMap,
@@ -1687,19 +1927,24 @@ async function initializeEntityTypes(
 	tenant_code
 ) {
 	try {
+		// Fetch entity types and their entities
 		const entityTypes = await entityTypeService.readUserEntityTypes(
 			{ value: entityKeys },
 			'',
 			organization_code,
 			tenant_code
 		)
-
+		// Validate response
 		if (entityTypes.statusCode != 200 || !entityTypes?.result?.entity_types?.length) {
 			throw new Error(`Failed to fetch entities for tenant: ${tenant_code}, org: ${organization_code}`)
 		}
+		// Map entity types to their entities
 		entityTypeEntityMap[entityTypeMapKey] = {}
+		// Loop through each entity type and populate the map
 		entityTypes.result.entity_types.forEach((entityType) => {
+			// Only include entity types that are in the provided keys
 			if (entityKeys.includes(entityType.value)) {
+				// Initialize entity type entry if not already present
 				entityTypeEntityMap[entityTypeMapKey][entityType.value] = {
 					entity_type_id: entityType.id,
 					entities: entityType.entities.map((entity) => entity.value),
@@ -1713,9 +1958,25 @@ async function initializeEntityTypes(
 	}
 }
 
+/**
+ * Filters out values that already exist in the given entity type map
+ * and prepares new entities to be created.
+ * @async
+ * @function filterNonExistingEntities
+ * @param {string} key - The key representing the entity type in the entityTypeMap.
+ * @param {string[]} values - List of entity values to check against existing entities.
+ * @param {Object} entityTypeMap - A map of entity types containing `entities` and `entity_type_id`.
+ * @param {Array<Object>} entitiesToCreate - Reference array where new entity objects will be pushed.
+ * @param {string} tenant_code - Code identifying the tenant.
+ * @param {string} organization_code - Code identifying the organization.
+ * @returns {Promise<void>} Resolves when filtering and insertion are complete.
+ */
 async function filterNonExistingEntities(key, values, entityTypeMap, entitiesToCreate, tenant_code, organization_code) {
+	// Create a set of existing entities for quick lookup
 	const existingEntities = new Set(entityTypeMap[key]?.entities || [])
+	// Filter out values that already exist
 	const nonExisting = values.filter((v) => !existingEntities.has(v))
+	// If there are non-existing values, prepare them for creation
 	if (nonExisting.length > 0) {
 		entitiesToCreate.push({
 			entity_type_id: entityTypeMap[key].entity_type_id,
@@ -1726,193 +1987,36 @@ async function filterNonExistingEntities(key, values, entityTypeMap, entitiesToC
 	}
 }
 
-function generateEntityTypeMapKey(tenant_code, organization_code) {
-	return `${tenant_code}:${organization_code}`
-}
-
-function formatValues(arr) {
-	return arr.map((value) => {
-		return value
-			.replace(/\s*\(.*?\)\s*/g, '')
-			.toLowerCase()
-			.trim()
-			.replace(/\s+/g, '_')
-	})
-}
-
-function convertDuration(duration) {
-	let durationString
-
-	if (typeof duration === 'object' && duration !== null && 'value' in duration) {
-		durationString = duration.value
-	} else if (typeof duration === 'string') {
-		durationString = duration
-	} else if (typeof duration === 'object' && duration !== null && 'duration' in duration) {
-		durationString = duration.duration
-	} else {
-		return {}
-	}
-
-	const durationMatch = durationString.match(/(\d+)\s*([A-Za-z]+)/)
-	const durationNumber = durationMatch ? parseInt(durationMatch[1], 10) : 0
-	const durationUnit = durationMatch ? durationMatch[2].toUpperCase() : ''
-
-	const unitMapping = {
-		W: 'weeks',
-		D: 'days',
-		M: 'months',
-		MONTH: 'months',
-		MONTHS: 'months',
-		WEEKS: 'weeks',
-		WEEK: 'weeks',
-		DAY: 'days',
-		DAYS: 'days',
-	}
-
-	const durationType = unitMapping[durationUnit] || ''
-
-	return { duration: durationType, number: durationNumber }
-}
-
-function convertKeywords(keywords) {
-	if (Array.isArray(keywords) && keywords.length > 0) {
-		return keywords.join(',')
-	}
-	return ''
-}
-
-function convertResources(resources) {
-	return resources
-		.filter(({ link }) => !!link)
-		.map(({ name, link }) => ({
-			name: name || 'Resource',
-			url: link,
-		}))
-}
-
+/**
+ * Fetches user details for the given user IDs within a specific tenant.
+ * @async
+ * @function getUserOrgTenantDetails
+ * @param {string[]} userIds - Array of user IDs to fetch details for.
+ * @param {string} tenantCode - Code identifying the tenant.
+ * @returns {Promise<Object>} A promise that resolves to an object keyed by user ID containing user details. Returns an empty object if no users are found.
+ */
 async function getUserOrgTenantDetails(userIds, tenantCode) {
+	// Fetch user details using the user request service
 	const users = await userRequest.list('all', '', '', '', '', tenantCode, { user_ids: userIds })
+	// Return a keyed object of users if found, otherwise return an empty object
 	return users.success && users.data?.result?.data?.length > 0 ? _.keyBy(users.data.result.data, 'id') : {}
 }
 
-function logProgress(processed, total) {
-	const percentage = ((processed / total) * 100).toFixed(2)
-	console.log(`Processing progress: ${processed}/${total} (${percentage}%)`)
-}
-
-async function writeSkippedRecord(
-	csvWriter,
-	programId,
-	solutionId,
-	reason,
-	resourceId,
-	rolloutId,
-	tenantCode = 'N/A',
-	orgCode = 'N/A',
-	creatorId = 'N/A',
-	assignedTo = 'N/A'
-) {
-	await csvWriter.writeRecords([
-		{
-			programId,
-			solutionId,
-			type: 'PROGRAM',
-			success: `Skipped: ${reason}`,
-			resourceId,
-			rolloutId,
-			tenantId: tenantCode,
-			orgId: orgCode,
-			creatorId,
-			assignedTo,
-		},
-	])
-}
-
-async function writeSuccessRecord(
-	csvWriter,
-	programId,
-	solutionId,
-	type,
-	message,
-	resourceId,
-	rolloutId,
-	tenantCode,
-	orgCode,
-	creatorId,
-	assignedTo
-) {
-	await csvWriter.writeRecords([
-		{
-			programId,
-			solutionId,
-			type,
-			success: message,
-			resourceId,
-			rolloutId,
-			tenantId: tenantCode,
-			orgId: orgCode,
-			creatorId,
-			assignedTo,
-		},
-	])
-}
-
-async function writeErrorRecord(
-	csvWriter,
-	programId,
-	solutionId,
-	type,
-	error,
-	resourceId,
-	rolloutId,
-	tenantCode,
-	orgCode,
-	creatorId,
-	assignedTo
-) {
-	await csvWriter.writeRecords([
-		{
-			programId,
-			solutionId,
-			type,
-			success: `Error: ${error}`,
-			resourceId,
-			rolloutId,
-			tenantId: tenantCode,
-			orgId: orgCode,
-			creatorId,
-			assignedTo,
-		},
-	])
-}
-
-// Cleanup caches to prevent memory leaks
-async function cleanupCaches(userCache, entityTypeEntityMap) {
-	// Keep only recent user cache entries
-	if (userCache.size > USER_CACHE_SIZE) {
-		const keysToDelete = Array.from(userCache.keys()).slice(0, Math.floor(USER_CACHE_SIZE / 2))
-		keysToDelete.forEach((key) => userCache.delete(key))
-	}
-
-	// Clean up entity type mappings for inactive tenants
-	const activeKeys = Object.keys(entityTypeEntityMap)
-	if (activeKeys.length > 100) {
-		// Keep only recent 100 tenant/org combinations
-		const keysToDelete = activeKeys.slice(0, activeKeys.length - 100)
-		keysToDelete.forEach((key) => delete entityTypeEntityMap[key])
-	}
-
-	console.log(
-		`Cache cleanup: User cache size: ${userCache.size}, Entity type mappings: ${
-			Object.keys(entityTypeEntityMap).length
-		}`
-	)
-}
-
+/**
+ * Fetches entity types by query from the interface service
+ * @async
+ * @function fetchEntityTypesByQuery
+ * @param {string[]} entityTypeNames - Array of entity type names to search for
+ * @param {string} tenantId - The tenant ID to filter entity types by
+ * @returns {Promise<Array<Object>>} Promise that resolves to an array of entity type objects
+ * @returns {Promise<Array<{_id: string, isObservable: boolean, name: string, tenantId: string}>>} Each object contains _id, isObservable, name, and tenantId properties
+ * @throws {Error} Returns empty array on API errors or network failures
+ */
 async function fetchEntityTypesByQuery(entityTypeNames, tenantId) {
 	try {
+		// Construct the API URL using environment variables and endpoint
 		const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${endpoints.ENTITY_TYPES_FIND_BY_QUERY}`
-
+		// Prepare the request payload with query and projection
 		const payload = {
 			query: {
 				name: {
@@ -1922,14 +2026,14 @@ async function fetchEntityTypesByQuery(entityTypeNames, tenantId) {
 			},
 			projection: ['_id', 'isObservable', 'name', 'tenantId'],
 		}
-
+		// Make the POST request to fetch entity types
 		const response = await axios.post(apiUrl, payload, {
 			headers: {
 				'content-type': 'application/json',
 				'internal-access-token': process.env.INTERNAL_ACCESS_TOKEN,
 			},
 		})
-
+		// Check for successful response and return the result array
 		if (response.status === 200 && response.data && Array.isArray(response.data.result)) {
 			return response.data.result || []
 		} else {
@@ -1942,14 +2046,25 @@ async function fetchEntityTypesByQuery(entityTypeNames, tenantId) {
 	}
 }
 
+/**
+ * Fetches entities by query from the entity management service
+ * @param {Object} filter - MongoDB-style query filter object
+ * @param {string[]|Object} projection - Array of field names or projection object to include in results
+ * @param {string} tenantId - The tenant ID (parameter present but not used in current implementation)
+ * @param {string} entityType - Entity type name for logging purposes
+ * @returns {Promise<Array>} Array of entity objects or empty array on error
+ */
 async function fetchEntitiesByQuery(filter, projection, tenantId, entityType) {
 	try {
+		// Construct the API URL using environment variables and endpoint
 		const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${endpoints.FIND_ENTITIES_BY_QUERY}`
+		// Prepare the request payload with query and projection
 		const payload = {
 			query: filter,
 			projection: projection,
 		}
 
+		// Make the POST request to fetch entities
 		const response = await axios.post(apiUrl, payload, {
 			headers: {
 				'content-type': 'application/json',
@@ -1957,6 +2072,7 @@ async function fetchEntitiesByQuery(filter, projection, tenantId, entityType) {
 			},
 		})
 
+		// Check for successful response and return the result array
 		if (response.status === 200 && response.data && Array.isArray(response.data.result)) {
 			return response.data.result || []
 		} else {
@@ -1969,16 +2085,24 @@ async function fetchEntitiesByQuery(filter, projection, tenantId, entityType) {
 	}
 }
 
+/**
+ * Fetches detailed information for a specific entity
+ * @param {string} entityId - The unique identifier of the entity
+ * @param {string} tenantId - The tenant identifier
+ * @returns {Promise<Object|null>} Promise that resolves to entity details object or null on error
+ */
 async function fetchEntityDetails(entityId, tenantId) {
 	try {
+		// Construct the API URL using environment variables and entity ID
 		const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}v1/entities/details/${entityId}`
+		// Make the GET request to fetch entity details
 		const response = await axios.get(apiUrl, {
 			headers: {
 				'content-type': 'application/json',
 				tenantId: tenantId,
 			},
 		})
-
+		// Check for successful response and return the entity data
 		if (response.status === 200 && response.data) {
 			return response.data
 		} else {
@@ -1991,6 +2115,12 @@ async function fetchEntityDetails(entityId, tenantId) {
 	}
 }
 
+/**
+ * Generates targeting criteria based on scope and tenant code for entity management
+ * @param {Object} [scope={}] - Scope object containing entity filters and targeting parameters
+ * @param {string} tenant_code - The tenant code for database operations
+ * @returns {Promise<Object>} Object with success status and result array containing targeting criteria
+ */
 async function generateTargetingCriteria(scope = {}, tenant_code) {
 	try {
 		if (!scope || Object.keys(scope).length === 0) {
@@ -2496,4 +2626,285 @@ async function generateTargetingCriteria(scope = {}, tenant_code) {
 		console.error('Error in generateTargetingCriteria:', error)
 		return { success: false, error: error.message }
 	}
+}
+
+/**
+ * Generates a unique key for an entity type map by combining tenant and organization codes.
+ * @function generateEntityTypeMapKey
+ * @param {string} tenant_code - Code identifying the tenant.
+ * @param {string} organization_code - Code identifying the organization.
+ * @returns {string} A concatenated key in the format `${tenant_code}:${organization_code}`.
+ */
+function generateEntityTypeMapKey(tenant_code, organization_code) {
+	return `${tenant_code}:${organization_code}`
+}
+
+/**
+ * Formats an array of strings by removing parentheses content, converting to lowercase,
+ * trimming spaces, and replacing spaces with underscores.
+ * @function formatValues
+ * @param {string[]} arr - Array of strings to format.
+ * @returns {string[]} A new array of formatted strings.
+ */
+function formatValues(arr) {
+	return arr.map((value) => {
+		return value
+			.replace(/\s*\(.*?\)\s*/g, '')
+			.toLowerCase()
+			.trim()
+			.replace(/\s+/g, '_')
+	})
+}
+
+/**
+ * Converts a duration input into a standardized object with a numeric value and unit.
+ * @function convertDuration
+ * @param {string|Object} duration - The duration to convert. Can be a string like "5 days"
+ *                                   or an object containing `value` or `duration` properties.
+ * @returns {Object} An object with the shape `{ duration: string, number: number }`.
+ *                   `duration` is normalized to 'days', 'weeks', or 'months'.
+ *                   Returns an empty object `{}` if input is invalid or cannot be parsed.
+ * @example
+ * convertDuration("5 days") // { duration: "days", number: 5 }
+ * convertDuration({ value: "2 weeks" }) // { duration: "weeks", number: 2 }
+ */
+function convertDuration(duration) {
+	let durationString
+	// Determine the type of input and extract the duration string
+	if (typeof duration === 'object' && duration !== null && 'value' in duration) {
+		durationString = duration.value
+	} else if (typeof duration === 'string') {
+		durationString = duration
+	} else if (typeof duration === 'object' && duration !== null && 'duration' in duration) {
+		durationString = duration.duration
+	} else {
+		return {}
+	}
+	// Use regex to extract numeric value and unit from the duration string
+	const durationMatch = durationString.match(/(\d+)\s*([A-Za-z]+)/)
+	const durationNumber = durationMatch ? parseInt(durationMatch[1], 10) : 0
+	const durationUnit = durationMatch ? durationMatch[2].toUpperCase() : ''
+	// Map various unit representations to standardized units
+	const unitMapping = {
+		W: 'weeks',
+		D: 'days',
+		M: 'months',
+		MONTH: 'months',
+		MONTHS: 'months',
+		WEEKS: 'weeks',
+		WEEK: 'weeks',
+		DAY: 'days',
+		DAYS: 'days',
+	}
+	// Get the standardized duration unit or default to an empty string if not recognized
+	const durationType = unitMapping[durationUnit] || ''
+	// Return empty object if parsing failed or unit is unrecognized
+	return { duration: durationType, number: durationNumber }
+}
+
+/**
+ * Converts an array of keywords into a comma-separated string.
+ * @function convertKeywords
+ * @param {string[]} keywords - An array of keyword strings.
+ * @returns {string} A single string of comma-separated keywords. Returns an empty string if the input array is empty or not an array.
+ */
+function convertKeywords(keywords) {
+	if (Array.isArray(keywords) && keywords.length > 0) {
+		return keywords.join(',')
+	}
+	return ''
+}
+
+/**
+ * Converts an array of resource objects by filtering out those without links
+ * and mapping them to a standardized format.
+ * @function convertResources
+ * @param {Array<{ name?: string, link?: string }>} resources - Array of resource objects.
+ * @returns {Array<{ name: string, url: string }>} A new array of resources with `name` and `url` properties.
+ */
+function convertResources(resources) {
+	return resources
+		.filter(({ link }) => !!link)
+		.map(({ name, link }) => ({
+			name: name || 'Resource',
+			url: link,
+		}))
+}
+
+/**
+ * Logs the progress of a process as a percentage.
+ * @function logProgress
+ * @param {number} processed - The number of items processed so far.
+ * @param {number} total - The total number of items to process.
+ * @returns {void} Does not return a value; logs progress to the console.
+ */
+function logProgress(processed, total) {
+	const percentage = ((processed / total) * 100).toFixed(2)
+	console.log(`Processing progress: ${processed}/${total} (${percentage}%)`)
+}
+
+/**
+ * Writes a skipped record to a CSV file with details about the program and reason for skipping.
+ * @async
+ * @function writeSkippedRecord
+ * @param {Object} csvWriter - CSV writer instance with a `writeRecords` method.
+ * @param {string} programId - ID of the program.
+ * @param {string} solutionId - ID of the solution.
+ * @param {string} reason - Reason why the record was skipped.
+ * @param {string} resourceId - ID of the associated resource.
+ * @param {string} rolloutId - ID of the rollout.
+ * @param {string} [tenantCode='N/A'] - Tenant code, default is 'N/A'.
+ * @param {string} [orgCode='N/A'] - Organization code, default is 'N/A'.
+ * @param {string} [creatorId='N/A'] - ID of the creator, default is 'N/A'.
+ * @param {string} [assignedTo='N/A'] - ID of the assigned user, default is 'N/A'.
+ * @returns {Promise<void>} Resolves when the skipped record has been written to the CSV.
+ */
+async function writeSkippedRecord(
+	csvWriter,
+	programId,
+	solutionId,
+	reason,
+	resourceId,
+	rolloutId,
+	tenantCode = 'N/A',
+	orgCode = 'N/A',
+	creatorId = 'N/A',
+	assignedTo = 'N/A'
+) {
+	await csvWriter.writeRecords([
+		{
+			programId,
+			solutionId,
+			type: 'PROGRAM',
+			success: `Skipped: ${reason}`,
+			resourceId,
+			rolloutId,
+			tenantId: tenantCode,
+			orgId: orgCode,
+			creatorId,
+			assignedTo,
+		},
+	])
+}
+
+/**
+ * Writes a successful record to a CSV file with details about the program and message.
+ * @async
+ * @function writeSuccessRecord
+ * @param {Object} csvWriter - CSV writer instance with a `writeRecords` method.
+ * @param {string} programId - ID of the program.
+ * @param {string} solutionId - ID of the solution.
+ * @param {string} type - Type of the record.
+ * @param {string} message - Success message to log.
+ * @param {string} resourceId - ID of the associated resource.
+ * @param {string} rolloutId - ID of the rollout.
+ * @param {string} tenantCode - Tenant code.
+ * @param {string} orgCode - Organization code.
+ * @param {string} creatorId - ID of the creator.
+ * @param {string} assignedTo - ID of the assigned user.
+ * @returns {Promise<void>} Resolves when the success record has been written to the CSV.
+ */
+async function writeSuccessRecord(
+	csvWriter,
+	programId,
+	solutionId,
+	type,
+	message,
+	resourceId,
+	rolloutId,
+	tenantCode,
+	orgCode,
+	creatorId,
+	assignedTo
+) {
+	await csvWriter.writeRecords([
+		{
+			programId,
+			solutionId,
+			type,
+			success: message,
+			resourceId,
+			rolloutId,
+			tenantId: tenantCode,
+			orgId: orgCode,
+			creatorId,
+			assignedTo,
+		},
+	])
+}
+
+/**
+ * Writes an error record to a CSV file with details about the program and error message.
+ * @async
+ * @function writeErrorRecord
+ * @param {Object} csvWriter - CSV writer instance with a `writeRecords` method.
+ * @param {string} programId - ID of the program.
+ * @param {string} solutionId - ID of the solution.
+ * @param {string} type - Type of the record.
+ * @param {string} error - Error message to log.
+ * @param {string} resourceId - ID of the associated resource.
+ * @param {string} rolloutId - ID of the rollout.
+ * @param {string} tenantCode - Tenant code.
+ * @param {string} orgCode - Organization code.
+ * @param {string} creatorId - ID of the creator.
+ * @param {string} assignedTo - ID of the assigned user.
+ * @returns {Promise<void>} Resolves when the error record has been written to the CSV.
+ */
+async function writeErrorRecord(
+	csvWriter,
+	programId,
+	solutionId,
+	type,
+	error,
+	resourceId,
+	rolloutId,
+	tenantCode,
+	orgCode,
+	creatorId,
+	assignedTo
+) {
+	await csvWriter.writeRecords([
+		{
+			programId,
+			solutionId,
+			type,
+			success: `Error: ${error}`,
+			resourceId,
+			rolloutId,
+			tenantId: tenantCode,
+			orgId: orgCode,
+			creatorId,
+			assignedTo,
+		},
+	])
+}
+
+/**
+ * Cleans up user cache and entity type mappings to prevent memory leaks.
+ * @async
+ * @function cleanupCaches
+ * @param {Map} userCache - Map object storing cached user data.
+ * @param {Object} entityTypeEntityMap - Object mapping tenant/org keys to entity type data.
+ * @returns {Promise<void>} Resolves when caches have been cleaned up.
+ */
+async function cleanupCaches(userCache, entityTypeEntityMap) {
+	// Keep only recent user cache entries
+	if (userCache.size > USER_CACHE_SIZE) {
+		const keysToDelete = Array.from(userCache.keys()).slice(0, Math.floor(USER_CACHE_SIZE / 2))
+		keysToDelete.forEach((key) => userCache.delete(key))
+	}
+
+	// Clean up entity type mappings for inactive tenants
+	const activeKeys = Object.keys(entityTypeEntityMap)
+	if (activeKeys.length > 100) {
+		// Keep only recent 100 tenant/org combinations
+		const keysToDelete = activeKeys.slice(0, activeKeys.length - 100)
+		keysToDelete.forEach((key) => delete entityTypeEntityMap[key])
+	}
+
+	console.log(
+		`Cache cleanup: User cache size: ${userCache.size}, Entity type mappings: ${
+			Object.keys(entityTypeEntityMap).length
+		}`
+	)
 }
