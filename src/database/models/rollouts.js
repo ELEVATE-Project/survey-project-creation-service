@@ -85,6 +85,7 @@ module.exports = (sequelize, DataTypes) => {
 			paranoid: true,
 		}
 	)
+
 	// Define associations (foreign key constraints)
 	Rollout.associate = (models) => {
 		Rollout.belongsTo(models.Resource, {
@@ -95,6 +96,7 @@ module.exports = (sequelize, DataTypes) => {
 			onDelete: 'CASCADE',
 		})
 	}
+
 	// Helper function to emit user actions with dynamic action types
 	const emitUserAction = async (instance, actionType) => {
 		try {

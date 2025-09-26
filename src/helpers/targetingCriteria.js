@@ -65,45 +65,7 @@ module.exports = class targetingCriteria {
 				result['errors'] = validationErrors
 				throw new Error('Validation errors in targeting criteria')
 			}
-			// external validation to be added here
-			// const entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
-			// 	{
-			// 		model: common.MODEL_NAMES['TARGETING'],
-			// 		status: common.STATUS_ACTIVE,
-			// 	},
-			// 	orgCode,
-			// 	tenantCode,
-			// 	['id', 'value', 'label', 'config']
-			// )
-			// const filteredEntityTypes = utils.removeDefaultOrgEntityTypes(entityTypes, orgCode, defaultOrgCode)
-			// const externalEntityMap
 
-			// let externalEntityMap = {}
-
-			// for (const entity of filteredEntityTypes) {
-			// 	if (entity.is_external) {
-			// 		const { service, endPointService, pathParam, queryParam } = entity.api
-			// 		const { value } = entity
-			// 		// Initialize service object if it doesn't exist
-			// 		externalEntityMap[service] = externalEntityMap[service] || {}
-			// 		// Initialize endPointService array if it doesn't exist
-			// 		externalEntityMap[service][endPointService] = externalEntityMap[service][endPointService] || []
-			// 		// Push entity details to the endPointService array
-			// 		externalEntityMap[service][endPointService].push({ value, pathParam, queryParam })
-			// 	}
-			// }
-
-			// if (Object.keys(externalEntityMap).length > 0) {
-			// 	for (const service of Object.keys(externalEntityMap)) {
-			// 		const serviceUrl = process.env[`${service.replace(/-/g, '_').toUpperCase()}_SERVICE_HOST`]
-			// 		const serviceName = process.env[`${service.replace(/-/g, '_').toUpperCase()}_SERVICE_NAME`]
-			// 		const baseUrl = utils.buildUrl(serviceUrl, serviceName.toLowerCase())
-			// 		const endPoint = utils.buildUrl(baseUrl, externalEntityMap[service])
-
-			// 		const finalEndPoint = utils.buildUrl(baseUrl, endPoint , )
-
-			// 	}
-			// }
 			result['success'] = true
 			return result
 		} catch (error) {
@@ -156,12 +118,6 @@ function validateFactors(entity, factor, index) {
 	if (!factor.multi_select && typeof entity != 'string') {
 		validationErrors.push(utils.errorObject(targetingPath(index), factor.key, `${factor.key} must be a string`))
 	}
-
-	// if (Object.keys(factor.api).length > 0) {
-	// 	const serviceUrl = process.env[`${factor.api.service.replace(/-/g, '_').toUpperCase()}_HOST`]
-	// 	const baseUrl = utils.buildUrl(serviceUrl, factor.api.base_name.tolowerCase())
-	// 	const queryParams = factor?.api?.query_params || {}
-	// }
 
 	return validationErrors
 }

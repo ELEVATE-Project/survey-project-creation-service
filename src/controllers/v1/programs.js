@@ -128,6 +128,7 @@ module.exports = class Programs {
 	async getProgramManagers(req) {
 		try {
 			const dataManagers = await programService.getProgramManagers(
+				req.decodedToken.id,
 				req.decodedToken.organization_code,
 				req.decodedToken.tenant_code,
 				req.pageNo,

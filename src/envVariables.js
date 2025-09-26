@@ -354,16 +354,17 @@ let environmentVariables = {
 		default: 'config.json',
 	},
 	MONGO_DB_MODE: {
-		message: 'Required is mongo db mode shared or individual',
+		message: 'Mongo DB mode is required ("individual" or "shared")',
 		optional: true,
 		requiredIf: {
 			key: 'CONSUMPTION_SERVICE',
 			operator: 'NOT_EQUALS',
 			value: 'self',
 		},
+		possibleValues: [common.MONGO_DB_MODE_INDIVIDUAL, common.MONGO_DB_MODE_SHARED],
 	},
 	PROJECT_MONGO_DB_URL: {
-		message: 'Required is project mongo db url',
+		message: 'Project MongoDB URL is required',
 		optional: true,
 		requiredIf: {
 			key: 'MONGO_DB_MODE',
@@ -372,7 +373,7 @@ let environmentVariables = {
 		},
 	},
 	SURVEY_MONGO_DB_URL: {
-		message: 'Required is survey mongo db url',
+		message: 'Survey MongoDB URL is required',
 		optional: true,
 		requiredIf: {
 			key: 'MONGO_DB_MODE',
@@ -381,7 +382,7 @@ let environmentVariables = {
 		},
 	},
 	SHARED_MONGO_DB_URL: {
-		message: 'Required is survey mongo db url',
+		message: 'Shared MongoDB URL is required',
 		optional: true,
 		requiredIf: {
 			key: 'MONGO_DB_MODE',

@@ -109,7 +109,7 @@ const list = function (
 
 			const apiUrl = utils.buildUrl(userBaseUrl, endpoints.USERS_LIST, queryParams)
 
-			const userDetails = await requests.post(apiUrl, body, '', true)
+			const userDetails = await requests.post(apiUrl, body, userToken, true)
 			return resolve(userDetails)
 		} catch (error) {
 			return reject(error)

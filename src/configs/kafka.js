@@ -88,9 +88,7 @@ module.exports = async () => {
 			await consumer.subscribe({
 				topics,
 			})
-			logger.info(
-				`Subscribed to topics: ${process.env.CLEAR_INTERNAL_CACHE} , ${process.env.PROJECT_PUBLISH_KAFKA_TOPIC}, ${process.env.PROGRAM_PUBLISH_KAFKA_TOPIC} and ${process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC}`
-			)
+			logger.info(`Subscribed to topics: ${topics.join(',')}`)
 			await consumer.run({
 				eachMessage: async ({ topic, partition, message }) => {
 					try {

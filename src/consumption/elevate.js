@@ -30,7 +30,6 @@ const COLLECTIONS_MAP = new Map(
 		CATEGORIES: 'projectCategories',
 		TEMPLATES: 'projectTemplates',
 		TASKS: 'projectTemplateTasks',
-		USER_ROLES: 'userRoles',
 		PROGRAMS: 'programs',
 		SOLUTIONS: 'solutions',
 		CERTIFICATE_TEMPLATE: 'certificateTemplates',
@@ -121,10 +120,12 @@ async function processCategories(categories, orgCode, tenantCode) {
 		let existingCategories = []
 		const externalIds = formattedCategories.map((cat) => cat.externalId)
 		if (externalIds.length > 0) {
-			existingCategories = await categoriesCollection.find({ externalId: { $in: externalIds } }).toArray()
+			existingCategories = await categoriesCollection
+				.find({ externalId: { $in: externalIds }, tenantId: tenantCode })
+				.toArray()
 		}
 
-		const existingExternalIds = existingCategories.map((cat) => cat.externalId)
+		const existingExternalIds = [...new Set(existingCategories.map((cat) => cat.externalId))]
 
 		// Filter out categories that already exist
 		const newCategories = formattedCategories
@@ -151,7 +152,7 @@ async function processCategories(categories, orgCode, tenantCode) {
 			const { insertedIds } = await categoriesCollection.insertMany(newCategories)
 			newCategories.forEach((category, index) => {
 				category._id = insertedIds[index]
-				existingExternalIds.add(category.externalId)
+				existingExternalIds.push(category.externalId)
 			})
 		}
 
@@ -211,7 +212,7 @@ async function convertRecommendedRolesForProjects(recommendedFor) {
 const assignSequenceNumbers = (tasks) => {
 	/* Temporory fix start, because elevate-project doent have the observation capability in tasks now */
 	// Filter out 'observation' type tasks
-	const filteredTasks = tasks.filter((task) => task.type !== 'observation')
+	const filteredTasks = tasks.filter((task) => task.type !== common.OBSERVATION)
 	// Sort tasks based on their current sequence number (ascending order)
 	filteredTasks.sort((a, b) => a.sequence_no - b.sequence_no)
 	let sequenceCounter = 1
@@ -239,7 +240,7 @@ const assignSequenceNumbers = (tasks) => {
  * @param {String} parentId - parentId
  * @returns {Object} - Response contains task data
  */
-async function createTasks(tasks, templateId, templateExternalId, parentId = null) {
+async function createTasks(tasks, templateId, templateExternalId, parentId = null, organizationCode, tenantCode) {
 	const result = { success: false, taskIds: [], externalIds: [], error: null }
 	try {
 		const taskCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TASKS'))
@@ -262,6 +263,8 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				learningResources: utils.convertResources(task.learning_resources || []),
 				parentId,
 				deleted: false,
+				orgId: organizationCode,
+				tenantId: tenantCode,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			}
@@ -279,7 +282,14 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 
 			// Recursively handle child tasks
 			if (task.children?.length) {
-				const childTaskResult = await createTasks(task.children, templateId, templateExternalId, taskId)
+				const childTaskResult = await createTasks(
+					task.children,
+					templateId,
+					templateExternalId,
+					taskId,
+					organizationCode,
+					tenantCode
+				)
 
 				// Validate the child task creation
 				if (!childTaskResult.success) {
@@ -311,14 +321,14 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 
 /**
  * Fetch external entities from respective service
- * @name fetchExternalData
+ * @name fetchExternalEntities
  * @param {Object} apiData - task data
  * @param {Array} dataToFetch - List of entities to fetch
  * @param {String} entityType - Type of the entity
  * @param {String} tenantCode - tenant code of the entities
  * @returns {Array} - Array of entity names
  */
-const fetchExternalData = async (apiData, dataToFetch = [], entityType, tenantCode) => {
+const fetchExternalEntities = async (apiData, dataToFetch = [], entityType, tenantCode) => {
 	let result = []
 	try {
 		if (apiData && Object.keys(apiData) && dataToFetch.length > 0) {
@@ -381,19 +391,30 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 					const target = targeting?.[eachTargeting] || null
 					if (!Object.keys(scope).includes(eachTargeting)) scope[eachTargeting] = []
 					if (target && typeof target == 'string') {
+						// if the target is string , possibly we are expecting the _id of the entity.
+						// Hence push it directly making sure the value is unique
 						if (!scope[eachTargeting].includes(target)) scope[eachTargeting].push(target)
 					} else if (target && Array.isArray(target) && target.length > 0) {
-						target.forEach((t) => {
-							if (typeof t == 'string')
-								if (!scope[eachTargeting].includes(t)) scope[eachTargeting].push(t)
-							if (typeof t == 'object') {
-								const id = t?._id || t?.id || null
-								if (id && !scope[eachTargeting].includes(t)) scope[eachTargeting].push(t)
+						// if the target is an array , iterate through each element
+						target.forEach((targetEntity) => {
+							// if the element inside array is string , possibly we are expecting the _id of the entity.
+							// Hence push it directly making sure the value is unique
+							if (typeof targetEntity == 'string')
+								if (!scope[eachTargeting].includes(targetEntity))
+									scope[eachTargeting].push(targetEntity)
+							if (typeof targetEntity == 'object') {
+								// if the element inside array is an object.
+								// check for _id or id within the object
+								const id = targetEntity?._id || targetEntity?.id || null
+								if (id && !scope[eachTargeting].includes(targetEntity))
+									scope[eachTargeting].push(targetEntity)
 							}
 						})
 					} else if (target && typeof target == 'object' && Object.keys(target).length > 0) {
-						const id = t?._id || t?.id || null
-						if (id && !scope[eachTargeting].includes(t)) scope[eachTargeting].push(t)
+						// if the target is an object.
+						// check for _id or id within the object.
+						const id = target?._id || target?.id || null
+						if (id && !scope[eachTargeting].includes(target)) scope[eachTargeting].push(target)
 					}
 				}
 			}
@@ -415,7 +436,11 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 					for (const metaKey of metaInformationKeys) {
 						const find = filteredEntityTypes.find((entity) => entity.value == metaKey)
 						if (find && Object.keys(find).length > 0) {
-							const exEntity = await fetchExternalData(find?.config?.api, scope?.[metaKey], tenantCode)
+							const exEntity = await fetchExternalEntities(
+								find?.config?.api,
+								scope?.[metaKey],
+								tenantCode
+							)
 							const key = metaLocalMap?.[metaKey] ? metaLocalMap[metaKey] : metaKey
 							acc[key] = exEntity
 								.map((ent) => ent?.['metaInformation.name'])
@@ -560,13 +585,19 @@ const publishProjectTemplates = function (templateData) {
 			}
 			// Format the template
 			let formattedTemplate = formatTemplate({ ...projectData })
-			if (!formattedTemplate.success) {
+			if (
+				!formattedTemplate.success &&
+				formattedTemplate?.template &&
+				Object.keys(formattedTemplate.template) > 0
+			) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
 
 			let template = formattedTemplate.template
 
-			projectsMongoConnection = await connectMongo(projectsMongoDBUrl)
+			projectsMongoConnection = projectsMongoConnection
+				? projectsMongoConnection
+				: await connectMongo(projectsMongoDBUrl)
 
 			// Process Categories
 			if (projectData.categories?.length > 0) {
@@ -603,7 +634,14 @@ const publishProjectTemplates = function (templateData) {
 
 			// Process and Create Tasks
 			const processedTasks = assignSequenceNumbers(projectData.tasks || [])
-			const taskCreationResponse = await createTasks(processedTasks, templateId, template.externalId)
+			const taskCreationResponse = await createTasks(
+				processedTasks,
+				templateId,
+				template.externalId,
+				null,
+				projectData.organization_code,
+				projectData.tenant_code
+			)
 
 			// Validate the result of the task creation
 			if (!taskCreationResponse.success) {
@@ -1648,7 +1686,9 @@ const publishProgram = function async(programData) {
 			let result = {}
 			let solutions = []
 			let programId = template?._id ? ObjectId(template?._id) : null
-			projectsMongoConnection = await connectMongo(projectsMongoDBUrl)
+			projectsMongoConnection = projectsMongoConnection
+				? projectsMongoConnection
+				: await connectMongo(projectsMongoDBUrl)
 
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {

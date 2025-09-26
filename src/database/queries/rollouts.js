@@ -18,7 +18,7 @@ exports.create = async (data) => {
 
 exports.findOne = async (filter, options = {}, addResourceConstraints = false) => {
 	try {
-		// Add resourceDetails to options.include if flag is true
+		// Add resource_details to options.include if flag is true
 		if (addResourceConstraints) {
 			options.include = [
 				...(options.include || []),

@@ -885,6 +885,7 @@ module.exports = class resourceHelper {
 			let result = {
 				organization: {},
 			}
+
 			// if resourceInfo string then get resource details from resource table or it will already has details so we can skip DB query
 			if (typeof resourceInfo === common.STRING || typeof resourceInfo === common.NUMBER) {
 				resource = await resourceQueries.findOne({
@@ -1624,7 +1625,21 @@ module.exports = class resourceHelper {
 
 			//written as a beckup will remove once the user service PR merged
 			if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
-				userList = reviewers.data.result.data.filter((user) => user.id != user_id)
+				userList = reviewers.data.result.data
+					.filter((user) => user.id != user_id)
+					.map((user) => {
+						return {
+							id: user.id,
+							email: user?.email || '',
+							name: user?.name,
+							username: user?.username,
+							phone_code: user?.phone_code || '',
+							phone: user?.phone || '',
+							status: user?.status,
+							organization: user?.user_organizations?.[0]?.organization || {},
+							organization_code: user?.user_organizations?.[0]?.organization_code || '',
+						}
+					})
 			}
 
 			return responses.successResponse({

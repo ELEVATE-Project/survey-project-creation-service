@@ -2,6 +2,8 @@ const commonHelper = require('@commonTests')
 const schema = require('./responseSchema')
 jest.setTimeout(20000)
 
+let defaultOrgCode = process.env.DEFAULT_ORG_CODE || 'default_code'
+
 describe('Review Stages APIs ', function () {
 	let userDetails
 
@@ -24,7 +26,7 @@ describe('Review Stages APIs ', function () {
 	})
 
 	it('Update Review Stages with invalid data', async () => {
-		let res = await request.put('/scp/v1/review-stages/update/2?organization_code=1').send({
+		let res = await request.put(`/scp/v1/review-stages/update/2?organization_code=${defaultOrgCode}`).send({
 			level: 2,
 			resource_type: 'observation',
 		})
@@ -32,7 +34,7 @@ describe('Review Stages APIs ', function () {
 	})
 
 	it('Update Review Stages with valid data', async () => {
-		let res = await request.put('/scp/v1/review-stages/update/2?organization_code=1').send({
+		let res = await request.put(`/scp/v1/review-stages/update/2?organization_code=${defaultOrgCode}`).send({
 			role: 'reviewer',
 			level: 2,
 			resource_type: 'observation',

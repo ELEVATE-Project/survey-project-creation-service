@@ -45,12 +45,11 @@ const pushResourceToKafka = async (message, resourceType) => {
 			[common.PROJECT]: process.env.PROJECT_PUBLISH_KAFKA_TOPIC,
 			[common.PROGRAM]: process.env.PROGRAM_PUBLISH_KAFKA_TOPIC,
 		}
-		const topic =
-			topicMap[resourceType] ??
-			(() => {
-				console.warn(`Publishing for resource type '${resourceType}' is not implemented.`)
-				return
-			})()
+		const topic = topicMap[resourceType]
+		if (!topic) {
+			console.warn(`Publishing for resource type '${resourceType}' is not implemented.`)
+			return
+		}
 
 		const payload = {
 			topic: topic,

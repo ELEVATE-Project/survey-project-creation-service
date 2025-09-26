@@ -1,13 +1,16 @@
 version: '3.9'
 services:
   zookeeper:
-    image: 'confluentinc/cp-zookeeper:7.3.0'
+    image: 'zookeeper:3.8.0'
     container_name: zookeeper
     ports:
       - '2181:2181'
     environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
-      - ZOOKEEPER_CLIENT_PORT=2181
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181
+      JVMFLAGS: "-XX:-UseContainerSupport -Xmx512m -Xms256m"
+    # - ALLOW_ANONYMOUS_LOGIN=yes
+    # - ZOOKEEPER_CLIENT_PORT=2181
     networks:
       - elevate_net
     logging:
@@ -18,6 +21,16 @@ services:
     container_name: kafka
     ports:
       - '9092:9092'
+    command: >
+      bash -c '
+        (
+          until nc -z zookeeper 2181; do
+            sleep 1; 
+          done;
+          export KAFKA_JVM_PERFORMANCE_OPTS="-XX:-UseContainerSupport -Xmx1G -Xms1G";
+          /etc/confluent/docker/run
+        ) &> /dev/null
+      '
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -46,7 +59,8 @@ services:
       driver: none
 
   postgres:
-    image: 'postgres:latest'
+    # image: 'postgres:latest'
+    image: citusdata/citus:latest
     container_name: postgres
     ports:
       - '5432:5432'
@@ -81,23 +95,28 @@ services:
     build: '../../user/'
     container_name: user
     ports:
-      - '5001:5001'
+      - '3001:3001'
     command: >
-      bash -c "echo 'Waiting for PostgreSQL to accept connections...' &&
-        until timeout 1 bash -c '</dev/tcp/postgres/5432' >/dev/null 2>&1; do
-            echo 'Waiting for PostgreSQL to be ready...'
-            sleep 1
+      bash -c '
+        echo "Waiting for PostgreSQL to accept connections..." &&
+        until timeout 1 bash -c "</dev/tcp/postgres/5432" >/dev/null 2>&1; do
+          echo "Waiting for PostgreSQL to be ready..."
+          sleep 1
         done &&
-        echo 'Database is ready.' &&
-        if ! psql -U postgres -h postgres -lqt | cut -d \| -f 1 | grep -qw integration_test_user; then
-            npm run db:init && npm run db:seed:all
+
+        if psql -U postgres -h postgres -lqt | cut -d \| -f 1 | grep -qw integration_test_user; then
+          echo "DB exists. Running migrate and seed...";
+          npm run db:migrate &&
+          npm run db:seed:all
         else
-            echo 'Database already exists. Skipping initialization and seeding.'
-            exit 0
+          echo "DB does not exist. Running init...";
+          npm run db:init && npm run db:seed:all
         fi &&
-        (echo 'Running User' && nodemon app.js &) &&
-        (/bin/bash -c 'cd scripts && echo Running user service scripts && node insertDefaultOrg.js && node viewsScript.js') &&
-        tail -f /dev/null"
+
+        (echo "Running User" && nodemon app.js &) &&
+        tail -f /dev/null
+      '
+  
     depends_on:
       - kafka
       - redis
@@ -122,30 +141,32 @@ services:
     command: >
       bash -c '
         echo "Waiting for User service to accept connections...";
-        until nc -z user 5001; do
-            echo "Waiting for User service to be ready...";
-            sleep 1;
+        until nc -z user 3001; do
+          echo "Waiting for User service to be ready...";
+          sleep 1;
         done &&
         echo "User service is ready.";
 
         echo "Waiting for PostgreSQL to accept connections...";
         until nc -z postgres 5432; do
-            echo "Waiting for PostgreSQL to be ready...";
-            sleep 1;
+          echo "Waiting for PostgreSQL to be ready...";
+          sleep 1;
         done &&
         echo "PostgreSQL is ready.";
 
-        echo "Checking if database exists...";
-        if psql -h postgres -U postgres -lqt | cut -d \| -f 1 | grep -qw integration_test_scp; then
-          echo "Database exists. Running migrations...";
-          npm run db:migrate;
+        if psql -U postgres -h postgres -lqt | cut -d \| -f 1 | grep -qw integration_test_scp; then
+          echo "DB exists. Running migrate and seed...";
+          npm run db:migrate &&
+          npm run db:seed:all
         else
-          echo "Database does not exist. Running db:init...";
-          npm run db:init;
-        fi &&
-        
-        echo "Starting the application...";
-        nodemon app.js && tail -f /dev/null'
+          echo "DB does not exist. Running init...";
+          npm run db:init
+        fi
+
+        (echo "Running User" && nodemon app.js &) &&
+        (/bin/bash -c "cd scripts && echo Running scp service scripts && node addDefaultEntitiesForEducationSector.js") &&
+        tail -f /dev/null
+      '
     environment:
       - DEV_DATABASE_URL=postgres://postgres:postgres@postgres:5432/integration_test_scp
       - KAFKA_URL=kafka:9092

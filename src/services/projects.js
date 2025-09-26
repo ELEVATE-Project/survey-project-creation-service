@@ -343,7 +343,9 @@ module.exports = class ProjectsHelper {
 
 			let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
 				resourceCreatorMapping.id,
-				loggedInUserId
+				loggedInUserId,
+				organizationCode,
+				tenantCode
 			)
 			let updatedProject = await resourceQueries.deleteOne(resourceId, organizationCode, tenantCode)
 

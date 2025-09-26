@@ -254,4 +254,5 @@ module.exports = {
 	MONGO_DB_MODE_INDIVIDUAL: 'individual',
 	MONGO_DB_MODE_SHARED: 'shared',
 	TARGETING: 'targeting_criteria',
+	OBSERVATION: 'observation',
 }

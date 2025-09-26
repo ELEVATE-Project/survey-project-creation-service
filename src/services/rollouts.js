@@ -249,7 +249,7 @@ module.exports = class RolloutsHelper {
 	 * @param pageSize - Page size
 	 * @returns {JSON} - List of data managers
 	 */
-	static async getDataManagers(org_code, tenant_code, pageNo, pageSize, userToken = '') {
+	static async getDataManagers(user_id, org_code, tenant_code, pageNo, pageSize, userToken = '') {
 		try {
 			// get org config based on org_code
 			const orgConfigs = await orgExtensionService.getConfig(org_code, tenant_code)
@@ -272,7 +272,23 @@ module.exports = class RolloutsHelper {
 			}
 
 			if (dataManagersList.success && dataManagersList?.data?.result?.data.length) {
-				result = dataManagersList?.data?.result
+				result.data = dataManagersList.data?.result?.data
+					.filter((user) => user.id != user_id)
+					.map((user) => {
+						return {
+							id: user.id,
+							email: user?.email || '',
+							name: user?.name,
+							username: user?.username,
+							phone_code: user?.phone_code || '',
+							phone: user?.phone || '',
+							status: user?.status,
+							organization: user?.user_organizations?.[0]?.organization || {},
+							organization_code: user?.user_organizations?.[0]?.organization_code || '',
+						}
+					})
+
+				result.count = dataManagersList.data?.result?.count
 			}
 
 			return responses.successResponse({

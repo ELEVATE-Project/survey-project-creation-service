@@ -140,12 +140,12 @@ exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = c
 		}
 
 		const res = await Resource.findAndCountAll(resourceFilter)
-
 		return { result: res.rows, count: res.count }
 	} catch (error) {
 		return error
 	}
 }
+
 exports.count = async (filter) => {
 	try {
 		const result = await Resource.count({ where: filter })

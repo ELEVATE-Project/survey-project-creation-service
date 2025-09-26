@@ -670,8 +670,12 @@ const convertResources = (resources) => {
  */
 function formatKeywords(keywords) {
 	try {
-		if (Array.isArray(keywords) && keywords.length > 0) return keywords.map((k) => k.trim())
-		if (typeof keywords === 'string') return keywords.split(',').map((k) => k.trim())
+		if (Array.isArray(keywords) && keywords.length > 0) return keywords.map((k) => String(k).trim()).filter(Boolean)
+		if (typeof keywords === 'string')
+			return keywords
+				.split(',')
+				.map((k) => k.trim())
+				.filter(Boolean)
 		return []
 	} catch (error) {
 		console.error('Error in formating keywords : ', error)

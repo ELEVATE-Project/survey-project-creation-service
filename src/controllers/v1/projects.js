@@ -65,8 +65,8 @@ module.exports = class Projects {
 		try {
 			const project = await projectService.details(
 				req.params.id,
-				req.decodedToken.tenant_code,
-				req.decodedToken.organization_code
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
 			)
 			return project
 		} catch (error) {

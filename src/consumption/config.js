@@ -16,9 +16,17 @@ if (consumptionServiceType !== common.CONSUMPTION_SERVICE_SELF) {
 	if (process.env.MONGO_DB_MODE === common.MONGO_DB_MODE_INDIVIDUAL) {
 		projectsMongoDBUrl = process.env.PROJECT_MONGO_DB_URL || null
 		surveyMongoDBUrl = process.env.SURVEY_MONGO_DB_URL || null
+		if (!projectsMongoDBUrl || !surveyMongoDBUrl) {
+			throw new Error(
+				`PROJECT_MONGO_DB_URL and SURVEY_MONGO_DB_URL are required for MONGO_DB_MODE=${common.MONGO_DB_MODE_INDIVIDUAL}`
+			)
+		}
 	} else if (process.env.MONGO_DB_MODE === common.MONGO_DB_MODE_SHARED) {
 		projectsMongoDBUrl = process.env.SHARED_MONGO_DB_URL || null
 		surveyMongoDBUrl = process.env.SHARED_MONGO_DB_URL || null
+		if (!projectsMongoDBUrl || !surveyMongoDBUrl) {
+			throw new Error(`SHARED_MONGO_DB_URL is required for MONGO_DB_MODE=${common.MONGO_DB_MODE_SHARED}`)
+		}
 	} else {
 		throw new Error(
 			'MONGO_DB_MODE is not set correctly in the environment variables. It should be either "individual" or "shared".'
@@ -26,8 +34,8 @@ if (consumptionServiceType !== common.CONSUMPTION_SERVICE_SELF) {
 	}
 }
 
-console.log(`Projects MongoDB URL: ${projectsMongoDBUrl}`)
-console.log(`Survey MongoDB URL: ${surveyMongoDBUrl}`)
+console.log(`Projects MongoDB ${projectsMongoDBUrl ? 'Connected' : 'Not Connected'}`)
+console.log(`Survey MongoDB ${surveyMongoDBUrl ? 'Connected' : 'Not Connected'}`)
 
 module.exports = {
 	consumptionServiceType,

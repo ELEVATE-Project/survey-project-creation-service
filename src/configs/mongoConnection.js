@@ -1,3 +1,11 @@
+/**
+ * name : mongoConnection.js
+ * author : Adithya Dinesh
+ * created-date : 09-SEPT-2025
+ * Description : Handle mongo connections in a class
+ * so that variour instances of the classes can be used for multiple mongo connections based on the usecase.
+ */
+
 const { MongoClient } = require('mongodb')
 
 class MongoDBConnection {

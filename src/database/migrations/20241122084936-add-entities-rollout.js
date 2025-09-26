@@ -237,6 +237,7 @@ module.exports = {
 			}
 		} catch (error) {
 			console.error('ERR : : ', error)
+			throw error
 		}
 	},
 
