@@ -1,10 +1,12 @@
-openapi: 3.0.0
+openapi: 3.1.0
 info:
   title: Elevate Survey Project Creation Portal Service
   version: 1.0.0
   description: |-
     - The Survey Project Creation Portal Service is a centralized service that supports designing of resources.
     - The URL to access the Creation Portal API(s) is `{context}/scp/v1` - <b>Note:</b> These resources can be used in other services.
+    - For all CRUD operation using  `SYSTEMADMIN` pass <b>tenant-id</b> and <b>organization-id</b> in header for `ORGADMIN` backend will take it from token
+    _One Majpr change in this version how we get certificate `base_template_url` in project Details and program Details, Response structure Attached in project Details API RESPONSE
   contact:
     email: tech-infra@shikshalokam.org
 servers:
@@ -2292,7 +2294,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/createForm400Response'
   '/scp/v1/form/update/{formId}':
-    patch:
+    post:
       operationId: formUpdate
       summary: Update form
       tags:
@@ -2786,7 +2788,7 @@ paths:
                       type: number
                       description: The ID of the base certificate template.
                     base_template_url:
-                      type: string
+                      type: object
                       description: The url of the base certificate template.
                     issuer:
                       type: string
@@ -2975,7 +2977,9 @@ paths:
                         link: 'https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4'
                   certificate:
                     base_template_id: 5
-                    base_template_url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
+                    base_template_url:
+                      filePath: 'certfile_BASE_TEMPLATE/system/cert/41e1b3e6-e065-4b1c-9069-c3af6b4fdb7e/one_logo_one_sign.svg'
+                      url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
                     code: two-logo-two-sign
                     name: Two Logo Two Signature
                     logos:
@@ -3464,7 +3468,9 @@ paths:
                             link: 'https://dummyhost.solutions.observation/2ae3w2as6de5swe4rd33q2r24f4'
                       certificate:
                         base_template_id: 5
-                        base_template_url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
+                        base_template_url:
+                          filePath: 'certfile_BASE_TEMPLATE/system/cert/41e1b3e6-e065-4b1c-9069-c3af6b4fdb7e/one_logo_one_sign.svg'
+                          url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
                         code: two-logo-two-sign
                         name: Two Logo Two Signature
                         logos:
