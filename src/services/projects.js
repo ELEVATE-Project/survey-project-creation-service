@@ -376,7 +376,7 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - Project data.
 	 */
 
-	static async details(projectId, orgCode, tenantCode, userId, commentsOptions = {}) {
+	static async details(projectId, orgCode, tenantCode, commentsOptions = {}) {
 		try {
 			let result = {
 				organization: {},
@@ -400,7 +400,6 @@ module.exports = class ProjectsHelper {
 					type: common.PROJECT,
 					organization_code: orgCode,
 					tenant_code: tenantCode,
-					created_by: userId,
 				},
 				options
 			)
