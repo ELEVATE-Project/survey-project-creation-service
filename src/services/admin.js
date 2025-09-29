@@ -497,7 +497,7 @@ module.exports = class AdminService {
 	static async setupCertificateBaseTemplates(newTenantCode, newOrgCode, userId) {
 		console.log('--- Setting up Certificate Base Templates ---')
 		try {
-			// First, check which default templates already exista
+			// First, check which default templates already exist
 			const certificatesArray = await certificateQueries.findAll({
 				tenant_code: DEFAULT_TENANT_CODE,
 				organization_code: DEFAULT_ORGANIZATION_CODE,
