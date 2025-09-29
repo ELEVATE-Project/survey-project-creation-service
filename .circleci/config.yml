@@ -83,7 +83,9 @@ jobs:
 
             # Output the file content for verification
             cat $USER_ENV_FILE
-
+      - run:
+          name: Copy config.json into SCP src
+          command: cp dev-ops/sample_config.json src/config.json
       - run:
           name: Starting the docker containers
           command: |-

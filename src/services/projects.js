@@ -343,7 +343,9 @@ module.exports = class ProjectsHelper {
 
 			let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
 				resourceCreatorMapping.id,
-				loggedInUserId
+				loggedInUserId,
+				organizationCode,
+				tenantCode
 			)
 			let updatedProject = await resourceQueries.deleteOne(resourceId, organizationCode, tenantCode)
 
@@ -374,7 +376,7 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - Project data.
 	 */
 
-	static async details(projectId, orgCode, tenantCode, userId, commentsOptions = {}) {
+	static async details(projectId, orgCode, tenantCode, commentsOptions = {}) {
 		try {
 			let result = {
 				organization: {},
@@ -398,7 +400,6 @@ module.exports = class ProjectsHelper {
 					type: common.PROJECT,
 					organization_code: orgCode,
 					tenant_code: tenantCode,
-					created_by: userId,
 				},
 				options
 			)

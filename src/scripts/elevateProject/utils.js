@@ -5,6 +5,8 @@
  * Description : Migration helper function.
  */
 
+const { ObjectId } = require('mongodb')
+
 /**
  * Converts a duration object
  * @param {Object} duration - The duration object to convert.
@@ -130,6 +132,46 @@ function isValidObjectIdOrUUID(value) {
 	return objectIdRegex.test(value) || uuidRegex.test(value)
 }
 
+/**
+ * Normalize an array of components into ObjectIds
+ * Supports:
+ *  - Array of ObjectIds
+ *  - Array of strings
+ *  - Array of objects containing _id (and optionally order or other fields)
+ *
+ * @param {Array} components - The array to normalize
+ * @param {Object} [options] - Optional config
+ * @param {boolean} [options.preserveObject=false] - If true, keeps the object structure (preserves order etc.)
+ * @returns {Array} - Array of ObjectIds (or objects with normalized _id if preserveObject is true)
+ */
+function normalizeToObjectIds(components, { preserveObject = false } = {}) {
+	if (!Array.isArray(components)) return []
+
+	return components
+		.map((comp) => {
+			if (!comp) return null
+
+			// Case 1: Already an ObjectId
+			if (comp instanceof ObjectId) {
+				return preserveObject ? { _id: comp, ...comp } : comp
+			}
+
+			// Case 2: Object with _id
+			if (typeof comp === 'object' && comp._id) {
+				const objectId = comp._id instanceof ObjectId ? comp._id : new ObjectId(comp._id)
+				return preserveObject ? { ...comp, _id: objectId } : objectId
+			}
+
+			// Case 3: String
+			if (typeof comp === 'string') {
+				return preserveObject ? { _id: new ObjectId(comp) } : new ObjectId(comp)
+			}
+
+			return null
+		})
+		.filter(Boolean) // Remove nulls
+}
+
 module.exports = {
 	convertDuration,
 	convertResources,
@@ -138,4 +180,5 @@ module.exports = {
 	formatTitle,
 	formatEntityValue,
 	isValidObjectIdOrUUID,
+	normalizeToObjectIds,
 }

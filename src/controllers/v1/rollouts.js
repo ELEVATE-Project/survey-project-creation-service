@@ -57,6 +57,7 @@ module.exports = class rollouts {
 	async getDataManagers(req) {
 		try {
 			const dataManagers = await rolloutService.getDataManagers(
+				req.decodedToken.id,
 				req.decodedToken.organization_code,
 				req.decodedToken.tenant_code,
 				req.pageNo,

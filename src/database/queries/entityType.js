@@ -7,7 +7,8 @@ const utils = require('@generics/utils')
 module.exports = class UserEntityData {
 	static async createEntityType(data) {
 		try {
-			return await EntityType.create(data, { returning: true })
+			const createEntityType = await EntityType.create(data, { returning: true })
+			return createEntityType.toJSON()
 		} catch (error) {
 			throw error
 		}
