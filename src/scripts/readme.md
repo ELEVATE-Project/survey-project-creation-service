@@ -45,23 +45,6 @@ This script creates default targeting for default tenant and org
 ⚠️ Note: Before running the scrpit make sure the config file is updated and added.
 ⚠️ Note: Add custom code for other environments other than elevate
 
-### 🔧 Steps to Run:
-
-1. Navigate to the scripts directory:
-
-    ```bash
-     cd src/scripts
-    ```
-
-2. Execute the entity creation script:
-    ```bash
-          node -r module-alias/register elevateProject/addDefaultTargeting.js
-    ```
-3. Set up new tenant dependencies in SCP
-    ```bash
-    node setupTenant.js --tenant_code=shikshagraha --organization_code=blr
-    ```
-
 ### 🔄 Migration Scripts
 
 #### 📁 Elevate Project Migration

@@ -1,3 +1,4 @@
+require('module-alias/register')
 const utils = require('@generics/utils')
 const path = require('path')
 const srcPath = `${path.sep}${utils.pathFinder(__dirname, 'src')}`

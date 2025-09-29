@@ -1,0 +1,138 @@
+{
+	"authTokenUserInformation": {
+		"id": "data.id",
+		"name": "data.name",
+		"organization_id": "data.organization_ids[0]",
+		"organization_code": "data.organization_codes[0]",
+		"organizations": "data.organizations",
+		"roles": "data.organizations[?code={{organization_code}}].roles",
+		"tenant_code": "data.tenant_code"
+	},
+	"targeting_criteria": {
+		"ui_config": {
+			"tabs": [
+				{
+					"id": "location",
+					"name": "Location ",
+					"fields": ["state", "entityType", "professional_role", "professional_subroles"]
+				},
+				{
+					"id": "gender",
+					"name": "Gender",
+					"fields": ["gender"]
+				}
+			]
+		},
+		"factors": [
+			{
+				"key": "state",
+				"mandatory": true,
+				"order": 1,
+				"depends_on": null,
+				"type": "selection",
+				"default": null,
+				"multi_select": false,
+				"api": {
+					"service": "entity-service",
+					"base_name": "entity-management",
+					"endpoint": "v1/entities/entityListBasedOnEntityType",
+					"query_params": {
+						"entityType": "state",
+						"paginate": true,
+						"page": "{$page}",
+						"limit": "{$limit}"
+					},
+					"method": "GET",
+					"data_key": "result.data"
+				}
+			},
+			{
+				"key": "entityType",
+				"mandatory": true,
+				"order": 2,
+				"depends_on": ["state"],
+				"type": "selection",
+				"default": null,
+				"multi_select": false,
+				"api": {
+					"service": "entity-service",
+					"base_name": "entity-management",
+					"endpoint": "v1/entities/subEntityListBasedOnRoleAndLocation/{stateId}",
+					"method": "GET",
+					"path_params": {
+						"stateId": "{$state._id}"
+					},
+					"query_params": {
+						"paginate": true,
+						"page": "{$page}",
+						"limit": "{$limit}"
+					},
+					"data_key": "result.data"
+				}
+			},
+			{
+				"key": "professional_role",
+				"mandatory": true,
+				"order": 3,
+				"depends_on": ["entityType"],
+				"type": "selection",
+				"default": null,
+				"multi_select": false,
+				"api": {
+					"service": "entity-service",
+					"base_name": "entity-management",
+					"endpoint": "v1/entities/entityListBasedOnEntityType",
+					"method": "GET",
+					"query_params": {
+						"entityType": "professional_role",
+						"paginate": true,
+						"page": "{$page}",
+						"limit": "{$limit}"
+					},
+					"data_key": "result.data"
+				}
+			},
+			{
+				"key": "professional_subroles",
+				"mandatory": true,
+				"order": 4,
+				"depends_on": ["professional_role"],
+				"type": "selection",
+				"default": null,
+				"multi_select": true,
+				"api": {
+					"service": "entity-service",
+					"base_name": "entity-management",
+					"endpoint": "v1/entities/targetedRoles/{roleId}",
+					"path_params": {
+						"roleId": "{$professional_role._id}"
+					},
+					"method": "GET",
+					"query_params": {
+						"entityType": "{$entityType}",
+						"paginate": true,
+						"page": "{$page}",
+						"limit": "{$limit}"
+					},
+					"data_key": "result.data"
+				}
+			},
+			{
+				"key": "gender",
+				"mandatory": false,
+				"order": 9,
+				"depends_on": null,
+				"type": "independent",
+				"default": null,
+				"multi_select": true,
+				"api": {
+					"service": "user-service",
+					"base_name": "user",
+					"endpoint": "/entityType/read/gender",
+					"method": "GET",
+					"data_key": "result.data"
+				}
+			}
+		]
+	}
+}
