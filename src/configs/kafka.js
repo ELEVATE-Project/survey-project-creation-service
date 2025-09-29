@@ -87,7 +87,11 @@ module.exports = async () => {
 						} else if (topic == process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC) {
 							await consumptionService.publishProgram(streamingData)
 						} else if (topic == process.env.USER_SERVICE_TENANT_CREATION_TOPIC) {
-							await adminService.createTenantDependencies(streamingData)
+							await adminService.createTenantDependencies(
+								streamingData.code,
+								streamingData.org_code,
+								streamingData.created_by
+							)
 						}
 					} catch (error) {
 						logger.error('Error processing Kafka message:', { error })

@@ -86,9 +86,9 @@ exports.findAll = async (filter, options = {}) => {
 	}
 }
 
-exports.bulkCreate = async (data) => {
+exports.bulkCreate = async (data, options = {}) => {
 	try {
-		return await EntityModelMapping.bulkCreate(data)
+		return await EntityModelMapping.bulkCreate(data, options)
 	} catch (error) {
 		throw error
 	}

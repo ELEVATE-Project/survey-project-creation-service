@@ -357,7 +357,7 @@ let environmentVariables = {
 		message: 'Required user service tenant event',
 		optional: true,
 		requiredIf: {
-			key: 'RESOURCE_KAFKA_PUSH_ON_OFF',
+			key: 'KAFKA_COMMUNICATIONS_ON_OFF',
 			operator: 'EQUALS',
 			value: 'ON',
 		},

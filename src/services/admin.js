@@ -74,20 +74,20 @@ module.exports = class AdminService {
 	 * Create tenant Dependencies data
 	 * @method
 	 * @name createTenantDependencies
-	 * @param {String} bodyData - action creation data
+	 * @param {String} tenant_code - tenant code
+	 * @param {String} organization_code - organization_code
+	 * @param {String} userId - userId
 	 * @returns {JSON} - action creation response
 	 */
-	static async createTenantDependencies(bodyData, loggedInUserId) {
+	static async createTenantDependencies(tenant_code, organization_code, userId) {
 		try {
-			if (!bodyData.code || !bodyData.org_code) {
+			if (!tenant_code || !organization_code) {
 				return responses.failureResponse({
 					statusCode: httpStatusCode.bad_request,
 					message: `Tenant or Organization code Missing `,
 				})
 			}
-			let tenant_code = bodyData?.code
-			let organization_code = bodyData?.org_code
-			let userId = bodyData?.created_by ?? loggedInUserId
+
 			// 1. Setup Entity Types and Entities
 			await this.setupEntityTypes(tenant_code, organization_code, userId)
 
@@ -560,11 +560,16 @@ module.exports = class AdminService {
 						// Get signed URL for file upload
 						const getSignedUrl = await filesService.getSignedUrl(
 							payloadData,
-							'BASE_TEMPLATE',
+							common.BASE_TEMPLATE,
 							'system',
 							false
 						)
-						if (!getSignedUrl.result) {
+						if (
+							!getSignedUrl.result ||
+							!getSignedUrl.result.cert ||
+							!Array.isArray(getSignedUrl.result.cert.files) ||
+							getSignedUrl.result.cert.files.length === 0
+						) {
 							throw new Error(`Failed to generate signed URL for ${fileName}`)
 						}
 
@@ -573,7 +578,14 @@ module.exports = class AdminService {
 						const fileData = fs.readFileSync(filePath)
 
 						// Upload file to cloud storage
-						await requests.put(fileUploadUrl, fileData, 'application/multipart/form-data')
+						let cloudUpload = await requests.put(fileUploadUrl, fileData, 'application/multipart/form-data')
+
+						if (!cloudUpload.success) {
+							throw {
+								statusCode: httpStatusCode.ok,
+								message: 'Failed to upload file to cloud storage',
+							}
+						}
 
 						currentCertificate = _.omit(currentCertificate, ['id'])
 						// Prepare certificate data for database insertion

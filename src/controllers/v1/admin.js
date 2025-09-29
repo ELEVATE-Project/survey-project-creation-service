@@ -39,7 +39,11 @@ module.exports = class admin {
 	 */
 	async createTenantDependencies(req) {
 		try {
-			let tenantDependeciesData = await adminService.createTenantDependencies(req.body, req.decodedToken.id)
+			let tenantDependeciesData = await adminService.createTenantDependencies(
+				req.body.tenant_code,
+				req.body.organization_code,
+				req.decodedToken.id
+			)
 			return tenantDependeciesData
 		} catch (error) {
 			return error

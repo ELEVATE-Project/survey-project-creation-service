@@ -99,6 +99,17 @@ var post = function (
 	})
 }
 
+/**
+ * Upload a file to cloud storage using a pre-signed URL.
+ * @method
+ * @name put
+ * @param {String} fileUploadUrl - Pre-signed URL for uploading the file.
+ * @param {Buffer|Stream|String} fileData - File data to upload.
+ *   - Buffer: binary file data (e.g., from fs.readFileSync).
+ *   - Stream: readable stream (e.g., from fs.createReadStream).
+ *   - String: raw text data.
+ * @returns {Promise<Object>} - Response with statusCode, headers, and body.
+ */
 var put = function (fileUploadUrl, fileData) {
 	return new Promise((resolve, reject) => {
 		try {
@@ -112,17 +123,23 @@ var put = function (fileUploadUrl, fileData) {
 					body: fileData,
 				},
 				(err, res, body) => {
-					if (err) return reject(err)
-
+					if (err) {
+						return reject({
+							success: false,
+							error: err.message || err,
+						})
+					}
 					resolve({
 						statusCode: res.statusCode,
-						headers: res.headers,
-						body: body,
+						success: true,
 					})
 				}
 			)
 		} catch (error) {
-			return reject(error)
+			return reject({
+				success: false,
+				error: error.message || error,
+			})
 		}
 	})
 }

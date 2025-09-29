@@ -48,9 +48,9 @@ exports.findOne = async (filter, attributes = null) => {
 	}
 }
 
-exports.bulkCreate = async (data) => {
+exports.bulkCreate = async (data, options = {}) => {
 	try {
-		return await OrgExtensions.bulkCreate(data, { returning: true })
+		return await OrgExtensions.bulkCreate(data, options)
 	} catch (error) {
 		return error
 	}
