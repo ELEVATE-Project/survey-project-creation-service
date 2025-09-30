@@ -71,7 +71,7 @@ module.exports = {
 
 		const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
 
-		const defaultOrgCode = process.env.DEFAULT_ORGANISATION_CODE
+		const defaultOrgCode = process.env.DEFAULT_ORGANIZATION_CODE
 
 		return queryInterface.sequelize.transaction(async (t) => {
 			await queryInterface.bulkDelete(
