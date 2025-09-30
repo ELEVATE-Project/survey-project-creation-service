@@ -38,6 +38,7 @@ const userRequest = require('@requests/user')
 const endpoints = require('@constants/endpoints')
 
 const migrationUtils = require('./utils')
+const migrationConfig = require('./config')
 
 // Constants for environment variables
 const requiredEnv = [
@@ -52,7 +53,7 @@ const missingVariables = requiredEnv.filter((key) => !process.env[key])
 
 // Throw error and exit if any required variables are missing
 if (missingVariables.length > 0) {
-	throw new Error(`Missing required environment variables: ${missingVariables.join(', ')}`)
+	console.log(`Missing required environment variables: ${missingVariables.join(', ')}`)
 	process.exit(1)
 }
 
@@ -60,12 +61,47 @@ const { MONGODB_URL } = process.env
 const dbName = MONGODB_URL.split('/').pop()
 
 // Configuration constants
-const BATCH_SIZE = 10 // Process 10 programs at a time
-const USER_CACHE_SIZE = 1000 // Cache up to 1000 users
-const CURSOR_TIMEOUT = 30 * 60 * 1000 // 30 minutes cursor timeout
+const BATCH_SIZE = migrationConfig.BATCH_SIZE // Process 10 programs at a time
+const USER_CACHE_SIZE = migrationConfig.USER_CACHE_SIZE // Cache up to 1000 users
+const CURSOR_TIMEOUT = migrationConfig.CURSOR_TIMEOUT // 30 minutes cursor timeout
 
 ;(async () => {
 	try {
+		// Parse command-line arguments for tenant and organization codes
+		const args = process.argv.slice(2).reduce((acc, arg) => {
+			const [key, value] = arg.split('=')
+			if (key && value) {
+				acc[key.replace(/^--/, '')] = value
+			}
+			return acc
+		}, {})
+
+		// Validate command-line arguments only if any are provided
+		const allowedArgs = migrationConfig.ALLOWED_ARG_PROGRAM_MIGRATION_SCRIPT
+		const providedArgs = Object.keys(args)
+
+		// Only validate if arguments are provided
+		if (providedArgs.length > 0) {
+			// Check for invalid arguments
+			const invalidArgs = providedArgs.filter((arg) => !allowedArgs.includes(arg))
+			if (invalidArgs.length > 0) {
+				throw new Error(
+					`Invalid arguments provided: ${invalidArgs.join(
+						', '
+					)}. Only 'tenant_code' and 'organization_code' are allowed.`
+				)
+			}
+
+			// If any arguments are provided, both must be present
+			if (providedArgs.length > 0 && (!args.tenant_code || !args.organization_code)) {
+				throw new Error(
+					'If using command-line arguments, both tenant_code and organization_code must be provided together.'
+				)
+			}
+		}
+
+		let { tenant_code, organization_code } = args
+
 		// Connect to MongoDB with optimized settings
 		const client = new MongoClient(MONGODB_URL, {
 			useNewUrlParser: true,
@@ -107,25 +143,31 @@ const CURSOR_TIMEOUT = 30 * 60 * 1000 // 30 minutes cursor timeout
 		let processedCount = 0
 		let totalCount = 0
 
-		// Get total count for progress tracking
-		totalCount = await db.collection('programs').countDocuments({
+		// Build common filter conditions
+		const baseFilter = {
 			scope: { $exists: true, $type: 'object', $ne: {} },
 			components: { $exists: true, $type: 'array', $not: { $size: 0 } },
 			tenantId: { $nin: [null, ''] },
 			orgId: { $nin: [null, ''] },
-		})
+		}
+
+		// Add filtering based on command-line arguments if provided
+		const programFilter = {
+			...baseFilter,
+			// update filter only if args are provided
+			...(tenant_code && { tenantId: tenant_code }),
+			...(organization_code && { orgId: organization_code }),
+		}
+
+		// Get total count for progress tracking
+		totalCount = await db.collection('programs').countDocuments(programFilter)
 
 		console.log(`Found ${totalCount} programs to process`)
 
 		// Create efficient aggregation pipeline
 		const pipeline = [
 			{
-				$match: {
-					scope: { $exists: true, $type: 'object', $ne: {} },
-					components: { $exists: true, $type: 'array', $not: { $size: 0 } },
-					tenantId: { $nin: [null, ''] },
-					orgId: { $nin: [null, ''] },
-				},
+				$match: programFilter,
 			},
 			{
 				$project: {
@@ -149,7 +191,7 @@ const CURSOR_TIMEOUT = 30 * 60 * 1000 // 30 minutes cursor timeout
 			batchSize: BATCH_SIZE,
 		})
 
-		const entityKeys = ['categories', 'recommended_for', 'languages']
+		const entityKeys = migrationConfig.ENTITY_TYPE_KEYS
 		let currentBatch = []
 		let currentTenant = null
 
@@ -337,7 +379,7 @@ async function processProgram(
 	}
 
 	// Handle missing creator in user service
-	const { organization_code, tenant_code, user_id, assignedTo } = await getOrgAndTenantWithFallback(
+	let { organization_code, tenant_code, user_id, assignedTo } = await getOrgAndTenantWithFallback(
 		program.createdBy,
 		userOrgTenantMap,
 		program.tenantId,
@@ -1649,6 +1691,7 @@ async function generateCertificateCriteria(
 
 /**
  * Creates entities and a project based on a converted template
+ * @name createProjectAndEntities
  * @param {Object} convertedTemplate - The project template data to create
  * @param {Object} entityTypeEntityMap - Map of entity types to their entities
  * @param {Array} entitiesToCreate - Array of entities that need to be created
