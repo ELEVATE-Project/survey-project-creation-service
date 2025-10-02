@@ -65,6 +65,11 @@ const BATCH_SIZE = migrationConfig.BATCH_SIZE // Process 10 programs at a time
 const USER_CACHE_SIZE = migrationConfig.USER_CACHE_SIZE // Cache up to 1000 users
 const CURSOR_TIMEOUT = migrationConfig.CURSOR_TIMEOUT // 30 minutes cursor timeout
 
+// Add these module-level cache variables near the top of the file, after the other constants
+const entityTypeCache = new Map() // Cache for entity types by tenant and entity type name
+const entityCache = new Map() // Cache for entities by query
+const entityDetailsCache = new Map() // Cache for entity details by ID and tenant
+
 ;(async () => {
 	try {
 		// Parse command-line arguments for tenant and organization codes
@@ -149,6 +154,7 @@ const CURSOR_TIMEOUT = migrationConfig.CURSOR_TIMEOUT // 30 minutes cursor timeo
 			components: { $exists: true, $type: 'array', $not: { $size: 0 } },
 			tenantId: { $nin: [null, ''] },
 			orgId: { $nin: [null, ''] },
+			_id: { $in: [ObjectId('68265214483605001407602d')] },
 		}
 
 		// Add filtering based on command-line arguments if provided
@@ -1021,6 +1027,7 @@ async function processProgram(
 			'title',
 			'targeting_criteria',
 			'organization_code',
+			'tenant_code',
 			'user_id',
 			'type',
 			'created_by',
@@ -1115,7 +1122,7 @@ async function convertProgramTemplate(program, user_id, organization_code, tenan
 	try {
 		// Create a standardized template object from the program data
 		const convertedTemplate = {
-			title: program.title,
+			title: program.name,
 			objective: program.description,
 			// Process categories array, converting names to lowercase
 			categories: Array.isArray(program.categories) ? program.categories.map((c) => c.name.toLowerCase()) : [],
@@ -1225,13 +1232,13 @@ async function convertProjectTemplate(template, user_id, organization_code, tena
 			keywords: convertKeywords(template.keywords),
 			recommended_for:
 				Array.isArray(template.recommendedFor) && template.recommendedFor.length > 0
-					? template.recommendedFor.map((audience) =>
-							typeof audience === 'string'
-								? audience.toLowerCase()
-								: audience.code
-								? audience.code.toLowerCase()
-								: ''
-					  )
+					? template.recommendedFor
+							.map((audience) => {
+								if (typeof audience === 'string') return audience.toLowerCase()
+								if (audience && audience.code) return audience.code.toLowerCase()
+								return null // return null instead of ''
+							})
+							.filter(Boolean) // remove null or undefined
 					: [],
 			languages: ['en'],
 
@@ -1588,7 +1595,9 @@ async function generateCertificateCriteria(
 		// Initialize certificate structure
 		certificate = {
 			base_template_id: scpCertificateBaseTemplate?.id || null,
-			base_template_url: scpCertificateBaseTemplate?.url || '',
+			base_template_url: {
+				filePath: scpCertificateBaseTemplate?.url || '',
+			},
 			code: scpCertificateBaseTemplate?.code || '',
 			name: scpCertificateBaseTemplate?.name || '',
 			issuer: certificateTemplate?.issuer?.name || '',
@@ -1871,6 +1880,7 @@ async function createProgram(programId, programData, userId, orgId, tenantCode, 
 				program_id: createProgramRes.result.id,
 				resource_id: solutionId,
 				organization_code: orgId,
+				tenant_code: tenantCode,
 			})
 		}
 
@@ -2045,29 +2055,55 @@ async function getUserOrgTenantDetails(userIds, tenantCode) {
 }
 
 /**
- * Fetches entity types by query from the interface service
+ * Fetches entity types by query from the interface service with individual caching
  * @async
  * @function fetchEntityTypesByQuery
  * @param {string[]} entityTypeNames - Array of entity type names to search for
  * @param {string} tenantId - The tenant ID to filter entity types by
  * @returns {Promise<Array<Object>>} Promise that resolves to an array of entity type objects
- * @returns {Promise<Array<{_id: string, isObservable: boolean, name: string, tenantId: string}>>} Each object contains _id, isObservable, name, and tenantId properties
- * @throws {Error} Returns empty array on API errors or network failures
  */
 async function fetchEntityTypesByQuery(entityTypeNames, tenantId) {
 	try {
+		// Track which entity types we need to fetch from API
+		const typesToFetch = []
+		const cachedResults = []
+
+		// Check cache for each entity type individually
+		for (const typeName of entityTypeNames) {
+			const cacheKey = `${tenantId}:${typeName}`
+
+			if (entityTypeCache.has(cacheKey)) {
+				// Found in cache
+				cachedResults.push(entityTypeCache.get(cacheKey))
+			} else {
+				// Not in cache, need to fetch
+				typesToFetch.push(typeName)
+			}
+		}
+
+		// If all entity types were in cache, return combined results
+		if (typesToFetch.length === 0) {
+			console.log(`Using cached entity types for all types: [${entityTypeNames.join(', ')}]`)
+			return cachedResults
+		}
+
+		// Otherwise, fetch missing entity types from API
+		console.log(`Fetching entity types from API: [${typesToFetch.join(', ')}]`)
+
 		// Construct the API URL using environment variables and endpoint
 		const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${endpoints.ENTITY_TYPES_FIND_BY_QUERY}`
+
 		// Prepare the request payload with query and projection
 		const payload = {
 			query: {
 				name: {
-					$in: entityTypeNames,
+					$in: typesToFetch,
 				},
 				tenantId: tenantId,
 			},
 			projection: ['_id', 'isObservable', 'name', 'tenantId'],
 		}
+
 		// Make the POST request to fetch entity types
 		const response = await axios.post(apiUrl, payload, {
 			headers: {
@@ -2075,13 +2111,29 @@ async function fetchEntityTypesByQuery(entityTypeNames, tenantId) {
 				'internal-access-token': process.env.INTERNAL_ACCESS_TOKEN,
 			},
 		})
-		// Check for successful response and return the result array
+
+		// Process API response
+		const apiResults = []
 		if (response.status === 200 && response.data && Array.isArray(response.data.result)) {
-			return response.data.result || []
-		} else {
-			console.error('Failed to fetch entityTypes:', response.status)
-			return []
+			// Cache each entity type individually
+			response.data.result.forEach((entityType) => {
+				if (entityType && entityType.name) {
+					const cacheKey = `${tenantId}:${entityType.name}`
+					entityTypeCache.set(cacheKey, entityType)
+					apiResults.push(entityType)
+				}
+			})
 		}
+
+		// Clean cache if it gets too large
+		if (entityTypeCache.size > 500) {
+			const keysToDelete = Array.from(entityTypeCache.keys()).slice(0, 100)
+			keysToDelete.forEach((key) => entityTypeCache.delete(key))
+			console.log(`Cleaned entity type cache, removed ${keysToDelete.length} entries`)
+		}
+
+		// Combine cached and newly fetched results
+		return [...cachedResults, ...apiResults]
 	} catch (error) {
 		console.error('Error fetching entityTypes:', error)
 		return []
@@ -2089,24 +2141,39 @@ async function fetchEntityTypesByQuery(entityTypeNames, tenantId) {
 }
 
 /**
- * Fetches entities by query from the entity management service
+ * Fetches entities by query from the entity management service with caching
  * @param {Object} filter - MongoDB-style query filter object
  * @param {string[]|Object} projection - Array of field names or projection object to include in results
- * @param {string} tenantId - The tenant ID (parameter present but not used in current implementation)
+ * @param {string} tenantId - The tenant ID
  * @param {string} entityType - Entity type name for logging purposes
  * @returns {Promise<Array>} Array of entity objects or empty array on error
  */
 async function fetchEntitiesByQuery(filter, projection, tenantId, entityType) {
 	try {
-		// Construct the API URL using environment variables and endpoint
+		// For entity queries, we need to cache based on the exact filter
+		const filterKey = JSON.stringify(filter)
+		const projectionKey = JSON.stringify(projection)
+		const cacheKey = `${tenantId}:${entityType}:${filterKey}:${projectionKey}`
+
+		// Check cache for this exact query
+		if (entityCache.has(cacheKey)) {
+			console.log(`Using cached entities for ${entityType}`)
+			return entityCache.get(cacheKey)
+		}
+
+		// Not in cache, need to fetch from API
+		console.log(`Fetching entities from API for ${entityType}`)
+
+		// Construct the API URL
 		const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}${endpoints.FIND_ENTITIES_BY_QUERY}`
-		// Prepare the request payload with query and projection
+
+		// Prepare the request payload
 		const payload = {
 			query: filter,
 			projection: projection,
 		}
 
-		// Make the POST request to fetch entities
+		// Make the API request
 		const response = await axios.post(apiUrl, payload, {
 			headers: {
 				'content-type': 'application/json',
@@ -2114,11 +2181,23 @@ async function fetchEntitiesByQuery(filter, projection, tenantId, entityType) {
 			},
 		})
 
-		// Check for successful response and return the result array
+		// Handle the response
 		if (response.status === 200 && response.data && Array.isArray(response.data.result)) {
-			return response.data.result || []
+			const result = response.data.result || []
+
+			// Store in cache
+			entityCache.set(cacheKey, result)
+
+			// Clean up cache if too large
+			if (entityCache.size > 1000) {
+				const keysToDelete = Array.from(entityCache.keys()).slice(0, 200)
+				keysToDelete.forEach((key) => entityCache.delete(key))
+				console.log(`Cleaned entity cache, removed ${keysToDelete.length} entries`)
+			}
+
+			return result
 		} else {
-			console.error(`Failed to fetch ${entityType}:`, response.status, response.data)
+			console.error(`Failed to fetch ${entityType}:`, response.status)
 			return []
 		}
 	} catch (error) {
@@ -2128,25 +2207,51 @@ async function fetchEntitiesByQuery(filter, projection, tenantId, entityType) {
 }
 
 /**
- * Fetches detailed information for a specific entity
+ * Fetches detailed information for a specific entity with caching
  * @param {string} entityId - The unique identifier of the entity
  * @param {string} tenantId - The tenant identifier
  * @returns {Promise<Object|null>} Promise that resolves to entity details object or null on error
  */
 async function fetchEntityDetails(entityId, tenantId) {
 	try {
-		// Construct the API URL using environment variables and entity ID
+		// Create a cache key using entity ID and tenant
+		const cacheKey = `${tenantId}:${entityId}`
+
+		// Check cache
+		if (entityDetailsCache.has(cacheKey)) {
+			console.log(`Using cached details for entity ${entityId}`)
+			return entityDetailsCache.get(cacheKey)
+		}
+
+		// Not in cache, fetch from API
+		console.log(`Fetching entity details for ${entityId}`)
+
+		// Construct API URL
 		const apiUrl = `${process.env.INTERFACE_SERVICE_HOST}${process.env.CONSUMPTION_SERVICE_ENTITY_MANAGEMENT_BASE_URL}v1/entities/details/${entityId}`
-		// Make the GET request to fetch entity details
+
+		// Make API request
 		const response = await axios.get(apiUrl, {
 			headers: {
 				'content-type': 'application/json',
 				tenantId: tenantId,
 			},
 		})
-		// Check for successful response and return the entity data
+
+		// Process response
 		if (response.status === 200 && response.data) {
-			return response.data
+			const result = response.data
+
+			// Store in cache
+			entityDetailsCache.set(cacheKey, result)
+
+			// Clean cache if too large
+			if (entityDetailsCache.size > 2000) {
+				const keysToDelete = Array.from(entityDetailsCache.keys()).slice(0, 400)
+				keysToDelete.forEach((key) => entityDetailsCache.delete(key))
+				console.log(`Cleaned entity details cache, removed ${keysToDelete.length} entries`)
+			}
+
+			return result
 		} else {
 			console.error(`Failed to fetch entity details for ${entityId}:`, response.status)
 			return null
@@ -2431,10 +2536,25 @@ async function cleanupCaches(userCache, entityTypeEntityMap) {
 		keysToDelete.forEach((key) => delete entityTypeEntityMap[key])
 	}
 
+	// Also clean entity caches if they get too large
+	if (entityTypeCache.size > 500) {
+		const keysToDelete = Array.from(entityTypeCache.keys()).slice(0, 100)
+		keysToDelete.forEach((key) => entityTypeCache.delete(key))
+	}
+
+	if (entityCache.size > 1000) {
+		const keysToDelete = Array.from(entityCache.keys()).slice(0, 200)
+		keysToDelete.forEach((key) => entityCache.delete(key))
+	}
+
+	if (entityDetailsCache.size > 2000) {
+		const keysToDelete = Array.from(entityDetailsCache.keys()).slice(0, 400)
+		keysToDelete.forEach((key) => entityDetailsCache.delete(key))
+	}
+
 	console.log(
-		`Cache cleanup: User cache size: ${userCache.size}, Entity type mappings: ${
-			Object.keys(entityTypeEntityMap).length
-		}`
+		`Cache stats: User: ${userCache.size}, Entity mappings: ${Object.keys(entityTypeEntityMap).length}, ` +
+			`Types: ${entityTypeCache.size}, Queries: ${entityCache.size}, Details: ${entityDetailsCache.size}`
 	)
 }
 
@@ -2452,9 +2572,9 @@ async function generateTargetingCriteria(scope = {}, tenant_code) {
 		}
 
 		// Define role entity types and excluded keys
-		const roleEntityTypes = ['professional_role', 'professional_subroles']
-		const excludedKeys = ['entityType', 'organizations', 'roles']
-		const locationEntityTypeHierarchy = ['state', 'district', 'block', 'cluster', 'school']
+		const roleEntityTypes = migrationConfig.ROLE_ENTITY_TYPES
+		const excludedKeys = migrationConfig.EXCLUDED_KEYS_IN_SCOPE
+		const locationEntityTypeHierarchy = migrationConfig.LOCATION_ENTITY_TYPE_HIERARCHY
 
 		// Step 1: Filter scope keys to exclude irrelevant ones
 		const scopeKeys = Object.keys(scope).filter((key) => !excludedKeys.includes(key))

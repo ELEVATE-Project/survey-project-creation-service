@@ -529,6 +529,7 @@ const dbName = mongoUrl.split('/').pop()
 					convertedProgramTemplate,
 					convertedProgramTemplate.created_by,
 					convertedProgramTemplate.organization_code,
+					convertedProgramTemplate.tenant_code,
 					validSolutionIds
 				)
 
@@ -1065,10 +1066,10 @@ async function convertProgramTemplate(template, userOrgMap, DEFAULT_USER_ID) {
  * @param {Array} solutionIds - List of solution/resource IDs to be mapped to the program
  * @returns {Object} Result object containing success status and the created program ID or error
  */
-async function createProgram(programId, programData, userId, orgId, solutionIds) {
+async function createProgram(programId, programData, userId, orgId, tenantCode, solutionIds) {
 	try {
 		// Logic to create the program
-		const createProgramRes = await programService.create(programData, userId, orgId)
+		const createProgramRes = await programService.create(programData, userId, orgId, tenantCode)
 		if (!createProgramRes?.result?.id) {
 			throw new Error('Failed to create program')
 		}
@@ -1079,6 +1080,7 @@ async function createProgram(programId, programData, userId, orgId, solutionIds)
 				program_id: createProgramRes.result.id,
 				resource_id: solutionId,
 				organization_code: orgId,
+				tenant_code: tenantCode,
 			})
 		}
 		//update and publish resource
