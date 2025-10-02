@@ -154,7 +154,6 @@ const entityDetailsCache = new Map() // Cache for entity details by ID and tenan
 			components: { $exists: true, $type: 'array', $not: { $size: 0 } },
 			tenantId: { $nin: [null, ''] },
 			orgId: { $nin: [null, ''] },
-			_id: { $in: [ObjectId('68265214483605001407602d')] },
 		}
 
 		// Add filtering based on command-line arguments if provided
