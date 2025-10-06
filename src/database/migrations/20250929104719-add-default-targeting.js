@@ -15,6 +15,8 @@ module.exports = {
 		const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
 
 		const defaultOrgCode = process.env.DEFAULT_ORGANIZATION_CODE
+		if (!defaultTenantCode) throw new Error('DEFAULT_TENANT_CODE is not defined in env')
+		if (!defaultOrgCode) throw new Error('DEFAULT_ORGANIZATION_CODE is not defined in env')
 
 		if (!process?.env?.AUTH_CONFIG_FILE_PATH) throw new Error('AUTH_CONFIG_FILE_PATH is not defined in env')
 

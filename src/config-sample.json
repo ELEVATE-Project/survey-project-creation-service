@@ -13,7 +13,7 @@
 			"tabs": [
 				{
 					"id": "location",
-					"name": "Location ",
+					"name": "Location",
 					"fields": ["state", "entityType", "professional_role", "professional_subroles"]
 				},
 				{
