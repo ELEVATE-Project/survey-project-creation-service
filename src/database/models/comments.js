@@ -60,15 +60,7 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				defaultValue: false,
 				type: DataTypes.BOOLEAN,
-			},
-			organization_code: {
-				allowNull: false,
-				type: DataTypes.STRING,
-			},
-			tenant_code: {
-				allowNull: false,
-				type: DataTypes.STRING,
-			},
+			}
 		},
 		{
 			modelName: 'Comment',

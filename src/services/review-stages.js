@@ -18,9 +18,10 @@ module.exports = class reviewStagesHelper {
 	 * @returns {JSON} - update review stage response.
 	 */
 
-	static async update(id, bodyData, organization_code) {
+	static async update(id, bodyData, organization_code, tenant_code) {
 		try {
 			bodyData.organization_code = organization_code
+			bodyData.tenant_code = tenant_code
 			//validate resource type
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
 			if (!validResourceTypes.includes(bodyData.resource_type)) {
@@ -33,7 +34,7 @@ module.exports = class reviewStagesHelper {
 
 			//update review stage
 			const [updateCount, updatedReviewStage] = await reviewStageQueries.updateOne(
-				{ id: id, organization_code: organization_code },
+				{ id: id, tenant_code: tenant_code, organization_code: organization_code },
 				bodyData,
 				{
 					returning: true,
@@ -55,7 +56,11 @@ module.exports = class reviewStagesHelper {
 				result: updatedReviewStage[0],
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -68,7 +73,7 @@ module.exports = class reviewStagesHelper {
 	 * @returns {JSON} - list of review stages.
 	 */
 
-	static async list(resource_type, organization_code) {
+	static async list(resource_type, organization_code, tenant_code) {
 		try {
 			let result = {
 				data: [],
@@ -77,6 +82,7 @@ module.exports = class reviewStagesHelper {
 
 			let filter = {
 				organization_code,
+				tenant_code
 			}
 			if (resource_type) {
 				filter.resource_type = resource_type
@@ -103,7 +109,11 @@ module.exports = class reviewStagesHelper {
 				})
 			}
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 }

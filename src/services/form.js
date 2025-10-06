@@ -23,7 +23,11 @@ module.exports = class FormsHelper {
 				tenant_code: tenantCode,
 			})
 			if (form) {
-				throw new Error('FORM_ALREADY_EXISTS')
+				return responses.failureResponse({
+					message: 'FORM_ALREADY_EXISTS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 			bodyData['organization_code'] = orgCode
 			bodyData['tenant_code'] = tenantCode
@@ -45,7 +49,7 @@ module.exports = class FormsHelper {
 
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
@@ -92,7 +96,11 @@ module.exports = class FormsHelper {
 				message: 'FORM_UPDATED_SUCCESSFULLY',
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -141,7 +149,11 @@ module.exports = class FormsHelper {
 			})
 		} catch (error) {
 			console.log(error)
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	static async readAllFormsVersion(orgCode, tenantCode) {
@@ -152,7 +164,11 @@ module.exports = class FormsHelper {
 				result: (await form.getAllFormsVersion(orgCode, tenantCode)) || {},
 			})
 		} catch (error) {
-			return error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 }

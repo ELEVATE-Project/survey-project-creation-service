@@ -23,8 +23,13 @@ const getPermissionId = async (module, request_type, api_path) => {
 	}
 }
 
-let defaultRoles = process.env.DEFAULT_ROLLOUT_ROLES.split(',') || []
-defaultRoles.push(process.env.DEFAULT_ADMIN_ROLE, process.env.DEFAULT_ORG_ADMIN_ROLE)
+// let defaultRoles = process.env.DEFAULT_ROLLOUT_ROLES.split(',') || []
+// defaultRoles.push(process.env.DEFAULT_ADMIN_ROLE, process.env.DEFAULT_ORG_ADMIN_ROLE)
+const defaultRoles = [
+  ...(process.env.DEFAULT_ROLLOUT_ROLES || '').split(',').map((r) => r.trim()).filter(Boolean),
+  process.env.DEFAULT_ADMIN_ROLE,
+  process.env.DEFAULT_ORG_ADMIN_ROLE,
+].filter(Boolean)
 
 let rolePermissions = [
 	{

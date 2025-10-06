@@ -1,5 +1,9 @@
-/* eslint-disable no-useless-catch */
-/* eslint-disable no-undef */
+/**
+ * name : rollouts.js
+ * author : Priyanka Pradeep
+ * created-date : 26-Nov-2024
+ * Description : Rollouts Helper.
+ */
 const db = require('@database/models/index')
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
@@ -240,7 +244,11 @@ module.exports = class RolloutsHelper {
 				result: result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -302,7 +310,11 @@ module.exports = class RolloutsHelper {
 				result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -452,7 +464,11 @@ module.exports = class RolloutsHelper {
 				result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -576,7 +592,11 @@ module.exports = class RolloutsHelper {
 				result: updatedRolledout[0].id,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -673,7 +693,11 @@ module.exports = class RolloutsHelper {
 				result: {},
 			})
 		} catch (error) {
-			return error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -815,7 +839,11 @@ module.exports = class RolloutsHelper {
 				result: {},
 			})
 		} catch (error) {
-			return error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 

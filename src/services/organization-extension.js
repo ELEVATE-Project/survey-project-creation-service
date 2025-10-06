@@ -118,7 +118,11 @@ module.exports = class orgExtensionsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -264,7 +268,11 @@ module.exports = class orgExtensionsHelper {
 				result: updatedConfig,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 

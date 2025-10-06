@@ -1,3 +1,9 @@
+/**
+ * name : projects.js
+ * author : Priyanka Pradeep
+ * created-date : 24-May-2024
+ * Description : Project Helper.
+ */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
@@ -155,7 +161,11 @@ module.exports = class ProjectsHelper {
 				result: { id: projectCreate.id },
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -291,7 +301,7 @@ module.exports = class ProjectsHelper {
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
@@ -363,7 +373,11 @@ module.exports = class ProjectsHelper {
 				result: {},
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -520,7 +534,11 @@ module.exports = class ProjectsHelper {
 				result: result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 

@@ -49,7 +49,15 @@ module.exports = {
 		}
 
 		const defaultResources = process.env.RESOURCE_TYPES.split(',')
+		if (!defaultResources.length) {
+			throw new Error('RESOURCE_TYPES environment variable is undefined or empty.')
+		}
+
 		const defaultReviewerRoles = process.env.DEFAULT_REVIEWER_ROLE.split(',')
+		if (!defaultReviewerRoles.length) {
+			throw new Error('DEFAULT_REVIEWER_ROLE environment variable is undefined or empty.')
+		}
+
 		let defaultReviewStageValues = []
 
 		// Remove all the default review stages created
