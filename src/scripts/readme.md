@@ -60,9 +60,22 @@ This script creates default targeting for default tenant and org
       node migrateProjects.js
     ```
 3. 🚀 Migrate Programs and Solutions
+
+    This migration can be executed in two ways:
+
+    **Option 1: Migrate all programs and solutions (default behavior)**
+
     ```bash
-      node migrateProgramsAndSolutions.js
+    node migrateProgramsAndSolutions.js
     ```
+
+    **Option 2: Migrate specific tenant and organization**
+
+    ```bash
+    node migrateProgramsAndSolutions.js --tenant_code=shikshagraha --organization_code=blr
+    ```
+
+    📝 **Note:** When using command-line arguments, both `tenant_code` and `organization_code` must be provided together. The script will only process programs belonging to the specified tenant and organization.
 
 #### 📁 Sunbird Migration
 
