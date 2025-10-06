@@ -132,7 +132,11 @@ module.exports = class FilesHelper {
 				result: result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -169,7 +173,11 @@ module.exports = class FilesHelper {
 				})
 			}
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -204,7 +212,11 @@ module.exports = class FilesHelper {
 				})
 			}
 		} catch (error) {
-			return error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 }

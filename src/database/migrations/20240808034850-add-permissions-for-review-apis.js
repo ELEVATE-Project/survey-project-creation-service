@@ -48,7 +48,6 @@ module.exports = {
 			await queryInterface.bulkInsert('permissions', permissionsData)
 
 			let defaultReviewerRoles = process.env.DEFAULT_REVIEWER_ROLE.split(',') || []
-
 			const rolePermissionsData = []
 
 			async function addPermissions(permissions, roles) {
@@ -73,13 +72,23 @@ module.exports = {
 				}
 			}
 
-			await addPermissions(permissionsData, defaultReviewerRoles)
+			// Only call addPermissions if reviewer roles are present
+			if (defaultReviewerRoles.length > 0) {
+				await addPermissions(permissionsData, defaultReviewerRoles)
+			}
 
-			await queryInterface.bulkInsert('role_permission_mapping', rolePermissionsData)
+			if (rolePermissionsData.length > 0) {
+				await queryInterface.bulkInsert('role_permission_mapping', rolePermissionsData)
+			}
 		} catch (error) {
 			console.error(error)
 		}
 	},
 
-	down: async (queryInterface, Sequelize) => {},
+	down: async (queryInterface, Sequelize) => {
+		await queryInterface.bulkDelete('role_permission_mapping', { api_path: '/scp/v1/reviews/approve*' })
+		await queryInterface.bulkDelete('role_permission_mapping', { api_path: '/scp/v1/reviews/rejectOrReport*' })
+		await queryInterface.bulkDelete('permissions', { code: 'review_approve_permissions' })
+		await queryInterface.bulkDelete('permissions', { code: 'review_reject_permissions' })
+	},
 }

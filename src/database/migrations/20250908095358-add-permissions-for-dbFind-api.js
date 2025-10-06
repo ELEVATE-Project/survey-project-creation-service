@@ -23,5 +23,6 @@ module.exports = {
 
 	async down(queryInterface, Sequelize) {
 		await queryInterface.bulkDelete('permissions', { code: 'db_find' }, {})
+		await queryInterface.bulkDelete('modules', { code: 'admin' })
 	},
 }

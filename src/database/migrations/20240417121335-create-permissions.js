@@ -12,7 +12,6 @@ module.exports = {
 			},
 			code: {
 				allowNull: false,
-				unique: true,
 				type: Sequelize.STRING,
 			},
 			module: {
@@ -44,13 +43,11 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
-		await queryInterface.addIndex('permissions', {
-			type: 'unique',
-			fields: ['code'],
+
+		await queryInterface.addIndex('permissions', ['code'], {
 			name: 'unique_code',
-			where: {
-				deleted_at: null,
-			},
+			unique: true,
+			where: { deleted_at: null },
 		})
 	},
 

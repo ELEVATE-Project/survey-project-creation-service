@@ -133,6 +133,12 @@ module.exports = class certificatesHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 }

@@ -26,13 +26,22 @@ module.exports = {
 				],
 			},
 		]
-		entityTypeArray.forEach(async (eachEntityType) => {
-			await queryInterface.bulkUpdate(
-				'entity_types',
-				{ validations: JSON.stringify(eachEntityType.validation) },
-				{ value: eachEntityType.entityType }
+		// entityTypeArray.forEach(async (eachEntityType) => {
+		// 	await queryInterface.bulkUpdate(
+		// 		'entity_types',
+		// 		{ validations: JSON.stringify(eachEntityType.validation) },
+		// 		{ value: eachEntityType.entityType }
+		// 	)
+		// })
+		await Promise.all(
+			entityTypeArray.map((eachEntityType) =>
+				queryInterface.bulkUpdate(
+					'entity_types',
+					{ validations: JSON.stringify(eachEntityType.validation) },
+					{ value: eachEntityType.entityType }
+				)
 			)
-		})
+		)
 	},
 
 	async down(queryInterface, Sequelize) {
@@ -50,12 +59,22 @@ module.exports = {
 				validation: { required: false, regex: '^[a-zA-Z0-9 <>_&-]{1,256}$' },
 			},
 		]
-		entityTypeArray.forEach(async (eachEntityType) => {
-			await queryInterface.bulkUpdate(
-				'entity_types',
-				{ validations: eachEntityType.validation },
-				{ value: eachEntityType.entityType }
+		// entityTypeArray.forEach(async (eachEntityType) => {
+		// 	await queryInterface.bulkUpdate(
+		// 		'entity_types',
+		// 		{ validations: eachEntityType.validation },
+		// 		{ value: eachEntityType.entityType }
+		// 	)
+		// })
+
+		await Promise.all(
+			entityTypeArray.map((eachEntityType) =>
+				queryInterface.bulkUpdate(
+					'entity_types',
+					{ validations: JSON.stringify(eachEntityType.validation) },
+					{ value: eachEntityType.entityType }
+				)
 			)
-		})
+		)
 	},
 }
