@@ -38,10 +38,12 @@ This script creates default entities relevant to the education domain.
     ```bash
           node addDefaultEntitiesForEducationSector.js
     ```
-3. Set up new tenant dependencies in SCP
-    ```bash
-    node setupTenant.js --tenant_code=shikshagraha --organization_code=blr
-    ```
+
+### 🧱 Create default targeting criteria for default tenant and org
+
+This script creates default targeting for default tenant and org
+⚠️ Note: Before running the scrpit make sure the config file is updated and added.
+⚠️ Note: Add custom code for other environments other than elevate
 
 ### 🔄 Migration Scripts
 

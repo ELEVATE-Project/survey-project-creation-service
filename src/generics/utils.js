@@ -12,6 +12,7 @@ const { v4: uuidV4 } = require('uuid')
 const _ = require('lodash')
 const md5 = require('md5')
 const { transliterate: tr } = require('transliteration')
+const path = require('path')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -892,6 +893,23 @@ function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
 	}
 }
 
+function pathFinder(__dirname, targetFolder) {
+	// Check if __dirname starts with the platform-specific path separator
+	const hasLeadingSeparator = __dirname.startsWith(path.sep)
+	// Split the path into components
+	const pathComponents = __dirname.split(path.sep)
+	// Remove empty string from start if path is absolute (e.g., ['', 'Users', ...])
+	const cleanedComponents = hasLeadingSeparator ? pathComponents.slice(1) : pathComponents
+	// Find the last index of the target folder
+	const lastIndex = cleanedComponents.lastIndexOf(targetFolder)
+	if (lastIndex === -1) {
+		throw new Error(`Folder "${targetFolder}" not found in the path`)
+	}
+	// Take components up to and including targetFolder
+	const targetComponents = cleanedComponents.slice(0, lastIndex + 1)
+	// Join components, adding back the leading separator if it existed
+	return (hasLeadingSeparator ? path.sep : '') + path.join(...targetComponents)
+}
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -941,4 +959,5 @@ module.exports = {
 	validateTenantAndOrganizationInHeader,
 	_extractTenantAndOrgCodes,
 	buildUrl,
+	pathFinder,
 }
