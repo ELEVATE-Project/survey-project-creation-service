@@ -24,7 +24,7 @@ module.exports = class targetingCriteria {
 		let result = { success: false, errors: [] }
 		let validationErrors = []
 		try {
-			if (!targeting && !Array.isArray(targeting) && targeting.length <= 0) {
+			if (!Array.isArray(targeting) && targeting.length <= 0) {
 				validationErrors.push(
 					utils.errorObject(
 						targetingPath(),
@@ -77,11 +77,14 @@ module.exports = class targetingCriteria {
 
 	static async scopeKeys(orgCode, tenantCode) {
 		const orgConfig = await getConfig(orgCode, tenantCode)
-		const targerting_factors = orgConfig?.result?.config?.targeting_criteria?.factors || {}
-		const scopeKeys = targerting_factors.reduce((acc, index) => {
-			acc[index.key] = {
-				multi_select: index.multi_select,
-				mandatory: index.mandatory,
+		const targetingFactors = Array.isArray(orgConfig?.result?.config?.targeting_criteria?.factors)
+			? orgConfig.result.config.targeting_criteria.factors
+			: []
+		const scopeKeys = targetingFactors.reduce((acc, factor) => {
+			if (!factor?.key) return acc
+			acc[factor.key] = {
+				multi_select: factor.multi_select,
+				mandatory: factor.mandatory,
 			}
 			return acc
 		}, {})

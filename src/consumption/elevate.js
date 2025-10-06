@@ -1,6 +1,7 @@
 const { projectsMongoDBUrl, surveyMongoDBUrl } = require('@consumption/config')
 
 const projectService = require('@services/projects')
+const _ = require('lodash')
 const utils = require('@generics/utils')
 const common = require('@constants/common')
 const MongoDBConnection = require('@configs/mongoConnection')
@@ -17,12 +18,11 @@ const fs = require('fs')
 const axios = require('axios')
 const cheerio = require('cheerio')
 const path = require('path')
-const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST
-const endpoints = require('@constants/endpoints')
 const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
 let projectsMongoConnection = null
 let mongoConnection = null
 let scopeKeys = {}
+let socketInUse = false
 
 // Define the mongoDb collection names used
 const COLLECTIONS_MAP = new Map(
@@ -439,6 +439,7 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 							const exEntity = await fetchExternalEntities(
 								find?.config?.api,
 								scope?.[metaKey],
+								find?.value || metaKey,
 								tenantCode
 							)
 							const key = metaLocalMap?.[metaKey] ? metaLocalMap[metaKey] : metaKey

@@ -81,32 +81,7 @@ exports.findAll = async (filter, attributes = {}) => {
 		return error
 	}
 }
-// exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = common.LIMIT) => {
-// 	try {
-// 		let order;
-// 		if (sort && sort.sort_by === common.RESOURCE_TITLE) {
-// 			order = [Sequelize.fn('LOWER', Sequelize.col(common.RESOURCE_TITLE)), sort.order];
-// 		} else if (sort && sort.sort_by && sort.order) {
-// 			order = [Sequelize.col(sort.sort_by), sort.order];
-// 		} else {
-// 			order = [Sequelize.col(common.CREATED_AT), common.SORT_DESC];
-// 		}
 
-// 		let resourceFilter = {
-// 			where: filter,
-// 			attributes,
-// 			raw: true,
-// 		};
-// 		if (limit) resourceFilter.limit = limit;
-// 		if (page) resourceFilter.offset = limit * (page - 1);
-// 		resourceFilter.order = order;
-// 		const res = await Resource.findAndCountAll(resourceFilter);
-
-// 		return { result: res.rows, count: res.count };
-// 	} catch (error) {
-// 		return error;
-// 	}
-// };
 exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = common.LIMIT) => {
 	try {
 		let resourceFilter = {

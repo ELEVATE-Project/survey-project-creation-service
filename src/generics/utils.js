@@ -650,7 +650,7 @@ function generateExternalId(title) {
  */
 const convertResources = (resources) => {
 	try {
-		resources
+		return resources
 			.filter((resource) => resource.url) // Ensure `url` exists
 			.map((resource) => ({
 				name: resource.name || 'resource',

@@ -771,7 +771,7 @@ module.exports = class reviewsHelper {
 					resourceData.userToken = userToken
 
 					if (resourceData?.type == common.ROLLOUT_TYPE_PROGRAM) {
-						let rolloutId = await handleProgramRollout(resourceData, resourceId, userId)
+						let rolloutId = await handleProgramRollout(resourceData, resourceId, userId, userToken)
 
 						// publish program rollout
 						const publishRollout = await rolloutService.publish(

@@ -344,7 +344,7 @@ module.exports = class orgExtensionsHelper {
 				orgConfigs?.meta?.program_managers?.length == 0 ||
 				orgConfigs?.meta?.program_managers?.length == undefined
 			) {
-				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',')
+				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',') || []
 			}
 
 			// attributes to fetch from organisation Extenstion
