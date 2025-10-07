@@ -163,7 +163,8 @@ module.exports = class RolloutsHelper {
 		org_code,
 		tenant_code,
 		returnBlobPath = false,
-		getResourceData = false
+		getResourceData = false,
+		userToken = ''
 	) {
 		try {
 			let result = {
@@ -208,7 +209,7 @@ module.exports = class RolloutsHelper {
 					// fetch the user if viewer is present
 					if (response?.result?.viewers?.length > 0) {
 						const viewerUserIds = response.result.viewers
-						const userDetails = await this.fetchUserDetails(viewerUserIds, org_code, tenant_code)
+						const userDetails = await this.fetchUserDetails(viewerUserIds, org_code, tenant_code, userToken)
 
 						if (userDetails && Object.keys(userDetails).length > 0) {
 							resultData.viewers = viewerUserIds.map((user) => {
@@ -430,7 +431,7 @@ module.exports = class RolloutsHelper {
 			})
 
 			// fetch the user details from user service
-			const userDetails = await this.fetchUserDetails([loggedInUserId], userToken, organization_code, tenant_code)
+			const userDetails = await this.fetchUserDetails([loggedInUserId], organization_code, tenant_code, userToken)
 
 			// fetch the org details from user service
 			const orgDetails = await orgExtensionService.fetchOrganizationDetails(orgList, tenant_code)
@@ -604,7 +605,7 @@ module.exports = class RolloutsHelper {
 	 * @param {String} tenant_code - tenant code
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds, org_code, tenant_code) {
+	static async fetchUserDetails(userIds, org_code, tenant_code, userToken = '') {
 		const userDetailsResponse = await userRequests.list(
 			common.FILTER_ALL.toLowerCase(), //type
 			'', // page number
@@ -614,7 +615,8 @@ module.exports = class RolloutsHelper {
 			tenant_code, // tenant_code
 			{
 				user_ids: userIds,
-			} // body
+			}, // body
+			userToken
 		)
 		let userDetails = {}
 		if (userDetailsResponse.success && userDetailsResponse.data?.result?.data?.length > 0) {
@@ -714,9 +716,9 @@ module.exports = class RolloutsHelper {
 				loggedInUserId,
 				org_code,
 				tenant_code,
-				// userToken,
 				false,
-				true
+				true,
+				userToken
 			)
 
 			let solutionRolloutId
@@ -1138,8 +1140,9 @@ module.exports = class RolloutsHelper {
 				programData.user_id,
 				programData.organization_code,
 				tenant_code,
-				userToken,
-				false
+				false,
+				false,
+				userToken
 			)
 
 			const validateRollout = await this.validateRollout(rolloutDetails.result)
