@@ -44,6 +44,43 @@ const browseExistingList = function (resourceType = '', organization_code = null
 	})
 }
 
+/**
+ * browse Existing resources List
+ * @method
+ * @name browseExistingList
+ * @param {String} resourceType - Type of resources
+ * @param {String} organization_code - Organization id of the user.
+ * @param {String} token - bearer auth token of the user.
+ * @param {String} searchText - search field.
+ * @returns {JSON} - List of resources
+ */
+
+const mapUserAndProgram = function (data = {}, organizationCode, tenantCode) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			const queryParams = {
+				tenant_code: tenantCode,
+				organizationCode: organizationCode,
+			}
+
+			let body = {
+				data: data,
+			}
+
+			const apiUrl = utils.buildUrl(
+				interfaceBaseUrl + '/' + process.env.CONSUMPTION_SERVICE_BASE_URL,
+				endpoints.MAP_USER_AND_PROGRAM,
+				queryParams
+			)
+			const response = await requests.post(apiUrl, body, '', true)
+			return resolve(response)
+		} catch (error) {
+			return reject(error)
+		}
+	})
+}
+
 module.exports = {
 	browseExistingList,
+	mapUserAndProgram,
 }

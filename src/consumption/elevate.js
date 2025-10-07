@@ -34,6 +34,7 @@ const COLLECTIONS_MAP = new Map(
 		SOLUTIONS: 'solutions',
 		CERTIFICATE_TEMPLATE: 'certificateTemplates',
 		CERTIFICATE_BASE_TEMPLATE: 'certificateBaseTemplates',
+		USER_EXTENSIONS: 'userExtensions',
 	})
 )
 
@@ -1904,6 +1905,11 @@ const publishProgram = function async(programData) {
 				)
 			})
 
+			//create user and program mapping
+			if (programId) {
+				await createOrUpdateUserProgramMapping(programData.viewers, programId)
+			}
+
 			//return result
 			result.success = true
 			result.programId = programId
@@ -1929,6 +1935,70 @@ const publishProgram = function async(programData) {
 		}
 	})
 }
+
+const createOrUpdateUserProgramMapping = function async(viewers, programId, tenantCode, orgCode) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			if (viewers && Array.isArray(viewers) && viewers.length > 0) {
+				try {
+					// Construct API URL using environment variables
+					const hostEnvKey = 'PROJECT'
+					const host = process.env?.[`${hostEnvKey}_SERVICE_HOST`]
+					const serviceName = process.env?.[`${hostEnvKey}_SERVICE_NAME`]
+					const baseUrl = utils.buildUrl(host, serviceName)
+					const endPoint = utils.buildUrl(baseUrl, '/user-extension/update')
+
+					// Prepare data for API call
+					const userExtensionData = {
+						data: viewers.map((userId) => ({
+							userId: userId,
+							programId: programId,
+							operation: 'append',
+							roles: [process.env.DEFAULT_PROGRAM_MANAGERS.split(',')], // Default role, can be customized based on your requirements
+						})),
+					}
+
+					// Build the endpoint URL with query parameters
+					let apiEndpoint = endPoint
+					if (tenantCode) {
+						apiEndpoint += apiEndpoint.includes('?') ? '&' : '?'
+						apiEndpoint += `tenantId=${tenantCode}`
+					}
+					if (orgCode) {
+						apiEndpoint += apiEndpoint.includes('?') ? '&' : '?'
+						apiEndpoint += `orgId=${orgCode}`
+					}
+
+					// Call the external API
+					const response = await requests.post(
+						apiEndpoint,
+						userExtensionData,
+						'',
+						true,
+						'internal-access-token'
+					)
+
+					if (response.status !== responseCode.ok) {
+						console.error('Error updating user extensions:', response)
+						throw new Error('Failed to update user extensions')
+					}
+
+					console.log('Successfully updated user extensions for program:', programId)
+				} catch (apiError) {
+					console.error('API call to update user extensions failed:', apiError.message)
+					throw apiError
+				}
+			} else {
+				console.log('No viewers to add to program:', programId)
+			}
+			return resolve(true)
+		} catch (error) {
+			console.error('Error in createOrUpdateUserProgramMapping:', error)
+			return reject(error)
+		}
+	})
+}
+
 module.exports = {
 	publishProjectTemplates,
 	publishProgram,
