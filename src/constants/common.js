@@ -255,4 +255,6 @@ module.exports = {
 	MONGO_DB_MODE_SHARED: 'shared',
 	TARGETING: 'targeting_criteria',
 	OBSERVATION: 'observation',
+	REFLECTION: 'reflection',
+	START_REFLECTION: 'Start Reflection',
 }
