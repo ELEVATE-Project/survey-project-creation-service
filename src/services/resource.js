@@ -879,7 +879,7 @@ module.exports = class resourceHelper {
 	 * @name getDetails
 	 * @returns {JSON} - details of resource
 	 */
-	static async getDetails(resourceInfo, org_code, tenant_code) {
+	static async getDetails(resourceInfo, org_code, tenant_code, userToken = '') {
 		try {
 			let resource
 			let result = {
@@ -981,7 +981,8 @@ module.exports = class resourceHelper {
 			let organizationDetails = await userRequests.fetchOrg(
 				resource.organization_code,
 				resource.tenant_code,
-				true
+				true,
+				userToken
 			)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])

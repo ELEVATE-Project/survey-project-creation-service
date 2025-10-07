@@ -19,6 +19,7 @@ const axios = require('axios')
 const cheerio = require('cheerio')
 const path = require('path')
 const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
+const userRequests = require('@requests/user')
 let projectsMongoConnection = null
 let mongoConnection = null
 let scopeKeys = {}
@@ -34,6 +35,7 @@ const COLLECTIONS_MAP = new Map(
 		SOLUTIONS: 'solutions',
 		CERTIFICATE_TEMPLATE: 'certificateTemplates',
 		CERTIFICATE_BASE_TEMPLATE: 'certificateBaseTemplates',
+		ORGANIZATION_EXTENSION: 'organizationExtension',
 	})
 )
 
@@ -584,6 +586,7 @@ const publishProjectTemplates = function (templateData) {
 			if (Object.keys(projectData).length <= 0) {
 				throw new Error('FAILED_TO_FETCH_PROJECT')
 			}
+
 			// Format the template
 			let formattedTemplate = formatTemplate({ ...projectData })
 			if (
@@ -599,6 +602,20 @@ const publishProjectTemplates = function (templateData) {
 			projectsMongoConnection = projectsMongoConnection
 				? projectsMongoConnection
 				: await connectMongo(projectsMongoDBUrl)
+
+			const orgPolicies = await fetchOrgPolicies(
+				templateData.organization_code,
+				templateData.tenant_code,
+				projectsMongoConnection
+			)
+
+			if (orgPolicies.success) {
+				template.visibility = orgPolicies.policies.visibility
+				template.visibleToOrganizations = orgPolicies.policies.visibleToOrganizations
+			} else {
+				template.policies.visibility = ''
+				template.policies.visibleToOrganizations = []
+			}
 
 			// Process Categories
 			if (projectData.categories?.length > 0) {
@@ -673,6 +690,54 @@ const publishProjectTemplates = function (templateData) {
 			return reject(error)
 		}
 	})
+}
+
+/**
+ * Fetch Org Policy related keys
+ * @name fetchOrgPolicies
+ * @param {String} orgCode Organization Code
+ * @param {String} tenantcode Tenant Code
+ * @param {Object} projectsMongoConnection
+ * @param {String} userToken
+ * @returns {Object} - Response of policy data
+ */
+const fetchOrgPolicies = async (orgCode, tenantCode, projectsMongoConnection, userToken = '') => {
+	let result = { success: false, policies: {} }
+	try {
+		const orgDetails = await userRequests.fetchOrg(orgCode, tenantCode, true, userToken)
+		let relatedOrgs = []
+		if (orgDetails?.success && orgDetails?.data && orgDetails?.data?.result) {
+			relatedOrgs = orgDetails?.data?.result?.related_org_details || []
+			relatedOrgs = relatedOrgs.length > 0 ? relatedOrgs.map((org) => org.code) : []
+		}
+		relatedOrgs.push(orgCode)
+		relatedOrgs = [...new Set(relatedOrgs)]
+		result.policies.visibleToOrganizations = relatedOrgs
+		const orgExtensionCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('ORGANIZATION_EXTENSION'))
+		const policy = await orgExtensionCollection.findOne({ orgId: orgCode, tenantId: tenantCode })
+		if (Object.keys(policy).length > 0) {
+			result.policies.visibility = policy?.externalProjectResourceVisibilityPolicy || null
+		}
+
+		result.success = true
+
+		if (
+			!result?.policies?.visibility ||
+			!result?.policies?.visibleToOrganizations ||
+			result?.policies?.visibleToOrganizations.length == 0
+		) {
+			result.success = false
+		}
+		if (result?.policies?.visibility && result?.policies?.visibility == common.ORG_POLICY_CURRENT) {
+			result.success = true
+		}
+
+		return result
+	} catch (error) {
+		result.success = false
+		result.error = error.message || error
+		return result
+	}
 }
 
 /**
