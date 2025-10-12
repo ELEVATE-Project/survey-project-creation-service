@@ -45,22 +45,23 @@ const browseExistingList = function (resourceType = '', organization_code = null
 }
 
 /**
- * browse Existing resources List
- * @method
- * @name browseExistingList
- * @param {String} resourceType - Type of resources
- * @param {String} organization_code - Organization id of the user.
- * @param {String} token - bearer auth token of the user.
- * @param {String} searchText - search field.
- * @returns {JSON} - List of resources
+ * Maps users to a program.
+ * @param {Object} data - Mapping data (users, programId, operation, roles).
+ * @param {String} organizationCode - Organization code.
+ * @param {String} tenantCode - Tenant code.
+ * @param {String|null} userId - User ID performing the mapping.
+ * @returns {Promise<Object>} - API response.
  */
-
-const mapUserAndProgram = function (data = {}, organizationCode, tenantCode) {
+const mapUserAndProgram = function (data = {}, organizationCode, tenantCode, userId = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const queryParams = {
+			let queryParams = {
 				tenant_code: tenantCode,
 				organizationCode: organizationCode,
+			}
+
+			if (userId) {
+				queryParams.userId = userId
 			}
 
 			let body = {

@@ -20,6 +20,7 @@ const cheerio = require('cheerio')
 const path = require('path')
 const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
 const userRequests = require('@requests/user')
+const interfaceRequests = require('@requests/interface')
 let projectsMongoConnection = null
 let mongoConnection = null
 let scopeKeys = {}
@@ -1972,7 +1973,14 @@ const publishProgram = function async(programData) {
 
 			//create user and program mapping
 			if (programId) {
-				await createOrUpdateUserProgramMapping(programData.viewers, programId)
+				let createMappingResponse = await createOrUpdateUserProgramMapping(
+					programData.viewers,
+					programId,
+					programData.organization_code,
+					programData.tenant_code,
+					loggedInUserId
+				)
+				console.log('User Program Mapping Response : ', createMappingResponse)
 			}
 
 			//return result
@@ -2001,57 +2009,99 @@ const publishProgram = function async(programData) {
 	})
 }
 
-const createOrUpdateUserProgramMapping = function async(viewers, programId, tenantCode, orgCode) {
+/**
+ * Maps users to a program using interfaceRequests.
+ * @param {Array} viewers - Array of user IDs.
+ * @param {String|ObjectId} programId - Program ID.
+ * @param {String} tenantCode - Tenant code.
+ * @param {String} orgCode - Organization code.
+ * @param {String|null} userId - User ID performing the mapping.
+ * @returns {Promise<Boolean>}
+ */
+async function createOrUpdateUserProgramMapping(viewers, programId, tenantCode, orgCode, userId = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			if (viewers && Array.isArray(viewers) && viewers.length > 0) {
 				try {
-					// Construct API URL using environment variables
-					const hostEnvKey = 'PROJECT'
-					const host = process.env?.[`${hostEnvKey}_SERVICE_HOST`]
-					const serviceName = process.env?.[`${hostEnvKey}_SERVICE_NAME`]
-					const baseUrl = utils.buildUrl(host, serviceName)
-					const endPoint = utils.buildUrl(baseUrl, '/user-extension/update')
+					const roles = process.env.DEFAULT_PROGRAM_MANAGERS.split(',')
+					const userProgramCollection = projectsMongoConnection.collection(
+						COLLECTIONS_MAP.get('USER_EXTENSIONS')
+					)
+					// Fetch all userExtensions for viewers
+					const userExtensions = await userProgramCollection.find({ userId: { $in: viewers } }).toArray()
+
+					// Find all userExtensions mapped to this program
+					const mappedUserExtensions = await userProgramCollection
+						.find({
+							'programRoleMapping.programId': programId,
+						})
+						.toArray()
+
+					// Users already mapped to this program
+					const alreadyMappedUserIds = mappedUserExtensions.map((userExt) => userExt.userId)
+
+					// Users in viewers but not mapped to program (need append)
+					const toAppend = viewers.filter((userId) => {
+						const ext = userExtensions.find((userExt) => userExt.userId === userId)
+						// If userExtension not present, need append
+						if (!ext) return true
+						// If userExtension present but programId not present, need append
+						const hasProgram = ext.programRoleMapping?.some(
+							(prm) => String(prm.programId) === String(programId)
+						)
+						return !hasProgram
+					})
+
+					// Users mapped to program but not in viewers (need remove)
+					const toRemove = alreadyMappedUserIds.filter((userId) => !viewers.includes(userId))
 
 					// Prepare data for API call
-					const userExtensionData = {
-						data: viewers.map((userId) => ({
-							userId: userId,
-							programId: programId,
-							operation: 'append',
-							roles: [process.env.DEFAULT_PROGRAM_MANAGERS.split(',')], // Default role, can be customized based on your requirements
-						})),
+					const data = []
+					// Only append if userExtension not present or programId not present in userExtension
+					if (toAppend.length > 0) {
+						for (const userId of toAppend) {
+							data.push({
+								userId,
+								programId,
+								operation: 'append',
+								roles: roles,
+							})
+						}
+					}
+					if (toRemove.length > 0) {
+						for (const userId of toRemove) {
+							data.push({
+								userId,
+								programId,
+								operation: 'remove',
+								roles: roles,
+							})
+						}
 					}
 
-					// Build the endpoint URL with query parameters
-					let apiEndpoint = endPoint
-					if (tenantCode) {
-						apiEndpoint += apiEndpoint.includes('?') ? '&' : '?'
-						apiEndpoint += `tenantId=${tenantCode}`
-					}
-					if (orgCode) {
-						apiEndpoint += apiEndpoint.includes('?') ? '&' : '?'
-						apiEndpoint += `orgId=${orgCode}`
+					if (data.length === 0) {
+						console.log('No user mapping changes required for program:', programId)
+						return resolve(true)
 					}
 
-					// Call the external API
-					const response = await requests.post(
-						apiEndpoint,
+					const userExtensionData = { data }
+
+					let userMappingResponse = await interfaceRequests.mapUserAndProgram(
 						userExtensionData,
-						'',
-						true,
-						'internal-access-token'
+						orgCode,
+						tenantCode,
+						userId
 					)
 
-					if (response.status !== responseCode.ok) {
-						console.error('Error updating user extensions:', response)
+					if (userMappingResponse.status !== responseCode.ok) {
+						console.error('Error updating user extensions:', userMappingResponse)
 						throw new Error('Failed to update user extensions')
 					}
 
 					console.log('Successfully updated user extensions for program:', programId)
-				} catch (apiError) {
-					console.error('API call to update user extensions failed:', apiError.message)
-					throw apiError
+				} catch (error) {
+					console.error('API call to update user extensions failed:', error.message)
+					throw error
 				}
 			} else {
 				console.log('No viewers to add to program:', programId)

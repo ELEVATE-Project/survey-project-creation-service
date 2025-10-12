@@ -24,5 +24,5 @@ module.exports = {
 		: 'v1/entityTypes/find',
 	MAP_USER_AND_PROGRAM: process.env.MAP_USER_AND_PROGRAM_ENDPOINT
 		? process.env.MAP_USER_AND_PROGRAM_ENDPOINT
-		: 'v1/user-extensions/update',
+		: 'v1/userExtension/update',
 }
