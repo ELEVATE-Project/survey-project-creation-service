@@ -1012,6 +1012,50 @@ module.exports = class resourceHelper {
 			}
 			delete result.blob_path
 
+			// to get the resource details of resources within a program
+			if (resource.type === common.RESOURCE_TYPE_PROGRAM) {
+				let associatedResources = await programResourceMappingQueries.findAll({
+					program_id: resource.id,
+					organization_code: resource.organization_code,
+					tenant_code: tenant_code,
+				})
+
+				if (associatedResources.length > 0) {
+					const resourceIds = associatedResources.map((resource) => resource.resource_id)
+
+					const [resources, openComments] = await Promise.all([
+						resourceQueries.findAll({
+							id: { [Op.in]: resourceIds },
+							organization_code: resource.organization_code,
+							tenant_code: tenant_code,
+						}),
+						commentQueries.findAll({
+							resource_id: { [Op.in]: resourceIds },
+							status: common.COMMENT_STATUS_OPEN,
+							tenant_code: tenant_code,
+						}),
+					])
+
+					if (resources.length > 0) {
+						const resourceCommentSet = new Set(openComments.map((comment) => comment.resource_id))
+						// Process each resource and store in result.resources
+						const resourceDetailsPromises = resources.map((resource) =>
+							this.getDetails(resource.id, resource.organization_code, tenant_code, userToken)
+						)
+						const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
+						result.resources = resourceDetailsResults
+							.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
+							.map((resourceDetail) => ({
+								...resourceDetail.result,
+								link: resourceDetail?.result.link
+									? `${process.env.PROJECT_DEEP_LINK_URL}${resourceDetail?.result?.link}`
+									: null,
+								is_comments: resourceCommentSet.has(resourceDetail.result.id),
+							}))
+					}
+				}
+			}
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_FETCHED',

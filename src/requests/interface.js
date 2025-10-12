@@ -56,8 +56,8 @@ const mapUserAndProgram = function (data = {}, organizationCode, tenantCode, use
 	return new Promise(async (resolve, reject) => {
 		try {
 			let queryParams = {
-				tenant_code: tenantCode,
-				organizationCode: organizationCode,
+				tenantId: tenantCode,
+				orgId: organizationCode,
 			}
 
 			if (userId) {
@@ -69,11 +69,11 @@ const mapUserAndProgram = function (data = {}, organizationCode, tenantCode, use
 			}
 
 			const apiUrl = utils.buildUrl(
-				interfaceBaseUrl + '/' + process.env.CONSUMPTION_SERVICE_BASE_URL,
+				interfaceBaseUrl + process.env.CONSUMPTION_SERVICE_BASE_URL,
 				endpoints.MAP_USER_AND_PROGRAM,
 				queryParams
 			)
-			const response = await requests.post(apiUrl, body, '', true)
+			const response = await requests.post(apiUrl, body, '', true, 'internal-access-token')
 			return resolve(response)
 		} catch (error) {
 			return reject(error)

@@ -1972,9 +1972,9 @@ const publishProgram = function async(programData) {
 			})
 
 			//create user and program mapping
-			if (programId) {
+			if (programId && rolloutDetails?.viewers && rolloutDetails?.viewers.length > 0) {
 				let createMappingResponse = await createOrUpdateUserProgramMapping(
-					programData.viewers,
+					rolloutDetails?.viewers?.map((viewer) => viewer.id),
 					programId,
 					programData.organization_code,
 					programData.tenant_code,
@@ -2018,7 +2018,7 @@ const publishProgram = function async(programData) {
  * @param {String|null} userId - User ID performing the mapping.
  * @returns {Promise<Boolean>}
  */
-async function createOrUpdateUserProgramMapping(viewers, programId, tenantCode, orgCode, userId = null) {
+async function createOrUpdateUserProgramMapping(viewers, programId, orgCode, tenantCode, userId = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			if (viewers && Array.isArray(viewers) && viewers.length > 0) {
@@ -2056,11 +2056,12 @@ async function createOrUpdateUserProgramMapping(viewers, programId, tenantCode, 
 					const toRemove = alreadyMappedUserIds.filter((userId) => !viewers.includes(userId))
 
 					// Prepare data for API call
-					const data = []
+					const requestBody = []
 					// Only append if userExtension not present or programId not present in userExtension
+					programId = programId.toString()
 					if (toAppend.length > 0) {
 						for (const userId of toAppend) {
-							data.push({
+							requestBody.push({
 								userId,
 								programId,
 								operation: 'append',
@@ -2070,7 +2071,7 @@ async function createOrUpdateUserProgramMapping(viewers, programId, tenantCode, 
 					}
 					if (toRemove.length > 0) {
 						for (const userId of toRemove) {
-							data.push({
+							requestBody.push({
 								userId,
 								programId,
 								operation: 'remove',
@@ -2079,15 +2080,13 @@ async function createOrUpdateUserProgramMapping(viewers, programId, tenantCode, 
 						}
 					}
 
-					if (data.length === 0) {
+					if (requestBody.length === 0) {
 						console.log('No user mapping changes required for program:', programId)
 						return resolve(true)
 					}
 
-					const userExtensionData = { data }
-
 					let userMappingResponse = await interfaceRequests.mapUserAndProgram(
-						userExtensionData,
+						requestBody,
 						orgCode,
 						tenantCode,
 						userId

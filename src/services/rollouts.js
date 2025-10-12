@@ -1277,7 +1277,7 @@ module.exports = class RolloutsHelper {
 			if (createProgramRollout.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					statusCode: httpStatusCode[createProgramRollout.statusCode],
-					result: result,
+					result: [],
 					message: `Rollout creation failed: ${createProgramRollout.message || 'Unknown error'}`,
 				})
 			}
