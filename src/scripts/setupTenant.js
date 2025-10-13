@@ -459,9 +459,9 @@ async function setupOrganizationExtension(newTenantCode, newOrgCode) {
 }
 
 async function setupOrganizationConfigs(newTenantCode, newOrgCode) {
-	console.log('--- Setting up Organization Extension ---')
+	console.log('--- Setting up Organization Configs ---')
 	try {
-		// Fetch default organization extensions
+		// Fetch default organization Configs
 		const defaultConfigs = await OrganizationConfigs.findAll({
 			where: {
 				tenant_code: DEFAULT_TENANT_CODE,
@@ -470,7 +470,7 @@ async function setupOrganizationConfigs(newTenantCode, newOrgCode) {
 			raw: true,
 		})
 
-		// Fetch existing organization extensions for target tenant/org to avoid duplicates
+		// Fetch existing organization Configs for target tenant/org to avoid duplicates
 		const existingConfigs = await OrganizationConfigs.findAll({
 			where: {
 				tenant_code: newTenantCode,
@@ -479,7 +479,7 @@ async function setupOrganizationConfigs(newTenantCode, newOrgCode) {
 			raw: true,
 		})
 
-		// Check  existing configs
+		// Check existing configs
 		if (existingConfigs?.length > 0) {
 			console.log(
 				`Organization configs already exist for tenant=${newTenantCode}, org=${newOrgCode}. Skipping creation.`
@@ -490,8 +490,7 @@ async function setupOrganizationConfigs(newTenantCode, newOrgCode) {
 			}
 		}
 
-		//  organization config  create
-
+		// Prepare organization configs to create
 		const configsToCreate = defaultConfigs.map((configs) => {
 			const plain = configs.toJSON ? configs.toJSON() : configs
 
@@ -506,7 +505,7 @@ async function setupOrganizationConfigs(newTenantCode, newOrgCode) {
 			}
 		})
 
-		// Create organization extensions if any need to be created
+		// Create organization Configs if any need to be created
 		if (configsToCreate.length > 0) {
 			await OrganizationConfigs.bulkCreate(configsToCreate, {
 				ignoreDuplicates: true,

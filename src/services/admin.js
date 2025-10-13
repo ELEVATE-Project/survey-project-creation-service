@@ -543,7 +543,7 @@ module.exports = class AdminService {
 				}
 			})
 
-			// Create organization extensions if any need to be created
+			// Create organization configs if any need to be created
 			if (configsToCreate.length > 0) {
 				await organizationConfigQueries.bulkCreate(configsToCreate, {
 					ignoreDuplicates: true,
