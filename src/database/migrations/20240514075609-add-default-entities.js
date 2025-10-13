@@ -201,8 +201,39 @@ module.exports = {
 	},
 
 	async down(queryInterface, Sequelize) {
-		await queryInterface.bulkDelete('entity_types', null, {})
-		await queryInterface.bulkDelete('entities', null, {})
+		// await queryInterface.bulkDelete('entity_types', null, {})
+		// await queryInterface.bulkDelete('entities', null, {})
+		const seedValues = [
+			'title',
+			'categories',
+			'objective',
+			'keywords',
+			'recommended_for',
+			'languages',
+			'licenses',
+			'tasks',
+			'name',
+			'learning_resources',
+			'duration',
+		]
+		const defaultOrgId = queryInterface.sequelize.options.defaultOrgId
+		const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+		// Delete entities first
+		await queryInterface.sequelize.query(
+			'DELETE FROM entities WHERE entity_type_id IN (SELECT id FROM entity_types WHERE value IN (:value) AND organization_code = :organization_code AND tenant_code = :tenant_code)',
+			{ replacements: { value: seedValues, organization_code: defaultOrgId, tenant_code: defaultTenantCode } }
+		)
+		// Delete mappings
+		await queryInterface.sequelize.query(
+			'DELETE FROM entities_model_mapping WHERE entity_type_id IN (SELECT id FROM entity_types WHERE value IN (:value) AND organization_code = :organization_code AND tenant_code = :tenant_code)',
+			{ replacements: { value: seedValues, organization_code: defaultOrgId, tenant_code: defaultTenantCode } }
+		)
+		// Delete entity types
+		await queryInterface.bulkDelete(
+			'entity_types',
+			{ value: seedValues, organization_code: defaultOrgId, tenant_code: defaultTenantCode },
+			{}
+		)
 	},
 }
 

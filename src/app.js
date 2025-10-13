@@ -23,7 +23,7 @@ if (!environmentData.success) {
 	logger.error('Server could not start . Not all environment variable is provided', {
 		triggerNotification: true,
 	})
-	process.exit()
+	process.exit(1)
 }
 
 require('@configs')
@@ -84,10 +84,7 @@ app.all('*', (req, res, next) => {
 require('./routes')(app)
 
 // Server listens to given port
-app.listen(process.env.APPLICATION_PORT, (res, err) => {
-	if (err) {
-		onError(err)
-	}
+const server = app.listen(process.env.APPLICATION_PORT, (res, err) => {
 	logger.info('Environment: ' + process.env.APPLICATION_ENV)
 	logger.info('Application is running on the port:' + process.env.APPLICATION_PORT)
 })
@@ -108,3 +105,5 @@ function onError(error) {
 		throw error
 	}
 }
+
+server.on('error', onError)

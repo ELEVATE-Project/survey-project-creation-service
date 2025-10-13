@@ -11,7 +11,11 @@ const getPermissionId = async (module, request_type, api_path) => {
 		})
 
 		if (!permission) {
-			throw permission
+			throw new Error(
+				`Permission not found for module=${module}, request_type=${JSON.stringify(
+					request_type
+				)}, api_path=${api_path}`
+			)
 		}
 
 		return permission.id
@@ -23,6 +27,10 @@ const getPermissionId = async (module, request_type, api_path) => {
 module.exports = {
 	up: async (queryInterface, Sequelize) => {
 		try {
+			if (!process.env.DEFAULT_ADMIN_ROLE || !process.env.DEFAULT_ORG_ADMIN_ROLE) {
+				throw new Error('DEFAULT_ADMIN_ROLE and DEFAULT_ORG_ADMIN_ROLE must be set in the environment')
+			}
+
 			//create module
 			const modulesData = [
 				{ code: 'review-stages', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },

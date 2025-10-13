@@ -10,6 +10,7 @@ const userRequests = require('@requests/user')
 const utils = require('@generics/utils')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
 const organizationConfigQueries = require('@database/queries/organizationConfig')
+const Op = require('sequelize').Op
 module.exports = class orgExtensionsHelper {
 	/**
 	 * Create Organization Config.
@@ -118,7 +119,11 @@ module.exports = class orgExtensionsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -264,7 +269,11 @@ module.exports = class orgExtensionsHelper {
 				result: updatedConfig,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -310,24 +319,30 @@ module.exports = class orgExtensionsHelper {
 				},
 			}
 			// fetch org config for organization_code
-			const orgConfig = await organizationConfigQueries.findOne(
+			const orgConfigs = await organizationConfigQueries.findAll(
 				{
-					organization_code,
+					organization_code: {
+						[Op.in]: [organization_code, process.env.DEFAULT_ORGANIZATION_CODE].filter(Boolean),
+					},
+					tenant_code: tenantCode,
 				},
-				['meta']
+				['meta', 'organization_code']
 			)
 
-			if (orgConfig?.meta && Object.keys(orgConfig.meta).length > 0) {
-				result.config = orgConfig?.meta
+			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
+				result.config =
+					orgConfigs.length > 1
+						? orgConfigs.find((config) => config.organization_code == organization_code)?.meta
+						: orgConfigs[0]?.meta
 			}
 
-			if (orgConfig?.meta?.data_managers?.length == 0 || orgConfig?.meta?.data_managers?.length == undefined) {
+			if (orgConfigs?.meta?.data_managers?.length == 0 || orgConfigs?.meta?.data_managers?.length == undefined) {
 				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
 			}
 
 			if (
-				orgConfig?.meta?.program_managers?.length == 0 ||
-				orgConfig?.meta?.program_managers?.length == undefined
+				orgConfigs?.meta?.program_managers?.length == 0 ||
+				orgConfigs?.meta?.program_managers?.length == undefined
 			) {
 				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',')
 			}
@@ -395,13 +410,6 @@ module.exports = class orgExtensionsHelper {
 			})
 
 			result.resource = configData
-
-			//get the factors and optional factors from user service
-			const tenantDetails = await userRequests.fetchPublicTenantDetails(tenantCode)
-			// add scope related factors to the result
-			const meta = tenantDetails?.success ? tenantDetails?.data?.result?.meta : {}
-			result.factors = meta?.factors ?? []
-			result.optional_factors = meta?.optional_factors ?? []
 
 			// return success message
 			return responses.successResponse({

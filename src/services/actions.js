@@ -23,7 +23,11 @@ module.exports = class ActionsHelper {
 		try {
 			const createAction = await actionQueries.create(bodyData)
 			if (!createAction?.id) {
-				throw new Error('ACTION_CREATION_FAILED')
+				return responses.failureResponse({
+					message: 'ACTION_CREATION_FAILED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
 			return responses.successResponse({
@@ -41,7 +45,7 @@ module.exports = class ActionsHelper {
 			} else {
 				return responses.failureResponse({
 					message: error.message || error,
-					statusCode: httpStatusCode.bad_request,
+					statusCode: httpStatusCode.internal_server_error,
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
@@ -64,7 +68,11 @@ module.exports = class ActionsHelper {
 			})
 
 			if (updateCount === 0) {
-				throw new Error('ACTION_NOT_FOUND')
+				return responses.failureResponse({
+					message: 'ACTION_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
 			return responses.successResponse({
@@ -150,7 +158,11 @@ module.exports = class ActionsHelper {
 		try {
 			const action = await actionQueries.findById(id)
 			if (!action) {
-				throw new Error('ACTION_NOT_FOUND')
+				return responses.failureResponse({
+					message: 'ACTION_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
 			const activities = await activitiesQueries.findAllActivities(
@@ -161,12 +173,20 @@ module.exports = class ActionsHelper {
 			)
 
 			if (activities.count > 0) {
-				throw new Error('CANNOT_DELETE_ACTION_DUE_TO_ASSOCIATED_ACTIVITIES')
+				return responses.failureResponse({
+					message: 'CANNOT_DELETE_ACTION_DUE_TO_ASSOCIATED_ACTIVITIES',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
 			const deleteAction = await actionQueries.deleteAction(id)
 			if (!deleteAction) {
-				throw new Error('ACTION_NOT_DELETED')
+				return responses.failureResponse({
+					message: 'ACTION_NOT_DELETED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
@@ -175,7 +195,7 @@ module.exports = class ActionsHelper {
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
