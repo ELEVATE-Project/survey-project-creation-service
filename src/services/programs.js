@@ -1186,6 +1186,15 @@ module.exports = class ProgramsHelper {
 
 			// this will be handled while taking up program publish
 			if (!isReviewMandatory) {
+				// update the resource status to submitted and stage to review, because publish api is checking the status and stage before publishing
+				await resourceQueries.updateOne(
+					{ id: programData.id },
+					{
+						status: common.RESOURCE_STATUS_SUBMITTED,
+						stage: common.RESOURCE_STAGE_REVIEW,
+					}
+				)
+
 				const publishResource = await reviewService.publishResource(
 					programData.id,
 					programData.user_id,

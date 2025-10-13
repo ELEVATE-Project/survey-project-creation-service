@@ -22,6 +22,7 @@ const kafkaCommunication = require('@generics/kafka-communication')
 const consumptionRequests = require('@consumption/index')
 const rolloutService = require('@services/rollouts')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
+
 module.exports = class reviewsHelper {
 	/**
 	 * Update review.
@@ -757,6 +758,7 @@ module.exports = class reviewsHelper {
 				tenantCode,
 				userToken
 			)
+
 			if (resourceDetails.statusCode !== httpStatusCode.ok) {
 				return resourceDetails
 			}
