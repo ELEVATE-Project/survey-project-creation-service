@@ -373,8 +373,16 @@ const fetchExternalEntities = async (apiData, dataToFetch = [], entityType, tena
 const processTargetingCriteria = async (targetingData, organizationCode, tenantCode) => {
 	try {
 		let scope = {}
+		// add organization into the scope by default
+		scope[`${common.SCOPE_ELEMENT_ORGANIZATIONS}`] = [organizationCode]
+		let mandatoryKeys = []
+		// iterate through the scope keys and create empty array for each key
+		// also track the mandatory keys
 		for (let scopeElement of Object.keys(scopeKeys)) {
 			scope[scopeElement] = []
+			if (scopeKeys[scopeElement]?.mandatory) {
+				mandatoryKeys.push(scopeElement)
+			}
 		}
 
 		let metaInformation = {}
@@ -389,34 +397,55 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 			// Iterate through each targeting criterion
 			for (let i = 0; i < targetingData.length; i++) {
 				const targeting = targetingData[i]
+				let skipTargeting = false
 				for (let eachTargeting of Object.keys(targeting)) {
 					const target = targeting?.[eachTargeting] || null
 					if (!Object.keys(scope).includes(eachTargeting)) scope[eachTargeting] = []
-					if (target && typeof target == 'string') {
-						// if the target is string , possibly we are expecting the _id of the entity.
-						// Hence push it directly making sure the value is unique
-						if (!scope[eachTargeting].includes(target)) scope[eachTargeting].push(target)
-					} else if (target && Array.isArray(target) && target.length > 0) {
-						// if the target is an array , iterate through each element
-						target.forEach((targetEntity) => {
-							// if the element inside array is string , possibly we are expecting the _id of the entity.
+					if (
+						scope[eachTargeting] == common.TARGETING_ALL ||
+						scope[eachTargeting].includes(common.TARGETING_ALL)
+					) {
+						skipTargeting = true
+					}
+
+					if (!skipTargeting) {
+						if (target && typeof target == 'string') {
+							// if the target is string , possibly we are expecting the _id of the entity.
 							// Hence push it directly making sure the value is unique
-							if (typeof targetEntity == 'string')
-								if (!scope[eachTargeting].includes(targetEntity))
-									scope[eachTargeting].push(targetEntity)
-							if (typeof targetEntity == 'object') {
-								// if the element inside array is an object.
-								// check for _id or id within the object
-								const id = targetEntity?._id || targetEntity?.id || null
-								if (id && !scope[eachTargeting].includes(targetEntity))
-									scope[eachTargeting].push(targetEntity)
+							if (!scope[eachTargeting].includes(target)) {
+								if (scope[eachTargeting] == common.TARGETING_ALL) {
+									scope[eachTargeting] = [common.TARGETING_ALL]
+								} else {
+									scope[eachTargeting].push(target)
+								}
 							}
-						})
-					} else if (target && typeof target == 'object' && Object.keys(target).length > 0) {
-						// if the target is an object.
-						// check for _id or id within the object.
-						const id = target?._id || target?.id || null
-						if (id && !scope[eachTargeting].includes(target)) scope[eachTargeting].push(target)
+						} else if (target && Array.isArray(target) && target.length > 0) {
+							// if any of the element is ALL , record only ALL
+							if (target.includes(common.TARGETING_ALL)) {
+								scope[eachTargeting] = [common.TARGETING_ALL]
+							} else {
+								// if the target is an array , iterate through each element
+								target.forEach((targetEntity) => {
+									// if the element inside array is string , possibly we are expecting the _id of the entity.
+									// Hence push it directly making sure the value is unique
+									if (typeof targetEntity == 'string')
+										if (!scope[eachTargeting].includes(targetEntity))
+											scope[eachTargeting].push(targetEntity)
+									if (typeof targetEntity == 'object') {
+										// if the element inside array is an object.
+										// check for _id or id within the object
+										const id = targetEntity?._id || targetEntity?.id || null
+										if (id && !scope[eachTargeting].includes(targetEntity))
+											scope[eachTargeting].push(targetEntity)
+									}
+								})
+							}
+						} else if (target && typeof target == 'object' && Object.keys(target).length > 0) {
+							// if the target is an object.
+							// check for _id or id within the object.
+							const id = target?._id || target?.id || null
+							if (id && !scope[eachTargeting].includes(target)) scope[eachTargeting].push(target)
+						}
 					}
 				}
 			}
@@ -454,6 +483,13 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 				}
 
 				metaInformation = await processMetaInformation()
+			}
+		}
+		if (mandatoryKeys.length > 0) {
+			for (const key of mandatoryKeys) {
+				if (!scope[key] || scope[key].length == 0) {
+					scope[key] = [common.TARGETING_ALL]
+				}
 			}
 		}
 		if (scope) {
