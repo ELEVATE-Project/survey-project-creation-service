@@ -19,6 +19,7 @@ const formQueries = require('@database/queries/form')
 const reviewStageQueries = require('@database/queries/reviewStage')
 const organizationExtensionQueries = require('@database/queries/organizationExtensions')
 const certificateQueries = require('@database/queries/certificateBaseTemplate')
+const organizationConfigQueries = require('@database/queries/organizationConfig')
 const filesService = require('@services/files')
 const path = require('path')
 const fs = require('fs')
@@ -96,6 +97,7 @@ module.exports = class AdminService {
 				this.setupForms(tenant_code, organization_code, userId),
 				this.setupReviewStages(tenant_code, organization_code, userId),
 				this.setupOrganizationExtension(tenant_code, organization_code, userId),
+				this.setupOrganizationConfigs(tenant_code, organization_code, userId),
 			])
 
 			// 5. Setup Certificate Base Templates
@@ -315,50 +317,55 @@ module.exports = class AdminService {
 	 * @returns {JSON}
 	 */
 	static async setupForms(newTenantCode, newOrgCode, userId) {
-		console.log('--- Setting up Forms ---')
-		// Fetch default forms
-		const defaultForms = await formQueries.findAll({
-			tenant_code: DEFAULT_TENANT_CODE,
-			organization_code: DEFAULT_ORGANIZATION_CODE,
-		})
-
-		// Fetch existing forms for target tenant/org to avoid duplicates
-		const existingForms = await formQueries.findAll({
-			tenant_code: newTenantCode,
-			organization_code: newOrgCode,
-		})
-
-		// Build set of existing form identifiers
-		const existingFormKeys = new Set(existingForms.map((form) => `${form.type}|||${form.sub_type}`))
-
-		// Filter out forms that already exist
-		const formsToCreate = defaultForms
-			.filter((defaultForm) => {
-				const formKey = `${defaultForm.type}|||${defaultForm.sub_type}`
-				return !existingFormKeys.has(formKey)
+		try {
+			console.log('--- Setting up Forms ---')
+			// Fetch default forms
+			const defaultForms = await formQueries.findAll({
+				tenant_code: DEFAULT_TENANT_CODE,
+				organization_code: DEFAULT_ORGANIZATION_CODE,
 			})
-			.map((defaultForm) => ({
-				..._.omit(defaultForm.toJSON ? defaultForm.toJSON() : defaultForm, [
-					'id',
-					'created_at',
-					'updated_at',
-					'deleted_at',
-				]),
+
+			// Fetch existing forms for target tenant/org to avoid duplicates
+			const existingForms = await formQueries.findAll({
 				tenant_code: newTenantCode,
 				organization_code: newOrgCode,
-				created_by: userId, // String instead of number for consistency
-				updated_by: userId,
-			}))
-		// Create forms if any need to be created
-		if (formsToCreate.length > 0) {
-			await formQueries.bulkCreate(formsToCreate, {
-				ignoreDuplicates: true,
 			})
-			console.log(`Created ${formsToCreate.length} forms`)
-		} else {
-			console.log('No new forms to create - all already exist')
+
+			// Build set of existing form identifiers
+			const existingFormKeys = new Set(existingForms.map((form) => `${form.type}|||${form.sub_type}`))
+
+			// Filter out forms that already exist
+			const formsToCreate = defaultForms
+				.filter((defaultForm) => {
+					const formKey = `${defaultForm.type}|||${defaultForm.sub_type}`
+					return !existingFormKeys.has(formKey)
+				})
+				.map((defaultForm) => ({
+					..._.omit(defaultForm.toJSON ? defaultForm.toJSON() : defaultForm, [
+						'id',
+						'created_at',
+						'updated_at',
+						'deleted_at',
+					]),
+					tenant_code: newTenantCode,
+					organization_code: newOrgCode,
+					created_by: userId, // String instead of number for consistency
+					updated_by: userId,
+				}))
+			// Create forms if any need to be created
+			if (formsToCreate.length > 0) {
+				await formQueries.bulkCreate(formsToCreate, {
+					ignoreDuplicates: true,
+				})
+				console.log(`Created ${formsToCreate.length} forms`)
+			} else {
+				console.log('No new forms to create - all already exist')
+			}
+			console.log('--- Forms setup completed successfully ---')
+		} catch (error) {
+			console.error('Error during form setup:', error)
+			throw error
 		}
-		console.log('--- Forms setup completed successfully ---')
 	}
 
 	/**
@@ -427,7 +434,7 @@ module.exports = class AdminService {
 	/**
 	 * Create orgExtension for new tenant
 	 * @method
-	 * @name setupForms
+	 * @name setupOrganizationExtension
 	 * @param {String} newTenantCode - tenantCode
 	 * @param {String} newOrgCode - orgCode
 	 * @param {String} userId -UserId
@@ -486,9 +493,77 @@ module.exports = class AdminService {
 	}
 
 	/**
+	 * Create orgConfigs for new tenant
+	 * @method
+	 * @name setupOrganizationConfigs
+	 * @param {String} newTenantCode - tenantCode
+	 * @param {String} newOrgCode - orgCode
+	 * @param {String} userId -UserId
+	 * @returns {JSON}
+	 */
+	static async setupOrganizationConfigs(newTenantCode, newOrgCode, userId) {
+		console.log('--- Setting up Organization Configs ---')
+		try {
+			// Fetch default organization extensions
+			const defaultConfigs = await organizationConfigQueries.findMany({
+				tenant_code: DEFAULT_TENANT_CODE,
+				organization_code: DEFAULT_ORGANIZATION_CODE,
+			})
+
+			// Fetch existing organization extensions for target tenant/org to avoid duplicates
+			const existingConfigs = await organizationConfigQueries.findMany({
+				tenant_code: newTenantCode,
+				organization_code: newOrgCode,
+			})
+
+			// Check  existing configs
+			if (existingConfigs?.length > 0) {
+				console.log(
+					`Organization configs already exist for tenant=${newTenantCode}, org=${newOrgCode}. Skipping creation.`
+				)
+				return {
+					statusCode: httpStatusCode.internal_server_error,
+					message: 'Configs already exist for target tenant/org.',
+				}
+			}
+
+			//  organization config  create
+
+			const configsToCreate = defaultConfigs.map((configs) => {
+				const plain = configs.toJSON ? configs.toJSON() : configs
+
+				return {
+					..._.omit(plain, ['id', 'created_at', 'updated_at', 'deleted_at']),
+					tenant_code: newTenantCode,
+					organization_code: newOrgCode,
+					created_by: userId,
+					updated_by: userId,
+					created_at: new Date(),
+					updated_at: new Date(),
+				}
+			})
+
+			// Create organization extensions if any need to be created
+			if (configsToCreate.length > 0) {
+				await organizationConfigQueries.bulkCreate(configsToCreate, {
+					ignoreDuplicates: true,
+				})
+				console.log(`Created ${configsToCreate.length} organization Configs`)
+			} else {
+				console.log('No new organization Configs to create - all already exist')
+			}
+
+			console.log('--- Organization Configs setup completed successfully ---')
+		} catch (error) {
+			console.error('Error during organization Configs setup:', error)
+			throw error
+		}
+	}
+
+	/**
 	 * Create certificatesBaseTemplates for new tenant
 	 * @method
-	 * @name setupForms
+	 * @name setupCertificateBaseTemplates
 	 * @param {String} newTenantCode - tenantCode
 	 * @param {String} newOrgCode - orgCode
 	 * @param {String} userId -UserId
@@ -582,7 +657,7 @@ module.exports = class AdminService {
 
 						if (!cloudUpload.success) {
 							throw {
-								statusCode: httpStatusCode.ok,
+								statusCode: httpStatusCode.internal_server_error,
 								message: 'Failed to upload file to cloud storage',
 							}
 						}

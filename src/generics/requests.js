@@ -1,5 +1,7 @@
 const request = require('request')
 const parser = require('xml2json')
+const common = require('@constants/common')
+
 var get = function (
 	url,
 	token = '',
@@ -116,7 +118,7 @@ var put = function (fileUploadUrl, fileData) {
 			request(
 				{
 					url: fileUploadUrl,
-					method: 'PUT',
+					method: common.PUT,
 					headers: {
 						'Content-Type': 'application/multipart/form-data', // cloud storage usually ignores boundary
 					},

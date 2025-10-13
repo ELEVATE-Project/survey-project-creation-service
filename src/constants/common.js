@@ -248,4 +248,5 @@ module.exports = {
 	},
 	ORGANIZATION_KEY: 'organization_code',
 	PROJECTION_KEY_ASTERISK: '*',
+	PUT: 'PUT',
 }
