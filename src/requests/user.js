@@ -35,7 +35,7 @@ const fetchOrg = function (organisationIdentifier, tenantCode, internalToken = t
 
 			const orgDetails = await requests.get(
 				orgReadUrl,
-				'', // X-auth-token not required for internal call
+				userToken, // X-auth-token not required for internal call
 				internalToken
 			)
 
