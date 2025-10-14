@@ -9,7 +9,6 @@ const utils = require('@generics/utils')
 const { elevateLog } = require('elevate-logger')
 const logger = elevateLog.init()
 const { Kafka } = require('kafkajs')
-// const consumptionService = require('@requests/consumption')
 const { consumptionService } = require('@consumption/index')
 
 const topics = [
