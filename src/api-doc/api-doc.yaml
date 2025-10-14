@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.0
 info:
   title: Elevate Survey Project Creation Portal Service
   version: 1.0.0
@@ -1244,7 +1244,9 @@ paths:
                       data_type:
                         type: string
                       organization_code:
-                        type: number
+                        type: string
+                      tenant_code:
+                        type: string
                       has_entities:
                         type: boolean
                       created_at:
@@ -1269,7 +1271,7 @@ paths:
                       updated_by: 5
                       allow_filtering: false
                       data_type: string
-                      organization_code: 1
+                      organiation_code: default_code
                       has_entities: true
                       created_at: '2023-09-06T12:01:09.025Z'
                       updated_at: '2023-09-22T12:47:42.510Z'
@@ -1387,7 +1389,8 @@ paths:
                         allow_filtering: false
                         data_type: STRING
                         has_entities: true
-                        organization_code: 1
+                        organization_code: default_code
+                        tenant_code: default
                         created_at: '2023-09-21T10:16:19.270Z'
                         updated_at: '2023-09-21T10:16:19.270Z'
                         entities:
@@ -2234,7 +2237,9 @@ paths:
                         nullable: true
                         type: string
                       organization_code:
-                        type: number
+                        type: string
+                      tenant_code:
+                        type: string
                   meta:
                     type: object
                     properties:
@@ -2282,7 +2287,7 @@ paths:
                       updated_at: '2023-07-18T20:48:10.492Z'
                       created_at: '2023-07-18T20:48:10.492Z'
                       deleted_at: null
-                      organization_code: 1
+                      organiation_code: default_code
                     meta:
                       formsVersion:
                         - id: 16
@@ -2566,7 +2571,9 @@ paths:
                         nullable: true
                         type: string
                       organization_code:
-                        type: number
+                        type: string
+                      tenant_code:
+                        type: string
                   meta:
                     type: object
                     properties:
@@ -2616,7 +2623,7 @@ paths:
                       updated_at: '2023-07-18T20:48:10.492Z'
                       created_at: '2023-07-18T20:48:10.492Z'
                       deleted_at: null
-                      organization_code: 1
+                      organiation_code: default_code
                     meta:
                       formsVersion:
                         - id: 16
@@ -2892,6 +2899,36 @@ paths:
                           allow_evidences: true
                           parent_id: 7a8b13fb-c9e1-4296-8abd-8b64b357a128
                           sequence_no: 1
+                  certificate: {}
+              project with reflection as a task:
+                value:
+                  title: Sample Project with Reflection
+                  categories:
+                    label: Community
+                    value: community
+                  recommented_duration:
+                    type: week
+                    number: 5
+                  keywords:
+                    - reflection
+                    - self-assessment
+                  recommeneded_for:
+                    - label: HM
+                      value: hm
+                  languages:
+                    - label: English
+                      value: en
+                  tasks:
+                    - id: db182d03-c3ac-434d-889b-e74fafab439e
+                      name: Reflection Task Example
+                      type: reflection
+                      is_mandatory: true
+                      allow_evidences: true
+                      sequence_no: 1
+                      learning_resources: []
+                      children: []
+                      button_label: 'START REFLECTION'
+                      link: 'https://devsss.elevate-ml.shikshalokam.org/view/observation/'
                   certificate: {}
               project without child tasks and certificates:
                 value:
@@ -3276,6 +3313,10 @@ paths:
                         type: integer
                       title:
                         type: string
+                      tenant_code:
+                        type: string
+                      organization_code:
+                        type: string
                       categories:
                         type: array
                         items:
@@ -3417,12 +3458,13 @@ paths:
                     message: Project fetched successfully
                     result:
                       id: 1
+                      organization_code: default_code,
+                      tenant_code: default,
                       status: IN_REVIEW
                       organization:
                         id: 2
                         name: Shikshlokam
                         code: SL
-                      organization_code: 2
                       reviewers:
                         - id: 24
                           name: Raven
@@ -3619,6 +3661,7 @@ paths:
                         - id: 1
                           name: Priyanka
                           organization_code: 2
+                          tenant_code: default
                           organization:
                             id: 2
                             name: Shikshalokam
@@ -3626,6 +3669,7 @@ paths:
                         - id: 2
                           name: Adithya
                           organization_code: 2
+                          tenant_code: default
                           organization:
                             id: 2
                             name: Shikshalokam
@@ -3633,6 +3677,7 @@ paths:
                         - id: 3
                           name: Ankit
                           organization_code: 2
+                          tenant_code: default
                           organization:
                             id: 2
                             name: Shikshalokam
@@ -3773,7 +3818,7 @@ paths:
                           status: DRAFT
                           created_by: 32
                           creator: Adithya
-                          organization_code: 1
+                          organiation_code: default_code
                         - id: 5
                           title: Improve Education Quality
                           type: program
@@ -3786,7 +3831,7 @@ paths:
                           end_date: '2024-11-29T11:36:31.117Z'
                           created_by: 33
                           creator: Priyanka
-                          organization_code: 1
+                          organiation_code: default_code
                       count: 1
                     meta:
                       formsVersion:
@@ -3908,7 +3953,7 @@ paths:
                           created_by: 32
                           published_on: 2025-01-03T10:49:02.318Z
                           creator: Priyanka
-                          organization_code: 1
+                          organiation_code: default_code
                         - id: 5
                           title: Improve Education Quality
                           type: program
@@ -3922,7 +3967,7 @@ paths:
                           created_by: 32
                           published_on: 2025-01-03T10:49:02.318Z
                           creator: Adithya
-                          organization_code: 1
+                          organiation_code: default_code
                       count: 2
                     meta:
                       formsVersion:
@@ -4121,7 +4166,7 @@ paths:
                             code: sl
                           status: INPROGRESS
                           created_by: 32
-                          organization_code: 1
+                          organiation_code: default_code
                           creator: Priyanka
                           notes: Note to the reviewer,
                           created_at: 2024-12-26T03:36:45.062Z
@@ -4137,7 +4182,7 @@ paths:
                           start_date: '2024-10-29T11:35:08.694Z'
                           end_date: '2024-11-29T11:36:31.117Z'
                           created_by: 33
-                          organization_code: 1
+                          organiation_code: default_code
                           creator: Adithya
                           notes: Note to the reviewer,
                           created_at: 2024-12-26T03:36:45.062Z
@@ -6111,6 +6156,9 @@ paths:
                       status:
                         type: string
                         example: 'DRAFT'
+                      tenant_code:
+                        type: string
+                        example: 'default'
                       targeting_criteria:
                         type: array
                         items:
@@ -6666,6 +6714,8 @@ paths:
                     properties:
                       resource_id:
                         type: string
+                      tenant_code:
+                        type: string
                       comments:
                         type: array
                         items:
@@ -6695,7 +6745,7 @@ paths:
                       data:
                         - id: 1
                           name: Priyanka
-                          organization_code: 2
+                          organization_code: default_code
                           organization:
                             id: 2
                             name: Shikshalokam
@@ -6827,21 +6877,21 @@ paths:
                       data:
                         - id: 1
                           name: Priyanka
-                          organization_code: 2
+                          organization_code: default_code
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 2
                           name: Adithya
-                          organization_code: 2
+                          organization_code: default_code
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 3
                           name: Ankit
-                          organization_code: 2
+                          organization_code: default_code
                           organization:
                             id: 2
                             name: Shikshalokam
@@ -6950,7 +7000,7 @@ paths:
                     responseCode: OK
                     message: Config added successfully
                     result:
-                      organization_code: 3
+                      organiation_code: default_code
                       show_reviewer_list: true
                       min_approval: 2
                       resource_type: s
@@ -7051,7 +7101,7 @@ paths:
                     responseCode: OK
                     message: Config updated successfully
                     result:
-                      organization_code: 3
+                      organiation_code: default_code
                       show_reviewer_list: true
                       min_approval: 2
                       resource_type: project
@@ -7072,19 +7122,19 @@ paths:
       tags:
         - Config APIs
       description: |-
-        You can use this API to list organization configurations and instance level configurations
-         - The API Endpoint for list all configurations is `/scp/v1/config/list` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        Use this API to list organization configurations and instance-level configurations.
+         - The API endpoint to list all configurations is `/scp/v1/config/list`.
+         - It is mandatory to provide values for parameters marked as `required`.
+         - The `X-auth-token` header parameter is mandatory and cannot be empty or null.
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'To use this API, you require an X-auth-token. This is available in the login API response.'
           required: true
           schema:
             type: string
       responses:
-        '201':
+        '200':
           description: Config fetched successfully
           content:
             application/json:
@@ -7093,11 +7143,84 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: Config fetched successfully
                   result:
                     type: object
                     properties:
+                      config:
+                        type: object
+                        properties:
+                          targeting_criteria:
+                            type: object
+                            properties:
+                              factors:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    api:
+                                      type: object
+                                      properties:
+                                        method:
+                                          type: string
+                                        service:
+                                          type: string
+                                        data_key:
+                                          type: string
+                                        endpoint:
+                                          type: string
+                                        base_name:
+                                          type: string
+                                        path_params:
+                                          type: object
+                                          additionalProperties: true
+                                        query_params:
+                                          type: object
+                                          additionalProperties: true
+                                    key:
+                                      type: string
+                                    type:
+                                      type: string
+                                    order:
+                                      type: integer
+                                    default:
+                                      nullable: true
+                                    mandatory:
+                                      type: boolean
+                                    depends_on:
+                                      type: array
+                                      items:
+                                        type: string
+                                      nullable: true
+                                    multi_select:
+                                      type: boolean
+                              ui_config:
+                                type: object
+                                properties:
+                                  tabs:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        id:
+                                          type: string
+                                        name:
+                                          type: string
+                                        fields:
+                                          type: array
+                                          items:
+                                            type: string
+                          data_managers:
+                            type: array
+                            items:
+                              type: string
+                          program_managers:
+                            type: array
+                            items:
+                              type: string
                       resource:
                         type: array
                         items:
@@ -7111,10 +7234,15 @@ paths:
                               type: integer
                             review_type:
                               type: string
+                            review_required_after_publish:
+                              type: boolean
                             resource_type:
                               type: string
                             max_task_count:
                               type: integer
+                              nullable: true
+                            observation_link_regex:
+                              type: string
                               nullable: true
                       instance:
                         type: object
@@ -7125,98 +7253,283 @@ paths:
                             type: integer
                           is_auth_token_bearer:
                             type: boolean
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: object
+                        additionalProperties: true
+                      correlation:
+                        type: string
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Config fetched successfully
                     result:
+                      config:
+                        targeting_criteria:
+                          factors:
+                            - api:
+                                method: GET
+                                service: entity-service
+                                data_key: result.data
+                                endpoint: v1/entities/entityListBasedOnEntityType
+                                base_name: entity-management
+                                query_params:
+                                  page: '{$page}'
+                                  limit: '{$limit}'
+                                  paginate: true
+                                  entityType: state
+                              key: state
+                              type: selection
+                              order: 1
+                              default: null
+                              mandatory: true
+                              depends_on: null
+                              multi_select: true
+                            - api:
+                                method: GET
+                                service: entity-service
+                                data_key: result.data
+                                endpoint: v1/entities/subEntityListBasedOnRoleAndLocation
+                                base_name: entity-management
+                                path_params:
+                                  stateId: '{$state._id}'
+                                query_params:
+                                  page: '{$page}'
+                                  limit: '{$limit}'
+                                  paginate: true
+                              key: entityType
+                              type: selection
+                              order: 2
+                              default: null
+                              mandatory: true
+                              depends_on:
+                                - state
+                              multi_select: true
+                            - api:
+                                method: GET
+                                service: entity-service
+                                data_key: result.data
+                                endpoint: v1/entities/entityListBasedOnEntityType
+                                base_name: entity-management
+                                query_params:
+                                  page: '{$page}'
+                                  limit: '{$limit}'
+                                  paginate: true
+                                  entityType: professional_role
+                              key: professional_role
+                              type: selection
+                              order: 3
+                              default: null
+                              mandatory: true
+                              depends_on: null
+                              multi_select: true
+                            - api:
+                                method: GET
+                                service: entity-service
+                                data_key: result.data
+                                endpoint: v1/entities/entityListBasedOnEntityType
+                                base_name: entity-management
+                                query_params:
+                                  page: '{$page}'
+                                  limit: '{$limit}'
+                                  paginate: true
+                                  entityType: professional_subroles
+                              key: professional_subroles
+                              type: selection
+                              order: 4
+                              default: null
+                              mandatory: true
+                              depends_on:
+                                - professional_role
+                              multi_select: true
+                            - api:
+                                method: GET
+                                service: entity-service
+                                data_key: result.data
+                                endpoint: v1/entities/subEntityList
+                                base_name: entity-management
+                                path_params:
+                                  stateId: '{$state._id}'
+                                query_params:
+                                  page: '{$page}'
+                                  type: district
+                                  limit: '{$limit}'
+                                  paginate: true
+                                  additionalFields: true
+                              key: district
+                              type: selection
+                              order: 5
+                              default: null
+                              mandatory: true
+                              depends_on:
+                                - state
+                              multi_select: true
+                            - api:
+                                method: GET
+                                service: entity-service
+                                data_key: result.data
+                                endpoint: v1/entities/subEntityList
+                                base_name: entity-management
+                                path_params:
+                                  stateId: '{$state._id}'
+                                query_params:
+                                  page: '{$page}'
+                                  type: block
+                                  limit: '{$limit}'
+                                  paginate: true
+                                  additionalFields: true
+                              key: block
+                              type: selection
+                              order: 6
+                              default: null
+                              mandatory: true
+                              depends_on:
+                                - district
+                              multi_select: true
+                            - api:
+                                method: GET
+                                service: entity-service
+                                data_key: result.data
+                                endpoint: v1/entities/subEntityList
+                                base_name: entity-management
+                                path_params:
+                                  stateId: '{$state._id}'
+                                query_params:
+                                  page: '{$page}'
+                                  type: cluster
+                                  limit: '{$limit}'
+                                  paginate: true
+                                  additionalFields: true
+                              key: cluster
+                              type: selection
+                              order: 7
+                              default: null
+                              mandatory: true
+                              depends_on:
+                                - block
+                              multi_select: true
+                            - api:
+                                method: GET
+                                service: entity-service
+                                data_key: result.data
+                                endpoint: v1/entities/subEntityList
+                                base_name: entity-management
+                                path_params:
+                                  stateId: '{$state._id}'
+                                query_params:
+                                  page: '{$page}'
+                                  type: school
+                                  limit: '{$limit}'
+                                  paginate: true
+                                  additionalFields: true
+                              key: school
+                              type: selection
+                              order: 8
+                              default: null
+                              mandatory: true
+                              depends_on:
+                                - cluster
+                              multi_select: true
+                          ui_config:
+                            tabs:
+                              - id: location
+                                name: Location
+                                fields:
+                                  - state
+                                  - entityType
+                                  - professional_role
+                                  - professional_subroles
+                                  - district
+                                  - block
+                                  - cluster
+                                  - school
+                        data_managers:
+                          - program_manager
+                        program_managers:
+                          - program_manager
                       resource:
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: SEQUENTIAL
+                          review_required_after_publish: true
                           resource_type: project
                           max_task_count: 10
-                          observation_link_regex: '^https?:\/\/[a-zA-Z0-9\-_]+\.[a-zA-Z]{2,}(/[a-zA-Z0-9\-\._~:/?#[\]@!$&\''()*+,;=]*)?$'
-                          open_external_link: true
+                          observation_link_regex: '^https://dev.elevate-ml.shikshalokam.org/view/observation/[a-f0-9]{32}$'
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: SEQUENTIAL
+                          review_required_after_publish: true
                           resource_type: observation
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: SEQUENTIAL
+                          review_required_after_publish: true
                           resource_type: observation_with_rubric
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: SEQUENTIAL
+                          review_required_after_publish: true
                           resource_type: survey
                         - review_required: true
                           show_reviewer_list: true
                           min_approval: 1
                           review_type: SEQUENTIAL
+                          review_required_after_publish: true
                           resource_type: program
                       instance:
                         auto_save_interval: 30000
                         note_length: 200
                         is_auth_token_bearer: false
                     meta:
-                      formsVersion:
-                        - id: 2
-                          type: sidenavData
-                          version: 23
-                        - id: 3
-                          type: solutionlist
-                          version: 20
-                        - id: 4
-                          type: tasksDetails
-                          version: 20
-                        - id: 1
-                          type: projectDetails
-                          version: 49
-                      correlation: c1f40d2c-a883-4f51-a17d-7b0730ccd433
+                      formsVersion: {}
+                      correlation: 93cf9763-6eae-400b-8735-e9e19a4eac69
+
   /scp/v1/certificates/list:
     get:
       summary: List Certificate Templates
       tags:
         - Certificate
       description: |-
-        You can use this API to list certificate templates
-         - The API Endpoint for list certificate templates is `/scp/v1/certificates/list` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        You can use this API to list certificate templates.
+
+        - The API endpoint for listing certificate templates is `/scp/v1/certificates/list`. 
+        - It is mandatory to provide values for parameters marked as `required`.
+        - The X-auth-token header is required and cannot be empty or null.
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'To use this API, you require an X-auth-token. This is available in the login API response.'
           required: true
           schema:
             type: string
         - in: query
           name: resource_type
-          description: Please add the resource type
+          description: Resource type for which certificate templates need to be fetched.
           schema:
             type: string
           example: project
         - in: query
           name: page
-          description: Please add page number
+          description: Page number for pagination.
           schema:
-            type: number
+            type: integer
           example: 1
         - in: query
           name: limit
-          description: Number of records to limit
+          description: Number of records per page.
           schema:
-            type: number
-          example: 2
+            type: integer
+          example: 10
         - in: query
           name: search
-          description: Please search for information such as names
+          description: Search keyword for filtering templates (e.g., by name).
           schema:
             type: string
           example: one logo
@@ -7230,8 +7543,10 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: Certificate template listed successfully
                   result:
                     type: object
                     properties:
@@ -7240,22 +7555,82 @@ paths:
                         items:
                           type: object
                           properties:
+                            id:
+                              type: integer
+                            code:
+                              type: string
+                            name:
+                              type: string
                             url:
                               type: string
+                              format: uri
+                            resource_type:
+                              type: string
+                            organization_code:
+                              type: string
+                            tenant_code:
+                              type: string
+                            meta:
+                              type: object
+                              properties:
+                                logos:
+                                  type: object
+                                  properties:
+                                    no_of_logos:
+                                      type: integer
+                                    stateLogo1:
+                                      type: string
+                                      nullable: true
+                                    stateLogo2:
+                                      type: string
+                                      nullable: true
+                                signature:
+                                  type: object
+                                  properties:
+                                    no_of_signature:
+                                      type: integer
+                                    signatureImg1:
+                                      type: string
+                                      nullable: true
+                                    signatureImg2:
+                                      type: string
+                                      nullable: true
+                                signatureTitleName1:
+                                  type: string
+                                signatureTitleDesignation1:
+                                  type: string
+                                signatureTitleName2:
+                                  type: string
+                                  nullable: true
+                                signatureTitleDesignation2:
+                                  type: string
+                                  nullable: true
+                                QrCode:
+                                  type: string
+                                  nullable: true
+                            created_by:
+                              type: string
+                            created_at:
+                              type: string
+                              format: date-time
+                            updated_at:
+                              type: string
+                              format: date-time
+                            deleted_at:
+                              type: string
+                              nullable: true
+                              format: date-time
+                            filePath:
+                              type: string
+                      count:
+                        type: integer
                   meta:
                     type: object
                     properties:
                       formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
+                        type: object
+                      correlation:
+                        type: string
               examples:
                 example1:
                   value:
@@ -7263,11 +7638,83 @@ paths:
                     message: Certificate template listed successfully
                     result:
                       data:
+                        - id: 1
+                          code: one_logo_one_sign
+                          name: One Logo One Signature
+                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/dcccf547-e625-48fd-a1f5-902c1f77a0db/one_logo_one_sign.svg'
+                          resource_type: project
+                          organization_code: default_code
+                          tenant_code: shikshagraha
+                          meta:
+                            logos:
+                              no_of_logos: 1
+                              stateLogo1: null
+                            signature:
+                              no_of_signature: 1
+                              signatureImg1: null
+                            signatureTitleName1: Name
+                            signatureTitleDesignation1: Designation
+                            QrCode: null
+                          created_by: '0'
+                          created_at: '2025-09-02T09:14:10.843Z'
+                          updated_at: '2025-09-02T09:14:10.844Z'
+                          deleted_at: null
+                          filePath: 'system/BASE_TEMPLATE/resource/cert/dcccf547-e625-48fd-a1f5-902c1f77a0db/one_logo_one_sign.svg'
                         - id: 2
+                          code: one_logo_two_sign
+                          name: One Logo Two Signature
+                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/09d123e7-6795-4123-a920-a79629e65486/one_logo_two_sign.svg'
+                          resource_type: project
+                          organization_code: default_code
+                          tenant_code: shikshagraha
+                          meta:
+                            logos:
+                              no_of_logos: 1
+                              stateLogo1: null
+                            signature:
+                              no_of_signature: 2
+                              signatureImg1: null
+                              signatureImg2: null
+                            signatureTitleName1: Name
+                            signatureTitleDesignation1: Designation
+                            signatureTitleName2: Name
+                            signatureTitleDesignation2: Designation
+                            QrCode: null
+                          created_by: '0'
+                          created_at: '2025-09-02T09:14:10.845Z'
+                          updated_at: '2025-09-02T09:14:10.845Z'
+                          deleted_at: null
+                          filePath: 'system/BASE_TEMPLATE/resource/cert/09d123e7-6795-4123-a920-a79629e65486/one_logo_two_sign.svg'
+                        - id: 3
+                          code: two_logo_one_sign
+                          name: Two Logo One Signature
+                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/b9cbcb52-87bc-472b-8b1c-7dcf6170841c/two_logo_one_sign.svg'
+                          resource_type: project
+                          organization_code: default_code
+                          tenant_code: shikshagraha
+                          meta:
+                            logos:
+                              no_of_logos: 2
+                              stateLogo1: null
+                              stateLogo2: null
+                            signature:
+                              no_of_signature: 1
+                              signatureImg1: null
+                            signatureTitleName1: Name
+                            signatureTitleDesignation1: Designation
+                            QrCode: null
+                          created_by: '0'
+                          created_at: '2025-09-02T09:14:11.930Z'
+                          updated_at: '2025-09-02T09:14:11.930Z'
+                          deleted_at: null
+                          filePath: 'system/BASE_TEMPLATE/resource/cert/b9cbcb52-87bc-472b-8b1c-7dcf6170841c/two_logo_one_sign.svg'
+                        - id: 4
                           code: two_logo_two_sign
                           name: Two Logo Two Signature
+                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/e273fff0-fd1c-4de4-aeba-d6ae1ff9c330/two_logo_two_sign.svg'
                           resource_type: project
-                          url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
+                          organization_code: default_code
+                          tenant_code: shikshagraha
                           meta:
                             logos:
                               no_of_logos: 2
@@ -7276,17 +7723,22 @@ paths:
                             signature:
                               no_of_signature: 2
                               signatureImg1: null
-                              signatureTitleName1: null
-                              signatureTitleDesignation1: null
                               signatureImg2: null
-                              signatureTitleName2: null
-                              signatureTitleDesignation2: null
-                      count: 1
+                            signatureTitleName1: Name
+                            signatureTitleDesignation1: Designation
+                            signatureTitleName2: Name
+                            signatureTitleDesignation2: Designation
+                            QrCode: null
+                          created_by: '0'
+                          created_at: '2025-09-02T09:14:11.931Z'
+                          updated_at: '2025-09-02T09:14:11.931Z'
+                          deleted_at: null
+                          filePath: 'system/BASE_TEMPLATE/resource/cert/e273fff0-fd1c-4de4-aeba-d6ae1ff9c330/two_logo_two_sign.svg'
+                      count: 4
                     meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                      formsVersion: {}
+                      correlation: 7588016e-33c6-4580-a679-4e894d7c1141
+
   /scp/v1/certificates/update:
     post:
       summary: Create certificate base template
@@ -7645,6 +8097,8 @@ paths:
                     type: string
                   message:
                     type: string
+                  tenant_code:
+                    type: string
                   result:
                     type: object
                     properties:
@@ -7676,7 +8130,8 @@ paths:
                       id: 10
                       role: CONTENT_CREATOR
                       level: 1
-                      organization_code: 1
+                      organiation_code: default_code
+                      tenant_code: default
                       resource_type: project
                     meta:
                       formsVersion: []
@@ -7730,6 +8185,8 @@ paths:
                         type: number
                       organization_code:
                         type: number
+                      tenant_code:
+                        type: string
                   meta:
                     type: object
                     properties:
@@ -7749,8 +8206,9 @@ paths:
                         id: 10
                         role: CONTENT_CREATOR
                         level: 1
-                        organization_code: 1
+                        organiation_code: default_code
                         resource_type: project
+                        tenant_code: shikshagraha
                       count: 1
                     meta:
                       formsVersion: []
@@ -7838,7 +8296,7 @@ paths:
                       user_type: 1
                       status: ACTIVE
                       visibility: PUBLIC
-                      organization_code: 3
+                      organiation_code: default_code
                     meta:
                       formsVersion: []
         '400':
@@ -7942,7 +8400,7 @@ paths:
                       user_type: 1
                       status: ACTIVE
                       visibility: PUBLIC
-                      organization_code: 3
+                      organiation_code: default_code
                     meta:
                       formsVersion: []
         '400':
@@ -7998,7 +8456,7 @@ paths:
                 value:
                   roles:
                     - content_creator
-                  organization_code: 1
+                  organiation_code: default_code
       responses:
         '201':
           description: OK. User updated successfully
