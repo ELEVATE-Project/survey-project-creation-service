@@ -251,7 +251,7 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 
 		for (const task of tasks) {
 			// Format the task data
-			const taskData = {
+			let taskData = {
 				name: task.name,
 				description: task.name,
 				externalId: utils.generateExternalId(task.name),
@@ -269,6 +269,13 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				tenantId: tenantCode,
 				createdAt: new Date(),
 				updatedAt: new Date(),
+			}
+			//if task type reflection add link and buttonLabel in task metaInformation
+			if (task.type === common.TASK_TYPE_REFLECTION) {
+				taskData.metaInformation = {
+					redirectLink: task.link,
+					buttonLabel: common.START_REFLECTION,
+				}
 			}
 
 			// Create the task

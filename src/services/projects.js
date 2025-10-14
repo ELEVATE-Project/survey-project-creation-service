@@ -958,6 +958,52 @@ module.exports = class ProjectsHelper {
 			let regexValidation = entityType.validations.find(
 				(validation) => validation.type == common.REGEX_VALIDATION
 			)
+
+			//check for reflection url is present and calid
+
+			if (entityType.value === common.TASK_TYPE_REFLECTION && entityData.type === common.TASK_TYPE_REFLECTION) {
+				let reflectionPath =
+					sourceType == '' ? `${common.TASK_TYPE_REFLECTION}` : `${sourceType}.${common.TASK_TYPE_REFLECTION}`
+				// Validate the name is present
+				if (!entityData.name) {
+					validationErrors.push(
+						utils.errorObject(
+							reflectionPath,
+							common.NAME,
+							regexValidation.message || `Required learning reflection name in ${model}`
+						)
+					)
+				}
+
+				// Validate the URL is present
+				if (!entityData.link) {
+					validationErrors.push(
+						utils.errorObject(
+							reflectionPath,
+							common.URL,
+							regexValidation.message || `Required learning reflection URL in ${model}`
+						)
+					)
+				}
+
+				// Validate the URL against the regex pattern
+				if (entityData.link && entityMapping[common.TASK_TYPE_REFLECTION]?.validations) {
+					const validateURL = utils.checkRegexPattern(
+						entityMapping[common.TASK_TYPE_REFLECTION].validations,
+						entityData.link
+					)
+					if (!validateURL) {
+						validationErrors.push(
+							utils.errorObject(
+								reflectionPath,
+								common.URL,
+								regexValidation.message || `Invalid REFLECTION URL in ${model}`
+							)
+						)
+					}
+				}
+			}
+
 			if (regexValidation && fieldData) {
 				//validate learning resource validation
 				if (entityType.value === common.LEARNING_RESOURCE) {
