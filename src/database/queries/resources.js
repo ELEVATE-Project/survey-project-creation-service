@@ -144,3 +144,29 @@ exports.deleteOne = async (id, organization_code, tenantCode) => {
 		throw error
 	}
 }
+
+exports.findAllWithOpenComments = async (filter, attributes = {}) => {
+	try {
+		const res = await Resource.findAll({
+			where: filter,
+			attributes,
+			include: [
+				{
+					model: Comment,
+					as: 'comments',
+					required: false,
+					where: {
+						status: common.COMMENT_STATUS_OPEN,
+						tenant_code: filter.tenant_code,
+						resource_id: filter.id,
+					},
+				},
+			],
+			raw: false,
+		})
+
+		return res
+	} catch (error) {
+		return error
+	}
+}

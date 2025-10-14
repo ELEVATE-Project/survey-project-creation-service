@@ -1023,36 +1023,34 @@ module.exports = class resourceHelper {
 				if (associatedResources.length > 0) {
 					const resourceIds = associatedResources.map((resource) => resource.resource_id)
 
-					const [resources, openComments] = await Promise.all([
-						resourceQueries.findAll({
-							id: { [Op.in]: resourceIds },
-							organization_code: resource.organization_code,
-							tenant_code: tenant_code,
-						}),
-						commentQueries.findAll({
-							resource_id: { [Op.in]: resourceIds },
-							status: common.COMMENT_STATUS_OPEN,
-							tenant_code: tenant_code,
-						}),
-					])
+					// Use eager loading to fetch resources with their open comments in a single query
+					const resources = await resourceQueries.findAllWithOpenComments({
+						id: { [Op.in]: resourceIds },
+						organization_code: resource.organization_code,
+						tenant_code: tenant_code,
+					})
 
-					if (resources.length > 0) {
-						const resourceCommentSet = new Set(openComments.map((comment) => comment.resource_id))
-						// Process each resource and store in result.resources
-						const resourceDetailsPromises = resources.map((resource) =>
-							this.getDetails(resource.id, resource.organization_code, tenant_code, userToken)
-						)
-						const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
-						result.resources = resourceDetailsResults
-							.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
-							.map((resourceDetail) => ({
-								...resourceDetail.result,
-								link: resourceDetail?.result.link
-									? `${process.env.PROJECT_DEEP_LINK_URL}${resourceDetail?.result?.link}`
-									: null,
-								is_comments: resourceCommentSet.has(resourceDetail.result.id),
-							}))
-					}
+					// Create a map to easily check which resources have open comments
+					const resourceCommentSet = new Set(
+						resources
+							.filter((resource) => resource.comments && resource.comments.length > 0)
+							.map((resource) => resource.id)
+					)
+
+					// Process each resource and store in result.resources
+					const resourceDetailsPromises = resources.map((resource) =>
+						this.getDetails(resource.id, resource.organization_code, tenant_code, userToken)
+					)
+					const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
+					result.resources = resourceDetailsResults
+						.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
+						.map((resourceDetail) => ({
+							...resourceDetail.result,
+							link: resourceDetail?.result.link
+								? `${process.env.PROJECT_DEEP_LINK_URL}${resourceDetail?.result?.link}`
+								: null,
+							is_comments: resourceCommentSet.has(resourceDetail.result.id),
+						}))
 				}
 			}
 

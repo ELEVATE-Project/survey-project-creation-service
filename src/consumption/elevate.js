@@ -2058,6 +2058,7 @@ async function createOrUpdateUserProgramMapping(viewers, programId, orgCode, ten
 			})
 
 			// Users mapped to program but not in viewers (need remove)
+			// For each user mapped to the program but not present in viewers, prepare a remove operation
 			const toRemove = alreadyMappedUserIds.filter((userId) => !viewers.includes(userId))
 
 			// Prepare data for API call
@@ -2074,6 +2075,9 @@ async function createOrUpdateUserProgramMapping(viewers, programId, orgCode, ten
 					})
 				}
 			}
+
+			// Only remove if userExtension and programId present in userEx
+			// For each user mapped to the program but not present in viewers, prepare a remove operation
 			if (toRemove.length > 0) {
 				for (const userId of toRemove) {
 					requestBody.push({
@@ -2089,7 +2093,7 @@ async function createOrUpdateUserProgramMapping(viewers, programId, orgCode, ten
 				console.log('No user mapping changes required for program:', programId)
 				return resolve(true)
 			}
-
+			// Call the consumption service to update mappings
 			let userMappingResponse = await interfaceRequests.mapUserAndProgram(
 				requestBody,
 				orgCode,
