@@ -258,4 +258,6 @@ module.exports = {
 	ORG_POLICY_CURRENT: 'CURRENT',
 	TASK_TYPE_REFLECTION: 'reflection',
 	START_REFLECTION: 'Start Reflection',
+	OPERATION_APPEND: 'append',
+	OPERATION_REMOVE: 'remove',
 }

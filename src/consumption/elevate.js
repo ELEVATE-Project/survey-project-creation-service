@@ -2028,7 +2028,11 @@ const publishProgram = function async(programData) {
 async function createOrUpdateUserProgramMapping(viewers, programId, orgCode, tenantCode, userId = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const roles = process.env.DEFAULT_PROGRAM_MANAGERS.split(',')
+			const roles = process.env.DEFAULT_PROGRAM_MANAGERS.split(',') || []
+			if (roles.length === 0) {
+				throw new Error('No roles defined in DEFAULT_PROGRAM_MANAGERS environment variable')
+			}
+
 			const userProgramCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('USER_EXTENSIONS'))
 			// Fetch all userExtensions for viewers
 			const userExtensions = await userProgramCollection.find({ userId: { $in: viewers } }).toArray()
@@ -2065,7 +2069,7 @@ async function createOrUpdateUserProgramMapping(viewers, programId, orgCode, ten
 					requestBody.push({
 						userId,
 						programId,
-						operation: 'append',
+						operation: common.OPERATION_APPEND,
 						roles: roles,
 					})
 				}
@@ -2075,7 +2079,7 @@ async function createOrUpdateUserProgramMapping(viewers, programId, orgCode, ten
 					requestBody.push({
 						userId,
 						programId,
-						operation: 'remove',
+						operation: common.OPERATION_REMOVE,
 						roles: roles,
 					})
 				}
