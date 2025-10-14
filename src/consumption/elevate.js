@@ -268,8 +268,8 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			}
-
-			if (task.type === common.REFLECTION) {
+			//if task type reflection add link and buttonLabel in task metaInformation
+			if (task.type === common.TASK_TYPE_REFLECTION) {
 				taskData.metaInformation = {
 					redirectLink: task.link,
 					buttonLabel: common.START_REFLECTION,
