@@ -1055,7 +1055,7 @@ async function createSvg(certificateData, loggedInUserId, userToken) {
 			}
 			const getSignedUrl = await generatePresignedUrlInConsumption(
 				process.env.INTERFACE_SERVICE_HOST +
-					process.env.CONSUMPTION_SERVICE_BASE_URL +
+					process.env.PROJECT_SERVICE_BASE_URL +
 					process.env.CONSUMPTION_SERVICE_PRESIGNED_URL,
 				payloadData,
 				headers

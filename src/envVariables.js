@@ -390,6 +390,27 @@ let environmentVariables = {
 			value: common.MONGO_DB_MODE_SHARED,
 		},
 	},
+	PROJECT_SERVICE_BASE_URL: {
+		message: 'Consumption side Base URL for Projects Service',
+		optional: true,
+		default: '/project/',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE_BASE_URL',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
+
+	SURVEY_SERVICE_BASE_URL: {
+		message: 'Consumption side Base URL for Survey Service',
+		optional: true,
+		default: '/survey/',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE_BASE_URL',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
 }
 
 let success = true
