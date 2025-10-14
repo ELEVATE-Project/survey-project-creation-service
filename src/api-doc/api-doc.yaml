@@ -2927,7 +2927,6 @@ paths:
                       sequence_no: 1
                       learning_resources: []
                       children: []
-                      button_label: 'START REFLECTION'
                       link: 'https://devsss.elevate-ml.shikshalokam.org/view/observation/'
                   certificate: {}
               project without child tasks and certificates:
