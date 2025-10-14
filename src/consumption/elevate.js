@@ -397,24 +397,25 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 			// Iterate through each targeting criterion
 			for (let i = 0; i < targetingData.length; i++) {
 				const targeting = targetingData[i]
-				let skipTargeting = false
+				let skipTargeting = false // flag to skip further processing if 'ALL' is found
 				for (let eachTargeting of Object.keys(targeting)) {
 					const target = targeting?.[eachTargeting] || null
 					if (!Object.keys(scope).includes(eachTargeting)) scope[eachTargeting] = []
+					// check if the current scope already has 'ALL' keyword and set the flag
 					if (
 						scope[eachTargeting] == common.TARGETING_ALL ||
 						scope[eachTargeting].includes(common.TARGETING_ALL)
 					) {
 						skipTargeting = true
 					}
-
+					// if the particular targeting has 'ALL' keyword, ignore the processing
 					if (!skipTargeting) {
-						if (target && typeof target == 'string') {
+						if (target && typeof target == common.STRING) {
 							// if the target is string , possibly we are expecting the _id of the entity.
 							// Hence push it directly making sure the value is unique
 							if (!scope[eachTargeting].includes(target)) {
 								if (scope[eachTargeting] == common.TARGETING_ALL) {
-									scope[eachTargeting] = [common.TARGETING_ALL]
+									scope[eachTargeting] = [common.TARGETING_ALL] // if targeting is all , set the array as ["ALL"]
 								} else {
 									scope[eachTargeting].push(target)
 								}
@@ -422,16 +423,16 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 						} else if (target && Array.isArray(target) && target.length > 0) {
 							// if any of the element is ALL , record only ALL
 							if (target.includes(common.TARGETING_ALL)) {
-								scope[eachTargeting] = [common.TARGETING_ALL]
+								scope[eachTargeting] = [common.TARGETING_ALL] // if targeting is all , set the array as ["ALL"]
 							} else {
 								// if the target is an array , iterate through each element
 								target.forEach((targetEntity) => {
 									// if the element inside array is string , possibly we are expecting the _id of the entity.
 									// Hence push it directly making sure the value is unique
-									if (typeof targetEntity == 'string')
+									if (typeof targetEntity == common.STRING)
 										if (!scope[eachTargeting].includes(targetEntity))
 											scope[eachTargeting].push(targetEntity)
-									if (typeof targetEntity == 'object') {
+									if (typeof targetEntity == common.OBJECT) {
 										// if the element inside array is an object.
 										// check for _id or id within the object
 										const id = targetEntity?._id || targetEntity?.id || null
@@ -440,7 +441,7 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 									}
 								})
 							}
-						} else if (target && typeof target == 'object' && Object.keys(target).length > 0) {
+						} else if (target && typeof target == common.OBJECT && Object.keys(target).length > 0) {
 							// if the target is an object.
 							// check for _id or id within the object.
 							const id = target?._id || target?.id || null
