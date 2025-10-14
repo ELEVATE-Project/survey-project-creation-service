@@ -256,6 +256,8 @@ module.exports = {
 	TARGETING: 'targeting_criteria',
 	OBSERVATION: 'observation',
 	ORG_POLICY_CURRENT: 'CURRENT',
+	SCOPE_ELEMENT_ORGANIZATIONS: 'organizations',
+	TARGETING_ALL: 'ALL',
 	TASK_TYPE_REFLECTION: 'reflection',
 	START_REFLECTION: 'Start Reflection',
 }
