@@ -2900,6 +2900,36 @@ paths:
                           parent_id: 7a8b13fb-c9e1-4296-8abd-8b64b357a128
                           sequence_no: 1
                   certificate: {}
+              project with reflection as a task:
+                value:
+                  title: Sample Project with Reflection
+                  categories:
+                    label: Community
+                    value: community
+                  recommented_duration:
+                    type: week
+                    number: 5
+                  keywords:
+                    - reflection
+                    - self-assessment
+                  recommeneded_for:
+                    - label: HM
+                      value: hm
+                  languages:
+                    - label: English
+                      value: en
+                  tasks:
+                    - id: db182d03-c3ac-434d-889b-e74fafab439e
+                      name: Reflection Task Example
+                      type: reflection
+                      is_mandatory: true
+                      allow_evidences: true
+                      sequence_no: 1
+                      learning_resources: []
+                      children: []
+                      button_label: 'START REFLECTION'
+                      link: 'https://devsss.elevate-ml.shikshalokam.org/view/observation/'
+                  certificate: {}
               project without child tasks and certificates:
                 value:
                   title: Sample Project
