@@ -484,33 +484,24 @@ async function setupOrganizationConfigs(newTenantCode, newOrgCode) {
 			console.log(
 				`Organization configs already exist for tenant=${newTenantCode}, org=${newOrgCode}. Skipping creation.`
 			)
-			return {
-				statusCode: httpStatusCode.internal_server_error,
-				message: 'Configs already exist for target tenant/org.',
-			}
 		}
 
 		// Prepare organization configs to create
-		const configsToCreate = defaultConfigs.map((configs) => {
-			const plain = configs.toJSON ? configs.toJSON() : configs
-
-			return {
-				..._.omit(plain, ['id', 'created_at', 'updated_at', 'deleted_at']),
-				tenant_code: newTenantCode,
-				organization_code: newOrgCode,
-				created_by: userId,
-				updated_by: userId,
-				created_at: new Date(),
-				updated_at: new Date(),
-			}
-		})
+		const configToCreate = {
+			..._.omit(defaultConfigs, ['id', 'created_at', 'updated_at', 'deleted_at']),
+			tenant_code: newTenantCode,
+			organization_code: newOrgCode,
+			created_by: userId,
+			updated_by: userId,
+			created_at: new Date(),
+			updated_at: new Date(),
+		}
 
 		// Create organization Configs if any need to be created
-		if (configsToCreate.length > 0) {
-			await OrganizationConfigs.bulkCreate(configsToCreate, {
-				ignoreDuplicates: true,
-			})
-			console.log(`Created ${organizationToCreate.length} organization config`)
+		if (configToCreate.length > 0) {
+			await OrganizationConfigs.create(configToCreate)
+
+			console.log(`Created ${configToCreate.length} organization config`)
 		} else {
 			console.log('No new organization config to create - all already exist')
 		}
