@@ -1804,7 +1804,9 @@ const publishProgram = function async(programData) {
 			let programResourceIds = []
 			if (isProgramResource) {
 				// get the resource ids in a program
-				programResourceIds = rolloutDetails?.resources.map((resource) => resource.id)
+				programResourceIds = Array.isArray(rolloutDetails?.resources)
+					? rolloutDetails.resources.map((resource) => resource.id)
+					: []
 			} else {
 				if (rolloutDetails?.resource_details?.id) programResourceIds.push(rolloutDetails?.resource_details?.id)
 			}
