@@ -633,11 +633,7 @@ const publishProjectTemplates = function (templateData) {
 
 			// Format the template
 			let formattedTemplate = formatTemplate({ ...projectData })
-			if (
-				!formattedTemplate.success &&
-				formattedTemplate?.template &&
-				Object.keys(formattedTemplate.template) > 0
-			) {
+			if (!formattedTemplate.success || !formattedTemplate?.template) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
 
@@ -646,7 +642,7 @@ const publishProjectTemplates = function (templateData) {
 			projectsMongoConnection = projectsMongoConnection
 				? projectsMongoConnection
 				: await connectMongo(projectsMongoDBUrl)
-
+			// Fetch Org Policies
 			const orgPolicies = await fetchOrgPolicies(
 				templateData.organization_code,
 				templateData.tenant_code,
@@ -759,7 +755,7 @@ const fetchOrgPolicies = async (orgCode, tenantCode, projectsMongoConnection, us
 		result.policies.visibleToOrganizations = relatedOrgs
 		const orgExtensionCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('ORGANIZATION_EXTENSION'))
 		const policy = await orgExtensionCollection.findOne({ orgId: orgCode, tenantId: tenantCode })
-		if (Object.keys(policy).length > 0) {
+		if (policy && Object.keys(policy).length > 0) {
 			result.policies.visibility = policy?.externalProjectResourceVisibilityPolicy || null
 		}
 
@@ -1152,7 +1148,7 @@ async function deleteFolderRecursive(folderPath) {
  * @param {Object} baseTemplateDetails - Certificate data for base template creation
  * @returns {Object} result - baseTemplateId
  */
-async function checkCertificateBaseTemplate(baseTemplateDetails) {
+async function checkCertificateBaseTemplate(baseTemplateDetails, orgCode, tenantCode) {
 	const certificateBaseTemplateCollection = projectsMongoConnection.collection(
 		COLLECTIONS_MAP.get('CERTIFICATE_BASE_TEMPLATE')
 	)
@@ -1170,6 +1166,8 @@ async function checkCertificateBaseTemplate(baseTemplateDetails) {
 			code: certificateFetched.code,
 			name: certificateFetched.name,
 			url: certificateFetched.url,
+			tenantId: tenantCode,
+			orgId: orgCode,
 			createdAt: new Date(),
 			updatedAt: new Date(),
 			deleted: false,
@@ -1200,7 +1198,7 @@ async function insertCertificateTemplate(
 	tenantCode
 ) {
 	const svgTemplateCreation = await createSvg(certificateData, loggedInUserId, userToken)
-	const baseTemplate = await checkCertificateBaseTemplate(certificateData)
+	const baseTemplate = await checkCertificateBaseTemplate(certificateData, orgCode, tenantCode)
 	const certificateDocument = {
 		status: common.STATUS_ACTIVE.toLowerCase(),
 		deleted: false,
@@ -1245,8 +1243,7 @@ async function insertCertificateTemplate(
 	}
 	// update the template into projectTemplate collection
 	const projectTemplateCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
-	const strSol = solutionId.toString()
-	console.log('------->', strSol)
+
 	const resultUpdateProjecTemplate = await projectTemplateCollection.updateOne(
 		{ solutionId },
 		{
@@ -1377,6 +1374,9 @@ const duplicateResources = async (resourceDetails, resourceCertificate, programD
 				projectsTasksDetails.forEach((projectTask) => {
 					let oldTaskExtId = projectTask.externalId
 					projectTask.externalId = utils.generateUniqueId()
+					// if task is part of certificate criteria , replace the old task name with new task name
+					// this is required as task name is used to identify the task in certificate criteria
+					// as task id will be different for each project created from the template
 					if (certificate) {
 						const conditionsList = Object.keys(certificate.criteria.conditions)
 						conditionsList.forEach((condition) => {
@@ -1435,6 +1435,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate, programD
 					})
 					.toArray()
 
+				// if certificate is there , replace the task details with object ids
 				if (certificate) {
 					const conditionsList = Object.keys(certificate.criteria.conditions)
 					conditionsList.forEach((condition) => {
@@ -1482,16 +1483,17 @@ const duplicateResources = async (resourceDetails, resourceCertificate, programD
 				await projectsCollection.insertMany(templateProjects)
 			}
 
-			const projectTemplatesAfterInsert = await projectsCollection
-				.find({
-					externalId: {
-						$in: templateProjects.map((projects) => projects.externalId),
-					},
-				})
-				.toArray()
+			let updatedProjectTemplates =
+				(await projectsCollection
+					.find({
+						externalId: {
+							$in: templateProjects.map((projects) => projects.externalId),
+						},
+					})
+					.toArray()) || []
 
 			// Add a new 'type', 'resource_id' , 'rolloutId' keys to each project
-			const updatedProjectTemplates = projectTemplatesAfterInsert.map((project) => ({
+			updatedProjectTemplates = updatedProjectTemplates.map((project) => ({
 				...project, // Spread the existing project fields
 				certificate,
 				type: common.PROJECT,
@@ -1726,6 +1728,43 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 	}
 }
 
+const orderSolutionsInProgram = (resourceWithInProgram) => {
+	let solutionOrderList = resourceWithInProgram.map((item) => ({ id: item.id }))
+
+	const usedOrders = new Set()
+
+	// First, process items with explicit orders
+	for (let i = 0; i < resourceWithInProgram.length; i++) {
+		const item = resourceWithInProgram[i]
+		if (item.order != null) {
+			let ord = item.order
+			while (usedOrders.has(ord)) {
+				ord++
+			}
+			solutionOrderList[i].order = ord
+			usedOrders.add(ord)
+		}
+	}
+
+	// Then, process items without explicit orders (null or undefined)
+	for (let i = 0; i < resourceWithInProgram.length; i++) {
+		const item = resourceWithInProgram[i]
+		if (item.order == null) {
+			let ord = i + 1
+			while (usedOrders.has(ord)) {
+				ord++
+			}
+			solutionOrderList[i].order = ord
+			usedOrders.add(ord)
+		}
+	}
+
+	return solutionOrderList.reduce((acc, item) => {
+		acc[item.id] = { order: item.order }
+		return acc
+	}, {})
+}
+
 /**
  * Publish the Program
  * @name publishProjectTemplates
@@ -1823,6 +1862,7 @@ const publishProgram = function async(programData) {
 				throw new Error('NO_RESOURCE_ADDED')
 			}
 			let solutionIds = []
+			let solutionOrderMap = orderSolutionsInProgram(resourceWithInProgram)
 			let resourceToUpdate = []
 
 			for (const resource of resourceWithInProgram) {
@@ -1922,19 +1962,10 @@ const publishProgram = function async(programData) {
 							programDetails,
 							userToken
 						)
+						solutionOrderMap[resource.id]._id = createSolutionsData.data[0]._id
 						if (!createSolutionsData.success)
 							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
 						solutions = [...solutions, ...createSolutionsData.data]
-						solutionIds = [
-							...new Set([
-								...solutionIds,
-								...solutions.reduce((acc, index) => {
-									acc['_id'] = index._id
-									acc['order'] = index?.order || null
-									return acc
-								}, []),
-							]),
-						]
 					}
 				} else {
 					solutionIds.push(fetchDetails?.result?.published_id)
@@ -1965,20 +1996,10 @@ const publishProgram = function async(programData) {
 				}
 			}
 
-			if (solutionIds.length > 0) {
-				let counter = 1
-				const components = solutionIds.map((sol) => {
-					if (typeof sol == 'string')
-						return {
-							_id: sol,
-							order: counter,
-						}
-					if (typeof sol == 'object') {
-						if (!sol?.order) sol.order = counter
-					}
-					counter++
-					return sol
-				})
+			if (Object.keys(solutionOrderMap).length > 0) {
+				const components = Object.values(solutionOrderMap)
+					.map(({ _id, order }) => ({ _id, order }))
+					.sort((a, b) => a.order - b.order)
 
 				await updateProgram(programId, {
 					components,

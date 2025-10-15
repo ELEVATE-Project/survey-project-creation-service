@@ -34,8 +34,8 @@ if (consumptionServiceType !== common.CONSUMPTION_SERVICE_SELF) {
 	}
 }
 
-console.log(`Projects MongoDB ${projectsMongoDBUrl ? 'Connected' : 'Not Connected'}`)
-console.log(`Survey MongoDB ${surveyMongoDBUrl ? 'Connected' : 'Not Connected'}`)
+console.log(`Projects MongoDB ${projectsMongoDBUrl ? 'Fetched' : 'Not Fetched'}`)
+console.log(`Survey MongoDB ${surveyMongoDBUrl ? 'Fetched' : 'Not Fetched'}`)
 
 module.exports = {
 	consumptionServiceType,
