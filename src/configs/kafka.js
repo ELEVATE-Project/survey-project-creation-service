@@ -17,7 +17,8 @@ const topics = [
 	process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC,
 	process.env.PROGRAM_PUBLISH_KAFKA_TOPIC,
 ]
-async function ensureTopics(admin) {
+async function ensureTopics(KafkaClient) {
+	const admin = KafkaClient.admin()
 	try {
 		// Connect to the Kafka admin client
 		await admin.connect()
@@ -32,19 +33,19 @@ async function ensureTopics(admin) {
 				topics: topicsToCreate.map((topic) => ({
 					topic,
 					numPartitions: 1, // Adjust as needed
-					replicationFactor: 1, // Adjust as needed
+					replicationFactor: 1, // Adjust as needed,
 				})),
 			})
 			console.log(`Created topics: ${topicsToCreate.join(', ')}`)
 		} else {
 			console.log('All topics already exist')
 		}
-
-		// Disconnect admin client
-		await admin.disconnect()
 	} catch (error) {
 		console.error('Error ensuring topics:', error)
 		throw error
+	} finally {
+		// Disconnect admin client
+		await admin.disconnect()
 	}
 }
 module.exports = async () => {
@@ -55,9 +56,9 @@ module.exports = async () => {
 	})
 
 	const producer = KafkaClient.producer()
-	const admin = KafkaClient.admin()
 	const consumer = KafkaClient.consumer({ groupId: process.env.KAFKA_GROUP_ID })
-	ensureTopics(admin)
+	// make sure all the topics are created
+	ensureTopics(KafkaClient)
 
 	await producer.connect()
 

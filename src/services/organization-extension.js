@@ -337,7 +337,7 @@ module.exports = class orgExtensionsHelper {
 			}
 
 			if (orgConfigs?.meta?.data_managers?.length == 0 || orgConfigs?.meta?.data_managers?.length == undefined) {
-				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
+				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',') || []
 			}
 
 			if (

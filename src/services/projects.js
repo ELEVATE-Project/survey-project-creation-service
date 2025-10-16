@@ -959,7 +959,7 @@ module.exports = class ProjectsHelper {
 				(validation) => validation.type == common.REGEX_VALIDATION
 			)
 
-			//check for reflection url is present and calid
+			//check for reflection url is present and valid
 
 			if (entityType.value === common.TASK_TYPE_REFLECTION && entityData.type === common.TASK_TYPE_REFLECTION) {
 				let reflectionPath =

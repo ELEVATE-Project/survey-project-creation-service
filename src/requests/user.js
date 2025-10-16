@@ -33,11 +33,7 @@ const fetchOrg = function (organisationIdentifier, tenantCode, internalToken = t
 
 			const orgReadUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_READ, queryParam)
 
-			const orgDetails = await requests.get(
-				orgReadUrl,
-				userToken, // X-auth-token not required for internal call
-				internalToken
-			)
+			const orgDetails = await requests.get(orgReadUrl, userToken, internalToken)
 
 			return resolve(orgDetails)
 		} catch (error) {
