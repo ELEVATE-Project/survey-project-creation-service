@@ -108,6 +108,7 @@
 		"@database": "database",
 		"@requests": "requests",
 		"@helpers": "helpers",
-		"@dtos": "dtos"
+		"@dtos": "dtos",
+		"@consumption": "consumption"
 	}
 }

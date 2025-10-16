@@ -17,7 +17,7 @@ const request = require('request')
  * @param {string} organisationIdentifier - The code/id of the organization.
  * @returns {Promise} A promise that resolves with the organization details or rejects with an error.
  */
-const fetchOrg = function (organisationIdentifier, tenantCode, internalToken = true) {
+const fetchOrg = function (organisationIdentifier, tenantCode, internalToken = true, userToken = '') {
 	return new Promise(async (resolve, reject) => {
 		try {
 			if (!organisationIdentifier || !tenantCode) {
@@ -33,11 +33,7 @@ const fetchOrg = function (organisationIdentifier, tenantCode, internalToken = t
 
 			const orgReadUrl = utils.buildUrl(userBaseUrl, endpoints.ORGANIZATION_READ, queryParam)
 
-			const orgDetails = await requests.get(
-				orgReadUrl,
-				'', // X-auth-token not required for internal call
-				internalToken
-			)
+			const orgDetails = await requests.get(orgReadUrl, userToken, internalToken)
 
 			return resolve(orgDetails)
 		} catch (error) {

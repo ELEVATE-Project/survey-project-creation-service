@@ -180,10 +180,12 @@ module.exports = {
 	ENTITY_TYPE_MODELS: {
 		project: ['project', 'tasks', 'subTasks'],
 		program: ['program'],
+		targeting: ['targeting'],
 	},
 	MODEL_NAMES: {
 		RESOURCE: 'Resource',
 		ROLLOUT: 'Rollouts',
+		TARGETING: 'targeting',
 	},
 	USER_ACTIONS: {
 		project: getResourceActions('PROJECT'),
@@ -241,6 +243,7 @@ module.exports = {
 	PUBLISHED_STATUS: 'published',
 	CONSUMPTION_SERVICE_SELF: 'self',
 	SUNBIRD: 'sunbird',
+	ELEVATE: 'elevate',
 	INTERNAL_ACCESS_TOKEN: 'internal-access-token',
 	UPLOAD_FILE_NAME: {
 		project: 'project.json',
@@ -248,5 +251,14 @@ module.exports = {
 	},
 	ORGANIZATION_KEY: 'organization_code',
 	PROJECTION_KEY_ASTERISK: '*',
+	MONGO_DB_MODE_INDIVIDUAL: 'individual',
+	MONGO_DB_MODE_SHARED: 'shared',
+	TARGETING: 'targeting_criteria',
+	OBSERVATION: 'observation',
+	ORG_POLICY_CURRENT: 'CURRENT',
+	SCOPE_ELEMENT_ORGANIZATIONS: 'organizations',
+	TARGETING_ALL: 'ALL',
+	TASK_TYPE_REFLECTION: 'reflection',
+	START_REFLECTION: 'Start Reflection',
 	PUT: 'PUT',
 }

@@ -83,6 +83,8 @@ module.exports = class rollouts {
 				req.decodedToken.id,
 				req.decodedToken.organization_code,
 				req.decodedToken.tenant_code,
+				false, // return blob path,
+				false, // return ResourceData
 				req.decodedToken.token
 			)
 			return rollout

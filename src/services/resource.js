@@ -887,7 +887,7 @@ module.exports = class resourceHelper {
 			}
 
 			// if resourceInfo string then get resource details from resource table or it will already has details so we can skip DB query
-			if ([common.STRING, common.NUMBER].includes(typeof resourceInfo)) {
+			if (typeof resourceInfo === common.STRING || typeof resourceInfo === common.NUMBER) {
 				resource = await resourceQueries.findOne({
 					id: resourceInfo,
 					organization_code: org_code,
@@ -981,7 +981,8 @@ module.exports = class resourceHelper {
 			let organizationDetails = await userRequests.fetchOrg(
 				resource.organization_code,
 				resource.tenant_code,
-				true
+				true,
+				userToken
 			)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				resource.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])

@@ -18,6 +18,7 @@ const { Op } = require('sequelize')
 const kafkaCommunication = require('@generics/kafka-communication')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
+const targetingHelper = require('@helpers/targetingCriteria')
 
 module.exports = class RolloutsHelper {
 	/**
@@ -161,9 +162,9 @@ module.exports = class RolloutsHelper {
 		loggedInUserId,
 		org_code,
 		tenant_code,
-		userToken = '',
 		returnBlobPath = false,
-		getResourceData = false
+		getResourceData = false,
+		userToken = ''
 	) {
 		try {
 			let result = {
@@ -177,12 +178,7 @@ module.exports = class RolloutsHelper {
 				tenant_code: tenant_code,
 			}
 
-			let rollout
-			if (getResourceData) {
-				rollout = await rolloutQueries.findOne(filter, {}, true) // include resourceDetails
-			} else {
-				rollout = await rolloutQueries.findOne(filter) // plain query
-			}
+			const rollout = await rolloutQueries.findOne(filter, {}, getResourceData)
 
 			if (!rollout?.id) {
 				return responses.failureResponse({
@@ -213,7 +209,7 @@ module.exports = class RolloutsHelper {
 					// fetch the user if viewer is present
 					if (response?.result?.viewers?.length > 0) {
 						const viewerUserIds = response.result.viewers
-						const userDetails = await this.fetchUserDetails(viewerUserIds, userToken, org_code, tenant_code)
+						const userDetails = await this.fetchUserDetails(viewerUserIds, org_code, tenant_code, userToken)
 
 						if (userDetails && Object.keys(userDetails).length > 0) {
 							resultData.viewers = viewerUserIds.map((user) => {
@@ -435,7 +431,7 @@ module.exports = class RolloutsHelper {
 			})
 
 			// fetch the user details from user service
-			const userDetails = await this.fetchUserDetails([loggedInUserId], userToken, organization_code, tenant_code)
+			const userDetails = await this.fetchUserDetails([loggedInUserId], organization_code, tenant_code, userToken)
 
 			// fetch the org details from user service
 			const orgDetails = await orgExtensionService.fetchOrganizationDetails(orgList, tenant_code)
@@ -609,17 +605,17 @@ module.exports = class RolloutsHelper {
 	 * @param {String} tenant_code - tenant code
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds, userToken = '', org_code, tenant_code) {
+	static async fetchUserDetails(userIds, org_code, tenant_code, userToken = '') {
 		const userDetailsResponse = await userRequests.list(
-			common.FILTER_ALL.toLowerCase(),
-			'',
-			'',
-			'',
-			org_code,
-			tenant_code,
+			common.FILTER_ALL.toLowerCase(), //type
+			'', // page number
+			'', // page size
+			'', // search text
+			org_code, // organization_code
+			tenant_code, // tenant_code
 			{
 				user_ids: userIds,
-			},
+			}, // body
 			userToken
 		)
 		let userDetails = {}
@@ -720,10 +716,11 @@ module.exports = class RolloutsHelper {
 				loggedInUserId,
 				org_code,
 				tenant_code,
-				userToken,
 				false,
-				true
+				true,
+				userToken
 			)
+
 			let solutionRolloutId
 			const rolloutDetailsResult = rolloutDetails?.result
 
@@ -746,12 +743,26 @@ module.exports = class RolloutsHelper {
 					message: 'RESOURCE_NOT_FOUND',
 				})
 			}
+			const validateTargeting = await targetingHelper.validateTargetingCriteria(
+				rolloutDetails.result[common.TARGETING],
+				org_code,
+				tenant_code
+			)
+			if (!validateTargeting.success && validateTargeting?.errors?.length > 0) {
+				const result = Array.isArray(validateTargeting?.errors)
+					? validateTargeting?.errors.flat()
+					: validateTargeting?.errors || []
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					result,
+					message: 'ROLLOUT_VALIDATION_FAILED',
+				})
+			}
 
 			// fetch resource details
 			const resourceDetails = await resourceService.getDetails(
 				rolloutDetailsResult?.resource_details,
 				org_code,
-				userToken,
 				tenant_code
 			)
 
@@ -815,16 +826,15 @@ module.exports = class RolloutsHelper {
 				status: common.ROLLOUT_STATUS_PROCESSING,
 			}
 
-			await rolloutQueries.updateOne({ id: rolloutId }, updateBody)
+			await rolloutQueries.updateOne({ id: rolloutId, tenant_code, organization_code: org_code }, updateBody)
 
 			const rolloutKafkaPayload = {
-				...rolloutDetails.result,
-				rolloutId: rolloutDetails.result.id,
-				resource: {
-					...resourceDetails?.result,
-					rolloutId: solutionRolloutId,
-				},
+				id: rolloutDetails.result.id,
+				tenant_code,
+				organization_code: org_code,
+				type: common.ROLL_OUT,
 				userToken,
+				userId: loggedInUserId,
 			}
 
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
@@ -1130,8 +1140,9 @@ module.exports = class RolloutsHelper {
 				programData.user_id,
 				programData.organization_code,
 				tenant_code,
-				userToken,
-				false
+				false,
+				false,
+				userToken
 			)
 
 			const validateRollout = await this.validateRollout(rolloutDetails.result)

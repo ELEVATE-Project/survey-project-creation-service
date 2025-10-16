@@ -353,6 +353,64 @@ let environmentVariables = {
 		optional: false,
 		default: 'config.json',
 	},
+	MONGO_DB_MODE: {
+		message: 'Mongo DB mode is required ("individual" or "shared")',
+		optional: true,
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+		possibleValues: [common.MONGO_DB_MODE_INDIVIDUAL, common.MONGO_DB_MODE_SHARED],
+	},
+	PROJECT_MONGO_DB_URL: {
+		message: 'Project MongoDB URL is required',
+		optional: true,
+		requiredIf: {
+			key: 'MONGO_DB_MODE',
+			operator: 'EQUALS',
+			value: common.MONGO_DB_MODE_INDIVIDUAL,
+		},
+	},
+	SURVEY_MONGO_DB_URL: {
+		message: 'Survey MongoDB URL is required',
+		optional: true,
+		requiredIf: {
+			key: 'MONGO_DB_MODE',
+			operator: 'EQUALS',
+			value: common.MONGO_DB_MODE_INDIVIDUAL,
+		},
+	},
+	SHARED_MONGO_DB_URL: {
+		message: 'Shared MongoDB URL is required',
+		optional: true,
+		requiredIf: {
+			key: 'MONGO_DB_MODE',
+			operator: 'EQUALS',
+			value: common.MONGO_DB_MODE_SHARED,
+		},
+	},
+	PROJECT_SERVICE_BASE_URL: {
+		message: 'Consumption side Base URL for Projects Service',
+		optional: true,
+		default: '/project/',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE_BASE_URL',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
+
+	SURVEY_SERVICE_BASE_URL: {
+		message: 'Consumption side Base URL for Survey Service',
+		optional: true,
+		default: '/survey/',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE_BASE_URL',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
 	USER_SERVICE_TENANT_CREATION_TOPIC: {
 		message: 'Required user service tenant event',
 		optional: true,

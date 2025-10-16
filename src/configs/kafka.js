@@ -9,11 +9,47 @@ const utils = require('@generics/utils')
 const { elevateLog } = require('elevate-logger')
 const logger = elevateLog.init()
 const { Kafka } = require('kafkajs')
-const consumptionService = require('@requests/consumption')
-const rolloutService = require('@services/rollouts')
+const { consumptionService } = require('@consumption/index')
 const adminService = require('@services/admin')
-const httpStatusCode = require('@generics/http-status')
 
+const topics = [
+	process.env.CLEAR_INTERNAL_CACHE,
+	process.env.PROJECT_PUBLISH_KAFKA_TOPIC,
+	process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC,
+	process.env.PROGRAM_PUBLISH_KAFKA_TOPIC,
+	process.env.USER_SERVICE_TENANT_CREATION_TOPIC,
+]
+async function ensureTopics(KafkaClient) {
+	const admin = KafkaClient.admin()
+	try {
+		// Connect to the Kafka admin client
+		await admin.connect()
+
+		// Check existing topics
+		const existingTopics = await admin.listTopics()
+		const topicsToCreate = topics.filter((topic) => !existingTopics.includes(topic))
+
+		if (topicsToCreate.length > 0) {
+			// Create missing topics
+			await admin.createTopics({
+				topics: topicsToCreate.map((topic) => ({
+					topic,
+					numPartitions: 1, // Adjust as needed
+					replicationFactor: 1, // Adjust as needed,
+				})),
+			})
+			console.log(`Created topics: ${topicsToCreate.join(', ')}`)
+		} else {
+			console.log('All topics already exist')
+		}
+	} catch (error) {
+		console.error('Error ensuring topics:', error)
+		throw error
+	} finally {
+		// Disconnect admin client
+		await admin.disconnect()
+	}
+}
 module.exports = async () => {
 	const kafkaIps = process.env.KAFKA_URL.split(',')
 	const KafkaClient = new Kafka({
@@ -23,6 +59,8 @@ module.exports = async () => {
 
 	const producer = KafkaClient.producer()
 	const consumer = KafkaClient.consumer({ groupId: process.env.KAFKA_GROUP_ID })
+	// make sure all the topics are created
+	ensureTopics(KafkaClient)
 
 	await producer.connect()
 
@@ -47,20 +85,12 @@ module.exports = async () => {
 		logger.error('KafkaConsumer: crashed', { event })
 	})
 
-	const kafkaTopics = [
-		process.env.CLEAR_INTERNAL_CACHE,
-		process.env.PROJECT_PUBLISH_KAFKA_TOPIC,
-		process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC,
-		process.env.PROGRAM_PUBLISH_KAFKA_TOPIC,
-		process.env.USER_SERVICE_TENANT_CREATION_TOPIC,
-	]
-
 	const subscribeToConsumer = async () => {
 		try {
 			await consumer.subscribe({
-				topics: kafkaTopics,
+				topics,
 			})
-			logger.info(`Subscribed to topics: ${kafkaTopics.join(',')}`)
+			logger.info(`Subscribed to topics: ${topics.join(',')}`)
 			await consumer.run({
 				eachMessage: async ({ topic, partition, message }) => {
 					try {
