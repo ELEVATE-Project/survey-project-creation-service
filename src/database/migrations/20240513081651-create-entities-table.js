@@ -16,11 +16,11 @@ module.exports = {
 			},
 			value: {
 				type: Sequelize.STRING,
-				allowNull: false
+				allowNull: false,
 			},
 			label: {
 				type: Sequelize.STRING,
-				allowNull: false
+				allowNull: false,
 			},
 			status: {
 				type: Sequelize.ENUM('ACTIVE', 'INACTIVE'),

@@ -135,26 +135,21 @@ module.exports = {
 	},
 
 	down: async (queryInterface, Sequelize) => {
-		const paths = [
-			'/scp/v1/actions/*',
-			'/scp/v1/actions/list*',
-			'/scp/v1/activities/list*'
-			]
+		const paths = ['/scp/v1/actions/*', '/scp/v1/actions/list*', '/scp/v1/activities/list*']
 
 		// Get permission IDs for the given paths
-		const [perms] = await queryInterface.sequelize.query(
-			'SELECT id FROM permissions WHERE api_path IN (:paths)',
-			{ replacements: { paths } }
-		)
+		const [perms] = await queryInterface.sequelize.query('SELECT id FROM permissions WHERE api_path IN (:paths)', {
+			replacements: { paths },
+		})
 
-		const ids = perms.map(p => p.id)
+		const ids = perms.map((p) => p.id)
 
 		if (ids.length) {
 			// Delete from role_permission_mapping where permission_id in ids
 			await queryInterface.bulkDelete('role_permission_mapping', { permission_id: ids })
 
-		// Delete from permissions where id in ids
-		await queryInterface.bulkDelete('permissions', { id: ids })
+			// Delete from permissions where id in ids
+			await queryInterface.bulkDelete('permissions', { id: ids })
 		}
 
 		// Delete from modules where code in ['actions','activities']

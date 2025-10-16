@@ -89,6 +89,7 @@ exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = c
 			attributes,
 			raw: true,
 		}
+
 		// Handle ordering with explicit table alias
 		if (sort && sort.sort_by === common.RESOURCE_TITLE) {
 			const direction = sort.order || 'ASC'
@@ -112,6 +113,7 @@ exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = c
 		if (page && page > 0) {
 			resourceFilter.offset = limit * (page - 1)
 		}
+
 		const res = await Resource.findAndCountAll(resourceFilter)
 		return { result: res.rows, count: res.count }
 	} catch (error) {

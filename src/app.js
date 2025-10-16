@@ -84,7 +84,7 @@ app.all('*', (req, res, next) => {
 require('./routes')(app)
 
 // Server listens to given port
-const server =  app.listen(process.env.APPLICATION_PORT, (res, err) => {
+const server = app.listen(process.env.APPLICATION_PORT, (res, err) => {
 	logger.info('Environment: ' + process.env.APPLICATION_ENV)
 	logger.info('Application is running on the port:' + process.env.APPLICATION_PORT)
 })

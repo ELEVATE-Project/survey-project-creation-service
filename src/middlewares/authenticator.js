@@ -238,8 +238,8 @@ async function validateSession(authHeader) {
  * @returns {Object} The user's profile details if found and active.
  */
 async function fetchUserProfile(authHeader) {
-	const userBaseUrl = `${process.env.USER_SERVICE_HOST}${process.env.USER_SERVICE_BASE_URL}`
-	const profileUrl = `${userBaseUrl}${endpoints.USER_PROFILE_DETAILS}`
+	const userBaseUrl = utils.buildUrl(process.env.USER_SERVICE_HOST, process.env.USER_SERVICE_BASE_URL)
+	const profileUrl = utils.buildUrl(userBaseUrl, endpoints.USER_PROFILE_DETAILS)
 	const user = await requests.get(profileUrl, authHeader, false)
 	if (!user || !user.success) throw createUnauthorizedResponse('USER_NOT_FOUND')
 	if (user.data.result.deleted_at !== null) throw createUnauthorizedResponse('USER_ROLE_UPDATED')

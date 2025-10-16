@@ -60,7 +60,7 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				defaultValue: false,
 				type: DataTypes.BOOLEAN,
-			}
+			},
 		},
 		{
 			modelName: 'Comment',

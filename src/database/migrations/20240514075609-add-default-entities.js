@@ -204,8 +204,17 @@ module.exports = {
 		// await queryInterface.bulkDelete('entity_types', null, {})
 		// await queryInterface.bulkDelete('entities', null, {})
 		const seedValues = [
-			'title','categories','objective','keywords','recommended_for',
-			'languages','licenses','tasks','name','learning_resources','duration'
+			'title',
+			'categories',
+			'objective',
+			'keywords',
+			'recommended_for',
+			'languages',
+			'licenses',
+			'tasks',
+			'name',
+			'learning_resources',
+			'duration',
 		]
 		const defaultOrgId = queryInterface.sequelize.options.defaultOrgId
 		const defaultTenantCode = process.env.DEFAULT_TENANT_CODE

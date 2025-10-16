@@ -628,14 +628,18 @@ function formatToTitleCase(value) {
  */
 
 function generateExternalId(title) {
-	const words = title.split(/[\s-]+/)
-	const abbreviation =
-		words
-			.filter((word) => /^[a-zA-Z0-9]+$/.test(word)) // Filter only alphanumeric words
-			.map((word) => (word[0] || '').toUpperCase())
-			.join('') || 'IMP' //append word 'IMP' if abbreviation is empty
-	const uniqueSuffix = Date.now()
-	return `${abbreviation}-${uniqueSuffix}`
+	try {
+		const words = title.split(/[\s-]+/)
+		const abbreviation =
+			words
+				.filter((word) => /^[a-zA-Z0-9]+$/.test(word)) // Filter only alphanumeric words
+				.map((word) => (word[0] || '').toUpperCase())
+				.join('') || 'IMP' //append word 'IMP' if abbreviation is empty
+		const uniqueSuffix = Date.now()
+		return `${abbreviation}-${uniqueSuffix}`
+	} catch (error) {
+		return `IMP-${Date.now()}`
+	}
 }
 
 /**
@@ -644,15 +648,21 @@ function generateExternalId(title) {
  * @param {Array} resources - learning resource data
  * @returns {Object} - Response contains formatted learning resource
  */
-const convertResources = (resources) =>
-	resources
-		.filter((resource) => resource.url) // Ensure `url` exists
-		.map((resource) => ({
-			name: resource.name || 'resource',
-			link: resource.url,
-			app: process.env.CONSUMPTION_SERVICE,
-			id: resource.url.split('/').pop(), // Extract the last part of the URL
-		}))
+const convertResources = (resources) => {
+	try {
+		return resources
+			.filter((resource) => resource.url) // Ensure `url` exists
+			.map((resource) => ({
+				name: resource.name || 'resource',
+				link: resource.url,
+				app: process.env.CONSUMPTION_SERVICE,
+				id: resource.url.split('/').pop(), // Extract the last part of the URL
+			}))
+	} catch (error) {
+		console.error('Error in converting resources : ', error)
+		return []
+	}
+}
 
 /**
  * Format keywords
@@ -660,9 +670,18 @@ const convertResources = (resources) =>
  * @returns {Array} - Formatted keywords
  */
 function formatKeywords(keywords) {
-	if (Array.isArray(keywords)) return keywords.map((k) => k.trim())
-	if (typeof keywords === 'string') return keywords.split(',').map((k) => k.trim())
-	return []
+	try {
+		if (Array.isArray(keywords) && keywords.length > 0) return keywords.map((k) => String(k).trim()).filter(Boolean)
+		if (typeof keywords === 'string')
+			return keywords
+				.split(',')
+				.map((k) => k.trim())
+				.filter(Boolean)
+		return []
+	} catch (error) {
+		console.error('Error in formating keywords : ', error)
+		return []
+	}
 }
 
 /**
@@ -672,7 +691,7 @@ function formatKeywords(keywords) {
  */
 function formatProjectMetaInformation(templateData) {
 	return {
-		duration: `${templateData.recommended_duration.number} ${templateData.recommended_duration.duration}`,
+		duration: `${templateData.recommended_duration?.number} ${templateData.recommended_duration?.duration}`,
 		goal: '',
 		rationale: '',
 		primaryAudience: '',
@@ -788,7 +807,7 @@ function _extractTenantAndOrgCodes(req) {
 	let organizationCode = req.decodedToken.organization_code
 
 	if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-		const validHeader = validateTenantAndOrganizationInHeader(req)
+		const validHeader = validateTenantAndOrganizationInHeader({ headers: req.headers })
 		if (!validHeader) {
 			return {
 				error: 'TENANT_ORGANIZATION_HEADER_MISSING',

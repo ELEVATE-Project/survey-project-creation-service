@@ -82,7 +82,7 @@ module.exports = class reviewStagesHelper {
 
 			let filter = {
 				organization_code,
-				tenant_code
+				tenant_code,
 			}
 			if (resource_type) {
 				filter.resource_type = resource_type

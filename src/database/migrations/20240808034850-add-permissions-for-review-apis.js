@@ -74,11 +74,11 @@ module.exports = {
 
 			// Only call addPermissions if reviewer roles are present
 			if (defaultReviewerRoles.length > 0) {
-				await addPermissions(permissionsData, defaultReviewerRoles);
-			}	
-			
+				await addPermissions(permissionsData, defaultReviewerRoles)
+			}
+
 			if (rolePermissionsData.length > 0) {
-				await queryInterface.bulkInsert('role_permission_mapping', rolePermissionsData);
+				await queryInterface.bulkInsert('role_permission_mapping', rolePermissionsData)
 			}
 		} catch (error) {
 			console.error(error)

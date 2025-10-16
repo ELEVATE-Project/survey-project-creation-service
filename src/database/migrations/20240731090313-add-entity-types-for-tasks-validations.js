@@ -126,10 +126,10 @@ module.exports = {
 			'solution_details',
 		]
 		const { Op } = Sequelize
-		const rows = await queryInterface.sequelize.query(
-			'SELECT id FROM entity_types WHERE value IN (:values)',
-			{ replacements: { values }, type: queryInterface.sequelize.QueryTypes.SELECT }
-		)
+		const rows = await queryInterface.sequelize.query('SELECT id FROM entity_types WHERE value IN (:values)', {
+			replacements: { values },
+			type: queryInterface.sequelize.QueryTypes.SELECT,
+		})
 		const ids = rows.map((r) => r.id)
 		if (ids.length) {
 			await queryInterface.bulkDelete('entities_model_mapping', { entity_type_id: { [Op.in]: ids } }, {})

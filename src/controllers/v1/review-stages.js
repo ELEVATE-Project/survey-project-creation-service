@@ -20,7 +20,12 @@ module.exports = class reviewStages {
 
 	async update(req) {
 		try {
-			const updateReviewStage = await reviewStagesService.update(req.params.id, req.body, req.decodedToken.organization_code, req.decodedToken.tenant_code)
+			const updateReviewStage = await reviewStagesService.update(
+				req.params.id,
+				req.body,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 			return updateReviewStage
 		} catch (error) {
 			return error

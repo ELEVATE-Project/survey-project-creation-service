@@ -27,7 +27,6 @@ const getPermissionId = async (module, request_type, api_path) => {
 module.exports = {
 	up: async (queryInterface, Sequelize) => {
 		try {
-
 			if (!process.env.DEFAULT_ADMIN_ROLE || !process.env.DEFAULT_ORG_ADMIN_ROLE) {
 				throw new Error('DEFAULT_ADMIN_ROLE and DEFAULT_ORG_ADMIN_ROLE must be set in the environment')
 			}

@@ -44,7 +44,6 @@ module.exports = {
 		)
 	},
 
-
 	async down(queryInterface, Sequelize) {
 		const entityTypeArray = [
 			{
@@ -77,5 +76,5 @@ module.exports = {
 				)
 			)
 		)
-	}
+	},
 }

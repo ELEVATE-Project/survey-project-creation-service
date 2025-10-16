@@ -35,7 +35,12 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 			},
 		},
-		{ sequelize, modelName: 'Form', tableName: 'forms', freezeTableName: true, paranoid: true,
+		{
+			sequelize,
+			modelName: 'Form',
+			tableName: 'forms',
+			freezeTableName: true,
+			paranoid: true,
 			indexes: [
 				{
 					name: 'unique_type_sub_type_org_id_tenant_code',
@@ -44,7 +49,7 @@ module.exports = (sequelize, DataTypes) => {
 					where: { deleted_at: null },
 				},
 			],
-		 }
+		}
 	)
 
 	// Pass 'individualHooks: true' option to ensure proper triggering of 'beforeUpdate' hook.
