@@ -47,7 +47,7 @@ module.exports = {
 				review_required_after_publish: process.env.REVIEW_REQUIRED_AFTER_PUBLISH === 'false' ? false : true,
 				show_reviewer_list: process.env.SHOW_REVIEWER_LIST === 'false' ? false : true,
 				min_approval: parseInt(process.env.MIN_APPROVAL) || 1,
-				review_type: process.env.REVIEW_TYPE || 'SEQUENTIAL',
+				review_type: (process.env.REVIEW_TYPE || 'SEQUENTIAL').toUpperCase(),
 				enable_entity_tagging:
 					resourceType == 'project' && process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS === 'true'
 						? true
