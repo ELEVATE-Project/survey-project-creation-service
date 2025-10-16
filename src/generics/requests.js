@@ -108,46 +108,69 @@ var post = function (
 }
 
 /**
- * Upload a file to cloud storage using a pre-signed URL.
- * @method
- * @name put
- * @param {String} fileUploadUrl - Pre-signed URL for uploading the file.
- * @param {Buffer|Stream|String} fileData - File data to upload.
- *   - Buffer: binary file data (e.g., from fs.readFileSync).
- *   - Stream: readable stream (e.g., from fs.createReadStream).
- *   - String: raw text data.
- * @returns {Promise<Object>} - Response with statusCode, headers, and body.
+ * PUT request
+ * @param {String} url - Endpoint URL
+ * @param {Object|Buffer} bodyData - Data to send (JSON or multipart)
+ * @param {String} token - Optional auth token
+ * @param {Boolean} internal_access_token - Use internal access token
+ * @param {String} internalAccessTokenKey - Header key for internal token
+ * @param {String} contentType - Optional content type, defaults to JSON
+ * @returns {Promise<Object>}
  */
-var put = function (fileUploadUrl, fileData) {
+const put = function (
+	url,
+	bodyData,
+	token = '',
+	internal_access_token = false,
+	internalAccessTokenKey = 'internal_access_token',
+	contentType = 'application/json'
+) {
 	return new Promise((resolve, reject) => {
 		try {
-			request(
-				{
-					url: fileUploadUrl,
-					method: common.PUT,
-					headers: {
-						'Content-Type': 'application/multipart/form-data', // cloud storage usually ignores boundary
-					},
-					body: fileData,
-				},
-				(err, res, body) => {
-					if (err) {
-						return reject({
-							success: false,
-							error: err.message || err,
-						})
-					}
-					resolve({
-						statusCode: res.statusCode,
-						success: true,
+			// Prepare headers
+			const headers = { 'Content-Type': contentType }
+			if (internal_access_token) headers[internalAccessTokenKey] = process.env.INTERNAL_ACCESS_TOKEN
+			if (token) headers[process.env.AUTH_TOKEN_HEADER_NAME] = token
+
+			// Request options
+			const options = {
+				url,
+				method: 'PUT',
+				headers,
+				body: contentType.includes('json') ? JSON.stringify(bodyData) : bodyData,
+			}
+
+			request(options, (err, res, body) => {
+				if (err) {
+					return resolve({
+						success: false,
+						statusCode: res?.statusCode || 500,
+						error: err.message || err,
 					})
 				}
-			)
-		} catch (error) {
-			return reject({
-				success: false,
-				error: error.message || error,
+
+				let responseBody = body
+				try {
+					if (res.headers['content-type']) {
+						const ct = res.headers['content-type'].split(';')[0]
+						if (ct === 'application/json') {
+							responseBody = JSON.parse(body)
+						} else if (/text\/xml|application\/xml/.test(ct)) {
+							responseBody = parser.toJson(body, { object: true })
+						}
+					}
+				} catch (parseError) {
+					// Ignore parse errors, return raw body
+				}
+
+				resolve({
+					success: true,
+					statusCode: res.statusCode,
+					data: responseBody,
+				})
 			})
+		} catch (error) {
+			reject({ success: false, error: error.message || error })
 		}
 	})
 }

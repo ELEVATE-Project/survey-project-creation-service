@@ -385,11 +385,11 @@ module.exports = class AdminService {
 			} else {
 				console.log('No new forms to create - all already exist')
 			}
+			console.log('--- Forms setup completed successfully ---')
 			return {
 				success: true,
 				message: 'Forms setup completed successfully',
 			}
-			console.log('--- Forms setup completed successfully ---')
 		} catch (error) {
 			console.error('Error during form setup:', error)
 			return {
@@ -403,7 +403,7 @@ module.exports = class AdminService {
 	/**
 	 * Create reviewStages  for new tenant
 	 * @method
-	 * @name setupForms
+	 * @name setupReviewStages
 	 * @param {String} newTenantCode - tenantCode
 	 * @param {String} newOrgCode - orgCode
 	 * @param {String} userId -UserId
@@ -588,7 +588,7 @@ module.exports = class AdminService {
 			}
 			// Create organization configs if any need to be created
 			await organizationConfigQueries.create(configToCreate)
-			console.log(`Created ${configToCreate.length} organization Configs`)
+			console.log(`Created  organization Configs`)
 
 			console.log('--- Organization Configs setup completed successfully ---')
 
@@ -684,6 +684,8 @@ module.exports = class AdminService {
 						// Get signed URL for file upload
 						const getSignedUrl = await filesService.getSignedUrl(
 							payloadData,
+							newOrgCode,
+							newTenantCode,
 							common.BASE_TEMPLATE,
 							'system',
 							false
@@ -702,8 +704,14 @@ module.exports = class AdminService {
 						const fileData = fs.readFileSync(filePath)
 
 						// Upload file to cloud storage
-						let cloudUpload = await requests.put(fileUploadUrl, fileData, 'application/multipart/form-data')
-
+						let cloudUpload = await requests.put(
+							fileUploadUrl,
+							fileData,
+							'',
+							'',
+							'',
+							'application/multipart/form-data'
+						)
 						if (!cloudUpload.success) {
 							throw {
 								statusCode: httpStatusCode.internal_server_error,
