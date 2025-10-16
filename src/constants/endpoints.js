@@ -22,4 +22,7 @@ module.exports = {
 	ENTITY_TYPES_FIND_BY_QUERY: process.env.ENTITY_TYPES_FIND_BY_QUERY_ENDPOINT
 		? process.env.ENTITY_TYPES_FIND_BY_QUERY_ENDPOINT
 		: 'v1/entityTypes/find',
+	ENTITY_TYPES_READ: process.env.ENTITY_TYPES_READ_ENDPOINT
+		? process.env.ENTITY_TYPES_READ_ENDPOINT
+		: 'v1/entityTypes/find',
 }

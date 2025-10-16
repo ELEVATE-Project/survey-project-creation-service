@@ -91,4 +91,23 @@ module.exports = class Entity {
 			return error
 		}
 	}
+
+	/**
+	 * reads entity types from external entity management service
+	 * @method
+	 * @name subEntityTypes
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - entity types data.
+	 */
+	async subEntityTypes(req) {
+		try {
+			return await entityTypeService.subEntityTypes(
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
+				req.decodedToken.token
+			)
+		} catch (error) {
+			return error
+		}
+	}
 }

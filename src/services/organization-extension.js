@@ -363,6 +363,7 @@ module.exports = class orgExtensionsHelper {
 						? common.REVIEW_TYPE_SEQUENTIAL
 						: common.REVIEW_TYPE_PARALLEL,
 				review_required_after_publish: process.env.REVIEW_REQUIRED_AFTER_PUBLISH === 'true' ? true : false,
+				enable_entity_tagging: process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS === 'true' ? true : false,
 			}
 
 			// fetch the configuration from Organization extension for the user's organization
@@ -383,6 +384,7 @@ module.exports = class orgExtensionsHelper {
 								review_type: orgExt.review_type,
 								resource_type: orgExt.resource_type,
 								review_required_after_publish: orgExt.review_required_after_publish,
+								enable_entity_tagging: orgExt.enable_entity_tagging,
 							}
 						}
 					})

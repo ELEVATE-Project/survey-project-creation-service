@@ -9,6 +9,7 @@ const responses = require('@helpers/responses')
 const entityTypeQueries = require('@database/queries/entityType')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const common = require('@constants/common')
+const interfaceRequests = require('@requests/interface')
 module.exports = class EntityTypeHelper {
 	/**
 	 * Create entity type.
@@ -347,6 +348,40 @@ module.exports = class EntityTypeHelper {
 			return Promise.all(result)
 		} catch (err) {
 			return err
+		}
+	}
+
+	/**
+	 * Read entity types from external service
+	 * @method
+	 * @name subEntityTypes
+	 * @param {Object} bodyData - Request body data
+	 * @param {String} token - User token
+	 * @returns {JSON} - Entity types response
+	 */
+	static async subEntityTypes(organization_code, tenant_code, token) {
+		try {
+			const result = await interfaceRequests.entityDbFind(organization_code, tenant_code, token)
+
+			if (!result.success) {
+				return responses.failureResponse({
+					message: 'FAILED_TO_FETCH_ENTITY_TYPES',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'ENTITY_TYPES_FETCHED_SUCCESSFULLY',
+				result: result?.data?.result || [],
+			})
+		} catch (error) {
+			return responses.failureResponse({
+				message: error.message || 'ENTITY_TYPES_READ_FAILED',
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 }

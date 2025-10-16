@@ -10,6 +10,7 @@ const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 const utils = require('@generics/utils')
+const entityManagementBaseUrl = interfaceBaseUrl + process.env.ENTITY_MANAGEMENT_SERVICE_NAME
 
 /**
  * browse Existing resources List
@@ -44,6 +45,36 @@ const browseExistingList = function (resourceType = '', organization_code = null
 	})
 }
 
+/**
+ * Read entity types from external service
+ * @method
+ * @name entityDbFind
+ * @param {Object} bodyData - Request body data
+ * @param {String} token - auth token of the user
+ * @returns {JSON} - Entity types data
+ */
+const entityDbFind = function (organization_code, tenant_code, token = '') {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let data = {
+				query: {
+					orgId: { $in: [organization_code, 'ALL'] },
+					tenantId: tenant_code,
+					isObservable: true,
+				},
+				projection: ['_id', 'name'],
+			}
+
+			const apiUrl = utils.buildUrl(entityManagementBaseUrl, endpoints.ENTITY_TYPES_READ)
+			const result = await requests.post(apiUrl, data, '', true, 'internal-access-token')
+			return resolve(result)
+		} catch (error) {
+			return reject(error)
+		}
+	})
+}
+
 module.exports = {
 	browseExistingList,
+	entityDbFind,
 }

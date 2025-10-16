@@ -54,6 +54,7 @@ module.exports = {
 		'resource_type',
 		'review_type',
 		'review_required_after_publish',
+		'enable_entity_tagging',
 	],
 	MIN_APPROVAL: 1,
 	CONTENT_CREATOR: 'content_creator',
