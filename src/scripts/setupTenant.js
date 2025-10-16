@@ -488,7 +488,7 @@ async function setupOrganizationConfigs(newTenantCode, newOrgCode) {
 
 		// Prepare organization configs to create
 		const configToCreate = {
-			..._.omit(defaultConfigs, ['id', 'created_at', 'updated_at', 'deleted_at']),
+			..._.omit(defaultConfigs[0], ['id', 'created_at', 'updated_at', 'deleted_at']),
 			tenant_code: newTenantCode,
 			organization_code: newOrgCode,
 			created_by: userId,
@@ -498,13 +498,9 @@ async function setupOrganizationConfigs(newTenantCode, newOrgCode) {
 		}
 
 		// Create organization Configs if any need to be created
-		if (configToCreate.length > 0) {
-			await OrganizationConfigs.create(configToCreate)
+		await OrganizationConfigs.create(configToCreate)
 
-			console.log(`Created ${configToCreate.length} organization config`)
-		} else {
-			console.log('No new organization config to create - all already exist')
-		}
+		console.log(`Created ${configToCreate.length} organization config`)
 
 		console.log('--- Organization config setup completed successfully ---')
 	} catch (error) {

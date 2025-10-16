@@ -90,18 +90,33 @@ module.exports = class AdminService {
 			}
 
 			// 1. Setup Entity Types and Entities
-			await this.setupEntityTypes(tenant_code, organization_code, userId)
+			const entitySetup = await this.setupEntityTypes(tenant_code, organization_code, userId)
+			if (!entitySetup.success) {
+				throw new Error(`Entity setup failed: ${entitySetup.error || entitySetup.message}`)
+			}
 
 			// 2, 3, 4. Setup Forms, Review Stages, and Organization Extensions in parallel
-			await Promise.all([
+			const [forms, reviewStages, orgExt, orgConfigs] = await Promise.all([
 				this.setupForms(tenant_code, organization_code, userId),
 				this.setupReviewStages(tenant_code, organization_code, userId),
 				this.setupOrganizationExtension(tenant_code, organization_code, userId),
 				this.setupOrganizationConfigs(tenant_code, organization_code, userId),
 			])
 
+			// Check results
+			const parallelResults = [forms, reviewStages, orgExt, orgConfigs]
+
+			const failed = parallelResults.find((res) => !res.success)
+			if (failed) {
+				throw new Error(`Setup failed: ${failed.message}`)
+			}
+
 			// 5. Setup Certificate Base Templates
-			await this.setupCertificateBaseTemplates(tenant_code, organization_code, userId)
+			const certTemplates = await this.setupCertificateBaseTemplates(tenant_code, organization_code, userId)
+
+			if (!certTemplates.success) {
+				throw new Error(`Certificate setup failed: ${certTemplates.error || certTemplates.message}`)
+			}
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -300,10 +315,19 @@ module.exports = class AdminService {
 			// Commit transaction
 			await transaction.commit()
 			console.log('--- Entity Types and Entities setup completed successfully ---')
+
+			return {
+				success: true,
+				message: 'Entity types setup completed successfully',
+			}
 		} catch (error) {
 			console.error('Error during entity types setup:', error)
 			await transaction.rollback()
-			throw error
+			return {
+				success: false,
+				message: 'Entity types setup failed',
+				error: error.message,
+			}
 		}
 	}
 
@@ -361,10 +385,18 @@ module.exports = class AdminService {
 			} else {
 				console.log('No new forms to create - all already exist')
 			}
+			return {
+				success: true,
+				message: 'Forms setup completed successfully',
+			}
 			console.log('--- Forms setup completed successfully ---')
 		} catch (error) {
 			console.error('Error during form setup:', error)
-			throw error
+			return {
+				success: false,
+				message: 'Forms setup failed',
+				error: error.message,
+			}
 		}
 	}
 
@@ -425,9 +457,17 @@ module.exports = class AdminService {
 			} else {
 				console.log('No new review stages to create - all already exist')
 			}
+			return {
+				success: true,
+				message: 'Review stages setup completed successfully',
+			}
 		} catch (error) {
 			console.error('Error during review stages setup:', error)
-			throw error
+			return {
+				success: false,
+				message: 'Review stages  failed',
+				error: error.message,
+			}
 		}
 	}
 
@@ -486,9 +526,17 @@ module.exports = class AdminService {
 			}
 
 			console.log('--- Organization Extension setup completed successfully ---')
+			return {
+				success: true,
+				message: 'organization extensions completed successfully',
+			}
 		} catch (error) {
 			console.error('Error during organization extensions setup:', error)
-			throw error
+			return {
+				success: false,
+				message: 'organization extensions failed',
+				error: error.message,
+			}
 		}
 	}
 
@@ -529,34 +577,32 @@ module.exports = class AdminService {
 
 			//  organization config  create
 
-			const configsToCreate = defaultConfigs.map((configs) => {
-				const plain = configs.toJSON ? configs.toJSON() : configs
-
-				return {
-					..._.omit(plain, ['id', 'created_at', 'updated_at', 'deleted_at']),
-					tenant_code: newTenantCode,
-					organization_code: newOrgCode,
-					created_by: userId,
-					updated_by: userId,
-					created_at: new Date(),
-					updated_at: new Date(),
-				}
-			})
-
-			// Create organization configs if any need to be created
-			if (configsToCreate.length > 0) {
-				await organizationConfigQueries.bulkCreate(configsToCreate, {
-					ignoreDuplicates: true,
-				})
-				console.log(`Created ${configsToCreate.length} organization Configs`)
-			} else {
-				console.log('No new organization Configs to create - all already exist')
+			const configToCreate = {
+				..._.omit(defaultConfigs[0], ['id', 'created_at', 'updated_at', 'deleted_at']),
+				tenant_code: newTenantCode,
+				organization_code: newOrgCode,
+				created_by: userId,
+				updated_by: userId,
+				created_at: new Date(),
+				updated_at: new Date(),
 			}
+			// Create organization configs if any need to be created
+			await organizationConfigQueries.create(configToCreate)
+			console.log(`Created ${configToCreate.length} organization Configs`)
 
 			console.log('--- Organization Configs setup completed successfully ---')
+
+			return {
+				success: true,
+				message: 'organization Configs completed successfully',
+			}
 		} catch (error) {
 			console.error('Error during organization Configs setup:', error)
-			throw error
+			return {
+				success: false,
+				message: 'Organization Configs failed',
+				error: error.message,
+			}
 		}
 	}
 
@@ -593,7 +639,10 @@ module.exports = class AdminService {
 
 			if (certificatesToProcess.length === 0) {
 				console.log('All certificate templates already exist. Skipping setup.')
-				return
+				return {
+					success: true,
+					message: 'All certificate templates already exist',
+				}
 			}
 
 			console.log(`Processing ${certificatesToProcess.length} new certificate templates`)
@@ -706,11 +755,19 @@ module.exports = class AdminService {
 					`--- Certificate Base Templates setup completed: ${certificatesCreated.length}/${certificatesToProcess.length} templates created successfully ---`
 				)
 			}
-			return certificatesCreated
+			return {
+				success: true,
+				message: 'Certificate Base Templates setup completed successfully',
+				data: certificatesCreated,
+			}
 		} catch (error) {
 			console.error('Error during certificate templates setup:', error)
 
-			throw error
+			return {
+				success: false,
+				message: 'Certificate Base Templates setup  failed',
+				error: error.message,
+			}
 		}
 	}
 }
