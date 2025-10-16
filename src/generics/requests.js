@@ -6,7 +6,7 @@
  */
 const request = require('request')
 const parser = require('xml2json')
-const common = require('@constants/common')
+const httpStatusCode = require('@generics/http-status')
 
 var get = function (
 	url,
@@ -144,7 +144,7 @@ const put = function (
 				if (err) {
 					return resolve({
 						success: false,
-						statusCode: res?.statusCode || 500,
+						statusCode: res?.statusCode || httpStatusCode.internal_server_error,
 						error: err.message || err,
 					})
 				}

@@ -659,6 +659,11 @@ module.exports = class AdminService {
 					const filePath = path.join(__dirname, '../public/assets/certificate/', fileName)
 					try {
 						const response = await filesService.getDownloadableUrl([currentCertificate.url])
+						if (!response?.result || !response?.result?.[0] || !response.result?.[0]?.url) {
+							throw new Error(
+								`Failed to get downloadable URL for certificate: ${currentCertificate.code}`
+							)
+						}
 						//Download and store it in local
 						await utils.downloadFile(response.result?.[0].url, filePath)
 
