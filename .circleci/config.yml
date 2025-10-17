@@ -91,6 +91,25 @@ jobs:
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
       - run:
+          name: Wait for all services to be ready
+          command: |
+            echo "Waiting for PostgreSQL, User service, and SCP service to be ready..."
+            for i in {1..60}; do
+              nc -zv localhost 5432 && echo "PostgreSQL is ready" && break
+              echo "Waiting for PostgreSQL... attempt $i"
+              sleep 1
+            done
+            # for i in {1..60}; do
+            #   nc -zv localhost 5001 && echo "User service is ready" && break
+            #   echo "Waiting for User service... attempt $i"
+            #   sleep 1
+            # done
+            # for i in {1..60}; do
+            #   nc -zv localhost 6001 && echo "SCP service is ready" && break
+            #   echo "Waiting for SCP service... attempt $i"
+            #   sleep 1
+            # done
+      - run:
           name: Get SCP container ID and print logs
           command: |
             echo "Getting SCP container ID..."
@@ -106,25 +125,6 @@ jobs:
             # Print logs of the SCP container
             echo "Printing SCP container logs..."
             docker logs $SCP_CONTAINER_ID --tail=20000
-      - run:
-          name: Wait for all services to be ready
-          command: |
-            echo "Waiting for PostgreSQL, User service, and SCP service to be ready..."
-            for i in {1..60}; do
-              nc -zv localhost 5432 && echo "PostgreSQL is ready" && break
-              echo "Waiting for PostgreSQL... attempt $i"
-              sleep 1
-            done
-            for i in {1..60}; do
-              nc -zv localhost 5001 && echo "User service is ready" && break
-              echo "Waiting for User service... attempt $i"
-              sleep 1
-            done
-            for i in {1..60}; do
-              nc -zv localhost 6001 && echo "SCP service is ready" && break
-              echo "Waiting for SCP service... attempt $i"
-              sleep 1
-            done
       - run:
           name: Wait for Database Creation and Run Migrations
           command: |
