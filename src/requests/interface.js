@@ -59,7 +59,7 @@ const entityDbFind = function (organization_code, tenant_code, token = '') {
 		try {
 			let data = {
 				query: {
-					orgId: { $in: [organization_code, common.ALL] },
+					// orgId: { $in: [organization_code, common.ALL] }, //commenting hence the entity management removing orgId filter
 					tenantId: tenant_code,
 					isObservable: true,
 				},
