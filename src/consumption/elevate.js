@@ -20,6 +20,7 @@ const cheerio = require('cheerio')
 const path = require('path')
 const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
 const userRequests = require('@requests/user')
+const interfaceRequests = require('@requests/interface')
 let projectsMongoConnection = null
 let mongoConnection = null
 let scopeKeys = {}
@@ -35,6 +36,7 @@ const COLLECTIONS_MAP = new Map(
 		SOLUTIONS: 'solutions',
 		CERTIFICATE_TEMPLATE: 'certificateTemplates',
 		CERTIFICATE_BASE_TEMPLATE: 'certificateBaseTemplates',
+		USER_EXTENSIONS: 'userExtensions',
 		ORGANIZATION_EXTENSION: 'organizationExtension',
 	})
 )
@@ -2036,6 +2038,19 @@ const publishProgram = function async(programData) {
 				)
 			})
 
+			//create user and program mapping
+			const viewerIds = rolloutDetails.viewers.map((viewer) => viewer?.id || viewer)
+			if (programId && viewerIds.length > 0) {
+				let createMappingResponse = await createOrUpdateUserProgramMapping(
+					viewerIds,
+					programId,
+					programData.organization_code,
+					programData.tenant_code,
+					loggedInUserId
+				)
+				console.log('User Program Mapping Response : ', createMappingResponse)
+			}
+
 			//return result
 			result.success = true
 			result.programId = programId
@@ -2061,6 +2076,109 @@ const publishProgram = function async(programData) {
 		}
 	})
 }
+
+/**
+ * Maps users to a program using interfaceRequests.
+ * @param {Array} viewers - Array of user IDs.
+ * @param {String|ObjectId} programId - Program ID.
+ * @param {String} tenantCode - Tenant code.
+ * @param {String} orgCode - Organization code.
+ * @param {String|null} userId - User ID performing the mapping.
+ * @returns {Promise<Boolean>}
+ */
+async function createOrUpdateUserProgramMapping(viewers, programId, orgCode, tenantCode, userId = null) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			const roles = (process.env.DEFAULT_PROGRAM_MANAGERS || '')
+				.split(',')
+				.map((role) => role.trim())
+				.filter(Boolean)
+			if (roles.length === 0) {
+				throw new Error('No roles defined in DEFAULT_PROGRAM_MANAGERS environment variable')
+			}
+
+			const userProgramCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('USER_EXTENSIONS'))
+			// Fetch all userExtensions for viewers
+			const userExtensions = await userProgramCollection.find({ userId: { $in: viewers } }).toArray()
+
+			// Find all userExtensions mapped to this program
+			const mappedUserExtensions = await userProgramCollection
+				.find({
+					'programRoleMapping.programId': programId,
+				})
+				.toArray()
+
+			// Users already mapped to this program
+			const alreadyMappedUserIds = mappedUserExtensions.map((userExt) => userExt.userId)
+
+			// Users in viewers but not mapped to program (need append)
+			const toAppend = viewers.filter((userId) => {
+				const ext = userExtensions.find((userExt) => userExt.userId === userId)
+				// If userExtension not present, need append
+				if (!ext) return true
+				// If userExtension present but programId not present, need append
+				const hasProgram = ext.programRoleMapping?.some((prm) => String(prm.programId) === String(programId))
+				return !hasProgram
+			})
+
+			// Users mapped to program but not in viewers (need remove)
+			// For each user mapped to the program but not present in viewers, prepare a remove operation
+			const toRemove = alreadyMappedUserIds.filter((userId) => !viewers.includes(userId))
+
+			// Prepare data for API call
+			const requestBody = []
+			// Only append if userExtension not present or programId not present in userExtension
+			programId = programId.toString()
+			if (toAppend.length > 0) {
+				for (const userId of toAppend) {
+					requestBody.push({
+						userId,
+						programId,
+						operation: common.OPERATION_APPEND,
+						roles: roles,
+					})
+				}
+			}
+
+			// Only remove if userExtension and programId present in userEx
+			// For each user mapped to the program but not present in viewers, prepare a remove operation
+			if (toRemove.length > 0) {
+				for (const userId of toRemove) {
+					requestBody.push({
+						userId,
+						programId,
+						operation: common.OPERATION_REMOVE,
+						roles: roles,
+					})
+				}
+			}
+
+			if (requestBody.length === 0) {
+				console.log('No user mapping changes required for program:', programId)
+				return resolve(true)
+			}
+			// Call the consumption service to update mappings
+			let userMappingResponse = await interfaceRequests.mapUserAndProgram(
+				requestBody,
+				orgCode,
+				tenantCode,
+				userId
+			)
+
+			if (userMappingResponse.status !== responseCode.ok) {
+				console.error('Error updating user extensions:', userMappingResponse)
+				throw new Error('Failed to update user extensions')
+			}
+
+			console.log('Successfully updated user extensions for program:', programId)
+			return resolve(true)
+		} catch (error) {
+			console.error('Error in createOrUpdateUserProgramMapping:', error)
+			return reject(error)
+		}
+	})
+}
+
 module.exports = {
 	publishProjectTemplates,
 	publishProgram,

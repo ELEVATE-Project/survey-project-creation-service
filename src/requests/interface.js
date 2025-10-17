@@ -44,6 +44,44 @@ const browseExistingList = function (resourceType = '', organization_code = null
 	})
 }
 
+/**
+ * Maps users to a program.
+ * @param {Object} data - Mapping data (users, programId, operation, roles).
+ * @param {String} organizationCode - Organization code.
+ * @param {String} tenantCode - Tenant code.
+ * @param {String|null} userId - User ID performing the mapping.
+ * @returns {Promise<Object>} - API response.
+ */
+const mapUserAndProgram = function (data = {}, organizationCode, tenantCode, userId = null) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let queryParams = {
+				tenantId: tenantCode,
+				orgId: organizationCode,
+			}
+
+			if (userId) {
+				queryParams.userId = userId
+			}
+
+			let body = {
+				data: data,
+			}
+
+			const apiUrl = utils.buildUrl(
+				interfaceBaseUrl + process.env.CONSUMPTION_SERVICE_BASE_URL,
+				endpoints.MAP_USER_AND_PROGRAM,
+				queryParams
+			)
+			const response = await requests.post(apiUrl, body, '', true, 'internal-access-token')
+			return resolve(response)
+		} catch (error) {
+			return reject(error)
+		}
+	})
+}
+
 module.exports = {
 	browseExistingList,
+	mapUserAndProgram,
 }
