@@ -64,13 +64,13 @@ module.exports = class Programs {
 	 */
 	async details(req) {
 		try {
-			const rollout = await programService.details(
+			const program = await programService.details(
 				req.params.id,
 				req.decodedToken.organization_code,
 				req.decodedToken.tenant_code,
 				req.decodedToken.token
 			)
-			return rollout
+			return program
 		} catch (error) {
 			return error
 		}

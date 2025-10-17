@@ -25,4 +25,7 @@ module.exports = {
 	ENTITY_TYPES_READ: process.env.ENTITY_TYPES_READ_ENDPOINT
 		? process.env.ENTITY_TYPES_READ_ENDPOINT
 		: 'v1/entityTypes/find',
+	MAP_USER_AND_PROGRAM: process.env.MAP_USER_AND_PROGRAM_ENDPOINT
+		? process.env.MAP_USER_AND_PROGRAM_ENDPOINT
+		: 'v1/userExtension/update',
 }

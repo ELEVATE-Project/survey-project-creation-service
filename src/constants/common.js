@@ -262,6 +262,8 @@ module.exports = {
 	TASK_TYPE_REFLECTION: 'reflection',
 	START_REFLECTION: 'Start Reflection',
 	ENTITY_TYPE: 'entity_type',
+	OPERATION_APPEND: 'append',
+	OPERATION_REMOVE: 'remove',
 	PUT: 'PUT',
 	ALL: 'ALL',
 }
