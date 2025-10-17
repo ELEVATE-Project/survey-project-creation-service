@@ -147,6 +147,9 @@ exports.deleteOne = async (id, organization_code, tenantCode) => {
 
 exports.findAllWithOpenComments = async (filter, attributes = {}) => {
 	try {
+		if (!filter?.tenant_code || !filter?.id) {
+			throw new Error('filter.tenant_code and filter.id are required')
+		}
 		const res = await Resource.findAll({
 			where: filter,
 			attributes,

@@ -2088,7 +2088,10 @@ const publishProgram = function async(programData) {
 async function createOrUpdateUserProgramMapping(viewers, programId, orgCode, tenantCode, userId = null) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const roles = process.env.DEFAULT_PROGRAM_MANAGERS.split(',') || []
+			const roles = (process.env.DEFAULT_PROGRAM_MANAGERS || '')
+				.split(',')
+				.map((role) => role.trim())
+				.filter(Boolean)
 			if (roles.length === 0) {
 				throw new Error('No roles defined in DEFAULT_PROGRAM_MANAGERS environment variable')
 			}
