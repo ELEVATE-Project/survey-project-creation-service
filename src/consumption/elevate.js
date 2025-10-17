@@ -2039,9 +2039,10 @@ const publishProgram = function async(programData) {
 			})
 
 			//create user and program mapping
-			if (programId && rolloutDetails?.viewers && rolloutDetails?.viewers.length > 0) {
+			const viewerIds = rolloutDetails.viewers.map((viewer) => viewer?.id || viewer)
+			if (programId && viewerIds.length > 0) {
 				let createMappingResponse = await createOrUpdateUserProgramMapping(
-					rolloutDetails?.viewers?.map((viewer) => viewer.id),
+					viewerIds,
 					programId,
 					programData.organization_code,
 					programData.tenant_code,
