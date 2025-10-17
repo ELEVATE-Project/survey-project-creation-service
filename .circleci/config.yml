@@ -91,6 +91,22 @@ jobs:
           command: |-
             cd dev-ops/ && docker-compose -f testing-docker-compose.yml up --build -d
       - run:
+          name: Get SCP container ID and print logs
+          command: |
+            echo "Getting SCP container ID..."
+            SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
+            echo "SCP container ID: $SCP_CONTAINER_ID"
+
+            # Check if the SCP container is running
+            if [ -z "$SCP_CONTAINER_ID" ]; then
+              echo "SCP container is not running. Cannot fetch logs."
+              exit 1  # Exit with an error if SCP container is not running
+            fi
+
+            # Print logs of the SCP container
+            echo "Printing SCP container logs..."
+            docker logs $SCP_CONTAINER_ID --tail=20000
+      - run:
           name: Wait for all services to be ready
           command: |
             echo "Waiting for PostgreSQL, User service, and SCP service to be ready..."
