@@ -607,10 +607,10 @@ module.exports = class ProjectsHelper {
 			}
 
 			//validate entity type if entity tagging is enabled
-			if (process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS) {
-				if (!projectData.entityType) {
-					validationErrors.push(utils.errorObject(common.ENTITY_TYPE, '', 'Entity type is required'))
-				}
+			const isEntityTaggingEnabled =
+				String(process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS).toLowerCase() === 'true'
+			if (isEntityTaggingEnabled && !projectData.entity_type) {
+				validationErrors.push(utils.errorObject(common.ENTITY_TYPE, '', 'Entity type is required'))
 			}
 
 			// Check that the note character limit does not exceed the maximum limit
