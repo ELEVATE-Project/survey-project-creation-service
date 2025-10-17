@@ -400,7 +400,6 @@ let environmentVariables = {
 			value: 'self',
 		},
 	},
-
 	SURVEY_SERVICE_BASE_URL: {
 		message: 'Consumption side Base URL for Survey Service',
 		optional: true,
@@ -420,6 +419,15 @@ let environmentVariables = {
 		message: 'Entity management service name',
 		optional: true,
 		default: '/entity-management/',
+	},
+	USER_SERVICE_TENANT_CREATION_TOPIC: {
+		message: 'Required user service tenant event',
+		optional: true,
+		requiredIf: {
+			key: 'KAFKA_COMMUNICATIONS_ON_OFF',
+			operator: 'EQUALS',
+			value: 'ON',
+		},
 	},
 }
 

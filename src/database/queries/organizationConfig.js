@@ -63,3 +63,28 @@ exports.upsert = async (values, filter, options = {}) => {
 		return error
 	}
 }
+
+exports.findMany = async (filter, attributes) => {
+	try {
+		const queryOptions = {
+			where: filter,
+			raw: true,
+		}
+
+		if (attributes && attributes.length > 0) {
+			queryOptions.attributes = attributes
+		}
+
+		return await organizationConfig.findAll(queryOptions)
+	} catch (error) {
+		return error
+	}
+}
+
+exports.bulkCreate = async (data, options = {}) => {
+	try {
+		return await organizationConfig.bulkCreate(data, options)
+	} catch (error) {
+		return error
+	}
+}

@@ -12,6 +12,8 @@ const { v4: uuidV4 } = require('uuid')
 const _ = require('lodash')
 const md5 = require('md5')
 const { transliterate: tr } = require('transliteration')
+const fs = require('fs')
+const request = require('request')
 const path = require('path')
 
 const composeEmailBody = (body, params) => {
@@ -912,6 +914,39 @@ function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
 	}
 }
 
+/**
+ *  Downloads a file from a URL and saves it to a local file
+ * @function
+ * @name downloadFile
+ * @param {String} url - Download url
+ * @param {String} filePath - Local storage path
+ * @returns {Promise<String>}
+ */
+
+async function downloadFile(url, filePath) {
+	return new Promise((resolve, reject) => {
+		const writer = fs.createWriteStream(filePath)
+		request(url)
+			.pipe(writer)
+			.on('finish', () => resolve(filePath))
+			.on('error', reject)
+	})
+}
+
+/**
+ * Removes a file from the file system
+ * @function
+ * @name removeFile
+ * @param {String} filePath - Local storage path to remove
+ */
+
+function removeFile(filePath) {
+	if (fs.existsSync(filePath)) {
+		fs.unlinkSync(filePath)
+		console.log(`Deleted: ${filePath}`)
+	}
+}
+
 function pathFinder(__dirname, targetFolder) {
 	// Check if __dirname starts with the platform-specific path separator
 	const hasLeadingSeparator = __dirname.startsWith(path.sep)
@@ -978,5 +1013,7 @@ module.exports = {
 	validateTenantAndOrganizationInHeader,
 	_extractTenantAndOrgCodes,
 	buildUrl,
+	downloadFile,
+	removeFile,
 	pathFinder,
 }

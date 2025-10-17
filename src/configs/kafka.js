@@ -10,12 +10,14 @@ const { elevateLog } = require('elevate-logger')
 const logger = elevateLog.init()
 const { Kafka } = require('kafkajs')
 const { consumptionService } = require('@consumption/index')
+const adminService = require('@services/admin')
 
 const topics = [
 	process.env.CLEAR_INTERNAL_CACHE,
 	process.env.PROJECT_PUBLISH_KAFKA_TOPIC,
 	process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC,
 	process.env.PROGRAM_PUBLISH_KAFKA_TOPIC,
+	process.env.USER_SERVICE_TENANT_CREATION_TOPIC,
 ]
 async function ensureTopics(KafkaClient) {
 	const admin = KafkaClient.admin()
@@ -114,6 +116,12 @@ module.exports = async () => {
 							await consumptionService.publishProjectTemplates(streamingData)
 						} else if (topic == process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC) {
 							await consumptionService.publishProgram(streamingData)
+						} else if (topic == process.env.USER_SERVICE_TENANT_CREATION_TOPIC) {
+							await adminService.createTenantDependencies(
+								streamingData.code,
+								streamingData.org_code,
+								streamingData.created_by
+							)
 						}
 					} catch (error) {
 						logger.error('Error processing Kafka message:', { error })

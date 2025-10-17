@@ -47,3 +47,11 @@ exports.findOne = async (filter, attributes = null) => {
 		return error
 	}
 }
+
+exports.bulkCreate = async (data, options = {}) => {
+	try {
+		return await OrgExtensions.bulkCreate(data, options)
+	} catch (error) {
+		return error
+	}
+}

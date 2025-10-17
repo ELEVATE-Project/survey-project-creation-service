@@ -262,4 +262,5 @@ module.exports = {
 	TASK_TYPE_REFLECTION: 'reflection',
 	START_REFLECTION: 'Start Reflection',
 	ENTITY_TYPE: 'entity_type',
+	PUT: 'PUT',
 }

@@ -29,4 +29,24 @@ module.exports = class admin {
 			return error
 		}
 	}
+
+	/**
+	 * Create dependencies data for new tenant .
+	 * @method
+	 * @name createTenantDependencies
+	 * @param {Object} req  req data
+	 * @returns {Promise<Object>} -  JSON response indicating success or failure.
+	 */
+	async createTenantDependencies(req) {
+		try {
+			let tenantDependeciesData = await adminService.createTenantDependencies(
+				req.body.tenant_code,
+				req.body.organization_code,
+				req.decodedToken.id
+			)
+			return tenantDependeciesData
+		} catch (error) {
+			return error
+		}
+	}
 }
