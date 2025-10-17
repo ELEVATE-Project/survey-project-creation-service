@@ -10,6 +10,7 @@ const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 const utils = require('@generics/utils')
+const common = require('@constants/common')
 const entityManagementBaseUrl = interfaceBaseUrl + process.env.ENTITY_MANAGEMENT_SERVICE_NAME
 
 /**
@@ -58,7 +59,7 @@ const entityDbFind = function (organization_code, tenant_code, token = '') {
 		try {
 			let data = {
 				query: {
-					orgId: { $in: [organization_code, 'ALL'] },
+					orgId: { $in: [organization_code, common.ALL] },
 					tenantId: tenant_code,
 					isObservable: true,
 				},

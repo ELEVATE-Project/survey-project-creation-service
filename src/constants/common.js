@@ -263,4 +263,5 @@ module.exports = {
 	START_REFLECTION: 'Start Reflection',
 	ENTITY_TYPE: 'entity_type',
 	PUT: 'PUT',
+	ALL: 'ALL',
 }

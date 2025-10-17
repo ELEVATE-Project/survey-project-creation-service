@@ -352,14 +352,14 @@ module.exports = class EntityTypeHelper {
 	}
 
 	/**
-	 * Read entity types from external service
+	 * Read observable entity types from external service
 	 * @method
-	 * @name subEntityTypes
+	 * @name getObservableEntityTypes
 	 * @param {Object} bodyData - Request body data
 	 * @param {String} token - User token
 	 * @returns {JSON} - Entity types response
 	 */
-	static async subEntityTypes(organization_code, tenant_code, token) {
+	static async getObservableEntityTypes(organization_code, tenant_code, token) {
 		try {
 			const result = await interfaceRequests.entityDbFind(organization_code, tenant_code, token)
 

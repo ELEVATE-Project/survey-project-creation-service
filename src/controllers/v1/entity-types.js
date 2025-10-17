@@ -93,19 +93,20 @@ module.exports = class Entity {
 	}
 
 	/**
-	 * reads entity types from external entity management service
+	 * Reads observable entity types from external entity management service
 	 * @method
-	 * @name subEntityTypes
+	 * @name getObservableEntityTypes
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - entity types data.
 	 */
-	async subEntityTypes(req) {
+	async getObservableEntityTypes(req) {
 		try {
-			return await entityTypeService.subEntityTypes(
+			const entityTypes = await entityTypeService.getObservableEntityTypes(
 				req.decodedToken.organization_code,
 				req.decodedToken.tenant_code,
 				req.decodedToken.token
 			)
+			return entityTypes
 		} catch (error) {
 			return error
 		}
