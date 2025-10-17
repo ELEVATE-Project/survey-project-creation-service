@@ -73,3 +73,23 @@ exports.findEntityTypesAndEntities = async (filter, organization_code, tenantCod
 		throw error
 	}
 }
+
+exports.findAll = async (filter, options = {}) => {
+	try {
+		return await EntityModelMapping.findAll({
+			where: filter,
+			...options,
+			raw: true,
+		})
+	} catch (error) {
+		throw error
+	}
+}
+
+exports.bulkCreate = async (data, options = {}) => {
+	try {
+		return await EntityModelMapping.bulkCreate(data, options)
+	} catch (error) {
+		throw error
+	}
+}

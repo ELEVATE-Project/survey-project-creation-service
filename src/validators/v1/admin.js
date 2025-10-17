@@ -16,4 +16,8 @@ module.exports = {
 			.matches(/^\s*SELECT\b/i)
 			.withMessage('Only SELECT queries are allowed')
 	},
+	createTenantDependencies: (req) => {
+		req.checkBody('tenant_code').trim().notEmpty().withMessage('tenant_code field is empty')
+		req.checkBody('organization_code').trim().notEmpty().withMessage('organization_code field is empty')
+	},
 }

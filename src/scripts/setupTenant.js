@@ -38,6 +38,7 @@ const sequelize = require('@database/models/index').sequelize
 const Form = require('@database/models/index').Form // Import the Form model
 const ReviewStage = require('@database/models/index').ReviewStage // Import the ReviewStage model
 const OrganizationExtension = require('@database/models/index').organizationExtension // Import the OrganizationExtension model
+const OrganizationConfigs = require('@database/models/index').organizationConfig // Import the organizationConfig model
 
 // Main setup function
 ;(async () => {
@@ -75,6 +76,7 @@ const OrganizationExtension = require('@database/models/index').organizationExte
 			setupForms(tenant_code, organization_code),
 			setupReviewStages(tenant_code, organization_code),
 			setupOrganizationExtension(tenant_code, organization_code),
+			setupOrganizationConfigs(tenant_code, organization_code),
 		])
 
 		// 5. Setup Certificate Base Templates
@@ -452,6 +454,57 @@ async function setupOrganizationExtension(newTenantCode, newOrgCode) {
 		console.log('--- Organization Extension setup completed successfully ---')
 	} catch (error) {
 		console.error('Error during organization extensions setup:', error)
+		throw error
+	}
+}
+
+async function setupOrganizationConfigs(newTenantCode, newOrgCode) {
+	console.log('--- Setting up Organization Configs ---')
+	try {
+		// Fetch default organization Configs
+		const defaultConfigs = await OrganizationConfigs.findAll({
+			where: {
+				tenant_code: DEFAULT_TENANT_CODE,
+				organization_code: DEFAULT_ORGANIZATION_CODE,
+			},
+			raw: true,
+		})
+
+		// Fetch existing organization Configs for target tenant/org to avoid duplicates
+		const existingConfigs = await OrganizationConfigs.findAll({
+			where: {
+				tenant_code: newTenantCode,
+				organization_code: newOrgCode,
+			},
+			raw: true,
+		})
+
+		// Check existing configs
+		if (existingConfigs?.length > 0) {
+			console.log(
+				`Organization configs already exist for tenant=${newTenantCode}, org=${newOrgCode}. Skipping creation.`
+			)
+		}
+
+		// Prepare organization configs to create
+		const configToCreate = {
+			..._.omit(defaultConfigs[0], ['id', 'created_at', 'updated_at', 'deleted_at']),
+			tenant_code: newTenantCode,
+			organization_code: newOrgCode,
+			created_by: userId,
+			updated_by: userId,
+			created_at: new Date(),
+			updated_at: new Date(),
+		}
+
+		// Create organization Configs if any need to be created
+		await OrganizationConfigs.create(configToCreate)
+
+		console.log(`Created ${configToCreate.length} organization config`)
+
+		console.log('--- Organization config setup completed successfully ---')
+	} catch (error) {
+		console.error('Error during organization config setup:', error)
 		throw error
 	}
 }
