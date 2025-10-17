@@ -62,3 +62,11 @@ exports.findAllTypeFormVersion = async (orgCode, tenantCode) => {
 		return error
 	}
 }
+
+exports.bulkCreate = async (data, options = {}) => {
+	try {
+		return await Form.bulkCreate(data, options)
+	} catch (error) {
+		throw error
+	}
+}

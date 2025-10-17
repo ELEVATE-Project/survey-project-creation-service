@@ -411,6 +411,15 @@ let environmentVariables = {
 			value: 'self',
 		},
 	},
+	USER_SERVICE_TENANT_CREATION_TOPIC: {
+		message: 'Required user service tenant event',
+		optional: true,
+		requiredIf: {
+			key: 'KAFKA_COMMUNICATIONS_ON_OFF',
+			operator: 'EQUALS',
+			value: 'ON',
+		},
+	},
 }
 
 let success = true

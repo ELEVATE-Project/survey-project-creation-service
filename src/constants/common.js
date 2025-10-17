@@ -262,4 +262,5 @@ module.exports = {
 	START_REFLECTION: 'Start Reflection',
 	OPERATION_APPEND: 'append',
 	OPERATION_REMOVE: 'remove',
+	PUT: 'PUT',
 }
