@@ -80,4 +80,10 @@ describe('Entity-Type APIs', function () {
 		expect(res.statusCode).toBe(202)
 		console.log(`Successfully deleted entityTypeId: ${entityTypeId}`)
 	})
+
+	it('Get observable entityType', async () => {
+		const res = await request.get(`/scp/v1/entity-types/getObservableEntityTypes`)
+		expect(res.statusCode).toBe(200)
+		expect(res.body).toMatchSchema(schema.observableSchema)
+	})
 })
