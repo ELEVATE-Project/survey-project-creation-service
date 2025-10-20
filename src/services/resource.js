@@ -1014,6 +1014,48 @@ module.exports = class resourceHelper {
 			}
 			delete result.blob_path
 
+			// to get the resource details of resources within a program
+			if (resource.type === common.RESOURCE_TYPE_PROGRAM) {
+				let associatedResources = await programResourceMappingQueries.findAll({
+					program_id: resource.id,
+					organization_code: resource.organization_code,
+					tenant_code: tenant_code,
+				})
+
+				if (associatedResources.length > 0) {
+					const resourceIds = associatedResources.map((resource) => resource.resource_id)
+
+					// Use eager loading to fetch resources with their open comments in a single query
+					const resources = await resourceQueries.findAllWithOpenComments({
+						id: { [Op.in]: resourceIds },
+						organization_code: resource.organization_code,
+						tenant_code: tenant_code,
+					})
+
+					// Create a map to easily check which resources have open comments
+					const resourceCommentSet = new Set(
+						resources
+							.filter((resource) => resource.comments && resource.comments.length > 0)
+							.map((resource) => resource.id)
+					)
+
+					// Process each resource and store in result.resources
+					const resourceDetailsPromises = resources.map((resource) =>
+						this.getDetails(resource.id, resource.organization_code, tenant_code, userToken)
+					)
+					const resourceDetailsResults = await Promise.all(resourceDetailsPromises)
+					result.resources = resourceDetailsResults
+						.filter((resourceDetail) => resourceDetail.statusCode === httpStatusCode.ok)
+						.map((resourceDetail) => ({
+							...resourceDetail.result,
+							link: resourceDetail?.result.link
+								? `${process.env.PROJECT_DEEP_LINK_URL}${resourceDetail?.result?.link}`
+								: null,
+							is_comments: resourceCommentSet.has(resourceDetail.result.id),
+						}))
+				}
+			}
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_FETCHED',

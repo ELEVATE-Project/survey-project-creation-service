@@ -23,4 +23,7 @@ module.exports = {
 		? process.env.ENTITY_TYPES_FIND_BY_QUERY_ENDPOINT
 		: 'v1/entityTypes/find',
 	FETCH_LINK_END_POINT: '/v1/solutions/fetchLinkInternal',
+	MAP_USER_AND_PROGRAM: process.env.MAP_USER_AND_PROGRAM_ENDPOINT
+		? process.env.MAP_USER_AND_PROGRAM_ENDPOINT
+		: 'v1/userExtension/update',
 }

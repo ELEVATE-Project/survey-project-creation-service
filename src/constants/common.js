@@ -262,5 +262,7 @@ module.exports = {
 	TARGETING_ALL: 'ALL',
 	TASK_TYPE_REFLECTION: 'reflection',
 	START_REFLECTION: 'Start Reflection',
+	OPERATION_APPEND: 'append',
+	OPERATION_REMOVE: 'remove',
 	PUT: 'PUT',
 }
