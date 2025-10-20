@@ -400,7 +400,6 @@ let environmentVariables = {
 			value: 'self',
 		},
 	},
-
 	SURVEY_SERVICE_BASE_URL: {
 		message: 'Consumption side Base URL for Survey Service',
 		optional: true,
@@ -410,6 +409,16 @@ let environmentVariables = {
 			operator: 'NOT_EQUALS',
 			value: 'self',
 		},
+	},
+	ENABLE_ENTITY_TAGGING_IN_PROJECTS: {
+		message: 'Enable entity tagging in Projects',
+		optional: true,
+		default: true,
+	},
+	ENTITY_MANAGEMENT_SERVICE_NAME: {
+		message: 'Entity management service name',
+		optional: true,
+		default: '/entity-management/',
 	},
 	USER_SERVICE_TENANT_CREATION_TOPIC: {
 		message: 'Required user service tenant event',

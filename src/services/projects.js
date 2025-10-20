@@ -606,6 +606,13 @@ module.exports = class ProjectsHelper {
 				)
 			}
 
+			//validate entity type if entity tagging is enabled
+			const isEntityTaggingEnabled =
+				String(process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS).toLowerCase() === 'true'
+			if (isEntityTaggingEnabled && !projectData.entity_type) {
+				validationErrors.push(utils.errorObject(common.ENTITY_TYPE, '', 'Entity type is required'))
+			}
+
 			// Check that the note character limit does not exceed the maximum limit
 			if (bodyData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
 				return responses.failureResponse({
@@ -1110,6 +1117,7 @@ module.exports = class ProjectsHelper {
 					}
 				}
 			}
+
 			if (validationErrors.length > 0)
 				return {
 					hasError: true,

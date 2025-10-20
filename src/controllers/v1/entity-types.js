@@ -91,4 +91,24 @@ module.exports = class Entity {
 			return error
 		}
 	}
+
+	/**
+	 * Reads observable entity types from external entity management service
+	 * @method
+	 * @name getObservableEntityTypes
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - entity types data.
+	 */
+	async getObservableEntityTypes(req) {
+		try {
+			const entityTypes = await entityTypeService.getObservableEntityTypes(
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
+				req.decodedToken.token
+			)
+			return entityTypes
+		} catch (error) {
+			return error
+		}
+	}
 }
