@@ -98,7 +98,7 @@ module.exports = class Resource {
 	async getPublishedResources(req) {
 		try {
 			const resourceList = await resourceService.browseExistingList(
-				req.decodedToken.organization_code,
+				req.params.id,
 				req.decodedToken.tenant_code,
 				req.decodedToken.roles,
 				req.body.resource_ids ? req.body.resource_ids : [],
@@ -109,6 +109,22 @@ module.exports = class Resource {
 				req.decodedToken.token
 			)
 			return resourceList
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Function to fetch deep link for resource from consumption side
+	 * @method POST
+	 * @name getDeepLink
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - deepl links url
+	 */
+	async getDeepLink(req) {
+		try {
+			const deepLinks = await resourceService.getDeepLink(req.query.solutionId, req.query.solutionType)
+			return deepLinks
 		} catch (error) {
 			throw error
 		}

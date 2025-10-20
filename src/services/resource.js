@@ -25,7 +25,9 @@ const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
 const defaultOrgId = process.env.DEFAULT_ORGANIZATION_CODE
 const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
-const certificateBasetemplateQueries = require('@database/queries/certificateBaseTemplate')
+const consumptionConfig = require('@consumption/config')
+const endPoints = require('@constants/endpoints')
+const requests = require('@generics/requests')
 
 module.exports = class resourceHelper {
 	/**
@@ -1715,6 +1717,42 @@ module.exports = class resourceHelper {
 			}
 		} catch (error) {
 			throw error
+		}
+	}
+
+	/**
+	 * Fetch the consumption deep link for a solution
+	 * @param {string} solutionId - The ID of the solution to fetch the deep link for.
+	 * @param {string} solutionType - The type of the solution (e.g., 'program', 'project').
+	 * @returns {Promise<Object>} - Resolves with the deep link response object.
+	 */
+	static async getDeepLink(solutionId, solutionType) {
+		let result = {}
+		try {
+			const consumptionServiceUrl = consumptionConfig.fetchConsumptionServiceUrls(solutionType)
+			if (!consumptionServiceUrl) {
+				return responses.failureResponse({
+					message: 'CONSUMPTION_LINK_NOT_FOUND',
+					statusCode: httpStatusCode.not_found,
+					result,
+				})
+			}
+			const url = utils.buildUrl(consumptionServiceUrl, endPoints.FETCH_LINK_END_POINT, {}, solutionId)
+			const response = requests.get(url, '', true)
+			if (response.status === 200 && response && Array.isArray(response.result))
+				result = response.result.join(',')
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'CONSUMPTION_LINK_FETCHED',
+				result,
+			})
+		} catch (error) {
+			return responses.failureResponse({
+				message: 'CONSUMPTION_LINK_NOT_FOUND',
+				statusCode: httpStatusCode.not_found,
+				result,
+			})
 		}
 	}
 }

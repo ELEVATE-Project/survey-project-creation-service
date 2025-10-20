@@ -22,4 +22,5 @@ module.exports = {
 	ENTITY_TYPES_FIND_BY_QUERY: process.env.ENTITY_TYPES_FIND_BY_QUERY_ENDPOINT
 		? process.env.ENTITY_TYPES_FIND_BY_QUERY_ENDPOINT
 		: 'v1/entityTypes/find',
+	FETCH_LINK_END_POINT: '/v1/solutions/fetchLinkInternal',
 }

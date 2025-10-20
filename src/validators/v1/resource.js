@@ -52,4 +52,12 @@ module.exports = {
 				return true
 			})
 	},
+	getDeepLink: (req) => {
+		const check_values = [common.OBSERVATION, common.OBSERVATION_WITH_RUBRICS, common.SURVEY, common.PROJECT]
+		req.checkQuery('solutionId').notEmpty().withMessage('solutionId param is empty')
+		req.checkQuery('solutionType')
+			.withMessage('solutionType Param is empty ')
+			.isIn(check_values)
+			.withMessage('solutionType ' + req.query.solutionType + ' is an invalid value')
+	},
 }
