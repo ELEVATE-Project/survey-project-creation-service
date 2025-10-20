@@ -964,6 +964,20 @@ function pathFinder(__dirname, targetFolder) {
 	// Join components, adding back the leading separator if it existed
 	return (hasLeadingSeparator ? path.sep : '') + path.join(...targetComponents)
 }
+
+/**
+ * Validates if a value is a valid date
+ * @function
+ * @name isValidDate
+ * @param {*} dateValue - The date value to validate
+ * @returns {Boolean} - Returns true if valid date, false otherwise
+ */
+function isValidDate(dateValue) {
+	if (!dateValue) return false
+	const date = new Date(dateValue)
+	return date instanceof Date && !isNaN(date.getTime())
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -1016,4 +1030,5 @@ module.exports = {
 	downloadFile,
 	removeFile,
 	pathFinder,
+	isValidDate,
 }

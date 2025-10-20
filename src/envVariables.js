@@ -429,6 +429,11 @@ let environmentVariables = {
 			value: 'ON',
 		},
 	},
+	ENABLE_TASK_START_END_DATE_IN_PROJECTS: {
+		message: 'Enable task start and end dates in projects',
+		optional: true,
+		default: false,
+	},
 }
 
 let success = true
