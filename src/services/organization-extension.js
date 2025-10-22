@@ -364,6 +364,8 @@ module.exports = class orgExtensionsHelper {
 						: common.REVIEW_TYPE_PARALLEL,
 				review_required_after_publish: process.env.REVIEW_REQUIRED_AFTER_PUBLISH === 'true' ? true : false,
 				enable_entity_tagging: process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS === 'true' ? true : false,
+				enable_task_start_end_dates:
+					process.env.ENABLE_TASK_START_END_DATE_IN_PROJECTS === 'true' ? true : false,
 			}
 
 			// fetch the configuration from Organization extension for the user's organization
@@ -385,6 +387,7 @@ module.exports = class orgExtensionsHelper {
 								resource_type: orgExt.resource_type,
 								review_required_after_publish: orgExt.review_required_after_publish,
 								enable_entity_tagging: orgExt.enable_entity_tagging,
+								enable_task_start_end_dates: orgExt.enable_task_start_end_dates,
 							}
 						}
 					})

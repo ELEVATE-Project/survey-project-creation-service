@@ -55,6 +55,7 @@ module.exports = {
 		'review_type',
 		'review_required_after_publish',
 		'enable_entity_tagging',
+		'enable_task_start_end_dates',
 	],
 	MIN_APPROVAL: 1,
 	CONTENT_CREATOR: 'content_creator',

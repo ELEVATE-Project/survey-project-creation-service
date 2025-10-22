@@ -48,6 +48,16 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.BOOLEAN,
 				defaultValue: true,
 			},
+			enable_entity_tagging: {
+				allowNull: false,
+				type: DataTypes.BOOLEAN,
+				defaultValue: true,
+			},
+			enable_task_start_end_dates: {
+				allowNull: false,
+				type: DataTypes.BOOLEAN,
+				defaultValue: false,
+			},
 		},
 		{
 			sequelize,
