@@ -560,8 +560,8 @@ module.exports = class ProjectsHelper {
 			}
 			let projectDetails = await this.details(
 				resourceId,
-				userDetails.tenant_code,
 				userDetails.organization_code,
+				userDetails.tenant_code,
 				commentsOptions
 			)
 			if (projectDetails.statusCode !== httpStatusCode.ok) {
