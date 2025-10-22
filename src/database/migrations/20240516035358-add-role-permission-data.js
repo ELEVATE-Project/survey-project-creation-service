@@ -220,12 +220,6 @@ module.exports = {
 					request_type: ['GET'],
 					api_path: '/scp/v1/users/list/*',
 				},
-				{
-					code: 'deeplink_fetch_permissions',
-					module: 'resource',
-					request_type: ['GET'],
-					api_path: '/scp/v1/resource/getDeepLink',
-				},
 			]
 
 			const reviewerPermissions = [

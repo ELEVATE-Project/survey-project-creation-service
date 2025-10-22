@@ -1793,8 +1793,8 @@ module.exports = class resourceHelper {
 			})
 		} catch (error) {
 			return responses.failureResponse({
-				message: 'CONSUMPTION_LINK_NOT_FOUND',
-				statusCode: httpStatusCode.not_found,
+				message: 'CONSUMPTION_LINK_FETCH_FAILED',
+				statusCode: httpStatusCode.internal_server_error,
 				result,
 			})
 		}
