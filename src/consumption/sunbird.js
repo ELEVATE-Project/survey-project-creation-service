@@ -1670,7 +1670,8 @@ const publishProgram = function async(programData) {
 						} else {
 							const fetchProjectDetails = await projectService.details(
 								programData?.resource?.resource_id,
-								programData?.resource?.organization_code
+								programData?.resource?.organization_code,
+								programData?.resource?.tenant_code
 							)
 							publishedProject = { templateId: fetchProjectDetails?.result?.published_id }
 							fetchDetails.result = {
