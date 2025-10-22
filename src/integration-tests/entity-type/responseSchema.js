@@ -327,8 +327,50 @@ const listSchema = {
 	required: ['responseCode', 'message', 'result', 'meta'],
 }
 
+const observableSchema = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		message: {
+			type: 'string',
+		},
+		result: {
+			type: 'array',
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
+				},
+				correlation: {
+					type: 'string',
+				},
+			},
+		},
+	},
+	required: ['responseCode', 'message', 'result'],
+}
+
 module.exports = {
 	createSchema,
 	updateSchema,
 	listSchema,
+	observableSchema,
 }

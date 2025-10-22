@@ -173,5 +173,7 @@
 	"QUERY_FORBIDDEN_INJECTION_PATTERNS": "Query contains forbidden injection patterns",
 	"QUERY_FORBIDDEN_PATTERNS": "Query is not allowed or references restricted operations/tables",
 	"CONSUMPTION_LINK_NOT_FOUND": "Consumption link not found",
-	"CONSUMPTION_LINK_FETCHED": "Link fetched successfully"
+	"CONSUMPTION_LINK_FETCHED": "Link fetched successfully",
+	"ENTITY_TYPE_FETCHED_SUCCESSFULLY": "Entity types fetched successfully",
+	"FAILED_TO_FETCH_ENTITY_TYPES": "Failed to fetch entity types"
 }

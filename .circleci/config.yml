@@ -110,6 +110,40 @@ jobs:
               sleep 1
             done
       - run:
+          name: Verify SCP container is running
+          command: |
+            SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
+            if [ -z "$SCP_CONTAINER_ID" ]; then
+              echo "ERROR: SCP container is not running!"
+              echo "=== All containers ==="
+              docker ps -a
+              echo "=== SCP container logs ==="
+              docker logs $(docker ps -aq --filter "name=scp") --tail=100
+              exit 1
+            fi
+            echo "SCP container is running: $SCP_CONTAINER_ID"
+      - run:
+          name: Get SCP container logs (initial)
+          command: |
+            echo "=== SCP Container Logs ==="
+            docker logs $(docker ps -q --filter "name=scp") --tail=100
+      - run:
+          name: Get SCP container ID and print logs
+          command: |
+            echo "Getting SCP container ID..."
+            SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
+            echo "SCP container ID: $SCP_CONTAINER_ID"
+
+            # Check if the SCP container is running
+            if [ -z "$SCP_CONTAINER_ID" ]; then
+              echo "SCP container is not running. Cannot fetch logs."
+              exit 1  # Exit with an error if SCP container is not running
+            fi
+
+            # Print logs of the SCP container
+            echo "Printing SCP container logs..."
+            docker logs $SCP_CONTAINER_ID --tail=20000
+      - run:
           name: Wait for Database Creation and Run Migrations
           command: |
             echo "Checking if database 'integration_test_scp' exists..."
@@ -123,6 +157,22 @@ jobs:
               echo "Database 'integration_test_scp' not ready yet... waiting (attempt $i)"
               sleep 2
             done
+      - run:
+          name: Get SCP container ID and print logs
+          command: |
+            echo "Getting SCP container ID..."
+            SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
+            echo "SCP container ID: $SCP_CONTAINER_ID"
+
+            # Check if the SCP container is running
+            if [ -z "$SCP_CONTAINER_ID" ]; then
+              echo "SCP container is not running. Cannot fetch logs."
+              exit 1  # Exit with an error if SCP container is not running
+            fi
+
+            # Print logs of the SCP container
+            echo "Printing SCP container logs..."
+            docker logs $SCP_CONTAINER_ID --tail=20000
       - run:
           name: Wait for SCP Database Migration to Complete
           command: |
@@ -168,22 +218,22 @@ jobs:
             # Print logs of the SCP container
             echo "Printing SCP container logs..."
             docker logs $USER_CONTAINER_ID --tail=20000
-      - run:
-          name: Get SCP container ID and print logs
-          command: |
-            echo "Getting SCP container ID..."
-            SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
-            echo "SCP container ID: $SCP_CONTAINER_ID"
+      # - run:
+      #     name: Get SCP container ID and print logs
+      #     command: |
+      #       echo "Getting SCP container ID..."
+      #       SCP_CONTAINER_ID=$(docker ps -q --filter "name=scp")
+      #       echo "SCP container ID: $SCP_CONTAINER_ID"
 
-            # Check if the SCP container is running
-            if [ -z "$SCP_CONTAINER_ID" ]; then
-              echo "SCP container is not running. Cannot fetch logs."
-              exit 1  # Exit with an error if SCP container is not running
-            fi
+      #       # Check if the SCP container is running
+      #       if [ -z "$SCP_CONTAINER_ID" ]; then
+      #         echo "SCP container is not running. Cannot fetch logs."
+      #         exit 1  # Exit with an error if SCP container is not running
+      #       fi
 
-            # Print logs of the SCP container
-            echo "Printing SCP container logs..."
-            docker logs $SCP_CONTAINER_ID --tail=20000
+      #       # Print logs of the SCP container
+      #       echo "Printing SCP container logs..."
+      #       docker logs $SCP_CONTAINER_ID --tail=20000
 
       - store_test_results:
           path: ./dev-ops/report

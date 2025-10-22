@@ -54,6 +54,8 @@ module.exports = {
 		'resource_type',
 		'review_type',
 		'review_required_after_publish',
+		'enable_entity_tagging',
+		'enable_task_start_end_dates',
 	],
 	MIN_APPROVAL: 1,
 	CONTENT_CREATOR: 'content_creator',
@@ -262,7 +264,9 @@ module.exports = {
 	TARGETING_ALL: 'ALL',
 	TASK_TYPE_REFLECTION: 'reflection',
 	START_REFLECTION: 'Start Reflection',
+	ENTITY_TYPE: 'entity_type',
 	OPERATION_APPEND: 'append',
 	OPERATION_REMOVE: 'remove',
 	PUT: 'PUT',
+	ALL: 'ALL',
 }
