@@ -67,7 +67,6 @@ module.exports = class ProgramsHelper {
 								'published_on',
 								'last_reviewed_on',
 								'is_under_edit',
-								'is_reusable',
 							],
 						},
 					}
