@@ -386,10 +386,11 @@ module.exports = class ProjectsHelper {
 	 * @name details
 	 * @param {String} projectId - Project id
 	 * @param {String} tenantCode - tenant code
+	 * @param {String} orgCode - organization code
 	 * @returns {JSON} - Project data.
 	 */
 
-	static async details(projectId, tenantCode, orgCode, commentsOptions = {}) {
+	static async details(projectId, orgCode, tenantCode, commentsOptions = {}) {
 		try {
 			let result = {
 				organization: {},

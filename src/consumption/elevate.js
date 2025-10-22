@@ -623,8 +623,8 @@ const publishProjectTemplates = function (templateData) {
 			// fetch project details
 			let projectData = await projectService.details(
 				templateData.id,
-				templateData.tenant_code,
-				templateData.organization_code
+				templateData.organization_code,
+				templateData.tenant_code
 			)
 
 			projectData = projectData?.result || {}
@@ -1907,8 +1907,8 @@ const publishProgram = function async(programData) {
 						} else {
 							const fetchProjectDetails = await projectService.details(
 								resource.id,
-								resource?.tenant_code,
-								resource?.organization_code
+								resource?.organization_code,
+								resource?.tenant_code
 							)
 							publishedProject = { templateId: fetchProjectDetails?.result?.published_id }
 							fetchDetails.result = {
