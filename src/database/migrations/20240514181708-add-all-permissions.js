@@ -322,6 +322,15 @@ module.exports = {
 					created_at: new Date(),
 					updated_at: new Date(),
 				},
+				{
+					code: 'deeplink_fetch_permissions',
+					module: 'resource',
+					request_type: ['GET'],
+					api_path: '/scp/v1/resource/getDeepLink',
+					status: 'ACTIVE',
+					created_at: new Date(),
+					updated_at: new Date(),
+				},
 			]
 			await queryInterface.bulkInsert('permissions', permissionsData)
 		} catch (error) {

@@ -1769,7 +1769,9 @@ module.exports = class resourceHelper {
 	 * @returns {Promise<Object>} - Resolves with the deep link response object.
 	 */
 	static async getDeepLink(solutionId, solutionType) {
-		let result = {}
+		let result = {
+			deepLinks: '',
+		}
 		try {
 			const consumptionServiceUrl = consumptionConfig.fetchConsumptionServiceUrls(solutionType)
 			if (!consumptionServiceUrl) {
@@ -1780,9 +1782,9 @@ module.exports = class resourceHelper {
 				})
 			}
 			const url = utils.buildUrl(consumptionServiceUrl, endPoints.FETCH_LINK_END_POINT, {}, solutionId)
-			const response = requests.get(url, '', true)
-			if (response.status === 200 && response && Array.isArray(response.result))
-				result = response.result.join(',')
+			const response = await requests.get(url, '', true, 'internal-access-token')
+			if (response.success && response && Array.isArray(response.data.result))
+				result.deepLinks = response.data.result.join(',')
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,

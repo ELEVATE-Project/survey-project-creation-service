@@ -98,7 +98,7 @@ module.exports = class Resource {
 	async getPublishedResources(req) {
 		try {
 			const resourceList = await resourceService.browseExistingList(
-				req.params.id,
+				req.decodedToken.organization_code,
 				req.decodedToken.tenant_code,
 				req.decodedToken.roles,
 				req.body.resource_ids ? req.body.resource_ids : [],
@@ -116,14 +116,14 @@ module.exports = class Resource {
 
 	/**
 	 * Function to fetch deep link for resource from consumption side
-	 * @method POST
+	 * @method GET
 	 * @name getDeepLink
 	 * @param {Object} req - request data.
-	 * @returns {JSON} - deepl links url
+	 * @returns {JSON} - deep links url
 	 */
 	async getDeepLink(req) {
 		try {
-			const deepLinks = await resourceService.getDeepLink(req.query.solutionId, req.query.solutionType)
+			const deepLinks = await resourceService.getDeepLink(req.query.solution_id, req.query.solution_type)
 			return deepLinks
 		} catch (error) {
 			throw error
