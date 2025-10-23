@@ -1783,9 +1783,16 @@ module.exports = class resourceHelper {
 			}
 			const url = utils.buildUrl(consumptionServiceUrl, endPoints.FETCH_LINK_END_POINT, {}, solutionId)
 			const response = await requests.get(url, '', true, 'internal-access-token')
-			if (response.success && response && Array.isArray(response.data.result))
-				result.deepLinks = response.data.result.join(',')
+			if (!response.success || !response.data) {
+				return responses.failureResponse({
+					message: 'CONSUMPTION_LINK_FETCH_FAILED',
+					statusCode: httpStatusCode.internal_server_error,
+				})
+			}
 
+			if (Array.isArray(response.data.result)) {
+				result.deepLinks = response.data.result.join(',')
+			}
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'CONSUMPTION_LINK_FETCHED',
