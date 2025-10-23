@@ -1777,7 +1777,7 @@ module.exports = class resourceHelper {
 			if (!consumptionServiceUrl) {
 				return responses.failureResponse({
 					message: 'CONSUMPTION_LINK_NOT_FOUND',
-					statusCode: httpStatusCode.not_found,
+					statusCode: httpStatusCode.bad_request,
 					result,
 				})
 			}
@@ -1792,11 +1792,7 @@ module.exports = class resourceHelper {
 				result,
 			})
 		} catch (error) {
-			return responses.failureResponse({
-				message: 'CONSUMPTION_LINK_FETCH_FAILED',
-				statusCode: httpStatusCode.internal_server_error,
-				result,
-			})
+			throw error
 		}
 	}
 }

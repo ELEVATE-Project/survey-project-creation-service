@@ -44,9 +44,7 @@ const createPermission = async (module, request_type, api_path, code) => {
 module.exports = {
 	async up(queryInterface, Sequelize) {
 		let permission_id = await getPermissionId(common.CONTENT_CREATOR, ['GET'], '/scp/v1/resource/getDeepLink')
-		// if(!permission_id){
-		// 	permission_id =
-		// }
+
 		const rolePermissionsData = [
 			{
 				role_title: common.CONTENT_CREATOR,
