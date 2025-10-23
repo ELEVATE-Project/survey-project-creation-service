@@ -1769,10 +1769,10 @@ module.exports = class resourceHelper {
 	 * @returns {Promise<Object>} - Resolves with the deep link response object.
 	 */
 	static async getDeepLink(solutionId, solutionType) {
-		let result = {
-			deepLinks: '',
-		}
 		try {
+			let result = {
+				deepLinks: '',
+			}
 			const consumptionServiceUrl = consumptionConfig.fetchConsumptionServiceUrls(solutionType)
 			if (!consumptionServiceUrl) {
 				return responses.failureResponse({
