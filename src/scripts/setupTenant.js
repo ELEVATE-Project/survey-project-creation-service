@@ -491,8 +491,8 @@ async function setupOrganizationConfigs(newTenantCode, newOrgCode) {
 			..._.omit(defaultConfigs[0], ['id', 'created_at', 'updated_at', 'deleted_at']),
 			tenant_code: newTenantCode,
 			organization_code: newOrgCode,
-			created_by: userId,
-			updated_by: userId,
+			created_by: '0',
+			updated_by: '0',
 			created_at: new Date(),
 			updated_at: new Date(),
 		}
