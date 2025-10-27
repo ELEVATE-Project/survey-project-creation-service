@@ -24,6 +24,36 @@ let environmentVariables = {
 		message: 'Required access token secret',
 		optional: false,
 	},
+	AUTH_TOKEN_HEADER_NAME: {
+		message: 'Required auth token header name',
+		optional: true,
+		default: 'x-auth-token',
+	},
+	ADMIN_TOKEN_HEADER_NAME: {
+		message: 'Required admin token header name',
+		optional: true,
+		default: 'admin-auth-token',
+	},
+	ADMIN_ACCESS_TOKEN: {
+		message: 'Required admin access token',
+		optional: true,
+		default: false,
+	},
+	ORG_ID_HEADER_NAME: {
+		message: 'Required organization id header name',
+		optional: true,
+		default: 'organization-id',
+	},
+	TENANT_ID_HEADER_NAME: {
+		message: 'Required tenant id header name',
+		optional: true,
+		default: 'tenant-id',
+	},
+	SESSION_VERIFICATION_METHOD: {
+		message: 'Required Session Verification Method',
+		optional: true,
+		default: 'user_service_authenticated',
+	},
 	KAFKA_COMMUNICATIONS_ON_OFF: {
 		message: 'Enable/Disable kafka communications',
 		optional: false,
@@ -72,9 +102,15 @@ let environmentVariables = {
 		message: 'Required disable log level',
 		optional: false,
 	},
-	DEFAULT_ORG_ID: {
-		message: 'Default organization ID',
+	DEFAULT_ORGANIZATION_CODE: {
+		message: 'Default organization code',
 		optional: false,
+		default: 'default_code',
+	},
+	DEFAULT_TENANT_CODE: {
+		message: 'Default tenant code',
+		optional: true,
+		default: 'default',
 	},
 	ALLOWED_HOST: {
 		message: 'Required CORS allowed host',
@@ -294,6 +330,109 @@ let environmentVariables = {
 		message: 'Highest entity type in the hierarchy',
 		optional: true,
 		default: 'state',
+	},
+	KEYCLOAK_PUBLIC_KEY_PATH: {
+		message: 'Required Keycloak Public Key Path',
+		optional: true,
+		default: './constants/keycloakPublicKeys',
+	},
+	DEFAULT_CONTENT_CREATOR_ROLE: {
+		message: 'Required Default Content Creator Role',
+		optional: false,
+	},
+	DEFAULT_ORG_ADMIN_ROLE: {
+		message: 'Required Default Org Admin Role',
+		optional: false,
+	},
+	DEFAULT_ADMIN_ROLE: {
+		message: 'Required Default Admin Role',
+		optional: false,
+	},
+	AUTH_CONFIG_FILE_PATH: {
+		message: 'Required auth config file path',
+		optional: false,
+		default: 'config.json',
+	},
+	MONGO_DB_MODE: {
+		message: 'Mongo DB mode is required ("individual" or "shared")',
+		optional: true,
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+		possibleValues: [common.MONGO_DB_MODE_INDIVIDUAL, common.MONGO_DB_MODE_SHARED],
+	},
+	PROJECT_MONGO_DB_URL: {
+		message: 'Project MongoDB URL is required',
+		optional: true,
+		requiredIf: {
+			key: 'MONGO_DB_MODE',
+			operator: 'EQUALS',
+			value: common.MONGO_DB_MODE_INDIVIDUAL,
+		},
+	},
+	SURVEY_MONGO_DB_URL: {
+		message: 'Survey MongoDB URL is required',
+		optional: true,
+		requiredIf: {
+			key: 'MONGO_DB_MODE',
+			operator: 'EQUALS',
+			value: common.MONGO_DB_MODE_INDIVIDUAL,
+		},
+	},
+	SHARED_MONGO_DB_URL: {
+		message: 'Shared MongoDB URL is required',
+		optional: true,
+		requiredIf: {
+			key: 'MONGO_DB_MODE',
+			operator: 'EQUALS',
+			value: common.MONGO_DB_MODE_SHARED,
+		},
+	},
+	PROJECT_SERVICE_BASE_URL: {
+		message: 'Consumption side Base URL for Projects Service',
+		optional: true,
+		default: '/project/',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE_BASE_URL',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
+	SURVEY_SERVICE_BASE_URL: {
+		message: 'Consumption side Base URL for Survey Service',
+		optional: true,
+		default: '/survey/',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE_BASE_URL',
+			operator: 'NOT_EQUALS',
+			value: 'self',
+		},
+	},
+	ENABLE_ENTITY_TAGGING_IN_PROJECTS: {
+		message: 'Enable entity tagging in Projects',
+		optional: true,
+		default: true,
+	},
+	ENTITY_MANAGEMENT_SERVICE_NAME: {
+		message: 'Entity management service name',
+		optional: true,
+		default: '/entity-management/',
+	},
+	USER_SERVICE_TENANT_CREATION_TOPIC: {
+		message: 'Required user service tenant event',
+		optional: true,
+		requiredIf: {
+			key: 'KAFKA_COMMUNICATIONS_ON_OFF',
+			operator: 'EQUALS',
+			value: 'ON',
+		},
+	},
+	ENABLE_TASK_START_END_DATE_IN_PROJECTS: {
+		message: 'Enable task start and end dates in projects',
+		optional: true,
+		default: false,
 	},
 }
 

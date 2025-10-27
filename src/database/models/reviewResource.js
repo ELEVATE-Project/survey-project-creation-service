@@ -17,7 +17,11 @@ module.exports = (sequelize, DataTypes) => {
 				primaryKey: true,
 				type: DataTypes.STRING,
 			},
-			organization_id: {
+			organization_code: {
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			tenant_code: {
 				allowNull: false,
 				type: DataTypes.STRING,
 			},
@@ -29,6 +33,17 @@ module.exports = (sequelize, DataTypes) => {
 			paranoid: true,
 		}
 	)
+
+	// Define associations (foreign key constraints)
+	ReviewResource.associate = (models) => {
+		ReviewResource.belongsTo(models.Resource, {
+			foreignKey: 'resource_id',
+			targetKey: 'id',
+			as: 'ReviewResource',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+	}
 
 	return ReviewResource
 }

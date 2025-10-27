@@ -10,13 +10,13 @@ const entityType = {
 		'status',
 		'created_by',
 		'updated_by',
-		'organization_id',
+		'organization_code',
 		'parent_id',
 		'allow_filtering',
 		'created_at',
 		'updated_at',
 	],
-	update: ['id', 'created_by', 'updated_by', 'allow_filtering', 'organization_id', 'parent_id'],
+	update: ['id', 'created_by', 'updated_by', 'allow_filtering', 'organization_code', 'parent_id'],
 }
 
 const entities = {
@@ -25,8 +25,8 @@ const entities = {
 }
 
 const form = {
-	create: ['id', 'version', 'organization_id', 'created_at', 'updated_at', 'created_by', 'updated_by'],
-	update: ['id', 'version', 'organization_id', 'created_at', 'updated_at', 'created_by', 'updated_by'],
+	create: ['id', 'version', 'organization_code', 'created_at', 'updated_at', 'created_by', 'updated_by'],
+	update: ['id', 'version', 'organization_code', 'created_at', 'updated_at', 'created_by', 'updated_by'],
 }
 
 const modules = {
@@ -49,15 +49,15 @@ const comments = {
 }
 
 const organizationExtensions = {
-	createConfig: ['id', 'organization_id'],
-	updateConfig: ['id', 'organization_id'],
+	createConfig: ['id', 'organization_code'],
+	updateConfig: ['id', 'organization_code'],
 }
 
 const projects = {
 	update: [
 		'id',
 		'user_id',
-		'organization_id',
+		'organization_code',
 		'created_by',
 		'updated_by',
 		'review_type',
@@ -78,7 +78,7 @@ const projects = {
 	],
 	submitForReview: [
 		'id',
-		'organization_id',
+		'organization_code',
 		'created_by',
 		'updated_by',
 		'review_type',
@@ -99,18 +99,18 @@ const projects = {
 }
 
 const reviewStages = {
-	update: ['id', 'organization_id', 'created_at', 'updated_at'],
+	update: ['id', 'organization_code', 'created_at', 'updated_at'],
 }
 
 const certificates = {
-	update: ['id', 'organization_id', 'created_by', 'updated_by', 'created_at', 'updated_at'],
+	update: ['id', 'organization_code', 'created_by', 'updated_by', 'created_at', 'updated_at'],
 }
 
 const rollouts = {
 	update: [
 		'id',
 		'user_id',
-		'organization_id',
+		'organization_code',
 		'created_by',
 		'updated_by',
 		'resource_type',
@@ -130,7 +130,7 @@ const programs = {
 	update: [
 		'id',
 		'user_id',
-		'organization_id',
+		'organization_code',
 		'created_by',
 		'updated_by',
 		'review_type',
@@ -154,7 +154,7 @@ const programs = {
 	],
 	resources: [
 		'user_id',
-		'organization_id',
+		'organization_code',
 		'created_by',
 		'updated_by',
 		'review_type',
@@ -178,6 +178,119 @@ const programs = {
 	],
 }
 
+const queryForbiddenPatterns = [
+	// Injection/Bypass Tricks
+	'--',
+	';',
+	'/*',
+	'*/',
+	'#',
+	'\\',
+	"'",
+	'"',
+	'char(',
+	'chr(',
+	'concat(',
+	'||',
+
+	// DML/DDL Commands
+	'insert',
+	'update',
+	'delete',
+	'drop',
+	'truncate',
+	'alter',
+	'create',
+	'replace',
+	'rename',
+	'merge',
+
+	// Joins & Advanced Access Paths
+	'cross join',
+	'left join lateral',
+	'right join lateral',
+	'natural join',
+
+	// Recursive & CTEs
+	'with',
+	'with recursive',
+
+	// Union & Subquery Abuse
+	'union',
+	'intersect',
+	'except',
+
+	// System Info Access
+	'information_schema',
+	'pg_catalog',
+	'pg_roles',
+	'pg_user',
+	'pg_shadow',
+	'pg_authid',
+	'pg_group',
+	'pg_settings',
+	'pg_stat',
+	'pg_stat_activity',
+	'pg_stat_user_tables',
+
+	// Dangerous PostgreSQL Functions
+	'pg_sleep',
+	'pg_read_file',
+	'pg_write_file',
+	'pg_ls_dir',
+	'pg_terminate_backend',
+	'pg_cancel_backend',
+	'pg_backend_pid',
+	'pg_execute_server_program',
+	'current_setting',
+	'set_config',
+	'dblink',
+	'xml',
+	'json_agg',
+	'array_agg',
+	'string_agg',
+
+	// Privilege Escalation
+	'set role',
+	'set session authorization',
+	'grant',
+	'revoke',
+	'owner to',
+
+	// File/Blob Access
+	'lo_import',
+	'lo_export',
+	'copy from',
+	'copy to',
+
+	// Unsafe Languages/Extensions
+	'plperlu',
+	'plpythonu',
+	'pltclu',
+	'untrusted',
+
+	// Execution Abuse
+	'execute',
+	'do $$',
+	'$$ language',
+	'declare',
+	'begin',
+	'commit',
+	'rollback',
+
+	// Temp or Transactional Tables
+	'temporary table',
+	'temp table',
+	'global temp',
+	'unlogged',
+
+	// Admin or App Tables (optional)
+	'users',
+	'admins',
+	'passwords',
+	'audit_logs',
+]
+
 module.exports = {
 	entityType,
 	entities,
@@ -192,4 +305,5 @@ module.exports = {
 	certificates,
 	rollouts,
 	programs,
+	queryForbiddenPatterns,
 }

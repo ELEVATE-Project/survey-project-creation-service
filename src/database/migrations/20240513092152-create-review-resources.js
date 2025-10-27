@@ -19,7 +19,11 @@ module.exports = {
 				allowNull: false,
 				primaryKey: true,
 			},
-			organization_id: {
+			organization_code: {
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
+			tenant_code: {
 				allowNull: false,
 				type: Sequelize.STRING,
 			},
@@ -34,6 +38,30 @@ module.exports = {
 			deleted_at: {
 				type: Sequelize.DATE,
 			},
+		})
+
+		// Enforce unique resource-reviewer assignments per tenant
+		await queryInterface.addIndex(
+			'review_resources',
+			['resource_id', 'reviewer_id', 'organization_code', 'tenant_code'],
+			{
+				unique: true,
+				name: 'unique_resource_reviewer_tenant_code',
+				where: { deleted_at: null },
+			}
+		)
+
+		// Add foreign key constraint for resource_id, organization_code, and tenant_code
+		await queryInterface.addConstraint('review_resources', {
+			fields: ['resource_id', 'organization_code', 'tenant_code'],
+			type: 'foreign key',
+			name: 'fk_reviews_resources',
+			references: {
+				table: 'resources',
+				fields: ['id', 'organization_code', 'tenant_code'],
+			},
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
 		})
 	},
 

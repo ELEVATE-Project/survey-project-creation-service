@@ -27,7 +27,8 @@ module.exports = class rollouts {
 						req.params.id,
 						req.body,
 						req.decodedToken.id,
-						req.decodedToken.organization_id
+						req.decodedToken.organization_code,
+						req.decodedToken.tenant_code
 					)
 				}
 				return rollout
@@ -35,7 +36,8 @@ module.exports = class rollouts {
 				const rollout = await rolloutService.create(
 					req.body,
 					req.decodedToken.id,
-					req.decodedToken.organization_id
+					req.decodedToken.organization_code,
+					req.decodedToken.tenant_code
 				)
 				return rollout
 			}
@@ -55,9 +57,12 @@ module.exports = class rollouts {
 	async getDataManagers(req) {
 		try {
 			const dataManagers = await rolloutService.getDataManagers(
-				req.decodedToken.organization_id,
+				req.decodedToken.id,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.pageNo,
-				req.pageSize
+				req.pageSize,
+				req.decodedToken.token
 			)
 			return dataManagers
 		} catch (error) {
@@ -75,8 +80,12 @@ module.exports = class rollouts {
 		try {
 			const rollout = await rolloutService.details(
 				req.params.id,
-				req.decodedToken.organization_id,
-				req.decodedToken.id
+				req.decodedToken.id,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
+				false, // return blob path,
+				false, // return ResourceData
+				req.decodedToken.token
 			)
 			return rollout
 		} catch (error) {
@@ -87,7 +96,7 @@ module.exports = class rollouts {
 	 * Get Rollout List.
 	 * @method
 	 * @name list
-	 * @param {String} organization_id
+	 * @param {String} organization_code
 	 * @param {String} loggedInUserId
 	 * @param {Object} queryParams
 	 * @param {String} searchText
@@ -98,12 +107,14 @@ module.exports = class rollouts {
 	async list(req) {
 		try {
 			const rolloutList = await rolloutService.list(
-				req.decodedToken.organization_id,
 				req.decodedToken.id,
 				req.query,
 				req.searchText,
 				req.pageNo,
-				req.pageSize
+				req.pageSize,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
+				req.decodedToken.token
 			)
 
 			return rolloutList
@@ -123,8 +134,9 @@ module.exports = class rollouts {
 			const rollout = await rolloutService.publish(
 				req.params.id,
 				req.decodedToken.id,
-				req.decodedToken.organization_id,
-				req.userToken
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
+				req.decodedToken.token
 			)
 			return rollout
 		} catch (error) {

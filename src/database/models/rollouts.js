@@ -27,7 +27,12 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: true,
 				type: DataTypes.DATE,
 			},
-			organization_id: {
+			organization_code: {
+				primaryKey: true,
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			tenant_code: {
 				primaryKey: true,
 				allowNull: false,
 				type: DataTypes.STRING,
@@ -80,6 +85,18 @@ module.exports = (sequelize, DataTypes) => {
 			paranoid: true,
 		}
 	)
+
+	// Define associations (foreign key constraints)
+	Rollout.associate = (models) => {
+		Rollout.belongsTo(models.Resource, {
+			foreignKey: 'resource_id',
+			targetKey: 'id',
+			as: 'resource_details',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+	}
+
 	// Helper function to emit user actions with dynamic action types
 	const emitUserAction = async (instance, actionType) => {
 		try {
@@ -89,7 +106,7 @@ module.exports = (sequelize, DataTypes) => {
 					userId: instance.user_id,
 					objectId: instance.id,
 					objectType: common.MODEL_NAMES.ROLLOUT,
-					orgId: instance.organization_id,
+					orgId: instance.organization_code,
 				})
 			}
 		} catch (error) {

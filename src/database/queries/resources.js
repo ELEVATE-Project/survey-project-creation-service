@@ -2,6 +2,7 @@
 
 const common = require('@constants/common')
 const { Sequelize } = require('sequelize')
+const Comment = require('../models/index').Comment
 const Resource = require('../models/index').Resource
 const { ValidationError } = require('sequelize')
 
@@ -20,11 +21,34 @@ exports.create = async (data) => {
 
 exports.findOne = async (filter, options = {}) => {
 	try {
-		return await Resource.findOne({
+		let raw = options?.raw || true
+		if (options.commentsAttributes && options.commentsAttributes.length > 0) {
+			let include = {
+				model: Comment,
+				as: 'comments',
+				required: false,
+			}
+			// if commentsAttributes is not empty, add attributes to include * retrun all columns else ,
+			// return only the specified attributes
+			if (
+				!options.commentsAttributes.some((attr) => attr === common.PROJECTION_KEY_ASTRICKTS) &&
+				options.commentsAttributes.length != 0
+			)
+				include.attributes = options.commentsAttributes
+			// if commentsFilter is provided, add it to the where clause
+			if (options.commentsFilter && Object.keys(options.commentsFilter).length > 0)
+				include.where = options.commentsFilter
+
+			options.include = [include]
+			raw = false
+		}
+		const resource = await Resource.findOne({
 			where: filter,
 			...options,
-			raw: true,
+			raw,
 		})
+		if (raw) return resource
+		return resource ? resource.toJSON() : {}
 	} catch (error) {
 		throw error
 	}
@@ -57,31 +81,46 @@ exports.findAll = async (filter, attributes = {}) => {
 		return error
 	}
 }
+
 exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = common.LIMIT) => {
 	try {
-		let order =
-			sort.sort_by === common.RESOURCE_TITLE
-				? [[Sequelize.fn('LOWER', Sequelize.col(sort.sort_by)), sort.order]]
-				: !sort.sort_by || !sort.order
-				? [common.CREATED_AT, common.SORT_DESC]
-				: [[sort.sort_by, sort.order]]
-
 		let resourceFilter = {
 			where: filter,
 			attributes,
 			raw: true,
 		}
-		if (limit) resourceFilter.limit = limit
-		if (page) resourceFilter.offset = limit * (page - 1)
-		if (sort) resourceFilter.order = [order]
+
+		// Handle ordering with explicit table alias
+		if (sort && sort.sort_by === common.RESOURCE_TITLE) {
+			const direction = sort.order || 'ASC'
+			// Use explicit table reference for LOWER function
+			resourceFilter.order = [
+				Sequelize.literal(`LOWER("${common.MODEL_NAMES.RESOURCE}"."${common.RESOURCE_TITLE}") ${direction}`),
+			]
+		} else if (sort && sort.sort_by && sort.order) {
+			// Convert to Sequelize.literal for consistency
+			const validOrder = ['ASC', 'DESC'].includes(sort.order[0].toUpperCase())
+				? sort.order[0].toUpperCase()
+				: 'ASC'
+			resourceFilter.order = [Sequelize.literal(`"${sort.sort_by}" ${validOrder}`)]
+		} else {
+			resourceFilter.order = [Sequelize.literal(`"created_at" ${common.SORT_DESC}`)]
+		}
+		// Handle pagination
+		if (limit) {
+			resourceFilter.limit = limit
+		}
+		if (page && page > 0) {
+			resourceFilter.offset = limit * (page - 1)
+		}
 
 		const res = await Resource.findAndCountAll(resourceFilter)
-
 		return { result: res.rows, count: res.count }
 	} catch (error) {
 		return error
 	}
 }
+
 exports.count = async (filter) => {
 	try {
 		const result = await Resource.count({ where: filter })
@@ -91,16 +130,46 @@ exports.count = async (filter) => {
 	}
 }
 
-exports.deleteOne = async (id, organization_id) => {
+exports.deleteOne = async (id, organization_code, tenantCode) => {
 	try {
 		return await Resource.destroy({
 			where: {
 				id,
-				organization_id,
+				organization_code,
+				tenant_code: tenantCode,
 			},
 			individualHooks: true,
 		})
 	} catch (error) {
 		throw error
+	}
+}
+
+exports.findAllWithOpenComments = async (filter, attributes = {}) => {
+	try {
+		if (!filter?.tenant_code || !filter?.id) {
+			throw new Error('filter.tenant_code and filter.id are required')
+		}
+		const res = await Resource.findAll({
+			where: filter,
+			attributes,
+			include: [
+				{
+					model: Comment,
+					as: 'comments',
+					required: false,
+					where: {
+						status: common.COMMENT_STATUS_OPEN,
+						tenant_code: filter.tenant_code,
+						resource_id: filter.id,
+					},
+				},
+			],
+			raw: false,
+		})
+
+		return res
+	} catch (error) {
+		return error
 	}
 }

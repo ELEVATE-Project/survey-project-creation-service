@@ -28,7 +28,12 @@ module.exports = {
 			data_type: {
 				type: Sequelize.STRING,
 			},
-			organization_id: {
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: Sequelize.STRING,
+			},
+			organization_code: {
 				allowNull: false,
 				primaryKey: true,
 				type: Sequelize.STRING,
@@ -44,6 +49,10 @@ module.exports = {
 			},
 			validations: {
 				type: Sequelize.JSONB,
+			},
+			config: {
+				type: Sequelize.JSONB,
+				allowNull: true,
 			},
 			created_by: {
 				allowNull: false,
@@ -66,12 +75,17 @@ module.exports = {
 		})
 
 		// Add an index for the 'value' column
-		await queryInterface.addIndex('entity_types', ['value', 'organization_id'], {
+		await queryInterface.addIndex('entity_types', ['value', 'organization_code', 'tenant_code'], {
 			unique: true,
-			name: 'unique_value_org_id',
+			name: 'unique_value_org_id_tenant_code',
 			where: {
 				deleted_at: null,
 			},
+		})
+		//for FK relations
+		await queryInterface.addIndex('entity_types', ['id', 'tenant_code'], {
+			unique: true,
+			name: 'unique_id_tenant_code',
 		})
 	},
 	async down(queryInterface, Sequelize) {

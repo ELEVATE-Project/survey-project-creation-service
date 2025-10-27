@@ -8,6 +8,11 @@ module.exports = {
 				throw new Error('Default org ID is undefined. Please make sure it is set in sequelize options.')
 			}
 
+			const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+			if (!defaultTenantCode) {
+				throw new Error('DEFAULT_TENANT_CODE environment variable is undefined. Please make sure it is set.')
+			}
+
 			const entitiesArray = [
 				{
 					entityType: 'title',
@@ -49,6 +54,22 @@ module.exports = {
 					entities: [
 						{ value: 'en', label: 'English' },
 						{ value: 'hi', label: 'Hindi' },
+						{ value: 'assamese', label: 'Assamese' },
+						{ value: 'bengali', label: 'Bengali' },
+						{ value: 'gujarati', label: 'Gujarati' },
+						{ value: 'kannada', label: 'Kannada' },
+						{ value: 'kashmiri', label: 'Kashmiri' },
+						{ value: 'konkani', label: 'Konkani' },
+						{ value: 'malayalam', label: 'Malayalam' },
+						{ value: 'manipuri', label: 'Manipuri' },
+						{ value: 'marathi', label: 'Marathi' },
+						{ value: 'nepali', label: 'Nepali' },
+						{ value: 'oriya', label: 'Oriya' },
+						{ value: 'punjabi', label: 'Punjabi' },
+						{ value: 'sanskrit', label: 'Sanskrit' },
+						{ value: 'sindhi', label: 'Sindhi' },
+						{ value: 'tamil', label: 'Tamil' },
+						{ value: 'telugu', label: 'Telugu' },
 					],
 					has_entities: true,
 					validation: { required: true },
@@ -115,7 +136,8 @@ module.exports = {
 					created_by: 0,
 					updated_by: 0,
 					allow_filtering: false,
-					organization_id: defaultOrgId,
+					organization_code: defaultOrgId,
+					tenant_code: defaultTenantCode,
 					has_entities,
 					allow_custom_entities: false,
 					validations: validation ? JSON.stringify(validation) : null,
@@ -133,6 +155,8 @@ module.exports = {
 					if (entity?.model) {
 						return {
 							entity_type_id: entityType.id,
+							organization_code: defaultOrgId,
+							tenant_code: defaultTenantCode,
 							model: entity.model,
 							status: 'ACTIVE',
 							updated_at: new Date(),
@@ -156,6 +180,8 @@ module.exports = {
 						acc.push({
 							...eachEntity,
 							entity_type_id: eachType.id,
+							tenant_code: defaultTenantCode,
+							organization_code: defaultOrgId,
 							type: 'SYSTEM',
 							status: 'ACTIVE',
 							created_at: new Date(),
@@ -175,8 +201,39 @@ module.exports = {
 	},
 
 	async down(queryInterface, Sequelize) {
-		await queryInterface.bulkDelete('entity_types', null, {})
-		await queryInterface.bulkDelete('entities', null, {})
+		// await queryInterface.bulkDelete('entity_types', null, {})
+		// await queryInterface.bulkDelete('entities', null, {})
+		const seedValues = [
+			'title',
+			'categories',
+			'objective',
+			'keywords',
+			'recommended_for',
+			'languages',
+			'licenses',
+			'tasks',
+			'name',
+			'learning_resources',
+			'duration',
+		]
+		const defaultOrgId = queryInterface.sequelize.options.defaultOrgId
+		const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+		// Delete entities first
+		await queryInterface.sequelize.query(
+			'DELETE FROM entities WHERE entity_type_id IN (SELECT id FROM entity_types WHERE value IN (:value) AND organization_code = :organization_code AND tenant_code = :tenant_code)',
+			{ replacements: { value: seedValues, organization_code: defaultOrgId, tenant_code: defaultTenantCode } }
+		)
+		// Delete mappings
+		await queryInterface.sequelize.query(
+			'DELETE FROM entities_model_mapping WHERE entity_type_id IN (SELECT id FROM entity_types WHERE value IN (:value) AND organization_code = :organization_code AND tenant_code = :tenant_code)',
+			{ replacements: { value: seedValues, organization_code: defaultOrgId, tenant_code: defaultTenantCode } }
+		)
+		// Delete entity types
+		await queryInterface.bulkDelete(
+			'entity_types',
+			{ value: seedValues, organization_code: defaultOrgId, tenant_code: defaultTenantCode },
+			{}
+		)
 	},
 }
 

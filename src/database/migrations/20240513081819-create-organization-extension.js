@@ -9,7 +9,12 @@ module.exports = {
 				primaryKey: true,
 				type: Sequelize.INTEGER,
 			},
-			organization_id: {
+			organization_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: Sequelize.STRING,
+			},
+			tenant_code: {
 				allowNull: false,
 				primaryKey: true,
 				type: Sequelize.STRING,
@@ -20,6 +25,11 @@ module.exports = {
 			},
 			review_required: {
 				allowNull: false,
+				type: Sequelize.BOOLEAN,
+			},
+			review_required_after_publish: {
+				allowNull: false,
+				defaultValue: true,
 				type: Sequelize.BOOLEAN,
 			},
 			show_reviewer_list: {
@@ -49,6 +59,18 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
+		// Add a unique index on the combination of organization_code and resource_type
+		await queryInterface.addIndex(
+			'organization_extensions',
+			['organization_code', 'resource_type', 'tenant_code'],
+			{
+				unique: true,
+				name: 'unique_org_resource_type_tenant',
+				where: {
+					deleted_at: null,
+				},
+			}
+		)
 	},
 
 	async down(queryInterface, Sequelize) {

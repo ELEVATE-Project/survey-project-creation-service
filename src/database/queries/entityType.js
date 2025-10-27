@@ -7,7 +7,8 @@ const utils = require('@generics/utils')
 module.exports = class UserEntityData {
 	static async createEntityType(data) {
 		try {
-			return await EntityType.create(data, { returning: true })
+			const createEntityType = await EntityType.create(data, { returning: true })
+			return createEntityType.toJSON()
 		} catch (error) {
 			throw error
 		}
@@ -25,11 +26,13 @@ module.exports = class UserEntityData {
 		}
 	}
 
-	static async findAllEntityTypes(orgIds, attributes, filter = {}) {
+	static async findAllEntityTypes(orgCodes, tenantCode, attributes, filter = {}) {
 		try {
 			const entityData = await EntityType.findAll({
 				where: {
-					organization_id: orgIds,
+					organization_code: { [Op.in]: orgCodes },
+					tenant_code: tenantCode,
+					status: common.STATUS_ACTIVE,
 					...filter,
 				},
 				attributes,
@@ -44,29 +47,28 @@ module.exports = class UserEntityData {
 		try {
 			const entityTypes = await EntityType.findAll({
 				where: filter,
-				raw: true,
-			})
-
-			const entityTypeIds = entityTypes.map((entityType) => entityType.id)
-
-			const entities = await Entity.findAll({
-				where: { entity_type_id: entityTypeIds, status: common.STATUS_ACTIVE },
-				raw: true,
-				//attributes: { exclude: ['entity_type_id'] },
+				include: [
+					{
+						model: Entity,
+						as: 'entities',
+						required: false,
+						where: { status: common.STATUS_ACTIVE, tenant_code: filter.tenant_code }, // Ensure tenant isolation and citus compatibility
+					},
+				],
 			})
 
 			const result = entityTypes.map((entityType) => {
-				const matchingEntities = entities.filter((entity) => entity.entity_type_id === entityType.id)
+				const plainEntityType = entityType.get({ plain: true })
 				return {
-					...entityType,
-					entities: matchingEntities,
+					...plainEntityType,
+					entities: plainEntityType.entities || [], // alias is 'entities'
 				}
 			})
 
 			return result
 		} catch (error) {
-			console.error('Error fetching data:', error)
-			throw error
+			console.error(`Failed to fetch data: ${error.message}`)
+			throw new Error(`Failed to fetch data: ${error.message}`)
 		}
 	}
 	static async findOneEntityTypeAndEntities(filter) {
@@ -77,7 +79,7 @@ module.exports = class UserEntityData {
 			})
 
 			if (!entityType) {
-				filter.organization_id = utils.convertToString(process.env.DEFAULT_ORG_ID)
+				filter.organization_code = utils.convertToString(process.env.DEFAULT_ORGANIZATION_CODE)
 				entityType = await EntityType.findOne({
 					where: filter,
 					raw: true,
@@ -96,17 +98,17 @@ module.exports = class UserEntityData {
 
 			return result
 		} catch (error) {
-			console.error('Error fetching data:', error)
 			throw error
 		}
 	}
 
-	static async updateOneEntityType(id, orgId, update, options = {}) {
+	static async updateOneEntityType(id, orgCode, tenantCode, update, options = {}) {
 		try {
 			return await EntityType.update(update, {
 				where: {
 					id: id,
-					organization_id: orgId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				},
 				...options,
 			})
@@ -115,12 +117,13 @@ module.exports = class UserEntityData {
 		}
 	}
 
-	static async deleteOneEntityType(id, organizationId) {
+	static async deleteOneEntityType(id, orgCode, tenantCode) {
 		try {
 			return await EntityType.destroy({
 				where: {
 					id: id,
-					organization_id: organizationId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				},
 				individualHooks: true,
 			})
@@ -161,6 +164,15 @@ module.exports = class UserEntityData {
 				}
 			})
 			return result
+		} catch (error) {
+			return error
+		}
+	}
+
+	static async bulkCreate(data, options = {}) {
+		try {
+			const res = await EntityType.bulkCreate(data, options)
+			return res
 		} catch (error) {
 			return error
 		}

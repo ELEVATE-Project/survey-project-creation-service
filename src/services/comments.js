@@ -23,16 +23,20 @@ module.exports = class CommentsHelper {
 	 * @param {Integer} resourceId - Resource ID
 	 * @param {Object} bodyData - Request Body
 	 * @param {String} userId - User ID
+	 * @param {String} org_code - organization code
+	 * @param {String} tenant_code - tenant code
 	 * @returns {JSON} - comment id
 	 */
-	static async update(commentId = '', resourceId, bodyData, userId) {
+	static async update(commentId = '', resourceId, bodyData, userId, org_code, tenant_code) {
 		try {
 			//validate resource
 			const resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
+					organization_code: org_code,
+					tenant_code: tenant_code,
 				},
-				{ attributes: ['id', 'type', 'status', 'organization_id'] }
+				{ attributes: ['id', 'type', 'status', 'organization_code'] }
 			)
 
 			if (!resource?.id) {
@@ -44,7 +48,8 @@ module.exports = class CommentsHelper {
 				// Check if resource is associated with a program
 				const associatedResources = await programResourceMappingQueries.findOne({
 					resource_id: resourceId,
-					organization_id: resource.organization_id,
+					organization_code: resource.organization_code,
+					tenant_code: tenant_code,
 				})
 
 				//if the resource is a non program and attached to program still reviewer can add comment
@@ -61,7 +66,9 @@ module.exports = class CommentsHelper {
 					parseInt(resourceId, 10),
 					userId,
 					'',
-					resource.type
+					resource.type,
+					org_code,
+					tenant_code
 				)
 
 				// convert body data to array if its not
@@ -93,6 +100,8 @@ module.exports = class CommentsHelper {
 			const filter = {
 				resource_id: resourceId,
 				id: commentId,
+				tenant_code: tenant_code,
+				organization_code: org_code,
 			}
 
 			const [updateCount, updatedComment] = await commentQueries.update(filter, bodyData.comment, {
@@ -113,15 +122,27 @@ module.exports = class CommentsHelper {
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
 	}
-	static async delete(commentId, resourceId, userId) {
+
+	/**
+	 * Comment delete
+	 * @method
+	 * @name delete
+	 * @param {Integer} commentId - Comment ID
+	 * @param {Integer} resourceId - Resource ID
+	 * @param {String} userId - User ID
+	 * @param {String} org_code - organization code
+	 * @param {String} tenant_code - tenant code
+	 * @returns {JSON}
+	 */
+	static async delete(commentId, resourceId, userId, org_code, tenant_code) {
 		try {
 			// soft delete comment
-			await commentQueries.deleteOne(commentId, resourceId, userId)
+			await commentQueries.deleteOne(commentId, resourceId, userId, org_code, tenant_code)
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -131,7 +152,7 @@ module.exports = class CommentsHelper {
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
@@ -142,12 +163,14 @@ module.exports = class CommentsHelper {
 	 * @name list
 	 * @param {Integer} resourceId - Resource ID
 	 * @param {String} pageValue - Page number or name
-	 * @param {String} userId - User ID
-	 * @param {String} orgId - Organization ID
 	 * @param {String} context - Context page or tag
+	 * @param {String} userId - User ID
+	 * @param {String} org_code - organization id
+	 * @param {String} tenant_code - tenant code
+	 * @param {String} userToken - User token
 	 * @returns {JSON} - comment list
 	 */
-	static async list(resourceId, pageValue = '', context = '', userId, orgId) {
+	static async list(resourceId, pageValue = '', context = '', userId, org_code, tenant_code, userToken = '') {
 		try {
 			let result = {
 				resource_id: resourceId,
@@ -157,14 +180,16 @@ module.exports = class CommentsHelper {
 			}
 
 			//get all comments
-			const comments = await commentQueries.list(resourceId, userId, pageValue, context)
+			const comments = await commentQueries.list(resourceId, userId, pageValue, context, org_code, tenant_code)
 
 			// Check if the resource is of type 'program' and fetch child resources
 			let resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
+					organization_code: org_code,
+					tenant_code: tenant_code,
 				},
-				{ attributes: ['id', 'type', 'organization_id'] }
+				{ attributes: ['id', 'type', 'organization_code'] }
 			)
 
 			if (resource?.type === common.RESOURCE_TYPE_PROGRAM) {
@@ -172,7 +197,8 @@ module.exports = class CommentsHelper {
 				// Fetch all resources associated with the given program
 				const associatedResources = await programResourceMappingQueries.findAll({
 					program_id: resourceId,
-					organization_id: resource.organization_id,
+					organization_code: resource.organization_code,
+					tenant_code: tenant_code,
 				})
 
 				// If there are associated resources, proceed with fetching their comments
@@ -181,7 +207,12 @@ module.exports = class CommentsHelper {
 
 					// Fetch count of open comments for each associated resource
 					const associatedResourceComments = await commentQueries.findAll(
-						{ resource_id: { [Op.in]: resourceIds }, status: common.COMMENT_STATUS_DRAFT },
+						{
+							resource_id: { [Op.in]: resourceIds },
+							status: common.COMMENT_STATUS_DRAFT,
+							organization_code: resource.organization_code,
+							tenant_code: tenant_code,
+						},
 						['resource_id', [Sequelize.literal('COUNT(id)'), 'count']],
 						{ group: ['resource_id'] }
 					)
@@ -211,9 +242,18 @@ module.exports = class CommentsHelper {
 				)
 			)
 
-			const users = await userRequests.list(common.ALL_USER_ROLES, '', '', '', orgId, {
-				user_ids: userIds,
-			})
+			const users = await userRequests.list(
+				common.ALL_USER_ROLES,
+				'',
+				'',
+				'',
+				org_code,
+				tenant_code,
+				{
+					user_ids: userIds,
+				},
+				userToken
+			)
 
 			let commented_by = []
 

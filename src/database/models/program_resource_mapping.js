@@ -17,8 +17,13 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
-			organization_id: {
+			organization_code: {
 				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
 				type: DataTypes.STRING,
 			},
 		},
@@ -26,8 +31,11 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['program_id', 'resource_id'],
-					name: 'unique_program_resource',
+					fields: ['program_id', 'resource_id', 'tenant_code'],
+					name: 'unique_program_resource_tenant',
+					where: {
+						deleted_at: null,
+					},
 				},
 			],
 			modelName: 'ProgramResourceMapping',

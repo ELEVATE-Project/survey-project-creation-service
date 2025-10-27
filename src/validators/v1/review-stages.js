@@ -35,9 +35,9 @@ module.exports = {
 	},
 
 	list: (req) => {
-		req.checkQuery('organization_id')
+		req.checkQuery('organization_code')
 			.optional({ checkFalsy: true })
 			.notEmpty()
-			.withMessage('organization_id is empty')
+			.withMessage('organization_code is empty')
 	},
 }

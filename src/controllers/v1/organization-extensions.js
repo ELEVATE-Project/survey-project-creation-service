@@ -6,8 +6,9 @@
  */
 
 const orgExtensionService = require('@services/organization-extension')
-const common = require('@constants/common')
 const utils = require('@generics/utils')
+const responses = require('@helpers/responses')
+const httpStatusCode = require('@generics/http-status')
 
 module.exports = class orgExtensions {
 	/**
@@ -20,11 +21,11 @@ module.exports = class orgExtensions {
 
 	async createConfig(req) {
 		try {
-			let organization_id = req.decodedToken.organization_id
-			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-				organization_id = req.body.organization_id ? req.body.organization_id : req.decodedToken.organization_id
-			}
-			const orgExtension = await orgExtensionService.createConfig(req.body, organization_id)
+			const orgExtension = await orgExtensionService.createConfig(
+				req.body,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 			return orgExtension
 		} catch (error) {
 			return error
@@ -41,15 +42,12 @@ module.exports = class orgExtensions {
 
 	async updateConfig(req) {
 		try {
-			let organization_id = req.decodedToken.organization_id
-			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-				organization_id = req.body.organization_id ? req.body.organization_id : req.decodedToken.organization_id
-			}
 			const orgExtension = await orgExtensionService.updateConfig(
 				req.params.id,
 				req.query.resource_type,
 				req.body,
-				organization_id
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
 			)
 			return orgExtension
 		} catch (error) {

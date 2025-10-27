@@ -34,11 +34,27 @@ module.exports = {
 			deleted_at: {
 				type: Sequelize.DATE,
 			},
-			organization_id: {
+			organization_code: {
 				allowNull: false,
 				primaryKey: true,
 				type: Sequelize.STRING,
 			},
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: Sequelize.STRING,
+			},
+		})
+		// await queryInterface.addConstraint('forms', {
+		// 	fields: ['type', 'sub_type', 'organization_code', 'tenant_code'],
+		// 	type: 'unique',
+		// 	name: 'unique_type_sub_type_org_id_tenant_code',
+		// })
+
+		await queryInterface.addIndex('forms', ['type', 'sub_type', 'organization_code', 'tenant_code'], {
+			unique: true,
+			name: 'unique_type_sub_type_org_id_tenant_code',
+			where: { deleted_at: null },
 		})
 	},
 

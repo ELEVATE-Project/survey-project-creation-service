@@ -27,15 +27,20 @@ module.exports = class Resource {
 					req.query,
 					req.searchText,
 					req.pageNo,
-					req.pageSize
+					req.pageSize,
+					req.decodedToken.token,
+					req.decodedToken.organization_code,
+					req.decodedToken.tenant_code
 				)
 			} else if (req.query[common.LISTING] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW) {
 				resourceList = await resourceService.listAllSubmittedResources(
 					req.decodedToken.id,
+					req.decodedToken.tenant_code,
 					req.query,
 					req.searchText,
 					req.pageNo,
-					req.pageSize
+					req.pageSize,
+					req.decodedToken.token
 				)
 			}
 			return resourceList
@@ -58,7 +63,8 @@ module.exports = class Resource {
 				req.decodedToken,
 				req.searchText,
 				req.pageNo,
-				req.pageSize
+				req.pageSize,
+				req.decodedToken.token
 			)
 			return resource
 		} catch (error) {
@@ -92,15 +98,33 @@ module.exports = class Resource {
 	async getPublishedResources(req) {
 		try {
 			const resourceList = await resourceService.browseExistingList(
-				req.decodedToken.organization_id,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.decodedToken.roles,
 				req.body.resource_ids ? req.body.resource_ids : [],
 				req.query,
 				req.searchText,
 				req.pageNo,
-				req.pageSize
+				req.pageSize,
+				req.decodedToken.token
 			)
 			return resourceList
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Function to fetch deep link for resource from consumption side
+	 * @method GET
+	 * @name getDeepLink
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - deep links url
+	 */
+	async getDeepLink(req) {
+		try {
+			const deepLinks = await resourceService.getDeepLink(req.query.solution_id, req.query.solution_type)
+			return deepLinks
 		} catch (error) {
 			throw error
 		}

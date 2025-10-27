@@ -23,7 +23,15 @@ module.exports = (sequelize, DataTypes) => {
 			modelName: 'Module',
 			tableName: 'modules',
 			freezeTableName: true,
-			indexes: [{ unique: true, fields: ['code'] }],
+			indexes: [
+				{
+					unique: true,
+					fields: ['code'],
+					where: {
+						deleted_at: null,
+					},
+				},
+			],
 			paranoid: true,
 		}
 	)

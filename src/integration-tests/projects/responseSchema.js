@@ -20,24 +20,24 @@ const createSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
 							},
-							required: ['id', 'type', 'version'],
 						},
 					],
+				},
+				correlation: {
+					type: 'string',
 				},
 			},
 		},
@@ -280,7 +280,7 @@ const detailSchema = {
 				user_id: {
 					type: 'string',
 				},
-				organization_id: {
+				organization_code: {
 					type: 'string',
 				},
 				meta: {
@@ -321,7 +321,7 @@ const detailSchema = {
 				'type',
 				'status',
 				'user_id',
-				'organization_id',
+				'organization_code',
 				'created_by',
 				'updated_by',
 				'submitted_on',
@@ -338,8 +338,21 @@ const detailSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',
@@ -376,8 +389,21 @@ const emptyListSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',
@@ -473,22 +499,19 @@ const listSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
 							},
-							required: [],
 						},
 					],
 				},
@@ -523,8 +546,21 @@ const submitProjectSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: {},
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
 				},
 				correlation: {
 					type: 'string',

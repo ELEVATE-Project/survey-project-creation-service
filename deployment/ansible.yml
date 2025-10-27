@@ -22,7 +22,7 @@
       set_fact:
         release_path: "{{ project_path }}/releases/{{ lookup('pipe','date +%Y%m%d%H%M%S') }}"
         current_path: "{{ project_path }}/survey-project-creation-service"
-    
+
     - name: Retrieve current release folder
       command: readlink -f survey-project-creation-service
       register: current_release_path
@@ -44,13 +44,13 @@
         version: "{{ gitBranch }}"
     - name: Update npm
       shell: cd {{release_path}}/src && npm i && npm i redoc-cli 
-
+    
     - name: Delete Old Folder & create folder
       shell: rm -rf {{ current_path }} &&  cd {{ project_path }} && mkdir survey-project-creation-service
 
     - name: Move code from release  to service folder
       shell: mv "{{ release_path }}"/* {{ current_path }}/
-    
+
     - name: set permission
       shell: chmod 744 {{ current_path }}/src/scripts/json2env.sh  
       
@@ -61,6 +61,9 @@
 
     - name: move gcp credentials 
       shell: mv {{ project_path }}/gcp.json  {{ current_path }}/src/
+
+    - name: Get config.json
+      shell: "curl --location --request GET '{{ vaultAddress }}scpConfig' --header 'X-Vault-Token: {{ slurpfile['content'] | b64decode }}' | jq '.data.data' > '{{ current_path }}/src/config.json'"
 
     - name: generate api-doc 
       shell: cd {{current_path}}/src && redoc-cli build -o ./api-doc/index.html ./api-doc/api-doc.yaml

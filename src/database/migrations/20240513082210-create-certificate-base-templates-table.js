@@ -9,11 +9,6 @@ module.exports = {
 				primaryKey: true,
 				autoIncrement: true,
 			},
-			organization_id: {
-				type: Sequelize.STRING,
-				primaryKey: true,
-				allowNull: false,
-			},
 			code: {
 				type: Sequelize.STRING,
 				allowNull: false,
@@ -29,6 +24,14 @@ module.exports = {
 			resource_type: {
 				type: Sequelize.STRING,
 				allowNull: false,
+			},
+			organization_code: {
+				type: Sequelize.STRING,
+				allowNull: false,
+			},
+			tenant_code: {
+				allowNull: false,
+				type: Sequelize.STRING,
 			},
 			meta: {
 				type: Sequelize.JSON,
@@ -52,6 +55,12 @@ module.exports = {
 			deleted_at: {
 				type: Sequelize.DATE,
 			},
+		})
+		// Add unique constraint for code per organization
+		await queryInterface.addConstraint('certificate_base_templates', {
+			type: 'unique',
+			fields: ['organization_code', 'code', 'tenant_code'],
+			name: 'unique_code_per_organization_tenant',
 		})
 	},
 

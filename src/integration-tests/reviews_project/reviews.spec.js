@@ -88,7 +88,7 @@ describe('Review APIs ', function () {
 		if (projectId) {
 			//start review
 			const startReview = await request.post(`/scp/v1/reviews/start/${projectId}`)
-			//reject review
+			//approve review
 			const res = await request.post(`/scp/v1/reviews/approve/${projectId}`)
 			expect(res.statusCode).toBe(200)
 		}

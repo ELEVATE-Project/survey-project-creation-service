@@ -165,5 +165,16 @@
 	"PROGRAM_PUBLISHED": "You have successfully published the program",
 	"CANNOT_REMOVE_RESOURCES_ADDED_BEFORE_PUBLISHING": "Resource cannot be removed after the program has been published.",
 	"INVALID_RESOURCES_FOUND": "Invalid resource ids",
-	"FORBIDEN_RESOURCE_STATUS_FOR_ROLLOUT": "Resource status not eligible for Rollout."
+	"FORBIDEN_RESOURCE_STATUS_FOR_ROLLOUT": "Resource status not eligible for Rollout.",
+	"INVALID_TENANT_OR_ORGANIZATION": "Invalid tenant or organization code provided in the request header.",
+	"MISSING_TENANT_OR_ORGANIZATION": "organization_code or tenant_code missing.",
+	"DATA_FETCHED": "Data fetched successfully",
+	"QUERY_INVALID_OR_UNBALANCED_QUOTES": "Query contains invalid or unbalanced quotes",
+	"QUERY_FORBIDDEN_INJECTION_PATTERNS": "Query contains forbidden injection patterns",
+	"QUERY_FORBIDDEN_PATTERNS": "Query is not allowed or references restricted operations/tables",
+	"CONSUMPTION_LINK_NOT_FOUND": "Consumption link not found",
+	"CONSUMPTION_LINK_FETCH_FAILED": "Consumption link fetch failed",
+	"CONSUMPTION_LINK_FETCHED": "Link fetched successfully",
+	"ENTITY_TYPE_FETCHED_SUCCESSFULLY": "Entity types fetched successfully",
+	"FAILED_TO_FETCH_ENTITY_TYPES": "Failed to fetch entity types"
 }

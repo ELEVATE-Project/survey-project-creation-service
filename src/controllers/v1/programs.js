@@ -23,14 +23,20 @@ module.exports = class Programs {
 			if (req.params.id) {
 				let program = {}
 				if (req.method === common.REQUEST_METHOD_DELETE) {
-					program = await programService.delete(req.params.id, req.decodedToken.id)
+					program = await programService.delete(
+						req.params.id,
+						req.decodedToken.id,
+						req.decodedToken.tenant_code
+					)
 				} else {
 					program = await programService.update(
 						req.params.id,
 						req.body,
 						req.decodedToken.id,
-						req.decodedToken.organization_id,
-						req.query?.is_under_edit ? req.query.is_under_edit : false
+						req.decodedToken.organization_code,
+						req.decodedToken.tenant_code,
+						req.query?.is_under_edit ? req.query.is_under_edit : false,
+						req.decodedToken.token
 					)
 				}
 				return program
@@ -38,8 +44,10 @@ module.exports = class Programs {
 				const program = await programService.create(
 					req.body,
 					req.decodedToken.id,
-					req.decodedToken.organization_id,
-					req.query.reference_id ? parseInt(req.query.reference_id) : null
+					req.decodedToken.organization_code,
+					req.decodedToken.tenant_code,
+					req.query.reference_id ? parseInt(req.query.reference_id) : null,
+					req.decodedToken.token
 				)
 				return program
 			}
@@ -56,8 +64,13 @@ module.exports = class Programs {
 	 */
 	async details(req) {
 		try {
-			const rollout = await programService.details(req.params.id, req.decodedToken.organization_id)
-			return rollout
+			const program = await programService.details(
+				req.params.id,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
+				req.decodedToken.token
+			)
+			return program
 		} catch (error) {
 			return error
 		}
@@ -75,7 +88,9 @@ module.exports = class Programs {
 				parseInt(req.params.id),
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
+				req.decodedToken.token
 			)
 		} catch (error) {
 			return error
@@ -94,7 +109,8 @@ module.exports = class Programs {
 				parseInt(req.params.id),
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
 			)
 		} catch (error) {
 			return error
@@ -112,9 +128,12 @@ module.exports = class Programs {
 	async getProgramManagers(req) {
 		try {
 			const dataManagers = await programService.getProgramManagers(
-				req.decodedToken.organization_id,
+				req.decodedToken.id,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
 				req.pageNo,
-				req.pageSize
+				req.pageSize,
+				req.decodedToken.token
 			)
 			return dataManagers
 		} catch (error) {
@@ -134,7 +153,9 @@ module.exports = class Programs {
 			const reviewerList = await resourceService.reviewerList(
 				process.env.DEFAULT_REVIEWER_ROLE || common.REVIEWER,
 				req.decodedToken.id,
-				req.decodedToken.organization_id,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
+				req.decodedToken.token,
 				req.pageNo,
 				req.pageSize
 			)

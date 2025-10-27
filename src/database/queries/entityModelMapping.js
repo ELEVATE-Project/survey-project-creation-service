@@ -1,15 +1,12 @@
 'use strict'
 
-const EntityModelMapping = require('../models/index').EntityModelMapping
-const EntityType = require('../models/index').EntityType
-const common = require('@constants/common')
-const defaultOrgId = process.env.DEFAULT_ORG_ID
+const { EntityModelMapping, EntityType, Entity } = require('../models/index')
+const defaultOrgId = process.env.DEFAULT_ORGANIZATION_CODE
 const { removeDefaultOrgEntityTypes } = require('@generics/utils')
 const responses = require('@helpers/responses')
 const httpStatusCode = require('@generics/http-status')
 const { Op } = require('sequelize')
 
-const entityQueries = require('@database/queries/entities')
 exports.create = async (data) => {
 	try {
 		return await EntityModelMapping.create(data)
@@ -18,7 +15,7 @@ exports.create = async (data) => {
 	}
 }
 
-exports.findEntityTypesAndEntities = async (filter, organization_id, attributes = {}) => {
+exports.findEntityTypesAndEntities = async (filter, organization_code, tenantCode, attributes = []) => {
 	try {
 		if (!defaultOrgId)
 			return responses.failureResponse({
@@ -28,43 +25,70 @@ exports.findEntityTypesAndEntities = async (filter, organization_id, attributes 
 			})
 
 		const entityModelMappingData = await EntityModelMapping.findAll({
-			where: filter,
-			raw: true,
-		})
-		const entityTypeIds = entityModelMappingData.map((entityModelMapping) => entityModelMapping.entity_type_id)
-
-		const filters = {
-			id: entityTypeIds,
-			status: common.STATUS_ACTIVE,
-			organization_id: {
-				[Op.in]: [organization_id, defaultOrgId],
+			where: {
+				...filter,
+				organization_code: {
+					[Op.in]: [organization_code, defaultOrgId],
+				},
+				tenant_code: tenantCode,
 			},
-		}
-		const EntityTypes = await EntityType.findAll({
-			where: filters,
-			raw: true,
-			attributes: attributes,
+			include: [
+				{
+					model: EntityType,
+					as: 'EntityType',
+					required: false,
+					...(attributes && Array.isArray(attributes) && attributes.length > 0 ? { attributes } : {}), // omit when empty/undefined,
+					where: {
+						organization_code: {
+							[Op.in]: [organization_code, defaultOrgId],
+						},
+						tenant_code: tenantCode,
+					},
+					include: [
+						{
+							model: Entity,
+							as: 'entities',
+							required: false,
+							where: {
+								organization_code: {
+									[Op.in]: [organization_code, defaultOrgId],
+								},
+								tenant_code: tenantCode,
+							},
+						},
+					],
+				},
+			],
+			raw: false,
 		})
-		const prunedEntities = removeDefaultOrgEntityTypes(EntityTypes, organization_id)
 
-		let reletedEntityTypeIds = prunedEntities
-			.filter((entityType) => entityType.has_entities)
-			.map((entityType) => entityType.id)
-		if (reletedEntityTypeIds.length > 0) {
-			let filter = {
-				entity_type_id: reletedEntityTypeIds,
-				status: common.STATUS_ACTIVE,
-			}
-			let entities = await entityQueries.findAllEntities(filter)
+		const EntityTypesMapping = entityModelMappingData ? entityModelMappingData.map((item) => item.toJSON()) : []
+		const EntityTypes =
+			EntityTypesMapping.length > 0 ? EntityTypesMapping.map((item) => item.EntityType).filter(Boolean) : []
 
-			const result = prunedEntities.map((entityType) => {
-				const relatedEntities = entities.filter((entity) => entity.entity_type_id === entityType.id)
-				return { ...entityType, entities: relatedEntities }
-			})
-			return result
-		}
+		const prunedEntities = removeDefaultOrgEntityTypes(EntityTypes, organization_code)
 
 		return prunedEntities
+	} catch (error) {
+		throw error
+	}
+}
+
+exports.findAll = async (filter, options = {}) => {
+	try {
+		return await EntityModelMapping.findAll({
+			where: filter,
+			...options,
+			raw: true,
+		})
+	} catch (error) {
+		throw error
+	}
+}
+
+exports.bulkCreate = async (data, options = {}) => {
+	try {
+		return await EntityModelMapping.bulkCreate(data, options)
 	} catch (error) {
 		throw error
 	}

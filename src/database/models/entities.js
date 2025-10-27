@@ -30,6 +30,16 @@ module.exports = (sequelize, DataTypes) => {
 			type: {
 				type: DataTypes.STRING,
 			},
+			organization_code: {
+				type: DataTypes.STRING,
+				primaryKey: true,
+				allowNull: false,
+			},
+			tenant_code: {
+				type: DataTypes.STRING,
+				primaryKey: true,
+				allowNull: false,
+			},
 			created_by: {
 				type: DataTypes.STRING,
 				allowNull: false,
@@ -41,6 +51,17 @@ module.exports = (sequelize, DataTypes) => {
 		},
 		{ sequelize, modelName: 'Entity', tableName: 'entities', freezeTableName: true, paranoid: true }
 	)
+
+	Entity.associate = (models) => {
+		Entity.belongsTo(models.EntityType, {
+			foreignKey: 'entity_type_id',
+			as: 'Entity',
+			targetKey: 'id',
+			scope: {
+				deleted_at: null, // Only associate with active EntityType records
+			},
+		})
+	}
 
 	return Entity
 }

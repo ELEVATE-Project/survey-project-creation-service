@@ -32,12 +32,13 @@ module.exports = class UserEntityData {
 		}
 	}
 
-	static async updateOneEntity(id, update, userId, options = {}) {
+	static async updateOneEntity(id, update, userId, filter = {}, options = {}) {
 		try {
 			return await Entity.update(update, {
 				where: {
 					id: id,
 					created_by: userId,
+					...filter,
 				},
 				...options,
 			})
@@ -46,12 +47,14 @@ module.exports = class UserEntityData {
 		}
 	}
 
-	static async deleteOneEntityType(id, userId) {
+	static async deleteOneEntityType(id, userId, orgCode, tenantCode) {
 		try {
 			return await Entity.destroy({
 				where: {
 					id: id,
 					created_by: userId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				},
 			})
 		} catch (error) {
@@ -84,9 +87,9 @@ module.exports = class UserEntityData {
 			throw error
 		}
 	}
-	static async bulkCreate(data) {
+	static async bulkCreate(data, options = {}) {
 		try {
-			const res = await Entity.bulkCreate(data)
+			const res = await Entity.bulkCreate(data, options)
 			return res
 		} catch (error) {
 			return error

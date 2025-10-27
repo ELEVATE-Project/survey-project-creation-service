@@ -22,7 +22,7 @@ module.exports = class ActivityHelper {
 	 * @returns {JSON} - activities list response.
 	 */
 
-	static async list(resourceId, userId, orgId, page, limit) {
+	static async list(resourceId, userId, tenantCode, orgCode, page, limit, userToken = '') {
 		try {
 			if (!resourceId) {
 				return responses.failureResponse({
@@ -43,7 +43,8 @@ module.exports = class ActivityHelper {
 			}
 
 			let filter = {
-				organization_id: orgId.toString(),
+				tenant_code: tenantCode.toString(),
+				organization_code: orgCode.toString(),
 				object_id: resourceId,
 			}
 
@@ -59,7 +60,7 @@ module.exports = class ActivityHelper {
 			}
 
 			// Format each user activity into a readable form
-			const formatActivities = await activityDTO(activities.rows, orgId, userId)
+			const formatActivities = await activityDTO(activities.rows, orgCode, tenantCodeuserId, userToken)
 			if (formatActivities.success) {
 				result.data = formatActivities
 				result.count = activities.count
@@ -71,7 +72,11 @@ module.exports = class ActivityHelper {
 				result: result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 }

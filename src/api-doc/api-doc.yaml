@@ -1241,7 +1241,7 @@ paths:
                         type: boolean
                       data_type:
                         type: string
-                      organization_id:
+                      organization_code:
                         type: number
                       has_entities:
                         type: boolean
@@ -1267,7 +1267,7 @@ paths:
                       updated_by: 5
                       allow_filtering: false
                       data_type: string
-                      organization_id: 1
+                      organization_code: 1
                       has_entities: true
                       created_at: '2023-09-06T12:01:09.025Z'
                       updated_at: '2023-09-22T12:47:42.510Z'
@@ -1385,7 +1385,7 @@ paths:
                         allow_filtering: false
                         data_type: STRING
                         has_entities: true
-                        organization_id: 1
+                        organization_code: 1
                         created_at: '2023-09-21T10:16:19.270Z'
                         updated_at: '2023-09-21T10:16:19.270Z'
                         entities:
@@ -2231,7 +2231,7 @@ paths:
                         format: date-time
                         nullable: true
                         type: string
-                      organization_id:
+                      organization_code:
                         type: number
                   meta:
                     type: object
@@ -2280,7 +2280,7 @@ paths:
                       updated_at: '2023-07-18T20:48:10.492Z'
                       created_at: '2023-07-18T20:48:10.492Z'
                       deleted_at: null
-                      organization_id: 1
+                      organization_code: 1
                     meta:
                       formsVersion:
                         - id: 16
@@ -2563,7 +2563,7 @@ paths:
                         format: date-time
                         nullable: true
                         type: string
-                      organization_id:
+                      organization_code:
                         type: number
                   meta:
                     type: object
@@ -2614,7 +2614,7 @@ paths:
                       updated_at: '2023-07-18T20:48:10.492Z'
                       created_at: '2023-07-18T20:48:10.492Z'
                       deleted_at: null
-                      organization_id: 1
+                      organization_code: 1
                     meta:
                       formsVersion:
                         - id: 16
@@ -2849,8 +2849,8 @@ paths:
                     - label: Community
                       value: community
                   recommented_duration:
-                    - type: week
-                      number: 5
+                    type: week
+                    number: 5
                   keywords:
                     - test
                   recommeneded_for:
@@ -2898,8 +2898,8 @@ paths:
                     - label: Community
                       value: community
                   recommented_duration:
-                    - type: week
-                      number: 5
+                    type: week
+                    number: 5
                   keywords:
                     - test
                   recommeneded_for:
@@ -2939,8 +2939,8 @@ paths:
                     - label: Community
                       value: community
                   recommented_duration:
-                    - type: week
-                      number: 5
+                    type: week
+                    number: 5
                   keywords:
                     - test
                   recommeneded_for:
@@ -3418,7 +3418,7 @@ paths:
                         id: 2
                         name: Shikshlokam
                         code: SL
-                      organization_id: 2
+                      organization_code: 2
                       reviewers:
                         - id: 24
                           name: Raven
@@ -3552,6 +3552,20 @@ paths:
           required: true
           schema:
             type: string
+        - name: page
+          in: query
+          description: The page number for pagination.
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: The limit of resources per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
       responses:
         '200':
           description: Reviewer list fetched successfully
@@ -3598,21 +3612,21 @@ paths:
                       data:
                         - id: 1
                           name: Priyanka
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 2
                           name: Adithya
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 3
                           name: Ankit
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
@@ -3753,7 +3767,7 @@ paths:
                           status: DRAFT
                           created_by: 32
                           creator: Adithya
-                          organization_id: 1
+                          organization_code: 1
                         - id: 5
                           title: Improve Education Quality
                           type: program
@@ -3766,7 +3780,7 @@ paths:
                           end_date: '2024-11-29T11:36:31.117Z'
                           created_by: 33
                           creator: Priyanka
-                          organization_id: 1
+                          organization_code: 1
                       count: 1
                     meta:
                       formsVersion:
@@ -3888,7 +3902,7 @@ paths:
                           created_by: 32
                           published_on: 2025-01-03T10:49:02.318Z
                           creator: Priyanka
-                          organization_id: 1
+                          organization_code: 1
                         - id: 5
                           title: Improve Education Quality
                           type: program
@@ -3902,7 +3916,7 @@ paths:
                           created_by: 32
                           published_on: 2025-01-03T10:49:02.318Z
                           creator: Adithya
-                          organization_id: 1
+                          organization_code: 1
                       count: 2
                     meta:
                       formsVersion:
@@ -4101,7 +4115,7 @@ paths:
                             code: sl
                           status: INPROGRESS
                           created_by: 32
-                          organization_id: 1
+                          organization_code: 1
                           creator: Priyanka
                           notes: Note to the reviewer,
                           created_at: 2024-12-26T03:36:45.062Z
@@ -4117,7 +4131,7 @@ paths:
                           start_date: '2024-10-29T11:35:08.694Z'
                           end_date: '2024-11-29T11:36:31.117Z'
                           created_by: 33
-                          organization_id: 1
+                          organization_code: 1
                           creator: Adithya
                           notes: Note to the reviewer,
                           created_at: 2024-12-26T03:36:45.062Z
@@ -5639,21 +5653,21 @@ paths:
                       data:
                         - id: 1
                           name: Priyanka
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 2
                           name: Adithya
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 3
                           name: Ankit
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
@@ -6179,7 +6193,7 @@ paths:
                         type: string
                         format: date-time
                         example: '2024-11-29T11:36:31.117Z'
-                      organization_id:
+                      organization_code:
                         type: integer
                         example: 1
                       organization:
@@ -6615,6 +6629,20 @@ paths:
           required: true
           schema:
             type: string
+        - name: page
+          in: query
+          description: The page number for pagination.
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: The limit of resources per page.
+          required: false
+          schema:
+            type: integer
+          example: 10
       responses:
         '200':
           description: Reviewer list fetched successfully
@@ -6661,21 +6689,21 @@ paths:
                       data:
                         - id: 1
                           name: Priyanka
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 2
                           name: Adithya
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 3
                           name: Ankit
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
@@ -6793,21 +6821,21 @@ paths:
                       data:
                         - id: 1
                           name: Priyanka
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 2
                           name: Adithya
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 3
                           name: Ankit
-                          organization_id: 2
+                          organization_code: 2
                           organization:
                             id: 2
                             name: Shikshalokam
@@ -6894,7 +6922,7 @@ paths:
                   result:
                     type: object
                     properties:
-                      organization_id:
+                      organization_code:
                         type: string
                   meta:
                     type: object
@@ -6916,7 +6944,7 @@ paths:
                     responseCode: OK
                     message: Config added successfully
                     result:
-                      organization_id: 3
+                      organization_code: 3
                       show_reviewer_list: true
                       min_approval: 2
                       resource_type: s
@@ -6995,7 +7023,7 @@ paths:
                   result:
                     type: object
                     properties:
-                      organization_id:
+                      organization_code:
                         type: string
                   meta:
                     type: object
@@ -7017,7 +7045,7 @@ paths:
                     responseCode: OK
                     message: Config updated successfully
                     result:
-                      organization_id: 3
+                      organization_code: 3
                       show_reviewer_list: true
                       min_approval: 2
                       resource_type: project
@@ -7574,7 +7602,7 @@ paths:
         - The X-auth-token is mandatory and cannot be empty or null.
       parameters:
         - in: query
-          name: organization_id
+          name: organization_code
           schema:
             type: string
           description: Optional parameter
@@ -7622,7 +7650,7 @@ paths:
                         type: number
                       id:
                         type: number
-                      organization_id:
+                      organization_code:
                         type: number
                   meta:
                     type: object
@@ -7642,7 +7670,7 @@ paths:
                       id: 10
                       role: CONTENT_CREATOR
                       level: 1
-                      organization_id: 1
+                      organization_code: 1
                       resource_type: project
                     meta:
                       formsVersion: []
@@ -7694,7 +7722,7 @@ paths:
                         type: number
                       id:
                         type: number
-                      organization_id:
+                      organization_code:
                         type: number
                   meta:
                     type: object
@@ -7715,7 +7743,7 @@ paths:
                         id: 10
                         role: CONTENT_CREATOR
                         level: 1
-                        organization_id: 1
+                        organization_code: 1
                         resource_type: project
                       count: 1
                     meta:
@@ -7783,7 +7811,7 @@ paths:
                         type: string
                       visibility:
                         type: string
-                      organization_id:
+                      organization_code:
                         type: number
                   meta:
                     type: object
@@ -7804,7 +7832,7 @@ paths:
                       user_type: 1
                       status: ACTIVE
                       visibility: PUBLIC
-                      organization_id: 3
+                      organization_code: 3
                     meta:
                       formsVersion: []
         '400':
@@ -7887,7 +7915,7 @@ paths:
                         type: string
                       visibility:
                         type: string
-                      organization_id:
+                      organization_code:
                         type: number
                   meta:
                     type: object
@@ -7908,7 +7936,7 @@ paths:
                       user_type: 1
                       status: ACTIVE
                       visibility: PUBLIC
-                      organization_id: 3
+                      organization_code: 3
                     meta:
                       formsVersion: []
         '400':
@@ -7952,7 +7980,7 @@ paths:
                   type: string
                 roles:
                   type: number
-                organization_id:
+                organization_code:
                   type: string
               required:
                 - title
@@ -7964,7 +7992,7 @@ paths:
                 value:
                   roles:
                     - content_creator
-                  organization_id: 1
+                  organization_code: 1
       responses:
         '201':
           description: OK. User updated successfully

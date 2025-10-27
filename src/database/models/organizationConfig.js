@@ -9,7 +9,12 @@ module.exports = (sequelize, DataTypes) => {
 				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
-			organization_id: {
+			organization_code: {
+				type: DataTypes.STRING,
+				allowNull: false,
+				primaryKey: true,
+			},
+			tenant_code: {
 				type: DataTypes.STRING,
 				allowNull: false,
 				primaryKey: true,
@@ -28,8 +33,11 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['organization_id', 'resource_type'],
-					name: 'unique_org_resource_type',
+					fields: ['organization_code', 'tenant_code'],
+					name: 'unique_org_tenant_config',
+					where: {
+						deleted_at: null,
+					},
 				},
 			],
 		}

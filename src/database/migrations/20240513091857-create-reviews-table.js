@@ -32,9 +32,18 @@ module.exports = {
 				),
 				defaultValue: 'NOT_STARTED',
 			},
-			organization_id: {
+			organization_code: {
 				primaryKey: true,
 				allowNull: false,
+				type: Sequelize.STRING,
+			},
+			tenant_code: {
+				primaryKey: true,
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
+			notes: {
+				allowNull: true,
 				type: Sequelize.STRING,
 			},
 			created_at: {
@@ -49,14 +58,26 @@ module.exports = {
 				type: Sequelize.DATE,
 			},
 		})
-
 		// Add an index for the 'value' column
-		await queryInterface.addIndex('reviews', ['resource_id', 'reviewer_id'], {
+		await queryInterface.addIndex('reviews', ['resource_id', 'reviewer_id', 'organization_code', 'tenant_code'], {
 			unique: true,
 			name: 'unique_resource_reviewer',
 			where: {
 				deleted_at: null,
 			},
+		})
+
+		// Add foreign key constraint for resource_id, organization_code, and tenant_code
+		await queryInterface.addConstraint('reviews', {
+			fields: ['resource_id', 'organization_code', 'tenant_code'],
+			type: 'foreign key',
+			name: 'fk_reviews_resources',
+			references: {
+				table: 'resources',
+				fields: ['id', 'organization_code', 'tenant_code'],
+			},
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
 		})
 	},
 

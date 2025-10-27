@@ -1,3 +1,9 @@
+/**
+ * name : projects.js
+ * author : Priyanka Pradeep
+ * created-date : 24-May-2024
+ * Description : Project Helper.
+ */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
@@ -11,6 +17,7 @@ const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
+const certificateBasetemplateQueries = require('@database/queries/certificateBaseTemplate')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
@@ -23,7 +30,7 @@ module.exports = class ProjectsHelper {
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - project id
 	 */
-	static async create(bodyData, loggedInUserId, orgId, reference_id = null) {
+	static async create(bodyData, loggedInUserId, orgCode, tenantCode, reference_id = null) {
 		try {
 			if (reference_id) {
 				// check if the reference project Id is valid or not
@@ -32,13 +39,16 @@ module.exports = class ProjectsHelper {
 						id: reference_id,
 						status: common.RESOURCE_STATUS_PUBLISHED,
 						stage: common.RESOURCE_STAGE_COMPLETION,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
+						type: common.PROJECT,
 					},
 					{
-						attributes: ['type'],
+						attributes: ['id'],
 					}
 				)
 
-				if (!referenceProject || referenceProject.type != common.PROJECT) {
+				if (!referenceProject?.id) {
 					return responses.failureResponse({
 						message: 'PROJECT_NOT_FOUND',
 						statusCode: httpStatusCode.bad_request,
@@ -57,7 +67,7 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const orgConfig = await orgExtensionService.getConfig(orgId)
+			const orgConfig = await orgExtensionService.getConfig(orgCode, tenantCode)
 			const orgConfigList = _.reduce(
 				orgConfig.result.resource,
 				(acc, item) => {
@@ -74,13 +84,13 @@ module.exports = class ProjectsHelper {
 				stage: common.RESOURCE_STAGE_CREATION,
 				user_id: loggedInUserId,
 				review_type: orgConfigList[common.PROJECT],
-				organization_id: orgId,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
+				reference_id: reference_id ? reference_id : null,
 				meta: {},
 				created_by: loggedInUserId,
 				updated_by: loggedInUserId,
 			}
-
-			if (reference_id) projectData.reference_id = reference_id
 
 			let projectCreate
 			try {
@@ -89,7 +99,8 @@ module.exports = class ProjectsHelper {
 				const mappingData = {
 					resource_id: projectCreate.id,
 					creator_id: loggedInUserId,
-					organization_id: orgId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				}
 				await resourceCreatorMappingQueries.create(mappingData)
 
@@ -98,6 +109,8 @@ module.exports = class ProjectsHelper {
 
 				const projectUploadStatus = await resourceService.uploadToCloud(
 					common.PROJECT_UPLOAD_FILE_NAME,
+					orgCode,
+					tenantCode,
 					projectCreate.id,
 					common.PROJECT,
 					loggedInUserId,
@@ -110,7 +123,8 @@ module.exports = class ProjectsHelper {
 				) {
 					let filter = {
 						id: resourceId,
-						organization_id: orgId,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 					}
 
 					let updateData = {
@@ -147,18 +161,26 @@ module.exports = class ProjectsHelper {
 				result: { id: projectCreate.id },
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
 	 * project update
 	 * @method
 	 * @name update
-	 * @param {Object} req - request data.
+	 * @param {String} resourceId - resourceId.
+	 * @param {Object} bodyData- reqData
+	 * @param {String} loggedInUserId - loggedInUserId.
+	 * @param {String} orgCode - orgCode.
+	 * @param {String} tenantCode - tenantCode.
 	 * @returns {JSON} - project update response.
-	 */
+	 **/
 
-	static async update(resourceId, bodyData, loggedInUserId, orgId) {
+	static async update(resourceId, bodyData, loggedInUserId, orgCode, tenantCode) {
 		try {
 			//validate the title length
 			const isTitleInvalid = utils.validateTitle(bodyData.title)
@@ -179,7 +201,8 @@ module.exports = class ProjectsHelper {
 			]
 			const fetchResource = await resourceQueries.findOne({
 				id: resourceId,
-				organization_id: orgId,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 				status: {
 					[Op.notIn]: forbidden_resource_statuses,
 				},
@@ -198,7 +221,8 @@ module.exports = class ProjectsHelper {
 
 			const countReviews = await reviewsQueries.distinctResources(
 				{
-					organization_id: orgId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 					resource_id: resourceId,
 					status: [common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
 				},
@@ -216,11 +240,12 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_id', 'user_id'])
-
+			bodyData = _.omit(bodyData, ['review_type', 'type', 'organization_code', 'user_id'])
 			//upload to blob
 			const projectUploadStatus = await resourceService.uploadToCloud(
 				common.PROJECT_UPLOAD_FILE_NAME,
+				orgCode,
+				tenantCode,
 				resourceId,
 				common.PROJECT,
 				loggedInUserId,
@@ -232,7 +257,8 @@ module.exports = class ProjectsHelper {
 			) {
 				let filter = {
 					id: resourceId,
-					organization_id: orgId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				}
 
 				let updateData = {
@@ -275,7 +301,7 @@ module.exports = class ProjectsHelper {
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
@@ -288,14 +314,19 @@ module.exports = class ProjectsHelper {
 	 * @returns {JSON} - project delete response.
 	 */
 
-	static async delete(resourceId, loggedInUserId) {
+	static async delete(resourceId, loggedInUserId, organizationCode, tenantCode) {
 		try {
 			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
 				{
 					resource_id: resourceId,
 					creator_id: loggedInUserId,
+					organization_code: organizationCode,
+					tenant_code: tenantCode,
 				},
-				['id', 'organization_id']
+				['id', 'organization_code'],
+				{
+					resourceAttributes: ['id', 'type', 'organization_code'],
+				}
 			)
 
 			if (!resourceCreatorMapping?.id) {
@@ -306,17 +337,13 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const resource = await resourceQueries.findOne(
-				{
-					id: resourceId,
-					organization_id: resourceCreatorMapping.organization_id,
-					status: common.RESOURCE_STATUS_DRAFT,
-					stage: common.RESOURCE_STAGE_CREATION,
-				},
-				{ attributes: ['id', 'type', 'organization_id'] }
-			)
+			const resource = {
+				id: resourceCreatorMapping.resource.id,
+				type: resourceCreatorMapping.resource.type,
+				organization_code: resourceCreatorMapping.resource.organization_code,
+			}
 
-			if (!resource?.id) {
+			if (!resource?.id && resource.type !== common.PROJECT) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -324,11 +351,13 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			let updatedProject = await resourceQueries.deleteOne(resourceId, resource.organization_id)
 			let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
 				resourceCreatorMapping.id,
-				loggedInUserId
+				loggedInUserId,
+				organizationCode,
+				tenantCode
 			)
+			let updatedProject = await resourceQueries.deleteOne(resourceId, organizationCode, tenantCode)
 
 			if (updatedProject === 0 && updatedProjectCreatorMapping === 0) {
 				return responses.failureResponse({
@@ -344,7 +373,11 @@ module.exports = class ProjectsHelper {
 				result: {},
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -352,23 +385,37 @@ module.exports = class ProjectsHelper {
 	 * @method
 	 * @name details
 	 * @param {String} projectId - Project id
-	 * @param {String} organization_id - Organization id
+	 * @param {String} tenantCode - tenant code
+	 * @param {String} orgCode - organization code
 	 * @returns {JSON} - Project data.
 	 */
 
-	static async details(projectId, orgId) {
+	static async details(projectId, orgCode, tenantCode, commentsOptions = {}) {
 		try {
 			let result = {
 				organization: {},
 			}
 
+			let options = {
+				attributes: { exclude: ['next_stage', 'review_type'] },
+			}
+			if (commentsOptions && Object.keys(commentsOptions).length > 0) {
+				if (commentsOptions.commentsAttributes && commentsOptions.commentsAttributes.length > 0) {
+					options.commentsAttributes = commentsOptions.commentsAttributes
+				}
+				if (commentsOptions.filter && Object.keys(commentsOptions.filter).length > 0) {
+					options.commentsFilter = commentsOptions.filter
+				}
+			}
+
 			const project = await resourceQueries.findOne(
 				{
 					id: projectId,
-					organization_id: orgId,
 					type: common.PROJECT,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				},
-				{ attributes: { exclude: ['next_stage', 'review_type'] } }
+				options
 			)
 
 			if (!project) {
@@ -388,7 +435,7 @@ module.exports = class ProjectsHelper {
 					Object.keys(response.result).length > 0
 				) {
 					//modify the response as label value pair
-					let resultData = response.result
+					let resultData = response?.result || {}
 
 					//get all entity types with entities
 					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
@@ -396,7 +443,8 @@ module.exports = class ProjectsHelper {
 							model: common.ENTITY_TYPE_MODELS[common.PROJECT],
 							status: common.STATUS_ACTIVE,
 						},
-						orgId,
+						project.organization_code,
+						tenantCode,
 						['id', 'value', 'label', 'has_entities']
 					)
 
@@ -449,14 +497,29 @@ module.exports = class ProjectsHelper {
 								}
 							})
 						)
-
-						result = { ...result, ...resultData }
 					}
+					result = { ...result, ...resultData }
 				}
 			}
+			//Add path in getDownloadUrl
+			if (
+				result.certificate &&
+				result.certificate.base_template_url &&
+				typeof result.certificate.base_template_url === common.OBJECT
+			) {
+				let getResourceCertificateurl = result.certificate.base_template_url
+				let certificatesUrl = await filesService.getDownloadableUrl([getResourceCertificateurl.filePath])
 
+				if (
+					certificatesUrl?.statusCode === httpStatusCode.ok &&
+					certificatesUrl.result &&
+					certificatesUrl.result.length > 0
+				) {
+					result.certificate.base_template_url.url = certificatesUrl.result?.[0]?.url
+				}
+			}
 			//get organization details
-			let organizationDetails = await userRequests.fetchOrg(project.organization_id)
+			let organizationDetails = await userRequests.fetchOrg(project.organization_code, project.tenant_code)
 			if (organizationDetails.success && organizationDetails.data && organizationDetails.data.result) {
 				project.organization = _.pick(organizationDetails.data.result, ['id', 'name', 'code'])
 			}
@@ -470,7 +533,11 @@ module.exports = class ProjectsHelper {
 				result: result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -482,7 +549,21 @@ module.exports = class ProjectsHelper {
 	 */
 	static async submitForReview(resourceId, bodyData, userDetails) {
 		try {
-			let projectDetails = await this.details(resourceId, userDetails.organization_id, userDetails.id)
+			const commentsOptions = {
+				commentsAttributes: ['id'],
+				filter: {
+					user_id: {
+						[Op.notIn]: [userDetails.id],
+					},
+					status: common.COMMENT_STATUS_OPEN,
+				},
+			}
+			let projectDetails = await this.details(
+				resourceId,
+				userDetails.organization_code,
+				userDetails.tenant_code,
+				commentsOptions
+			)
 			if (projectDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROJECT_ACCESS',
@@ -507,15 +588,9 @@ module.exports = class ProjectsHelper {
 			}
 
 			// check any open comments are there for this resource
-			const comments = await commentQueries.findAndCountAll({
-				user_id: {
-					[Op.notIn]: [userDetails.id],
-				},
-				resource_id: resourceId,
-				status: common.COMMENT_STATUS_OPEN,
-			})
+			const comments = projectData?.comments || []
 
-			if (comments.count > 0) {
+			if (comments && comments.length > 0) {
 				return responses.failureResponse({
 					message: 'ALL_COMMENTS_NOT_RESOLVED',
 					statusCode: httpStatusCode.bad_request,
@@ -526,10 +601,25 @@ module.exports = class ProjectsHelper {
 			let validationErrors = []
 
 			//validate number of task
-			if (projectData.tasks?.length > parseInt(process.env.MAX_PROJECT_TASK_COUNT, 10)) {
+			let taskLength = projectData.tasks ? projectData.tasks.length : 0
+			if (taskLength > parseInt(process.env.MAX_PROJECT_TASK_COUNT, 10)) {
 				validationErrors.push(
 					utils.errorObject(common.TASKS, '', 'Project task count has exceeded the maximum allowed limit')
 				)
+			}
+
+			//validate entity type if entity tagging is enabled
+			const isEntityTaggingEnabled =
+				String(process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS).toLowerCase() === 'true'
+			if (isEntityTaggingEnabled && !projectData.entity_type) {
+				validationErrors.push(utils.errorObject(common.ENTITY_TYPE, '', 'Entity type is required'))
+			}
+
+			//validate task start_date and end_date if enabled
+			const isTaskDateValidationEnabled =
+				String(process.env.ENABLE_TASK_START_END_DATE_IN_PROJECTS).toLowerCase() === 'true'
+			if (isTaskDateValidationEnabled && taskLength > 0) {
+				this.validateTaskDates(projectData.tasks, validationErrors)
 			}
 
 			// Check that the note character limit does not exceed the maximum limit
@@ -545,10 +635,19 @@ module.exports = class ProjectsHelper {
 			let reviewerIds = []
 			if (bodyData.reviewer_ids && bodyData.reviewer_ids.length > 0) {
 				const uniqueReviewerIds = utils.getUniqueElements(bodyData.reviewer_ids)
-				const reviewers = await userRequests.list(common.REVIEWER, '', '', '', userDetails.organization_id, {
-					user_ids: uniqueReviewerIds,
-					excluded_user_ids: [userDetails.id],
-				})
+				const reviewers = await userRequests.list(
+					common.REVIEWER,
+					'',
+					'',
+					'',
+					userDetails.organization_code,
+					userDetails.tenant_code,
+					{
+						user_ids: uniqueReviewerIds,
+						excluded_user_ids: [userDetails.id],
+					},
+					userDetails.token
+				)
 
 				if (!reviewers.success) throw new Error('REVIEWER_IDS_NOT_FOUND')
 
@@ -569,10 +668,13 @@ module.exports = class ProjectsHelper {
 			//get all entity type validations for project
 			let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
 				{
-					model: common.PROJECT,
+					model: {
+						[Op.in]: [common.PROJECT],
+					},
 					status: common.STATUS_ACTIVE,
 				},
-				projectData.organization_id,
+				projectData.organization_code,
+				projectData.tenant_code,
 				['id', 'value', 'has_entities', 'validations']
 			)
 
@@ -582,7 +684,8 @@ module.exports = class ProjectsHelper {
 					model: common.TASKS,
 					status: common.STATUS_ACTIVE,
 				},
-				projectData.organization_id,
+				projectData.organization_code,
+				projectData.tenant_code,
 				['id', 'value', 'validations', 'has_entities']
 			)
 
@@ -612,12 +715,13 @@ module.exports = class ProjectsHelper {
 					model: common.SUBTASKS,
 					status: common.STATUS_ACTIVE,
 				},
-				projectData.organization_id,
+				projectData.organization_code,
+				projectData.tenant_code,
 				['value', 'validations']
 			)
 
 			// // validation for task is not empty
-			if (projectData?.tasks?.length > 0) {
+			if (taskLength > 0) {
 				basePath = common.TASKS
 				// validate task
 				await Promise.all(
@@ -679,7 +783,8 @@ module.exports = class ProjectsHelper {
 					resource_id: projectData.id,
 					reviewer_id,
 					status: common.REVIEW_STATUS_NOT_STARTED,
-					organization_id: userDetails.organization_id,
+					organization_code: userDetails.organization_code,
+					tenant_code: userDetails.tenant_code,
 				}))
 
 				await reviewsQueries.bulkCreate(reviewsData)
@@ -696,7 +801,7 @@ module.exports = class ProjectsHelper {
 				//Update the review status if the resource has been submitted before
 				await reviewsQueries.update(
 					{
-						organization_id: projectData.organization_id,
+						organization_code: projectData.organization_code,
 						resource_id: projectData.id,
 						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
 					},
@@ -709,13 +814,15 @@ module.exports = class ProjectsHelper {
 			//check review is required or not
 			const isReviewMandatory = await resourceService.isReviewMandatory(
 				projectData.type,
-				projectData.organization_id
+				projectData.organization_code,
+				projectData.tenant_code
 			)
 			if (!isReviewMandatory) {
 				const publishResource = await reviewService.publishResource(
 					resourceId,
 					projectData.user_id,
-					projectData.organization_id
+					projectData.organization_code,
+					projectData.tenant_code
 				)
 				return publishResource
 			}
@@ -741,7 +848,7 @@ module.exports = class ProjectsHelper {
 				userId: userDetails.id,
 				objectId: resourceId,
 				objectType: common.MODEL_NAMES.RESOURCE,
-				orgId: userDetails.organization_id,
+				orgId: userDetails.organization_code,
 			})
 
 			return responses.successResponse({
@@ -867,6 +974,52 @@ module.exports = class ProjectsHelper {
 			let regexValidation = entityType.validations.find(
 				(validation) => validation.type == common.REGEX_VALIDATION
 			)
+
+			//check for reflection url is present and valid
+
+			if (entityType.value === common.TASK_TYPE_REFLECTION && entityData.type === common.TASK_TYPE_REFLECTION) {
+				let reflectionPath =
+					sourceType == '' ? `${common.TASK_TYPE_REFLECTION}` : `${sourceType}.${common.TASK_TYPE_REFLECTION}`
+				// Validate the name is present
+				if (!entityData.name) {
+					validationErrors.push(
+						utils.errorObject(
+							reflectionPath,
+							common.NAME,
+							regexValidation.message || `Required learning reflection name in ${model}`
+						)
+					)
+				}
+
+				// Validate the URL is present
+				if (!entityData.link) {
+					validationErrors.push(
+						utils.errorObject(
+							reflectionPath,
+							common.URL,
+							regexValidation.message || `Required learning reflection URL in ${model}`
+						)
+					)
+				}
+
+				// Validate the URL against the regex pattern
+				if (entityData.link && entityMapping[common.TASK_TYPE_REFLECTION]?.validations) {
+					const validateURL = utils.checkRegexPattern(
+						entityMapping[common.TASK_TYPE_REFLECTION].validations,
+						entityData.link
+					)
+					if (!validateURL) {
+						validationErrors.push(
+							utils.errorObject(
+								reflectionPath,
+								common.URL,
+								regexValidation.message || `Invalid REFLECTION URL in ${model}`
+							)
+						)
+					}
+				}
+			}
+
 			if (regexValidation && fieldData) {
 				//validate learning resource validation
 				if (entityType.value === common.LEARNING_RESOURCE) {
@@ -973,6 +1126,7 @@ module.exports = class ProjectsHelper {
 					}
 				}
 			}
+
 			if (validationErrors.length > 0)
 				return {
 					hasError: true,
@@ -986,6 +1140,86 @@ module.exports = class ProjectsHelper {
 			}
 		} catch (error) {
 			return error
+		}
+	}
+
+	/**
+	 * Validates task start and end dates
+	 * @method
+	 * @name validateTaskDates
+	 * @param {Array} tasks - Array of task objects to validate
+	 * @param {Array} validationErrors - Array to collect validation errors
+	 * @returns {void} - Modifies validationErrors array in place
+	 */
+	static validateTaskDates(tasks, validationErrors = []) {
+		if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+			return
+		}
+
+		tasks.forEach((task, index) => {
+			this._validateSingleTaskDates(task, `tasks[${index}]`, validationErrors)
+
+			// Validate child tasks (subtasks) if they exist
+			if (task.children && Array.isArray(task.children) && task.children.length > 0) {
+				task.children.forEach((childTask, childIndex) => {
+					this._validateSingleTaskDates(
+						childTask,
+						`tasks[${index}].children[${childIndex}]`,
+						validationErrors
+					)
+				})
+			}
+		})
+	}
+
+	/**
+	 * Validates a single task's start and end dates
+	 * @method
+	 * @name _validateSingleTaskDates
+	 * @param {Object} task - Task object to validate
+	 * @param {String} taskPath - Path identifier for error messages
+	 * @param {Array} validationErrors - Array to collect validation errors
+	 * @returns {void} - Modifies validationErrors array in place
+	 * @private
+	 */
+	static _validateSingleTaskDates(task, taskPath, validationErrors) {
+		const isSubtask = taskPath.includes('children')
+		const taskType = isSubtask ? 'Subtask' : 'Task'
+
+		// Validate start_date
+		if (!task.start_date || task.start_date === '') {
+			validationErrors.push(utils.errorObject(taskPath, 'start_date', `${taskType} start date is required`))
+			return // Early exit if start_date is missing
+		}
+
+		const isStartDateValid = utils.isValidDate(task.start_date)
+		if (!isStartDateValid) {
+			validationErrors.push(
+				utils.errorObject(taskPath, 'start_date', `${taskType} start date must be a valid date`)
+			)
+		}
+
+		// Validate end_date
+		if (!task.end_date || task.end_date === '') {
+			validationErrors.push(utils.errorObject(taskPath, 'end_date', `${taskType} end date is required`))
+			return // Early exit if end_date is missing
+		}
+
+		const isEndDateValid = utils.isValidDate(task.end_date)
+		if (!isEndDateValid) {
+			validationErrors.push(utils.errorObject(taskPath, 'end_date', `${taskType} end date must be a valid date`))
+			return // Early exit if end_date is invalid
+		}
+
+		// Validate date ordering - only if both dates are valid
+		if (isStartDateValid && isEndDateValid) {
+			const startDate = new Date(task.start_date)
+			const endDate = new Date(task.end_date)
+			if (startDate > endDate) {
+				validationErrors.push(
+					utils.errorObject(taskPath, 'end_date', `${taskType} end date must be after start date`)
+				)
+			}
 		}
 	}
 }

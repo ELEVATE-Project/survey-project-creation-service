@@ -7,7 +7,10 @@
 
 // Dependencies
 const entityService = require('@services/entities')
-
+const utils = require('@generics/utils')
+const common = require('@constants/common')
+const responses = require('@helpers/responses')
+const httpStatusCode = require('@generics/http-status')
 module.exports = class Entity {
 	/**
 	 * create entity
@@ -22,7 +25,8 @@ module.exports = class Entity {
 			const createdEntity = await entityService.create(
 				req.body,
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
 			)
 			return createdEntity
 		} catch (error) {
@@ -41,8 +45,15 @@ module.exports = class Entity {
 	async update(req) {
 		const params = req.body
 		const id = req.params.id
+
 		try {
-			const updatedEntity = await entityService.update(params, id, req.decodedToken.id)
+			const updatedEntity = await entityService.update(
+				params,
+				id,
+				req.decodedToken.id,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 			return updatedEntity
 		} catch (error) {
 			return error
@@ -60,9 +71,19 @@ module.exports = class Entity {
 	async read(req) {
 		try {
 			if (req.query.id || req.query.value) {
-				return await entityService.read(req.query, req.decodedToken.id)
+				return await entityService.read(
+					req.query,
+					req.decodedToken.id,
+					req.decodedToken.organization_code,
+					req.decodedToken.tenant_code
+				)
 			}
-			return await entityService.readAll(req.query, req.decodedToken.id)
+			return await entityService.readAll(
+				req.query,
+				req.decodedToken.id,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 		} catch (error) {
 			return error
 		}
@@ -78,7 +99,12 @@ module.exports = class Entity {
 
 	async delete(req) {
 		try {
-			const updatedEntity = await entityService.delete(req.params.id, req.decodedToken.id)
+			const updatedEntity = await entityService.delete(
+				req.params.id,
+				req.decodedToken.id,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 			return updatedEntity
 		} catch (error) {
 			return error
@@ -95,7 +121,14 @@ module.exports = class Entity {
 
 	async list(req) {
 		try {
-			return await entityService.list(req.query, req.searchText, req.pageNo, req.pageSize)
+			return await entityService.list(
+				req.query,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
+				req.searchText,
+				req.pageNo,
+				req.pageSize
+			)
 		} catch (error) {
 			return error
 		}

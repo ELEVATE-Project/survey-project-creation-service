@@ -45,7 +45,12 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				type: DataTypes.STRING,
 			},
-			organization_id: {
+			organization_code: {
+				primaryKey: true,
+				allowNull: false,
+				type: DataTypes.STRING,
+			},
+			tenant_code: {
 				primaryKey: true,
 				allowNull: false,
 				type: DataTypes.STRING,
@@ -112,6 +117,61 @@ module.exports = (sequelize, DataTypes) => {
 			],
 		}
 	)
+
+	// Define associations
+	Resource.associate = (models) => {
+		Resource.hasMany(models.Comment, {
+			foreignKey: 'resource_id',
+			sourceKey: 'id',
+			as: 'comments',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
+		Resource.hasMany(models.Review, {
+			// Fix: Change from models.Comment to models.Review
+			foreignKey: 'resource_id',
+			sourceKey: 'id',
+			as: 'reviews',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
+		Resource.hasMany(models.ReviewResource, {
+			// Fix: Change from models.Comment to models.Review
+			foreignKey: 'resource_id',
+			sourceKey: 'id',
+			as: 'ReviewResource',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
+		Resource.hasMany(models.Rollout, {
+			foreignKey: 'resource_id',
+			sourceKey: 'id',
+			as: 'rollouts',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
+		Resource.hasMany(models.ProgramResourceMapping, {
+			foreignKey: 'resource_id',
+			sourceKey: 'id',
+			as: 'ProgramResources',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
+		Resource.hasMany(models.ProgramResourceMapping, {
+			foreignKey: 'program_id',
+			sourceKey: 'id',
+			as: 'Program',
+			constraints: true,
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		})
+	}
+
 	// Helper function to emit user actions with dynamic action types
 	const emitUserAction = async (instance, actionType) => {
 		try {
@@ -121,7 +181,7 @@ module.exports = (sequelize, DataTypes) => {
 					userId: instance.user_id,
 					objectId: instance.id,
 					objectType: common.MODEL_NAMES.RESOURCE,
-					orgId: instance.organization_id,
+					orgId: instance.organization_code,
 				})
 			}
 		} catch (error) {
@@ -131,7 +191,6 @@ module.exports = (sequelize, DataTypes) => {
 	}
 
 	Resource.addHook('afterCreate', (instance) => emitUserAction(instance, 'RESOURCE_CREATED'))
-
 	Resource.addHook('afterDestroy', (instance) => emitUserAction(instance, 'RESOURCE_DELETED'))
 	Resource.addHook('afterUpdate', (instance) => {
 		const statusActionMap = {

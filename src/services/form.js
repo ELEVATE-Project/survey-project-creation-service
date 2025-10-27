@@ -5,6 +5,7 @@ const KafkaProducer = require('@generics/kafka-communication')
 const form = require('@generics/form')
 const responses = require('@helpers/responses')
 const { UniqueConstraintError } = require('sequelize')
+const Op = require('sequelize').Op
 module.exports = class FormsHelper {
 	/**
 	 * Create Form.
@@ -14,13 +15,22 @@ module.exports = class FormsHelper {
 	 * @returns {JSON} - Form creation data.
 	 */
 
-	static async create(bodyData, orgId) {
+	static async create(bodyData, orgCode, tenantCode) {
 		try {
-			const form = await formQueries.findOne({ type: bodyData.type, organization_id: orgId })
+			const form = await formQueries.findOne({
+				type: bodyData.type,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
+			})
 			if (form) {
-				throw new Error('FORM_ALREADY_EXISTS')
+				return responses.failureResponse({
+					message: 'FORM_ALREADY_EXISTS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
-			bodyData['organization_id'] = orgId
+			bodyData['organization_code'] = orgCode
+			bodyData['tenant_code'] = tenantCode
 			await formQueries.create(bodyData)
 			await utils.internalDel('formVersion')
 			await KafkaProducer.clearInternalCache('formVersion')
@@ -39,7 +49,7 @@ module.exports = class FormsHelper {
 
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
@@ -53,17 +63,20 @@ module.exports = class FormsHelper {
 	 * @returns {JSON} - Update form data.
 	 */
 
-	static async update(id, bodyData, orgId) {
+	static async update(id, bodyData, orgCode, tenantCode) {
 		try {
 			let filter = {}
+			bodyData['organization_code'] = orgCode
+			bodyData['tenant_code'] = tenantCode
 
 			if (id) {
-				filter = { id: id, organization_id: orgId }
+				filter = { id: id, organization_code: orgCode, tenant_code: tenantCode }
 			} else {
 				filter = {
 					type: bodyData.type,
 					sub_type: bodyData.sub_type,
-					organization_id: orgId,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				}
 			}
 
@@ -83,7 +96,11 @@ module.exports = class FormsHelper {
 				message: 'FORM_UPDATED_SUCCESSFULLY',
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -95,42 +112,63 @@ module.exports = class FormsHelper {
 	 * @returns {JSON} - Read form data.
 	 */
 
-	static async read(id, bodyData, orgId) {
+	static async read(id, bodyData, orgCode, tenantCode) {
 		try {
-			let filter = id ? { id: id, organization_id: orgId } : { ...bodyData, organization_id: orgId }
-			const form = await formQueries.findOne(filter)
-			let defaultOrgForm
-			if (!form) {
-				const defaultOrgId = utils.convertToString(process.env.DEFAULT_ORG_ID)
-				filter = id ? { id: id, organization_id: defaultOrgId } : { ...bodyData, organization_id: defaultOrgId }
-				defaultOrgForm = await formQueries.findOne(filter)
+			const defaultOrgId = utils.convertToString(process.env.DEFAULT_ORGANIZATION_CODE)
+			let filter = id ? { id } : { ...bodyData }
+			filter = {
+				...filter,
+				organization_code: { [Op.in]: [defaultOrgId, orgCode] },
+				tenant_code: tenantCode,
 			}
-			if (!form && !defaultOrgForm) {
+
+			const form = await formQueries.findAll(filter)
+			if (!form) {
 				return responses.failureResponse({
 					message: 'FORM_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
+			let finalForm =
+				form.find((f) => f.organization_code === orgCode) ||
+				form.find((f) => f.organization_code === defaultOrgId)
+			if (!finalForm) {
+				return responses.failureResponse({
+					message: 'FORM_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'FORM_FETCHED_SUCCESSFULLY',
-				result: form ? form : defaultOrgForm,
+				result: finalForm,
 			})
 		} catch (error) {
 			console.log(error)
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
-	static async readAllFormsVersion() {
+	static async readAllFormsVersion(orgCode, tenantCode) {
 		try {
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'FORM_VERSION_FETCHED_SUCCESSFULLY',
-				result: (await form.getAllFormsVersion()) || {},
+				result: (await form.getAllFormsVersion(orgCode, tenantCode)) || {},
 			})
 		} catch (error) {
-			return error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 }

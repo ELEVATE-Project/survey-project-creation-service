@@ -9,10 +9,15 @@ module.exports = (sequelize, DataTypes) => {
 				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
-			organization_id: {
+			organization_code: {
 				type: DataTypes.STRING,
 				allowNull: false,
 				primaryKey: true,
+			},
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: DataTypes.STRING,
 			},
 			resource_type: {
 				allowNull: false,
@@ -43,6 +48,16 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.BOOLEAN,
 				defaultValue: true,
 			},
+			enable_entity_tagging: {
+				allowNull: false,
+				type: DataTypes.BOOLEAN,
+				defaultValue: true,
+			},
+			enable_task_start_end_dates: {
+				allowNull: false,
+				type: DataTypes.BOOLEAN,
+				defaultValue: false,
+			},
 		},
 		{
 			sequelize,
@@ -53,8 +68,11 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['organization_id', 'resource_type'],
-					name: 'unique_org_resource_type',
+					fields: ['organization_code', 'resource_type', 'tenant_code'],
+					name: 'unique_org_resource_type_tenant',
+					where: {
+						deleted_at: null,
+					},
 				},
 			],
 		}

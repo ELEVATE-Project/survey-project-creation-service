@@ -27,7 +27,12 @@ module.exports = {
 				allowNull: true,
 				type: Sequelize.DATE,
 			},
-			organization_id: {
+			organization_code: {
+				primaryKey: true,
+				allowNull: false,
+				type: Sequelize.STRING,
+			},
+			tenant_code: {
 				primaryKey: true,
 				allowNull: false,
 				type: Sequelize.STRING,
@@ -37,11 +42,11 @@ module.exports = {
 				type: Sequelize.STRING,
 			},
 			start_date: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.DATE,
 			},
 			end_date: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.DATE,
 			},
 			published_id: {
@@ -100,6 +105,19 @@ module.exports = {
 		})
 		await queryInterface.addIndex('rollouts', ['title'], {
 			name: 'rollouts_title_index',
+		})
+
+		// Add foreign key constraint for resource_id, organization_code, and tenant_code
+		await queryInterface.addConstraint('rollouts', {
+			fields: ['resource_id', 'organization_code', 'tenant_code'],
+			type: 'foreign key',
+			name: 'fk_rollouts_resources',
+			references: {
+				table: 'resources',
+				fields: ['id', 'organization_code', 'tenant_code'],
+			},
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
 		})
 	},
 

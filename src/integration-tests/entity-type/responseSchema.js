@@ -40,7 +40,7 @@ const createSchema = {
 				updated_by: {
 					type: 'string',
 				},
-				organization_id: {
+				organization_code: {
 					type: 'string',
 				},
 				updated_at: {
@@ -70,7 +70,7 @@ const createSchema = {
 				'has_entities',
 				'created_by',
 				'updated_by',
-				'organization_id',
+				'organization_code',
 				'updated_at',
 				'created_at',
 				'parent_id',
@@ -82,22 +82,19 @@ const createSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
 							},
-							required: ['id', 'type', 'version'],
 						},
 					],
 				},
@@ -144,7 +141,7 @@ const updateSchema = {
 						data_type: {
 							type: 'string',
 						},
-						organization_id: {
+						organization_code: {
 							type: 'string',
 						},
 						parent_id: {
@@ -229,7 +226,7 @@ const updateSchema = {
 						'status',
 						'allow_filtering',
 						'data_type',
-						'organization_id',
+						'organization_code',
 						'parent_id',
 						'allow_custom_entities',
 						'has_entities',
@@ -247,22 +244,19 @@ const updateSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
 							},
-							required: ['id', 'type', 'version'],
 						},
 					],
 				},
@@ -308,22 +302,19 @@ const listSchema = {
 			type: 'object',
 			properties: {
 				formsVersion: {
-					type: 'array',
-					items: [
+					oneOf: [
 						{
 							type: 'object',
-							properties: {
-								id: {
-									type: 'integer',
-								},
-								type: {
-									type: 'string',
-								},
-								version: {
-									type: 'integer',
-								},
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
 							},
-							required: ['id', 'type', 'version'],
 						},
 					],
 				},
@@ -331,14 +322,55 @@ const listSchema = {
 					type: 'string',
 				},
 			},
-			required: ['formsVersion'],
 		},
 	},
 	required: ['responseCode', 'message', 'result', 'meta'],
+}
+
+const observableSchema = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		message: {
+			type: 'string',
+		},
+		result: {
+			type: 'array',
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
+				},
+				correlation: {
+					type: 'string',
+				},
+			},
+		},
+	},
+	required: ['responseCode', 'message', 'result'],
 }
 
 module.exports = {
 	createSchema,
 	updateSchema,
 	listSchema,
+	observableSchema,
 }

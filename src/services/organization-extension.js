@@ -10,6 +10,7 @@ const userRequests = require('@requests/user')
 const utils = require('@generics/utils')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
 const organizationConfigQueries = require('@database/queries/organizationConfig')
+const Op = require('sequelize').Op
 module.exports = class orgExtensionsHelper {
 	/**
 	 * Create Organization Config.
@@ -19,29 +20,32 @@ module.exports = class orgExtensionsHelper {
 	 * @returns {JSON} - Organization Config created response.
 	 */
 
-	static async createConfig(bodyData, organization_id) {
+	static async createConfig(bodyData, orgCode, tenantCode) {
 		try {
-			bodyData.organization_id = organization_id
+			bodyData.organization_code = orgCode
+			bodyData.tenant_code = tenantCode
 			const { resource_type, review_stages, review_type, data_managers, program_managers } = bodyData
 			// check if body have data_managers
 			if (data_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_id,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 						meta: { data_managers },
 						updated_at: new Date(),
 					},
-					{ organization_id }
+					{ organization_code: orgCode, tenant_code: tenantCode }
 				)
 			}
 			if (program_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_id,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 						meta: { program_managers },
 						updated_at: new Date(),
 					},
-					{ organization_id }
+					{ organization_code: orgCode, tenant_code: tenantCode }
 				)
 			}
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
@@ -78,7 +82,8 @@ module.exports = class orgExtensionsHelper {
 				try {
 					const createReviewStages = review_stages.map((stage) => ({
 						...stage,
-						organization_id,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 						resource_type,
 					}))
 
@@ -114,7 +119,11 @@ module.exports = class orgExtensionsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -124,11 +133,12 @@ module.exports = class orgExtensionsHelper {
 	 * @name updateConfig
 	 * @param {Object} bodyData - Organization config body data.
 	 * @param {String} id - config id.
-	 * @param {String} organization_id - organization id
+	 * @param {String} orgCode - organization code
+	 * @param {String} tenantCode - tenant code
 	 * @returns {JSON} - Organization Config updated response.
 	 */
 
-	static async updateConfig(id, resource_type, bodyData, organization_id) {
+	static async updateConfig(id, resource_type, bodyData, orgCode, tenantCode) {
 		try {
 			//validate resource type
 			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
@@ -146,11 +156,12 @@ module.exports = class orgExtensionsHelper {
 			if (data_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_id,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 						meta: { data_managers },
 						updated_at: new Date(),
 					},
-					{ organization_id }
+					{ organization_code: orgCode, tenant_code: tenantCode }
 				)
 			}
 
@@ -158,25 +169,28 @@ module.exports = class orgExtensionsHelper {
 			if (program_managers?.length) {
 				await organizationConfigQueries.upsert(
 					{
-						organization_id,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
 						meta: { program_managers },
 						updated_at: new Date(),
 					},
-					{ organization_id }
+					{ organization_code: orgCode, tenant_code: tenantCode }
 				)
 			}
 
 			const filter = {
 				id: id,
 				resource_type: resource_type,
-				organization_id: organization_id,
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 			}
 
 			if (review_type === common.REVIEW_TYPE_SEQUENTIAL) {
 				// Fetch existing review stages
 				const existingReviewStages = await reviewStageQueries.findAll({
 					resource_type: resource_type,
-					organization_id: organization_id,
+					organization_code: orgCode,
+					tenant_code: tenantCode,
 				})
 
 				// Check if review_stages is not null, undefined, not an array, empty or invalid
@@ -210,7 +224,8 @@ module.exports = class orgExtensionsHelper {
 									existingStage.role === stage.role &&
 									existingStage.level === stage.level &&
 									existingStage.resource_type === resource_type &&
-									existingStage.organization_id === organization_id
+									existingStage.organization_code === orgCode &&
+									existingStage.tenant_code === tenantCode
 							)
 					)
 
@@ -218,7 +233,8 @@ module.exports = class orgExtensionsHelper {
 					if (newReviewStages.length > 0) {
 						const createReviewStages = newReviewStages.map((stage) => ({
 							...stage,
-							organization_id,
+							organization_code: orgCode,
+							tenant_code: tenantCode,
 							resource_type,
 						}))
 						try {
@@ -253,21 +269,27 @@ module.exports = class orgExtensionsHelper {
 				result: updatedConfig,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
 	/**
 	 * Get all details of org from the user service.
 	 * @name fetchOrganizationDetails
-	 * @param {Array} organization_ids - array of organization_ids.
+	 * @param {Array} organization_codes - array of organization_codes.
+	 * @param {String} tenantCode - tenant code
 	 * @returns {Object} - Response contain object of org details
 	 */
-	static async fetchOrganizationDetails(organization_ids) {
-		const orgDetailsResponse = await userRequests.listOrganization(organization_ids)
+	static async fetchOrganizationDetails(OrganizationCodes, tenantCode) {
+		const orgDetailsResponse = await userRequests.listOrganization(OrganizationCodes, tenantCode)
 		let orgDetails = {}
+
 		if (orgDetailsResponse.success && orgDetailsResponse.data?.result?.length > 0) {
-			orgDetails = _.keyBy(orgDetailsResponse.data.result, 'id')
+			orgDetails = _.keyBy(orgDetailsResponse.data.result, 'code')
 		}
 		return orgDetails
 	}
@@ -278,13 +300,14 @@ module.exports = class orgExtensionsHelper {
 	 * @name getConfig
 	 * @returns {JSON} - List of configs based on orgId of user as response.
 	 */
-	static async getConfig(organization_id) {
+	static async getConfig(organization_code, tenantCode) {
 		try {
 			let orgExtenstionData = {}
 			let configData = []
 			// define filter
 			const filter = {
-				organization_id,
+				organization_code,
+				tenant_code: tenantCode,
 			}
 			let result = {
 				config: {},
@@ -295,27 +318,33 @@ module.exports = class orgExtensionsHelper {
 					is_auth_token_bearer: process.env.IS_AUTH_TOKEN_BEARER === 'true',
 				},
 			}
-			// fetch org config for organization_id
-			const orgConfig = await organizationConfigQueries.findOne(
+			// fetch org config for organization_code
+			const orgConfigs = await organizationConfigQueries.findAll(
 				{
-					organization_id,
+					organization_code: {
+						[Op.in]: [organization_code, process.env.DEFAULT_ORGANIZATION_CODE].filter(Boolean),
+					},
+					tenant_code: tenantCode,
 				},
-				['meta']
+				['meta', 'organization_code']
 			)
 
-			if (orgConfig?.meta && Object.keys(orgConfig.meta).length > 0) {
-				result.config = orgConfig?.meta
+			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
+				result.config =
+					orgConfigs.length > 1
+						? orgConfigs.find((config) => config.organization_code == organization_code)?.meta
+						: orgConfigs[0]?.meta
 			}
 
-			if (orgConfig?.meta?.data_managers?.length == 0 || orgConfig?.meta?.data_managers?.length == undefined) {
-				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
+			if (orgConfigs?.meta?.data_managers?.length == 0 || orgConfigs?.meta?.data_managers?.length == undefined) {
+				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',') || []
 			}
 
 			if (
-				orgConfig?.meta?.program_managers?.length == 0 ||
-				orgConfig?.meta?.program_managers?.length == undefined
+				orgConfigs?.meta?.program_managers?.length == 0 ||
+				orgConfigs?.meta?.program_managers?.length == undefined
 			) {
-				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',')
+				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',') || []
 			}
 
 			// attributes to fetch from organisation Extenstion
@@ -334,6 +363,9 @@ module.exports = class orgExtensionsHelper {
 						? common.REVIEW_TYPE_SEQUENTIAL
 						: common.REVIEW_TYPE_PARALLEL,
 				review_required_after_publish: process.env.REVIEW_REQUIRED_AFTER_PUBLISH === 'true' ? true : false,
+				enable_entity_tagging: process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS === 'true' ? true : false,
+				enable_task_start_end_dates:
+					process.env.ENABLE_TASK_START_END_DATE_IN_PROJECTS === 'true' ? true : false,
 			}
 
 			// fetch the configuration from Organization extension for the user's organization
@@ -354,6 +386,8 @@ module.exports = class orgExtensionsHelper {
 								review_type: orgExt.review_type,
 								resource_type: orgExt.resource_type,
 								review_required_after_publish: orgExt.review_required_after_publish,
+								enable_entity_tagging: orgExt.enable_entity_tagging,
+								enable_task_start_end_dates: orgExt.enable_task_start_end_dates,
 							}
 						}
 					})
@@ -381,6 +415,7 @@ module.exports = class orgExtensionsHelper {
 			})
 
 			result.resource = configData
+
 			// return success message
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,

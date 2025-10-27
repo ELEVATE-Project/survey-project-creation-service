@@ -7,6 +7,11 @@ module.exports = {
 			throw new Error('Default org ID is undefined. Please make sure it is set in sequelize options.')
 		}
 
+		const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+		if (!defaultTenantCode) {
+			throw new Error('DEFAULT_TENANT_CODE environment variable is undefined. Please make sure it is set.')
+		}
+
 		const entityTypeArray = [
 			{
 				entityType: 'title',
@@ -61,7 +66,8 @@ module.exports = {
 				created_by: 0,
 				updated_by: 0,
 				allow_filtering: false,
-				organization_id: defaultOrgId,
+				organization_code: defaultOrgId,
+				tenant_code: defaultTenantCode,
 				has_entities,
 				allow_custom_entities: false,
 				validations: validation ? JSON.stringify(validation) : null,
@@ -86,6 +92,8 @@ module.exports = {
 				entity.model.forEach((model) => {
 					let data = {
 						entity_type_id: entityType.id,
+						tenant_code: defaultTenantCode,
+						organization_code: defaultOrgId,
 						model: model,
 						status: 'ACTIVE',
 						updated_at: new Date(),
@@ -141,7 +149,7 @@ module.exports = {
 
 		// Fetch the entity types from the database
 		const entityTypes = await queryInterface.sequelize.query(
-			`SELECT id, value FROM entity_types WHERE organization_id = :defaultOrgId AND value IN (:entityTypeValues)`,
+			`SELECT id, value FROM entity_types WHERE organization_code = :defaultOrgId AND value IN (:entityTypeValues)`,
 			{
 				replacements: {
 					defaultOrgId,

@@ -13,12 +13,20 @@ const request = require('request')
 const certificateQueries = require('../database/queries/certificateBaseTemplate')
 const common = require('../constants/common')
 const utils = require('../generics/utils')
+const organizationCode = process.env.DEFAULT_ORGANIZATION_CODE || null
+const tenantCode = process.env.DEFAULT_TENANT_CODE || null
 
 ;(async () => {
 	try {
+		if (!organizationCode) {
+			throw new Error('DEFAULT_ORGANIZATION_CODE must be set')
+		}
+		if (!tenantCode) {
+			throw new Error('DEFAULT_TENANT_CODE must be set')
+		}
 		const certificatesArray = [
 			{
-				code: 'one_logo_one_sign',
+				code: 'onelogo_onesign',
 				name: 'One Logo One Signature',
 				meta: {
 					logos: {
@@ -35,7 +43,7 @@ const utils = require('../generics/utils')
 				},
 			},
 			{
-				code: 'one_logo_two_sign',
+				code: 'onelogo_twosign',
 				name: 'One Logo Two Signature',
 				meta: {
 					logos: {
@@ -55,7 +63,7 @@ const utils = require('../generics/utils')
 				},
 			},
 			{
-				code: 'two_logo_one_sign',
+				code: 'twologo_onesign',
 				name: 'Two Logo One Signature',
 				meta: {
 					logos: {
@@ -73,7 +81,7 @@ const utils = require('../generics/utils')
 				},
 			},
 			{
-				code: 'two_logo_two_sign',
+				code: 'twologo_twosign',
 				name: 'Two Logo Two Signature',
 				meta: {
 					logos: {
@@ -116,7 +124,14 @@ const utils = require('../generics/utils')
 				ref: common.CERTIFICATE,
 			}
 
-			const getSignedUrl = await fileService.getSignedUrl(payloadData, 'BASE_TEMPLATE', 'system', false)
+			const getSignedUrl = await fileService.getSignedUrl(
+				payloadData,
+				organizationCode,
+				tenantCode,
+				'BASE_TEMPLATE',
+				'system',
+				false
+			)
 			if (!getSignedUrl.result) {
 				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
 			}
@@ -143,7 +158,8 @@ const utils = require('../generics/utils')
 			const certificateData = {
 				...currentPointerArray,
 				url: uploadedFilePath,
-				organization_id: utils.convertToString(process.env.DEFAULT_ORG_ID),
+				organization_code: utils.convertToString(organizationCode),
+				tenant_code: utils.convertToString(tenantCode),
 				resource_type: common.PROJECT,
 				created_by: common.CREATED_BY_SYSTEM,
 				created_at: new Date(),

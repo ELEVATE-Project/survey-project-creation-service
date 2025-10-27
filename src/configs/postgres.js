@@ -1,8 +1,8 @@
 require('dotenv').config()
-const defaultOrgId = process.env.DEFAULT_ORG_ID
-	? process.env.DEFAULT_ORG_ID.toString()
+const defaultOrgId = process.env.DEFAULT_ORGANIZATION_CODE
+	? process.env.DEFAULT_ORGANIZATION_CODE.toString()
 	: (() => {
-			throw new Error('DEFAULT_ORG_ID is not defined in env')
+			throw new Error('DEFAULT_ORGANIZATION_CODE is not defined in env')
 	  })()
 
 module.exports = {

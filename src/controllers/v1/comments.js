@@ -24,7 +24,9 @@ module.exports = class comments {
 				req.query.page_value ? req.query.page_value : '',
 				req.query.context ? req.query.context : '',
 				req.decodedToken.id,
-				req.decodedToken.organization_id
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
+				req.decodedToken.token
 			)
 			return comments
 		} catch (error) {
@@ -48,14 +50,18 @@ module.exports = class comments {
 				comment = await commentService.delete(
 					parseInt(req.params.id),
 					parseInt(req.query.resource_id),
-					req.decodedToken.id
+					req.decodedToken.id,
+					req.decodedToken.organization_code,
+					req.decodedToken.tenant_code
 				)
 			} else {
 				comment = await commentService.update(
 					req.params.id ? req.params.id : '',
 					req.query.resource_id,
 					req.body,
-					req.decodedToken.id
+					req.decodedToken.id,
+					req.decodedToken.organization_code,
+					req.decodedToken.tenant_code
 				)
 			}
 			return comment

@@ -20,13 +20,12 @@ module.exports = class reviewStages {
 
 	async update(req) {
 		try {
-			let organization_id = req.decodedToken.organization_id
-			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-				organization_id = req.query.organization_id
-					? req.query.organization_id
-					: req.decodedToken.organization_id
-			}
-			const updateReviewStage = await reviewStagesService.update(req.params.id, req.body, organization_id)
+			const updateReviewStage = await reviewStagesService.update(
+				req.params.id,
+				req.body,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 			return updateReviewStage
 		} catch (error) {
 			return error
@@ -43,15 +42,10 @@ module.exports = class reviewStages {
 
 	async list(req) {
 		try {
-			let organization_id = req.decodedToken.organization_id
-			if (utils.validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-				organization_id = req.query.organization_id
-					? req.query.organization_id
-					: req.decodedToken.organization_id
-			}
 			const reviewStages = await reviewStagesService.list(
 				req.query.resource_type ? req.query.resource_type : '',
-				organization_id
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
 			)
 			return reviewStages
 		} catch (error) {

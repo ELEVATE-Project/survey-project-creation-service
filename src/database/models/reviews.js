@@ -32,10 +32,15 @@ module.exports = (sequelize, DataTypes) => {
 				),
 				defaultValue: 'NOT_STARTED',
 			},
-			organization_id: {
+			organization_code: {
 				allowNull: false,
 				type: DataTypes.STRING,
 				primaryKey: true,
+			},
+			tenant_code: {
+				primaryKey: true,
+				allowNull: false,
+				type: DataTypes.STRING,
 			},
 			notes: {
 				allowNull: true,
@@ -50,12 +55,26 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['resource_id', 'reviewer_id', 'organization_id'],
-					name: 'unique_resource_reviewer',
+					fields: ['resource_id', 'reviewer_id', 'organization_code', 'tenant_code'],
+					name: 'unique_resource_reviewer_tenant_code',
+					where: {
+						deleted_at: null,
+					},
 				},
 			],
 		}
 	)
+
+	// Define associations (foreign key constraints)
+	Review.associate = (models) => {
+		Review.belongsTo(models.Resource, {
+			foreignKey: 'resource_id',
+			targetKey: 'id',
+			as: 'reviews',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+	}
 
 	Review.addHook('afterSave', async (instance, options) => {
 		try {
@@ -63,7 +82,7 @@ module.exports = (sequelize, DataTypes) => {
 			const resource = await sequelize.models.Resource.findOne(
 				{
 					where: { id: instance.resource_id },
-					attributes: ['id', 'organization_id', 'type'],
+					attributes: ['id', 'organization_code', 'type'],
 				},
 				{ raw: true }
 			)
@@ -85,7 +104,7 @@ module.exports = (sequelize, DataTypes) => {
 					userId: instance.reviewer_id,
 					objectId: instance.resource_id,
 					objectType: common.MODEL_NAMES.RESOURCE,
-					orgId: instance.organization_id,
+					orgId: instance.organization_code,
 				})
 			}
 		} catch (error) {

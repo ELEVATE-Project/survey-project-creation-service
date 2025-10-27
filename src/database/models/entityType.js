@@ -32,10 +32,14 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				defaultValue: 'STRING',
 			},
-			organization_id: {
+			organization_code: {
 				type: DataTypes.STRING,
 				allowNull: false,
-				defaultValue: 0,
+				primaryKey: true,
+			},
+			tenant_code: {
+				allowNull: false,
+				type: DataTypes.STRING,
 				primaryKey: true,
 			},
 			parent_id: {
@@ -69,7 +73,15 @@ module.exports = (sequelize, DataTypes) => {
 		},
 		{ sequelize, modelName: 'EntityType', tableName: 'entity_types', freezeTableName: true, paranoid: true }
 	)
-
+	EntityType.associate = (models) => {
+		EntityType.hasMany(models.Entity, {
+			foreignKey: 'entity_type_id',
+			as: 'entities',
+			scope: {
+				deleted_at: null, // Only associate with active EntityType records
+			},
+		})
+	}
 	EntityType.addHook('beforeDestroy', async (instance, options) => {
 		try {
 			// Soft-delete only the associated Entity records with matching entity_type_id

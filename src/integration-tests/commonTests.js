@@ -34,7 +34,7 @@ const verifyUserRole = async () => {
 	// await console.log('============>USER ROLE CHECK : ')
 
 	// Define a separate request instance scoped to this function
-	let request = defaults(supertest('http://localhost:5001'))
+	let request = defaults(supertest('http://localhost:3001'))
 
 	// Wait for the service to be ready
 	await waitForService(baseURL)
@@ -46,16 +46,20 @@ const verifyUserRole = async () => {
 	let password = 'Welco@Me#123!'
 
 	try {
-		let res = await request.post('/user/v1/account/create').send({
-			name: 'orgadmin',
-			email: email,
-			password: password,
-		})
+		let res = await request
+			.post('/user/v1/account/create')
+			.set('Content-Type', 'application/json')
+			.set('origin', 'localhost')
+			.send({
+				name: 'orgadmin',
+				email: email,
+				password: password,
+			})
 
 		// Check if the user was created successfully and access_token is available
 		if (res.body?.result?.access_token && res.body.result.user.id) {
 			defaultHeaders = {
-				'X-auth-token': 'bearer ' + res.body.result.access_token,
+				'X-auth-token': res.body.result.access_token,
 				Connection: 'keep-alive',
 				'Content-Type': 'application/json',
 			}
@@ -70,26 +74,26 @@ const verifyUserRole = async () => {
 			] = await Promise.all([
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'content_creator',
-					organization_id: 1,
+					organization_code: 1,
 				}),
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'reviewer',
-					organization_id: 1,
+					organization_code: 1,
 				}),
 
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'rollout_manager',
-					organization_id: 1,
+					organization_code: 1,
 				}),
 
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'program_designer',
-					organization_id: 1,
+					organization_code: 1,
 				}),
 
 				request.get('/user/v1/user-role/list').set(defaultHeaders).query({
 					title: 'program_manager',
-					organization_id: 1,
+					organization_code: 1,
 				}),
 			])
 
@@ -101,7 +105,7 @@ const verifyUserRole = async () => {
 				const createCreatorRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'content_creator',
 					user_type: 0,
-					organization_id: 1,
+					organization_code: 1,
 					label: 'Content Creator',
 					visibility: 'PUBLIC',
 				})
@@ -113,7 +117,7 @@ const verifyUserRole = async () => {
 				const createReviewRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'reviewer',
 					user_type: 0,
-					organization_id: 1,
+					organization_code: 1,
 					label: 'Reviewer',
 					visibility: 'PUBLIC',
 				})
@@ -128,7 +132,7 @@ const verifyUserRole = async () => {
 				const createRolloutManagerRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'rollout_manager',
 					user_type: 0,
-					organization_id: 1,
+					organization_code: 1,
 					label: 'Rollout Manager',
 					visibility: 'PUBLIC',
 				})
@@ -143,7 +147,7 @@ const verifyUserRole = async () => {
 				const createProgramDesignerRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'program_designer',
 					user_type: 0,
-					organization_id: 1,
+					organization_code: 1,
 					label: 'Program Designer',
 					visibility: 'PUBLIC',
 				})
@@ -157,7 +161,7 @@ const verifyUserRole = async () => {
 				const createProgramManagerRole = request.post('/user/v1/user-role/create').set(defaultHeaders).send({
 					title: 'program_manager',
 					user_type: 0,
-					organization_id: 1,
+					organization_code: 1,
 					label: 'Program Manager',
 					visibility: 'PUBLIC',
 				})
@@ -188,7 +192,7 @@ const logIn = async () => {
 		// await console.log('============>ATTEMPTING LOGIN : ')
 
 		// Define a separate request instance scoped to this function
-		let request = defaults(supertest('http://localhost:5001'))
+		let request = defaults(supertest('http://localhost:3001'))
 
 		await waitForService(baseURL)
 
@@ -199,24 +203,32 @@ const logIn = async () => {
 		let password = 'Welco@Me#123!'
 
 		// Create a new account
-		let res = await request.post('/user/v1/account/create').send({
-			name: 'adithya',
-			email: email,
-			password: password,
-		})
+		let res = await request
+			.post('/user/v1/account/create')
+			.set('Content-Type', 'application/json')
+			.set('origin', 'localhost')
+			.send({
+				name: 'adithya',
+				email: email,
+				password: password,
+			})
 
-		// console.log(' Create : -=-=-=-=-=>>  ', res.body)
+		console.log(' Create : -=-=-=-=-=>>  ', res.body)
 
 		// Log in with the created account
-		res = await request.post('/user/v1/account/login').send({
-			email: email,
-			password: password,
-		})
-
+		res = await request
+			.post('/user/v1/account/login')
+			.set('Content-Type', 'application/json')
+			.set('origin', 'localhost')
+			.send({
+				identifier: email,
+				password: password,
+			})
+		console.log(' Login : -=-=-=-=-=>>  ', res.body)
 		// Check if login was successful and return token details
 		if (res.body?.result?.access_token && res.body.result.user.id) {
 			defaultHeaders = {
-				'X-auth-token': 'bearer ' + res.body.result.access_token,
+				'X-auth-token': res.body.result.access_token,
 				Connection: 'keep-alive',
 				'Content-Type': 'application/json',
 			}
@@ -235,7 +247,7 @@ const logIn = async () => {
 				password: password,
 				name: res.body.result.user.name,
 				roles: res.body.result.user.user_roles,
-				organization_id: res.body.result.user.organization_id,
+				organization_code: res.body.result.user.organization_code,
 			}
 		} else {
 			console.error('LOGIN FAILED')
@@ -260,7 +272,7 @@ const triggerViewRebuild = async () => {
 		// await console.log('============>ATTEMPTING VIEW BUILD : ')
 
 		// Define a separate request instance scoped to this function
-		let request = defaults(supertest('http://localhost:5001'))
+		let request = defaults(supertest('http://localhost:3001'))
 		request.set(defaultHeaders)
 
 		await waitForService(baseURL)

@@ -12,6 +12,9 @@ const { v4: uuidV4 } = require('uuid')
 const _ = require('lodash')
 const md5 = require('md5')
 const { transliterate: tr } = require('transliteration')
+const fs = require('fs')
+const request = require('request')
+const path = require('path')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -389,7 +392,7 @@ const removeDefaultOrgEntityTypes = (entityTypes, orgId) => {
 	const entityTypeMap = new Map()
 	entityTypes.forEach((entityType) => {
 		if (!entityTypeMap.has(entityType.value)) entityTypeMap.set(entityType.value, entityType)
-		else if (entityType.organization_id === orgId) entityTypeMap.set(entityType.value, entityType)
+		else if (entityType.organization_code === orgId) entityTypeMap.set(entityType.value, entityType)
 	})
 	return Array.from(entityTypeMap.values())
 }
@@ -402,7 +405,7 @@ const removeDefaultOrgCertificates = (certificates, orgId) => {
 	const certificateMap = new Map()
 	certificates.forEach((cert) => {
 		if (!certificateMap.has(cert.code)) certificateMap.set(cert.code, cert)
-		else if (cert.organization_id === orgId) certificateMap.set(cert.code, cert)
+		else if (cert.organization_code === orgId) certificateMap.set(cert.code, cert)
 	})
 	return Array.from(certificateMap.values())
 }
@@ -627,14 +630,18 @@ function formatToTitleCase(value) {
  */
 
 function generateExternalId(title) {
-	const words = title.split(/[\s-]+/)
-	const abbreviation =
-		words
-			.filter((word) => /^[a-zA-Z0-9]+$/.test(word)) // Filter only alphanumeric words
-			.map((word) => (word[0] || '').toUpperCase())
-			.join('') || 'IMP' //append word 'IMP' if abbreviation is empty
-	const uniqueSuffix = Date.now()
-	return `${abbreviation}-${uniqueSuffix}`
+	try {
+		const words = title.split(/[\s-]+/)
+		const abbreviation =
+			words
+				.filter((word) => /^[a-zA-Z0-9]+$/.test(word)) // Filter only alphanumeric words
+				.map((word) => (word[0] || '').toUpperCase())
+				.join('') || 'IMP' //append word 'IMP' if abbreviation is empty
+		const uniqueSuffix = Date.now()
+		return `${abbreviation}-${uniqueSuffix}`
+	} catch (error) {
+		return `IMP-${Date.now()}`
+	}
 }
 
 /**
@@ -643,15 +650,21 @@ function generateExternalId(title) {
  * @param {Array} resources - learning resource data
  * @returns {Object} - Response contains formatted learning resource
  */
-const convertResources = (resources) =>
-	resources
-		.filter((resource) => resource.url) // Ensure `url` exists
-		.map((resource) => ({
-			name: resource.name || 'resource',
-			link: resource.url,
-			app: process.env.CONSUMPTION_SERVICE,
-			id: resource.url.split('/').pop(), // Extract the last part of the URL
-		}))
+const convertResources = (resources) => {
+	try {
+		return resources
+			.filter((resource) => resource.url) // Ensure `url` exists
+			.map((resource) => ({
+				name: resource.name || 'resource',
+				link: resource.url,
+				app: process.env.CONSUMPTION_SERVICE,
+				id: resource.url.split('/').pop(), // Extract the last part of the URL
+			}))
+	} catch (error) {
+		console.error('Error in converting resources : ', error)
+		return []
+	}
+}
 
 /**
  * Format keywords
@@ -659,9 +672,18 @@ const convertResources = (resources) =>
  * @returns {Array} - Formatted keywords
  */
 function formatKeywords(keywords) {
-	if (Array.isArray(keywords)) return keywords.map((k) => k.trim())
-	if (typeof keywords === 'string') return keywords.split(',').map((k) => k.trim())
-	return []
+	try {
+		if (Array.isArray(keywords) && keywords.length > 0) return keywords.map((k) => String(k).trim()).filter(Boolean)
+		if (typeof keywords === 'string')
+			return keywords
+				.split(',')
+				.map((k) => k.trim())
+				.filter(Boolean)
+		return []
+	} catch (error) {
+		console.error('Error in formating keywords : ', error)
+		return []
+	}
 }
 
 /**
@@ -671,7 +693,7 @@ function formatKeywords(keywords) {
  */
 function formatProjectMetaInformation(templateData) {
 	return {
-		duration: `${templateData.recommended_duration.number} ${templateData.recommended_duration.duration}`,
+		duration: `${templateData.recommended_duration?.number} ${templateData.recommended_duration?.duration}`,
 		goal: '',
 		rationale: '',
 		primaryAudience: '',
@@ -761,6 +783,201 @@ const convertToSingular = (plural) => {
 function md5Hash(value) {
 	return md5(value)
 }
+
+/**
+ * Validate tenant and organization key value in header
+ * @function
+ * @name validateTenantAndOrganizationInHeader
+ * @returns {Boolean} returns true if
+ * 1. both organization and tenant have truthy values in headers
+ * 2. both organization and tenant are falsy/missing in headers
+ * Otherwise returns false
+ */
+function validateTenantAndOrganizationInHeader(req) {
+	if (!req || !req.headers) return false
+	return (
+		!req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()] ===
+		!req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
+	)
+}
+
+/**
++	 * Extract tenant and organization codes based on user role
++	 */
+function _extractTenantAndOrgCodes(req) {
+	let tenantCode = req.decodedToken.tenant_code
+	let organizationCode = req.decodedToken.organization_code
+
+	if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
+		const validHeader = validateTenantAndOrganizationInHeader({ headers: req.headers })
+		if (!validHeader) {
+			return {
+				error: 'TENANT_ORGANIZATION_HEADER_MISSING',
+			}
+		}
+
+		if (
+			req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()] &&
+			req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
+		) {
+			tenantCode = req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()]
+			organizationCode = req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
+		}
+	}
+
+	return { tenantCode, organizationCode }
+}
+
+/**
+ * Supporting function for build url. Percent-encode a string according to the query percent-encode set.
+ * This function ensures that characters not allowed in URL query parameters are properly encoded.
+ * @param {String} input - The input string to be percent-encoded.
+ * @returns {String} - The percent-encoded string.
+ */
+function percentEncodeQuery(input) {
+	// return input if it is numeric
+	if (isNumeric(input)) return input.toString()
+
+	let output = ''
+	if (input != null || input != undefined) {
+		for (let i = 0; i < input.length; ) {
+			const codePoint = input.codePointAt(i)
+			const char = String.fromCodePoint(codePoint)
+			if (
+				codePoint <= 0x1f || // C0 controls (U+0000 to U+001F)
+				codePoint === 0x7f || // DEL
+				codePoint > 0x7e || // greater than ~
+				codePoint === 0x20 || // space
+				codePoint === 0x22 || // "
+				codePoint === 0x23 || // #
+				codePoint === 0x3c || // <
+				codePoint === 0x3e // >
+			) {
+				// Percent-encode after UTF-8 encoding
+				const bytes = new TextEncoder().encode(char)
+				for (const byte of bytes) {
+					output += '%' + byte.toString(16).toUpperCase().padStart(2, '0')
+				}
+			} else {
+				output += char
+			}
+			i += codePoint > 0xffff ? 2 : 1
+		}
+	}
+
+	return output
+}
+
+/**
+ * Build URL with query parameters
+ * @function
+ * @name buildUrl
+ * @param {String} baseUrl - Input base URL
+ * @param {String} endpoint - Input endPoint
+ * @param {Object} queryParams - Input Object of query params
+ * @param {Object} idParam - Input id as url param
+ * @returns {String} Returns constructed URL.
+ */
+
+function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
+	try {
+		const cleanBaseUrl = baseUrl.replace(/\/+$/, '')
+		let cleanEndpoint = endpoint.replace(/^\/+/, '')
+		if (idParam) cleanEndpoint = `${cleanEndpoint}/${idParam}`
+
+		// Create base URL without query parameters
+		let url = `${cleanBaseUrl}/${cleanEndpoint}`
+
+		// Manually construct query string using query percent-encode set
+		const queryStringParts = []
+		Object.entries(queryParams).forEach(([key, value]) => {
+			let encodedKey = percentEncodeQuery(key)
+			let encodedValue
+			if (Array.isArray(value)) {
+				// Join array values with a literal comma and encode
+				encodedValue = percentEncodeQuery(value.join(','))
+			} else {
+				// Encode non-array values
+				encodedValue = percentEncodeQuery(value)
+			}
+			queryStringParts.push(`${encodedKey}=${encodedValue}`)
+		})
+
+		// Append query string to URL if there are parameters
+		if (queryStringParts.length > 0) {
+			url += `?${queryStringParts.join('&')}`
+		}
+
+		return url
+	} catch {
+		throw new Error('INVALID URL INPUT')
+	}
+}
+
+/**
+ *  Downloads a file from a URL and saves it to a local file
+ * @function
+ * @name downloadFile
+ * @param {String} url - Download url
+ * @param {String} filePath - Local storage path
+ * @returns {Promise<String>}
+ */
+
+async function downloadFile(url, filePath) {
+	return new Promise((resolve, reject) => {
+		const writer = fs.createWriteStream(filePath)
+		request(url)
+			.pipe(writer)
+			.on('finish', () => resolve(filePath))
+			.on('error', reject)
+	})
+}
+
+/**
+ * Removes a file from the file system
+ * @function
+ * @name removeFile
+ * @param {String} filePath - Local storage path to remove
+ */
+
+function removeFile(filePath) {
+	if (fs.existsSync(filePath)) {
+		fs.unlinkSync(filePath)
+		console.log(`Deleted: ${filePath}`)
+	}
+}
+
+function pathFinder(__dirname, targetFolder) {
+	// Check if __dirname starts with the platform-specific path separator
+	const hasLeadingSeparator = __dirname.startsWith(path.sep)
+	// Split the path into components
+	const pathComponents = __dirname.split(path.sep)
+	// Remove empty string from start if path is absolute (e.g., ['', 'Users', ...])
+	const cleanedComponents = hasLeadingSeparator ? pathComponents.slice(1) : pathComponents
+	// Find the last index of the target folder
+	const lastIndex = cleanedComponents.lastIndexOf(targetFolder)
+	if (lastIndex === -1) {
+		throw new Error(`Folder "${targetFolder}" not found in the path`)
+	}
+	// Take components up to and including targetFolder
+	const targetComponents = cleanedComponents.slice(0, lastIndex + 1)
+	// Join components, adding back the leading separator if it existed
+	return (hasLeadingSeparator ? path.sep : '') + path.join(...targetComponents)
+}
+
+/**
+ * Validates if a value is a valid date
+ * @function
+ * @name isValidDate
+ * @param {*} dateValue - The date value to validate
+ * @returns {Boolean} - Returns true if valid date, false otherwise
+ */
+function isValidDate(dateValue) {
+	if (!dateValue) return false
+	const date = new Date(dateValue)
+	return date instanceof Date && !isNaN(date.getTime())
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -807,4 +1024,11 @@ module.exports = {
 	escapeXml,
 	convertToSingular,
 	md5Hash,
+	validateTenantAndOrganizationInHeader,
+	_extractTenantAndOrgCodes,
+	buildUrl,
+	downloadFile,
+	removeFile,
+	pathFinder,
+	isValidDate,
 }
