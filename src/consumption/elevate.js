@@ -464,6 +464,7 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 
 				targetingCriteria.forEach((criteria) => {
 					metaInformationKeys.forEach((key) => {
+						key = key.toLowerCase()
 						const dataPath = keyToDataPath[key]
 						if (dataPath) {
 							const items = criteria[dataPath] || []
@@ -486,10 +487,10 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 			// Configuration for mapping keys to data paths
 			const keyToDataPath = {
 				state: 'state',
-				recommendedFor: 'roles',
+				recommendedfor: 'roles',
 			}
 
-			metaInformation = createMetaInfo(targetingCriteria, metaInformationKeys, keyToDataPath)
+			metaInformation = createMetaInfo(targetingData, metaInformationKeys, keyToDataPath)
 		}
 		if (mandatoryKeys.length > 0) {
 			for (const key of mandatoryKeys) {
