@@ -445,8 +445,7 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 										// if the element inside array is an object.
 										// check for _id or id within the object
 										const id = targetEntity?._id || targetEntity?.id || null
-										if (id && !scope[eachTargeting].includes(targetEntity))
-											scope[eachTargeting].push(targetEntity)
+										if (id && !scope[eachTargeting].includes(id)) scope[eachTargeting].push(id)
 									}
 								})
 							}
@@ -454,7 +453,7 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 							// if the target is an object.
 							// check for _id or id within the object.
 							const id = target?._id || target?.id || null
-							if (id && !scope[eachTargeting].includes(target)) scope[eachTargeting].push(target)
+							if (id && !scope[eachTargeting].includes(target)) scope[eachTargeting].push(id)
 						}
 					}
 				}
@@ -2164,11 +2163,6 @@ async function createOrUpdateUserProgramMapping(viewers, programId, orgCode, ten
 				tenantCode,
 				userId
 			)
-
-			if (userMappingResponse.status !== responseCode.ok) {
-				console.error('Error updating user extensions:', userMappingResponse)
-				throw new Error('Failed to update user extensions')
-			}
 
 			console.log('Successfully updated user extensions for program:', programId)
 			return resolve(true)
