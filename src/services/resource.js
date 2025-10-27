@@ -25,7 +25,9 @@ const { Op, fn, col } = require('sequelize')
 const orgExtension = require('@services/organization-extension')
 const defaultOrgId = process.env.DEFAULT_ORGANIZATION_CODE
 const rolePermissionMappingQueries = require('@database/queries/role-permission-mapping')
-const certificateBasetemplateQueries = require('@database/queries/certificateBaseTemplate')
+const consumptionConfig = require('@consumption/config')
+const endPoints = require('@constants/endpoints')
+const requests = require('@generics/requests')
 
 module.exports = class resourceHelper {
 	/**
@@ -1755,6 +1757,47 @@ module.exports = class resourceHelper {
 			} else {
 				throw new Error('FILE_UPLOADED_FAILED')
 			}
+		} catch (error) {
+			throw error
+		}
+	}
+
+	/**
+	 * Fetch the consumption deep link for a solution
+	 * @param {string} solutionId - The ID of the solution to fetch the deep link for.
+	 * @param {string} solutionType - The type of the solution (e.g., 'program', 'project').
+	 * @returns {Promise<Object>} - Resolves with the deep link response object.
+	 */
+	static async getDeepLink(solutionId, solutionType) {
+		try {
+			let result = {
+				deepLinks: '',
+			}
+			const consumptionServiceUrl = consumptionConfig.fetchConsumptionServiceUrls(solutionType)
+			if (!consumptionServiceUrl) {
+				return responses.failureResponse({
+					message: 'CONSUMPTION_LINK_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+					result,
+				})
+			}
+			const url = utils.buildUrl(consumptionServiceUrl, endPoints.FETCH_LINK_END_POINT, {}, solutionId)
+			const response = await requests.get(url, '', true, 'internal-access-token')
+			if (!response.success || !response.data) {
+				return responses.failureResponse({
+					message: 'CONSUMPTION_LINK_FETCH_FAILED',
+					statusCode: httpStatusCode.internal_server_error,
+				})
+			}
+
+			if (Array.isArray(response.data.result)) {
+				result.deepLinks = response.data.result.join(',')
+			}
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'CONSUMPTION_LINK_FETCHED',
+				result,
+			})
 		} catch (error) {
 			throw error
 		}
