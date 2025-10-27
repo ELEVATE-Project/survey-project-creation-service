@@ -28,4 +28,27 @@ module.exports = class configs {
 			return error
 		}
 	}
+
+	//create config
+
+	/**
+	 * List Configs.
+	 * @method
+	 * @name list
+	 * @returns {JSON} - List of configs as response.
+	 */
+	async create(req) {
+		try {
+			const configs = await orgExtensionService.createConfig(
+				req.body,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code,
+				false
+			)
+
+			return configs
+		} catch (error) {
+			return error
+		}
+	}
 }

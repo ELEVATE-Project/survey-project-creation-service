@@ -17,101 +17,128 @@ module.exports = class orgExtensionsHelper {
 	 * @method
 	 * @name createConfig
 	 * @param {Object} bodyData - Organization Config body data.
+	 * @param {String} orgCode - organization code
+	 * @param {String} tenantCode - tenant code
+	 * @param {Boolean} skipReviewCreation - skip review and orgeExtension creation
 	 * @returns {JSON} - Organization Config created response.
 	 */
 
-	static async createConfig(bodyData, orgCode, tenantCode) {
+	static async createConfig(bodyData, orgCode, tenantCode, skipReviewCreation = true) {
 		try {
+			console.log(skipReviewCreation, orgCode, tenantCode)
+
 			bodyData.organization_code = orgCode
 			bodyData.tenant_code = tenantCode
-			const { resource_type, review_stages, review_type, data_managers, program_managers } = bodyData
+			const {
+				resource_type,
+				review_stages,
+				review_type,
+				data_managers,
+				program_managers,
+				project_resource_visibility_policy,
+				external_project_resource_visibility_policy,
+			} = bodyData
+			let meta = {}
 			// check if body have data_managers
 			if (data_managers?.length) {
-				await organizationConfigQueries.upsert(
-					{
-						organization_code: orgCode,
-						tenant_code: tenantCode,
-						meta: { data_managers },
-						updated_at: new Date(),
-					},
-					{ organization_code: orgCode, tenant_code: tenantCode }
-				)
+				meta.data_managers = data_managers
 			}
+			// check if body have program_managers
 			if (program_managers?.length) {
-				await organizationConfigQueries.upsert(
-					{
-						organization_code: orgCode,
-						tenant_code: tenantCode,
-						meta: { program_managers },
-						updated_at: new Date(),
-					},
-					{ organization_code: orgCode, tenant_code: tenantCode }
-				)
-			}
-			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
-			if (!validResourceTypes.includes(resource_type)) {
-				return responses.failureResponse({
-					message: `resource_type ${resource_type} is not a valid`,
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				meta.program_managers = program_managers
 			}
 
-			// Check if review_stages is not null, undefined, not an array, empty or invalid
-			if (review_type === common.REVIEW_TYPE_SEQUENTIAL) {
-				const isValidReviewStages =
-					Array.isArray(review_stages) &&
-					review_stages.length > 0 &&
-					review_stages.every(
-						(eachStage) =>
-							eachStage &&
-							typeof eachStage === 'object' &&
-							!Array.isArray(eachStage) &&
-							eachStage.hasOwnProperty('role') &&
-							eachStage.hasOwnProperty('level')
-					)
+			// Build the update object conditionally
+			let updateData = {
+				organization_code: orgCode,
+				tenant_code: tenantCode,
+				...(Object.keys(meta).length && { meta }),
+				updated_at: new Date(),
+			}
 
-				if (!isValidReviewStages) {
+			// Add visibility policies only if they are non-empty strings
+			if (project_resource_visibility_policy?.trim()) {
+				updateData.project_resource_visibility_policy = project_resource_visibility_policy.trim()
+			}
+
+			if (external_project_resource_visibility_policy?.trim()) {
+				updateData.external_project_resource_visibility_policy =
+					external_project_resource_visibility_policy.trim()
+			}
+
+			await organizationConfigQueries.upsert(updateData, { organization_code: orgCode, tenant_code: tenantCode })
+			if (skipReviewCreation) {
+				const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
+				if (!validResourceTypes.includes(resource_type)) {
 					return responses.failureResponse({
-						message: 'REVIEW_STAGES_INVALID',
+						message: `resource_type ${resource_type} is not a valid`,
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
 					})
 				}
 
-				try {
-					const createReviewStages = review_stages.map((stage) => ({
-						...stage,
-						organization_code: orgCode,
-						tenant_code: tenantCode,
-						resource_type,
-					}))
+				// Check if review_stages is not null, undefined, not an array, empty or invalid
+				if (review_type === common.REVIEW_TYPE_SEQUENTIAL) {
+					const isValidReviewStages =
+						Array.isArray(review_stages) &&
+						review_stages.length > 0 &&
+						review_stages.every(
+							(eachStage) =>
+								eachStage &&
+								typeof eachStage === 'object' &&
+								!Array.isArray(eachStage) &&
+								eachStage.hasOwnProperty('role') &&
+								eachStage.hasOwnProperty('level')
+						)
 
-					await reviewStageQueries.bulkCreate(createReviewStages)
-				} catch (error) {
+					if (!isValidReviewStages) {
+						return responses.failureResponse({
+							message: 'REVIEW_STAGES_INVALID',
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+						})
+					}
+
+					try {
+						const createReviewStages = review_stages.map((stage) => ({
+							...stage,
+							organization_code: orgCode,
+							tenant_code: tenantCode,
+							resource_type,
+						}))
+
+						await reviewStageQueries.bulkCreate(createReviewStages)
+					} catch (error) {
+						return responses.failureResponse({
+							message: error.message,
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
+						})
+					}
+				}
+
+				const orgExtension = await orgExtensionQueries.create(bodyData)
+				if (!orgExtension?.id) {
 					return responses.failureResponse({
-						message: error.message,
+						message: 'FAILED_TO_CREATE_CONFIG',
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
 					})
 				}
-			}
 
-			const orgExtension = await orgExtensionQueries.create(bodyData)
-			if (!orgExtension?.id) {
-				return responses.failureResponse({
-					message: 'FAILED_TO_CREATE_CONFIG',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
+				return responses.successResponse({
+					statusCode: httpStatusCode.created,
+					message: 'CONFIG_ADDED_SUCCESSFULLY',
+					result: orgExtension,
+				})
+			} else {
+				return responses.successResponse({
+					statusCode: httpStatusCode.created,
+					message: 'CONFIG_ADDED_SUCCESSFULLY',
 				})
 			}
-
-			return responses.successResponse({
-				statusCode: httpStatusCode.created,
-				message: 'CONFIG_ADDED_SUCCESSFULLY',
-				result: orgExtension,
-			})
 		} catch (error) {
+			console.log(error, 'this is errrrrrrr')
 			if (error instanceof UniqueConstraintError) {
 				return responses.failureResponse({
 					message: 'CONFIG_ALREADY_EXIST',

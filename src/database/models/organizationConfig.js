@@ -23,6 +23,16 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: true,
 				type: DataTypes.JSONB,
 			},
+			project_resource_visibility_policy: {
+				type: DataTypes.STRING,
+				allowNull: false,
+				defaultValue: 'CURRENT',
+			},
+			external_project_resource_visibility_policy: {
+				type: DataTypes.STRING,
+				allowNull: false,
+				defaultValue: 'CURRENT',
+			},
 		},
 		{
 			sequelize,
