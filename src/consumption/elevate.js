@@ -1876,7 +1876,7 @@ const publishProgram = function async(programData) {
 							isProgramResource ? 'within Program ' : 'within Single rollout '
 						} is not created`
 					)
-				const fetchDetails = await rolloutService.details(
+				let fetchDetails = await rolloutService.details(
 					rolloutId,
 					programData.userId,
 					programData.organization_code,
@@ -1900,7 +1900,11 @@ const publishProgram = function async(programData) {
 								id: fetchDetails?.result?.resource_id,
 								..._.omit(fetchDetails?.result, ['id']),
 							})
-							projectCertificate = fetchDetails?.result?.certificate
+							projectCertificate =
+								fetchDetails?.result?.certificate ||
+								fetchDetails?.result.resource_details?.certificate ||
+								{}
+							fetchDetails.result = { ...fetchDetails.result, ...fetchDetails?.result.resource_details }
 						} else {
 							const fetchProjectDetails = await projectService.details(
 								resource.id,

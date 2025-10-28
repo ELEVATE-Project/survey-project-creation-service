@@ -187,6 +187,17 @@ module.exports = class RolloutsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+			let resourceData = {}
+			if (getResourceData && rollout?.resource_details?.blob_path) {
+				const response = await filesService.fetchJsonFromCloud(rollout?.resource_details?.blob_path)
+				if (
+					response.statusCode === httpStatusCode.ok &&
+					response.result &&
+					Object.keys(response.result).length > 0
+				) {
+					resourceData = response.result
+				}
+			}
 
 			//get the data from storage
 			if (rollout.blob_path) {
@@ -232,6 +243,9 @@ module.exports = class RolloutsHelper {
 					}
 					result = { ...resultData }
 				}
+			}
+			if (Object.keys(result?.resource_details).length > 0) {
+				result.resource_details = { ...result.resource_details, ...resourceData }
 			}
 
 			return responses.successResponse({
