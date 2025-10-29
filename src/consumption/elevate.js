@@ -395,12 +395,7 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 		}
 
 		let metaInformation = {}
-		const metaInformationKeys = [
-			...new Set(process.env.PROGRAM_META_INFO_KEYS.split(',').map((key) => key.toLowerCase())),
-		]
-		const metaLocalMap = {
-			professional_role: 'role',
-		}
+		const metaInformationKeys = [...new Set(process.env.PROGRAM_META_INFO_KEYS.split(',').map((key) => key))]
 
 		if (targetingData && Object.keys(targetingData).length > 0 && scope && Object.keys(scope).length > 0) {
 			// Iterate through each targeting criterion
@@ -459,40 +454,40 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 				}
 			}
 
-			const entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
-				{
-					model: common.MODEL_NAMES['TARGETING'],
-					status: common.STATUS_ACTIVE,
-				},
-				organizationCode,
-				tenantCode,
-				['id', 'value', 'label', 'config']
-			)
-			if (entityTypes && entityTypes.length > 0) {
-				const filteredEntityTypes = utils.removeDefaultOrgEntityTypes(entityTypes, organizationCode)
+			function createMetaInfo(targetingCriteria, metaInformationKeys, keyToDataPath) {
+				const metaInfo = {}
+				metaInformationKeys.forEach((key) => {
+					metaInfo[key] = new Set()
+				})
 
-				async function processMetaInformation() {
-					const acc = {}
-					for (const metaKey of metaInformationKeys) {
-						const find = filteredEntityTypes.find((entity) => entity.value == metaKey)
-						if (find && Object.keys(find).length > 0) {
-							const exEntity = await fetchExternalEntities(
-								find?.config?.api,
-								scope?.[metaKey],
-								find?.value || metaKey,
-								tenantCode
-							)
-							const key = metaLocalMap?.[metaKey] ? metaLocalMap[metaKey] : metaKey
-							acc[key] = exEntity
-								.map((ent) => ent?.['metaInformation.name'])
-								.filter((name) => name != null)
+				targetingCriteria.forEach((criteria) => {
+					metaInformationKeys.forEach((key) => {
+						const dataPath = keyToDataPath[key]
+						if (dataPath) {
+							const items = criteria[dataPath] || []
+							items.forEach((item) => {
+								if (item.name) {
+									metaInfo[key].add(item.name)
+								}
+							})
 						}
-					}
-					return acc
-				}
+					})
+				})
 
-				metaInformation = await processMetaInformation()
+				metaInformationKeys.forEach((key) => {
+					metaInfo[key] = Array.from(metaInfo[key])
+				})
+
+				return metaInfo
 			}
+
+			// Configuration for mapping keys to data paths
+			const keyToDataPath = {
+				state: 'state',
+				recommendedFor: 'roles',
+			}
+
+			metaInformation = createMetaInfo(targetingData, metaInformationKeys, keyToDataPath)
 		}
 		if (mandatoryKeys.length > 0) {
 			for (const key of mandatoryKeys) {
@@ -1878,7 +1873,7 @@ const publishProgram = function async(programData) {
 							isProgramResource ? 'within Program ' : 'within Single rollout '
 						} is not created`
 					)
-				const fetchDetails = await rolloutService.details(
+				let fetchDetails = await rolloutService.details(
 					rolloutId,
 					programData.userId,
 					programData.organization_code,
@@ -1902,7 +1897,15 @@ const publishProgram = function async(programData) {
 								id: fetchDetails?.result?.resource_id,
 								..._.omit(fetchDetails?.result, ['id']),
 							})
-							projectCertificate = fetchDetails?.result?.certificate
+							projectCertificate =
+								fetchDetails?.result?.certificate &&
+								Object.keys(fetchDetails?.result?.certificate).length > 0
+									? fetchDetails?.result?.certificate
+									: fetchDetails?.result.resource_details?.certificate &&
+									  Object.keys(fetchDetails?.result.resource_details?.certificate).length > 0
+									? fetchDetails?.result.resource_details?.certificate
+									: {}
+							fetchDetails.result = { ...fetchDetails.result, ...fetchDetails?.result.resource_details }
 						} else {
 							const fetchProjectDetails = await projectService.details(
 								resource.id,

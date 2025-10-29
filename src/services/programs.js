@@ -560,6 +560,10 @@ module.exports = class ProgramsHelper {
 								: null,
 							is_comments: resourceCommentSet.has(resourceDetail.result.id),
 						}))
+					//sort the resources based on order
+					const len = result.resources.length
+					//if order exists sort the resources
+					result.resources.sort((a, b) => (a.order ?? len) - (b.order ?? len))
 				}
 			}
 

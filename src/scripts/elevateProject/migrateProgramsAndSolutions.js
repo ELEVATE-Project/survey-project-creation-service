@@ -725,8 +725,9 @@ async function processProgram(
 				start_date: solution.startDate || null,
 				end_date: solution.endDate || null,
 			}
-
-			convertedTemplate.targeting_criteria = solutionTargetingCriteriaRes.result || []
+			// While copying the data, we will not include the targeting criteria, as it is specific to that particular use case. Only the program and resource details will be copied. When users create a copy from the “Browse Existing” listing, they can add the targeting criteria as needed. Including other targeting criteria would not be relevant or useful
+			// convertedTemplate.targeting_criteria = solutionTargetingCriteriaRes.result || []convertedTemplate.targeting_criteria
+			convertedTemplate.targeting_criteria = []
 			// Ensure unique entity values and prepare for creation
 			let entitiesToCreate = []
 			for (const key of entityKeys) {
@@ -888,7 +889,9 @@ async function processProgram(
 	}
 	convertedProgramTemplate = convertedProgramTemplate.template
 	// Assign targeting criteria for program
-	convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result || []
+	// While copying the data, we will not include the targeting criteria, as it is specific to that particular use case. Only the program and resource details will be copied. When users create a copy from the “Browse Existing” listing, they can add the targeting criteria as needed. Including other targeting criteria would not be relevant or useful
+	// convertedProgramTemplate.targeting_criteria = programTargetingCriteriaRes.result || []
+	convertedProgramTemplate.targeting_criteria = []
 	// Assign metadata
 	convertedProgramTemplate.meta = {
 		start_date: program.startDate || null,
