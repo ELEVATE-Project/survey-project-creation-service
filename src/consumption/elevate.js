@@ -395,9 +395,7 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 		}
 
 		let metaInformation = {}
-		const metaInformationKeys = [
-			...new Set(process.env.PROGRAM_META_INFO_KEYS.split(',').map((key) => key.toLowerCase())),
-		]
+		const metaInformationKeys = [...new Set(process.env.PROGRAM_META_INFO_KEYS.split(',').map((key) => key))]
 
 		if (targetingData && Object.keys(targetingData).length > 0 && scope && Object.keys(scope).length > 0) {
 			// Iterate through each targeting criterion
