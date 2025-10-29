@@ -487,7 +487,7 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 			// Configuration for mapping keys to data paths
 			const keyToDataPath = {
 				state: 'state',
-				recommendedfor: 'roles',
+				recommendedFor: 'roles',
 			}
 
 			metaInformation = createMetaInfo(targetingData, metaInformationKeys, keyToDataPath)
