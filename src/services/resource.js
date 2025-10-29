@@ -134,9 +134,7 @@ module.exports = class resourceHelper {
 		}
 
 		let requestedForChangesResourcesFilter = {
-			id: {
-				[Op.in]: uniqueResourceIds,
-			},
+			created_by: userId,
 			organization_code: {
 				[Op.in]: OrganizationIds,
 			},
