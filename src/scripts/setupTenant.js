@@ -517,16 +517,18 @@ async function setupCertificateBaseTemplates(newTenantCode, newOrgCode) {
 				code: 'onelogo_onesign',
 				name: 'One Logo One Signature',
 				meta: {
-					logos: {
-						no_of_logos: 1,
-						stateLogo1: null,
-					},
-					signature: {
-						no_of_signature: 1,
-						signatureImg1: null,
-					},
-					signatureTitleName1: 'Name',
-					signatureTitleDesignation1: 'Designation',
+					logos: [
+						{
+							stateLogo: 'stateLogo1',
+						},
+					],
+					signatures: [
+						{
+							signature: 'signatureImg1',
+							signatureDesignation: 'signatureTitleDesignation1',
+							signatureName: 'signatureTitleName1',
+						},
+					],
 					QrCode: null,
 				},
 			},
@@ -534,19 +536,23 @@ async function setupCertificateBaseTemplates(newTenantCode, newOrgCode) {
 				code: 'onelogo_twosign',
 				name: 'One Logo Two Signature',
 				meta: {
-					logos: {
-						no_of_logos: 1,
-						stateLogo1: null,
-					},
-					signature: {
-						no_of_signature: 2,
-						signatureImg1: null,
-						signatureImg2: null,
-					},
-					signatureTitleName1: 'Name',
-					signatureTitleDesignation1: 'Designation',
-					signatureTitleName2: 'Name',
-					signatureTitleDesignation2: 'Designation',
+					logos: [
+						{
+							stateLogo: 'stateLogo1',
+						},
+					],
+					signatures: [
+						{
+							signature: 'signatureImg1',
+							signatureDesignation: 'signatureTitleDesignation1',
+							signatureName: 'signatureTitleName1',
+						},
+						{
+							signature: 'signatureImg2',
+							signatureDesignation: 'signatureTitleDesignation2',
+							signatureName: 'signatureTitleName2',
+						},
+					],
 					QrCode: null,
 				},
 			},
@@ -554,17 +560,21 @@ async function setupCertificateBaseTemplates(newTenantCode, newOrgCode) {
 				code: 'twologo_onesign',
 				name: 'Two Logo One Signature',
 				meta: {
-					logos: {
-						no_of_logos: 2,
-						stateLogo1: null,
-						stateLogo2: null,
-					},
-					signature: {
-						no_of_signature: 1,
-						signatureImg1: null,
-					},
-					signatureTitleName1: 'Name',
-					signatureTitleDesignation1: 'Designation',
+					logos: [
+						{
+							stateLogo: 'stateLogo1',
+						},
+						{
+							stateLogo: 'stateLogo2',
+						},
+					],
+					signatures: [
+						{
+							signature: 'signatureImg1',
+							signatureDesignation: 'signatureTitleDesignation1',
+							signatureName: 'signatureTitleName1',
+						},
+					],
 					QrCode: null,
 				},
 			},
@@ -572,20 +582,26 @@ async function setupCertificateBaseTemplates(newTenantCode, newOrgCode) {
 				code: 'twologo_twosign',
 				name: 'Two Logo Two Signature',
 				meta: {
-					logos: {
-						no_of_logos: 2,
-						stateLogo1: null,
-						stateLogo2: null,
-					},
-					signature: {
-						no_of_signature: 2,
-						signatureImg1: null,
-						signatureImg2: null,
-					},
-					signatureTitleName1: 'Name',
-					signatureTitleDesignation1: 'Designation',
-					signatureTitleName2: 'Name',
-					signatureTitleDesignation2: 'Designation',
+					logos: [
+						{
+							stateLogo: 'stateLogo1',
+						},
+						{
+							stateLogo: 'stateLogo2',
+						},
+					],
+					signatures: [
+						{
+							signature: 'signatureImg1',
+							signatureDesignation: 'signatureTitleDesignation1',
+							signatureName: 'signatureTitleName1',
+						},
+						{
+							signature: 'signatureImg2',
+							signatureDesignation: 'signatureTitleName2',
+							signatureName: 'signatureTitleDesignation2',
+						},
+					],
 					QrCode: null,
 				},
 			},
