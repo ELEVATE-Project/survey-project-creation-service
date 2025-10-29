@@ -188,6 +188,7 @@ module.exports = class RolloutsHelper {
 				})
 			}
 			let resourceData = {}
+			// return resource details for internal calls based on getResourceData flag
 			if (getResourceData && rollout?.resource_details?.blob_path) {
 				const response = await filesService.fetchJsonFromCloud(rollout?.resource_details?.blob_path)
 				if (
