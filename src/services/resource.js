@@ -134,7 +134,8 @@ module.exports = class resourceHelper {
 			],
 			sort,
 			page,
-			limit
+			limit,
+			true
 		)
 
 		if (resourceList.count <= 0) {
@@ -147,17 +148,19 @@ module.exports = class resourceHelper {
 		let uniqueResourceIds = []
 		let OrganizationIds = []
 
-		const resourcesCreatedByMe = rows.map((item) => {
-			uniqueResourceIds.push(item.resource.id)
+		const resourcesCreatedByMe = resourceList.result.map((item) => {
+			uniqueResourceIds.push(item.id)
 			OrganizationIds.push(item.organization_code)
-			return item.resource
+			return item
 		})
 
 		// get the unique organization ids from resource creator mapping table by the user
 		OrganizationIds = utils.getUniqueElements(OrganizationIds)
 
 		// get the review details of all the resources created by the logged in user
-		const resourceReviews = resourcesCreatedByMe.map((resource) => resource.reviews)
+		const resourceReviews = resourcesCreatedByMe
+			.map((resource) => resource.reviews)
+			.filter((review) => review != null && review.id != null) // Filters out null arrays AND objects where id is null
 
 		// fetches data from resource table with the passed filters
 		const response = {
@@ -175,6 +178,7 @@ module.exports = class resourceHelper {
 				[Op.in]: OrganizationIds,
 			},
 			status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+			tenant_code,
 		}
 		if (queryParams.type && queryParams.type != '') {
 			requestedForChangesResourcesFilter.type = {
