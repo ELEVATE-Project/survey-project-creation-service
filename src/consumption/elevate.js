@@ -464,7 +464,6 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 
 				targetingCriteria.forEach((criteria) => {
 					metaInformationKeys.forEach((key) => {
-						key = key.toLowerCase()
 						const dataPath = keyToDataPath[key]
 						if (dataPath) {
 							const items = criteria[dataPath] || []
