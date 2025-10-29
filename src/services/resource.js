@@ -603,48 +603,33 @@ module.exports = class resourceHelper {
 			let inProgressResources = []
 			let uniqueOrganizationIds = [organization_code]
 
-			// check review resources and find all resources and org for the reviewer name.
-			const fetchReviewResourceDetails = await reviewResourcesQueries.findAll(
+			const distinctResourceIds = await reviewsQueries.distinctResources(
 				{
 					reviewer_id: user_id,
-					tenant_code: tenant_code,
-				},
-				['organization_code']
-			)
-			if (fetchReviewResourceDetails.length > 0) {
-				uniqueOrganizationIds = utils.getUniqueElements(
-					fetchReviewResourceDetails.map((item) => item.organization_code)
-				)
-
-				const distinctResourceIds = await reviewsQueries.distinctResources(
-					{
-						organization_code: {
-							[Op.in]: uniqueOrganizationIds,
-						},
-						reviewer_id: user_id,
-						status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
-						tenant_code: tenant_code,
-					},
-					['resource_id']
-				)
-
-				inProgressResources = utils.getUniqueElements(distinctResourceIds.resource_ids)
-				let inProgressCountFilter = {
-					id: {
-						[Op.in]: inProgressResources,
-					},
 					status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
 					tenant_code: tenant_code,
-				}
-				if (queryParams.type && queryParams.type != '') {
-					inProgressCountFilter.type = {
-						[Op.in]: queryParams.type.split(','),
-					}
-				}
-				const in_progress_count = await resourceQueries.count(inProgressCountFilter)
-				result.in_progress_count = in_progress_count
-				finalResourceIds = inProgressResources
+				},
+				['resource_id']
+			)
+
+			inProgressResources = utils.getUniqueElements(distinctResourceIds.resource_ids)
+			let inProgressCountFilter = {
+				id: {
+					[Op.in]: inProgressResources,
+				},
+				status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
+				tenant_code: tenant_code,
 			}
+
+			if (queryParams.type && queryParams.type != '') {
+				inProgressCountFilter.type = {
+					[Op.in]: queryParams.type.split(','),
+				}
+			}
+			const in_progress_count = await resourceQueries.count(inProgressCountFilter)
+			result.in_progress_count = in_progress_count
+			finalResourceIds = inProgressResources
+
 			if (!(common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS)) {
 				// fetch the resources types of an organization based on parallel and sequential review type
 				let { sequential: resourceTypesInSequentialReview, parallel: resourceTypesInParallelReview } =
@@ -729,7 +714,6 @@ module.exports = class resourceHelper {
 			}
 
 			let resourceFilter = {
-				organization_code: { [Op.in]: uniqueOrganizationIds },
 				tenant_code: tenant_code,
 				id: { [Op.in]: finalResourceIds },
 				user_id: {
@@ -781,7 +765,7 @@ module.exports = class resourceHelper {
 				limit
 			)
 
-			if (response.length === 0) {
+			if (response.result.length === 0) {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -794,14 +778,11 @@ module.exports = class resourceHelper {
 					return item.user_id
 				})
 			)
-
+			uniqueOrganizationIds = utils.getUniqueElements(response.result.map((item) => item.organization_code))
 			const userDetails = await this.fetchUserDetails(uniqueCreatorIds, null, tenant_code, userToken)
 			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds, tenant_code)
 			const reviewDetails = await reviewsQueries.findAll(
 				{
-					organization_code: {
-						[Op.in]: uniqueOrganizationIds,
-					},
 					tenant_code,
 					resource_id: {
 						[Op.in]: finalResourceIds,
