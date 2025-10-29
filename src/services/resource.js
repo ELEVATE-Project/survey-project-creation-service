@@ -594,10 +594,9 @@ module.exports = class resourceHelper {
 				in_progress_count: 0,
 			}
 
-			const sort = {
-				sort_by: queryParams.sort_by || common.CREATED_AT,
-				order: queryParams.sort_order?.toUpperCase() === common.SORT_ASC ? common.SORT_ASC : common.SORT_DESC,
-			}
+			// return a sort object with sorting parameters. if no params are provided returns {}
+			const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
+
 			let finalResourceIds = []
 			let resourceIdsToBeRemoved = []
 			let inProgressResources = []
