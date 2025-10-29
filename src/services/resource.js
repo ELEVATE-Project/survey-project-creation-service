@@ -108,7 +108,6 @@ module.exports = class resourceHelper {
 				result,
 			})
 		}
-		result.count = resourceList.count
 		let uniqueResourceIds = []
 		let OrganizationIds = []
 
@@ -243,6 +242,7 @@ module.exports = class resourceHelper {
 
 		// generic function to merge all the collected data about the resource
 		result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
+		result.count = resourceList?.count || 0
 		// count of requested for changes resources
 		result.changes_requested_count = requestedForChangesResources > 0 ? requestedForChangesResources : 0
 		return responses.successResponse({
