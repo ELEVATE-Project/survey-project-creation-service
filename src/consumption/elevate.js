@@ -1900,9 +1900,13 @@ const publishProgram = function async(programData) {
 								..._.omit(fetchDetails?.result, ['id']),
 							})
 							projectCertificate =
-								fetchDetails?.result?.certificate ||
-								fetchDetails?.result.resource_details?.certificate ||
-								{}
+								fetchDetails?.result?.certificate &&
+								Object.keys(fetchDetails?.result?.certificate).length > 0
+									? fetchDetails?.result?.certificate
+									: fetchDetails?.result.resource_details?.certificate &&
+									  Object.keys(fetchDetails?.result.resource_details?.certificate).length > 0
+									? fetchDetails?.result.resource_details?.certificate
+									: {}
 							fetchDetails.result = { ...fetchDetails.result, ...fetchDetails?.result.resource_details }
 						} else {
 							const fetchProjectDetails = await projectService.details(
