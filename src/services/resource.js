@@ -60,6 +60,8 @@ module.exports = class resourceHelper {
 		let filter = {}
 		// create the final filter by combining primary filters , query params and search text
 		filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
+		// return a sort object with sorting parameters. if no params are provided returns {}
+		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
 
 		// Add id, organization_code, and status filters
 		filter = {
@@ -70,45 +72,72 @@ module.exports = class resourceHelper {
 					: common.PAGE_STATUS_VALUES['submitted_for_review'],
 			},
 			is_reusable: true,
+			created_by: userId,
+			tenant_code,
 		}
 
 		// fetch all resource ids created by the logged in user
-		const { count, rows } = await this.resourcesCreatedByUser(
-			userId,
-			tenant_code,
-			['resource_id', 'organization_code'],
-			{
-				resourceAttributes: [
-					'id',
-					'title',
-					'organization_code',
-					'type',
-					'status',
-					'stage',
-					'user_id',
-					'created_at',
-					'updated_at',
-					'submitted_on',
-					'published_on',
-					'last_reviewed_on',
-					'meta',
-					'is_under_edit',
-					'published_id',
-				],
-				resourceFilter: filter,
-				resourceOptions: {
-					limit,
-					offset: common.getPaginationOffset(page, limit),
-				},
-			}, // resource related options
-			{
-				reviewsAttributes: ['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes'],
-				reviewsFilter: {
-					tenant_code: tenant_code,
-				},
-			} // reviews related options
+		// const { count, rows } = await this.resourcesCreatedByUser(
+		// 	userId,
+		// 	tenant_code,
+		// 	['resource_id', 'organization_code'],
+		// 	{
+		// 		resourceAttributes: [
+		// 			'id',
+		// 			'title',
+		// 			'organization_code',
+		// 			'type',
+		// 			'status',
+		// 			'stage',
+		// 			'user_id',
+		// 			'created_at',
+		// 			'updated_at',
+		// 			'submitted_on',
+		// 			'published_on',
+		// 			'last_reviewed_on',
+		// 			'meta',
+		// 			'is_under_edit',
+		// 			'published_id',
+		// 		],
+		// 		resourceFilter: filter,
+		// 		resourceOptions: {
+		// 			limit,
+		// 			offset: common.getPaginationOffset(page, limit),
+		// 		},
+		// 	}, // resource related options
+		// 	{
+		// 		reviewsAttributes: ['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes'],
+		// 		reviewsFilter: {
+		// 			tenant_code: tenant_code,
+		// 		},
+		// 	} // reviews related options
+		// )
+
+		const resourceList = await resourceQueries.resourceList(
+			filter,
+			[
+				'id',
+				'title',
+				'organization_code',
+				'type',
+				'status',
+				'stage',
+				'user_id',
+				'created_at',
+				'updated_at',
+				'submitted_on',
+				'published_on',
+				'last_reviewed_on',
+				'meta',
+				'is_under_edit',
+				'published_id',
+			],
+			sort,
+			page,
+			limit
 		)
-		if (count <= 0) {
+
+		if (resourceList.count <= 0) {
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -270,7 +299,7 @@ module.exports = class resourceHelper {
 
 	static async listAllDrafts(userId, queryParams, searchText = '', page, limit, userToken, org_code, tenant_code) {
 		try {
-			let result = {
+			let draftResult = {
 				data: [],
 				count: 0,
 			}
@@ -279,6 +308,8 @@ module.exports = class resourceHelper {
 					status: {
 						[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_DRAFTS],
 					},
+					created_by: userId,
+					tenant_code,
 				},
 				queryParams,
 				searchText
@@ -287,40 +318,32 @@ module.exports = class resourceHelper {
 			// return a sort object with sorting parameters. if no params are provided returns {}
 			const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
 
-			// fetch all resources created by the logged in user
-			const { count, rows } = await this.resourcesCreatedByUser(
-				userId, // loggedIn userId
-				tenant_code, // user's tenant code
-				['resource_id', 'organization_code', 'tenant_code'], // mapping table attributes
-				{
-					resourceAttributes: [
-						'id',
-						'title',
-						'organization_code',
-						'type',
-						'status',
-						'user_id',
-						'created_at',
-						'updated_at',
-						'stage',
-						'meta',
-					], // resource table attributes
-					resourceFilter, // resource table filter
-					resourceOptions: {
-						limit,
-						offset: common.getPaginationOffset(page, limit), // pagination offset
-						...sort,
-					}, // resource table related options
-				} // resource table related options
+			const { count, result } = await resourceQueries.resourceList(
+				resourceFilter,
+				[
+					'id',
+					'title',
+					'organization_code',
+					'type',
+					'status',
+					'user_id',
+					'created_at',
+					'updated_at',
+					'stage',
+					'meta',
+				],
+				sort,
+				page,
+				limit
 			)
 
-			const resourcesCreatedByMe = rows
+			const resourcesCreatedByMe = result
 
 			if (resourcesCreatedByMe.length <= 0) {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'RESOURCE_LISTED_SUCCESSFULLY',
-					result,
+					draftResult,
 				})
 			}
 
@@ -329,31 +352,18 @@ module.exports = class resourceHelper {
 				resourcesCreatedByMe.map((item) => item.organization_code)
 			)
 
-			// fetches data from resource table with the passed filters
-			const response = {
-				result: resourcesCreatedByMe.map((r) => r.resource),
-			}
-
-			if (response.result.length <= 0) {
-				return responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: 'RESOURCE_LISTED_SUCCESSFULLY',
-					result,
-				})
-			}
-
 			// fetch the user details from user service
 			const userDetails = await this.fetchUserDetails([userId], org_code, tenant_code, userToken)
 
 			// fetch the org details from user service
 			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationCodes, tenant_code)
-			result = await this.responseBuilder(response, userDetails, orgDetails, {})
-			result.count = count
+			draftResult = await this.responseBuilder({ result: resourcesCreatedByMe }, userDetails, orgDetails, {})
+			draftResult.count = count
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
-				result,
+				result: draftResult,
 			})
 		} catch (error) {
 			return responses.successResponse({
@@ -572,7 +582,13 @@ module.exports = class resourceHelper {
 		let resourceData = {}
 		if (loggedInUserId && tenant_code) {
 			// fetch the details of resource and organization from resource creator mapping table by the user
-			resourceData = await resourceCreatorMappingQueries.findAndCountAll(
+			// resourceData = await resourceCreatorMappingQueries.findAndCountAll(
+			// 	{ creator_id: loggedInUserId, tenant_code: tenant_code },
+			// 	attributes,
+			// 	{ ...resourceOptions, ...reviewOptions }
+			// )
+			// fetch the details of resource and organization from resource creator mapping table by the user
+			resourceData = await resourceQueries.resourceList(
 				{ creator_id: loggedInUserId, tenant_code: tenant_code },
 				attributes,
 				{ ...resourceOptions, ...reviewOptions }

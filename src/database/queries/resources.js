@@ -82,7 +82,7 @@ exports.findAll = async (filter, attributes = {}) => {
 	}
 }
 
-exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = common.LIMIT) => {
+exports.resourceList = async (filter, attributes = {}, sort = {}, page = 1, limit = common.LIMIT) => {
 	try {
 		let resourceFilter = {
 			where: filter,
