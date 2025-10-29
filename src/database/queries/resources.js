@@ -86,7 +86,7 @@ exports.findAll = async (filter, attributes = {}) => {
 
 exports.resourceList = async (
 	filter,
-	attributes = {},
+	attributes = null,
 	sort = {},
 	page = 1,
 	limit = common.LIMIT,

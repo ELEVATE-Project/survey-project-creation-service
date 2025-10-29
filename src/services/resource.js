@@ -122,9 +122,8 @@ module.exports = class resourceHelper {
 
 		// get the review details of all the resources created by the logged in user
 		const resourceReviews = resourcesCreatedByMe
-			.map((resource) => resource.reviews)
-			.filter((review) => review != null && review.id != null) // Filters out null arrays AND objects where id is null
-
+			.flatMap((resource) => resource.reviews || [])
+			.filter((review) => review != null && review.id != null)
 		// fetches data from resource table with the passed filters
 		const response = {
 			result: resourcesCreatedByMe.map((resource) => {
@@ -300,7 +299,8 @@ module.exports = class resourceHelper {
 				],
 				sort,
 				page,
-				limit
+				limit,
+				false
 			)
 
 			const resourcesCreatedByMe = result
@@ -533,37 +533,6 @@ module.exports = class resourceHelper {
 	}
 
 	/**
-	 * Get all resources of User
-	 * @name resourcesCreatedByUser
-	 * @param {String} loggedInUserId -  loggedInUserId.
-	 * @returns {Array} - Response contain array of resources
-	 */
-	static async resourcesCreatedByUser(
-		loggedInUserId,
-		tenant_code,
-		attributes = ['resource_id'],
-		resourceOptions = {},
-		reviewOptions = {}
-	) {
-		let resourceData = {}
-		if (loggedInUserId && tenant_code) {
-			// fetch the details of resource and organization from resource creator mapping table by the user
-			// resourceData = await resourceCreatorMappingQueries.findAndCountAll(
-			// 	{ creator_id: loggedInUserId, tenant_code: tenant_code },
-			// 	attributes,
-			// 	{ ...resourceOptions, ...reviewOptions }
-			// )
-			// fetch the details of resource and organization from resource creator mapping table by the user
-			resourceData = await resourceQueries.resourceList(
-				{ creator_id: loggedInUserId, tenant_code: tenant_code },
-				attributes,
-				{ ...resourceOptions, ...reviewOptions }
-			)
-		}
-		return resourceData
-	}
-
-	/**
 	 * List up for review resources of reviewers
 	 * Description : This is a reviewer centric API which will return the list of all the resources which the reviewer can review.
 	 * 				 The list will contain all the resources the user is already reviewing  , resources which are assigned to the reviewer ,
@@ -761,7 +730,8 @@ module.exports = class resourceHelper {
 				],
 				sort,
 				page,
-				limit
+				limit,
+				false
 			)
 
 			if (response.result.length === 0) {
@@ -1527,7 +1497,8 @@ module.exports = class resourceHelper {
 				['id', 'title', 'type', 'created_by', 'created_at', 'published_on', 'organization_code', 'meta'],
 				sort,
 				pageNo,
-				pageSize
+				pageSize,
+				false
 			)
 
 			let userIds = internalResources.result.map((item) => item.created_by)
