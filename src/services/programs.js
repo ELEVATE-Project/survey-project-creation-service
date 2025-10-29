@@ -157,6 +157,28 @@ module.exports = class ProgramsHelper {
 				},
 			}
 
+			if (
+				orgConfig &&
+				orgConfig?.result?.config &&
+				orgConfig?.result?.config?.external_project_resource_visibility_policy
+			) {
+				programData.visibility = orgConfig?.result?.config?.external_project_resource_visibility_policy
+
+				//get the related orgs for the solutions
+				let getRelatedOrgs = await userRequests.fetchOrg(org_code, tenant_code)
+				if (!getRelatedOrgs.success || !getRelatedOrgs?.data?.result?.related_org_details) {
+					return resolve({
+						status: httpStatusCode.internal_server_error.status,
+						message: 'Could not fetch organisation details',
+					})
+				}
+				//get the code to store it in  visibleToOrganizations key
+				let visibleOrg = getRelatedOrgs?.data?.result?.related_org_details.map((eachValue) => {
+					return eachValue.code
+				})
+				programData.visible_to_organizations = visibleOrg
+			}
+
 			// Create program and handle resource mapping
 			let programCreate = await resourceQueries.create(programData)
 			const programId = programCreate?.id

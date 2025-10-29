@@ -92,6 +92,28 @@ module.exports = class ProjectsHelper {
 				updated_by: loggedInUserId,
 			}
 
+			if (
+				orgConfig &&
+				orgConfig?.result?.config &&
+				orgConfig?.result?.config?.external_project_resource_visibility_policy
+			) {
+				projectData.visibility = orgConfig?.result?.config?.external_project_resource_visibility_policy
+
+				//get the related orgs for the solutions
+				let getRelatedOrgs = await userRequests.fetchOrg(orgCode, tenantCode)
+				if (!getRelatedOrgs.success || !getRelatedOrgs?.data?.result?.related_org_details) {
+					return resolve({
+						status: httpStatusCode.internal_server_error.status,
+						message: 'Could not fetch organisation details',
+					})
+				}
+				//get the code to store it in  visibleToOrganizations key
+				let visibleOrg = getRelatedOrgs?.data?.result?.related_org_details.map((eachValue) => {
+					return eachValue.code
+				})
+				projectData.visible_to_organizations = visibleOrg
+			}
+
 			let projectCreate
 			try {
 				//create project

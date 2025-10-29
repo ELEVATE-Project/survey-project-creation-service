@@ -269,4 +269,6 @@ module.exports = {
 	OPERATION_REMOVE: 'remove',
 	PUT: 'PUT',
 	ALL: 'ALL',
+	ASSOCIATED: 'ASSOCIATED',
+	CURRENT: 'CURRENT',
 }

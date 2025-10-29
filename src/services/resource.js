@@ -28,6 +28,7 @@ const rolePermissionMappingQueries = require('@database/queries/role-permission-
 const consumptionConfig = require('@consumption/config')
 const endPoints = require('@constants/endpoints')
 const requests = require('@generics/requests')
+const organizationConfigQueries = require('@database/queries/organizationConfig')
 
 module.exports = class resourceHelper {
 	/**
@@ -1534,9 +1535,8 @@ module.exports = class resourceHelper {
 				? query[common.TYPE].split(',').filter((type) => allowedResources.includes(type))
 				: allowedResources
 			const search = searchText != '' ? searchText : ''
-
 			let filterQuery = {
-				organization_code,
+				// organization_code,
 				tenant_code: tenant_code,
 				status: common.RESOURCE_STATUS_PUBLISHED,
 				is_reusable: true,
@@ -1558,6 +1558,76 @@ module.exports = class resourceHelper {
 					[Op.in]: resourceIds,
 				}
 				delete filterQuery.is_reusable
+			}
+
+			let getOrgPolicies = await organizationConfigQueries.findAll(
+				{
+					organization_code: organization_code,
+					tenant_code: tenant_code,
+				},
+				['organization_code', 'external_project_resource_visibility_policy']
+			)
+			if (getOrgPolicies.length > 0) {
+				const orgPolicies = getOrgPolicies[0].external_project_resource_visibility_policy
+
+				switch (orgPolicies) {
+					// --------------------------------------------------------------------
+					// CASE 1: CURRENT
+					// --------------------------------------------------------------------
+					// Fetch resources that belong ONLY to the current organization.
+					// This policy is the strictest visibility level — no shared or public data.
+					//--------------------------------------------------------------------
+					case common.CURRENT:
+						filterQuery.organization_code = organization_code
+						break
+					// --------------------------------------------------------------------
+					// CASE 2: ASSOCIATED
+					// --------------------------------------------------------------------
+					// Fetch resources that are:
+					//   1. Belonging to the current org
+					//   2. Shared with the current org via "visible_to_organizations" array
+					// --------------------------------------------------------------------
+					case common.ASSOCIATED:
+						filterQuery[Op.or] = [
+							{
+								[Op.and]: [
+									{ visibility: { [Op.ne]: common.CURRENT } },
+									{ visible_to_organizations: { [Op.contains]: [organization_code] } },
+								],
+							},
+							{ organization_code },
+						]
+						break
+					// --------------------------------------------------------------------
+					// CASE 3: ALL
+					// --------------------------------------------------------------------
+					// Fetch ALL possible visible resources for the current org, including:
+					//   1. Public resources (visibility = 'ALL')
+					//   2. Shared resources visible to this org
+					//      (visibility != 'CURRENT' AND org is in visible_to_organizations)
+					//    3. Org’s own resources
+					//   --------------------------------------------------------------------
+
+					case common.ALL:
+						filterQuery[Op.or] = [
+							{ visibility: common.ALL },
+							{
+								[Op.and]: [
+									{ visibility: { [Op.ne]: common.CURRENT } },
+									{ visible_to_organizations: { [Op.contains]: [organization_code] } },
+								],
+							},
+							{ organization_code },
+						]
+						break
+
+					default:
+						return resolve({
+							message: common.INVALID_POLICY,
+							result: [],
+							success: false,
+						})
+				}
 			}
 
 			const internalResources = await resourceQueries.resourceList(

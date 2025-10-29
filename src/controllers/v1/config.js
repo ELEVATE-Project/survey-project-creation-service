@@ -29,23 +29,38 @@ module.exports = class configs {
 		}
 	}
 
-	//create config
-
 	/**
-	 * List Configs.
+	 * createOrUpdate org config.
 	 * @method
-	 * @name list
-	 * @returns {JSON} - List of configs as response.
+	 * @name createOrUpdate
+	 * @returns {JSON} - createOrUpdate configs message  as response.
 	 */
-	async create(req) {
+	async createOrUpdate(req) {
 		try {
-			const configs = await orgExtensionService.createConfig(
+			let configs = await orgExtensionService.createOrUpdate(
 				req.body,
 				req.decodedToken.organization_code,
-				req.decodedToken.tenant_code,
-				false
+				req.decodedToken.tenant_code
 			)
+			return configs
+		} catch (error) {
+			return error
+		}
+	}
 
+	/**
+	 * updateRelated org resource.
+	 * @method
+	 * @name updateRelatedOrgs
+	 * @returns {JSON} - updateRelatedOrgs message as response.
+	 */
+	async updateRelatedOrgs(req) {
+		try {
+			let configs = await orgExtensionService.updateRelatedOrgs(
+				req.body,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
 			return configs
 		} catch (error) {
 			return error

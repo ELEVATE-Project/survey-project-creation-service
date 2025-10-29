@@ -434,6 +434,15 @@ let environmentVariables = {
 		optional: true,
 		default: false,
 	},
+	ORGANIZATION_UPDATES_TOPIC: {
+		message: 'Required user service organization event',
+		optional: true,
+		requiredIf: {
+			key: 'KAFKA_COMMUNICATIONS_ON_OFF',
+			operator: 'EQUALS',
+			value: 'ON',
+		},
+	},
 }
 
 let success = true

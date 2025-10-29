@@ -10,6 +10,7 @@ const userRequests = require('@requests/user')
 const utils = require('@generics/utils')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
 const organizationConfigQueries = require('@database/queries/organizationConfig')
+const resourceQueries = require('@database/queries/resources')
 const Op = require('sequelize').Op
 module.exports = class orgExtensionsHelper {
 	/**
@@ -19,126 +20,101 @@ module.exports = class orgExtensionsHelper {
 	 * @param {Object} bodyData - Organization Config body data.
 	 * @param {String} orgCode - organization code
 	 * @param {String} tenantCode - tenant code
-	 * @param {Boolean} skipReviewCreation - skip review and orgeExtension creation
 	 * @returns {JSON} - Organization Config created response.
 	 */
 
-	static async createConfig(bodyData, orgCode, tenantCode, skipReviewCreation = true) {
+	static async createConfig(bodyData, orgCode, tenantCode) {
 		try {
-			console.log(skipReviewCreation, orgCode, tenantCode)
-
 			bodyData.organization_code = orgCode
 			bodyData.tenant_code = tenantCode
-			const {
-				resource_type,
-				review_stages,
-				review_type,
-				data_managers,
-				program_managers,
-				project_resource_visibility_policy,
-				external_project_resource_visibility_policy,
-			} = bodyData
-			let meta = {}
+			const { resource_type, review_stages, review_type, data_managers, program_managers } = bodyData
 			// check if body have data_managers
 			if (data_managers?.length) {
-				meta.data_managers = data_managers
+				await organizationConfigQueries.upsert(
+					{
+						organization_code: orgCode,
+						tenant_code: tenantCode,
+						meta: { data_managers },
+						updated_at: new Date(),
+					},
+					{ organization_code: orgCode, tenant_code: tenantCode }
+				)
 			}
-			// check if body have program_managers
 			if (program_managers?.length) {
-				meta.program_managers = program_managers
+				await organizationConfigQueries.upsert(
+					{
+						organization_code: orgCode,
+						tenant_code: tenantCode,
+						meta: { program_managers },
+						updated_at: new Date(),
+					},
+					{ organization_code: orgCode, tenant_code: tenantCode }
+				)
+			}
+			const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
+			if (!validResourceTypes.includes(resource_type)) {
+				return responses.failureResponse({
+					message: `resource_type ${resource_type} is not a valid`,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
 			}
 
-			// Build the update object conditionally
-			let updateData = {
-				organization_code: orgCode,
-				tenant_code: tenantCode,
-				...(Object.keys(meta).length && { meta }),
-				updated_at: new Date(),
-			}
+			// Check if review_stages is not null, undefined, not an array, empty or invalid
+			if (review_type === common.REVIEW_TYPE_SEQUENTIAL) {
+				const isValidReviewStages =
+					Array.isArray(review_stages) &&
+					review_stages.length > 0 &&
+					review_stages.every(
+						(eachStage) =>
+							eachStage &&
+							typeof eachStage === 'object' &&
+							!Array.isArray(eachStage) &&
+							eachStage.hasOwnProperty('role') &&
+							eachStage.hasOwnProperty('level')
+					)
 
-			// Add visibility policies only if they are non-empty strings
-			if (project_resource_visibility_policy?.trim()) {
-				updateData.project_resource_visibility_policy = project_resource_visibility_policy.trim()
-			}
-
-			if (external_project_resource_visibility_policy?.trim()) {
-				updateData.external_project_resource_visibility_policy =
-					external_project_resource_visibility_policy.trim()
-			}
-
-			await organizationConfigQueries.upsert(updateData, { organization_code: orgCode, tenant_code: tenantCode })
-			if (skipReviewCreation) {
-				const validResourceTypes = process.env.RESOURCE_TYPES.split(',')
-				if (!validResourceTypes.includes(resource_type)) {
+				if (!isValidReviewStages) {
 					return responses.failureResponse({
-						message: `resource_type ${resource_type} is not a valid`,
+						message: 'REVIEW_STAGES_INVALID',
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
 					})
 				}
 
-				// Check if review_stages is not null, undefined, not an array, empty or invalid
-				if (review_type === common.REVIEW_TYPE_SEQUENTIAL) {
-					const isValidReviewStages =
-						Array.isArray(review_stages) &&
-						review_stages.length > 0 &&
-						review_stages.every(
-							(eachStage) =>
-								eachStage &&
-								typeof eachStage === 'object' &&
-								!Array.isArray(eachStage) &&
-								eachStage.hasOwnProperty('role') &&
-								eachStage.hasOwnProperty('level')
-						)
+				try {
+					const createReviewStages = review_stages.map((stage) => ({
+						...stage,
+						organization_code: orgCode,
+						tenant_code: tenantCode,
+						resource_type,
+					}))
 
-					if (!isValidReviewStages) {
-						return responses.failureResponse({
-							message: 'REVIEW_STAGES_INVALID',
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
-						})
-					}
-
-					try {
-						const createReviewStages = review_stages.map((stage) => ({
-							...stage,
-							organization_code: orgCode,
-							tenant_code: tenantCode,
-							resource_type,
-						}))
-
-						await reviewStageQueries.bulkCreate(createReviewStages)
-					} catch (error) {
-						return responses.failureResponse({
-							message: error.message,
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
-						})
-					}
-				}
-
-				const orgExtension = await orgExtensionQueries.create(bodyData)
-				if (!orgExtension?.id) {
+					await reviewStageQueries.bulkCreate(createReviewStages)
+				} catch (error) {
 					return responses.failureResponse({
-						message: 'FAILED_TO_CREATE_CONFIG',
+						message: error.message,
 						statusCode: httpStatusCode.bad_request,
 						responseCode: 'CLIENT_ERROR',
 					})
 				}
+			}
 
-				return responses.successResponse({
-					statusCode: httpStatusCode.created,
-					message: 'CONFIG_ADDED_SUCCESSFULLY',
-					result: orgExtension,
-				})
-			} else {
-				return responses.successResponse({
-					statusCode: httpStatusCode.created,
-					message: 'CONFIG_ADDED_SUCCESSFULLY',
+			const orgExtension = await orgExtensionQueries.create(bodyData)
+			if (!orgExtension?.id) {
+				return responses.failureResponse({
+					message: 'FAILED_TO_CREATE_CONFIG',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.created,
+				message: 'CONFIG_ADDED_SUCCESSFULLY',
+				result: orgExtension,
+			})
 		} catch (error) {
-			console.log(error, 'this is errrrrrrr')
 			if (error instanceof UniqueConstraintError) {
 				return responses.failureResponse({
 					message: 'CONFIG_ALREADY_EXIST',
@@ -162,6 +138,7 @@ module.exports = class orgExtensionsHelper {
 	 * @param {String} id - config id.
 	 * @param {String} orgCode - organization code
 	 * @param {String} tenantCode - tenant code
+	 * @param {Boolean} skipReviewCreation - skip review and orgeExtension update
 	 * @returns {JSON} - Organization Config updated response.
 	 */
 
@@ -353,7 +330,7 @@ module.exports = class orgExtensionsHelper {
 					},
 					tenant_code: tenantCode,
 				},
-				['meta', 'organization_code']
+				['meta', 'organization_code', 'external_project_resource_visibility_policy']
 			)
 
 			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
@@ -373,7 +350,9 @@ module.exports = class orgExtensionsHelper {
 			) {
 				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',') || []
 			}
-
+			// adding orgPolicies visibilty
+			result.config.external_project_resource_visibility_policy =
+				orgConfigs?.[0]?.external_project_resource_visibility_policy
 			// attributes to fetch from organisation Extenstion
 			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
 
@@ -455,6 +434,171 @@ module.exports = class orgExtensionsHelper {
 				statusCode: httpStatusCode.internal_server_error,
 				message: 'CONFIG_FETCH_FAILED',
 				result: [],
+			})
+		}
+	}
+
+	/**
+	 * createOrUpdate Organization Config.
+	 * @method
+	 * @name createOrUpdate
+	 * @param {Object} bodyData - Organization Config body data.
+	 * @param {String} orgCode - organization code
+	 * @param {String} tenantCode - tenant code
+	 * @param {Boolean} skipReviewCreation - skip review and orgeExtension creation
+	 * @returns {JSON} - Organization Config created response.
+	 */
+
+	static async createOrUpdate(bodyData, orgCode, tenantCode) {
+		try {
+			// fetch org config for organization_code
+			const orgConfigs = await organizationConfigQueries.findAll(
+				{
+					organization_code: orgCode,
+					tenant_code: tenantCode,
+				},
+				['meta', 'organization_code', 'external_project_resource_visibility_policy']
+			)
+			bodyData.organization_code = orgCode
+			bodyData.tenant_code = tenantCode
+			const {
+				data_managers,
+				program_managers,
+				project_resource_visibility_policy,
+				external_project_resource_visibility_policy,
+			} = bodyData
+			let meta = {}
+			// check if body have data_managers
+			if (data_managers?.length) {
+				meta.data_managers = data_managers
+			}
+			// check if body have program_managers
+			if (program_managers?.length) {
+				meta.program_managers = program_managers
+			}
+
+			// Build the update object conditionally
+			let updateData = {
+				organization_code: orgCode,
+				tenant_code: tenantCode,
+				meta,
+				updated_at: new Date(),
+			}
+
+			//Check policies or valid
+			const VALID_POLICIES = [common.ALL, common.ASSOCIATED, common.CURRENT]
+
+			// Add policies visibility  only if they are non-empty strings and valid
+			if (project_resource_visibility_policy?.trim()) {
+				const value = project_resource_visibility_policy.trim().toUpperCase()
+				if (VALID_POLICIES.includes(value)) {
+					updateData.project_resource_visibility_policy = value
+				}
+			}
+
+			if (external_project_resource_visibility_policy?.trim()) {
+				const value = external_project_resource_visibility_policy.trim().toUpperCase()
+				if (VALID_POLICIES.includes(value)) {
+					updateData.external_project_resource_visibility_policy = value
+				}
+			}
+			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
+				// Existing config found → perform update
+				const [updatedCount] = await organizationConfigQueries.update(
+					{
+						organization_code: orgCode,
+						tenant_code: tenantCode,
+					},
+					updateData
+				)
+
+				if (updatedCount > 0) {
+					return responses.successResponse({
+						statusCode: httpStatusCode.ok,
+						message: 'CONFIG_UPDATED_SUCCESSFULLY',
+					})
+				} else {
+					// fallback: something went wrong during update
+					return responses.failureResponse({
+						statusCode: httpStatusCode.bad_request,
+						message: 'CONFIG_UPDATE_FAILED',
+					})
+				}
+			} else {
+				// No existing config → create new
+				const createOrgConfigs = await organizationConfigQueries.upsert(updateData, {
+					organization_code: orgCode,
+					tenant_code: tenantCode,
+				})
+
+				if (createOrgConfigs) {
+					return responses.successResponse({
+						statusCode: httpStatusCode.created,
+						message: 'CONFIG_ADDED_SUCCESSFULLY',
+					})
+				} else {
+					return responses.failureResponse({
+						statusCode: httpStatusCode.bad_request,
+						message: 'CONFIG_CREATION_FAILED',
+					})
+				}
+			}
+		} catch (error) {
+			console.log(error, 'this is errrrrrrr')
+			if (error instanceof UniqueConstraintError) {
+				return responses.failureResponse({
+					message: 'CONFIG_ALREADY_EXIST',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
+		}
+	}
+
+	static async updateRelatedOrgs(bodyData, orgCode, tenantCode) {
+		try {
+			if (bodyData?.hasOwnProperty('related_org_details')) {
+				//get the code to store it in  visibleToOrganizations key
+				let visibleOrg = bodyData.related_org_details?.map((eachValue) => {
+					return eachValue.code
+				})
+
+				let updateData = {
+					organization_code: orgCode,
+					tenant_code: tenantCode,
+					visible_to_organizations: visibleOrg,
+					updatedAt: new Date(),
+				}
+
+				const [updatedCount] = await resourceQueries.update(
+					{ organization_code: orgCode, tenant_code: tenantCode, is_reusable: true },
+					updateData
+				)
+
+				if (updatedCount > 0) {
+					return responses.successResponse({
+						statusCode: httpStatusCode.ok,
+						message: 'RELATED_ORGS_UPDATED_SUCCESSFULLY',
+					})
+				} else {
+					// fallback: something went wrong during update
+					return responses.failureResponse({
+						statusCode: httpStatusCode.bad_request,
+						message: 'RELATED_ORGS_UPDATE_FAILED',
+					})
+				}
+			}
+		} catch (error) {
+			console.log(error, 'this is errrrrrrr')
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
 			})
 		}
 	}
