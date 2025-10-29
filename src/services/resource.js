@@ -76,43 +76,6 @@ module.exports = class resourceHelper {
 			tenant_code,
 		}
 
-		// fetch all resource ids created by the logged in user
-		// const { count, rows } = await this.resourcesCreatedByUser(
-		// 	userId,
-		// 	tenant_code,
-		// 	['resource_id', 'organization_code'],
-		// 	{
-		// 		resourceAttributes: [
-		// 			'id',
-		// 			'title',
-		// 			'organization_code',
-		// 			'type',
-		// 			'status',
-		// 			'stage',
-		// 			'user_id',
-		// 			'created_at',
-		// 			'updated_at',
-		// 			'submitted_on',
-		// 			'published_on',
-		// 			'last_reviewed_on',
-		// 			'meta',
-		// 			'is_under_edit',
-		// 			'published_id',
-		// 		],
-		// 		resourceFilter: filter,
-		// 		resourceOptions: {
-		// 			limit,
-		// 			offset: common.getPaginationOffset(page, limit),
-		// 		},
-		// 	}, // resource related options
-		// 	{
-		// 		reviewsAttributes: ['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes'],
-		// 		reviewsFilter: {
-		// 			tenant_code: tenant_code,
-		// 		},
-		// 	} // reviews related options
-		// )
-
 		const resourceList = await resourceQueries.resourceList(
 			filter,
 			[
@@ -145,6 +108,7 @@ module.exports = class resourceHelper {
 				result,
 			})
 		}
+		result.count = resourceList.count
 		let uniqueResourceIds = []
 		let OrganizationIds = []
 
