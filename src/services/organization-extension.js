@@ -333,10 +333,14 @@ module.exports = class orgExtensionsHelper {
 			)
 
 			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
-				result.config =
+				const selectedMeta =
 					orgConfigs.length > 1
 						? orgConfigs.find((config) => config.organization_code == organization_code)?.meta
 						: orgConfigs[0]?.meta
+				// Only reassign if meta is a valid object
+				if (selectedMeta && typeof selectedMeta === 'object') {
+					result.config = selectedMeta
+				}
 			}
 
 			if (orgConfigs?.meta?.data_managers?.length == 0 || orgConfigs?.meta?.data_managers?.length == undefined) {

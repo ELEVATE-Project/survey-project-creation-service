@@ -1569,9 +1569,18 @@ module.exports = class resourceHelper {
 			)
 			// get orgPolicies filter for the organization
 			const orgPoliciesFilter = this.applyOrgVisibilityPolicy(getOrgPolicies, organization_code, filterQuery)
-			if (orgPoliciesFilter.success) {
-				filterQuery = orgPoliciesFilter.filterQuery
+
+			if (!orgPoliciesFilter.success) {
+				return responses.failureResponse({
+					message: orgPoliciesFilter.message || 'ORG_POLICY_APPLICATION_FAILED',
+					statusCode: httpStatusCode.internal_server_error,
+					responseCode: 'SERVER_ERROR',
+					result: { data: [], count: 0 },
+				})
 			}
+
+			filterQuery = orgPoliciesFilter.filterQuery
+
 			const internalResources = await resourceQueries.resourceList(
 				filterQuery,
 				['id', 'title', 'type', 'created_by', 'created_at', 'published_on', 'organization_code', 'meta'],
@@ -1655,7 +1664,7 @@ module.exports = class resourceHelper {
 	 * @param {Object} filterQuery - (optional) Existing filter query to extend.
 	 * @returns {Object} Sequelize-compatible filterQuery object.
 	 */
-	static async applyOrgVisibilityPolicy(orgPolicies, organization_code, filterQuery = {}) {
+	static applyOrgVisibilityPolicy(orgPolicies, organization_code, filterQuery = {}) {
 		try {
 			if (!orgPolicies?.length) return { success: common.FALSE, filterQuery }
 
@@ -1714,17 +1723,22 @@ module.exports = class resourceHelper {
 					break
 
 				default:
-					throw responses.failureResponse({
+					return {
+						success: common.FALSE,
 						statusCode: httpStatusCode.bad_request,
-						responseCode: 'CLIENT_ERROR',
 						message: 'INVALID_POLICY',
-						result: [],
-					})
+						filterQuery,
+					}
 			}
 
 			return { success: common.TRUE, filterQuery }
 		} catch (error) {
-			throw error
+			return {
+				success: common.FALSE,
+				statusCode: httpStatusCode.internal_server_error,
+				message: error.message || 'POLICY_APPLICATION_ERROR',
+				filterQuery,
+			}
 		}
 	}
 

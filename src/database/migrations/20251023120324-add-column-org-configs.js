@@ -25,5 +25,9 @@ module.exports = {
 		 */
 		await queryInterface.removeColumn('organization_configs', 'resource_visibility_policy')
 		await queryInterface.removeColumn('organization_configs', 'external_resource_visibility_policy')
+		await queryInterface.sequelize.query(`
+	       DROP TYPE IF EXISTS "enum_organization_configs_resource_visibility_policy";
+		   DROP TYPE IF EXISTS "enum_organization_configs_external_resource_visibility_policy";
+		`)
 	},
 }
