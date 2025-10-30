@@ -41,7 +41,7 @@ SCP is built with a multi-tenant architecture that supports:
 
 ## Roles at a Glance
 
-###Quick Role Summary
+### Quick Role Summary
 
 | Role                   | Scope        | Key Responsibilities                                                     |
 | ---------------------- | ------------ | ------------------------------------------------------------------------ |
@@ -459,8 +459,6 @@ Role names are customizable through environment variables to align with organiza
 -   ✅ = Allowed
 -   ❌ = Not allowed
 -   ✅\* = Allowed only for owned resources (draft status)
-
-</details>
 
 ---
 
