@@ -3,13 +3,13 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
-		await queryInterface.addColumn('organization_configs', 'project_resource_visibility_policy', {
+		await queryInterface.addColumn('organization_configs', 'resource_visibility_policy', {
 			type: Sequelize.ENUM('CURRENT', 'ASSOCIATED', 'ALL'),
 			allowNull: false,
 			defaultValue: 'CURRENT',
 		})
 
-		await queryInterface.addColumn('organization_configs', 'external_project_resource_visibility_policy', {
+		await queryInterface.addColumn('organization_configs', 'external_resource_visibility_policy', {
 			type: Sequelize.ENUM('CURRENT', 'ASSOCIATED', 'ALL'),
 			allowNull: false,
 			defaultValue: 'CURRENT',
@@ -23,7 +23,7 @@ module.exports = {
 		 * Example:
 		 * await queryInterface.dropTable('users');
 		 */
-		await queryInterface.removeColumn('organization_configs', 'project_resource_visibility_policy')
-		await queryInterface.removeColumn('organization_configs', 'external_project_resource_visibility_policy')
+		await queryInterface.removeColumn('organization_configs', 'resource_visibility_policy')
+		await queryInterface.removeColumn('organization_configs', 'external_resource_visibility_policy')
 	},
 }

@@ -329,7 +329,7 @@ module.exports = class orgExtensionsHelper {
 					},
 					tenant_code: tenantCode,
 				},
-				['meta', 'organization_code', 'external_project_resource_visibility_policy']
+				['meta', 'organization_code', 'external_resource_visibility_policy', 'resource_visibility_policy']
 			)
 
 			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
@@ -352,9 +352,9 @@ module.exports = class orgExtensionsHelper {
 			// adding orgPolicies visibilty
 			const orgSpecificPolicy = orgConfigs.find(
 				(config) => config.organization_code === organization_code
-			)?.external_project_resource_visibility_policy
+			)?.external_resource_visibility_policy
 
-			result.config.external_project_resource_visibility_policy = orgSpecificPolicy
+			result.config.external_resource_visibility_policy = orgSpecificPolicy
 			// attributes to fetch from organisation Extenstion
 			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
 
@@ -454,21 +454,17 @@ module.exports = class orgExtensionsHelper {
 	static async createOrUpdate(bodyData, orgCode, tenantCode) {
 		try {
 			// fetch org config for organization_code
-			const orgConfigs = await organizationConfigQueries.findAll(
+			const orgConfigs = await organizationConfigQueries.findOne(
 				{
 					organization_code: orgCode,
 					tenant_code: tenantCode,
 				},
-				['meta', 'organization_code', 'external_project_resource_visibility_policy']
+				['meta', 'organization_code', 'external_resource_visibility_policy', 'resource_visibility_policy']
 			)
 			bodyData.organization_code = orgCode
 			bodyData.tenant_code = tenantCode
-			const {
-				data_managers,
-				program_managers,
-				project_resource_visibility_policy,
-				external_project_resource_visibility_policy,
-			} = bodyData
+			const { data_managers, program_managers, resource_visibility_policy, external_resource_visibility_policy } =
+				bodyData
 			let meta = {}
 			// check if body have data_managers
 			if (data_managers?.length) {
@@ -487,24 +483,21 @@ module.exports = class orgExtensionsHelper {
 				updated_at: new Date(),
 			}
 
-			//Check policies or valid
-			const VALID_POLICIES = [common.ALL, common.ASSOCIATED, common.CURRENT]
-
 			// Add policies visibility  only if they are non-empty strings and valid
-			if (project_resource_visibility_policy?.trim()) {
-				const value = project_resource_visibility_policy.trim().toUpperCase()
-				if (VALID_POLICIES.includes(value)) {
-					updateData.project_resource_visibility_policy = value
+			if (resource_visibility_policy?.trim()) {
+				const value = resource_visibility_policy.trim().toUpperCase()
+				if (common.VALID_POLICIES.includes(value)) {
+					updateData.resource_visibility_policy = value
 				}
 			}
 
-			if (external_project_resource_visibility_policy?.trim()) {
-				const value = external_project_resource_visibility_policy.trim().toUpperCase()
-				if (VALID_POLICIES.includes(value)) {
-					updateData.external_project_resource_visibility_policy = value
+			if (external_resource_visibility_policy?.trim()) {
+				const value = external_resource_visibility_policy.trim().toUpperCase()
+				if (common.VALID_POLICIES.includes(value)) {
+					updateData.external_resource_visibility_policy = value
 				}
 			}
-			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
+			if (orgConfigs?.organization_code) {
 				updateData = _.omit(updateData, ['meta'])
 				// Existing config found → perform update
 				const [updatedCount] = await organizationConfigQueries.update(

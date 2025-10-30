@@ -23,12 +23,12 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: true,
 				type: DataTypes.JSONB,
 			},
-			project_resource_visibility_policy: {
+			resource_visibility_policy: {
 				type: DataTypes.ENUM('CURRENT', 'ASSOCIATED', 'ALL'),
 				allowNull: false,
 				defaultValue: 'CURRENT',
 			},
-			external_project_resource_visibility_policy: {
+			external_resource_visibility_policy: {
 				type: DataTypes.ENUM('CURRENT', 'ASSOCIATED', 'ALL'),
 				allowNull: false,
 				defaultValue: 'CURRENT',

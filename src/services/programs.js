@@ -160,24 +160,18 @@ module.exports = class ProgramsHelper {
 			if (
 				orgConfig &&
 				orgConfig?.result?.config &&
-				orgConfig?.result?.config?.external_project_resource_visibility_policy
+				orgConfig?.result?.config?.external_resource_visibility_policy
 			) {
-				programData.visibility = orgConfig?.result?.config?.external_project_resource_visibility_policy
-
-				//get the related orgs for the solutions
-				let getRelatedOrgs = await userRequests.fetchOrg(org_code, tenant_code)
-				if (!getRelatedOrgs.success || !getRelatedOrgs?.data?.result?.related_org_details) {
-					return responses.failureResponse({
-						statusCode: httpStatusCode.internal_server_error,
-						message: 'COULD_NOT_FETCH_ORG_DETAILS',
-						responseCode: 'SERVER_ERROR',
-					})
+				//get visiblity and related_org details
+				const result = await this.populateVisibilityAndRelatedOrgs(
+					programData,
+					orgConfig,
+					org_code,
+					tenant_code
+				)
+				if (result.success) {
+					programData = result.dataObject
 				}
-				//get the code to store it in  visibleToOrganizations key
-				let visibleOrg = getRelatedOrgs?.data?.result?.related_org_details.map((eachValue) => {
-					return eachValue.code
-				})
-				programData.visible_to_organizations = visibleOrg
 			}
 
 			// Create program and handle resource mapping

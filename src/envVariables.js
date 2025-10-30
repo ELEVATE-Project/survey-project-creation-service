@@ -434,7 +434,7 @@ let environmentVariables = {
 		optional: true,
 		default: false,
 	},
-	ORGANIZATION_UPDATES_TOPIC: {
+	USER_SERVICE_ORG_UPDATE_TOPIC: {
 		message: 'Required user service organization event',
 		optional: true,
 		requiredIf: {

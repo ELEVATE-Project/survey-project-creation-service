@@ -95,23 +95,13 @@ module.exports = class ProjectsHelper {
 			if (
 				orgConfig &&
 				orgConfig?.result?.config &&
-				orgConfig?.result?.config?.external_project_resource_visibility_policy
+				orgConfig?.result?.config?.external_resource_visibility_policy
 			) {
-				projectData.visibility = orgConfig?.result?.config?.external_project_resource_visibility_policy
-
-				//get the related orgs for the solutions
-				let getRelatedOrgs = await userRequests.fetchOrg(orgCode, tenantCode)
-				if (!getRelatedOrgs.success || !getRelatedOrgs?.data?.result?.related_org_details) {
-					return resolve({
-						status: httpStatusCode.internal_server_error.status,
-						message: 'Could not fetch organisation details',
-					})
+				//get visiblity and related_org details
+				const result = await this.populateVisibilityAndRelatedOrgs(projectData, orgConfig, orgCode, tenantCode)
+				if (result.success) {
+					projectData = result.dataObject
 				}
-				//get the code to store it in  visibleToOrganizations key
-				let visibleOrg = getRelatedOrgs?.data?.result?.related_org_details.map((eachValue) => {
-					return eachValue.code
-				})
-				projectData.visible_to_organizations = visibleOrg
 			}
 
 			let projectCreate
@@ -1204,6 +1194,7 @@ module.exports = class ProjectsHelper {
 	 * @returns {void} - Modifies validationErrors array in place
 	 * @private
 	 */
+
 	static _validateSingleTaskDates(task, taskPath, validationErrors) {
 		const isSubtask = taskPath.includes('children')
 		const taskType = isSubtask ? 'Subtask' : 'Task'
@@ -1241,6 +1232,47 @@ module.exports = class ProjectsHelper {
 				validationErrors.push(
 					utils.errorObject(taskPath, 'end_date', `${taskType} end date must be after start date`)
 				)
+			}
+		}
+	}
+
+	/**
+	 * Populates visibility and related organization details for a program or project.
+	 * @method
+	 * @name populateVisibilityAndRelatedOrgs
+	 * @param {Object} dataObject - Target object to populate (e.g. programData or projectData).
+	 * @param {Object} orgConfig - Organization configuration object (from org service).
+	 * @param {String} orgCode - Code of the current organization.
+	 * @param {String}tenantCode - Tenant code for identifying the tenant.
+	 * @returns {Promise<Object>} - Returns an object containing success flag, dataObject, statusCode, and message.
+	 */
+	static async populateVisibilityAndRelatedOrgs(dataObject, orgConfig, orgCode, tenantCode) {
+		try {
+			// Set visibility from org configuration
+			dataObject.visibility = orgConfig?.result?.config?.external_resource_visibility_policy
+
+			//Fetch related organizations
+			const getRelatedOrgs = await userRequests.fetchOrg(orgCode, tenantCode)
+
+			if (!getRelatedOrgs.success || !getRelatedOrgs?.data?.result?.related_org_details) {
+				return {
+					success: false,
+					statusCode: httpStatusCode.internal_server_error,
+					message: 'COULD_NOT_FETCH_ORG_DETAILS',
+				}
+			}
+
+			const visibleOrg = getRelatedOrgs.data.result.related_org_details.map((eachValue) => eachValue.code)
+
+			// Assign visible organization codes
+			dataObject.visible_to_organizations = visibleOrg
+
+			return { success: true, dataObject }
+		} catch (error) {
+			return {
+				success: false,
+				statusCode: httpStatusCode.internal_server_error,
+				message: error.message || 'SOMETHING_WENT_WRONG',
 			}
 		}
 	}

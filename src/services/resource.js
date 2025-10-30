@@ -1565,71 +1565,13 @@ module.exports = class resourceHelper {
 					organization_code: organization_code,
 					tenant_code: tenant_code,
 				},
-				['organization_code', 'external_project_resource_visibility_policy']
+				['organization_code', 'external_resource_visibility_policy', 'resource_visibility_policy']
 			)
-			if (getOrgPolicies.length > 0) {
-				const orgPolicies = getOrgPolicies[0].external_project_resource_visibility_policy
-
-				switch (orgPolicies) {
-					// --------------------------------------------------------------------
-					// CASE 1: CURRENT
-					// --------------------------------------------------------------------
-					// Fetch resources that belong ONLY to the current organization.
-					// This policy is the strictest visibility level — no shared or public data.
-					//--------------------------------------------------------------------
-					case common.CURRENT:
-						filterQuery.organization_code = organization_code
-						break
-					// --------------------------------------------------------------------
-					// CASE 2: ASSOCIATED
-					// --------------------------------------------------------------------
-					// Fetch resources that are:
-					//   1. Belonging to the current org
-					//   2. Shared with the current org via "visible_to_organizations" array
-					// --------------------------------------------------------------------
-					case common.ASSOCIATED:
-						filterQuery[Op.or] = [
-							{
-								[Op.and]: [
-									{ visibility: { [Op.ne]: common.CURRENT } },
-									{ visible_to_organizations: { [Op.contains]: [organization_code] } },
-								],
-							},
-							{ organization_code },
-						]
-						break
-					// --------------------------------------------------------------------
-					// CASE 3: ALL
-					// --------------------------------------------------------------------
-					// Fetch ALL possible visible resources for the current org, including:
-					//   1. Public resources (visibility = 'ALL')
-					//   2. Shared resources visible to this org
-					//      (visibility != 'CURRENT' AND org is in visible_to_organizations)
-					//    3. Org’s own resources
-					//   --------------------------------------------------------------------
-
-					case common.ALL:
-						filterQuery[Op.or] = [
-							{ visibility: common.ALL },
-							{
-								[Op.and]: [
-									{ visibility: { [Op.ne]: common.CURRENT } },
-									{ visible_to_organizations: { [Op.contains]: [organization_code] } },
-								],
-							},
-							{ organization_code },
-						]
-						break
-					default:
-						return responses.failureResponse({
-							statusCode: httpStatusCode.bad_request,
-							responseCode: 'CLIENT_ERROR',
-							message: common.INVALID_POLICY,
-							result: [],
-						})
-				}
+			// get orgPolicies filter for the organization
+			const orgPoliciesFilter = this.applyOrgVisibilityPolicy(getOrgPolicies, organization_code, filterQuery)
+			if (orgPoliciesFilter.success) {
+				filterQuery = orgPoliciesFilter.filterQuery
 			}
-
 			const internalResources = await resourceQueries.resourceList(
 				filterQuery,
 				['id', 'title', 'type', 'created_by', 'created_at', 'published_on', 'organization_code', 'meta'],
@@ -1702,6 +1644,87 @@ module.exports = class resourceHelper {
 					count: 0,
 				},
 			})
+		}
+	}
+
+	/**
+	 * Builds a Sequelize filter query based on organization visibility policy.
+	 * applyOrgVisibilityPolicy
+	 * @param {Array} orgPolicies - Array of organization policy records.
+	 * @param {String} organization_code - The current organization code.
+	 * @param {Object} filterQuery - (optional) Existing filter query to extend.
+	 * @returns {Object} Sequelize-compatible filterQuery object.
+	 */
+	static async applyOrgVisibilityPolicy(orgPolicies, organization_code, filterQuery = {}) {
+		try {
+			if (!orgPolicies?.length) return { success: common.FALSE, filterQuery }
+
+			const orgPolicy = orgPolicies[0].external_resource_visibility_policy
+
+			switch (orgPolicy) {
+				// --------------------------------------------------------------------
+				// CASE 1: CURRENT
+				// --------------------------------------------------------------------
+				// Fetch resources that belong ONLY to the current organization.
+				// This policy is the strictest visibility level — no shared or public data.
+				//--------------------------------------------------------------------
+				case common.CURRENT:
+					filterQuery.organization_code = organization_code
+					break
+				// --------------------------------------------------------------------
+				// CASE 2: ASSOCIATED
+				// --------------------------------------------------------------------
+				// Fetch resources that are:
+				//   1. Belonging to the current org
+				//   2. Shared with the current org via "visible_to_organizations" array
+				// --------------------------------------------------------------------
+				case common.ASSOCIATED:
+					filterQuery[Op.or] = [
+						{
+							[Op.and]: [
+								{ visibility: { [Op.ne]: common.CURRENT } },
+								{ visible_to_organizations: { [Op.contains]: [organization_code] } },
+							],
+						},
+						{ organization_code },
+					]
+					break
+
+				// --------------------------------------------------------------------
+				// CASE 3: ALL
+				// --------------------------------------------------------------------
+				// Fetch ALL possible visible resources for the current org, including:
+				//  1. Public resources (visibility = 'ALL')
+				//  2. Shared resources visible to this org
+				//      (visibility != 'CURRENT' AND org is in visible_to_organizations)
+				//  3. Org’s own resources
+				// --------------------------------------------------------------------
+
+				case common.ALL:
+					filterQuery[Op.or] = [
+						{ visibility: common.ALL },
+						{
+							[Op.and]: [
+								{ visibility: { [Op.ne]: common.CURRENT } },
+								{ visible_to_organizations: { [Op.contains]: [organization_code] } },
+							],
+						},
+						{ organization_code },
+					]
+					break
+
+				default:
+					throw responses.failureResponse({
+						statusCode: httpStatusCode.bad_request,
+						responseCode: 'CLIENT_ERROR',
+						message: 'INVALID_POLICY',
+						result: [],
+					})
+			}
+
+			return { success: common.TRUE, filterQuery }
+		} catch (error) {
+			throw error
 		}
 	}
 
