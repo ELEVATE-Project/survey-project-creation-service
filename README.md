@@ -30,7 +30,7 @@ The Survey Project Creation Service (SCP) is a comprehensive platform for design
 
 SCP is built with a multi-tenant architecture that supports:
 
--   **Multiple Resource Types**: ✅ **Fully Implemented**: Projects, Programs | 🔄 **Upcoming**: Surveys, Observations, Observations with Rubrics
+-   **Multiple Resource Types**: ✅ **Fully Implemented**: Projects, Programs &#124; 🔄 **Upcoming**: Surveys, Observations, Observations with Rubrics
 -   **Flexible Review Workflows**: Sequential or parallel review processes
 -   **Organization-Specific Customization**: Each organization can override instance defaults per resource type
 -   **Comprehensive Role-Based Access Control**: admin, org_admin, tenant_admin, content_creator, reviewer, program_designer, program_manager, rollout_manager, and more
@@ -50,21 +50,23 @@ SCP is built with a multi-tenant architecture that supports:
 | **`content_creator`**  | Organization | Create and manage resources, submit for review                           |
 | **`reviewer`**         | Organization | Review and approve/reject submissions, provide feedback                  |
 | **`program_designer`** | Organization | Design and create programs, bundle resources                             |
-| **`program_manager`**  | Organization | Execute programs, monitor analytics                                      |
+| **`program_manager`**  | Organization | **(Consumption Service)** Access reports and analytics after publication |
 | **`rollout_manager`**  | Organization | Deploy resources to target audiences                                     |
+
+**Note**: `program_manager` and `data_manager` roles are configured in SCP but provide access only in the consumption service (for reports/analytics), not within SCP itself.
 
 ### Common Use Cases
 
-| Task                                     | Required Role                                        |
-| ---------------------------------------- | ---------------------------------------------------- |
-| Create a project                         | `content_creator`                                    |
-| Approve a project                        | `reviewer`                                           |
-| Configure organizational review settings | `org_admin`                                          |
-| Access analytics dashboard               | `program_manager` or role defined in `data_managers` |
-| Create a program                         | `program_designer`                                   |
-| Deploy resources to end users            | `rollout_manager`                                    |
-| Execute database queries                 | `admin`                                              |
-| Configure review workflows               | `org_admin`                                          |
+| Task                                     | Required Role                                         |
+| ---------------------------------------- | ----------------------------------------------------- |
+| Create a project                         | `content_creator`                                     |
+| Approve a project                        | `reviewer`                                            |
+| Configure organizational review settings | `org_admin`                                           |
+| Access analytics dashboard               | `program_manager` _(in consumption service, not SCP)_ |
+| Create a program                         | `program_designer`                                    |
+| Deploy resources to end users            | `rollout_manager`                                     |
+| Execute database queries                 | `admin`                                               |
+| Configure review workflows               | `org_admin`                                           |
 
 **For detailed permissions, see [Complete Role Permissions](#role-based-access-control-detailed) below.**
 
@@ -88,27 +90,27 @@ SCP implements a **two-tier configuration system**:
 | Configuration Category              | Instance Level | Organization Override | Override Method     |
 | ----------------------------------- | -------------- | --------------------- | ------------------- |
 | **Review Settings**                 |                |                       |                     |
-| `REVIEW_REQUIRED`                   | ✅ Set default | ✅ **YES**            | API: `createConfig` |
-| `REVIEW_TYPE` (Sequential/Parallel) | ✅ Set default | ✅ **YES**            | API: `createConfig` |
-| `MIN_APPROVAL`                      | ✅ Set default | ✅ **YES**            | API: `createConfig` |
-| `SHOW_REVIEWER_LIST`                | ✅ Set default | ✅ **YES**            | API: `createConfig` |
+| `REVIEW_REQUIRED`                   | ✅ Set default | ✅ YES                | API: `createConfig` |
+| `REVIEW_TYPE` (Sequential/Parallel) | ✅ Set default | ✅ YES                | API: `createConfig` |
+| `MIN_APPROVAL`                      | ✅ Set default | ✅ YES                | API: `createConfig` |
+| `SHOW_REVIEWER_LIST`                | ✅ Set default | ✅ YES                | API: `createConfig` |
 | **Feature Flags**                   |                |                       |                     |
-| `ENABLE_ENTITY_TAGGING`             | ✅ Set default | ✅ **YES**            | API: `createConfig` |
-| `ENABLE_TASK_DATES`                 | ✅ Set default | ✅ **YES**            | API: `createConfig` |
-| `ENABLE_OBSERVATION`                | ✅ Set default | ✅ **YES**            | API: `createConfig` |
+| `ENABLE_ENTITY_TAGGING`             | ✅ Set default | ✅ YES                | API: `createConfig` |
+| `ENABLE_TASK_DATES`                 | ✅ Set default | ✅ YES                | API: `createConfig` |
+| `ENABLE_OBSERVATION`                | ✅ Set default | ✅ YES                | API: `createConfig` |
 | **Manager Roles**                   |                |                       |                     |
-| `DEFAULT_DATA_MANAGERS`             | ✅ Set default | ✅ **YES**            | API: `createConfig` |
-| `DEFAULT_PROGRAM_MANAGERS`          | ✅ Set default | ✅ **YES**            | API: `createConfig` |
+| `DEFAULT_DATA_MANAGERS`             | ✅ Set default | ✅ YES                | API: `createConfig` |
+| `DEFAULT_PROGRAM_MANAGERS`          | ✅ Set default | ✅ YES                | API: `createConfig` |
 | **System-Wide Role Names**          |                |                       |                     |
-| `DEFAULT_ADMIN_ROLE`                | ✅ Set once    | ❌ **NO**             | System-wide only    |
-| `DEFAULT_ORG_ADMIN_ROLE`            | ✅ Set once    | ❌ **NO**             | System-wide only    |
-| `DEFAULT_CONTENT_CREATOR_ROLE`      | ✅ Set once    | ❌ **NO**             | System-wide only    |
-| `DEFAULT_REVIEWER_ROLE`             | ✅ Set once    | ❌ **NO**             | System-wide only    |
-| `DEFAULT_PROGRAM_DESIGNER_ROLES`    | ✅ Set once    | ❌ **NO**             | System-wide only    |
+| `DEFAULT_ADMIN_ROLE`                | ✅ Set once    | ❌ NO                 | System-wide only    |
+| `DEFAULT_ORG_ADMIN_ROLE`            | ✅ Set once    | ❌ NO                 | System-wide only    |
+| `DEFAULT_CONTENT_CREATOR_ROLE`      | ✅ Set once    | ❌ NO                 | System-wide only    |
+| `DEFAULT_REVIEWER_ROLE`             | ✅ Set once    | ❌ NO                 | System-wide only    |
+| `DEFAULT_PROGRAM_DESIGNER_ROLES`    | ✅ Set once    | ❌ NO                 | System-wide only    |
 | **Technical Limits**                |                |                       |                     |
-| `RESOURCE_AUTO_SAVE_TIMER`          | ✅ Set once    | ❌ **NO**             | System-wide only    |
-| `MAX_PROJECT_TASK_COUNT`            | ✅ Set once    | ❌ **NO**             | System-wide only    |
-| `MAX_RESOURCE_NOTE_LENGTH`          | ✅ Set once    | ❌ **NO**             | System-wide only    |
+| `RESOURCE_AUTO_SAVE_TIMER`          | ✅ Set once    | ❌ NO                 | System-wide only    |
+| `MAX_PROJECT_TASK_COUNT`            | ✅ Set once    | ❌ NO                 | System-wide only    |
+| `MAX_RESOURCE_NOTE_LENGTH`          | ✅ Set once    | ❌ NO                 | System-wide only    |
 
 ---
 
@@ -146,10 +148,41 @@ ENABLE_ENTITY_TAGGING_IN_PROJECTS=true      # ✅ Organization override availabl
 ENABLE_TASK_START_END_DATE_IN_PROJECTS=false # ✅ Organization override available
 ENABLE_OBSERVATION_IN_PROJECTS=true         # ✅ Organization override available
 
-# Manager Roles
-DEFAULT_DATA_MANAGERS="program_manager"     # ✅ Organization override available (analytics access)
-DEFAULT_PROGRAM_MANAGERS="program_manager"  # ✅ Organization override available (program management)
+# Manager Roles (Used by Consumption Service for Analytics/Reports)
+DEFAULT_DATA_MANAGERS="program_manager"     # ✅ Organization override available
+DEFAULT_PROGRAM_MANAGERS="program_manager"  # ✅ Organization override available
 ```
+
+---
+
+### 📊 Understanding Manager Roles Configuration
+
+**Important**: `data_managers` and `program_managers` are **configuration-only** settings in SCP. These roles have **no permissions or functionality within SCP itself**.
+
+**Purpose**: When resources (projects, programs) are published from SCP and moved to the **consumption service**, these configured roles determine who can access:
+
+-   Analytics dashboards
+-   Report data
+-   Participant information
+-   Program metrics
+
+**In SCP**:
+
+-   ✅ Configure which roles should have analytics access
+-   ❌ No actual analytics or reporting functionality
+
+**In Consumption Service**:
+
+-   ✅ Users with configured roles can access reports/dashboards
+-   ✅ View program execution data and metrics
+
+**Example Flow**:
+
+1. Org admin configures `data_managers: ["analyst", "supervisor"]` in SCP
+2. Program designer publishes a program in SCP
+3. Program moves to consumption service
+4. Users with "analyst" or "supervisor" roles can now access analytics in consumption service
+5. These roles have no special access in SCP itself
 
 ---
 
@@ -241,15 +274,17 @@ Headers:
 
 ### Configurable Settings per Organization
 
-| Setting                       | Description                          | Example Value                       |
-| ----------------------------- | ------------------------------------ | ----------------------------------- |
-| `review_required`             | Require review before publishing     | `false` = Direct publishing enabled |
-| `review_type`                 | Review workflow type                 | `SEQUENTIAL` or `PARALLEL`          |
-| `min_approval`                | Minimum required approvals           | `2`                                 |
-| `enable_entity_tagging`       | Enable entity tagging for resources  | `true` or `false`                   |
-| `enable_task_start_end_dates` | Enable task scheduling with dates    | `true` or `false`                   |
-| `data_managers`               | Roles with analytics access          | `["analyst", "manager"]`            |
-| `program_managers`            | Roles with program management access | `["manager", "coordinator"]`        |
+| Setting                       | Description                                                       | Example Value                |
+| ----------------------------- | ----------------------------------------------------------------- | ---------------------------- |
+| `review_required`             | Require review before publishing                                  | `false` (Direct publishing)  |
+| `review_type`                 | Review workflow type                                              | `SEQUENTIAL` or `PARALLEL`   |
+| `min_approval`                | Minimum required approvals                                        | `2`                          |
+| `enable_entity_tagging`       | Enable entity tagging for resources                               | `true` or `false`            |
+| `enable_task_start_end_dates` | Enable task scheduling with dates                                 | `true` or `false`            |
+| `data_managers`               | Roles with analytics access _(consumption service only)_          | `["analyst", "manager"]`     |
+| `program_managers`            | Roles with program management access _(consumption service only)_ | `["manager", "coordinator"]` |
+
+**Note**: `data_managers` and `program_managers` are configured in SCP to control who can access reports/analytics in the consumption service after resources are published. These roles have no direct functionality within SCP itself.
 
 ---
 
@@ -296,7 +331,7 @@ Role names are customizable through environment variables to align with organiza
 -   ✅ Role-permission mapping management
 -   ✅ Database operations
 
-**Key Endpoints**: `POST /scp/v1/admin/dbFind` | `POST /scp/v1/admin/createTenantDependencies`
+**Key Endpoints**: `POST /scp/v1/admin/dbFind` &#124; `POST /scp/v1/admin/createTenantDependencies`
 
 </details>
 
@@ -312,7 +347,7 @@ Role names are customizable through environment variables to align with organiza
 -   Organization-specific configuration for all resource types
 -   Organization extension management (resource-type specific)
 -   Review stage and workflow management
--   Data and program manager configuration
+-   Configure data/program manager roles _(for consumption service access)_
 -   Entity type and form setup
 -   Certificate and template management
 -   Rollout policy configuration
@@ -324,7 +359,7 @@ Role names are customizable through environment variables to align with organiza
 -   ✅ Manage review stages and workflow configurations
 -   ✅ Configure and manage entity types and entities
 -   ✅ Create, update, and manage forms and templates
--   ✅ Set up data and program managers
+-   ✅ Configure data and program manager roles _(for consumption service)_
 -   ✅ Configure observation settings and links
 -   ✅ Update certificates and templates
 -   ✅ Read organization and resource data
@@ -335,7 +370,7 @@ Role names are customizable through environment variables to align with organiza
 
 -   Configure organizational review workflows
 -   Manage entity types and forms
--   Configure data and program managers
+-   Configure data and program manager roles _(controls consumption service access)_
 -   Create review stages
 
 </details>
@@ -347,7 +382,7 @@ Role names are customizable through environment variables to align with organiza
 
 **Scope**: All organizations within a tenant
 
-**Permissions**: ✅ Tenant-level configuration | ✅ Cross-organization visibility | ✅ Tenant-wide policies
+**Permissions**: ✅ Tenant-level configuration &#124; ✅ Cross-organization visibility &#124; ✅ Tenant-wide policies
 
 </details>
 
@@ -355,10 +390,7 @@ Role names are customizable through environment variables to align with organiza
 
 ---
 
-<details>
-<summary><strong>👥 Feature-Specific Roles (Click to Expand)</strong></summary>
-
-## Feature-Specific Roles
+### Feature-Specific Roles
 
 <details>
 <summary><strong>✍️ 1. content_creator (Resource Creator)</strong></summary>
@@ -367,7 +399,7 @@ Role names are customizable through environment variables to align with organiza
 
 **Scope**: Resource creation and management within organization
 
-**Permissions**: ✅ Create resources | ✅ Clone via reference_id | ✅ Edit drafts | ✅ Submit for review | ✅ Upload media | ✅ Create tasks
+**Permissions**: ✅ Create resources &#124; ✅ Clone via reference_id &#124; ✅ Edit drafts &#124; ✅ Submit for review &#124; ✅ Upload media &#124; ✅ Create tasks
 
 </details>
 
@@ -378,7 +410,7 @@ Role names are customizable through environment variables to align with organiza
 
 **Scope**: Resource review and approval
 
-**Permissions**: ✅ View review tasks | ✅ Add comments | ✅ Approve/reject | ✅ Request changes
+**Permissions**: ✅ View review tasks &#124; ✅ Add comments &#124; ✅ Approve/reject &#124; ✅ Request changes
 
 </details>
 
@@ -389,31 +421,35 @@ Role names are customizable through environment variables to align with organiza
 
 **Scope**: Program design and creation
 
-**Permissions**: ✅ Create programs | ✅ Add/remove resources | ✅ Submit for review | ✅ Publish
+**Permissions**: ✅ Create programs &#124; ✅ Add/remove resources &#124; ✅ Submit for review &#124; ✅ Publish
 
 </details>
 
 <details>
-<summary><strong>📊 4. program_manager (Program Manager / Data Manager)</strong></summary>
+<summary><strong>📊 4. program_manager / data_manager (Analytics & Reports Access)</strong></summary>
 
 **Environment Variable**: `DEFAULT_PROGRAM_MANAGERS="program_manager"` & `DEFAULT_DATA_MANAGERS="program_manager"`
 
-**Scope**: Program execution and data analytics
+**Scope**: **Consumption Service Only** - Analytics and reporting after resource publication
 
-**Permissions**: ✅ View program details | ✅ Access participant data | ✅ View metrics | ✅ Access dashboards
+**SCP Configuration**: These roles are configured in SCP via `data_managers` and `program_managers` settings to control who can access reports/analytics in the consumption service.
+
+**Permissions in SCP**: ❌ No direct SCP functionality
+
+**Permissions in Consumption Service**: ✅ View program details &#124; ✅ Access participant data &#124; ✅ View metrics &#124; ✅ Access dashboards
+
+**Note**: SCP only stores the configuration of which roles have analytics access. The actual reports and dashboards are available in the consumption service after resources are published.
 
 </details>
 
 <details>
 <summary><strong>🚀 5. rollout_manager (Rollout Manager)</strong></summary>
 
-**Environment Variable**: `DEFAULT_ROLLOUT_ROLES='rollout_manager'`
+**Environment Variable**: `DEFAULT_ROLLOUT_ROLES=rollout_manager`
 
 **Scope**: Resource rollout management
 
-**Permissions**: ✅ Create rollouts | ✅ Define targeting | ✅ Schedule rollouts | ✅ Monitor progress
-
-</details>
+**Permissions**: ✅ Create rollouts &#124; ✅ Define targeting &#124; ✅ Schedule rollouts &#124; ✅ Monitor progress
 
 </details>
 
@@ -421,38 +457,39 @@ Role names are customizable through environment variables to align with organiza
 
 ### Role Permission Matrix
 
-| Operation                 | admin | org_admin | content_creator | reviewer | program_designer | program_manager | rollout_manager |
-| ------------------------- | :---: | :-------: | :-------------: | :------: | :--------------: | :-------------: | :-------------: |
-| **Configuration**         |
-| View configurations       |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |       ❌        |
-| Create org config         |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |       ❌        |
-| Update org config         |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |       ❌        |
-| Manage review stages      |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |       ❌        |
-| Create entity types       |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |       ❌        |
-| **Resource Management**   |
-| Create resources          |  ✅   |    ✅     |       ✅        |    ❌    |        ✅        |       ❌        |       ❌        |
-| Read resources            |  ✅   |    ✅     |       ✅        |    ✅    |        ✅        |       ✅        |       ✅        |
-| Update resources          |  ✅   |    ✅     |      ✅\*       |    ❌    |        ✅        |       ❌        |       ❌        |
-| Delete resources          |  ✅   |    ✅     |      ✅\*       |    ❌    |        ❌        |       ❌        |       ❌        |
-| Submit for review         |  ✅   |    ✅     |       ✅        |    ❌    |        ✅        |       ❌        |       ❌        |
-| Publish resources         |  ✅   |    ✅     |      ✅\*       |    ❌    |        ✅        |       ❌        |       ❌        |
-| **Review Workflow**       |
-| View review tasks         |  ✅   |    ✅     |       ✅        |    ✅    |        ✅        |       ❌        |       ❌        |
-| Approve resources         |  ✅   |    ✅     |       ❌        |    ✅    |        ❌        |       ❌        |       ❌        |
-| Reject resources          |  ✅   |    ✅     |       ❌        |    ✅    |        ❌        |       ❌        |       ❌        |
-| Request changes           |  ✅   |    ✅     |       ❌        |    ✅    |        ❌        |       ❌        |       ❌        |
-| **Program Management**    |
-| Create programs           |  ✅   |    ✅     |       ❌        |    ❌    |        ✅        |       ❌        |       ❌        |
-| Manage programs           |  ✅   |    ✅     |       ❌        |    ❌    |        ✅        |       ✅        |       ❌        |
-| View dashboards           |  ✅   |    ✅     |       ❌        |    ❌    |        ✅        |       ✅        |       ❌        |
-| **Rollout Management**    |
-| Create rollouts           |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |       ✅        |
-| Manage rollouts           |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |       ✅        |
-| View rollout data         |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ✅        |       ✅        |
-| **System Administration** |
-| Execute DB queries        |  ✅   |    ❌     |       ❌        |    ❌    |        ❌        |       ❌        |       ❌        |
-| Manage tenants            |  ✅   |    ❌     |       ❌        |    ❌    |        ❌        |       ❌        |       ❌        |
-| Audit system              |  ✅   |    ❌     |       ❌        |    ❌    |        ❌        |       ❌        |       ❌        |
+**Note**: `program_manager` and `data_manager` roles are not included in this matrix as they have no permissions within SCP. They are configured in SCP but only provide access to analytics/reports in the consumption service.
+
+| Operation                 | admin | org_admin | content_creator | reviewer | program_designer | rollout_manager |
+| ------------------------- | :---: | :-------: | :-------------: | :------: | :--------------: | :-------------: |
+| **Configuration**         |       |           |                 |          |                  |                 |
+| View configurations       |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |
+| Create org config         |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |
+| Update org config         |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |
+| Manage review stages      |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |
+| Create entity types       |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |
+| **Resource Management**   |       |           |                 |          |                  |                 |
+| Create resources          |  ✅   |    ✅     |       ✅        |    ❌    |        ✅        |       ❌        |
+| Read resources            |  ✅   |    ✅     |       ✅        |    ✅    |        ✅        |       ✅        |
+| Update resources          |  ✅   |    ✅     |      ✅\*       |    ❌    |        ✅        |       ❌        |
+| Delete resources          |  ✅   |    ✅     |      ✅\*       |    ❌    |        ❌        |       ❌        |
+| Submit for review         |  ✅   |    ✅     |       ✅        |    ❌    |        ✅        |       ❌        |
+| Publish resources         |  ✅   |    ✅     |      ✅\*       |    ❌    |        ✅        |       ❌        |
+| **Review Workflow**       |       |           |                 |          |                  |                 |
+| View review tasks         |  ✅   |    ✅     |       ✅        |    ✅    |        ✅        |       ❌        |
+| Approve resources         |  ✅   |    ✅     |       ❌        |    ✅    |        ❌        |       ❌        |
+| Reject resources          |  ✅   |    ✅     |       ❌        |    ✅    |        ❌        |       ❌        |
+| Request changes           |  ✅   |    ✅     |       ❌        |    ✅    |        ❌        |       ❌        |
+| **Program Management**    |       |           |                 |          |                  |                 |
+| Create programs           |  ✅   |    ✅     |       ❌        |    ❌    |        ✅        |       ❌        |
+| Manage programs           |  ✅   |    ✅     |       ❌        |    ❌    |        ✅        |       ❌        |
+| **Rollout Management**    |       |           |                 |          |                  |                 |
+| Create rollouts           |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ✅        |
+| Manage rollouts           |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ✅        |
+| View rollout data         |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ✅        |
+| **System Administration** |       |           |                 |          |                  |                 |
+| Execute DB queries        |  ✅   |    ❌     |       ❌        |    ❌    |        ❌        |       ❌        |
+| Manage tenants            |  ✅   |    ❌     |       ❌        |    ❌    |        ❌        |       ❌        |
+| Audit system              |  ✅   |    ❌     |       ❌        |    ❌    |        ❌        |       ❌        |
 
 **Legend**:
 
@@ -594,7 +631,7 @@ RESOURCE_TYPES="project,observation,observation_with_rubric,survey,program"
 **Environment Variables**:
 
 -   `PROGRAM_PUBLISH_KAFKA_TOPIC=dev.programpublish`
--   `DEFAULT_PROGRAM_MANAGERS="program_manager"`
+-   `DEFAULT_PROGRAM_MANAGERS="program_manager"` _(for consumption service access)_
 -   `DEFAULT_PROGRAM_DESIGNER_ROLES="program_designer"`
 
 </details>
@@ -677,14 +714,14 @@ curl http://localhost:3000/scp/health
 
 ### Program Management
 
-| Method | Endpoint                                        | Role                                  | Description                   |
-| ------ | ----------------------------------------------- | ------------------------------------- | ----------------------------- |
-| POST   | `/scp/v1/programs/update/{id}`                  | `program_designer`                    | Create or update program      |
-| GET    | `/scp/v1/programs/details/{id}`                 | `program_designer`, `program_manager` | Get program details           |
-| POST   | `/scp/v1/programs/addResources/{program_id}`    | `program_designer`                    | Link resources to program     |
-| POST   | `/scp/v1/programs/removeResources/{program_id}` | `program_designer`                    | Remove resources from program |
-| POST   | `/scp/v1/programs/submitForReview/{id}`         | `program_designer`                    | Submit program for review     |
-| POST   | `/scp/v1/programs/publish/{id}`                 | `program_designer`                    | Publish program               |
+| Method | Endpoint                                        | Role               | Description                   |
+| ------ | ----------------------------------------------- | ------------------ | ----------------------------- |
+| POST   | `/scp/v1/programs/update/{id}`                  | `program_designer` | Create or update program      |
+| GET    | `/scp/v1/programs/details/{id}`                 | `program_designer` | Get program details           |
+| POST   | `/scp/v1/programs/addResources/{program_id}`    | `program_designer` | Link resources to program     |
+| POST   | `/scp/v1/programs/removeResources/{program_id}` | `program_designer` | Remove resources from program |
+| POST   | `/scp/v1/programs/submitForReview/{id}`         | `program_designer` | Submit program for review     |
+| POST   | `/scp/v1/programs/publish/{id}`                 | `program_designer` | Publish program               |
 
 ### Review Management
 
