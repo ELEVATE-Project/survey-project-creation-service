@@ -44,7 +44,7 @@ module.exports = {
 				{
 					code: 'config_permissions',
 					module: 'config',
-					request_type: ['POST', 'PUT'],
+					request_type: ['PUT', 'POST'],
 					api_path: '/scp/v1/config/createOrUpdate',
 					status: 'ACTIVE',
 					created_at: new Date(),
