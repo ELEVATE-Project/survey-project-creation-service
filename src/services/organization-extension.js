@@ -138,7 +138,6 @@ module.exports = class orgExtensionsHelper {
 	 * @param {String} id - config id.
 	 * @param {String} orgCode - organization code
 	 * @param {String} tenantCode - tenant code
-	 * @param {Boolean} skipReviewCreation - skip review and orgeExtension update
 	 * @returns {JSON} - Organization Config updated response.
 	 */
 
@@ -548,7 +547,6 @@ module.exports = class orgExtensionsHelper {
 				}
 			}
 		} catch (error) {
-			console.log(error, 'this is errrrrrrr')
 			if (error instanceof UniqueConstraintError) {
 				return responses.failureResponse({
 					message: 'CONFIG_ALREADY_EXIST',
@@ -576,7 +574,7 @@ module.exports = class orgExtensionsHelper {
 					organization_code: orgCode,
 					tenant_code: tenantCode,
 					visible_to_organizations: visibleOrg,
-					updatedAt: new Date(),
+					updated_at: new Date(),
 				}
 
 				const [updatedCount] = await resourceQueries.updateOne(
@@ -598,7 +596,6 @@ module.exports = class orgExtensionsHelper {
 				}
 			}
 		} catch (error) {
-			console.log(error, 'this is errrrrrrr')
 			return responses.failureResponse({
 				message: error.message || error,
 				statusCode: httpStatusCode.internal_server_error,
