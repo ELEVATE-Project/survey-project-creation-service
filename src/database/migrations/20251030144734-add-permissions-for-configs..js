@@ -66,25 +66,17 @@ module.exports = {
 			const rolePermissionsData = [
 				{
 					role_title: process.env.DEFAULT_ADMIN_ROLE,
-					permission_id: await getPermissionId(
-						'config_permissions',
-						['PUT', 'POST'],
-						'/scp/v1/config/createOrUpdate'
-					),
+					permission_id: await getPermissionId('config', ['PUT', 'POST'], '/scp/v1/config/createOrUpdate'),
 					module: 'config',
 					request_type: ['PUT', 'POST'],
-					api_path: '/scp/v1//config/createOrUpdate',
+					api_path: '/scp/v1/config/createOrUpdate',
 					created_at: new Date(),
 					updated_at: new Date(),
 					created_by: 0,
 				},
 				{
 					role_title: process.env.DEFAULT_ORG_ADMIN_ROLE,
-					permission_id: await getPermissionId(
-						'review-stages',
-						['PUT', 'POST'],
-						'/scp/v1/config/updateRelatedOrgs'
-					),
+					permission_id: await getPermissionId('config', ['PUT', 'POST'], '/scp/v1/config/updateRelatedOrgs'),
 					module: 'config',
 					request_type: ['PUT', 'POST'],
 					api_path: '/scp/v1/config/updateRelatedOrgs',
