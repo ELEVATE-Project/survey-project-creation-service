@@ -22,7 +22,6 @@ The Survey Project Creation Service (SCP) is a comprehensive platform for design
 
 -   [Complete Role Permissions](#role-based-access-control-detailed) - Detailed RBAC matrix
 -   [Resource Types](#supported-resource-types) - Projects, surveys, programs
--   [API Reference](#api-endpoints) - Complete endpoint documentation
 
 ---
 
