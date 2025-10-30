@@ -6,19 +6,19 @@ The Survey Project Creation Service (SCP) is a comprehensive platform for design
 
 ## 📖 Documentation Guide
 
-### 🚀 Quick Start (5 minutes)
+### 🚀 Quick Start
 
 -   [Overview](#overview) - Core concepts and features
 -   [Roles at a Glance](#roles-at-a-glance) - Role-based access control summary
 -   [Installation](#setup-and-installation) - Setup and deployment
 
-### ⚙️ Configuration (15 minutes)
+### ⚙️ Configuration
 
 -   [Instance Configuration](#instance-configuration) - System-wide defaults
 -   [Configuration Override Reference](#configuration-override-reference) - What can be customized
 -   [Organization Configuration](#organization-level-configuration) - Per-organization customization
 
-### 📚 Advanced Topics (30+ minutes)
+### 📚 Advanced Topics
 
 -   [Complete Role Permissions](#role-based-access-control-detailed) - Detailed RBAC matrix
 -   [Resource Types](#supported-resource-types) - Projects, surveys, programs
@@ -60,11 +60,11 @@ SCP is built with a multi-tenant architecture that supports:
 | Task                                                                                | Required Role                                         |
 | ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | Create a project                                                                    | `content_creator`                                     |
-| Approve/Reject/Request Changes in a resource                                        | `reviewer`                                            |
+| Approve/Reject/Request changes in a resource                                        | `reviewer`                                            |
 | Configure organizational settings (forms, entities, override config, review levels) | `org_admin`                                           |
 | Access analytics dashboard                                                          | `program_manager` _(in consumption service, not SCP)_ |
 | Create a program                                                                    | `program_designer`                                    |
-| Publish and rollout resources                                                       | `rollout_manager`                                     |
+| Publish single resources                                                            | `rollout_manager`                                     |
 | Set or update all tenant and org config, Execute database queries                   | `admin`                                               |
 
 **For detailed permissions, see [Complete Role Permissions](#role-based-access-control-detailed) below.**
@@ -177,10 +177,10 @@ DEFAULT_PROGRAM_MANAGERS="program_manager"  # ✅ Organization override availabl
 
 **Example Flow**:
 
-1. Org admin configures `data_managers: ["analyst", "supervisor"]` in SCP
+1. Org admin configures `data_managers: ["program_manager"]` in SCP
 2. Program designer publishes a program in SCP
 3. Program moves to consumption service
-4. Users with "analyst" or "supervisor" roles can now access analytics in consumption service
+4. Users with "program_manager" role can now access analytics in consumption service
 5. These roles have no special access in SCP itself
 
 ---
@@ -328,7 +328,6 @@ Role names are customizable through environment variables to align with organiza
 -   ✅ Tenant dependency creation
 -   ✅ Admin endpoint access
 -   ✅ Role-permission mapping management
--   ✅ Database operations
 
 **Key Endpoints**: `POST /scp/v1/admin/dbFind` &#124; `POST /scp/v1/admin/createTenantDependencies`
 
@@ -349,7 +348,6 @@ Role names are customizable through environment variables to align with organiza
 -   Configure data/program manager roles _(for consumption service access)_
 -   Entity type and form setup
 -   Certificate and template management
--   Rollout policy configuration
 
 **Permissions**:
 
@@ -398,7 +396,7 @@ Role names are customizable through environment variables to align with organiza
 
 **Scope**: Resource creation and management within organization
 
-**Permissions**: ✅ Create resources &#124; ✅ Clone via reference_id &#124; ✅ Edit drafts &#124; ✅ Submit for review &#124; ✅ Upload media &#124; ✅ Create tasks
+**Permissions**: ✅ Create resources &#124; ✅ Clone via reference_id &#124; ✅ Edit drafts &#124; ✅ Submit for review
 
 </details>
 
@@ -425,7 +423,18 @@ Role names are customizable through environment variables to align with organiza
 </details>
 
 <details>
-<summary><strong>📊 4. program_manager / data_manager (Analytics & Reports Access)</strong></summary>
+<summary><strong>🚀 4. rollout_manager (Rollout Manager)</strong></summary>
+
+**Environment Variable**: `DEFAULT_ROLLOUT_ROLES=rollout_manager`
+
+**Scope**: Resource rollout management
+
+**Permissions**: ✅ Create rollouts &#124; ✅ Define targeting &#124; ✅ Schedule rollouts &#124; ✅ Monitor progress
+
+</details>
+
+<details>
+<summary><strong>📊 5. program_manager / data_manager (Analytics & Reports Access)</strong></summary>
 
 **Environment Variable**: `DEFAULT_PROGRAM_MANAGERS="program_manager"` & `DEFAULT_DATA_MANAGERS="program_manager"`
 
@@ -441,17 +450,6 @@ Role names are customizable through environment variables to align with organiza
 
 </details>
 
-<details>
-<summary><strong>🚀 5. rollout_manager (Rollout Manager)</strong></summary>
-
-**Environment Variable**: `DEFAULT_ROLLOUT_ROLES=rollout_manager`
-
-**Scope**: Resource rollout management
-
-**Permissions**: ✅ Create rollouts &#124; ✅ Define targeting &#124; ✅ Schedule rollouts &#124; ✅ Monitor progress
-
-</details>
-
 ---
 
 ### Role Permission Matrix
@@ -461,7 +459,6 @@ Role names are customizable through environment variables to align with organiza
 | Operation                 | admin | org_admin | content_creator | reviewer | program_designer | rollout_manager |
 | ------------------------- | :---: | :-------: | :-------------: | :------: | :--------------: | :-------------: |
 | **Configuration**         |       |           |                 |          |                  |                 |
-| View configurations       |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |
 | Create org config         |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |
 | Update org config         |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |
 | Manage review stages      |  ✅   |    ✅     |       ❌        |    ❌    |        ❌        |       ❌        |
@@ -472,9 +469,9 @@ Role names are customizable through environment variables to align with organiza
 | Update resources          |  ✅   |    ✅     |      ✅\*       |    ❌    |        ✅        |       ❌        |
 | Delete resources          |  ✅   |    ✅     |      ✅\*       |    ❌    |        ❌        |       ❌        |
 | Submit for review         |  ✅   |    ✅     |       ✅        |    ❌    |        ✅        |       ❌        |
-| Publish resources         |  ✅   |    ✅     |      ✅\*       |    ❌    |        ✅        |       ❌        |
+| Publish resources         |  ✅   |    ✅     |      ✅\*       |    ✅    |        ✅        |       ❌        |
 | **Review Workflow**       |       |           |                 |          |                  |                 |
-| View review tasks         |  ✅   |    ✅     |       ✅        |    ✅    |        ✅        |       ❌        |
+| View review tasks         |  ✅   |    ✅     |       ❌        |    ✅    |        ✅        |       ❌        |
 | Approve resources         |  ✅   |    ✅     |       ❌        |    ✅    |        ❌        |       ❌        |
 | Reject resources          |  ✅   |    ✅     |       ❌        |    ✅    |        ❌        |       ❌        |
 | Request changes           |  ✅   |    ✅     |       ❌        |    ✅    |        ❌        |       ❌        |
@@ -488,13 +485,14 @@ Role names are customizable through environment variables to align with organiza
 | **System Administration** |       |           |                 |          |                  |                 |
 | Execute DB queries        |  ✅   |    ❌     |       ❌        |    ❌    |        ❌        |       ❌        |
 | Manage tenants            |  ✅   |    ❌     |       ❌        |    ❌    |        ❌        |       ❌        |
-| Audit system              |  ✅   |    ❌     |       ❌        |    ❌    |        ❌        |       ❌        |
 
 **Legend**:
 
 -   ✅ = Allowed
 -   ❌ = Not allowed
 -   ✅\* = Allowed only for owned resources (draft status)
+
+</details>
 
 ---
 
@@ -685,87 +683,16 @@ npm start
 6. **Verify Deployment**
 
 ```bash
-curl http://localhost:3000/scp/health
+curl http://localhost:6001/scp/health
 ```
-
----
-
-## API Endpoints
-
-### Configuration & Administration
-
-| Method | Endpoint                                            | Role              | Description                       |
-| ------ | --------------------------------------------------- | ----------------- | --------------------------------- |
-| GET    | `/scp/v1/config/list`                               | Any authenticated | List current configurations       |
-| POST   | `/scp/v1/organization-extensions/createConfig`      | `org_admin`       | Create organization configuration |
-| PUT    | `/scp/v1/organization-extensions/updateConfig/{id}` | `org_admin`       | Update organization configuration |
-| POST   | `/scp/v1/admin/createTenantDependencies`            | `admin`           | Create tenant dependencies        |
-| POST   | `/scp/v1/admin/dbFind`                              | `admin`           | Execute database queries          |
-
-### Resource Management
-
-| Method | Endpoint                                       | Role              | Description              |
-| ------ | ---------------------------------------------- | ----------------- | ------------------------ |
-| POST   | `/scp/v1/projects/update/{projectId}`          | `content_creator` | Create or update project |
-| GET    | `/scp/v1/projects/details/{projectId}`         | `content_creator` | Get project details      |
-| GET    | `/scp/v1/projects/reviewerList`                | `content_creator` | Get reviewer list        |
-| POST   | `/scp/v1/projects/submitForReview/{projectId}` | `content_creator` | Submit for review        |
-
-### Program Management
-
-| Method | Endpoint                                        | Role               | Description                   |
-| ------ | ----------------------------------------------- | ------------------ | ----------------------------- |
-| POST   | `/scp/v1/programs/update/{id}`                  | `program_designer` | Create or update program      |
-| GET    | `/scp/v1/programs/details/{id}`                 | `program_designer` | Get program details           |
-| POST   | `/scp/v1/programs/addResources/{program_id}`    | `program_designer` | Link resources to program     |
-| POST   | `/scp/v1/programs/removeResources/{program_id}` | `program_designer` | Remove resources from program |
-| POST   | `/scp/v1/programs/submitForReview/{id}`         | `program_designer` | Submit program for review     |
-| POST   | `/scp/v1/programs/publish/{id}`                 | `program_designer` | Publish program               |
-
-### Review Management
-
-| Method | Endpoint                             | Role       | Description        |
-| ------ | ------------------------------------ | ---------- | ------------------ |
-| POST   | `/scp/v1/reviews/create`             | `reviewer` | Create review      |
-| GET    | `/scp/v1/reviews/list`               | `reviewer` | List review tasks  |
-| GET    | `/scp/v1/reviews/details/{reviewId}` | `reviewer` | Get review details |
-
----
-
-## Best Practices
-
-### Configuration Management
-
-1. **Instance Defaults**: Set organization-wide defaults via `.env` file
-2. **Organization Overrides**: Use organization-level configurations for specific requirements
-3. **Documentation**: Maintain configuration change logs
-4. **Testing**: Thoroughly test review workflows before deployment
-5. **Limits**: Configure resource limits based on organizational capacity
-
-### Multi-Tenant Deployments
-
-1. **Isolation**: Maintain separate configurations per tenant
-2. **Delegation**: Train organization administrators for self-service configuration
-3. **Access Control**: Regular audit of administrative role assignments
-4. **Workflow Planning**: Define and communicate review stages early
-
-### Performance Optimization
-
-1. **Configuration Caching**: Service restart required after environment changes
-2. **Auto-Save Timing**: Adjust `RESOURCE_AUTO_SAVE_TIMER` based on network latency
-3. **Approval Limits**: Keep `min_approval` between 1-3 for optimal performance
-4. **Data Archival**: Implement soft-delete for unused configurations
 
 ---
 
 ## Support and Documentation
 
--   **API Documentation**: `/scp/api-doc`
+-   **API Documentation**: `https://dev.elevate-apis.shikshalokam.org/scp/api-doc`
+-   **Postman Collection**: `src/configs/SCP_Postman_Collection.json`
 -   **GitHub Repository**: https://github.com/ELEVATE-Project/survey-project-creation-service
 -   **Issue Tracker**: https://github.com/ELEVATE-Project/survey-project-creation-service/issues
 
 ---
-
-## License
-
-This project is licensed under the terms specified in the LICENSE file.
