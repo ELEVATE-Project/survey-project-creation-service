@@ -104,13 +104,14 @@ module.exports = (sequelize, DataTypes) => {
 				defaultValue: null,
 			},
 			visibility: {
-				type: DataTypes.STRING,
+				allowNull: false,
+				type: DataTypes.ENUM('CURRENT', 'ASSOCIATED', 'ALL'),
 				defaultValue: 'CURRENT',
 			},
 			visible_to_organizations: {
 				allowNull: false,
 				type: DataTypes.ARRAY(DataTypes.STRING),
-				defaultValue: [''],
+				defaultValue: [],
 			},
 		},
 		{

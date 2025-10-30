@@ -173,14 +173,3 @@ exports.findAllWithOpenComments = async (filter, attributes = {}) => {
 		return error
 	}
 }
-
-exports.update = async (filter, update, options = {}) => {
-	try {
-		return await Resource.update(update, {
-			where: filter,
-			...options,
-		})
-	} catch (error) {
-		return error
-	}
-}

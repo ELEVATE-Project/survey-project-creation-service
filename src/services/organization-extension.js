@@ -351,8 +351,11 @@ module.exports = class orgExtensionsHelper {
 				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',') || []
 			}
 			// adding orgPolicies visibilty
-			result.config.external_project_resource_visibility_policy =
-				orgConfigs?.[0]?.external_project_resource_visibility_policy
+			const orgSpecificPolicy = orgConfigs.find(
+				(config) => config.organization_code === organization_code
+			)?.external_project_resource_visibility_policy
+
+			result.config.external_project_resource_visibility_policy = orgSpecificPolicy
 			// attributes to fetch from organisation Extenstion
 			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
 
@@ -503,6 +506,7 @@ module.exports = class orgExtensionsHelper {
 				}
 			}
 			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
+				updateData = _.omit(updateData, ['meta'])
 				// Existing config found → perform update
 				const [updatedCount] = await organizationConfigQueries.update(
 					{
@@ -575,7 +579,7 @@ module.exports = class orgExtensionsHelper {
 					updatedAt: new Date(),
 				}
 
-				const [updatedCount] = await resourceQueries.update(
+				const [updatedCount] = await resourceQueries.updateOne(
 					{ organization_code: orgCode, tenant_code: tenantCode, is_reusable: true },
 					updateData
 				)

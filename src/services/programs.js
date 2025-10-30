@@ -167,9 +167,10 @@ module.exports = class ProgramsHelper {
 				//get the related orgs for the solutions
 				let getRelatedOrgs = await userRequests.fetchOrg(org_code, tenant_code)
 				if (!getRelatedOrgs.success || !getRelatedOrgs?.data?.result?.related_org_details) {
-					return resolve({
-						status: httpStatusCode.internal_server_error.status,
-						message: 'Could not fetch organisation details',
+					return responses.failureResponse({
+						statusCode: httpStatusCode.internal_server_error,
+						message: 'COULD_NOT_FETCH_ORG_DETAILS',
+						responseCode: 'SERVER_ERROR',
 					})
 				}
 				//get the code to store it in  visibleToOrganizations key

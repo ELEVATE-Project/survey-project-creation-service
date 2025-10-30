@@ -1620,12 +1620,12 @@ module.exports = class resourceHelper {
 							{ organization_code },
 						]
 						break
-
 					default:
-						return resolve({
+						return responses.failureResponse({
+							statusCode: httpStatusCode.bad_request,
+							responseCode: 'CLIENT_ERROR',
 							message: common.INVALID_POLICY,
 							result: [],
-							success: false,
 						})
 				}
 			}
