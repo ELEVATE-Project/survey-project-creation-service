@@ -594,6 +594,11 @@ module.exports = class orgExtensionsHelper {
 						message: 'RELATED_ORGS_UPDATE_FAILED',
 					})
 				}
+			} else {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'NO_RELATED_ORGS_TO_UPDATE',
+				})
 			}
 		} catch (error) {
 			return responses.failureResponse({
