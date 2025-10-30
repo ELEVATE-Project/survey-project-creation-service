@@ -57,16 +57,15 @@ SCP is built with a multi-tenant architecture that supports:
 
 ### Common Use Cases
 
-| Task                                     | Required Role                                         |
-| ---------------------------------------- | ----------------------------------------------------- |
-| Create a project                         | `content_creator`                                     |
-| Approve a project                        | `reviewer`                                            |
-| Configure organizational review settings | `org_admin`                                           |
-| Access analytics dashboard               | `program_manager` _(in consumption service, not SCP)_ |
-| Create a program                         | `program_designer`                                    |
-| Deploy resources to end users            | `rollout_manager`                                     |
-| Execute database queries                 | `admin`                                               |
-| Configure review workflows               | `org_admin`                                           |
+| Task                                                                                | Required Role                                         |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Create a project                                                                    | `content_creator`                                     |
+| Approve/Reject/Request Changes in a resource                                        | `reviewer`                                            |
+| Configure organizational settings (forms, entities, override config, review levels) | `org_admin`                                           |
+| Access analytics dashboard                                                          | `program_manager` _(in consumption service, not SCP)_ |
+| Create a program                                                                    | `program_designer`                                    |
+| Publish and rollout resources                                                       | `rollout_manager`                                     |
+| Set or update all tenant and org config, Execute database queries                   | `admin`                                               |
 
 **For detailed permissions, see [Complete Role Permissions](#role-based-access-control-detailed) below.**
 
