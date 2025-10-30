@@ -4,361 +4,41 @@ The Survey Project Creation Service (SCP) is a comprehensive platform for design
 
 ---
 
-## 📖 Table of Contents
+## 📖 Documentation Guide
 
-### 🚀 Getting Started (Start Here!)
+### 🚀 Quick Start
 
--   [Quick Overview](#quick-overview) - What is SCP?
--   [Setup and Installation](#setup-and-installation) - Get up and running in 10 minutes
--   [First Steps After Installation](#first-steps-after-installation) - Essential configuration
-
-### 📚 Core Concepts
-
--   [Architecture Overview](#architecture-overview) - How SCP works
--   [Resource Types](#supported-resource-types) - Projects, Programs, Surveys
--   [Configuration System](#configuration-system) - Instance vs Organization level
-
-### 👥 User Management
-
--   [Roles at a Glance](#roles-at-a-glance) - Quick reference
--   [Role Permissions (Detailed)](#role-based-access-control-detailed) - Complete RBAC matrix
--   [Common Use Cases](#common-use-cases) - Task-based role guide
+-   [Overview](#overview) - Core concepts and features
+-   [Roles at a Glance](#roles-at-a-glance) - Role-based access control summary
+-   [Installation](#setup-and-installation) - Setup and deployment
 
 ### ⚙️ Configuration
 
 -   [Instance Configuration](#instance-configuration) - System-wide defaults
--   [Organization Configuration](#organization-level-configuration) - Per-organization customization
 -   [Configuration Override Reference](#configuration-override-reference) - What can be customized
+-   [Organization Configuration](#organization-level-configuration) - Per-organization customization
 
-### 🔌 API & Integration
+### 📚 Advanced Topics
 
--   [API Endpoints](#api-endpoints) - Available APIs
--   [Support & Resources](#support-and-documentation) - Get help
-
----
-
-## Quick Overview
-
-**What is SCP?**
-
-SCP is a multi-tenant service that enables organizations to:
-
--   **Create Resources**: Projects, surveys, observations, and programs
--   **Review & Approve**: Configurable sequential or parallel review workflows
--   **Customize Configuration**: Per-organization settings for different resource types
--   **Manage Access**: Fine-grained role-based permissions
--   **Publish & Deploy**: Rollout resources to target audiences
-
-**Key Features:**
-
--   ✅ Multi-tenant architecture with organization isolation
--   ✅ Configurable review workflows (sequential/parallel)
--   ✅ Organization-specific customization per resource type
--   ✅ Role-based access control with customizable role names
--   ✅ RESTful API with comprehensive documentation
-
-**Current Status:**
-
--   ✅ **Production Ready**: Projects, Programs
--   🔄 **In Development**: Surveys, Observations, Observations with Rubrics
+-   [Complete Role Permissions](#role-based-access-control-detailed) - Detailed RBAC matrix
+-   [Resource Types](#supported-resource-types) - Projects, surveys, programs
 
 ---
 
-## Setup and Installation
-
-### Prerequisites
-
-Before you begin, ensure you have:
-
--   **Node.js** 14 or higher
--   **PostgreSQL** 12 or higher
--   **Redis** (for caching)
--   **Kafka** (optional - for event streaming)
--   **MongoDB** (optional - for content storage)
-
-### Installation Steps
-
-#### 1. Clone the Repository
-
-```bash
-git clone https://github.com/ELEVATE-Project/survey-project-creation-service.git
-cd survey-project-creation-service
-```
-
-#### 2. Install Dependencies
-
-```bash
-npm install
-```
-
-#### 3. Configure Environment Variables
-
-```bash
-# Copy the sample environment file
-cp src/.env.sample src/.env
-
-# Edit the .env file with your configuration
-nano src/.env  # or use your preferred editor
-```
-
-**Critical Environment Variables to Set:**
-
-```bash
-# Database Configuration
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_password
-POSTGRES_DATABASE=scp_db
-
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# Application Configuration
-APPLICATION_PORT=6001
-APPLICATION_BASE_URL=/scp/
-
-# Authentication (if using external auth service)
-USER_SERVICE_HOST=http://localhost:3000
-USER_SERVICE_BASE_URL=/user/
-
-# Default Configurations
-REVIEW_REQUIRED=true
-REVIEW_TYPE=SEQUENTIAL
-MIN_APPROVAL=1
-```
-
-<details>
-<summary><strong>View All Environment Variables</strong></summary>
-
-```bash
-# System-Wide Settings
-DEFAULT_ADMIN_ROLE=admin
-DEFAULT_ORG_ADMIN_ROLE=org_admin
-DEFAULT_CONTENT_CREATOR_ROLE=content_creator
-DEFAULT_REVIEWER_ROLE=reviewer
-DEFAULT_PROGRAM_DESIGNER_ROLES=program_designer
-DEFAULT_ROLLOUT_ROLES=rollout_manager
-
-# Technical Limits
-RESOURCE_AUTO_SAVE_TIMER=30000
-MAX_PROJECT_TASK_COUNT=10
-MAX_RESOURCE_NOTE_LENGTH=256
-RESOURCE_TYPES="project,observation,observation_with_rubric,survey,program"
-
-# Feature Flags
-ENABLE_ENTITY_TAGGING_IN_PROJECTS=true
-ENABLE_TASK_START_END_DATE_IN_PROJECTS=false
-ENABLE_OBSERVATION_IN_PROJECTS=true
-
-# Manager Roles (for consumption service)
-DEFAULT_DATA_MANAGERS="program_manager"
-DEFAULT_PROGRAM_MANAGERS="program_manager"
-
-# Kafka (Optional)
-PROGRAM_PUBLISH_KAFKA_TOPIC=dev.programpublish
-KAFKA_BROKERS=localhost:9092
-```
-
-</details>
-
-#### 4. Initialize Database
-
-```bash
-# Run database migrations
-npm run db:init
-
-# Seed initial data (optional but recommended for testing)
-npm run db:seed:all
-```
-
-#### 5. Start the Service
-
-```bash
-# Development mode (with auto-reload)
-npm run dev
-
-# Production mode
-npm start
-```
-
-#### 6. Verify Installation
-
-```bash
-# Check health endpoint
-curl http://localhost:6001/scp/health
-
-# Expected response:
-# {"status": "healthy", "version": "1.0.0"}
-```
-
-#### 7. Access API Documentation
-
-Open your browser and navigate to:
-
-```
-http://localhost:6001/scp/api-doc
-```
-
----
-
-## First Steps After Installation
-
-### 1. Create Your First Admin User
-
-If using the authentication service, create an admin user through the user service, then assign the `admin` role in SCP.
-
-### 2. Set Up Organization Configuration
-
-Create your first organization configuration:
-
-```bash
-POST http://localhost:6001/scp/v1/organization-extensions/createConfig
-Headers:
-  X-auth-token: <your_admin_token>
-  Content-Type: application/json
-
-Body:
-{
-  "resource_type": "project",
-  "review_required": true,
-  "review_type": "SEQUENTIAL",
-  "min_approval": 1,
-  "enable_entity_tagging": true,
-  "enable_task_start_end_dates": false
-}
-```
-
-### 3. Create Review Stages (Optional)
-
-If using review workflows:
-
-```bash
-POST http://localhost:6001/scp/v1/review-stages/create
-Headers:
-  X-auth-token: <your_org_admin_token>
-  Content-Type: application/json
-
-Body:
-{
-  "name": "Initial Review",
-  "sequence": 1,
-  "resource_type": "project"
-}
-```
-
-### 4. Test Creating a Resource
-
-Create your first project:
-
-```bash
-POST http://localhost:6001/scp/v1/projects/update
-Headers:
-  X-auth-token: <your_content_creator_token>
-  Content-Type: application/json
-
-Body:
-{
-  "title": "My First Project",
-  "description": "Testing SCP setup",
-  "status": "draft"
-}
-```
-
-### 5. Import Postman Collection
-
-For easier testing, import the provided Postman collection:
-
-```
-src/configs/SCP_Postman_Collection.json
-```
-
----
-
-## Architecture Overview
-
-SCP follows a layered architecture with clear separation of concerns:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Client Applications                     │
-└─────────────────────┬───────────────────────────────────────┘
-                      │ REST API
-┌─────────────────────▼───────────────────────────────────────┐
-│                     API Layer (Routes)                       │
-├──────────────────────────────────────────────────────────────┤
-│                  Business Logic (Services)                   │
-├──────────────────────────────────────────────────────────────┤
-│              Data Access Layer (Repositories)                │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-        ┌─────────────┼─────────────┐
-        ▼             ▼             ▼
-   PostgreSQL      Redis         Kafka
-   (Primary DB)   (Cache)       (Events)
-```
-
-### Multi-Tenant Architecture
-
--   **Tenant**: Top-level isolation (e.g., different regions or deployments)
--   **Organization**: Multiple organizations within a tenant
--   **Resource-Specific Config**: Each organization can have different settings per resource type
-
-### Configuration Hierarchy
-
-```
-Instance Level (.env)
-    │
-    └─► Organization Level (API)
-            │
-            └─► Resource Type Specific (project, program, etc.)
-```
-
-**Example**: Instance default is "review required", but Organization A can override to "no review" for projects while keeping review for programs.
-
----
-
-## Configuration System
-
-### Two-Tier Configuration
-
-SCP uses a **two-tier configuration system**:
-
-1. **Instance Level** (.env file) → Defaults for all organizations
-2. **Organization Level** (API) → Overrides for specific organization + resource type
-
-**Why Two Tiers?**
-
--   **Flexibility**: Different organizations have different workflows
--   **Consistency**: System-wide defaults ensure baseline behavior
--   **Scalability**: Easy to add new organizations without code changes
-
-**Core Principle**: Organization administrators (`org_admin`) can override most instance-level settings for their organization while maintaining instance-wide defaults for others.
+## Overview
+
+SCP is built with a multi-tenant architecture that supports:
+
+-   **Multiple Resource Types**: ✅ **Fully Implemented**: Projects, Programs &#124; 🔄 **Upcoming**: Surveys, Observations, Observations with Rubrics
+-   **Flexible Review Workflows**: Sequential or parallel review processes
+-   **Organization-Specific Customization**: Each organization can override instance defaults per resource type
+-   **Comprehensive Role-Based Access Control**: admin, org_admin, tenant_admin, content_creator, reviewer, program_designer, program_manager, rollout_manager, and more
+-   **Component Management**: Configurable components, review stages, entities, and forms
+-   **Customizable Roles**: All role names can be customized via environment variables to match organizational terminology
 
 ---
 
 ## Roles at a Glance
-
-### Role Hierarchy
-
-```
-System Level
-    ├─► admin (Full system access)
-    │
-Tenant Level
-    ├─► tenant_admin (Tenant-wide access)
-    │
-Organization Level
-    ├─► org_admin (Org configuration)
-    ├─► content_creator (Create resources)
-    ├─► reviewer (Review & approve)
-    ├─► program_designer (Design programs)
-    └─► rollout_manager (Deploy resources)
-
-Consumption Service Only
-    └─► program_manager (Analytics access)
-```
 
 ### Quick Role Summary
 
@@ -374,55 +54,17 @@ Consumption Service Only
 
 **Note**: `program_manager` and `data_manager` roles are configured in SCP but provide access only in the consumption service (for reports/analytics), not within SCP itself.
 
----
+### Common Use Cases
 
-## Common Use Cases
-
-### For Administrators
-
-| Task                                    | Required Role | API Endpoint                                        |
-| --------------------------------------- | ------------- | --------------------------------------------------- |
-| Set up new tenant dependencies          | `admin`       | `POST /scp/v1/admin/createTenantDependencies`       |
-| Execute database queries                | `admin`       | `POST /scp/v1/admin/dbFind`                         |
-| Configure organization review workflows | `org_admin`   | `POST /scp/v1/organization-extensions/createConfig` |
-| Create entity types                     | `org_admin`   | `POST /scp/v1/entity-types/create`                  |
-| Create forms                            | `org_admin`   | `POST /scp/v1/forms/create`                         |
-
-### For Content Creators
-
-| Task                      | Required Role     | API Endpoint                                       |
-| ------------------------- | ----------------- | -------------------------------------------------- |
-| Create a project          | `content_creator` | `POST /scp/v1/projects/update/{id}`                |
-| Update draft project      | `content_creator` | `POST /scp/v1/projects/update/{id}`                |
-| Submit project for review | `content_creator` | `POST /scp/v1/projects/submitForReview/{id}`       |
-| Clone existing project    | `content_creator` | `POST /scp/v1/projects/update` (with reference_id) |
-
-### For Reviewers
-
-| Task                        | Required Role | API Endpoint                                    |
-| --------------------------- | ------------- | ----------------------------------------------- |
-| View assigned review tasks  | `reviewer`    | `GET /scp/v1/reviews/list`                      |
-| Approve a resource          | `reviewer`    | `POST /scp/v1/reviews/create` (approve)         |
-| Reject a resource           | `reviewer`    | `POST /scp/v1/reviews/create` (reject)          |
-| Request changes to resource | `reviewer`    | `POST /scp/v1/reviews/create` (request changes) |
-
-### For Program Designers
-
-| Task                          | Required Role      | API Endpoint                                 |
-| ----------------------------- | ------------------ | -------------------------------------------- |
-| Create a program              | `program_designer` | `POST /scp/v1/programs/update/{id}`          |
-| Add resources to program      | `program_designer` | `POST /scp/v1/programs/addResources/{id}`    |
-| Remove resources from program | `program_designer` | `POST /scp/v1/programs/removeResources/{id}` |
-| Submit program for review     | `program_designer` | `POST /scp/v1/programs/submitForReview/{id}` |
-| Publish program               | `program_designer` | `POST /scp/v1/programs/publish/{id}`         |
-
-### For Rollout Managers
-
-| Task                     | Required Role     | API Endpoint                        |
-| ------------------------ | ----------------- | ----------------------------------- |
-| Create rollout plan      | `rollout_manager` | `POST /scp/v1/rollouts/create`      |
-| Manage rollout targeting | `rollout_manager` | `PUT /scp/v1/rollouts/update/{id}`  |
-| View rollout metrics     | `rollout_manager` | `GET /scp/v1/rollouts/details/{id}` |
+| Task                                                                                | Required Role                                         |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Create a project                                                                    | `content_creator`                                     |
+| Approve/Reject/Request changes in a resource                                        | `reviewer`                                            |
+| Configure organizational settings (forms, entities, override config, review levels) | `org_admin`                                           |
+| Access analytics dashboard                                                          | `program_manager` _(in consumption service, not SCP)_ |
+| Create a program                                                                    | `program_designer`                                    |
+| Publish single resources                                                            | `rollout_manager`                                     |
+| Set or update all tenant and org config, Execute database queries                   | `admin`                                               |
 
 **For detailed permissions, see [Complete Role Permissions](#role-based-access-control-detailed) below.**
 
@@ -992,239 +634,64 @@ RESOURCE_TYPES="project,observation,observation_with_rubric,survey,program"
 
 ---
 
-## API Endpoints
+## Setup and Installation
 
-### Base URL
+### Prerequisites
 
-```
-http://localhost:6001/scp/v1
-```
+-   Node.js 14+
+-   PostgreSQL 12+
+-   Redis (caching)
+-   Kafka (event communication, optional)
+-   MongoDB (content storage, optional)
 
-### Authentication
+### Installation Steps
 
-All API requests (except health check) require authentication via `X-auth-token` header:
+1. **Clone Repository**
 
 ```bash
-X-auth-token: <your_jwt_token>
+git clone https://github.com/ELEVATE-Project/survey-project-creation-service.git
+cd survey-project-creation-service/src
 ```
 
-### Configuration & Administration
+2. **Install Dependencies**
 
-| Method | Endpoint                                            | Role              | Description                       |
-| ------ | --------------------------------------------------- | ----------------- | --------------------------------- |
-| GET    | `/scp/v1/config/list`                               | Any authenticated | List current configurations       |
-| POST   | `/scp/v1/organization-extensions/createConfig`      | `org_admin`       | Create organization configuration |
-| PUT    | `/scp/v1/organization-extensions/updateConfig/{id}` | `org_admin`       | Update organization configuration |
-| POST   | `/scp/v1/admin/createTenantDependencies`            | `admin`           | Create tenant dependencies        |
-| POST   | `/scp/v1/admin/dbFind`                              | `admin`           | Execute database queries          |
+```bash
+npm install
+```
 
-### Entity & Form Management
+3. **Configure Environment**
 
-| Method | Endpoint                      | Role        | Description        |
-| ------ | ----------------------------- | ----------- | ------------------ |
-| POST   | `/scp/v1/entity-types/create` | `org_admin` | Create entity type |
-| GET    | `/scp/v1/entity-types/list`   | `org_admin` | List entity types  |
-| POST   | `/scp/v1/forms/create`        | `org_admin` | Create form        |
-| GET    | `/scp/v1/forms/details/{id}`  | `org_admin` | Get form details   |
+```bash
+cp .env.sample .env
+# Edit .env with your configuration
+```
 
-### Resource Management (Projects)
+4. **Initialize Database**
 
-| Method | Endpoint                                       | Role              | Description              |
-| ------ | ---------------------------------------------- | ----------------- | ------------------------ |
-| POST   | `/scp/v1/projects/update/{projectId}`          | `content_creator` | Create or update project |
-| GET    | `/scp/v1/projects/details/{projectId}`         | `content_creator` | Get project details      |
-| GET    | `/scp/v1/projects/list`                        | `content_creator` | List projects            |
-| GET    | `/scp/v1/projects/reviewerList`                | `content_creator` | Get reviewer list        |
-| POST   | `/scp/v1/projects/submitForReview/{projectId}` | `content_creator` | Submit for review        |
-| DELETE | `/scp/v1/projects/delete/{projectId}`          | `content_creator` | Delete draft project     |
+```bash
+npm run db:init
+npm run db:seed:all
+```
 
-### Program Management
+5. **Start Service**
 
-| Method | Endpoint                                        | Role               | Description                   |
-| ------ | ----------------------------------------------- | ------------------ | ----------------------------- |
-| POST   | `/scp/v1/programs/update/{id}`                  | `program_designer` | Create or update program      |
-| GET    | `/scp/v1/programs/details/{id}`                 | `program_designer` | Get program details           |
-| GET    | `/scp/v1/programs/list`                         | `program_designer` | List programs                 |
-| POST   | `/scp/v1/programs/addResources/{program_id}`    | `program_designer` | Link resources to program     |
-| POST   | `/scp/v1/programs/removeResources/{program_id}` | `program_designer` | Remove resources from program |
-| POST   | `/scp/v1/programs/submitForReview/{id}`         | `program_designer` | Submit program for review     |
-| POST   | `/scp/v1/programs/publish/{id}`                 | `program_designer` | Publish program               |
+```bash
+npm start
+```
 
-### Review Management
+6. **Verify Deployment**
 
-| Method | Endpoint                             | Role       | Description        |
-| ------ | ------------------------------------ | ---------- | ------------------ |
-| POST   | `/scp/v1/reviews/create`             | `reviewer` | Create review      |
-| GET    | `/scp/v1/reviews/list`               | `reviewer` | List review tasks  |
-| GET    | `/scp/v1/reviews/details/{reviewId}` | `reviewer` | Get review details |
-
-### Rollout Management
-
-| Method | Endpoint                        | Role              | Description         |
-| ------ | ------------------------------- | ----------------- | ------------------- |
-| POST   | `/scp/v1/rollouts/create`       | `rollout_manager` | Create rollout      |
-| GET    | `/scp/v1/rollouts/list`         | `rollout_manager` | List rollouts       |
-| GET    | `/scp/v1/rollouts/details/{id}` | `rollout_manager` | Get rollout details |
-| PUT    | `/scp/v1/rollouts/update/{id}`  | `rollout_manager` | Update rollout      |
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-<details>
-<summary><strong>Database Connection Failed</strong></summary>
-
-**Symptom**: Error connecting to PostgreSQL
-
-**Solution**:
-
-1. Verify PostgreSQL is running: `sudo systemctl status postgresql`
-2. Check credentials in `.env` file
-3. Ensure database exists: `psql -U postgres -c "CREATE DATABASE scp_db;"`
-4. Verify network connectivity if using remote database
-
-</details>
-
-<details>
-<summary><strong>Redis Connection Error</strong></summary>
-
-**Symptom**: Cannot connect to Redis
-
-**Solution**:
-
-1. Check if Redis is running: `redis-cli ping` (should return PONG)
-2. Start Redis: `sudo systemctl start redis`
-3. Verify Redis configuration in `.env`
-
-</details>
-
-<details>
-<summary><strong>Authentication Token Invalid</strong></summary>
-
-**Symptom**: 401 Unauthorized errors
-
-**Solution**:
-
-1. Ensure user service is running (if using external auth)
-2. Verify token format in `X-auth-token` header
-3. Check token expiration
-4. Regenerate token if needed
-
-</details>
-
-<details>
-<summary><strong>Migration Fails</strong></summary>
-
-**Symptom**: Database migration errors
-
-**Solution**:
-
-1. Drop and recreate database: `npm run db:drop && npm run db:init`
-2. Check for existing migration locks
-3. Ensure database user has proper permissions
-4. Review migration logs for specific errors
-
-</details>
-
-### Getting Help
-
-If you encounter issues not covered here:
-
-1. Check the [GitHub Issues](https://github.com/ELEVATE-Project/survey-project-creation-service/issues)
-2. Review API documentation at `/scp/api-doc`
-3. Enable debug logging: Set `LOG_LEVEL=debug` in `.env`
-4. Create a new issue with:
-    - SCP version
-    - Environment details
-    - Steps to reproduce
-    - Error logs
-
----
-
-## Best Practices
-
-### Configuration Management
-
-1. **Version Control**: Keep `.env.sample` updated but never commit `.env` with secrets
-2. **Environment-Specific Config**: Use different `.env` files for dev, staging, production
-3. **Document Changes**: Maintain a changelog for configuration updates
-4. **Test Review Workflows**: Thoroughly test review stages before production deployment
-5. **Backup Configuration**: Export organization configurations before major updates
-
-### Security
-
-1. **Rotate Tokens**: Regularly rotate authentication tokens
-2. **Least Privilege**: Assign minimum required roles to users
-3. **Audit Logs**: Enable and monitor audit logging for admin actions
-4. **Secure Secrets**: Use environment variables or secret management tools
-5. **Database Access**: Restrict database access to admin role only
-
-### Performance
-
-1. **Redis Caching**: Ensure Redis is properly configured for optimal caching
-2. **Database Indexing**: Monitor slow queries and add indexes as needed
-3. **Connection Pooling**: Configure appropriate connection pool sizes
-4. **Auto-Save Tuning**: Adjust `RESOURCE_AUTO_SAVE_TIMER` based on user feedback
-5. **Pagination**: Use pagination for list endpoints with large datasets
-
-### Multi-Tenant Deployments
-
-1. **Tenant Isolation**: Verify data isolation between tenants
-2. **Resource Limits**: Set appropriate limits per organization
-3. **Monitoring**: Implement per-tenant monitoring and alerting
-4. **Backup Strategy**: Schedule regular backups with tenant-level granularity
-5. **Load Balancing**: Distribute load across multiple instances for large deployments
+```bash
+curl http://localhost:6001/scp/health
+```
 
 ---
 
 ## Support and Documentation
 
-### Resources
-
--   **📖 API Documentation**: [https://dev.elevate-apis.shikshalokam.org/scp/api-doc](https://dev.elevate-apis.shikshalokam.org/scp/api-doc)
--   **📦 Postman Collection**: `src/configs/SCP_Postman_Collection.json`
--   **💻 GitHub Repository**: [https://github.com/ELEVATE-Project/survey-project-creation-service](https://github.com/ELEVATE-Project/survey-project-creation-service)
--   **🐛 Issue Tracker**: [https://github.com/ELEVATE-Project/survey-project-creation-service/issues](https://github.com/ELEVATE-Project/survey-project-creation-service/issues)
-
-### Community
-
--   **Discussions**: GitHub Discussions for Q&A and feature requests
--   **Contributing**: See `CONTRIBUTING.md` for contribution guidelines
--   **Code of Conduct**: See `CODE_OF_CONDUCT.md`
-
-### Getting Support
-
-For technical support:
-
-1. Search existing issues on GitHub
-2. Review API documentation and Postman collection
-3. Check troubleshooting section above
-4. Create a detailed issue if problem persists
-
-For security vulnerabilities:
-
--   **DO NOT** create public issues
--   Email security concerns to the maintainers
--   Follow responsible disclosure practices
+-   **API Documentation**: `https://dev.elevate-apis.shikshalokam.org/scp/api-doc`
+-   **Postman Collection**: `src/configs/SCP_Postman_Collection.json`
+-   **GitHub Repository**: https://github.com/ELEVATE-Project/survey-project-creation-service
+-   **Issue Tracker**: https://github.com/ELEVATE-Project/survey-project-creation-service/issues
 
 ---
-
-## License
-
-This project is licensed under the terms specified in the LICENSE file.
-
----
-
-## Changelog
-
-### Version 1.0.0 (Latest)
-
--   ✅ Production-ready project and program management
--   ✅ Configurable review workflows
--   ✅ Multi-tenant architecture
--   ✅ Role-based access control
--   🔄 Surveys, observations (in development)
-
-For detailed version history, see [CHANGELOG.md](CHANGELOG.md)
