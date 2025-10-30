@@ -11,7 +11,7 @@ module.exports = {
 		 */
 
 		await queryInterface.addColumn('resources', 'visibility', {
-			type: Sequelize.STRING,
+			type: Sequelize.ENUM('CURRENT', 'ASSOCIATED', 'ALL'),
 			allowNull: false,
 			defaultValue: 'CURRENT',
 		})

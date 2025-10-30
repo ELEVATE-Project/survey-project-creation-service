@@ -4,13 +4,13 @@
 module.exports = {
 	async up(queryInterface, Sequelize) {
 		await queryInterface.addColumn('organization_configs', 'project_resource_visibility_policy', {
-			type: Sequelize.STRING,
+			type: Sequelize.ENUM('CURRENT', 'ASSOCIATED', 'ALL'),
 			allowNull: false,
 			defaultValue: 'CURRENT',
 		})
 
 		await queryInterface.addColumn('organization_configs', 'external_project_resource_visibility_policy', {
-			type: Sequelize.STRING,
+			type: Sequelize.ENUM('CURRENT', 'ASSOCIATED', 'ALL'),
 			allowNull: false,
 			defaultValue: 'CURRENT',
 		})
