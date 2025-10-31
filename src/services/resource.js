@@ -1670,6 +1670,15 @@ module.exports = class resourceHelper {
 
 			const orgPolicy = orgPolicies[0].external_resource_visibility_policy
 
+			const sharedWithOrgCondition = {
+				[Op.and]: [
+					{ visibility: { [Op.ne]: common.CURRENT } },
+					{ visible_to_organizations: { [Op.contains]: [organization_code] } },
+				],
+			}
+
+			const ownOrgCondition = { organization_code }
+
 			switch (orgPolicy) {
 				// --------------------------------------------------------------------
 				// CASE 1: CURRENT
@@ -1688,15 +1697,7 @@ module.exports = class resourceHelper {
 				//   2. Shared with the current org via "visible_to_organizations" array
 				// --------------------------------------------------------------------
 				case common.ASSOCIATED:
-					filterQuery[Op.or] = [
-						{
-							[Op.and]: [
-								{ visibility: { [Op.ne]: common.CURRENT } },
-								{ visible_to_organizations: { [Op.contains]: [organization_code] } },
-							],
-						},
-						{ organization_code },
-					]
+					filterQuery[Op.or] = [sharedWithOrgCondition, ownOrgCondition]
 					break
 
 				// --------------------------------------------------------------------
@@ -1710,16 +1711,7 @@ module.exports = class resourceHelper {
 				// --------------------------------------------------------------------
 
 				case common.ALL:
-					filterQuery[Op.or] = [
-						{ visibility: common.ALL },
-						{
-							[Op.and]: [
-								{ visibility: { [Op.ne]: common.CURRENT } },
-								{ visible_to_organizations: { [Op.contains]: [organization_code] } },
-							],
-						},
-						{ organization_code },
-					]
+					filterQuery[Op.or] = [{ visibility: common.ALL }, sharedWithOrgCondition, ownOrgCondition]
 					break
 
 				default:

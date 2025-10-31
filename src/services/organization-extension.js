@@ -457,93 +457,88 @@ module.exports = class orgExtensionsHelper {
 
 	static async createOrUpdate(bodyData, orgCode, tenantCode) {
 		try {
-			// fetch org config for organization_code
-			const orgConfigs = await organizationConfigQueries.findOne(
-				{
-					organization_code: orgCode,
-					tenant_code: tenantCode,
-				},
-				['meta', 'organization_code', 'external_resource_visibility_policy', 'resource_visibility_policy']
-			)
-			bodyData.organization_code = orgCode
-			bodyData.tenant_code = tenantCode
-			const { data_managers, program_managers, resource_visibility_policy, external_resource_visibility_policy } =
-				bodyData
-			let meta = {}
-			// check if body have data_managers
-			if (data_managers?.length) {
-				meta.data_managers = data_managers
-			}
-			// check if body have program_managers
-			if (program_managers?.length) {
-				meta.program_managers = program_managers
+			// Validate org and tenant codes
+			if (!orgCode?.trim() || !tenantCode?.trim()) {
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					message: 'ORGANIZATION_CODE_AND_TENANT_CODE_REQUIRED',
+				})
 			}
 
-			// Build the update object conditionally
-			let updateData = {
-				organization_code: orgCode,
-				tenant_code: tenantCode,
-				meta,
+			// Prepare base update data
+			const updateData = {
+				organization_code: orgCode.trim(),
+				tenant_code: tenantCode.trim(),
+				meta: {},
 				updated_at: new Date(),
 			}
 
-			// Add policies visibility  only if they are non-empty strings and valid
-			if (resource_visibility_policy?.trim()) {
-				const value = resource_visibility_policy.trim().toUpperCase()
-				if (common.VALID_POLICIES.includes(value)) {
-					updateData.resource_visibility_policy = value
-				}
+			const { data_managers, program_managers, resource_visibility_policy, external_resource_visibility_policy } =
+				bodyData || {}
+
+			// Meta construction (only non-empty arrays)
+			if (Array.isArray(data_managers) && data_managers.length) {
+				updateData.meta.data_managers = data_managers
+			}
+			if (Array.isArray(program_managers) && program_managers.length) {
+				updateData.meta.program_managers = program_managers
 			}
 
-			if (external_resource_visibility_policy?.trim()) {
-				const value = external_resource_visibility_policy.trim().toUpperCase()
-				if (common.VALID_POLICIES.includes(value)) {
-					updateData.external_resource_visibility_policy = value
-				}
+			// Policy handling using helper
+			const orgPolicies = {
+				resource_visibility_policy,
+				external_resource_visibility_policy,
 			}
-			if (orgConfigs?.organization_code) {
-				updateData = _.omit(updateData, ['meta'])
-				// Existing config found → perform update
+
+			for (const [key, value] of Object.entries(orgPolicies)) {
+				const policy = utils.setPolicy(value)
+				if (policy) updateData[key] = policy
+			}
+
+			// Fetch existing config (limit fields for efficiency)
+			const existingConfig = await organizationConfigQueries.findOne(
+				{ organization_code: orgCode, tenant_code: tenantCode },
+				['organization_code']
+			)
+
+			// Upsert logic
+			if (existingConfig) {
+				// Update (omit meta if empty)
+				if (!Object.keys(updateData.meta).length) delete updateData.meta
+
 				const [updatedCount] = await organizationConfigQueries.update(
-					{
-						organization_code: orgCode,
-						tenant_code: tenantCode,
-					},
+					{ organization_code: orgCode, tenant_code: tenantCode },
 					updateData
 				)
 
-				if (updatedCount > 0) {
-					return responses.successResponse({
-						statusCode: httpStatusCode.ok,
-						message: 'CONFIG_UPDATED_SUCCESSFULLY',
-					})
-				} else {
-					// fallback: something went wrong during update
-					return responses.failureResponse({
-						statusCode: httpStatusCode.bad_request,
-						message: 'CONFIG_UPDATE_FAILED',
-					})
-				}
-			} else {
-				// No existing config → create new
-				const createOrgConfigs = await organizationConfigQueries.upsert(updateData, {
-					organization_code: orgCode,
-					tenant_code: tenantCode,
-				})
+				return updatedCount > 0
+					? responses.successResponse({
+							statusCode: httpStatusCode.ok,
+							message: 'CONFIG_UPDATED_SUCCESSFULLY',
+					  })
+					: responses.failureResponse({
+							statusCode: httpStatusCode.bad_request,
+							message: 'CONFIG_UPDATE_FAILED',
+					  })
+			}
 
-				if (createOrgConfigs) {
-					return responses.successResponse({
+			// Create new config
+			const created = await organizationConfigQueries.upsert(updateData, {
+				organization_code: orgCode,
+				tenant_code: tenantCode,
+			})
+
+			return created
+				? responses.successResponse({
 						statusCode: httpStatusCode.created,
 						message: 'CONFIG_ADDED_SUCCESSFULLY',
-					})
-				} else {
-					return responses.failureResponse({
+				  })
+				: responses.failureResponse({
 						statusCode: httpStatusCode.bad_request,
 						message: 'CONFIG_CREATION_FAILED',
-					})
-				}
-			}
+				  })
 		} catch (error) {
+			// Handle known errors
 			if (error instanceof UniqueConstraintError) {
 				return responses.failureResponse({
 					message: 'CONFIG_ALREADY_EXIST',
@@ -551,6 +546,7 @@ module.exports = class orgExtensionsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+
 			return responses.failureResponse({
 				message: error.message || error,
 				statusCode: httpStatusCode.internal_server_error,

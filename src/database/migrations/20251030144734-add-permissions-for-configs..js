@@ -33,7 +33,13 @@ module.exports = {
 
 			//create module
 			const modulesData = [
-				{ code: 'config_permissions', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
+				{ code: 'config_create_or_update', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
+				{
+					code: 'config_update_related_orgs',
+					status: 'ACTIVE',
+					created_at: new Date(),
+					updated_at: new Date(),
+				},
 			]
 
 			// Insert the data into the 'modules' table
@@ -42,7 +48,7 @@ module.exports = {
 			//create permission
 			const permissionsData = [
 				{
-					code: 'config_permissions',
+					code: 'config_create_or_update',
 					module: 'config',
 					request_type: ['PUT', 'POST'],
 					api_path: '/scp/v1/config/createOrUpdate',
@@ -51,7 +57,7 @@ module.exports = {
 					updated_at: new Date(),
 				},
 				{
-					code: 'config_permissions',
+					code: 'config_update_related_orgs',
 					module: 'config',
 					request_type: ['PUT', 'POST'],
 					api_path: '/scp/v1/config/updateRelatedOrgs',

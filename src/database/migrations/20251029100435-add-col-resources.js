@@ -30,9 +30,8 @@ module.exports = {
 		 * Example:
 		 * await queryInterface.dropTable('users');
 		 */
-		await queryInterface.sequelize.query(`
-			  DROP TYPE IF EXISTS enum_resources_visibility;
-			`)
 		await queryInterface.removeColumn('resources', 'visible_to_organizations')
+		await queryInterface.removeColumn('resources', 'visibility')
+		await queryInterface.sequelize.query('DROP TYPE IF EXISTS enum_resources_visibility;')
 	},
 }
