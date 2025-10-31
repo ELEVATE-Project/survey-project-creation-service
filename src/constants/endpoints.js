@@ -28,4 +28,7 @@ module.exports = {
 	MAP_USER_AND_PROGRAM: process.env.MAP_USER_AND_PROGRAM_ENDPOINT
 		? process.env.MAP_USER_AND_PROGRAM_ENDPOINT
 		: 'v1/userExtension/update',
+	SUB_ENTITY_LISTBASED_ON_ROLE_AND_LOCATION: process.env.SUB_ENTITY_LISTBASED_ON_ROLE_AND_LOCATION
+		? process.env.SUB_ENTITY_LISTBASED_ON_ROLE_AND_LOCATION
+		: 'v1/entities/subEntityListBasedOnRoleAndLocation',
 }

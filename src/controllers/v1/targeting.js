@@ -6,8 +6,7 @@
  */
 
 // Dependencies
-const resourceService = require('@services/resource')
-const common = require('@constants/common')
+const targetingService = require('@services/targeting')
 
 module.exports = class Resource {
 	/**
@@ -18,32 +17,14 @@ module.exports = class Resource {
 	 * @returns {JSON} - resource list
 	 */
 
-	async entityTargeting(req) {
+	async hierarchyBasedOnParentEntity(req) {
 		try {
-			let resourceList = {}
-			if (req.query[common.LISTING] === common.PAGE_STATUS_DRAFTS) {
-				resourceList = await resourceService.listAllDrafts(
-					req.decodedToken.id,
-					req.query,
-					req.searchText,
-					req.pageNo,
-					req.pageSize,
-					req.decodedToken.token,
-					req.decodedToken.organization_code,
-					req.decodedToken.tenant_code
-				)
-			} else if (req.query[common.LISTING] === common.PAGE_STATUS_SUBMITTED_FOR_REVIEW) {
-				resourceList = await resourceService.listAllSubmittedResources(
-					req.decodedToken.id,
-					req.decodedToken.tenant_code,
-					req.query,
-					req.searchText,
-					req.pageNo,
-					req.pageSize,
-					req.decodedToken.token
-				)
-			}
-			return resourceList
+			let targetingSubEntityList = await targetingService.targetingSubEntityList(
+				req.params.id,
+				req.decodedToken.token
+			)
+
+			return targetingSubEntityList
 		} catch (error) {
 			return error
 		}
