@@ -29,4 +29,27 @@ module.exports = class Resource {
 			return error
 		}
 	}
+	/**
+	 * Hierarchy Based On ParentEntity
+	 * @method
+	 * @name hierarchyBasedOnParentEntity
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - resource list
+	 */
+
+	async fetchDependedSubEntities(req) {
+		try {
+			let targetingSubEntityList = await targetingService.fetchDependedSubEntities(
+				req.query.subEntity,
+				req?.body?.parentEntities,
+				req.decodedToken.tenant_code,
+				req.pageNo,
+				req.pageSize
+			)
+
+			return targetingSubEntityList
+		} catch (error) {
+			return error
+		}
+	}
 }
