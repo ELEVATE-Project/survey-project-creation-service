@@ -1666,7 +1666,10 @@ module.exports = class resourceHelper {
 	 */
 	static applyOrgVisibilityPolicy(orgPolicies, organization_code, filterQuery = {}) {
 		try {
-			if (!orgPolicies?.length) return { success: common.FALSE, filterQuery }
+			if (!orgPolicies?.length) {
+				filterQuery.organization_code = organization_code
+				return { success: common.TRUE, filterQuery }
+			}
 
 			const orgPolicy = orgPolicies[0].external_resource_visibility_policy
 
@@ -1715,8 +1718,9 @@ module.exports = class resourceHelper {
 					break
 
 				default:
+					filterQuery.organization_code = organization_code
 					return {
-						success: common.FALSE,
+						success: common.TRUE,
 						statusCode: httpStatusCode.bad_request,
 						message: 'INVALID_POLICY',
 						filterQuery,
