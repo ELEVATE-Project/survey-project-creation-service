@@ -10,9 +10,9 @@ const targetingService = require('@services/targeting')
 
 module.exports = class Resource {
 	/**
-	 * entity
+	 * Hierarchy Based On ParentEntity
 	 * @method
-	 * @name list
+	 * @name hierarchyBasedOnParentEntity
 	 * @param {Object} req - request data.
 	 * @returns {JSON} - resource list
 	 */
