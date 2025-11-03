@@ -2651,7 +2651,7 @@ paths:
           example: 1
         - in: query
           name: reference_id
-          description: (Optional) The project solution ID from the consumption side.
+          description: "(Optional) The ID of an existing project to clone/reference. When provided, a new project is created as a copy of the referenced project with all its structure, tasks, and configurations. The cloned project will be created in DRAFT status and will belong to the current user's organization. Example: reference_id=12345"
           schema:
             type: string
           required: false
