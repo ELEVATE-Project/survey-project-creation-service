@@ -156,7 +156,7 @@ module.exports = class targetingService {
 			return responses.successResponse({
 				message: 'ENTITIES_FETCHED_SUCCESSFULLY',
 				statusCode: httpStatusCode.ok,
-				result: result,
+				result: { data: [...result], count: subEntityResponse?.data?.count || 0 },
 			})
 		} catch (error) {
 			return responses.failureResponse({
