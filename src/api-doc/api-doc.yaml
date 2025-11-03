@@ -7133,6 +7133,7 @@ paths:
                           resource_type: project
                           max_task_count: 10
                           observation_link_regex: '^https?:\/\/[a-zA-Z0-9\-_]+\.[a-zA-Z]{2,}(/[a-zA-Z0-9\-\._~:/?#[\]@!$&\''()*+,;=]*)?$'
+                          project_reflection_task_redirect_url: 'https://dev.elevate-mitra.shikshalokam.org/mohini/sso?flow=guest-mi-story'
                           open_external_link: true
                         - review_required: true
                           show_reviewer_list: true
