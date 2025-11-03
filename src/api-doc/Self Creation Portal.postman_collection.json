@@ -1232,6 +1232,30 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Republish Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/republish/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "projects", "republish", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},

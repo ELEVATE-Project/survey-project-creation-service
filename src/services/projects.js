@@ -867,6 +867,74 @@ module.exports = class ProjectsHelper {
 	}
 
 	/**
+	 * Project republish
+	 * @method
+	 * @name republish
+	 * @param {Integer} projectId - Project Id.
+	 * @param {Object} userDetails - User details
+	 * @returns {JSON} - project republish response.
+	 */
+	static async republish(projectId, userDetails) {
+		try {
+			let projectDetails = await this.details(projectId, userDetails.organization_code, userDetails.tenant_code)
+			if (projectDetails.statusCode !== httpStatusCode.ok) {
+				return responses.failureResponse({
+					message: 'DONT_HAVE_PROJECT_ACCESS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+			let projectData = projectDetails.result
+
+			// check if project status is PUBLISHED
+			if (projectData.status !== common.RESOURCE_STATUS_PUBLISHED) {
+				return responses.failureResponse({
+					message: 'PROJECT_NOT_PUBLISHED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			if (projectData.published_id) {
+				return responses.failureResponse({
+					message: 'PROJECT_ALREADY_REPUBLISHED',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			// republish project
+			const republishResource = await reviewService.publishResource(
+				projectId,
+				projectData.user_id,
+				projectData.organization_code,
+				projectData.tenant_code
+			)
+
+			if (![httpStatusCode.ok, httpStatusCode.accepted].includes(republishResource.statusCode)) {
+				return responses.failureResponse({
+					message: `Project republish failed: ${republishResource.message || 'Unknown error'}`,
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.successResponse({
+				statusCode: httpStatusCode.ok,
+				message: 'PROJECT_REPUBLISHED',
+				result: { id: projectData.id },
+			})
+		} catch (error) {
+			return responses.failureResponse({
+				message: error.message || 'RESOURCE_VALIDATION_FAILED',
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+				result: error.error || [],
+			})
+		}
+	}
+
+	/**
 	 * Validates the given project data
 	 * @method
 	 * @name validateEntityData

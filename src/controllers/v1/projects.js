@@ -112,4 +112,21 @@ module.exports = class Projects {
 			return error
 		}
 	}
+
+	/**
+	 * republish project
+	 * @method
+	 * @name republish
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - project republish response.
+	 */
+
+	async republish(req) {
+		try {
+			const republish = await projectService.republish(req.params.id, req.decodedToken)
+			return republish
+		} catch (error) {
+			return error
+		}
+	}
 }

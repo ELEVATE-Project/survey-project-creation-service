@@ -53,6 +53,27 @@ describe('Project APIs ', function () {
 		expect(res.body).toMatchSchema(schema.reviewerListSchema)
 	})
 
+	it('Republish Project with invalid project id', async () => {
+		const res = await request.post('/scp/v1/projects/republish/9999')
+		expect(res.statusCode).toBe(400)
+	})
+
+	it('Republish Project with valid published project id', async () => {
+		// Get a published project
+		const publishedProjectsRes = await request.get(
+			'/scp/v1/resource/getPublishedResources?page=1&limit=5&type=project'
+		)
+		const projectId = publishedProjectsRes?.body?.result?.data?.[0]?.id
+
+		if (projectId) {
+			const res = await request.post(`/scp/v1/projects/republish/${projectId}`)
+			expect(res.statusCode).toBe(200)
+			expect(res.body).toMatchSchema(schema.republishProjectSchema)
+		} else {
+			console.log('No published projects found for republish test')
+		}
+	})
+
 	it('List Project with data', async () => {
 		//create project
 		let createProject = await request.post('/scp/v1/projects/update').send(insertProjectData())
