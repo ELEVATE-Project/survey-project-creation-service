@@ -1432,7 +1432,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					.toArray()
 
 				// if certificate is there , replace the task details with object ids
-				if (certificate) {
+				if (certificate && Object.keys(certificate).length > 0) {
 					const conditionsList = Object.keys(certificate.criteria.conditions)
 					conditionsList.forEach((condition) => {
 						Object.keys(certificate.criteria.conditions[condition].conditions).forEach((subCondition) => {
