@@ -876,60 +876,63 @@ module.exports = class ProjectsHelper {
 	 */
 	static async republish(projectId, userDetails) {
 		try {
-			let projectDetails = await this.details(projectId, userDetails.organization_code, userDetails.tenant_code)
-			if (projectDetails.statusCode !== httpStatusCode.ok) {
-				return responses.failureResponse({
+			// Fetch project details with authorization check
+			const projectDetailsResponse = await this.details(
+				projectId,
+				userDetails.organization_code,
+				userDetails.tenant_code
+			)
+
+			if (projectDetailsResponse.statusCode !== httpStatusCode.ok) {
+				throw {
 					message: 'DONT_HAVE_PROJECT_ACCESS',
 					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				}
 			}
-			let projectData = projectDetails.result
+			const projectData = projectDetailsResponse.result
 
-			// check if project status is PUBLISHED
+			// Validate project status is PUBLISHED
 			if (projectData.status !== common.RESOURCE_STATUS_PUBLISHED) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_PUBLISHED',
+				throw {
+					message: 'CANNOT_REPUBLISH_UNPUBLISHED_PROJECT',
 					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				}
 			}
 
+			// Validate project has not been already published
 			if (projectData.published_id) {
-				return responses.failureResponse({
-					message: 'PROJECT_ALREADY_REPUBLISHED',
+				throw {
+					message: 'PROJECT_ALREADY_PUBLISHED',
 					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				}
 			}
 
-			// republish project
-			const republishResource = await reviewService.publishResource(
+			// Initiate republish process
+			const republishResponse = await reviewService.publishResource(
 				projectId,
 				projectData.user_id,
 				projectData.organization_code,
-				projectData.tenant_code
+				projectData.tenant_code,
+				userDetails.token
 			)
 
-			if (![httpStatusCode.ok, httpStatusCode.accepted].includes(republishResource.statusCode)) {
-				return responses.failureResponse({
-					message: `Project republish failed: ${republishResource.message || 'Unknown error'}`,
+			if (![httpStatusCode.ok, httpStatusCode.accepted].includes(republishResponse.statusCode)) {
+				throw {
+					message: republishResponse.message || 'PROJECT_REPUBLISH_FAILED',
 					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				}
 			}
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
-				message: 'PROJECT_REPUBLISHED',
+				message: 'PROJECT_REPUBLISHED_SUCCESSFULLY',
 				result: { id: projectData.id },
 			})
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || 'RESOURCE_VALIDATION_FAILED',
-				statusCode: httpStatusCode.internal_server_error,
+				statusCode: error.statusCode || httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
-				result: error.error || [],
 			})
 		}
 	}

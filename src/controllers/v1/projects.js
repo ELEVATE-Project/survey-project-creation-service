@@ -123,8 +123,8 @@ module.exports = class Projects {
 
 	async republish(req) {
 		try {
-			const republish = await projectService.republish(req.params.id, req.decodedToken)
-			return republish
+			const response = await projectService.republish(parseInt(req.params.id), req.decodedToken)
+			return response
 		} catch (error) {
 			return error
 		}

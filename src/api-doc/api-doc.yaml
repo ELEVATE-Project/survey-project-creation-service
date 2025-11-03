@@ -3288,7 +3288,7 @@ paths:
                 example1:
                   value:
                     responseCode: OK
-                    message: PROJECT_REPUBLISHED
+                    message: Project republished successfully.
                     result:
                       id: 1
                     meta:
