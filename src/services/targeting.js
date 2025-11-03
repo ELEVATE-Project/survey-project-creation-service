@@ -74,7 +74,8 @@ module.exports = class targetingService {
 	 * @returns {JSON} - rollout id
 	 */
 	static async fetchDependedSubEntities(subEntity, parentEntities, tenantCode, pageNo = 1, pageSize = 100) {
-		let result = []
+		let result = [],
+			count = 0
 		try {
 			const endpoint = fetchBaseUrl(endpoints.FIND_ENTITIES_BY_QUERY)
 			parentEntities =
@@ -150,13 +151,14 @@ module.exports = class targetingService {
 								externalId: item?.metaInformation.externalId,
 							}
 						}) || []
+					count = subEntityResponse?.data?.count || 0
 				}
 			}
 
 			return responses.successResponse({
 				message: 'ENTITIES_FETCHED_SUCCESSFULLY',
 				statusCode: httpStatusCode.ok,
-				result: { data: [...result], count: subEntityResponse?.data?.count || 0 },
+				result: { data: [...result], count },
 			})
 		} catch (error) {
 			return responses.failureResponse({
