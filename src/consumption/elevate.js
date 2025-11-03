@@ -1725,7 +1725,13 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 }
 
 const orderSolutionsInProgram = (resourceWithInProgram) => {
-	let solutionOrderList = resourceWithInProgram.map((item) => ({ id: item.id }))
+	let solutionOrderList = resourceWithInProgram.map((item) => {
+		let res = {
+			id: item.id,
+		}
+		if (item.published_id) res._id = ObjectId(item.published_id)
+		return res
+	})
 
 	const usedOrders = new Set()
 
@@ -1757,6 +1763,7 @@ const orderSolutionsInProgram = (resourceWithInProgram) => {
 
 	return solutionOrderList.reduce((acc, item) => {
 		acc[item.id] = { order: item.order }
+		if (item._id) acc[item.id]._id = item._id
 		return acc
 	}, {})
 }
