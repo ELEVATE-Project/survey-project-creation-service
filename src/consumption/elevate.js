@@ -1274,14 +1274,14 @@ async function insertCertificateTemplate(
  * @param {String} created_by - created by user id
  * @returns {Array} Array of objects of duplicate templates
  */
-const duplicateResources = async (resourceDetails, resourceCertificate, programData) => {
+const duplicateResources = async (resourceDetails, resourceCertificate = {}, programData) => {
 	try {
 		// initialise list of project templates to create
 		let projectTemplateIds = []
 		//initialise list of solution templates to create
 		let solutionTemplateIds = []
-		let certificate = resourceCertificate
-		if (certificate) {
+		let certificate = resourceCertificate || {}
+		if (certificate && Object.keys(certificate).length > 0) {
 			// append task name in each task certificate criterias
 			const certificateCriteriaConditions = Object.keys(certificate.criteria.conditions)
 			certificateCriteriaConditions.forEach((criteriaId) => {
@@ -1917,7 +1917,7 @@ const publishProgram = function async(programData) {
 								...fetchDetails.result,
 								..._.omit(fetchProjectDetails?.result, Object.keys(fetchDetails.result)),
 							}
-							projectCertificate = fetchProjectDetails?.result?.certificate
+							projectCertificate = fetchProjectDetails?.result?.certificate || {}
 						}
 
 						let duplicateResource = await duplicateResources(
