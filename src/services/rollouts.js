@@ -245,7 +245,7 @@ module.exports = class RolloutsHelper {
 					result = { ...resultData }
 				}
 			}
-			if (Object.keys(result?.resource_details).length > 0) {
+			if (result?.resource_details && Object.keys(result?.resource_details).length > 0) {
 				result.resource_details = { ...result.resource_details, ...resourceData }
 			}
 
