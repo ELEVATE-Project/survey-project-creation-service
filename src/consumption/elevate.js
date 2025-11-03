@@ -1729,7 +1729,8 @@ const orderSolutionsInProgram = (resourceWithInProgram) => {
 		let res = {
 			id: item.id,
 		}
-		if (item.published_id) res._id = ObjectId(item.published_id)
+		if (item?.published_id) res._id = ObjectId(item.published_id)
+		if (item?.order) res.order = item.order
 		return res
 	})
 
