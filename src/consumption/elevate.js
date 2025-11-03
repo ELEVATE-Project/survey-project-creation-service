@@ -1373,7 +1373,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					// if task is part of certificate criteria , replace the old task name with new task name
 					// this is required as task name is used to identify the task in certificate criteria
 					// as task id will be different for each project created from the template
-					if (certificate) {
+					if (certificate && Object.keys(certificate).length > 0) {
 						const conditionsList = Object.keys(certificate.criteria.conditions)
 						conditionsList.forEach((condition) => {
 							Object.keys(certificate.criteria.conditions[condition].conditions).forEach(
