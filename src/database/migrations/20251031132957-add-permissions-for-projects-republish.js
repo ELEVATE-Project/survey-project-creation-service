@@ -65,7 +65,7 @@ module.exports = {
 				permission_id,
 				module: 'projects',
 				request_type: ['POST'],
-				api_path: '/scp/v1/projects/republish/:id',
+				api_path: '/scp/v1/projects/republish*',
 				created_at: new Date(),
 				updated_at: new Date(),
 				created_by: 0,
