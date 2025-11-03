@@ -64,14 +64,11 @@ describe('Project APIs ', function () {
 			'/scp/v1/resource/getPublishedResources?page=1&limit=5&type=project'
 		)
 		const projectId = publishedProjectsRes?.body?.result?.data?.[0]?.id
+		expect(projectId).toBeDefined()
 
-		if (projectId) {
-			const res = await request.post(`/scp/v1/projects/republish/${projectId}`)
-			expect(res.statusCode).toBe(200)
-			expect(res.body).toMatchSchema(schema.republishProjectSchema)
-		} else {
-			console.log('No published projects found for republish test')
-		}
+		const res = await request.post(`/scp/v1/projects/republish/${projectId}`)
+		expect(res.statusCode).toBe(200)
+		expect(res.body).toMatchSchema(schema.republishProjectSchema)
 	})
 
 	it('List Project with data', async () => {
