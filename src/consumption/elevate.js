@@ -1814,7 +1814,6 @@ const publishProgram = function async(programData) {
 						resource_id: {
 							[Op.in]: programResourceIds,
 						},
-						parent_id: rolloutDetails.id,
 						type: common.ROLLOUT_TYPE_SOLUTION,
 					},
 					['id', 'resource_id']
