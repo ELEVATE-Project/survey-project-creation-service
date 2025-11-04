@@ -892,7 +892,8 @@ async function handleProgramRollout(resourceData, resourceId, userId, userToken)
 				resourceData,
 				userId,
 				resourceData.organization_code,
-				resourceData.tenant_code
+				resourceData.tenant_code,
+				userToken
 			)
 		} else {
 			// while program publishing first time

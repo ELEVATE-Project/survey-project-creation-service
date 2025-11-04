@@ -434,6 +434,10 @@ let environmentVariables = {
 		optional: true,
 		default: false,
 	},
+	PROJECT_REFLECTION_TASK_REDIRECT_URL: {
+		message: 'Required Project Reflection Task Redirect URL',
+		optional: false,
+	},
 }
 
 let success = true

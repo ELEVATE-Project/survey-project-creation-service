@@ -180,5 +180,7 @@
 	"CANNOT_REPUBLISH_UNPUBLISHED_PROJECT": "This project cannot be republished as it has not been published yet.",
 	"PROJECT_ALREADY_PUBLISHED": "This project has already been published. No need to republish.",
 	"PROJECT_REPUBLISHED_SUCCESSFULLY": "Project republished successfully.",
-	"PROJECT_REPUBLISH_FAILED": "Project republish failed."
+	"PROJECT_REPUBLISH_FAILED": "Project republish failed.",
+	"FAILED_TO_FETCH_ENTITIES": "Failed to fetch entities",
+	"ENTITIES_FETCHED_SUCCESSFULLY": "Entities fetched successfully"
 }
