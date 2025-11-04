@@ -6,10 +6,9 @@
  */
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
-const utils = require('@generics/utils')
-const endpoints = require('@constants/endpoints')
-const requests = require('@generics/requests')
 const common = require('@constants/common')
+const interfaceRequest = require('@requests/interface')
+const { transformEntityDTO } = require('@dtos/targeting')
 
 module.exports = class targetingService {
 	/**
@@ -23,9 +22,7 @@ module.exports = class targetingService {
 	static async targetingSubEntityList(parentId, token) {
 		let result = {}
 		try {
-			const endpoint = fetchBaseUrl(endpoints.SUB_ENTITY_LISTBASED_ON_ROLE_AND_LOCATION, {}, parentId)
-
-			const entityResponse = await requests.get(endpoint, token)
+			const entityResponse = await interfaceRequest.hierarchyFetch({}, parentId, token)
 
 			if (
 				!entityResponse ||
@@ -66,18 +63,20 @@ module.exports = class targetingService {
 		}
 	}
 	/**
-	 * targetingSubEntityList
+	 * Fetches dependent sub-entities based on parent entities
 	 * @method
-	 * @name targetingSubEntityList
-	 * @param {String} parentId - parent external id.
-	 * @param {String} token - user token
-	 * @returns {JSON} - rollout id
+	 * @name fetchDependedSubEntities
+	 * @param {String} subEntity - sub entity type to fetch
+	 * @param {String|Array} parentEntities - parent entity external ids
+	 * @param {String} tenantCode - tenant code
+	 * @param {Number} [pageNo=1] - page number for pagination
+	 * @param {Number} [pageSize=100] - page size for pagination
+	 * @returns {JSON} - List of sub entities with count
 	 */
 	static async fetchDependedSubEntities(subEntity, parentEntities, tenantCode, pageNo = 1, pageSize = 100) {
 		let result = [],
 			count = 0
 		try {
-			const endpoint = fetchBaseUrl(endpoints.FIND_ENTITIES_BY_QUERY)
 			parentEntities =
 				typeof parentEntities == common.STRING
 					? parentEntities
@@ -94,13 +93,7 @@ module.exports = class targetingService {
 				projection: ['groups'],
 			}
 
-			const entityResponse = await requests.post(
-				endpoint,
-				fetchParentBody,
-				'',
-				true,
-				common.INTERNAL_ACCESS_TOKEN
-			)
+			const entityResponse = await interfaceRequest.entityFind(fetchParentBody)
 
 			if (
 				!entityResponse ||
@@ -114,7 +107,7 @@ module.exports = class targetingService {
 				})
 			}
 
-			const entitySubEntityMap = transformEntityResponse(entityResponse)
+			const entitySubEntityMap = transformEntityDTO(entityResponse)
 			const subEntityList = [...new Set(entitySubEntityMap[subEntity] || [])]
 			if (subEntityList.length != 0) {
 				const fetchSubEntityBody = {
@@ -126,17 +119,10 @@ module.exports = class targetingService {
 					mongoIdKeys: ['_id'],
 				}
 
-				const subEntityEndpoint = fetchBaseUrl(endpoints.FIND_ENTITIES_BY_QUERY, {
+				const subEntityResponse = await interfaceRequest.entityFind(fetchSubEntityBody, {
 					page: pageNo,
 					limit: pageSize,
 				})
-				const subEntityResponse = await requests.post(
-					subEntityEndpoint,
-					fetchSubEntityBody,
-					'',
-					true,
-					common.INTERNAL_ACCESS_TOKEN
-				)
 
 				if (
 					subEntityResponse &&
@@ -168,59 +154,4 @@ module.exports = class targetingService {
 			})
 		}
 	}
-}
-
-function fetchBaseUrl(endPoint, queryParams = {}, id = '') {
-	const baseUrl = utils.buildUrl(
-		process.env.ENTITY_MANAGEMENT_SERVICE_HOST,
-		process.env.ENTITY_MANAGEMENT_SERVICE_NAME
-	)
-	return utils.buildUrl(baseUrl, endPoint, queryParams, id)
-}
-
-/**
- * Transforms the entity response into a map where each key from "groups"
- * maps to a single, flat array of all its associated IDs.
- *
- * @param {object} response - The input response object.
- * @returns {object} - The transformed map (entitySubEntityMap).
- */
-function transformEntityResponse(response) {
-	// Check for valid input structure
-	if (!response || !response.data || !Array.isArray(response.data.result)) {
-		console.error('Invalid input structure. Expected response.data.result to be an array.')
-		return {}
-	}
-
-	// Use reduce to build the final map (our accumulator 'acc')
-	const entitySubEntityMap = response.data.result.reduce((acc, currentItem) => {
-		// Ensure the 'groups' object exists and is not null
-		if (currentItem && typeof currentItem.groups === 'object' && currentItem.groups !== null) {
-			// Iterate over each key in the 'groups' object (e.g., "professional_subroles", "subEntity")
-			for (const groupKey in currentItem.groups) {
-				// Check if the key is a direct property and its value is an array
-				if (
-					Object.hasOwnProperty.call(currentItem.groups, groupKey) &&
-					Array.isArray(currentItem.groups[groupKey])
-				) {
-					// Get the array of IDs
-					const idArray = currentItem.groups[groupKey]
-
-					// If this groupKey isn't in our accumulator map yet, initialize it as an empty array
-					if (!acc[groupKey]) {
-						acc[groupKey] = []
-					}
-
-					// Add the items from the current idArray to the main array for that groupKey
-					// Using push with spread operator (...) is efficient
-					acc[groupKey].push(...idArray)
-				}
-			}
-		}
-
-		// Return the updated accumulator for the next iteration
-		return acc
-	}, {}) // Start with an empty object {} as the initial value for the accumulator
-
-	return entitySubEntityMap
 }

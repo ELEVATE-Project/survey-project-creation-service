@@ -2,6 +2,7 @@
 
 require('module-alias/register')
 const Permissions = require('@database/models/index').Permission
+const common = require('@constants/common')
 
 const getPermissionId = async (module, request_type, api_path) => {
 	try {
@@ -57,15 +58,22 @@ module.exports = {
 			const permissionId = await getPermissionId('targeting', ['GET', 'POST'], '/scp/v1/targeting/*')
 
 			// Step 4: Get role titles from environment variables
-			const contentCreatorRoles = process.env.DEFAULT_CONTENT_CREATOR_ROLE.split(',').filter((role) =>
-				role.trim()
-			)
-			const reviewerRoles = process.env.DEFAULT_REVIEWER_ROLE.split(',').filter((role) => role.trim())
+			const parseRoles = (envValue) =>
+				envValue
+					? envValue
+							.split(',')
+							.map((role) => role.trim())
+							.filter(Boolean)
+					: []
+
+			const contentCreatorRoles = parseRoles(process.env.DEFAULT_CONTENT_CREATOR_ROLE)
+			const reviewerRoles = parseRoles(process.env.DEFAULT_REVIEWER_ROLE)
 			const programRoles = [
-				...process.env.DEFAULT_PROGRAM_MANAGERS.split(',').filter((role) => role.trim()),
-				...process.env.DEFAULT_PROGRAM_DESIGNER_ROLES.split(',').filter((role) => role.trim()),
+				...parseRoles(process.env.DEFAULT_PROGRAM_MANAGERS),
+				...parseRoles(process.env.DEFAULT_PROGRAM_DESIGNER_ROLES),
 			]
-			const rolloutRoles = process.env.DEFAULT_ROLLOUT_ROLES.split(',').filter((role) => role.trim())
+			const rolloutRoles = parseRoles(process.env.DEFAULT_ROLLOUT_ROLES)
+			const adminRoles = [common.ADMIN_ROLE, common.ORG_ADMIN_ROLE]
 
 			// Validate that we have at least one role
 			if (contentCreatorRoles.length === 0 && reviewerRoles.length === 0) {
@@ -78,7 +86,9 @@ module.exports = {
 			}
 
 			// Combine all roles that should have access
-			const allRoles = [...contentCreatorRoles, ...reviewerRoles, ...rolloutRoles, ...programRoles]
+			const allRoles = [
+				...new Set([...contentCreatorRoles, ...reviewerRoles, ...rolloutRoles, ...programRoles, ...adminRoles]),
+			]
 
 			console.log(`Found ${allRoles.length} roles to grant permission: ${allRoles.join(', ')}`)
 

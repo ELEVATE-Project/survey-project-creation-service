@@ -10,8 +10,8 @@ const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 const utils = require('@generics/utils')
-// const common = require('@constants/common')
-const entityManagementBaseUrl = interfaceBaseUrl + process.env.ENTITY_MANAGEMENT_SERVICE_NAME
+const common = require('@constants/common')
+const entityManagementBaseUrl = utils.buildUrl(interfaceBaseUrl, process.env.ENTITY_MANAGEMENT_SERVICE_NAME)
 
 /**
  * browse Existing resources List
@@ -67,7 +67,7 @@ const entityDbFind = function (organization_code, tenant_code, token = '') {
 			}
 
 			const apiUrl = utils.buildUrl(entityManagementBaseUrl, endpoints.ENTITY_TYPES_READ)
-			const result = await requests.post(apiUrl, data, '', true, 'internal-access-token')
+			const result = await requests.post(apiUrl, data, '', true, common.INTERNAL_ACCESS_TOKEN)
 			return resolve(result)
 		} catch (error) {
 			return reject(error)
@@ -112,8 +112,26 @@ const mapUserAndProgram = function (data = {}, organizationCode, tenantCode, use
 	})
 }
 
+const entityFind = async function (body, queryParams = {}, id = '') {
+	const endpoint = utils.buildUrl(entityManagementBaseUrl, endpoints.FIND_ENTITIES_BY_QUERY, queryParams, id)
+	const entityResponse = await requests.post(endpoint, body, '', true, common.INTERNAL_ACCESS_TOKEN)
+	return entityResponse
+}
+const hierarchyFetch = async function (queryParams = {}, id = '', token = '') {
+	const endpoint = utils.buildUrl(
+		entityManagementBaseUrl,
+		endpoints.SUB_ENTITY_LISTBASED_ON_ROLE_AND_LOCATION,
+		queryParams,
+		id
+	)
+	const entityResponse = await requests.get(endpoint, token)
+	return entityResponse
+}
+
 module.exports = {
 	browseExistingList,
 	entityDbFind,
 	mapUserAndProgram,
+	entityFind,
+	hierarchyFetch,
 }
