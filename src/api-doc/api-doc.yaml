@@ -1266,23 +1266,51 @@ paths:
                 $ref: '#/components/schemas/updatePermission400Response'
   /scp/v1/role-permission-mapping/create:
     post:
-      summary: Creating new role permission mapping
+      summary: Create Role-Permission Mapping
       tags:
         - Role Permission Mapping
+      operationId: createRolePermissionMapping
       description: |-
-        This API is associated with Role Permissions
-         - Endpoint for creating Role Permission mapping  `/scp/v1/role-permission-mapping/create` 
-         - It is mandatory to provide values for parameters marked with `required` 
-         - Mandatory parameter cannot be empty or null
-         - This is an Admin API which will be used by admins.
+        Creates a new mapping between a role and a permission, granting the role access to specific API endpoints and HTTP methods.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Business Rules**:
+        - Permission ID must exist in the system
+        - Role title must exist in the system
+        - Each role-permission combination must be unique (no duplicate mappings)
+        - API automatically retrieves module and request_type from the permission record
+        - created_by field captures the user who created the mapping (from authentication token)
+
+        **Validation**:
+        - Permission must be in ACTIVE status
+        - Permission must not have been soft-deleted
+        - Permission record must contain valid module, request_type, and api_path
+        - role_title must follow naming convention: letters, hyphens, underscores only
+
+        **Use Cases**:
+        - Assign permissions to newly created roles
+        - Add new permissions to existing roles
+        - Grant specific API access to role-based user groups
+        - Build role-based access control (RBAC) mappings
+        - Support permission scaling as new features are added
+
+        **Important Notes**:
+        - Multiple permissions can be assigned to a single role
+        - Single permission can be assigned to multiple roles
+        - Changes take effect immediately for new user sessions
+        - Existing sessions may require re-authentication to reflect new permissions
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To make use of the API, you require X-auth-token. This is Available in login API Response.'
           required: true
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role. Token ID is captured in created_by field.'
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       requestBody:
+        description: 'Role-permission mapping object with permission_id and role_title'
+        required: true
         content:
           application/json:
             schema:
@@ -1290,21 +1318,36 @@ paths:
               properties:
                 permission_id:
                   type: number
-                  description: id of the Permission
+                  description: 'Unique permission ID to map to the role (numeric, must exist in permissions table)'
+                  example: 1
+                  minimum: 1
                 role_title:
                   type: string
-                  description: Role
+                  pattern: '^[a-zA-Z_-]+$'
+                  description: 'Role title to associate with the permission (letters, hyphens, underscores only, case-sensitive)'
+                  example: 'content_creator'
               required:
                 - permission_id
                 - role_title
             examples:
               example1:
+                summary: 'Map Create Permission to Content Creator Role'
                 value:
                   permission_id: 1
+                  role_title: content_creator
+              example2:
+                summary: 'Map List Permission to Reviewer Role'
+                value:
+                  permission_id: 5
                   role_title: reviewer
+              example3:
+                summary: 'Map Full Access Permission to Admin Role'
+                value:
+                  permission_id: 12
+                  role_title: admin
       responses:
         '201':
-          description: Created
+          description: 'Role-permission mapping created successfully'
           content:
             application/json:
               schema:
@@ -1312,34 +1355,63 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response status code'
+                    example: 'OK'
                   message:
                     type: string
+                    description: 'Response message confirming successful creation'
+                    example: 'ROLE_PERMISSION_CREATED_SUCCESSFULLY'
                   result:
                     type: object
+                    description: 'Created role-permission mapping details'
                     properties:
                       role_title:
+                        type: string
+                        description: 'Role title associated with the permission'
+                        example: 'content_creator'
+                      permission_id:
                         type: number
-                      permissionId:
-                        type: number
+                        description: 'Permission ID included in the mapping'
+                        example: 1
                       module:
                         type: string
+                        description: 'Module extracted from the permission record'
+                        example: 'projects'
                       request_type:
                         type: array
                         items:
                           type: string
+                          enum: [GET, POST, PATCH, PUT, DELETE]
+                        description: 'Array of HTTP methods for this permission'
+                        example: ['POST']
+                  meta:
+                    type: object
+                    description: 'Response metadata'
               examples:
                 example1:
+                  summary: 'Successful Role-Permission Mapping Creation'
                   value:
                     responseCode: OK
                     message: Permission added to the role
                     result:
-                      role_title: CONTENT_CREATOR
-                      permissionId: 1
+                      role_title: content_creator
+                      permission_id: 1
                       module: projects
-                      request_type:
-                        - POST
+                      request_type: [POST]
+                    meta: {}
+                example2:
+                  summary: 'Multiple Methods Permission Mapped to Role'
+                  value:
+                    responseCode: OK
+                    message: ROLE_PERMISSION_CREATED_SUCCESSFULLY
+                    result:
+                      role_Title: reviewer
+                      permission_Id: 8
+                      module: programs
+                      request_type: [GET, POST, PATCH]
+                    meta: {}
         '400':
-          description: Bad request. Permission for this role already exists
+          description: 'Bad Request - Invalid input or permission/role not found'
           content:
             application/json:
               schema:
@@ -1367,25 +1439,45 @@ paths:
     parameters: []
   /scp/v1/role-permission-mapping/list:
     get:
-      summary: Get list of role permissions
+      summary: List Permissions for User's Roles
       tags:
         - Role Permission Mapping
+      operationId: listRolePermissionMappings
       description: |-
-        You can use this API to get a list of role permissions
-         - The API Endpoint for getting a list of permissions is `/scp/v1/role-permission-mapping/list` 
-         - It is mandatory to provide values for parameters marked with `required` 
-         - Mandatory parameter cannot be empty or null
-         - This is an Admin API which will be used by admins.
+        Retrieves all permissions assigned to the authenticated user's roles, with automatic deduplication of request methods across multiple permissions for the same module.
+
+        **Access Control**: User-facing API. Requires valid authentication token. Any authenticated user can call this API to view their own permissions based on assigned roles. Does not require admin role.
+
+        **Role-Based Permission Retrieval**:
+        - Extracts user's roles from authentication token (req.decodedToken.roles)
+        - Filters role-permission-mapping table by each user role (multiple roles supported)
+        - Returns permissions union across all user roles
+
+        **Use Cases**:
+        - Display user's accessible modules in UI/dashboard
+        - Determine which API endpoints user can call
+        - Show user's capabilities and features available
+        - Implement client-side permission checks
+        - Audit user role capabilities
+        - Validate user access before operations
+
+        **Important Notes**:
+        - Empty result (permissions: []) does NOT return error - returns 200 with ROLE_PERMISSION_NOT_FOUND message
+        - Permissions are deduplicated per module automatically across multiple user roles
+        - Automatic extraction from authentication token - no additional parameters needed
+        - Returns only module and request_type fields (not permission codes or IDs)
+        - Multiple user roles are supported and merged automatically
       parameters:
         - name: X-auth-token
           required: true
           in: header
-          description: You require an X-auth-token to use this API. This token is available in the login API Response.
+          description: "Authentication token from login API response. Token contains the user's assigned roles which are used to filter permissions. Any authenticated user can access this endpoint."
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       responses:
         '200':
-          description: ok
+          description: 'Role permissions retrieved successfully (empty or populated)'
           content:
             application/json:
               schema:
@@ -1393,22 +1485,37 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response status code'
+                    example: 'OK'
                   message:
                     type: string
+                    description: 'Response message: FETCHED_ROLE_PERMISSION_SUCCESSFULLY (with permissions) or ROLE_PERMISSION_NOT_FOUND (empty list)'
+                    example: 'FETCHED_ROLE_PERMISSION_SUCCESSFULLY'
                   result:
                     type: object
+                    description: 'Result object containing permissions array'
                     properties:
                       permissions:
                         type: array
+                        description: 'Array of role permissions, deduplicated by module'
                         items:
                           type: object
+                          description: 'Permission object with module and HTTP methods'
                           properties:
                             module:
                               type: string
+                              description: 'Module name this permission grants access to'
+                              example: 'projects'
                             request_type:
                               type: array
                               items:
                                 type: string
+                                enum: [GET, POST, PATCH, PUT, DELETE]
+                              description: 'Array of allowed HTTP methods for this module (deduplicated)'
+                              example: ['GET', 'POST']
+                  meta:
+                    type: object
+                    description: 'Response metadata'
               examples:
                 example1:
                   value:
@@ -1423,49 +1530,76 @@ paths:
                             - 'GET,'
                             - 'PUT,'
                             - PATCH
-  '/scp/v1/role-permission-mapping/delete/{role_id}':
+  /scp/v1/role-permission-mapping/delete:
     post:
-      summary: Delete rolePermissionMapping by id
+      summary: Delete rolePermissionMapping
       tags:
         - Role Permission Mapping
+      operationId: deleteRolePermissionMapping
       description: |-
-        You can use this API to delete Role Permission mapping
-         - The API Endpoint for deleting Role Permissions mapping is `/scp/v1/role-permission-mapping/delete` 
-         - It is mandatory to provide values for parameters that are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Deletes a mapping between a role and a permission, removing the role's access to specific API endpoints and HTTP methods.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Rules**:
+        - Role-permission mapping must exist (combination of role_title and permission_id)
+        - role_title must exist in the system
+        - permission_id must exist in the system
+        - Both role_title and permission_id are required fields
+
+        **Use Cases**:
+        - Remove permissions from roles
+        - Revoke API access for specific role-permission combinations
+        - Update role capabilities by removing specific permissions
+        - Manage role-based access control (RBAC) lifecycle
+
+        **Important Notes**:
+        - Operation is permanent - mapping is deleted from database
+        - Changes take effect immediately for new user sessions
+        - Existing sessions may require re-authentication to reflect permission changes
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           required: true
           schema:
             type: string
-        - name: role_id
-          in: path
-          description: Pass the `role_id` to add permissions.
-          required: true
-          schema:
-            type: number
-          example: 2
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       requestBody:
+        description: 'Role-permission mapping deletion object with role_title and permission_id'
+        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
+                role_title:
+                  type: string
+                  pattern: '^[a-zA-Z_-]+$'
+                  description: 'Role title to remove from mapping (letters, hyphens, underscores only)'
+                  example: 'content_creator'
                 permission_id:
                   type: number
-                  description: id of the permission
+                  description: 'Unique permission ID to remove from the role (numeric, must exist in permissions table)'
+                  example: 1
+                  minimum: 1
               required:
+                - role_title
                 - permission_id
             examples:
               example1:
+                summary: 'Remove Permission from Content Creator Role'
                 value:
+                  role_title: content_creator
                   permission_id: 1
+              example2:
+                summary: 'Remove Permission from Reviewer Role'
+                value:
+                  role_title: reviewer
+                  permission_id: 5
       responses:
-        '202':
-          description: Accepted
+        '200':
+          description: 'Role-permission mapping deleted successfully'
           content:
             application/json:
               schema:
@@ -1473,19 +1607,25 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: 'OK'
                   message:
                     type: string
+                    example: 'ROLE_PERMISSION_DELETED_SUCCESSFULLY'
                   result:
                     type: object
                     properties: {}
+                  meta:
+                    type: object
               examples:
                 example1:
+                  summary: 'Successful Role-Permission Mapping Deletion'
                   value:
                     responseCode: OK
                     message: Permission delete from the role
                     result: {}
+                    meta: {}
         '400':
-          description: Bad Request. Permission for this role is empty.
+          description: Bad Request. Role-permission mapping not found or invalid input.
           content:
             application/json:
               schema:
