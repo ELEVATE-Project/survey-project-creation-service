@@ -1632,23 +1632,52 @@ paths:
                 $ref: '#/components/schemas/createMapping400Response'
   /scp/v1/entity-types/create:
     post:
-      summary: Create entity type
+      summary: Create Entity Type
       tags:
         - Entity Types
+      operationId: createEntityType
       description: |-
-        You can use this API to create a user entity type  
-         - The API Endpoint for creating a user entity is `/scp/v1/entity-types/create` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Creates a new entity type in the system. Entity types are used to categorize and manage different types of entities (e.g., languages, regions, schools).
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Rules**:
+        - Entity type `value` must be globally unique per organization
+        - `value` must contain only letters and underscores (no spaces, lowercase)
+        - `label` can contain letters, numbers, and spaces
+        - `data_type` must contain only letters and brackets (e.g., STRING, Array[STRING])
+        - `status` defaults to ACTIVE if not provided
+        - `allow_filtering` is set automatically by the system (cannot be provided in request)
+        - `allow_custom_entities` defaults to true
+        - `has_entities` defaults to true
+
+        **Optional Advanced Fields**:
+        - `is_external`: Boolean flag to mark entity type as external (stored in config)
+        - `depended_on`: Entity type ID this type depends on (must exist and belong to same org)
+        - `model`: Data model mapping for external integrations
+
+        **Use Cases**:
+        - Create organizational entity types for categorization
+        - Define custom entity types for business requirements
+        - Set up external entity type integrations
+        - Create dependent entity hierarchies
+
+        **Important Notes**:
+        - Entity type value is auto-converted to lowercase
+        - Organization code and tenant code are derived from authentication token
+        - Created by and Updated by are automatically captured from user token
+        - Config object is automatically populated with external and dependency metadata
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       requestBody:
+        description: 'Entity type object with required fields'
+        required: true
         content:
           application/json:
             schema:
@@ -1656,34 +1685,69 @@ paths:
               properties:
                 value:
                   type: string
-                  description: Unique identifier for the entity type.
+                  pattern: '^[A-Za-z_]+$'
+                  description: 'Unique identifier for the entity type (letters and underscores only, will be converted to lowercase)'
+                  example: 'language'
                 label:
                   type: string
-                  description: Descriptive label for the entity type.
-                type:
-                  type: string
-                  description: 'Type of the entity (e.g., SYSTEM, USER).'
-                allow_filtering:
-                  type: boolean
-                  description: Indicates whether filtering is allowed for this entity type.
+                  pattern: '^[A-Za-z0-9 ]+$'
+                  description: 'Descriptive label for the entity type (letters, numbers, and spaces allowed)'
+                  example: 'Languages'
                 data_type:
                   type: string
-                  description: Data type of the entity.
-                has_entities:
+                  pattern: '^[A-Za-z\[\]]+$'
+                  description: 'Data type specification (letters and brackets, e.g., STRING, Array[STRING])'
+                  example: 'STRING'
+                status:
+                  type: string
+                  enum:
+                    - ACTIVE
+                    - INACTIVE
+                  description: 'Entity type status (defaults to ACTIVE if not provided)'
+                  example: ACTIVE
+                  default: ACTIVE
+                is_external:
                   type: boolean
-                  description: Indicates whether the entity type has associated entities.
+                  description: 'Optional flag to mark entity type as external (stored in config object)'
+                  example: false
+                depended_on:
+                  type: number
+                  description: 'Optional ID of another entity type that this type depends on (must exist and belong to same organization)'
+                  example: 1
+                  minimum: 1
+                model:
+                  type: string
+                  description: 'Optional data model mapping for external integrations'
+                  example: 'ExternalModel'
+              required:
+                - value
+                - label
+                - data_type
             examples:
               example1:
+                summary: 'Create Simple Entity Type'
                 value:
-                  value: ln
+                  value: language
                   label: Languages
-                  type: SYSTEM
-                  allow_filtering: false
                   data_type: STRING
-                  has_entities: true
+                  status: ACTIVE
+              example2:
+                summary: 'Create External Entity Type'
+                value:
+                  value: school
+                  label: Schools
+                  data_type: STRING
+                  is_external: true
+              example3:
+                summary: 'Create Dependent Entity Type'
+                value:
+                  value: subject
+                  label: Subjects
+                  data_type: STRING
+                  depended_on: 1
       responses:
         '201':
-          description: Created
+          description: 'Entity type created successfully'
           content:
             application/json:
               schema:
@@ -1691,88 +1755,174 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: 'OK'
                   message:
                     type: string
+                    example: 'ENTITY_TYPE_CREATED_SUCCESSFULLY'
                   result:
                     type: object
                     properties:
                       id:
                         type: number
+                        description: 'Unique identifier for the created entity type'
                       value:
                         type: string
+                        description: 'Unique identifier (lowercase)'
                       label:
                         type: string
+                        description: 'Descriptive label'
                       status:
                         type: string
+                        enum:
+                          - ACTIVE
+                          - INACTIVE
+                        description: 'Current status of entity type'
                       allow_filtering:
                         type: boolean
+                        description: 'Whether filtering is allowed (system-controlled, defaults to false)'
                       data_type:
                         type: string
+                        description: 'Data type specification'
+                      allow_custom_entities:
+                        type: boolean
+                        description: 'Whether custom entities can be created (defaults to true)'
+                      has_entities:
+                        type: boolean
+                        description: 'Whether entity type has associated entities (defaults to true)'
+                      parent_id:
+                        type: number
+                        nullable: true
+                        description: 'Parent entity type ID if hierarchical (null if not applicable)'
+                      config:
+                        type: object
+                        description: 'Configuration object containing is_external, depended_on, is_dependent metadata'
+                      validations:
+                        type: object
+                        nullable: true
+                        description: 'Custom validation rules (null if not defined)'
                       created_by:
-                        type: number
-                      updated_by:
-                        type: number
-                      updated_at:
                         type: string
+                        description: 'User ID who created the entity type'
+                      updated_by:
+                        type: string
+                        nullable: true
+                        description: 'User ID who last updated the entity type'
+                      organization_code:
+                        type: string
+                        description: 'Organization code from authentication token'
+                      tenant_code:
+                        type: string
+                        description: 'Tenant code from authentication token'
                       created_at:
                         type: string
+                        format: date-time
+                        description: 'Timestamp when entity type was created'
+                      updated_at:
+                        type: string
+                        format: date-time
+                        description: 'Timestamp when entity type was last updated'
                       deleted_at:
                         type: string
                         format: date-time
                         nullable: true
-                      has_entities:
-                        type: boolean
-                  field_0:
-                    type: string
+                        description: 'Soft deletion timestamp (null if not deleted)'
+                  meta:
+                    type: object
+                    description: 'Response metadata'
               examples:
                 example1:
+                  summary: 'Successful Entity Type Creation'
                   value:
                     responseCode: OK
                     message: Entity type created successfully
                     result:
                       id: 1
-                      value: ln
+                      value: language
                       label: Languages
                       status: ACTIVE
                       allow_filtering: false
                       data_type: STRING
+                      allow_custom_entities: true
                       has_entities: true
-                      created_by: 1
-                      updated_by: 1
-                      updated_at: '2023-09-22T12:40:19.817Z'
+                      parent_id: null
+                      config: {}
+                      validations: null
+                      created_by: '123'
+                      updated_by: null
+                      organization_code: 'sot'
+                      tenant_code: 'shikshalokam'
                       created_at: '2023-09-22T12:40:19.817Z'
+                      updated_at: '2023-09-22T12:40:19.817Z'
+                      deleted_at: null
+                    meta: {}
         '400':
-          description: Bad Request. Entity-Type already exists.
+          description: Bad Request. Entity type already exists or invalid input.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/createUserEntity400Response'
   '/scp/v1/entity-types/update/{id}':
     post:
-      summary: Update entity type
+      summary: Update Entity Type
       tags:
         - Entity Types
+      operationId: updateEntityType
       description: |-
-        You can use this API to update an entity type
-         - The API Endpoint for updating an entity type is `/scp/v1/entity-types/update` 
-         - It is mandatory to provide values for parameters that are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Updates an existing entity type configuration. Allows modification of entity type properties such as value, label, status, and advanced options.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Business Rules**:
+        - Entity type ID must exist in the system
+        - Updated `value` must remain unique per organization if changed
+        - `value` must contain only letters and underscores (no spaces, lowercase)
+        - `label` can contain letters, numbers, and spaces
+        - `data_type` must contain only letters and brackets (e.g., STRING, Array[STRING])
+        - `data_type` is mandatory and must be provided in update
+        - `status` must be either ACTIVE or INACTIVE
+        - `allow_filtering` cannot be modified (system-controlled)
+        - Value is auto-converted to lowercase during update
+
+        **Optional Update Fields**:
+        - `value`: Update unique identifier (will be converted to lowercase)
+        - `label`: Update descriptive label
+        - `status`: Change entity type status (ACTIVE/INACTIVE)
+        - `is_external`: Boolean flag for external entity type (stored in config)
+        - `depended_on`: Entity type ID this type depends on (must exist and belong to same org)
+
+        **Use Cases**:
+        - Update entity type properties based on business requirements
+        - Change status to activate/deactivate entity types
+        - Update entity type labels or descriptions
+        - Manage entity type configuration changes
+        - Set up dependency relationships
+
+        **Important Notes**:
+        - At least `data_type` is mandatory for updates
+        - Organization code and tenant code are derived from authentication token
+        - Updated by field is automatically captured from user token
+        - Config object is automatically populated with external and dependency metadata
+        - All timestamps are automatically managed
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: id
           in: path
-          description: Please append a valid entity type ID to the request URL.
+          description: 'Valid entity type ID to update (numeric, positive integer, 1 to 2147483647)'
           required: true
           schema:
             type: number
+            minimum: 1
+            maximum: 2147483647
           example: 2
       requestBody:
+        description: 'Entity type update object with optional fields'
+        required: true
         content:
           application/json:
             schema:
@@ -1780,34 +1930,47 @@ paths:
               properties:
                 value:
                   type: string
-                  description: Unique identifier for the entity type.
+                  pattern: '^[A-Za-z_]+$'
+                  description: 'Optional unique identifier (letters and underscores only, will be converted to lowercase)'
+                  example: 'language'
                 label:
                   type: string
-                  description: Descriptive label for the entity type.
-                type:
-                  type: string
-                  description: 'Type of the entity (e.g., SYSTEM, USER).'
-                allow_filtering:
-                  type: boolean
-                  description: Indicates whether filtering is allowed for this entity type.
+                  pattern: '^[A-Za-z0-9 ]+$'
+                  description: 'Optional descriptive label (letters, numbers, and spaces allowed)'
+                  example: 'Languages'
                 data_type:
                   type: string
-                  description: Data type of the entity.
-                has_entities:
+                  pattern: '^[A-Za-z\[\]]+$'
+                  description: 'Mandatory data type specification (letters and brackets, e.g., STRING, Array[STRING])'
+                  example: 'STRING'
+                status:
+                  type: string
+                  enum:
+                    - ACTIVE
+                    - INACTIVE
+                  description: 'Optional status update (ACTIVE or INACTIVE)'
+                  example: ACTIVE
+                is_external:
                   type: boolean
-                  description: Indicates whether the entity type has associated entities.
+                  description: 'Optional flag to mark/update entity type as external (stored in config object)'
+                  example: false
+                depended_on:
+                  type: number
+                  description: 'Optional ID of another entity type that this type depends on (must exist and belong to same organization)'
+                  example: 1
+                  minimum: 1
+              required:
+                - data_type
             examples:
               example1:
+                summary: 'Update Entity Type Label and Status'
                 value:
-                  value: ln
-                  label: Languages
+                  label: Languages Updated
                   status: ACTIVE
-                  type: SYSTEM
-                  allow_filtering: false
-                  data_type: string
+                  data_type: STRING
       responses:
-        '201':
-          description: Created
+        '202':
+          description: 'Entity type updated successfully (Accepted)'
           content:
             application/json:
               schema:
@@ -1815,64 +1978,107 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: 'OK'
                   message:
                     type: string
+                    example: 'ENTITY_TYPE_UPDATED_SUCCESSFULLY'
                   result:
                     type: object
                     properties:
                       id:
                         type: number
+                        description: 'Unique identifier for the entity type'
                       value:
                         type: string
+                        description: 'Unique identifier (lowercase)'
                       label:
                         type: string
+                        description: 'Descriptive label'
                       status:
                         type: string
-                      created_by:
-                        format: date-time
-                        nullable: true
-                        type: string
-                      updated_by:
-                        type: number
+                        enum:
+                          - ACTIVE
+                          - INACTIVE
+                        description: 'Current status of entity type'
                       allow_filtering:
                         type: boolean
+                        description: 'Whether filtering is allowed (system-controlled)'
                       data_type:
                         type: string
-                      organization_code:
-                        type: string
-                      tenant_code:
-                        type: string
+                        description: 'Data type specification'
+                      allow_custom_entities:
+                        type: boolean
+                        description: 'Whether custom entities can be created'
                       has_entities:
                         type: boolean
+                        description: 'Whether entity type has associated entities'
+                      parent_id:
+                        type: number
+                        nullable: true
+                        description: 'Parent entity type ID if hierarchical (null if not applicable)'
+                      config:
+                        type: object
+                        description: 'Configuration object containing is_external, depended_on, is_dependent metadata'
+                      validations:
+                        type: object
+                        nullable: true
+                        description: 'Custom validation rules (null if not defined)'
+                      created_by:
+                        type: string
+                        description: 'User ID who created the entity type'
+                      updated_by:
+                        type: string
+                        description: 'User ID who last updated the entity type'
+                      organization_code:
+                        type: string
+                        description: 'Organization code from authentication token'
+                      tenant_code:
+                        type: string
+                        description: 'Tenant code from authentication token'
                       created_at:
                         type: string
+                        format: date-time
+                        description: 'Timestamp when entity type was created'
                       updated_at:
                         type: string
+                        format: date-time
+                        description: 'Timestamp when entity type was last updated'
                       deleted_at:
+                        type: string
                         format: date-time
                         nullable: true
-                        type: string
+                        description: 'Soft deletion timestamp (null if not deleted)'
+                  meta:
+                    type: object
+                    description: 'Response metadata'
               examples:
                 example1:
+                  summary: 'Successful Entity Type Update'
                   value:
                     responseCode: OK
-                    message: Entity type updated successfully
+                    message: ENTITY_TYPE_UPDATED_SUCCESSFULLY
                     result:
                       id: 1
-                      value: ln
-                      label: Languages
+                      value: language
+                      label: Languages Updated
                       status: ACTIVE
-                      created_by: 5
-                      updated_by: 5
                       allow_filtering: false
-                      data_type: string
-                      organiation_code: default_code
+                      data_type: STRING
+                      allow_custom_entities: true
                       has_entities: true
+                      parent_id: null
+                      config: {}
+                      validations: null
+                      created_by: '123'
+                      updated_by: '456'
+                      organization_code: 'sot'
+                      tenant_code: 'shikshalokam'
                       created_at: '2023-09-06T12:01:09.025Z'
                       updated_at: '2023-09-22T12:47:42.510Z'
                       deleted_at: null
+                    meta: {}
         '400':
-          description: Bad Request. Entity type not found
+          description: Bad Request. Entity type not found or invalid input.
           content:
             application/json:
               schema:
@@ -1882,6 +2088,7 @@ paths:
       summary: Read entity type
       tags:
         - Entity Types
+      operationId: readEntityType
       description: |-
         You can use this API to retrieve a list of entity types. 
          - The API Endpoint for getting the list of entity types is `/scp/v1/entity-types/read` 
@@ -1891,11 +2098,13 @@ paths:
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       requestBody:
+        description: 'Entity type read request object'
         content:
           application/json:
             schema:
@@ -1903,21 +2112,27 @@ paths:
               properties:
                 value:
                   type: array
-                  description: Entity type value
+                  description: 'Array of entity type values to fetch with entities (optional). If omitted, system entity types are returned'
                   items:
                     type: string
+                    example: 'ln'
                 read_user_entity:
                   type: boolean
-                  description: 'Use this param to get all entities, including user created entities.'
+                  description: 'Deprecated - ignored when value array is provided'
             examples:
               example1:
+                summary: 'Fetch specific entity types with entities'
                 value:
                   value:
                     - ln
-                  read_user_entity: false
+                    - region
+                  read_user_entity: true
+              example2:
+                summary: 'Fetch all system entity types'
+                value: {}
       responses:
         '200':
-          description: ok
+          description: 'Entity types retrieved successfully'
           content:
             application/json:
               schema:
@@ -1925,31 +2140,83 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: ENTITY_TYPE_FETCHED_SUCCESSFULLY
                   result:
                     type: array
+                    description: 'When value array provided: Array of entity type objects with nested entities'
                     items:
                       type: object
                       properties:
                         id:
                           type: number
+                          example: 4
                         value:
                           type: string
+                          example: ln
                         label:
                           type: string
+                          example: Languages
                         status:
                           type: string
-                        allow_filtering:
-                          type: boolean
+                          enum: [ACTIVE, INACTIVE]
+                          example: ACTIVE
                         data_type:
                           type: string
+                          example: STRING
+                        allow_filtering:
+                          type: boolean
+                          example: false
+                        allow_custom_entities:
+                          type: boolean
+                          example: true
+                        has_entities:
+                          type: boolean
+                          example: true
+                        parent_id:
+                          type: number
+                          nullable: true
+                          example: null
+                        organization_code:
+                          type: string
+                          example: default_code
+                        tenant_code:
+                          type: string
+                          example: default
+                        config:
+                          type: object
+                          description: 'Configuration object storing is_external, depended_on, and is_dependent flags'
+                          nullable: true
+                          example: { is_external: false, depended_on: null, is_dependent: false }
+                        validations:
+                          type: object
+                          description: 'Validation rules for entity type'
+                          nullable: true
+                        created_by:
+                          type: string
+                          example: user123
+                        updated_by:
+                          type: string
+                          nullable: true
+                          example: user456
                         created_at:
                           type: string
+                          format: date-time
+                          example: '2023-09-21T10:16:19.270Z'
                         updated_at:
                           type: string
+                          format: date-time
+                          example: '2023-09-21T10:16:19.270Z'
+                        deleted_at:
+                          type: string
+                          format: date-time
+                          nullable: true
+                          description: 'Null for active records, timestamp for soft-deleted records'
                         entities:
                           type: array
+                          description: 'ACTIVE entities associated with this entity type'
                           items:
                             type: object
                             properties:
@@ -1963,16 +2230,24 @@ paths:
                                 type: string
                               status:
                                 type: string
+                                enum: [ACTIVE, INACTIVE]
                               type:
                                 type: string
+                                example: SYSTEM
+                              created_by:
+                                type: string
+                              updated_by:
+                                type: string
+                                nullable: true
                               created_at:
                                 type: string
+                                format: date-time
                               updated_at:
                                 type: string
-                        has_entities:
-                          type: boolean
+                                format: date-time
               examples:
                 example1:
+                  summary: 'With entity types and entities'
                   value:
                     responseCode: OK
                     message: Entity type fetched successfully
@@ -1981,13 +2256,20 @@ paths:
                         value: ln
                         label: Languages
                         status: ACTIVE
-                        allow_filtering: false
                         data_type: STRING
+                        allow_filtering: false
+                        allow_custom_entities: true
                         has_entities: true
+                        parent_id: null
                         organization_code: default_code
                         tenant_code: default
+                        config: { is_external: false, is_dependent: false }
+                        validations: null
+                        created_by: 1
+                        updated_by: null
                         created_at: '2023-09-21T10:16:19.270Z'
                         updated_at: '2023-09-21T10:16:19.270Z'
+                        deleted_at: null
                         entities:
                           - id: 13
                             entity_type_id: 4
@@ -1996,43 +2278,56 @@ paths:
                             status: ACTIVE
                             type: SYSTEM
                             created_by: 1
-                            updated_by: 1
+                            updated_by: null
                             created_at: '2023-09-21T10:16:33.583Z'
                             updated_at: '2023-09-21T10:16:33.583Z'
         '400':
-          description: Bad Request. Entity-Type not found
+          description: 'Bad Request - Entity type not found or invalid input'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/updateUserEntity400Response'
   '/scp/v1/entity-types/delete/{id}':
     delete:
-      summary: Delete entity type
+      summary: Delete entity type (Soft Delete)
       tags:
         - Entity Types
+      operationId: deleteEntityType
       description: |-
-        You can use this API to delete a user entity type 
-         - The API Endpoint for deleting a user entity type is `/scp/v1/entity-types/delete` 
-         - It is mandatory to provide values for parameters that are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Soft deletes an entity type from the system. The record is marked as deleted but preserved in the database for audit and compliance.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Business Rules**:
+        - Entity type ID must exist in the system
+        - Entity type must belong to user's organization
+        - Soft deletion is permanent (cannot be undone through API)
+
+        **Important Notes**:
+        - Cascading soft delete: All related Entity and EntityModelMapping records are soft-deleted
+        - Use with caution in production environments
+        - Deletion is logged with audit trail for compliance and security
+        - Deleted entity type will not appear in list/read operations
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: id
           in: path
-          description: Please append a valid entity type ID to the request URL.
+          description: 'Valid entity type ID to soft delete (numeric, positive integer, 1 to 2147483647)'
           required: true
           schema:
             type: number
+            minimum: 1
+            maximum: 2147483647
           example: 2
       responses:
         '202':
-          description: Accepted
+          description: 'Entity type deleted successfully (Soft delete accepted)'
           content:
             application/json:
               schema:
@@ -2040,20 +2335,23 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: ENTITY_TYPE_DELETED_SUCCESSFULLY
                   result:
-                    type: array
-                    items:
-                      type: string
+                    type: object
+                    description: 'Empty object (no data returned on successful deletion)'
+                    example: {}
               examples:
                 example1:
+                  summary: 'Successful deletion'
                   value:
                     responseCode: OK
                     message: Entity type deleted successfully
                     result: []
         '400':
-          description: Bad Request. Entity-Type not found
+          description: 'Bad Request - Entity type not found or invalid ID'
           content:
             application/json:
               schema:
