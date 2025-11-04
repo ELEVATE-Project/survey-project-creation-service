@@ -3,40 +3,89 @@ info:
   title: Elevate Survey Project Creation Portal Service
   version: 1.0.0
   description: |-
-    - The Survey Project Creation Portal Service is a centralized service that supports designing of resources.
-    - The URL to access the Creation Portal API(s) is `{context}/scp/v1` - <b>Note:</b> These resources can be used in other services.
-    - For all CRUD operation using  `SYSTEMADMIN` pass <b>tenant-id</b> and <b>organization-id</b> in header for `ORGADMIN` backend will take it from token
-    _One Majpr change in this version how we get certificate `base_template_url` in project Details and program Details, Response structure Attached in project Details API RESPONSE
+    ## Overview
+    The **Survey Project Creation Portal Service (SCP)** is an enterprise-grade, multi-tenant resource design platform that enables organizations to create, review, and publish structured resources including Projects, Programs, Surveys, and Observations.
+
+    ## Key Features
+    - **Multi-Tenant Architecture**: Supports multiple organizations with isolated data and configurations
+    - **Flexible Resource Types**: Projects ✅ | Programs ✅ | Surveys 🔄 | Observations 🔄 (Fully implemented or in development)
+    - **Advanced Review Workflows**: Sequential or Parallel review processes with configurable approval requirements
+    - **Comprehensive RBAC**: 7+ roles (admin, org_admin, content_creator, reviewer, program_designer, rollout_manager, etc.)
+    - **Organization-Level Customization**: Override instance defaults per resource type and organization
+    - **Component Management**: Forms, entities, review stages, and permissions management
+
+    ## API Access
+    - **Base URL**: `{context}/scp/v1`
+    - **Authentication**: Required via `X-auth-token` header (available in login API response)
+
+    ## Header Requirements
+    - **`X-auth-token`**: (Required) Authentication token from login response
+    - **`tenant-id`**: (Required for admin) System-wide tenant identifier; backend extracts from token for other role
+    - **`organization-id`**: (Required for admin) Organization identifier; backend extracts from token for other role
+    - **Note**: These headers are configurable based on system requirements
+
+    ## Role-Based Access
+    - **admin**: Full system access including all tenants and organizations
+    - **org_admin**: Organization-level configuration and resource management
+    - **content_creator**: Create and manage resources
+    - **reviewer**: Review and approve/reject submissions
+    - **program_designer**: Design and manage programs
+    - **rollout_manager**: Manage single resource rollouts
+    - **Note**: These roles are configurable based on system requirements
+
+    ## Important Notes
+    - All mandatory parameters marked as `required` cannot be empty or null
+    - Responses follow standard HTTP status codes (2xx for success, 4xx for client errors, 5xx for server errors)
+    - All timestamps are in ISO 8601 format (UTC)
+    - Pagination available on list endpoints (page, limit parameters)
   contact:
     email: tech-infra@shikshalokam.org
 servers:
   - url: 'http://localhost:6001'
     description: 'Local server. NB :- port may vary according to the local setup.'
-  - url: 'https://scp-dev.elevate-apis.shikshalokam.org/'
+  - url: 'https://dev.elevate-apis.shikshalokam.org/'
     description: DEV server
-  - url: 'https://scp-qa.elevate-apis.shikshalokam.org/'
+  - url: 'https://qa.elevate-apis.shikshalokam.org/'
     description: QA server
 paths:
   /scp/v1/modules/create:
     post:
-      summary: Creating new modules
+      summary: Create Module
       tags:
         - Modules
       description: |-
-        This API is associated with modules
-         - Endpoint for creating modules  `/scp/v1/modules/create` 
-         - It is mandatory to provide values for parameters marked with `required` 
-         - Mandatory parameter cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Creates a new module in the system. Modules serve as foundational building blocks that organize and manage different types of resources (projects, programs, surveys, observations).
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Business Rules**:
+        - Module code must be globally unique across the system
+        - Code must contain only letters, hyphens, and underscores (no spaces)
+        - Code must follow naming convention (lowercase or mixed case with separators)
+        - Status defaults to ACTIVE if not provided
+        - Module code cannot be empty or null
+
+        **Use Cases**:
+        - Define new module types for resource management
+        - Extend system capabilities with custom modules
+        - Create foundational structure for permissions and role mapping
+
+        **Important Notes**:
+        - Once created, module code is immutable
+        - Modules are referenced in permissions and role mappings
+        - Cannot create modules with reserved names
+      operationId: createModule
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To make use of the API, you require X-auth-token. This is Available in login API Response.'
           required: true
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       requestBody:
-        description: ''
+        description: 'Module object with code and optional status'
+        required: true
         content:
           application/json:
             schema:
@@ -44,16 +93,31 @@ paths:
               properties:
                 code:
                   type: string
-                  description: Unique code for modules.
+                  minLength: 1
+                  maxLength: 100
+                  pattern: '^[a-zA-Z_-]+$'
+                  description: 'Unique module identifier. Must contain only letters, hyphens, and underscores (no spaces, no numbers)'
+                  example: 'projects'
+                status:
+                  type: string
+                  enum: [ACTIVE, INACTIVE]
+                  description: 'Module status. Defaults to ACTIVE if not provided. ACTIVE: Module is available for use, INACTIVE: Module is disabled'
+                  example: ACTIVE
               required:
                 - code
             examples:
               example1:
+                summary: 'Create Active Module'
                 value:
                   code: projects
+                  status: ACTIVE
+              example2:
+                summary: 'Create Module (Status Optional)'
+                value:
+                  code: observations
       responses:
         '201':
-          description: Created
+          description: 'Module created successfully'
           content:
             application/json:
               schema:
@@ -61,19 +125,37 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: 'Module created successfully'
                   result:
                     type: object
+                    description: 'Created module details'
                     properties:
-                      Id:
+                      id:
                         type: number
+                        description: 'Unique module ID assigned by system'
+                        example: 6
                       code:
                         type: string
+                        description: 'Module code identifier'
+                        example: 'projects'
                       status:
                         type: string
+                        enum: [ACTIVE, INACTIVE]
+                        description: 'Module status'
+                        example: ACTIVE
+                  meta:
+                    type: object
+                    description: 'Response metadata'
+                    properties:
+                      correlation:
+                        type: string
+                        description: 'Unique request correlation ID for tracing'
               examples:
                 example1:
+                  summary: 'Successful Module Creation'
                   value:
                     responseCode: OK
                     message: Module created successfully
@@ -81,10 +163,12 @@ paths:
                       id: 6
                       code: projects
                       status: ACTIVE
+                    meta:
+                      correlation: 32016da1-8bf1-4157-afad-34508aa609c8
         '400':
-          description: Bad request. module already exists
+          description: 'Bad Request - Invalid input or duplicate module code'
           content:
-            application/json: # Fix here: changed from "application.json"
+            application/json:
               schema:
                 type: object
                 properties:
@@ -103,6 +187,7 @@ paths:
                     type: string
               examples:
                 example1:
+                  summary: 'Module Code Already Exists'
                   value:
                     responseCode: CLIENT_ERROR
                     error: []
@@ -111,19 +196,29 @@ paths:
                     message: module already exists
   '/scp/v1/modules/update/{id}':
     post:
-      summary: Update modules by id
+      summary: Update Module
       tags:
         - Modules
       description: |-
-        You can use this API to update modules by id
-         - The API Endpoint for updating modules `/scp/v1/modules/update` 
-         - It is mandatory to provide values for parameters that are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Updates an existing module configuration. This endpoint allows administrators to modify module properties such as code or status.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Business Rules**:
+        - Module must exist (ID must be valid)
+        - Updated code must remain unique if changed
+        - Cannot update module ID itself
+        - Status changes are audited for compliance
+
+        **Use Cases**:
+        - Deactivate/activate modules based on feature requirements
+        - Update module configuration without recreating
+        - Manage module lifecycle
+      operationId: updateModule
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response'
           required: true
           schema:
             type: string
@@ -195,43 +290,69 @@ paths:
                 $ref: '#/components/schemas/updateModule400Response'
   /scp/v1/modules/list:
     get:
-      summary: Get list of modules
+      summary: List Modules
       tags:
         - Modules
       description: |-
-        You can use this API to get a list of modules
-         - The API Endpoint for getting a list of modules is `/scp/v1/modules/list` 
-         - It is mandatory to provide values for parameters marked with `required` 
-         - Mandatory parameter cannot be empty or null
-         - This is an Admin API which will be used by admins.
+        Retrieves a paginated list of all modules in the system with optional filtering and search capabilities.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Features**:
+        - Pagination support with configurable page size
+        - Full-text search across module codes (partial match, case-insensitive)
+        - Returns count of total matching modules
+        - Search text cannot contain special characters
+
+        **Query Parameters**:
+        - `page`: Page number for pagination (1-indexed, defaults to 1)
+        - `limit`: Records per page (defaults to 100, max 100)
+        - `search`: Filter modules by code
+
+        **Use Cases**:
+        - Display all available modules
+        - Search for specific module by code name
+        - Implement paginated module listings
+        - Monitor system modules
+      operationId: listModules
       parameters:
         - name: X-auth-token
           required: true
           in: header
-          description: You require an X-auth-token to use this API. This token is available in the login API Response.
+          description: 'Authentication token from login API response'
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: query
           name: page
-          description: Please add page number
+          description: 'Page number for pagination (1-indexed). Defaults to 1 if not provided or invalid'
           schema:
             type: number
+            minimum: 1
+            default: 1
           example: 1
+          required: false
         - in: query
           name: limit
-          description: Number of records to limit
+          description: 'Number of records per page. Defaults to 100 if not provided. Maximum allowed is 100'
           schema:
             type: number
-          example: 2
+            minimum: 1
+            maximum: 100
+            default: 100
+          example: 10
+          required: false
         - in: query
           name: search
-          description: Please search for information such as 'code'.
+          description: 'Search term to filter modules by code (partial match, case-insensitive). Cannot contain special characters. Optional parameter'
           schema:
             type: string
+            maxLength: 255
           example: projects
+          required: false
       responses:
         '200':
-          description: ok
+          description: 'Modules retrieved successfully'
           content:
             application/json:
               schema:
@@ -239,38 +360,54 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: 'Modules fetched successfully'
                   result:
                     type: object
+                    description: 'Paginated modules data'
                     properties:
                       data:
                         type: array
+                        description: 'List of modules for current page'
                         items:
                           type: object
                           properties:
                             id:
                               type: number
+                              description: 'Unique module ID'
+                              example: 6
                             code:
                               type: string
+                              description: 'Module code identifier'
+                              example: 'projects'
                             status:
                               type: string
+                              enum: [ACTIVE, INACTIVE]
+                              description: 'Module status'
+                              example: ACTIVE
                           required:
                             - id
                             - code
                             - status
                       count:
                         type: number
+                        description: 'Total number of modules matching the search criteria'
+                        example: 4
                   meta:
                     type: object
                     properties:
                       correlation:
                         type: string
+                        description: 'Unique request correlation ID for tracing'
+                        example: '4cbb42f7-ed92-41a1-b93d-d689121cda08'
               examples:
                 example1:
+                  summary: 'List All Modules (Default Pagination)'
                   value:
                     responseCode: OK
-                    message: Module fetched successfully
+                    message: Modules fetched successfully
                     result:
                       data:
                         - id: 6
@@ -288,40 +425,91 @@ paths:
                       count: 4
                     meta:
                       correlation: 4cbb42f7-ed92-41a1-b93d-d689121cda08
+                example2:
+                  summary: 'Search Modules by Code'
+                  value:
+                    responseCode: OK
+                    message: MODULES_FETCHED_SUCCESSFULLY
+                    result:
+                      data:
+                        - id: 6
+                          code: projects
+                          status: ACTIVE
+                      count: 1
+                    meta:
+                      correlation: 4cbb42f7-ed92-41a1-b93d-d689121cda08
+                example3:
+                  summary: 'List Modules with Custom Pagination'
+                  value:
+                    responseCode: OK
+                    message: MODULES_FETCHED_SUCCESSFULLY
+                    result:
+                      data:
+                        - id: 2
+                          code: observation
+                          status: ACTIVE
+                      count: 4
+                    meta:
+                      correlation: 4cbb42f7-ed92-41a1-b93d-d689121cda08
         '400':
-          description: Bad Request. Module Not Found
+          description: 'Bad Request - Invalid search text or parameters'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/getModuleList400Response'
   '/scp/v1/modules/delete/{id}':
     delete:
-      summary: Delete modules by id
+      summary: Delete Module
       tags:
         - Modules
       description: |-
-        You can use this API to delete module
-         - The API Endpoint for deleting module is `/scp/v1/modules/delete` 
-         - It is mandatory to provide values for parameters that are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Soft deletes a module from the system. The module record is marked as deleted but preserved in the database for audit and compliance purposes.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Soft Delete Behavior**:
+        - Module record is marked as deleted in the database (not permanently removed)
+        - Deleted module cannot be accessed through normal API operations
+        - Deleted module data is preserved for audit trails and compliance
+        - Soft-deleted modules can be restored through database recovery if needed
+        - Module code remains reserved and cannot be reused
+
+        **Rules**:
+        - Module ID must exist in the system
+        - Module must not have already been deleted
+        - Soft deletion is permanent (cannot be undone through API)
+
+        **Important Notes**:
+        - Use with caution in production environments
+        - Deletion is logged with audit trail for compliance and security
+        - Deleted module will not appear in list operations
+        - Associated permissions still reference the deleted module code
+
+        **Use Cases**:
+        - Remove custom module definitions from active use
+        - Archive outdated module structures while preserving history
+        - Decommission modules with full audit trail
+      operationId: deleteModule
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
+          description: 'Authentication token from login API response'
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: id
           in: path
-          description: Module id
+          description: 'Unique module ID to soft delete (numeric, positive integer)'
           required: true
-          example: 6
           schema:
-            type: string
+            type: number
+            minimum: 1
+            maximum: 2147483647
+          example: 6
       responses:
         '200':
-          description: ok
+          description: 'Module deleted successfully'
           content:
             application/json:
               schema:
@@ -329,81 +517,78 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: 'Module deleted successfully'
                   result:
                     type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            code:
-                              type: string
-                            status:
-                              type: string
-                          required:
-                            - id
-                            - code
-                            - status
-                      count:
-                        type: number
+                    description: 'Empty object on successful soft deletion'
+                    properties: {}
                   meta:
                     type: object
                     properties:
                       correlation:
                         type: string
+                        description: 'Unique request correlation ID for audit trail'
               examples:
                 example1:
+                  summary: 'Successful Module Soft Deletion'
                   value:
                     responseCode: OK
-                    message: Module fetched successfully
-                    result:
-                      data:
-                        - id: 6
-                          code: projects
-                          status: ACTIVE
-                        - id: 2
-                          code: observation
-                          status: ACTIVE
-                        - id: 4
-                          code: program
-                          status: ACTIVE
-                        - id: 5
-                          code: system
-                          status: ACTIVE
-                      count: 4
+                    message: MODULES_DELETED_SUCCESSFULLY
+                    result: {}
                     meta:
                       correlation: 4cbb42f7-ed92-41a1-b93d-d689121cda08
         '400':
-          description: Bad Request. Module not found.
+          description: 'Bad Request - Module not found or already deleted'
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateModule400Response'
   /scp/v1/permissions/create:
     post:
-      summary: Creating new permission
+      summary: Create Permission
       tags:
         - Permissions
       description: |-
-        This API is associated with permissions
-         - Endpoint for creating permission  `/scp/v1/permissions/create` 
-         - It is mandatory to provide values for parameters marked with `required` 
-         - Mandatory parameter cannot be empty or null
-         - This is an Admin API which will be used by admins.
+        Creates a new permission that maps an API endpoint to specific HTTP methods and modules. Permissions define granular access control for role-based authorization.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Rules**:
+        - Permission code must be globally unique across the system
+        - Code must contain only lowercase letters and underscores (no spaces, no uppercase, no hyphens, no numbers)
+        - Module must exist in the system
+        - API path must follow strict format pattern: `/[controller]/v[number]/[path]`
+        - request_type must be an array with at least one HTTP method
+        - Status defaults to ACTIVE if not provided
+        - All fields must be non-empty and non-null
+
+        **Use Cases**:
+        - Define new API permissions for custom modules
+        - Map endpoints to specific HTTP methods for role-based access
+        - Create fine-grained access control for module operations
+        - Support permission-to-role assignments
+        - Multiple HTTP methods can be grouped under a single permission
+
+        **Important Notes**:
+        - Permission code must follow naming convention: `[action]_[resource]` (e.g., `create_project`, `list_user`)
+        - API path format must start with `/scp` or similar service identifier
+        - request_type accepts multiple methods: [GET], [POST], [GET, POST, DELETE], [GET, POST, PATCH, PUT, DELETE], etc.
+        - Once created, permission properties should not change frequently
+      operationId: createPermission
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To make use of the API, you require X-auth-token. This is Available in login API Response.'
           required: true
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       requestBody:
-        description: Request body for create permission
+        description: 'Permission object mapping API endpoint to HTTP method and module'
+        required: true
         content:
           application/json:
             schema:
@@ -411,21 +596,36 @@ paths:
               properties:
                 code:
                   type: string
-                  description: 'code of the permission, must be unique'
+                  minLength: 1
+                  maxLength: 100
+                  pattern: '^[a-z_]+$'
+                  description: 'Unique permission identifier. Must contain only lowercase letters and underscores (no spaces, numbers, uppercase, or hyphens)'
+                  example: 'create_project'
                 module:
                   type: string
-                  description: Module name
+                  minLength: 1
+                  maxLength: 100
+                  pattern: '^[a-zA-Z_-]+$'
+                  description: 'Module name this permission belongs to (must exist in modules). Can contain letters, hyphens, and underscores'
+                  example: 'projects'
                 request_type:
                   type: array
                   items:
                     type: string
-                  description: 'Array of HTTP request methods of the API like `PUT` , `POST` , `PATCH` , `GET` , `DELETE`.'
+                    enum: [GET, POST, PATCH, PUT, DELETE]
+                  minItems: 1
+                  description: 'Array of HTTP methods this permission grants access to. Can contain one or multiple methods (e.g., [POST], [GET, POST], [GET, POST, PATCH, PUT, DELETE])'
+                  example: ['POST']
                 api_path:
                   type: string
-                  description: URL of the api
+                  minLength: 5
+                  description: 'API endpoint path following format: /[controller name]/v[number]/[path]. Pattern: /scp/v1/projects/create or /scp/v1/projects/:id'
+                  example: '/scp/v1/projects/create'
                 status:
                   type: string
-                  description: Status of the permission.
+                  enum: [ACTIVE, INACTIVE]
+                  description: 'Permission status. Defaults to ACTIVE if not provided. ACTIVE: Available for role assignment, INACTIVE: Disabled'
+                  example: ACTIVE
               required:
                 - code
                 - module
@@ -436,13 +636,26 @@ paths:
                 value:
                   code: create_project
                   module: projects
-                  request_type:
-                    - POST
+                  request_type: [POST]
                   api_path: /scp/v1/projects/create
                   status: ACTIVE
+              example2:
+                summary: 'Create GET Permission for Project List'
+                value:
+                  code: list_project
+                  module: projects
+                  request_type: [GET]
+                  api_path: /scp/v1/projects/list
+              example3:
+                summary: 'Create Multiple Methods Permission'
+                value:
+                  code: project_full_access
+                  module: projects
+                  request_type: [GET, POST, PATCH, PUT, DELETE]
+                  api_path: /scp/v1/projects/:id
       responses:
         '201':
-          description: Created
+          description: 'Permission created successfully'
           content:
             application/json:
               schema:
@@ -450,23 +663,47 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: 'PERMISSION_CREATED_SUCCESSFULLY'
                   result:
                     type: object
+                    description: 'Created permission details'
                     properties:
                       id:
                         type: number
-                      status:
+                        description: 'Unique permission ID assigned by system'
+                        example: 18
+                      code:
                         type: string
+                        description: 'Permission code identifier'
+                        example: 'create_project'
                       module:
                         type: string
+                        description: 'Module name'
+                        example: 'projects'
                       request_type:
                         type: array
                         items:
                           type: string
+                          enum: [GET, POST, PATCH, PUT, DELETE]
+                        description: 'Array of HTTP methods'
+                        example: ['POST']
+                      status:
+                        type: string
+                        enum: [ACTIVE, INACTIVE]
+                        description: 'Permission status'
+                        example: ACTIVE
+                  meta:
+                    type: object
+                    properties:
+                      correlation:
+                        type: string
+                        description: 'Unique request correlation ID'
               examples:
                 example1:
+                  summary: 'Successful Permission Creation'
                   value:
                     responseCode: OK
                     message: Permission created successfully
@@ -474,12 +711,12 @@ paths:
                       id: 18
                       code: create_project
                       module: projects
-                      request_type:
-                        - POST
-                      api_path: /scp/v1/projects/create
+                      request_type: [POST]
                       status: ACTIVE
+                    meta:
+                      correlation: 32016da1-8bf1-4157-afad-34508aa609c8
         '400':
-          description: Bad request. Permission already exists
+          description: 'Bad Request - Invalid input or duplicate permission code'
           content:
             application/json:
               schema:
@@ -806,7 +1043,7 @@ paths:
         '400':
           description: Bad Request. Permissions does not exists.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updatePermission400Response'
   /scp/v1/role-permission-mapping/create:
@@ -851,7 +1088,7 @@ paths:
         '201':
           description: Created
           content:
-            application.json:
+            application/json:
               schema:
                 type: object
                 properties:
@@ -1032,7 +1269,7 @@ paths:
         '400':
           description: Bad Request. Permission for this role is empty.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/createMapping400Response'
   /scp/v1/entity-types/create:
@@ -1149,7 +1386,7 @@ paths:
         '400':
           description: Bad Request. Entity-Type already exists.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/createUserEntity400Response'
   '/scp/v1/entity-types/update/{id}':
@@ -1279,7 +1516,7 @@ paths:
         '400':
           description: Bad Request. Entity type not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateUserEntityType400Response'
   /scp/v1/entity-types/read:
@@ -1407,7 +1644,7 @@ paths:
         '400':
           description: Bad Request. Entity-Type not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateUserEntity400Response'
   '/scp/v1/entity-types/delete/{id}':
@@ -1460,7 +1697,7 @@ paths:
         '400':
           description: Bad Request. Entity-Type not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateUserEntityType400Response'
   /scp/v1/entities/create:
@@ -1578,7 +1815,7 @@ paths:
         '400':
           description: Bad Request. User Entity already exists.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/createEntity400Response'
   '/scp/v1/entities/update/{id}':
@@ -1696,7 +1933,7 @@ paths:
         '400':
           description: Bad Request. User Entity Not Found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateUserEntity400Response'
   '/scp/v1/entities/read/{id}':
@@ -1852,7 +2089,7 @@ paths:
         '400':
           description: Bad Request. User Entity has already been deleted.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateUserEntity400Response'
   /scp/v1/entities/list:
@@ -2053,7 +2290,7 @@ paths:
         '200':
           description: ok
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/cloudServicesDownloadResponse200'
   /scp/v1/form/create:
@@ -2295,7 +2532,7 @@ paths:
         '400':
           description: Bad Request. Form already exists
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/createForm400Response'
   '/scp/v1/form/update/{formId}':
@@ -2450,7 +2687,7 @@ paths:
         '400':
           description: Bad Request. Form not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateForm400Response'
   /scp/v1/form/read:
@@ -2631,7 +2868,7 @@ paths:
         '400':
           description: Bad Request.Form not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateForm400Response'
   '/scp/v1/projects/update/{projectId}':
@@ -3108,7 +3345,7 @@ paths:
         '400':
           description: Bad Request. Project Update Failed.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/createProject400Response'
     delete:
@@ -3173,7 +3410,7 @@ paths:
         '400':
           description: Bad Request. Project not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/deleteProject400Response'
   '/scp/v1/projects/submitForReview/{projectId}':
@@ -3579,7 +3816,7 @@ paths:
         '400':
           description: Bad Request.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/deleteProject400Response'
   /scp/v1/projects/reviewerList:
@@ -4771,7 +5008,7 @@ paths:
         '400':
           description: Bad Request. Resource not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateComment400Response'
   '/scp/v1/comments/update/{commentId}':
@@ -4846,7 +5083,7 @@ paths:
         '400':
           description: Bad Request. Resource not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateComment400Response'
   /scp/v1/comments/list:
@@ -6093,7 +6330,7 @@ paths:
         '400':
           description: Bad Request. Program not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/deleteProgram400Response'
   /scp/v1/programs/details/{id}:
@@ -6505,7 +6742,7 @@ paths:
         '400':
           description: Bad Request. Program not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/deleteProgram400Response'
   /scp/v1/programs/removeResources/{program_id}:
@@ -6568,7 +6805,7 @@ paths:
         '400':
           description: Bad Request. Program not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/deleteProgram400Response'
 
@@ -6662,7 +6899,7 @@ paths:
         '400':
           description: Bad Request. Program not found
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/deleteProgram400Response'
   /scp/v1/programs/reviewerList:
@@ -7011,7 +7248,7 @@ paths:
         '400':
           description: Bad Request.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/createConfig400Response'
   '/scp/v1/organization-extensions/updateConfig/{id}':
@@ -7112,7 +7349,7 @@ paths:
         '400':
           description: Bad Request.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateConfig400Response'
   /scp/v1/config/list:
@@ -7853,7 +8090,7 @@ paths:
         '400':
           description: Bad Request.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/createCertificate400Response'
   '/scp/v1/certificates/update/{id}':
@@ -7956,7 +8193,7 @@ paths:
         '400':
           description: Bad Request.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateCertificate400Response'
   /scp/v1/certificates/createSVG:
@@ -8139,7 +8376,7 @@ paths:
         '400':
           description: Bad Request.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateReviewStage400Response'
   /review-stages/list:
@@ -8303,7 +8540,7 @@ paths:
         '400':
           description: Bad Request.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/createRole400Response'
   '/user/v1/user-role/update/{id}':
@@ -8407,7 +8644,7 @@ paths:
         '400':
           description: Bad Request.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateRole400Response'
   '/user/user/v1/org-admin/updateUser/{id}':
@@ -8487,7 +8724,7 @@ paths:
         '400':
           description: Bad Request.
           content:
-            application.json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/updateUser400Response'
   /scp/v1/observation/list:
@@ -8528,7 +8765,7 @@ paths:
         '201':
           description: observation listed successfully
           content:
-            application.json:
+            application/json:
               schema:
                 type: object
                 properties:
