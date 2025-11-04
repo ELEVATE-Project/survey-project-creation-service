@@ -3145,36 +3145,73 @@ paths:
                     meta: {}
   /scp/v1/cloud-services/getSignedUrl:
     post:
-      summary: Cloud services get signed url
+      operationId: getSignedUrl
+      summary: Generate Signed URLs for File Upload
       tags:
         - Cloud Services
       description: |-
-        This API is associated with the cloud services for getting signed URL  
-         - Then The API Endpoint forcloud services `/scp/v1/cloud-services/file/getSignedUrl` 
-         - It is mandatory to provide values for parameters marked with `required` 
-         - Mandatory parameter cannot be empty or null
+        Generates signed URLs for uploading files to cloud storage (Azure Blob Storage). Supports multiple reference types with automatic folder structure generation based on tenant, organization, user, and reference type.
+
+        **Access Control**: Requires authentication token. User's organization and tenant from token used for scoping.
+
+        **Reference Types Supported**:
+        - `certificate`: For certificate uploads
+        - `logo`: For logo image uploads
+        - `signature`: For digital signature uploads
+        - `base_template`: For base template files
+        - `roll_out`: For roll-out related file uploads
+        - `certificate_template`: For certificate template files
+
+        **Folder Structure**: Files are stored in path pattern: `tenant_code/organization_code/userId/reference_type/resourceId/uniqueId/filename`
+
+        **Use Cases**:
+        - Get temporary upload URLs for file attachments
+        - Support certificate and template management
+        - Enable user file uploads with cloud storage integration
+
       parameters:
         - name: X-auth-token
           in: header
-          description: You require an X-auth-token to use this API. This token is available in the login API Response.
+          description: 'Authentication token from login API response. Required for all requests. Token provides user context (organization_code, tenant_code, user_id).'
           required: true
           schema:
             type: string
+        - name: serviceUpload
+          in: query
+          description: 'Optional query parameter to switch between direct cloud storage URL and service upload endpoint. When true, uses service endpoint instead of direct cloud URL. Defaults to false.'
+          required: false
+          schema:
+            type: string
+            enum: ['true', 'false']
+          example: 'false'
       requestBody:
-        description: ''
+        description: 'Request object containing resource IDs with file names and reference type'
+        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
                 request:
-                  description: |
-                    Add Resource id inside request, which can be a project id, observation id, etc.
-                    Additionally, append the valid file names in the files.
                   type: object
+                  description: 'Object with resource IDs as keys. Each resource ID contains a files array with file names. Example: { "resourceId1": { "files": ["file1.png", "file2.jpg"] } }'
+                  example:
+                    resourceId1:
+                      files:
+                        - fileName1.png
+                        - fileName2.jpg
                 ref:
                   type: string
-                  description: Only add ref as certificate if uploading the certificate templates
+                  description: 'Reference type for organizing uploads. Determines folder path. Must be one of the supported reference types.'
+                  enum:
+                    - certificate
+                    - logo
+                    - signature
+                    - base_template
+                    - roll_out
+                    - certificate_template
+                    - resources
+                  example: certificate
               required:
                 - request
                 - ref
@@ -3182,13 +3219,21 @@ paths:
               example1:
                 value:
                   request:
-                    '1':
+                    123:
                       files:
-                        - certificsteBase.png
+                        - certificateFile.png
+                        - attestation.pdf
                   ref: certificate
+              example2:
+                value:
+                  request:
+                    logoId456:
+                      files:
+                        - logo.svg
+                  ref: logo
       responses:
         '200':
-          description: ok
+          description: 'Signed URLs generated successfully'
           content:
             application/json:
               schema:
@@ -3196,59 +3241,166 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response code (OK for success)'
                   message:
                     type: string
+                    description: 'Status message'
                   result:
                     type: object
+                    description: 'Object with resource IDs as keys, each containing files array with signed URLs'
+                    additionalProperties:
+                      type: object
+                      properties:
+                        files:
+                          type: array
+                          description: 'Array of file objects with signed URLs'
+                          items:
+                            type: object
+                            properties:
+                              file:
+                                type: string
+                                description: 'Full cloud storage file path including resource ID and unique ID'
+                              url:
+                                type: string
+                                description: 'Signed URL for file upload (POST/PUT). Valid for configured expiry time.'
+                              downloadableUrl:
+                                type: string
+                                description: 'Signed URL for file download (GET). Valid for configured expiry time.'
+                              payload:
+                                type: object
+                                description: 'Metadata object'
+                                properties:
+                                  sourcePath:
+                                    type: string
+                                    description: 'Source file path in cloud storage'
+                              cloudStorage:
+                                type: string
+                                description: 'Cloud storage provider name'
+                  meta:
+                    type: object
+                    description: 'Metadata object (empty)'
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Signed URL Generated Successfully.
                     result:
-                      5f72f9998925ec7c60f79a91:
+                      projectId123:
                         files:
-                          - file: survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/uploadFile.jpg
-                            url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/uploadFile.jpg?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=w&sig=PBRkJWgXdAPgx4RHSZ6aUevzWo1x2XMMQKBoNHQvBkk%3D'
+                          - file: tenant_code/org_code/userId/certificate/projectId123/uniqueId/certificateFile.png
+                            url: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/uniqueId/certificateFile.png?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=w&sig=SIGNATURE_HERE'
+                            downloadableUrl: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/uniqueId/certificateFile.png?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=r&sig=SIGNATURE_HERE'
                             payload:
-                              sourcePath: survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/uploadFile.jpg
+                              sourcePath: tenant_code/org_code/userId/certificate/projectId123/uniqueId/certificateFile.png
                             cloudStorage: AZURE
-                          - file: survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png
-                            url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=w&sig=4fERc3ERoruUiA1YXquTWRnOnP9DzaVxn4uFjqBmSF8%3D'
+                          - file: tenant_code/org_code/userId/certificate/projectId123/uniqueId/attestation.pdf
+                            url: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/uniqueId/attestation.pdf?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=w&sig=SIGNATURE_HERE2'
+                            downloadableUrl: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/uniqueId/attestation.pdf?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=r&sig=SIGNATURE_HERE2'
                             payload:
-                              sourcePath: survey/5f72f9998925ec7c60f79a91/54dc2814-e815-4ed9-8a58-6464785a1f2c/5334964f-f531-45a9-aa05-06a4d2beb352/response.png
+                              sourcePath: tenant_code/org_code/userId/certificate/projectId123/uniqueId/attestation.pdf
                             cloudStorage: AZURE
+                    meta: {}
+
   /scp/v1/cloud-services/getDownloadableUrl:
-    get:
-      summary: Cloud services get download url
+    post:
+      operationId: getDownloadableUrl
+      summary: Generate Downloadable URLs for Files
       tags:
         - Cloud Services
       description: |-
-        This API is associated with the cloud services for getting downloadable URL  
-         - Then The API Endpoint forcloud services `/scp/v1/cloud-services/file/getDownloadableUrl` 
-         - It is mandatory to provide values for parameters marked with `required` 
-         - Mandatory parameter cannot be empty or null
+        Generates downloadable signed URLs for files stored in cloud storage.
+
+        **Access Control**: Requires authentication token. User organization and tenant derived from token.
+
+        **Use Cases**:
+        - Download certificates, images, or documents from storage
+        - Generate temporary access URLs with time-limited validity
+        - Support batch file downloads with multiple paths
+
+        **File Path Requirements**:
+        - Paths must be valid cloud storage paths
+        - Paths must belong to authenticated user's organization/tenant
+        - Path format: `tenant/organization/userId/type/resourceId/uuid/filename`
+
       parameters:
         - name: X-auth-token
           in: header
-          description: You require an X-auth-token to use this API. This token is available in the login API Response.
+          description: Authentication token from login API response. Required for all requests.
           required: true
           schema:
             type: string
-        - in: query
-          name: filePath
-          required: true
-          description: Please append a valid file path to url which has to be downloaded
-          schema:
-            type: string
-          example: users/62832531a05cbd57b273aebb-1654149589875-image.jpg
+      requestBody:
+        description: Request object containing array of cloud storage file paths
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - filePaths
+              properties:
+                filePaths:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of cloud storage file paths to generate downloadable URLs for
+                  example:
+                    - tenant/org/user123/certificate/project1/a1b2c3d4/cert.pdf
+                    - tenant/org/user123/logo/org1/x9y8z7w6/logo.png
+            example:
+              filePaths:
+                - tenant/org/user123/certificate/project1/a1b2c3d4/certificate.pdf
+                - tenant/org/user123/logo/org1/x9y8z7w6/logo.png
+                - tenant/org/user123/signature/sig1/p5q4r3s2/signature.jpg
+
       responses:
         '200':
-          description: ok
+          description: Downloadable URLs generated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/cloudServicesDownloadResponse200'
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                    description: Response status code
+                  message:
+                    type: string
+                    example: DOWNLOAD_URL_GENERATED_SUCCESSFULLY
+                    description: Human-readable status message
+                  result:
+                    type: array
+                    description: Array of generated downloadable URLs
+                    items:
+                      type: object
+                      properties:
+                        cloudStorage:
+                          type: string
+                          description: Cloud storage provider (AZURE, GCS, S3, etc.)
+                          example: AZURE
+                        filePath:
+                          type: string
+                          description: Original cloud storage file path
+                          example: tenant/org/user123/certificate/project1/a1b2c3d4/certificate.pdf
+                        url:
+                          type: string
+                          description: Signed URL for downloading file (READ permission)
+                          example: https://storage.azure.com/...?sv=2021-06-08&sp=r&sig=XXXX...
+              example:
+                responseCode: OK
+                message: DOWNLOAD_URL_GENERATED_SUCCESSFULLY
+                result:
+                  - cloudStorage: AZURE
+                    filePath: tenant/org/user123/certificate/project1/a1b2c3d4/certificate.pdf
+                    url: https://storage.azure.com/container/tenant/org/user123/certificate/project1/a1b2c3d4/certificate.pdf?sv=2021-06-08&ss=bfqt&srt=sco&sp=racwd&se=2024-01-15T10:30:00Z&sig=XXXXXXXXXXXXXX
+                  - cloudStorage: AZURE
+                    filePath: tenant/org/user123/logo/org1/x9y8z7w6/logo.png
+                    url: https://storage.azure.com/container/tenant/org/user123/logo/org1/x9y8z7w6/logo.png?sv=2021-06-08&ss=bfqt&srt=sco&sp=racwd&se=2024-01-15T10:30:00Z&sig=XXXXXXXXXXXXXX
+                  - cloudStorage: AZURE
+                    filePath: tenant/org/user123/signature/sig1/p5q4r3s2/signature.jpg
+                    url: https://storage.azure.com/container/tenant/org/user123/signature/sig1/p5q4r3s2/signature.jpg?sv=2021-06-08&ss=bfqt&srt=sco&sp=racwd&se=2024-01-15T10:30:00Z&sig=XXXXXXXXXXXXXX
+
   /scp/v1/form/create:
     post:
       operationId: formCreate
