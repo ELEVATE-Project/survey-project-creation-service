@@ -58,8 +58,11 @@ const listSchema = {
 						note_length: {
 							type: 'integer',
 						},
+						is_auth_token_bearer: {
+							type: 'boolean',
+						},
 					},
-					required: ['auto_save_interval', 'note_length'],
+					required: ['auto_save_interval', 'note_length', 'is_auth_token_bearer'],
 				},
 			},
 			required: ['resource', 'instance'],

@@ -113,4 +113,20 @@ module.exports = class Resource {
 			throw error
 		}
 	}
+
+	/**
+	 * Function to fetch deep link for resource from consumption side
+	 * @method GET
+	 * @name getDeepLink
+	 * @param {Object} req - request data.
+	 * @returns {JSON} - deep links url
+	 */
+	async getDeepLink(req) {
+		try {
+			const deepLinks = await resourceService.getDeepLink(req.query.solution_id, req.query.solution_type)
+			return deepLinks
+		} catch (error) {
+			throw error
+		}
+	}
 }

@@ -2651,7 +2651,7 @@ paths:
           example: 1
         - in: query
           name: reference_id
-          description: (Optional) The project solution ID from the consumption side.
+          description: "(Optional) The ID of an existing project to clone/reference. When provided, a new project is created as a copy of the referenced project with all its structure, tasks, and configurations. The cloned project will be created in DRAFT status and will belong to the current user's organization. Example: reference_id=12345"
           schema:
             type: string
           required: false
@@ -7133,6 +7133,7 @@ paths:
                           resource_type: project
                           max_task_count: 10
                           observation_link_regex: '^https?:\/\/[a-zA-Z0-9\-_]+\.[a-zA-Z]{2,}(/[a-zA-Z0-9\-\._~:/?#[\]@!$&\''()*+,;=]*)?$'
+                          project_reflection_task_redirect_url: 'http://localhost:8001/mohini/sso?flow=guest-mi-story'
                           open_external_link: true
                         - review_required: true
                           show_reviewer_list: true
