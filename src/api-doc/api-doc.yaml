@@ -2361,20 +2361,42 @@ paths:
       summary: Create Entity
       tags:
         - Entity
+      operationId: createEntity
       description: |-
-        You can use this API to create a user entity  
-         - The API Endpoint for creating a user entity is `/scp/v1/entities/create` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Creates a new entity within a specified entity type. Entities are organizational units categorized by entity types (e.g., languages, regions, schools).
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Business Rules**:
+        - Entity `value` must be unique per entity type, organization, and tenant (automatically converted to lowercase)
+        - `label` can contain letters, numbers, and spaces
+        - `value` must contain only letters and underscores (no spaces, no special characters)
+        - `entity_type_id` must reference an existing entity type in the system
+        - `status` defaults to ACTIVE if not provided (ACTIVE or INACTIVE)
+        - `type` is optional and typically set to SYSTEM or USER (user-defined classification)
+        - Organization code and tenant code are automatically set from authentication token
+
+        **Use Cases**:
+        - Create language options for projects
+        - Define regional categorizations
+        - Add school/institution entities to system
+        - Build organizational unit hierarchies
+
+        **Important Notes**:
+        - Duplicate values within same entity type are rejected
+        - All created/updated timestamps are automatically managed
+        - created_by captures authenticated user ID
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       requestBody:
+        description: 'Entity object with required fields'
+        required: true
         content:
           application/json:
             schema:
@@ -2382,22 +2404,34 @@ paths:
               properties:
                 value:
                   type: string
-                  description: Unique identifier for the entity.
+                  description: 'Unique identifier for the entity (letters and underscores only, will be converted to lowercase). Cannot be empty or null.'
                 label:
                   type: string
-                  description: Descriptive label for the entity type.
+                  description: 'Descriptive label for the entity (letters, numbers, and spaces allowed). Cannot be empty or null.'
                 entity_type_id:
                   type: number
-                  description: Id of the entity type.
+                  description: 'ID of the entity type this entity belongs to (must be numeric, positive integer). Cannot be empty or null.'
+                status:
+                  type: string
+                  description: 'Entity status (optional, defaults to ACTIVE). Valid values: ACTIVE, INACTIVE.'
+                  enum: ['ACTIVE', 'INACTIVE']
+                type:
+                  type: string
+                  description: 'Entity classification type (optional, e.g., SYSTEM, USER). All uppercase letters only.'
+              required:
+                - value
+                - label
+                - entity_type_id
             examples:
               example1:
+                summary: 'Create Basic Entity'
                 value:
                   value: en
                   label: English
                   entity_type_id: 4
       responses:
         '201':
-          description: Created
+          description: 'Entity created successfully'
           content:
             application/json:
               schema:
@@ -2405,38 +2439,63 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response code (OK for success)'
                   message:
                     type: string
+                    description: 'Response message (ENTITY_CREATED_SUCCESSFULLY)'
                   result:
                     type: object
+                    description: 'Created entity object with all fields'
                     properties:
                       id:
                         type: number
+                        description: 'Unique entity ID (auto-incremented, numeric)'
                       value:
                         type: string
+                        description: 'Entity value (lowercase version of input)'
                       label:
                         type: string
+                        description: 'Entity label as provided'
                       status:
                         type: string
+                        description: 'Entity status (ACTIVE or INACTIVE)'
                       type:
                         type: string
+                        description: 'Entity type classification (SYSTEM, USER, or custom value)'
                       entity_type_id:
                         type: number
-                      created_by:
-                        type: number
-                      updated_by:
-                        type: number
-                      updated_at:
+                        description: 'Foreign key referencing entity type'
+                      organization_code:
                         type: string
+                        description: 'Organization code from authentication token'
+                      tenant_code:
+                        type: string
+                        description: 'Tenant code from authentication token'
+                      created_by:
+                        type: string
+                        description: 'User ID who created the entity (from auth token)'
+                      updated_by:
+                        type: string
+                        description: 'User ID who last updated the entity (null initially)'
                       created_at:
                         type: string
+                        format: date-time
+                        description: 'ISO 8601 timestamp when entity was created'
+                      updated_at:
+                        type: string
+                        format: date-time
+                        description: 'ISO 8601 timestamp when entity was last updated'
                       deleted_at:
                         type: string
+                        format: date-time
+                        description: 'ISO 8601 timestamp when entity was soft-deleted (null if not deleted)'
                   meta:
                     type: object
+                    description: 'Metadata object (optional, contains related form versions if applicable)'
                     properties:
                       formsVersion:
                         type: array
+                        description: 'Array of form versions associated with entity type'
                         items:
                           type: object
                           properties:
@@ -2448,6 +2507,7 @@ paths:
                               type: number
               examples:
                 example1:
+                  summary: 'Successful Creation Response'
                   value:
                     responseCode: OK
                     message: Entity created successfully
@@ -2458,18 +2518,20 @@ paths:
                       status: ACTIVE
                       type: SYSTEM
                       entity_type_id: 1
-                      created_by: 0
-                      updated_by: 0
-                      updated_at: '2023-07-21T21:46:41.392Z'
+                      organization_code: 'sot'
+                      tenant_code: 'shikshalokam'
+                      created_by: '12345'
+                      updated_by: null
                       created_at: '2023-07-21T21:46:41.392Z'
-                      deleted_at: 'null'
+                      updated_at: '2023-07-21T21:46:41.392Z'
+                      deleted_at: null
                     meta:
                       formsVersion:
                         - id: 3
                           type: projectCreation
                           version: 3
         '400':
-          description: Bad Request. User Entity already exists.
+          description: 'Bad Request - Invalid input or entity already exists'
           content:
             application/json:
               schema:
@@ -2479,27 +2541,49 @@ paths:
       summary: Update Entity
       tags:
         - Entity
+      operationId: updateEntity
       description: |-
-        Use this API to update a entity.   
-         - The API Endpoint to update a user entity is `/scp/v1/entities/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Updates an existing entity with new values. Allows modification of entity properties such as value, label, status, and type.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role. User can only update entities they created (unless admin).
+
+        **Business Rules**:
+        - Entity ID must exist and belong to user's organization and tenant
+        - Updated `value` must remain unique per entity type if changed (automatically converted to lowercase)
+        - `value` must contain only letters and underscores (no spaces, no special characters)
+        - `label` can contain letters, numbers, and spaces
+        - `entity_type_id` if provided must reference an existing entity type
+        - `status` must be either ACTIVE or INACTIVE
+        - `type` is optional custom classification (all uppercase letters only)
+        - At least one field must be provided for update (cannot send empty body)
+        - updated_by is automatically set to authenticated user ID
+
+        **Use Cases**:
+        - Change entity status (activate/deactivate)
+        - Update entity label or description
+        - Change entity classification type
+        - Correct entity values
+
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token, which is available in the login API response.'
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: id
-          description: Please append a valid user entity ID to the Request URL.
+          description: 'Valid entity ID to update (numeric, positive integer, 1 to 2147483647)'
           schema:
             type: number
+            minimum: 1
+            maximum: 2147483647
           required: true
           example: 1
       requestBody:
+        description: 'Entity update object with optional fields. At least one field must be provided.'
+        required: true
         content:
           application/json:
             schema:
@@ -2507,23 +2591,29 @@ paths:
               properties:
                 value:
                   type: string
-                  description: Unique identifier for the entity.
+                  description: 'Updated unique identifier (letters and underscores only, will be converted to lowercase)'
                 label:
                   type: string
-                  description: Descriptive label for the entity type.
+                  description: 'Updated descriptive label (letters, numbers, and spaces allowed)'
                 entity_type_id:
                   type: number
-                  description: Id of the entity type.
+                  description: 'ID of the entity type (must exist and belong to same org/tenant)'
+                status:
+                  type: string
+                  description: 'Entity status (optional). Valid values: ACTIVE, INACTIVE'
+                  enum: ['ACTIVE', 'INACTIVE']
+                type:
+                  type: string
+                  description: 'Entity classification type (optional, all uppercase letters only)'
             examples:
               example1:
                 value:
-                  value: english
-                  label: English
+                  label: English US
                   status: ACTIVE
                   entity_type_id: 1
       responses:
         '202':
-          description: Accepted
+          description: 'Entity updated successfully (Accepted)'
           content:
             application/json:
               schema:
@@ -2531,44 +2621,68 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response code (OK for success)'
                   message:
                     type: string
+                    description: 'Response message (ENTITY_UPDATED_SUCCESSFULLY)'
                   result:
                     type: object
+                    description: 'Updated entity object with all fields'
                     properties:
                       id:
                         type: number
+                        description: 'Unique entity ID (auto-incremented, numeric, immutable)'
                       value:
                         type: string
+                        description: 'Entity value (lowercase version)'
                       label:
                         type: string
+                        description: 'Entity label as updated'
                       status:
                         type: string
+                        description: 'Entity status (ACTIVE or INACTIVE)'
                       type:
                         type: string
+                        description: 'Entity type classification'
                       entity_type_id:
                         type: number
-                      created_by:
-                        type: number
-                      updated_by:
-                        type: number
-                      updated_at:
+                        description: 'Foreign key referencing entity type'
+                      organization_code:
                         type: string
+                        description: 'Organization code from authentication token'
+                      tenant_code:
+                        type: string
+                        description: 'Tenant code from authentication token'
+                      created_by:
+                        type: string
+                        description: 'User ID who originally created the entity (unchanged)'
+                      updated_by:
+                        type: string
+                        description: 'User ID who last updated the entity (from auth token)'
                       created_at:
                         type: string
-                      deleted_at:
                         format: date-time
-                        nullable: true
+                        description: 'ISO 8601 timestamp when entity was created (unchanged)'
+                      updated_at:
                         type: string
+                        format: date-time
+                        description: 'ISO 8601 timestamp of this update'
+                      deleted_at:
+                        type: string
+                        format: date-time
+                        description: 'ISO 8601 timestamp when entity was soft-deleted (null if active)'
                   meta:
                     type: object
+                    description: 'Metadata object (optional, contains related form versions if applicable)'
                     properties:
                       formsVersion:
                         type: array
+                        description: 'Array of form versions associated with entity type'
                         items:
                           type: string
               examples:
                 example1:
+                  summary: 'Successful Update Response'
                   value:
                     responseCode: OK
                     message: Entity updated successfully
@@ -2579,47 +2693,99 @@ paths:
                       status: ACTIVE
                       type: SYSTEM
                       entity_type_id: 1
-                      created_by: 0
-                      updated_by: 0
+                      organization_code: 'sot'
+                      tenant_code: 'shikshalokam'
+                      created_by: '12345'
+                      updated_by: '67890'
+                      created_at: '2023-07-20T10:00:00.000Z'
                       updated_at: '2023-07-21T21:46:41.392Z'
-                      created_at: '2023-07-21T21:46:41.392Z'
                       deleted_at: null
                     meta:
                       formsVersion: []
         '400':
-          description: Bad Request. User Entity Not Found
+          description: 'Bad Request - Entity not found, invalid input, or duplicate value'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/updateUserEntity400Response'
   '/scp/v1/entities/read/{id}':
     post:
-      summary: Get entity details
+      summary: Read Entity Details
       tags:
         - Entity
+      operationId: readEntity
       description: |-
-        Use this API to read the details of a user entity.   
-         - The API Endpoint for reading the details of the user entity is `/scp/v1/entities/read` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Retrieves detailed information about one or more entities. Supports three operational modes for flexible querying.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role. Users can only read system entities or entities they created.
+
+        **Three Operational Modes**:
+
+        **Mode 1 - Read by ID** (query param: `id=<number>`):
+        - Fetch specific entity by its ID
+        - Returns single entity if found
+        - Filters for ACTIVE status only
+        - Scope: System entities + user-created entities
+
+        **Mode 2 - Read by Value** (query param: `value=<string>`):
+        - Fetch specific entity by its value/identifier (case-insensitive)
+        - Value automatically converted to lowercase
+        - Returns single entity if found
+        - Filters for ACTIVE status only
+        - Scope: System entities + user-created entities
+
+        **Mode 3 - Read All** (no query params or `read_user_entity=true`):
+        - Fetch all system entities (default)
+        - If `read_user_entity=true`: fetch both system and user-created entities
+        - Returns array of all matching entities
+        - Scope: Scoped to user's organization and tenant
+
+        **Business Rules**:
+        - Only returns ACTIVE entities (deleted/inactive entities excluded)
+        - Results automatically scoped to authenticated user's organization and tenant
+        - Case-insensitive value matching
+        - User can only see their own created entities or system-wide entities
+
+        **Use Cases**:
+        - Display entity details by ID
+        - Search for entity by value
+        - List all system entities for dropdown/selection
+        - Load all user-created entities for admin purposes
+
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token, which is available in the login API Response.'
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           required: true
           schema:
             type: string
-        - in: path
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: query
           name: id
-          description: Please append a valid entity ID.
+          description: 'Entity ID to fetch (numeric, positive integer). When provided, fetches specific entity by ID. Cannot be used with value parameter.'
+          schema:
+            type: number
+            minimum: 1
+            maximum: 2147483647
+          example: 1
+          required: false
+        - in: query
+          name: value
+          description: 'Entity value to search (case-insensitive, auto-converted to lowercase). When provided, fetches specific entity by value. Cannot be used with id parameter.'
           schema:
             type: string
-          example: 1
-          required: true
+          example: 'english'
+          required: false
+        - in: query
+          name: read_user_entity
+          description: 'Boolean flag (true/false). When true, includes user-created entities in results. When false or omitted, returns only system entities. Used in Mode 3 (read all).'
+          schema:
+            type: boolean
+          example: true
+          required: false
       responses:
         '200':
-          description: ok
+          description: 'Entity or entities retrieved successfully'
           content:
             application/json:
               schema:
@@ -2627,44 +2793,64 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response code (OK for success)'
                   message:
                     type: string
+                    description: 'Response message (ENTITY_FETCHED_SUCCESSFULLY)'
                   result:
-                    type: object
-                    properties:
-                      id:
-                        type: number
-                      entity_type_id:
-                        type: number
-                      value:
-                        type: string
-                      label:
-                        type: string
-                      status:
-                        type: string
-                      type:
-                        type: string
-                      created_by:
-                        type: number
-                      updated_by:
-                        type: number
-                      created_at:
-                        type: string
-                      updated_at:
-                        type: string
-                      deleted_at:
-                        format: date-time
-                        nullable: true
-                        type: string
+                    type: array
+                    description: 'Array of entity objects matching the query criteria'
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: number
+                          description: 'Unique entity ID (numeric, auto-incremented)'
+                        entity_type_id:
+                          type: number
+                          description: 'Foreign key referencing entity type'
+                        value:
+                          type: string
+                          description: 'Entity value (lowercase identifier)'
+                        label:
+                          type: string
+                          description: 'Entity label (human-readable name)'
+                        status:
+                          type: string
+                          description: 'Entity status (ACTIVE or INACTIVE)'
+                        type:
+                          type: string
+                          description: 'Entity classification type (SYSTEM, USER, or custom)'
+                        organization_code:
+                          type: string
+                          description: 'Organization code from authentication token'
+                        tenant_code:
+                          type: string
+                          description: 'Tenant code from authentication token'
+                        created_by:
+                          type: string
+                          description: 'User ID who created the entity (from auth token)'
+                        updated_by:
+                          type: string
+                          description: 'User ID who last updated the entity'
+                        created_at:
+                          type: string
+                          format: date-time
+                          description: 'ISO 8601 timestamp when entity was created'
+                        updated_at:
+                          type: string
+                          format: date-time
+                          description: 'ISO 8601 timestamp when entity was last updated'
+                        deleted_at:
+                          type: string
+                          format: date-time
+                          description: 'ISO 8601 timestamp when entity was soft-deleted (null if active)'
                   meta:
                     type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: string
+                    description: 'Metadata object (optional)'
               examples:
                 example1:
+                  summary: 'Mode 1 - Fetch by ID (Single Entity Response)'
                   value:
                     responseCode: OK
                     message: Entity fetched successfully
@@ -2675,42 +2861,96 @@ paths:
                         label: English
                         status: ACTIVE
                         type: SYSTEM
-                        created_by: 0
-                        updated_by: 1
+                        organization_code: 'sot'
+                        tenant_code: 'shikshalokam'
+                        created_by: '0'
+                        updated_by: null
                         created_at: '2023-07-21T21:46:41.392Z'
                         updated_at: '2023-07-21T21:47:50.202Z'
                         deleted_at: null
-                    meta:
-                      formsVersion: []
+                    meta: {}
+                example2:
+                  summary: 'Mode 3 - Fetch All System Entities (Multiple Entities Response)'
+                  value:
+                    responseCode: OK
+                    message: ENTITY_FETCHED_SUCCESSFULLY
+                    result:
+                      - id: 1
+                        entity_type_id: 1
+                        value: english
+                        label: English
+                        status: ACTIVE
+                        type: SYSTEM
+                        organization_code: 'ORG001'
+                        tenant_code: 'TENANT001'
+                        created_by: '0'
+                        updated_by: null
+                        created_at: '2023-07-21T21:46:41.392Z'
+                        updated_at: '2023-07-21T21:47:50.202Z'
+                        deleted_at: null
+                      - id: 2
+                        entity_type_id: 1
+                        value: hindi
+                        label: Hindi
+                        status: ACTIVE
+                        type: SYSTEM
+                        organization_code: 'ORG001'
+                        tenant_code: 'TENANT001'
+                        created_by: '0'
+                        updated_by: null
+                        created_at: '2023-07-21T21:46:41.392Z'
+                        updated_at: '2023-07-21T21:47:50.202Z'
+                        deleted_at: null
+                    meta: {}
+        '400':
+          description: 'Bad Request - Entity not found or invalid query'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/updateUserEntity400Response'
     parameters: []
   '/scp/v1/entities/delete/{id}':
     delete:
-      summary: Delete entity
+      summary: Delete Entity (Soft Delete)
       tags:
         - Entity
+      operationId: deleteEntity
       description: |-
-        You can use this API to delete a user entity.   
-         - The API Endpoint for deleting a user entity is `/scp/v1/entities/delete` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null
-         - This is an Admin API which will be used by admins.
+        Soft deletes an entity from the system. The entity record is marked as deleted but preserved in the database for audit and compliance purposes.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role. User can only delete entities they created.
+
+        **Rules**:
+        - Entity ID must exist in the system
+        - User must be the creator of the entity (or admin)
+        - Entity must belong to user's organization and tenant
+        - HTTP status 202 (Accepted) indicates soft delete is processed
+
+        **Use Cases**:
+        - Remove entity definitions from active use while preserving history
+        - Archive outdated entities with full audit trail
+        - Decommission entities with compliance logging
+
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This token is available in the login API Response.'
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: id
           required: true
-          description: Please append a valid user entity ID to the Request URL.
+          description: 'Unique entity ID to soft delete (numeric, positive integer, 1 to 2147483647)'
           schema:
-            type: integer
+            type: number
+            minimum: 1
+            maximum: 2147483647
           example: 2
       responses:
         '202':
-          description: Accepted
+          description: 'Entity deleted successfully (Soft delete accepted and processed)'
           content:
             application/json:
               schema:
@@ -2718,12 +2958,13 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response code indicator (OK for success)'
                   message:
                     type: string
+                    description: 'Deletion status message'
                   result:
-                    type: array
-                    items:
-                      type: string
+                    type: object
+                    description: 'Empty object for successful deletion'
                   meta:
                     type: object
                     properties:
@@ -2750,51 +2991,80 @@ paths:
                 $ref: '#/components/schemas/updateUserEntity400Response'
   /scp/v1/entities/list:
     get:
-      operationId: entitylist
-      summary: Get entity list with pagination and search
+      operationId: listEntities
+      summary: List Entities (Paginated & Searchable)
       tags:
         - Entity
       description: |-
-        Use this API to get the list of a mentoring entities.   
-         - The API Endpoint for reading the list of the entities is `/scp/v1/entities/list` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        Retrieves a paginated list of entities with optional search and filtering capabilities.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Features**:
+        - Pagination support with configurable page size (defaults to 100, max 100 per page)
+        - Full-text search on entity label (case-insensitive, iLike matching)
+        - Filter by entity type (required parameter)
+        - Sort by created_at in descending order
+        - Results scoped to authenticated user's organization and tenant
+        - Search text cannot contain special characters (validation error if present)
+        - If no search term provided, returns all entities of specified type
+
+        **Query Parameters**:
+        - `entity_type_id`: Required entity type ID to filter entities (numeric, required)
+        - `page`: Page number for pagination (1-indexed, defaults to 1 if not provided)
+        - `limit`: Records per page (defaults to 100, maximum 100, will be capped at 100)
+        - `search`: Optional search term to filter entities by label (case-insensitive, no special chars)
+
+        **Use Cases**:
+        - Display paginated entity lists for dropdowns
+        - Search entities by label within an entity type
+        - Load organizational entities with filtering
+        - Implement entity browsing with pagination
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token, which is available in the login API Response.'
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           required: true
           schema:
             type: string
         - in: query
-          name: page
-          description: Please add page number
+          name: entity_type_id
+          description: 'Required entity type ID to filter entities (numeric, positive integer, must be valid entity type ID)'
+          required: true
           schema:
             type: number
+            minimum: 1
+          example: 1
+        - in: query
+          name: page
+          description: 'Page number for pagination (1-indexed). Defaults to 1 if not provided or invalid. Minimum value is 1'
+          schema:
+            type: number
+            minimum: 1
+            default: 1
           example: 1
           required: false
         - in: query
           name: limit
-          description: Number of records to limit
+          description: 'Number of records per page. Defaults to 100 if not provided. Maximum allowed is 100. Values exceeding 100 will be capped at 100'
           schema:
             type: number
+            minimum: 1
+            maximum: 100
+            default: 100
           example: 10
+          required: false
         - in: query
           name: search
-          description: search text
+          description: 'Search term to filter entities by label (case-insensitive iLike match). Cannot contain special characters. Optional parameter - if not provided, all entities of specified type are returned'
           schema:
             type: string
-          example: teacher
-        - in: query
-          name: entity_type_id
-          description: entity_type_id
-          required: true
-          schema:
-            type: number
-          example: teacher
+            maxLength: 255
+          example: english
+          required: false
       responses:
         '200':
-          description: Accepted
+          description: 'Entities retrieved successfully'
           content:
             application/json:
               schema:
@@ -2802,27 +3072,52 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response code indicator (OK for success)'
                   message:
                     type: string
+                    description: 'Status message'
                   result:
                     type: object
+                    description: 'Result object containing data array and count'
                     properties:
-                      id:
+                      data:
+                        type: array
+                        description: 'Array of entity records'
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                              description: 'Unique entity identifier'
+                            entity_type_id:
+                              type: number
+                              description: 'Entity type ID this entity belongs to'
+                            value:
+                              type: string
+                              description: 'Unique entity value (lowercase, no spaces)'
+                            label:
+                              type: string
+                              description: 'Human-readable entity label'
+                            status:
+                              type: string
+                              description: 'Entity status (ACTIVE or INACTIVE)'
+                              enum: ['ACTIVE', 'INACTIVE']
+                            type:
+                              type: string
+                              description: 'Entity classification (SYSTEM or USER)'
+                            created_by:
+                              type: number
+                              description: 'User ID who created the entity'
+                            created_at:
+                              type: string
+                              format: date-time
+                              description: 'ISO 8601 timestamp when entity was created'
+                      count:
                         type: number
-                      entity_type_id:
-                        type: number
-                      value:
-                        type: string
-                      label:
-                        type: string
-                      status:
-                        type: string
-                      type:
-                        type: string
-                      created_by:
-                        type: number
-                      created_at:
-                        type: string
+                        description: 'Total number of entities matching the filters'
+                  meta:
+                    type: object
+                    description: 'Metadata object (empty for list operations)'
               examples:
                 example1:
                   value:
@@ -2838,11 +3133,16 @@ paths:
                           type: SYSTEM
                           created_by: 0
                           created_at: '2023-07-21T21:46:41.392Z'
-                      count: 1
-                    meta:
-                      formsVersion: []
-                      correlation: 0d392602-cb68-4690-8f38-3d3de9f94198
-                    parameters: []
+                        - id: 2
+                          entity_type_id: 1
+                          value: hindi
+                          label: Hindi
+                          status: ACTIVE
+                          type: SYSTEM
+                          created_by: 0
+                          created_at: '2023-07-22T10:15:30.123Z'
+                      count: 2
+                    meta: {}
   /scp/v1/cloud-services/getSignedUrl:
     post:
       summary: Cloud services get signed url
