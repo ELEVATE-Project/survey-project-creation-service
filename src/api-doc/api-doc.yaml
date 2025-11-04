@@ -746,15 +746,38 @@ paths:
     parameters: []
   '/scp/v1/permissions/update/{id}':
     post:
-      summary: Update permissions by id
+      summary: Update Permission
       tags:
         - Permissions
       description: |-
-        You can use this API to update permission
-         - The API Endpoint for updating permission is `/scp/v1/permissions/update` 
-         - It is mandatory to provide values for parameters that are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Updates an existing permission mapping API endpoint to HTTP methods and modules. Allows modification of permission properties such as code, module, request methods, and status.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Rules**:
+        - Permission ID must exist in the system
+        - Permission must not have already been deleted
+        - Updated code must remain unique across the system if changed
+        - Code must contain only lowercase letters and underscores (no spaces, no uppercase, no hyphens, no numbers)
+        - Module must exist in the system
+        - request_type must be an array with at least one HTTP method
+        - API path must follow strict format pattern: `/[controller]/v[number]/[path]`
+        - All fields must be non-empty and non-null when provided
+        - Status field is optional and defaults to current value if not provided
+
+        **Use Cases**:
+        - Modify permission code while maintaining uniqueness
+        - Update HTTP methods granted by a permission
+        - Change module association for a permission
+        - Update permission status (ACTIVE/INACTIVE)
+        - Deactivate permissions without deleting them
+
+        **Important Notes**:
+        - Permission ID must be a valid positive integer
+        - Code changes trigger uniqueness validation across all permissions
+        - Response returns updated permission details in same format as create
+        - All validation rules from permission creation apply to updates
+        - Update is permanent and cannot be undone through API
       parameters:
         - name: X-auth-token
           in: header
@@ -770,6 +793,8 @@ paths:
             type: number
           example: 2
       requestBody:
+        description: 'Permission update object with code, module, request_type, api_path, and optional status'
+        required: true
         content:
           application/json:
             schema:
@@ -777,33 +802,68 @@ paths:
               properties:
                 code:
                   type: string
-                  description: Code of the permission
+                  minLength: 1
+                  maxLength: 100
+                  pattern: '^[a-z_]+$'
+                  description: 'Unique permission identifier. Must contain only lowercase letters and underscores (no spaces, numbers, uppercase, or hyphens). Code must remain unique after update'
+                  example: 'create_project'
                 module:
                   type: string
-                  description: Module of the permission
+                  minLength: 1
+                  maxLength: 100
+                  pattern: '^[a-zA-Z_-]+$'
+                  description: 'Module name this permission belongs to (must exist in modules). Can contain letters, hyphens, and underscores'
+                  example: 'projects'
                 request_type:
                   type: array
                   items:
                     type: string
-                  description: Request type of the API
+                    enum: [GET, POST, PATCH, PUT, DELETE]
+                  minItems: 1
+                  description: 'Array of HTTP methods this permission grants access to. Can contain one or multiple methods (e.g., [POST], [GET, POST], [GET, POST, PATCH, PUT, DELETE])'
+                  example: ['POST']
                 api_path:
                   type: string
-                  description: URL of the api
+                  minLength: 5
+                  description: 'API endpoint path following format: /[controller name]/v[number]/[path]. Pattern: /scp/v1/projects/create or /scp/v1/projects/:id'
+                  example: '/scp/v1/projects/create'
                 status:
                   type: string
-                  description: Status of the permission
+                  enum: [ACTIVE, INACTIVE]
+                  description: 'Permission status. ACTIVE: Available for role assignment, INACTIVE: Disabled. Optional field - if not provided, current status is maintained'
+                  example: ACTIVE
+              required:
+                - code
+                - module
+                - request_type
+                - api_path
             examples:
               example1:
+                summary: 'Update Permission Code and Status'
+                value:
+                  code: update_project
+                  module: projects
+                  request_type: [PUT]
+                  api_path: /scp/v1/projects/:id
+                  status: ACTIVE
+              example2:
+                summary: 'Update Multiple HTTP Methods'
+                value:
+                  code: project_full_access
+                  module: projects
+                  request_type: [GET, POST, PATCH, PUT, DELETE]
+                  api_path: /scp/v1/projects/:id
+              example3:
+                summary: 'Deactivate Permission (Status Update Only)'
                 value:
                   code: create_project
                   module: projects
-                  request_type:
-                    - POST
+                  request_type: [POST]
                   api_path: /scp/v1/projects/create
-                  status: ACTIVE
+                  status: INACTIVE
       responses:
         '201':
-          description: Created
+          description: 'Permission updated successfully'
           content:
             application/json:
               schema:
@@ -811,82 +871,137 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
+                    description: 'Response status code'
                   message:
                     type: string
+                    example: 'PERMISSION_UPDATED_SUCCESSFULLY'
+                    description: 'Response message'
                   result:
                     type: object
+                    description: 'Updated permission details'
                     properties:
                       id:
                         type: number
-                      status:
+                        description: 'Unique permission ID'
+                        example: 18
+                      code:
                         type: string
+                        description: 'Updated permission code identifier'
+                        example: 'create_project'
                       module:
                         type: string
+                        description: 'Module name'
+                        example: 'projects'
                       request_type:
                         type: array
                         items:
                           type: string
+                          enum: [GET, POST, PATCH, PUT, DELETE]
+                        description: 'Array of HTTP methods'
+                        example: ['POST']
+                      status:
+                        type: string
+                        enum: [ACTIVE, INACTIVE]
+                        description: 'Permission status after update'
+                        example: ACTIVE
+                  meta:
+                    type: object
+                    properties:
+                      correlation:
+                        type: string
+                        description: 'Unique request correlation ID for audit trail'
               examples:
                 example1:
+                  summary: 'Successful Permission Update'
                   value:
                     responseCode: OK
                     message: Permission updated successfully
                     result:
                       id: 18
                       code: create_project
-                      status: ACTIVE
                       module: projects
-                      request_type:
-                        - POST
-                      api_path: /scp/v1/projects/create
+                      request_type: [POST]
+                      status: ACTIVE
+                    meta:
+                      correlation: 32016da1-8bf1-4157-afad-34508aa609c8
         '400':
-          description: Bad Request. Permissions does not exists
+          description: 'Bad Request - Invalid input or permission not found'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/updatePermission400Response'
   /scp/v1/permissions/getPermissions:
     get:
-      summary: Get list of all permissions
+      summary: Get Paginated List of All Permissions
       tags:
         - Permissions
       description: |-
-        You can use this API to get the list of permissions 
+        Retrieves a paginated list of all permissions in the system with optional search and filtering capabilities.
 
-         - The API Endpoint for getting a list of permissions is `/scp/v1/permissions/getPermissions` 
-         - It is mandatory to provide values for parameters marked with `required` 
-         - Mandatory parameter cannot be empty or null
-         - This is an Admin API which will be used by admins.
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Features**:
+        - Pagination support with configurable page size (defaults to 100, max 100 per page)
+        - Full-text search across permission codes (case-insensitive, partial match)
+        - Search text cannot contain special characters
+        - Returns total count of matching permissions
+        - Each permission includes all details: id, code, module, request_type (array), api_path, status
+
+        **Search Behavior**:
+        - Search filters permissions by code field (case-insensitive partial match)
+        - Uses iLike operator for flexible searching (e.g., searching 'project' matches 'create_project', 'list_project', 'update_project')
+        - If no search term provided, returns all permissions
+        - Special characters in search text will be rejected with validation error
+
+        **Query Parameters**:
+        - `page`: Page number for pagination (1-indexed, defaults to 1)
+        - `limit`: Records per page (defaults to 100, max 100)
+        - `search`: Filter permissions by code (optional, case-insensitive partial match)
+
+        **Use Cases**:
+        - Display all available permissions with pagination
+        - Search for specific permission by code
+        - Monitor all system permissions
+      operationId: getPermissions
       parameters:
         - name: X-auth-token
           in: header
-          description: You require an X-auth-token to use this API. This token is available in the login API Response.
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: query
           name: page
-          description: Please add page number
+          description: 'Page number for pagination (1-indexed). Defaults to 1 if not provided or invalid. Minimum value is 1'
           schema:
             type: number
+            minimum: 1
+            default: 1
           example: 1
+          required: false
         - in: query
           name: limit
-          description: Number of records per page
-          required: false
+          description: 'Number of records per page. Defaults to 100 if not provided. Maximum allowed is 100. Invalid values default to 100'
           schema:
             type: number
-          example: 2
+            minimum: 1
+            maximum: 100
+            default: 100
+          example: 10
+          required: false
         - in: query
           name: search
-          description: Please search for information such as 'code'.
-          required: false
+          description: 'Search term to filter permissions by code (case-insensitive partial match). Cannot contain special characters. Optional parameter - if not provided, all permissions are returned'
           schema:
             type: string
-          example: projects
+            maxLength: 255
+          example: project
+          required: false
       responses:
         '200':
-          description: ok
+          description: 'Permissions retrieved successfully'
           content:
             application/json:
               schema:
@@ -894,69 +1009,121 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
+                    description: 'Response status code'
                   message:
                     type: string
+                    example: 'PERMISSION_FETCHED_SUCCESSFULLY'
+                    description: 'Response message'
                   result:
                     type: object
+                    description: 'Paginated permissions data'
                     properties:
-                      count:
-                        type: number
                       data:
                         type: array
+                        description: 'Array of permission objects'
                         items:
                           type: object
                           properties:
                             id:
                               type: number
+                              description: 'Unique permission ID'
+                              example: 18
                             code:
                               type: string
+                              description: 'Permission code identifier (lowercase letters and underscores)'
+                              example: 'create_project'
                             module:
                               type: string
+                              description: 'Module name this permission belongs to'
+                              example: 'projects'
                             request_type:
                               type: array
+                              description: 'Array of HTTP methods this permission grants access to'
                               items:
                                 type: string
+                                enum: [GET, POST, PATCH, PUT, DELETE]
+                              example: ['POST']
                             api_path:
                               type: string
+                              description: 'API endpoint path this permission is mapped to'
+                              example: '/scp/v1/projects/create'
                             status:
                               type: string
+                              enum: [ACTIVE, INACTIVE]
+                              description: 'Permission status (ACTIVE: available for role assignment, INACTIVE: disabled)'
+                              example: 'ACTIVE'
+                      count:
+                        type: number
+                        description: 'Total number of permissions matching the search criteria'
+                        example: 25
+                  meta:
+                    type: object
+                    properties:
+                      correlation:
+                        type: string
+                        description: 'Unique request correlation ID for tracking'
+                        example: '4cbb42f7-ed92-41a1-b93d-d689121cda08'
               examples:
                 example1:
+                  summary: 'List All Permissions (Default Pagination - Page 1, 10 results)'
                   value:
                     responseCode: OK
                     message: Permissions fetched successfully.
                     result:
                       data:
-                        - id: 18
+                        - id: 1
                           code: create_project
                           module: projects
-                          request_type:
-                            - POST
-                          status: ACTIVE
+                          request_type: [POST]
                           api_path: /scp/v1/projects/create
+                          status: ACTIVE
                       count: 1
   /scp/v1/permissions/list:
     get:
-      summary: Get list of permissions based on Role
+      summary: Get User Permissions Based on Assigned Roles
       tags:
         - Permissions
       description: |-
-        You can use this API to get the list of permissions 
+        Retrieves the list of permissions accessible to the authenticated user based on their assigned roles. This API determines what modules and HTTP methods the user can access.
 
-         - The API Endpoint for getting a list of permissions is `/scp/v1/permissions/list` 
-         - It is mandatory to provide values for parameters marked with `required` 
-         - Mandatory parameter cannot be empty or null
-         - This is an Admin API which will be used by admins.
+        **Access Control**: User-facing API. Requires valid authentication token. Any authenticated user can call this API to view their own permissions. Used in all roles: admin, org_admin, content_creator, reviewer, program_designer, rollout_manager, data_manager, program_manager.
+
+        **Role-Based Permission Filtering**:
+        - Extracts user's roles from authentication token (req.decodedToken.roles)
+        - Queries role-permission-mapping table filtering by role_title
+        - Returns permissions mapped to the user's roles
+        - Multiple roles result in merged permissions (union of all role permissions)
+
+        **Permission Merging Logic**:
+        - If user has multiple roles, permissions are combined for each module
+        - request_type arrays are merged and deduplicated (using Set to remove duplicates)
+        - Result: Array of {module, request_type} objects (one entry per module)
+        - Example: If user has role 'admin' (can POST/GET) and 'reviewer' (can GET), result includes [GET, POST] for that module
+
+        **Response Structure**:
+        - Returns array of permission objects
+        - Each object has: module (string), request_type (array of HTTP methods)
+        - No pagination or search - all permissions for user's roles are returned
+
+        **Use Cases**:
+        - Display user's accessible modules in UI/dashboard
+        - Determine which API endpoints user can call
+        - Show role-based feature access in applications
+        - Implement client-side permission checks
+        - Audit user capabilities
+      operationId: listPermissions
       parameters:
         - name: X-auth-token
           in: header
-          description: You require an X-auth-token to use this API. This token is available in the login API Response.
+          description: "Authentication token from login API response. This token contains the user's roles which are used to filter permissions. Any authenticated user can access this API to view their own permissions."
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       responses:
         '200':
-          description: ok
+          description: 'User permissions retrieved successfully'
           content:
             application/json:
               schema:
@@ -964,21 +1131,32 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
+                    description: 'Response status code'
                   message:
                     type: string
+                    example: 'PERMISSION_FETCHED_SUCCESSFULLY'
+                    description: 'Response message'
                   result:
                     type: array
+                    description: 'Array of permission objects grouped by module. Each module appears only once with merged request_type from all user roles'
                     items:
                       type: object
                       properties:
                         module:
                           type: string
+                          description: 'Module name (e.g., projects, programs, observations). One entry per accessible module'
+                          example: 'projects'
                         request_type:
                           type: array
+                          description: 'Array of HTTP methods user can perform on this module. Merged from all user roles and deduplicated'
                           items:
                             type: string
+                            enum: [GET, POST, PATCH, PUT, DELETE]
+                          example: ['GET', 'POST', 'PUT', 'PATCH']
               examples:
                 example1:
+                  summary: 'Admin User Permissions (Full Access)'
                   value:
                     responseCode: OK
                     message: Permissions fetched successfully.
@@ -989,32 +1167,63 @@ paths:
                           - GET
   '/scp/v1/permissions/delete/{id}':
     delete:
-      summary: Delete permission by id
+      summary: Delete Permission by ID (Soft Delete)
       tags:
         - Permissions
+      operationId: deletePermission
       description: |-
-        You can use this API to delete permission  
-         - The API Endpoint for deleting permission is `/scp/v1/permissions/delete` 
-         - It is mandatory to provide values for parameters that are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
+        Soft deletes a permission from the system. The permission record is marked as deleted but preserved in the database for audit and compliance purposes.
+
+        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
+
+        **Soft Delete Behavior**:
+        - Permission record is marked as deleted in the database (not permanently removed)
+        - Deleted permission cannot be accessed through normal API operations (getPermissions, list)
+        - Deleted permission data is preserved for audit trails and compliance
+        - Soft-deleted permissions can be restored through database recovery if needed
+        - Permission code remains reserved and cannot be reused for new permissions
+        - Role-permission-mapping entries referencing deleted permission are also soft-deleted
+        - HTTP status 202 (Accepted) indicates deletion is queued/processed asynchronously
+
+        **Validation Rules**:
+        - Permission ID must be a valid positive integer (1 to 2147483647)
+        - Permission ID must exist in the system
+        - Permission must not have already been deleted
+        - ID parameter is required and cannot be empty or null
+
+        **Important Notes**:
+        - Use with caution in production environments
+        - Deletion is logged with audit trail for compliance and security
+        - Deleted permission will not appear in list operations
+        - Cannot be undone through API (requires database recovery)
+        - Any roles mapped to this permission will have the mapping removed
+        - Useful for removing obsolete permissions while maintaining historical records
+
+        **Use Cases**:
+        - Remove permission definitions that are no longer needed
+        - Archive outdated API permissions while preserving history
+        - Decommission module permissions with full audit trail
+        - Clean up permissions for deprecated endpoints
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
           required: true
+          description: 'Authentication token from login API response. Token must belong to a user with admin or org_admin role.'
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: id
           in: path
-          description: Id of the permission to delete.
+          description: 'Unique permission ID to soft delete (numeric, positive integer, required, 1 to 2147483647)'
           required: true
           schema:
             type: number
+            minimum: 1
+            maximum: 2147483647
           example: 2
       responses:
         '202':
-          description: Accepted
+          description: 'Permission deleted successfully (soft delete accepted)'
           content:
             application/json:
               schema:
@@ -1022,18 +1231,27 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response status code'
+                    example: 'OK'
                   message:
                     type: string
+                    description: 'Response message confirming deletion'
+                    example: 'PERMISSION_DELETED_SUCCESSFULLY'
                   result:
                     type: object
+                    description: 'Empty result object for delete operations'
                     properties: {}
                   meta:
                     type: object
+                    description: 'Metadata containing request correlation ID'
                     properties:
                       correlation:
                         type: string
+                        description: 'Unique correlation ID for tracking the request'
+                        example: 'a3f7cde4-83f2-4143-a5c4-7e3291085cb4'
               examples:
                 example1:
+                  summary: 'Successful Permission Deletion (Soft Delete)'
                   value:
                     responseCode: OK
                     message: Permission deleted successfully
