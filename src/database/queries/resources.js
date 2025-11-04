@@ -1,10 +1,12 @@
 'use strict'
 
 const common = require('@constants/common')
+const database = require('@database/models/index')
 const { Sequelize } = require('sequelize')
 const Comment = require('../models/index').Comment
 const Resource = require('../models/index').Resource
 const { ValidationError } = require('sequelize')
+const { Op } = require('sequelize')
 
 exports.create = async (data) => {
 	try {
@@ -82,13 +84,35 @@ exports.findAll = async (filter, attributes = {}) => {
 	}
 }
 
-exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = common.LIMIT) => {
+exports.resourceList = async (
+	filter,
+	attributes = null,
+	sort = {},
+	page = 1,
+	limit = common.LIMIT,
+	returnReview = false
+) => {
 	try {
 		let resourceFilter = {
 			where: filter,
 			attributes,
 			raw: true,
 		}
+		let include = []
+		if (returnReview) {
+			include.push({
+				model: database.Review,
+				as: 'reviews',
+				where: {
+					tenant_code: filter.tenant_code,
+				},
+				required: false,
+			})
+			resourceFilter.include = include
+			resourceFilter.raw = true
+			resourceFilter.nest = true
+		}
+
 		// Handle ordering with explicit table alias
 		if (sort && sort.sort_by === common.RESOURCE_TITLE) {
 			const direction = sort.order || 'ASC'
@@ -112,7 +136,9 @@ exports.resourceList = async (filter, attributes = {}, sort, page = 1, limit = c
 		if (page && page > 0) {
 			resourceFilter.offset = limit * (page - 1)
 		}
-		const res = await Resource.findAndCountAll(resourceFilter)
+
+		let res = await Resource.findAndCountAll(resourceFilter)
+
 		return { result: res.rows, count: res.count }
 	} catch (error) {
 		return error
@@ -140,5 +166,34 @@ exports.deleteOne = async (id, organization_code, tenantCode) => {
 		})
 	} catch (error) {
 		throw error
+	}
+}
+
+exports.findAllWithOpenComments = async (filter, attributes = {}) => {
+	try {
+		if (!filter?.tenant_code || !filter?.id) {
+			throw new Error('filter.tenant_code and filter.id are required')
+		}
+		const res = await Resource.findAll({
+			where: filter,
+			attributes,
+			include: [
+				{
+					model: Comment,
+					as: 'comments',
+					required: false,
+					where: {
+						status: common.COMMENT_STATUS_OPEN,
+						tenant_code: filter.tenant_code,
+						resource_id: filter.id,
+					},
+				},
+			],
+			raw: false,
+		})
+
+		return res
+	} catch (error) {
+		return error
 	}
 }

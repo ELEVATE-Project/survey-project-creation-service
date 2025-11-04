@@ -138,7 +138,40 @@ module.exports = {
 		await queryInterface.bulkInsert('entities_model_mapping', entityModelMapping, {})
 	},
 
-	async down(queryInterface, Sequelize) {},
+	async down(queryInterface, Sequelize) {
+		const defaultOrgId = queryInterface.sequelize.options.defaultOrgId
+		const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
+		const values = ['start_date', 'end_date', 'viewers', 'targeting_criteria', 'resource_id', common.ROLLOUT_TITLE]
+		const ids = await queryInterface.sequelize.query(
+			`SELECT id FROM entity_types 
+			WHERE organization_code = :org AND tenant_code = :tenant AND value IN (:values)`,
+			{
+				type: queryInterface.sequelize.QueryTypes.SELECT,
+				replacements: { org: defaultOrgId, tenant: defaultTenantCode, values },
+			}
+		)
+
+		const entityTypeIds = ids.map((r) => r.id)
+		if (entityTypeIds.length) {
+			await queryInterface.sequelize.query(
+				`DELETE FROM entities_model_mapping 
+			WHERE organization_code = :org AND tenant_code = :tenant AND model = 'rollouts' 
+				AND entity_type_id IN (:ids)`,
+				{
+					type: queryInterface.sequelize.QueryTypes.DELETE,
+					replacements: { org: defaultOrgId, tenant: defaultTenantCode, ids: entityTypeIds },
+				}
+			)
+			await queryInterface.sequelize.query(
+				`DELETE FROM entity_types 
+			WHERE organization_code = :org AND tenant_code = :tenant AND value IN (:values)`,
+				{
+					type: queryInterface.sequelize.QueryTypes.DELETE,
+					replacements: { org: defaultOrgId, tenant: defaultTenantCode, values },
+				}
+			)
+		}
+	},
 }
 
 function convertToWords(inputString) {

@@ -5,6 +5,7 @@
  * Description : Create data in elevate-project service.
  */
 const common = require('@constants/common')
+const MongoDBConnection = require('@configs/mongoConnection')
 const resourceService = require('@services/resource')
 const rolloutService = require('@services/rollouts')
 const projectService = require('@services/projects')
@@ -15,7 +16,7 @@ const interfaceBaseUrl = process.env.INTERFACE_SERVICE_HOST
 const requests = require('@generics/requests')
 const endpoints = require('@constants/endpoints')
 const { ObjectId } = require('mongodb')
-const MongoClient = require('mongodb').MongoClient
+// const MongoClient = require('mongodb').MongoClient
 const axios = require('axios')
 const cheerio = require('cheerio')
 const path = require('path')
@@ -25,29 +26,41 @@ const request = require('request')
 const _ = require('lodash')
 let mongoDb
 let socketInUse = false // Flag to track socket status
-
+let projectsMongoConnection = null
+let projectsMongoDB = null
 const { Op } = require('sequelize')
 const isSunbird = process.env.CONSUMPTION_SERVICE.toLowerCase() == common.SUNBIRD.toLowerCase()
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
-	const mongoUrl = process.env.MONGODB_URL
+	const projectsMongoUrl = process.env.PROJECTS_MONGODB_URL || null
 
-	if (!mongoUrl) {
-		throw new Error('MONGODB_URL is not set in the environment variables.')
+	if (!projectsMongoUrl) {
+		throw new Error('PROJECTS_MONGODB_URL is not set in the environment variables.')
 	}
-
+	projectsMongoConnection = new MongoDBConnection(projectsMongoUrl)
 	;(async () => {
-		try {
-			const connection = new MongoClient(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true })
-			await connection.connect()
+		// Connect to the database
+		await projectsMongoConnection.connect()
+		// Get the database instance
+		projectsMongoDB = dbConnection.getDb()
+		const programsCollection = mongoDb.collection('programs')
+		const programs = await programsCollection.find().toArray()
 
-			mongoDb = connection.db()
-			console.log('Connected to MongoDB')
-		} catch (error) {
-			console.error('Failed to connect to MongoDB:', error.message)
-			process.exit(1) // Exit the process if connection fails
-		}
+		console.log('Programs fetched from MongoDB:', programs.length)
 	})()
+
+	// ;(async () => {
+	// 	try {
+	// 		const connection = new MongoClient(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true })
+	// 		await connection.connect()
+
+	// 		mongoDb = connection.db()
+	// 		console.log('Connected to MongoDB')
+	// 	} catch (error) {
+	// 		console.error('Failed to connect to MongoDB:', error.message)
+	// 		process.exit(1) // Exit the process if connection fails
+	// 	}
+	// })()
 }
 
 // Define the mongoDb collection names used
@@ -1633,10 +1646,9 @@ const publishProgram = function async(programData) {
 					)
 				const fetchDetails = await rolloutService.details(
 					rolloutId,
-					programData.created_by,
 					programData.organization_code,
-					programData.tenant_code,
-					userToken
+					programData.created_by,
+					false
 				)
 
 				if (!fetchDetails?.result?.published_id) {
@@ -1658,7 +1670,8 @@ const publishProgram = function async(programData) {
 						} else {
 							const fetchProjectDetails = await projectService.details(
 								programData?.resource?.resource_id,
-								programData?.resource?.organization_code
+								programData?.resource?.organization_code,
+								programData?.resource?.tenant_code
 							)
 							publishedProject = { templateId: fetchProjectDetails?.result?.published_id }
 							fetchDetails.result = {

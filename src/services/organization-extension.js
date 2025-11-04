@@ -10,6 +10,7 @@ const userRequests = require('@requests/user')
 const utils = require('@generics/utils')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
 const organizationConfigQueries = require('@database/queries/organizationConfig')
+const Op = require('sequelize').Op
 module.exports = class orgExtensionsHelper {
 	/**
 	 * Create Organization Config.
@@ -118,7 +119,11 @@ module.exports = class orgExtensionsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -264,7 +269,11 @@ module.exports = class orgExtensionsHelper {
 				result: updatedConfig,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -310,26 +319,32 @@ module.exports = class orgExtensionsHelper {
 				},
 			}
 			// fetch org config for organization_code
-			const orgConfig = await organizationConfigQueries.findOne(
+			const orgConfigs = await organizationConfigQueries.findAll(
 				{
-					organization_code,
+					organization_code: {
+						[Op.in]: [organization_code, process.env.DEFAULT_ORGANIZATION_CODE].filter(Boolean),
+					},
+					tenant_code: tenantCode,
 				},
-				['meta']
+				['meta', 'organization_code']
 			)
 
-			if (orgConfig?.meta && Object.keys(orgConfig.meta).length > 0) {
-				result.config = orgConfig?.meta
+			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
+				result.config =
+					orgConfigs.length > 1
+						? orgConfigs.find((config) => config.organization_code == organization_code)?.meta
+						: orgConfigs[0]?.meta
 			}
 
-			if (orgConfig?.meta?.data_managers?.length == 0 || orgConfig?.meta?.data_managers?.length == undefined) {
-				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',')
+			if (orgConfigs?.meta?.data_managers?.length == 0 || orgConfigs?.meta?.data_managers?.length == undefined) {
+				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',') || []
 			}
 
 			if (
-				orgConfig?.meta?.program_managers?.length == 0 ||
-				orgConfig?.meta?.program_managers?.length == undefined
+				orgConfigs?.meta?.program_managers?.length == 0 ||
+				orgConfigs?.meta?.program_managers?.length == undefined
 			) {
-				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',')
+				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',') || []
 			}
 
 			// attributes to fetch from organisation Extenstion
@@ -348,6 +363,9 @@ module.exports = class orgExtensionsHelper {
 						? common.REVIEW_TYPE_SEQUENTIAL
 						: common.REVIEW_TYPE_PARALLEL,
 				review_required_after_publish: process.env.REVIEW_REQUIRED_AFTER_PUBLISH === 'true' ? true : false,
+				enable_entity_tagging: process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS === 'true' ? true : false,
+				enable_task_start_end_dates:
+					process.env.ENABLE_TASK_START_END_DATE_IN_PROJECTS === 'true' ? true : false,
 			}
 
 			// fetch the configuration from Organization extension for the user's organization
@@ -368,6 +386,8 @@ module.exports = class orgExtensionsHelper {
 								review_type: orgExt.review_type,
 								resource_type: orgExt.resource_type,
 								review_required_after_publish: orgExt.review_required_after_publish,
+								enable_entity_tagging: orgExt.enable_entity_tagging,
+								enable_task_start_end_dates: orgExt.enable_task_start_end_dates,
 							}
 						}
 					})
@@ -390,18 +410,12 @@ module.exports = class orgExtensionsHelper {
 			_.forEach(configData, (item) => {
 				if (item.resource_type === common.PROJECT) {
 					item.max_task_count = utils.convertToInteger(process.env.MAX_PROJECT_TASK_COUNT)
-					item.observation_link_regex = process.env.OBSERVATION_DEEP_LINK_REGEX
+					item.observation_link_regex = process.env.OBSERVATION_DEEP_LINK_REGEX || ''
+					item.project_reflection_task_redirect_url = process.env.PROJECT_REFLECTION_TASK_REDIRECT_URL || ''
 				}
 			})
 
 			result.resource = configData
-
-			//get the factors and optional factors from user service
-			const tenantDetails = await userRequests.fetchPublicTenantDetails(tenantCode)
-			// add scope related factors to the result
-			const meta = tenantDetails?.success ? tenantDetails?.data?.result?.meta : {}
-			result.factors = meta?.factors ?? []
-			result.optional_factors = meta?.optional_factors ?? []
 
 			// return success message
 			return responses.successResponse({

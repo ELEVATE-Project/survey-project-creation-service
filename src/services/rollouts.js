@@ -1,5 +1,9 @@
-/* eslint-disable no-useless-catch */
-/* eslint-disable no-undef */
+/**
+ * name : rollouts.js
+ * author : Priyanka Pradeep
+ * created-date : 26-Nov-2024
+ * Description : Rollouts Helper.
+ */
 const db = require('@database/models/index')
 const httpStatusCode = require('@generics/http-status')
 const responses = require('@helpers/responses')
@@ -14,6 +18,7 @@ const { Op } = require('sequelize')
 const kafkaCommunication = require('@generics/kafka-communication')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
+const targetingHelper = require('@helpers/targetingCriteria')
 
 module.exports = class RolloutsHelper {
 	/**
@@ -157,9 +162,9 @@ module.exports = class RolloutsHelper {
 		loggedInUserId,
 		org_code,
 		tenant_code,
-		userToken = '',
 		returnBlobPath = false,
-		getResourceData = false
+		getResourceData = false,
+		userToken = ''
 	) {
 		try {
 			let result = {
@@ -173,12 +178,7 @@ module.exports = class RolloutsHelper {
 				tenant_code: tenant_code,
 			}
 
-			let rollout
-			if (getResourceData) {
-				rollout = await rolloutQueries.findOne(filter, {}, true) // include resourceDetails
-			} else {
-				rollout = await rolloutQueries.findOne(filter) // plain query
-			}
+			const rollout = await rolloutQueries.findOne(filter, {}, getResourceData)
 
 			if (!rollout?.id) {
 				return responses.failureResponse({
@@ -186,6 +186,18 @@ module.exports = class RolloutsHelper {
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
+			}
+			let resourceData = {}
+			// return resource details for internal calls based on getResourceData flag
+			if (getResourceData && rollout?.resource_details?.blob_path) {
+				const response = await filesService.fetchJsonFromCloud(rollout?.resource_details?.blob_path)
+				if (
+					response.statusCode === httpStatusCode.ok &&
+					response.result &&
+					Object.keys(response.result).length > 0
+				) {
+					resourceData = response.result
+				}
 			}
 
 			//get the data from storage
@@ -209,7 +221,7 @@ module.exports = class RolloutsHelper {
 					// fetch the user if viewer is present
 					if (response?.result?.viewers?.length > 0) {
 						const viewerUserIds = response.result.viewers
-						const userDetails = await this.fetchUserDetails(viewerUserIds, userToken, org_code, tenant_code)
+						const userDetails = await this.fetchUserDetails(viewerUserIds, org_code, tenant_code, userToken)
 
 						if (userDetails && Object.keys(userDetails).length > 0) {
 							resultData.viewers = viewerUserIds.map((user) => {
@@ -233,6 +245,9 @@ module.exports = class RolloutsHelper {
 					result = { ...resultData }
 				}
 			}
+			if (result?.resource_details && Object.keys(result?.resource_details).length > 0) {
+				result.resource_details = { ...result.resource_details, ...resourceData }
+			}
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
@@ -240,7 +255,11 @@ module.exports = class RolloutsHelper {
 				result: result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -302,7 +321,11 @@ module.exports = class RolloutsHelper {
 				result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -423,7 +446,7 @@ module.exports = class RolloutsHelper {
 			})
 
 			// fetch the user details from user service
-			const userDetails = await this.fetchUserDetails([loggedInUserId], userToken, organization_code, tenant_code)
+			const userDetails = await this.fetchUserDetails([loggedInUserId], organization_code, tenant_code, userToken)
 
 			// fetch the org details from user service
 			const orgDetails = await orgExtensionService.fetchOrganizationDetails(orgList, tenant_code)
@@ -452,7 +475,11 @@ module.exports = class RolloutsHelper {
 				result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -576,7 +603,11 @@ module.exports = class RolloutsHelper {
 				result: updatedRolledout[0].id,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -589,17 +620,17 @@ module.exports = class RolloutsHelper {
 	 * @param {String} tenant_code - tenant code
 	 * @returns {Object} - Response contain object of user details
 	 */
-	static async fetchUserDetails(userIds, userToken = '', org_code, tenant_code) {
+	static async fetchUserDetails(userIds, org_code, tenant_code, userToken = '') {
 		const userDetailsResponse = await userRequests.list(
-			common.FILTER_ALL.toLowerCase(),
-			'',
-			'',
-			'',
-			org_code,
-			tenant_code,
+			common.FILTER_ALL.toLowerCase(), //type
+			'', // page number
+			'', // page size
+			'', // search text
+			org_code, // organization_code
+			tenant_code, // tenant_code
 			{
 				user_ids: userIds,
-			},
+			}, // body
 			userToken
 		)
 		let userDetails = {}
@@ -673,7 +704,11 @@ module.exports = class RolloutsHelper {
 				result: {},
 			})
 		} catch (error) {
-			return error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -696,10 +731,11 @@ module.exports = class RolloutsHelper {
 				loggedInUserId,
 				org_code,
 				tenant_code,
-				userToken,
 				false,
-				true
+				true,
+				userToken
 			)
+
 			let solutionRolloutId
 			const rolloutDetailsResult = rolloutDetails?.result
 
@@ -722,12 +758,26 @@ module.exports = class RolloutsHelper {
 					message: 'RESOURCE_NOT_FOUND',
 				})
 			}
+			const validateTargeting = await targetingHelper.validateTargetingCriteria(
+				rolloutDetails.result[common.TARGETING],
+				org_code,
+				tenant_code
+			)
+			if (!validateTargeting.success && validateTargeting?.errors?.length > 0) {
+				const result = Array.isArray(validateTargeting?.errors)
+					? validateTargeting?.errors.flat()
+					: validateTargeting?.errors || []
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					result,
+					message: 'ROLLOUT_VALIDATION_FAILED',
+				})
+			}
 
 			// fetch resource details
 			const resourceDetails = await resourceService.getDetails(
 				rolloutDetailsResult?.resource_details,
 				org_code,
-				userToken,
 				tenant_code
 			)
 
@@ -791,16 +841,15 @@ module.exports = class RolloutsHelper {
 				status: common.ROLLOUT_STATUS_PROCESSING,
 			}
 
-			await rolloutQueries.updateOne({ id: rolloutId }, updateBody)
+			await rolloutQueries.updateOne({ id: rolloutId, tenant_code, organization_code: org_code }, updateBody)
 
 			const rolloutKafkaPayload = {
-				...rolloutDetails.result,
-				rolloutId: rolloutDetails.result.id,
-				resource: {
-					...resourceDetails?.result,
-					rolloutId: solutionRolloutId,
-				},
+				id: rolloutDetails.result.id,
+				tenant_code,
+				organization_code: org_code,
+				type: common.ROLL_OUT,
 				userToken,
+				userId: loggedInUserId,
 			}
 
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
@@ -815,7 +864,11 @@ module.exports = class RolloutsHelper {
 				result: {},
 			})
 		} catch (error) {
-			return error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -1102,8 +1155,9 @@ module.exports = class RolloutsHelper {
 				programData.user_id,
 				programData.organization_code,
 				tenant_code,
-				userToken,
-				false
+				false,
+				false,
+				userToken
 			)
 
 			const validateRollout = await this.validateRollout(rolloutDetails.result)
@@ -1238,7 +1292,7 @@ module.exports = class RolloutsHelper {
 			if (createProgramRollout.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					statusCode: httpStatusCode[createProgramRollout.statusCode],
-					result: result,
+					result: [],
 					message: `Rollout creation failed: ${createProgramRollout.message || 'Unknown error'}`,
 				})
 			}

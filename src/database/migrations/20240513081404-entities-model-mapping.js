@@ -66,5 +66,9 @@ module.exports = {
 
 	async down(queryInterface, Sequelize) {
 		await queryInterface.dropTable('entities_model_mapping')
+		// Postgres ENUM cleanup
+		if (queryInterface.sequelize.getDialect() === 'postgres') {
+			await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_entities_model_mapping_status";')
+		}
 	},
 }

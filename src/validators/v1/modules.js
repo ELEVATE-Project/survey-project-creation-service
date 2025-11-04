@@ -1,3 +1,9 @@
+/**
+ * name : validators/v1/modules.js
+ * author : Priyanka Pradeep
+ * Date : 24-May-2024
+ * Description : Validations of modules controller
+ */
 const filterRequestBody = require('../common')
 const { modules } = require('@constants/blacklistConfig')
 const allowedModuleStatus = ['ACTIVE', 'INACTIVE']

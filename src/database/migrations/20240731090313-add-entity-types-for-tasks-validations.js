@@ -114,7 +114,28 @@ module.exports = {
 		await queryInterface.bulkInsert('entities_model_mapping', entityModelMapping, {})
 	},
 
-	async down(queryInterface, Sequelize) {},
+	async down(queryInterface, Sequelize) {
+		const values = [
+			'id',
+			'type',
+			'is_mandatory',
+			'allow_evidences',
+			'parent_id',
+			'sequence_no',
+			'min_no_of_evidences',
+			'solution_details',
+		]
+		const { Op } = Sequelize
+		const rows = await queryInterface.sequelize.query('SELECT id FROM entity_types WHERE value IN (:values)', {
+			replacements: { values },
+			type: queryInterface.sequelize.QueryTypes.SELECT,
+		})
+		const ids = rows.map((r) => r.id)
+		if (ids.length) {
+			await queryInterface.bulkDelete('entities_model_mapping', { entity_type_id: { [Op.in]: ids } }, {})
+			await queryInterface.bulkDelete('entity_types', { id: { [Op.in]: ids } }, {})
+		}
+	},
 }
 
 function convertToWords(inputString) {

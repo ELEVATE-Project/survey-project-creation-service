@@ -109,5 +109,9 @@ module.exports = {
 		// Remove the foreign key constraint before dropping the table
 		await queryInterface.removeConstraint('comments', 'fk_comments_resources')
 		await queryInterface.dropTable('comments')
+		// Postgres: drop enum type created for `status`
+		if (queryInterface.sequelize.getDialect() === 'postgres') {
+			await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_comments_status";')
+		}
 	},
 }

@@ -87,9 +87,9 @@ module.exports = class UserEntityData {
 			throw error
 		}
 	}
-	static async bulkCreate(data) {
+	static async bulkCreate(data, options = {}) {
 		try {
-			const res = await Entity.bulkCreate(data)
+			const res = await Entity.bulkCreate(data, options)
 			return res
 		} catch (error) {
 			return error

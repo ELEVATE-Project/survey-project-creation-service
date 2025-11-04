@@ -70,5 +70,9 @@ module.exports = {
 		}
 	},
 
-	down: async (queryInterface, Sequelize) => {},
+	down: async (queryInterface, Sequelize) => {
+		// Remove mappings first, then permission
+		await queryInterface.bulkDelete('role_permission_mapping', { api_path: '/scp/v1/reviews/start*' })
+		await queryInterface.bulkDelete('permissions', { code: 'review_start_permissions' })
+	},
 }

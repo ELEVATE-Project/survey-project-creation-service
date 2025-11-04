@@ -12,6 +12,9 @@ const { v4: uuidV4 } = require('uuid')
 const _ = require('lodash')
 const md5 = require('md5')
 const { transliterate: tr } = require('transliteration')
+const fs = require('fs')
+const request = require('request')
+const path = require('path')
 
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
@@ -627,14 +630,18 @@ function formatToTitleCase(value) {
  */
 
 function generateExternalId(title) {
-	const words = title.split(/[\s-]+/)
-	const abbreviation =
-		words
-			.filter((word) => /^[a-zA-Z0-9]+$/.test(word)) // Filter only alphanumeric words
-			.map((word) => (word[0] || '').toUpperCase())
-			.join('') || 'IMP' //append word 'IMP' if abbreviation is empty
-	const uniqueSuffix = Date.now()
-	return `${abbreviation}-${uniqueSuffix}`
+	try {
+		const words = title.split(/[\s-]+/)
+		const abbreviation =
+			words
+				.filter((word) => /^[a-zA-Z0-9]+$/.test(word)) // Filter only alphanumeric words
+				.map((word) => (word[0] || '').toUpperCase())
+				.join('') || 'IMP' //append word 'IMP' if abbreviation is empty
+		const uniqueSuffix = Date.now()
+		return `${abbreviation}-${uniqueSuffix}`
+	} catch (error) {
+		return `IMP-${Date.now()}`
+	}
 }
 
 /**
@@ -643,15 +650,21 @@ function generateExternalId(title) {
  * @param {Array} resources - learning resource data
  * @returns {Object} - Response contains formatted learning resource
  */
-const convertResources = (resources) =>
-	resources
-		.filter((resource) => resource.url) // Ensure `url` exists
-		.map((resource) => ({
-			name: resource.name || 'resource',
-			link: resource.url,
-			app: process.env.CONSUMPTION_SERVICE,
-			id: resource.url.split('/').pop(), // Extract the last part of the URL
-		}))
+const convertResources = (resources) => {
+	try {
+		return resources
+			.filter((resource) => resource.url) // Ensure `url` exists
+			.map((resource) => ({
+				name: resource.name || 'resource',
+				link: resource.url,
+				app: process.env.CONSUMPTION_SERVICE,
+				id: resource.url.split('/').pop(), // Extract the last part of the URL
+			}))
+	} catch (error) {
+		console.error('Error in converting resources : ', error)
+		return []
+	}
+}
 
 /**
  * Format keywords
@@ -659,9 +672,18 @@ const convertResources = (resources) =>
  * @returns {Array} - Formatted keywords
  */
 function formatKeywords(keywords) {
-	if (Array.isArray(keywords)) return keywords.map((k) => k.trim())
-	if (typeof keywords === 'string') return keywords.split(',').map((k) => k.trim())
-	return []
+	try {
+		if (Array.isArray(keywords) && keywords.length > 0) return keywords.map((k) => String(k).trim()).filter(Boolean)
+		if (typeof keywords === 'string')
+			return keywords
+				.split(',')
+				.map((k) => k.trim())
+				.filter(Boolean)
+		return []
+	} catch (error) {
+		console.error('Error in formating keywords : ', error)
+		return []
+	}
 }
 
 /**
@@ -671,7 +693,7 @@ function formatKeywords(keywords) {
  */
 function formatProjectMetaInformation(templateData) {
 	return {
-		duration: `${templateData.recommended_duration.number} ${templateData.recommended_duration.duration}`,
+		duration: `${templateData.recommended_duration?.number} ${templateData.recommended_duration?.duration}`,
 		goal: '',
 		rationale: '',
 		primaryAudience: '',
@@ -787,7 +809,7 @@ function _extractTenantAndOrgCodes(req) {
 	let organizationCode = req.decodedToken.organization_code
 
 	if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-		const validHeader = validateTenantAndOrganizationInHeader(req)
+		const validHeader = validateTenantAndOrganizationInHeader({ headers: req.headers })
 		if (!validHeader) {
 			return {
 				error: 'TENANT_ORGANIZATION_HEADER_MISSING',
@@ -892,6 +914,70 @@ function buildUrl(baseUrl, endpoint, queryParams = {}, idParam = null) {
 	}
 }
 
+/**
+ *  Downloads a file from a URL and saves it to a local file
+ * @function
+ * @name downloadFile
+ * @param {String} url - Download url
+ * @param {String} filePath - Local storage path
+ * @returns {Promise<String>}
+ */
+
+async function downloadFile(url, filePath) {
+	return new Promise((resolve, reject) => {
+		const writer = fs.createWriteStream(filePath)
+		request(url)
+			.pipe(writer)
+			.on('finish', () => resolve(filePath))
+			.on('error', reject)
+	})
+}
+
+/**
+ * Removes a file from the file system
+ * @function
+ * @name removeFile
+ * @param {String} filePath - Local storage path to remove
+ */
+
+function removeFile(filePath) {
+	if (fs.existsSync(filePath)) {
+		fs.unlinkSync(filePath)
+		console.log(`Deleted: ${filePath}`)
+	}
+}
+
+function pathFinder(__dirname, targetFolder) {
+	// Check if __dirname starts with the platform-specific path separator
+	const hasLeadingSeparator = __dirname.startsWith(path.sep)
+	// Split the path into components
+	const pathComponents = __dirname.split(path.sep)
+	// Remove empty string from start if path is absolute (e.g., ['', 'Users', ...])
+	const cleanedComponents = hasLeadingSeparator ? pathComponents.slice(1) : pathComponents
+	// Find the last index of the target folder
+	const lastIndex = cleanedComponents.lastIndexOf(targetFolder)
+	if (lastIndex === -1) {
+		throw new Error(`Folder "${targetFolder}" not found in the path`)
+	}
+	// Take components up to and including targetFolder
+	const targetComponents = cleanedComponents.slice(0, lastIndex + 1)
+	// Join components, adding back the leading separator if it existed
+	return (hasLeadingSeparator ? path.sep : '') + path.join(...targetComponents)
+}
+
+/**
+ * Validates if a value is a valid date
+ * @function
+ * @name isValidDate
+ * @param {*} dateValue - The date value to validate
+ * @returns {Boolean} - Returns true if valid date, false otherwise
+ */
+function isValidDate(dateValue) {
+	if (!dateValue) return false
+	const date = new Date(dateValue)
+	return date instanceof Date && !isNaN(date.getTime())
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -941,4 +1027,8 @@ module.exports = {
 	validateTenantAndOrganizationInHeader,
 	_extractTenantAndOrgCodes,
 	buildUrl,
+	downloadFile,
+	removeFile,
+	pathFinder,
+	isValidDate,
 }

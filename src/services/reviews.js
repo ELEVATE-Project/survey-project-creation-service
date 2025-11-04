@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-catch */
 /**
  * name : services/reviews.js
  * author : Priyanka Pradeep
@@ -20,9 +19,10 @@ const { Op } = require('sequelize')
 const utils = require('@generics/utils')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const kafkaCommunication = require('@generics/kafka-communication')
-const consumptionRequests = require('@requests/consumption')
+const consumptionRequests = require('@consumption/index')
 const rolloutService = require('@services/rollouts')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
+
 module.exports = class reviewsHelper {
 	/**
 	 * Update review.
@@ -758,6 +758,7 @@ module.exports = class reviewsHelper {
 				tenantCode,
 				userToken
 			)
+
 			if (resourceDetails.statusCode !== httpStatusCode.ok) {
 				return resourceDetails
 			}
@@ -772,7 +773,7 @@ module.exports = class reviewsHelper {
 					resourceData.userToken = userToken
 
 					if (resourceData?.type == common.ROLLOUT_TYPE_PROGRAM) {
-						let rolloutId = await handleProgramRollout(resourceData, resourceId, userId)
+						let rolloutId = await handleProgramRollout(resourceData, resourceId, userId, userToken)
 
 						// publish program rollout
 						const publishRollout = await rolloutService.publish(
@@ -780,7 +781,7 @@ module.exports = class reviewsHelper {
 							resourceData.user_id,
 							resourceData.organization_code,
 							resourceData.tenant_code,
-							resourceData.userToken
+							userToken
 						)
 
 						if (publishRollout.statusCode !== httpStatusCode.accepted) {
@@ -791,7 +792,12 @@ module.exports = class reviewsHelper {
 							})
 						}
 					} else if (resourceData.type == common.PROJECT) {
-						await kafkaCommunication.pushResourceToKafka(resourceData, resourceData.type)
+						const payload = {
+							id: resourceData.id,
+							organization_code: resourceData.organization_code,
+							tenant_code: resourceData.tenant_code,
+						}
+						await kafkaCommunication.pushResourceToKafka(payload, resourceData.type)
 					}
 				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
 					//resource creation through api

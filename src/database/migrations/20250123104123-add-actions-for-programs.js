@@ -3,7 +3,19 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	up: async (queryInterface, Sequelize) => {
-		await queryInterface.bulkDelete('actions', null, {})
+		const programCodes = [
+			'CREATE_PROGRAM',
+			'PROGRAM_SUBMITTED',
+			'DELETE_PROGRAM',
+			'PROGRAM_REJECTED',
+			'PROGRAM_REJECTED_AND_REPORTED',
+			'PROGRAM_REVIEW_STARTED',
+			'PROGRAM_REVIEW_INPROGRESS',
+			'PROGRAM_REVIEW_CHANGES_REQUESTED',
+			'PROGRAM_APPROVED',
+			'PROGRAM_PUBLISHED',
+		]
+		await queryInterface.bulkDelete('actions', { code: { [Sequelize.Op.in]: programCodes } }, {})
 
 		const actionsData = [
 			{
@@ -69,6 +81,7 @@ module.exports = {
 					[Sequelize.Op.in]: [
 						'CREATE_PROGRAM',
 						'PROGRAM_SUBMITTED',
+						'DELETE_PROGRAM',
 						'PROGRAM_REJECTED',
 						'PROGRAM_REJECTED_AND_REPORTED',
 						'PROGRAM_REVIEW_STARTED',

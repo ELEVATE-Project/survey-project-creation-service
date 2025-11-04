@@ -19,4 +19,17 @@ module.exports = {
 	FIND_ENTITIES_BY_QUERY: process.env.FIND_ENTITIES_BY_QUERY_ENDPOINT
 		? process.env.FIND_ENTITIES_BY_QUERY_ENDPOINT
 		: 'v1/entities/find',
+	ENTITY_TYPES_FIND_BY_QUERY: process.env.ENTITY_TYPES_FIND_BY_QUERY_ENDPOINT
+		? process.env.ENTITY_TYPES_FIND_BY_QUERY_ENDPOINT
+		: 'v1/entityTypes/find',
+
+	FETCH_LINK_END_POINT: process.env.FETCH_LINK_END_POINT
+		? process.env.FETCH_LINK_END_POINT
+		: '/v1/solutions/fetchLinkInternal',
+	ENTITY_TYPES_READ: process.env.ENTITY_TYPES_READ_ENDPOINT
+		? process.env.ENTITY_TYPES_READ_ENDPOINT
+		: 'v1/entityTypes/find',
+	MAP_USER_AND_PROGRAM: process.env.MAP_USER_AND_PROGRAM_ENDPOINT
+		? process.env.MAP_USER_AND_PROGRAM_ENDPOINT
+		: 'v1/userExtension/update',
 }

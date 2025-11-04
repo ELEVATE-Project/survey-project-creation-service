@@ -1,4 +1,9 @@
-/* eslint-disable no-useless-catch */
+/**
+ * name : programs.js
+ * author : Priyanka Pradeep
+ * created-date : 23-Jan-2025
+ * Description : Programs Helper.
+ */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
@@ -62,7 +67,6 @@ module.exports = class ProgramsHelper {
 								'published_on',
 								'last_reviewed_on',
 								'is_under_edit',
-								'is_reusable',
 							],
 						},
 					}
@@ -205,7 +209,11 @@ module.exports = class ProgramsHelper {
 				result: { id: programId },
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -377,7 +385,11 @@ module.exports = class ProgramsHelper {
 				result: updatedProgram[0].id,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -396,6 +408,7 @@ module.exports = class ProgramsHelper {
 			const program = await resourceQueries.findOne({
 				id: programId,
 				tenant_code: tenant_code,
+				organization_code: orgCode,
 				type: common.RESOURCE_TYPE_PROGRAM,
 			})
 
@@ -547,6 +560,10 @@ module.exports = class ProgramsHelper {
 								: null,
 							is_comments: resourceCommentSet.has(resourceDetail.result.id),
 						}))
+					//sort the resources based on order
+					const len = result.resources.length
+					//if order exists sort the resources
+					result.resources.sort((a, b) => (a.order ?? len) - (b.order ?? len))
 				}
 			}
 
@@ -561,7 +578,11 @@ module.exports = class ProgramsHelper {
 				result: result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -696,7 +717,11 @@ module.exports = class ProgramsHelper {
 				result: programId,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -800,7 +825,11 @@ module.exports = class ProgramsHelper {
 				result: programId,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -878,7 +907,11 @@ module.exports = class ProgramsHelper {
 				result: {},
 			})
 		} catch (error) {
-			return error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -943,7 +976,11 @@ module.exports = class ProgramsHelper {
 				result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -1152,6 +1189,15 @@ module.exports = class ProgramsHelper {
 
 			// this will be handled while taking up program publish
 			if (!isReviewMandatory) {
+				// update the resource status to submitted and stage to review, because publish api is checking the status and stage before publishing
+				await resourceQueries.updateOne(
+					{ id: programData.id },
+					{
+						status: common.RESOURCE_STATUS_SUBMITTED,
+						stage: common.RESOURCE_STAGE_REVIEW,
+					}
+				)
+
 				const publishResource = await reviewService.publishResource(
 					programData.id,
 					programData.user_id,

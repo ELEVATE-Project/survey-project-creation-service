@@ -1,3 +1,9 @@
+/**
+ * name : projects.js
+ * author : Priyanka Pradeep
+ * created-date : 24-May-2024
+ * Description : Project Helper.
+ */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
 const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
@@ -155,7 +161,11 @@ module.exports = class ProjectsHelper {
 				result: { id: projectCreate.id },
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -291,7 +301,7 @@ module.exports = class ProjectsHelper {
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.bad_request,
+				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
@@ -363,7 +373,11 @@ module.exports = class ProjectsHelper {
 				result: {},
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 	/**
@@ -371,8 +385,8 @@ module.exports = class ProjectsHelper {
 	 * @method
 	 * @name details
 	 * @param {String} projectId - Project id
-	 * @param {String} orgCode - Project id
-	 * @param {String} tenantCode - Project id
+	 * @param {String} tenantCode - tenant code
+	 * @param {String} orgCode - organization code
 	 * @returns {JSON} - Project data.
 	 */
 
@@ -421,7 +435,7 @@ module.exports = class ProjectsHelper {
 					Object.keys(response.result).length > 0
 				) {
 					//modify the response as label value pair
-					let resultData = response.result
+					let resultData = response?.result || {}
 
 					//get all entity types with entities
 					let entityTypes = await entityModelMappingQuery.findEntityTypesAndEntities(
@@ -483,9 +497,8 @@ module.exports = class ProjectsHelper {
 								}
 							})
 						)
-
-						result = { ...result, ...resultData }
 					}
+					result = { ...result, ...resultData }
 				}
 			}
 			//Add path in getDownloadUrl
@@ -520,7 +533,11 @@ module.exports = class ProjectsHelper {
 				result: result,
 			})
 		} catch (error) {
-			throw error
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
 		}
 	}
 
@@ -545,7 +562,6 @@ module.exports = class ProjectsHelper {
 				resourceId,
 				userDetails.organization_code,
 				userDetails.tenant_code,
-				userDetails.id,
 				commentsOptions
 			)
 			if (projectDetails.statusCode !== httpStatusCode.ok) {
@@ -585,10 +601,25 @@ module.exports = class ProjectsHelper {
 			let validationErrors = []
 
 			//validate number of task
-			if (projectData.tasks?.length > parseInt(process.env.MAX_PROJECT_TASK_COUNT, 10)) {
+			let taskLength = projectData.tasks ? projectData.tasks.length : 0
+			if (taskLength > parseInt(process.env.MAX_PROJECT_TASK_COUNT, 10)) {
 				validationErrors.push(
 					utils.errorObject(common.TASKS, '', 'Project task count has exceeded the maximum allowed limit')
 				)
+			}
+
+			//validate entity type if entity tagging is enabled
+			const isEntityTaggingEnabled =
+				String(process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS).toLowerCase() === 'true'
+			if (isEntityTaggingEnabled && !projectData.entity_type) {
+				validationErrors.push(utils.errorObject(common.ENTITY_TYPE, '', 'Entity type is required'))
+			}
+
+			//validate task start_date and end_date if enabled
+			const isTaskDateValidationEnabled =
+				String(process.env.ENABLE_TASK_START_END_DATE_IN_PROJECTS).toLowerCase() === 'true'
+			if (isTaskDateValidationEnabled && taskLength > 0) {
+				this.validateTaskDates(projectData.tasks, validationErrors)
 			}
 
 			// Check that the note character limit does not exceed the maximum limit
@@ -690,7 +721,7 @@ module.exports = class ProjectsHelper {
 			)
 
 			// // validation for task is not empty
-			if (projectData?.tasks?.length > 0) {
+			if (taskLength > 0) {
 				basePath = common.TASKS
 				// validate task
 				await Promise.all(
@@ -943,6 +974,52 @@ module.exports = class ProjectsHelper {
 			let regexValidation = entityType.validations.find(
 				(validation) => validation.type == common.REGEX_VALIDATION
 			)
+
+			//check for reflection url is present and valid
+
+			if (entityType.value === common.TASK_TYPE_REFLECTION && entityData.type === common.TASK_TYPE_REFLECTION) {
+				let reflectionPath =
+					sourceType == '' ? `${common.TASK_TYPE_REFLECTION}` : `${sourceType}.${common.TASK_TYPE_REFLECTION}`
+				// Validate the name is present
+				if (!entityData.name) {
+					validationErrors.push(
+						utils.errorObject(
+							reflectionPath,
+							common.NAME,
+							regexValidation.message || `Required learning reflection name in ${model}`
+						)
+					)
+				}
+
+				// Validate the URL is present
+				if (!entityData.link) {
+					validationErrors.push(
+						utils.errorObject(
+							reflectionPath,
+							common.URL,
+							regexValidation.message || `Required learning reflection URL in ${model}`
+						)
+					)
+				}
+
+				// Validate the URL against the regex pattern
+				if (entityData.link && entityMapping[common.TASK_TYPE_REFLECTION]?.validations) {
+					const validateURL = utils.checkRegexPattern(
+						entityMapping[common.TASK_TYPE_REFLECTION].validations,
+						entityData.link
+					)
+					if (!validateURL) {
+						validationErrors.push(
+							utils.errorObject(
+								reflectionPath,
+								common.URL,
+								regexValidation.message || `Invalid REFLECTION URL in ${model}`
+							)
+						)
+					}
+				}
+			}
+
 			if (regexValidation && fieldData) {
 				//validate learning resource validation
 				if (entityType.value === common.LEARNING_RESOURCE) {
@@ -1049,6 +1126,7 @@ module.exports = class ProjectsHelper {
 					}
 				}
 			}
+
 			if (validationErrors.length > 0)
 				return {
 					hasError: true,
@@ -1062,6 +1140,86 @@ module.exports = class ProjectsHelper {
 			}
 		} catch (error) {
 			return error
+		}
+	}
+
+	/**
+	 * Validates task start and end dates
+	 * @method
+	 * @name validateTaskDates
+	 * @param {Array} tasks - Array of task objects to validate
+	 * @param {Array} validationErrors - Array to collect validation errors
+	 * @returns {void} - Modifies validationErrors array in place
+	 */
+	static validateTaskDates(tasks, validationErrors = []) {
+		if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+			return
+		}
+
+		tasks.forEach((task, index) => {
+			this._validateSingleTaskDates(task, `tasks[${index}]`, validationErrors)
+
+			// Validate child tasks (subtasks) if they exist
+			if (task.children && Array.isArray(task.children) && task.children.length > 0) {
+				task.children.forEach((childTask, childIndex) => {
+					this._validateSingleTaskDates(
+						childTask,
+						`tasks[${index}].children[${childIndex}]`,
+						validationErrors
+					)
+				})
+			}
+		})
+	}
+
+	/**
+	 * Validates a single task's start and end dates
+	 * @method
+	 * @name _validateSingleTaskDates
+	 * @param {Object} task - Task object to validate
+	 * @param {String} taskPath - Path identifier for error messages
+	 * @param {Array} validationErrors - Array to collect validation errors
+	 * @returns {void} - Modifies validationErrors array in place
+	 * @private
+	 */
+	static _validateSingleTaskDates(task, taskPath, validationErrors) {
+		const isSubtask = taskPath.includes('children')
+		const taskType = isSubtask ? 'Subtask' : 'Task'
+
+		// Validate start_date
+		if (!task.start_date || task.start_date === '') {
+			validationErrors.push(utils.errorObject(taskPath, 'start_date', `${taskType} start date is required`))
+			return // Early exit if start_date is missing
+		}
+
+		const isStartDateValid = utils.isValidDate(task.start_date)
+		if (!isStartDateValid) {
+			validationErrors.push(
+				utils.errorObject(taskPath, 'start_date', `${taskType} start date must be a valid date`)
+			)
+		}
+
+		// Validate end_date
+		if (!task.end_date || task.end_date === '') {
+			validationErrors.push(utils.errorObject(taskPath, 'end_date', `${taskType} end date is required`))
+			return // Early exit if end_date is missing
+		}
+
+		const isEndDateValid = utils.isValidDate(task.end_date)
+		if (!isEndDateValid) {
+			validationErrors.push(utils.errorObject(taskPath, 'end_date', `${taskType} end date must be a valid date`))
+			return // Early exit if end_date is invalid
+		}
+
+		// Validate date ordering - only if both dates are valid
+		if (isStartDateValid && isEndDateValid) {
+			const startDate = new Date(task.start_date)
+			const endDate = new Date(task.end_date)
+			if (startDate > endDate) {
+				validationErrors.push(
+					utils.errorObject(taskPath, 'end_date', `${taskType} end date must be after start date`)
+				)
+			}
 		}
 	}
 }
