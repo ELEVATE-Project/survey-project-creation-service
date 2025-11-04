@@ -1060,6 +1060,32 @@
 					"packageName": "elevate-self-creation-portal"
 				}
 			]
+		},
+		{
+			"sourceRoute": "/scp/v1/targeting/hierarchy/:id",
+			"type": "GET",
+			"priority": "MUST_HAVE",
+			"inSequence": false,
+			"orchestrated": false,
+			"targetPackages": [
+				{
+					"basePackageName": "self-creation-portal",
+					"packageName": "elevate-self-creation-portal"
+				}
+			]
+		},
+		{
+			"sourceRoute": "/scp/v1/targeting/subEntityList",
+			"type": "POST",
+			"priority": "MUST_HAVE",
+			"inSequence": false,
+			"orchestrated": false,
+			"targetPackages": [
+				{
+					"basePackageName": "self-creation-portal",
+					"packageName": "elevate-self-creation-portal"
+				}
+			]
 		}
 	]
 }
