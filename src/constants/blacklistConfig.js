@@ -306,5 +306,4 @@ module.exports = {
 	rollouts,
 	programs,
 	queryForbiddenPatterns,
-	targeting,
 }
