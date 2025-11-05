@@ -983,7 +983,7 @@ function isValidDate(dateValue) {
  * @function
  * @name setPolicy
  * @param {*} policy -  org policies value
- * @returns {Boolean} - Returns valid org policies data
+ * @returns {String|null} - Returns valid org policies data
  */
 function setPolicy(policy) {
 	const trimmed = policy?.trim()
