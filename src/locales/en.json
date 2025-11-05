@@ -182,5 +182,7 @@
 	"PROJECT_REPUBLISHED_SUCCESSFULLY": "Project republished successfully.",
 	"PROJECT_REPUBLISH_FAILED": "Project republish failed.",
 	"FAILED_TO_FETCH_ENTITIES": "Failed to fetch entities",
-	"ENTITIES_FETCHED_SUCCESSFULLY": "Entities fetched successfully"
+	"ENTITIES_FETCHED_SUCCESSFULLY": "Entities fetched successfully",
+	"ORGANIZATION_NOT_FOUND_IN_TENANT": "Organization not found in tenant",
+	"TENANT_NOT_FOUND": "Tenant fetch failed"
 }
