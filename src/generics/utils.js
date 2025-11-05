@@ -830,6 +830,7 @@ const fetchInternalTenantDetails = async function (tenantCode) {
 		}
 		return result
 	} catch (error) {
+		console.error(`Failed to fetch tenant details for ${tenantCode}:`, error)
 		return result
 	}
 }
