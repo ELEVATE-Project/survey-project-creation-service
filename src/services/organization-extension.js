@@ -422,7 +422,8 @@ module.exports = class orgExtensionsHelper {
 			_.forEach(configData, (item) => {
 				if (item.resource_type === common.PROJECT) {
 					item.max_task_count = utils.convertToInteger(process.env.MAX_PROJECT_TASK_COUNT)
-					item.observation_link_regex = process.env.OBSERVATION_DEEP_LINK_REGEX
+					item.observation_link_regex = process.env.OBSERVATION_DEEP_LINK_REGEX || ''
+					item.project_reflection_task_redirect_url = process.env.PROJECT_REFLECTION_TASK_REDIRECT_URL || ''
 				}
 			})
 

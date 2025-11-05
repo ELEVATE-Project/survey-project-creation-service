@@ -635,6 +635,53 @@ const reviewerListSchema = {
 	required: ['responseCode', 'message', 'result'],
 }
 
+const republishProjectSchema = {
+	type: 'object',
+	properties: {
+		responseCode: {
+			type: 'string',
+		},
+		message: {
+			type: 'string',
+		},
+		result: {
+			type: 'object',
+			properties: {
+				id: {
+					type: 'integer',
+				},
+			},
+			required: ['id'],
+		},
+		meta: {
+			type: 'object',
+			properties: {
+				formsVersion: {
+					oneOf: [
+						{
+							type: 'object',
+							properties: {},
+							additionalProperties: true,
+						},
+						{
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {},
+								additionalProperties: true,
+							},
+						},
+					],
+				},
+				correlation: {
+					type: 'string',
+				},
+			},
+		},
+	},
+	required: ['responseCode', 'message', 'result', 'meta'],
+}
+
 module.exports = {
 	createSchema,
 	detailSchema,
@@ -642,4 +689,5 @@ module.exports = {
 	emptyListSchema,
 	submitProjectSchema,
 	reviewerListSchema,
+	republishProjectSchema,
 }

@@ -6,9 +6,7 @@
  */
 
 const orgExtensionService = require('@services/organization-extension')
-const utils = require('@generics/utils')
-const responses = require('@helpers/responses')
-const httpStatusCode = require('@generics/http-status')
+
 module.exports = class configs {
 	/**
 	 * List Configs.

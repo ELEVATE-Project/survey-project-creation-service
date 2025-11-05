@@ -8,7 +8,6 @@ const MongoDBConnection = require('@configs/mongoConnection')
 const resourceService = require('@services/resource')
 const rolloutService = require('@services/rollouts')
 const targetingHelpers = require('@helpers/targetingCriteria')
-const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const { Op } = require('sequelize')
 const requests = require('@generics/requests')
 const responseCode = require('@generics/http-status')
@@ -645,12 +644,14 @@ const publishProjectTemplates = function (templateData) {
 				projectsMongoConnection
 			)
 
+			// Set visibility based on org policies
+			template.visibility = common.ORG_POLICY_CURRENT
+			template.visibleToOrganizations = [templateData.organization_code]
+
+			// Override visibility if org policies are successfully fetched
 			if (orgPolicies.success) {
 				template.visibility = orgPolicies.policies.visibility
 				template.visibleToOrganizations = orgPolicies.policies.visibleToOrganizations
-			} else {
-				template.policies.visibility = ''
-				template.policies.visibleToOrganizations = []
 			}
 
 			// Process Categories
@@ -719,8 +720,10 @@ const publishProjectTemplates = function (templateData) {
 			//return result
 			result.success = true
 			result.templateId = templateId
+			console.log('Template published successfully with ID:', templateId)
 			return resolve(result)
 		} catch (error) {
+			console.log('Error in publishProjectTemplates:', error.message)
 			if (mongoConnection) mongoConnection.disconnect()
 			result.error = error.message || error
 			return reject(error)
@@ -1274,14 +1277,14 @@ async function insertCertificateTemplate(
  * @param {String} created_by - created by user id
  * @returns {Array} Array of objects of duplicate templates
  */
-const duplicateResources = async (resourceDetails, resourceCertificate, programData) => {
+const duplicateResources = async (resourceDetails, resourceCertificate = {}, programData) => {
 	try {
 		// initialise list of project templates to create
 		let projectTemplateIds = []
 		//initialise list of solution templates to create
 		let solutionTemplateIds = []
-		let certificate = resourceCertificate
-		if (certificate) {
+		let certificate = resourceCertificate || {}
+		if (certificate && Object.keys(certificate).length > 0) {
 			// append task name in each task certificate criterias
 			const certificateCriteriaConditions = Object.keys(certificate.criteria.conditions)
 			certificateCriteriaConditions.forEach((criteriaId) => {
@@ -1373,7 +1376,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate, programD
 					// if task is part of certificate criteria , replace the old task name with new task name
 					// this is required as task name is used to identify the task in certificate criteria
 					// as task id will be different for each project created from the template
-					if (certificate) {
+					if (certificate && Object.keys(certificate).length > 0) {
 						const conditionsList = Object.keys(certificate.criteria.conditions)
 						conditionsList.forEach((condition) => {
 							Object.keys(certificate.criteria.conditions[condition].conditions).forEach(
@@ -1432,7 +1435,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate, programD
 					.toArray()
 
 				// if certificate is there , replace the task details with object ids
-				if (certificate) {
+				if (certificate && Object.keys(certificate).length > 0) {
 					const conditionsList = Object.keys(certificate.criteria.conditions)
 					conditionsList.forEach((condition) => {
 						Object.keys(certificate.criteria.conditions[condition].conditions).forEach((subCondition) => {
@@ -1725,7 +1728,14 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 }
 
 const orderSolutionsInProgram = (resourceWithInProgram) => {
-	let solutionOrderList = resourceWithInProgram.map((item) => ({ id: item.id }))
+	let solutionOrderList = resourceWithInProgram.map((item) => {
+		let res = {
+			id: item.id,
+		}
+		if (item?.published_id) res._id = ObjectId(item.published_id)
+		if (item?.order) res.order = item.order
+		return res
+	})
 
 	const usedOrders = new Set()
 
@@ -1757,6 +1767,7 @@ const orderSolutionsInProgram = (resourceWithInProgram) => {
 
 	return solutionOrderList.reduce((acc, item) => {
 		acc[item.id] = { order: item.order }
+		if (item._id) acc[item.id]._id = item._id
 		return acc
 	}, {})
 }
@@ -1814,7 +1825,6 @@ const publishProgram = function async(programData) {
 						resource_id: {
 							[Op.in]: programResourceIds,
 						},
-						parent_id: rolloutDetails.id,
 						type: common.ROLLOUT_TYPE_SOLUTION,
 					},
 					['id', 'resource_id']
@@ -1917,7 +1927,7 @@ const publishProgram = function async(programData) {
 								...fetchDetails.result,
 								..._.omit(fetchProjectDetails?.result, Object.keys(fetchDetails.result)),
 							}
-							projectCertificate = fetchProjectDetails?.result?.certificate
+							projectCertificate = fetchProjectDetails?.result?.certificate || {}
 						}
 
 						let duplicateResource = await duplicateResources(

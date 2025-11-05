@@ -245,7 +245,7 @@ module.exports = class RolloutsHelper {
 					result = { ...resultData }
 				}
 			}
-			if (Object.keys(result?.resource_details).length > 0) {
+			if (result?.resource_details && Object.keys(result?.resource_details).length > 0) {
 				result.resource_details = { ...result.resource_details, ...resourceData }
 			}
 
@@ -849,7 +849,7 @@ module.exports = class RolloutsHelper {
 				organization_code: org_code,
 				type: common.ROLL_OUT,
 				userToken,
-				userId: loggedInUserId,
+				userId: rolloutDetailsResult.user_id,
 			}
 
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
