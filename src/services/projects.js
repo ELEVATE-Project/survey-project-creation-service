@@ -575,13 +575,13 @@ module.exports = class ProjectsHelper {
 
 			let projectData = projectDetails.result
 			//check the creator is valid
-			// if (projectData.user_id !== userDetails.id) {
-			// 	return responses.failureResponse({
-			// 		message: 'DONT_HAVE_PROJECT_ACCESS',
-			// 		statusCode: httpStatusCode.bad_request,
-			// 		responseCode: 'CLIENT_ERROR',
-			// 	})
-			// }
+			if (projectData.user_id !== userDetails.id) {
+				return responses.failureResponse({
+					message: 'DONT_HAVE_PROJECT_ACCESS',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
 
 			//Restrict the user to submit the project
 			if (_nonReviewableResourceStatuses.includes(projectData.status)) {
