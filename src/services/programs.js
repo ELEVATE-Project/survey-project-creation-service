@@ -163,7 +163,7 @@ module.exports = class ProgramsHelper {
 				orgConfig?.result?.config?.external_resource_visibility_policy
 			) {
 				//get visiblity and related_org details
-				const result = await this.populateVisibilityAndRelatedOrgs(
+				const result = await projectService.populateVisibilityAndRelatedOrgs(
 					programData,
 					orgConfig,
 					org_code,

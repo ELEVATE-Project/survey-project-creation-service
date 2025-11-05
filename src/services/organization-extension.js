@@ -464,11 +464,12 @@ module.exports = class orgExtensionsHelper {
 					message: 'ORGANIZATION_CODE_AND_TENANT_CODE_REQUIRED',
 				})
 			}
-
+			orgCode = orgCode.trim()
+			tenantCode = tenantCode.trim()
 			// Prepare base update data
 			const updateData = {
-				organization_code: orgCode.trim(),
-				tenant_code: tenantCode.trim(),
+				organization_code: orgCode,
+				tenant_code: tenantCode,
 				meta: {},
 				updated_at: new Date(),
 			}
@@ -559,9 +560,9 @@ module.exports = class orgExtensionsHelper {
 		try {
 			if (bodyData?.hasOwnProperty('related_org_details')) {
 				//get the code to store it in  visibleToOrganizations key
-				let visibleOrg = bodyData.related_org_details?.map((eachValue) => {
-					return eachValue.code
-				})
+				const visibleOrg = bodyData.related_org_details
+					?.map((eachValue) => eachValue?.code?.trim())
+					.filter((code) => code)
 
 				let updateData = {
 					organization_code: orgCode,

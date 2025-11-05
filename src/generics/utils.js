@@ -989,7 +989,7 @@ function setPolicy(policy) {
 	const trimmed = policy?.trim()
 	if (!trimmed) return null
 	const upper = trimmed.toUpperCase()
-	return common.VALID_POLICIES.includes(upper) ? upper : null
+	return common.VALID_POLICIES[upper] ? upper : null
 }
 
 module.exports = {
