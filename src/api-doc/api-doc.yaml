@@ -2842,6 +2842,12 @@ paths:
               project creation:
                 value:
                   title: Sample Project
+              project with entity tagging:
+                summary: Update project with entity tagging
+                value:
+                  title: Sample Project with Entity Tagging
+                  enable_entity_tagging: true
+                  entity_type: district
               project with child tasks:
                 value:
                   title: Sample Project
