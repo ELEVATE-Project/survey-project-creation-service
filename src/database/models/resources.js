@@ -103,6 +103,16 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 				defaultValue: null,
 			},
+			visibility: {
+				allowNull: false,
+				type: DataTypes.ENUM('CURRENT', 'ASSOCIATED', 'ALL'),
+				defaultValue: 'CURRENT',
+			},
+			visible_to_organizations: {
+				allowNull: false,
+				type: DataTypes.ARRAY(DataTypes.STRING),
+				defaultValue: [],
+			},
 		},
 		{
 			modelName: 'Resource',

@@ -271,4 +271,11 @@ module.exports = {
 	ALL: 'ALL',
 	IS_EXTERNAL: 'is_external',
 	DEPENDED_ON: 'depended_on',
+	CREATE: 'CREATE',
+	UPDATE: 'UPDATE',
+	VALID_POLICIES: {
+		ALL: 'ALL',
+		ASSOCIATED: 'ASSOCIATED',
+		CURRENT: 'CURRENT',
+	},
 }

@@ -438,6 +438,15 @@ let environmentVariables = {
 		message: 'Required Project Reflection Task Redirect URL',
 		optional: false,
 	},
+	USER_SERVICE_ORG_UPDATE_TOPIC: {
+		message: 'Required user service organization event',
+		optional: true,
+		requiredIf: {
+			key: 'KAFKA_COMMUNICATIONS_ON_OFF',
+			operator: 'EQUALS',
+			value: 'ON',
+		},
+	},
 }
 
 let success = true
