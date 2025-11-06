@@ -1214,6 +1214,7 @@ module.exports = class RolloutsHelper {
 					const fetchResourceDetails = await resourceService.getDetails(
 						resource?.id,
 						programData.organization_code,
+						programData.tenant_code,
 						userToken
 					)
 					const rolloutDetails = _.omit(fetchResourceDetails?.result, [
