@@ -854,50 +854,55 @@ const fetchInternalTenantDetails = async function (tenantCode) {
  * @throws {Error} - If tenant or organization validation fails
  */
 async function _extractTenantAndOrgCodes(req) {
-	let tenantCode = req.decodedToken.tenant_code
-	let organizationCode = req.decodedToken.organization_code
-	// if tenant admin role, validate if organization exists within tenant
-	// return the org code from header else from token
-	// tenant passed in the header will be ignored
-	if (validateRoleAccess(req.decodedToken.roles, common.TENANT_ADMIN_ROLE)) {
-		organizationCode =
-			req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()] || req.decodedToken.organization_code
-		const fetchTenantData = await fetchInternalTenantDetails(tenantCode)
-		if (fetchTenantData.success) {
-			const orgWithInTenant = fetchTenantData.data.organizations
-				? fetchTenantData.data.organizations.find((org) => org.code === organizationCode)
-				: null
-			if (!orgWithInTenant) {
+	try {
+		let tenantCode = req.decodedToken.tenant_code
+		let organizationCode = req.decodedToken.organization_code
+		// if tenant admin role, validate if organization exists within tenant
+		// return the org code from header else from token
+		// tenant passed in the header will be ignored
+		if (validateRoleAccess(req.decodedToken.roles, common.TENANT_ADMIN_ROLE)) {
+			organizationCode =
+				req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()] || req.decodedToken.organization_code
+			const fetchTenantData = await fetchInternalTenantDetails(tenantCode)
+			if (fetchTenantData.success) {
+				const orgWithInTenant =
+					fetchTenantData?.data?.organizations && Array.isArray(fetchTenantData.data.organizations)
+						? fetchTenantData.data.organizations.find((org) => org.code === organizationCode)
+						: null
+				if (!orgWithInTenant) {
+					return {
+						error: 'ORGANIZATION_NOT_FOUND_IN_TENANT',
+					}
+				}
+			} else {
 				return {
-					error: 'ORGANIZATION_NOT_FOUND_IN_TENANT',
+					error: 'TENANT_NOT_FOUND',
 				}
 			}
-		} else {
-			return {
-				error: 'TENANT_NOT_FOUND',
-			}
 		}
-	}
-	// if super admin role, fetch tenant and organization from headers
-	// admin will override the tenant_admin privilages if the user have both rights
-	if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-		const validHeader = validateTenantAndOrganizationInHeader({ headers: req.headers })
-		if (!validHeader) {
-			return {
-				error: 'TENANT_ORGANIZATION_HEADER_MISSING',
+		// if super admin role, fetch tenant and organization from headers
+		// admin will override the tenant_admin privilages if the user have both rights
+		if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
+			const validHeader = validateTenantAndOrganizationInHeader({ headers: req.headers })
+			if (!validHeader) {
+				return {
+					error: 'TENANT_ORGANIZATION_HEADER_MISSING',
+				}
+			}
+
+			if (
+				req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()] &&
+				req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
+			) {
+				tenantCode = req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()]
+				organizationCode = req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
 			}
 		}
 
-		if (
-			req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()] &&
-			req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
-		) {
-			tenantCode = req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()]
-			organizationCode = req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
-		}
+		return { tenantCode, organizationCode }
+	} catch (error) {
+		throw error
 	}
-
-	return { tenantCode, organizationCode }
 }
 
 /**
