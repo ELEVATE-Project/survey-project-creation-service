@@ -157,6 +157,23 @@ module.exports = class ProgramsHelper {
 				},
 			}
 
+			if (
+				orgConfig &&
+				orgConfig?.result?.config &&
+				orgConfig?.result?.config?.external_resource_visibility_policy
+			) {
+				//get visiblity and related_org details
+				const result = await projectService.populateVisibilityAndRelatedOrgs(
+					programData,
+					orgConfig,
+					org_code,
+					tenant_code
+				)
+				if (result.success) {
+					programData = result.dataObject
+				}
+			}
+
 			// Create program and handle resource mapping
 			let programCreate = await resourceQueries.create(programData)
 			const programId = programCreate?.id
