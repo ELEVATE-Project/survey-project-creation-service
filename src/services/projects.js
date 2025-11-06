@@ -92,6 +92,18 @@ module.exports = class ProjectsHelper {
 				updated_by: loggedInUserId,
 			}
 
+			if (
+				orgConfig &&
+				orgConfig?.result?.config &&
+				orgConfig?.result?.config?.external_resource_visibility_policy
+			) {
+				//get visiblity and related_org details
+				const result = await this.populateVisibilityAndRelatedOrgs(projectData, orgConfig, orgCode, tenantCode)
+				if (result.success) {
+					projectData = result.dataObject
+				}
+			}
+
 			let projectCreate
 			try {
 				//create project
@@ -1250,6 +1262,7 @@ module.exports = class ProjectsHelper {
 	 * @returns {void} - Modifies validationErrors array in place
 	 * @private
 	 */
+
 	static _validateSingleTaskDates(task, taskPath, validationErrors) {
 		const isSubtask = taskPath.includes('children')
 		const taskType = isSubtask ? 'Subtask' : 'Task'
@@ -1332,6 +1345,47 @@ module.exports = class ProjectsHelper {
 		} catch (error) {
 			// Log the error and continue without blocking submission
 			console.error('Error in _validateEntityTagging:', error)
+		}
+	}
+
+	/**
+	 * Populates visibility and related organization details for a program or project.
+	 * @method
+	 * @name populateVisibilityAndRelatedOrgs
+	 * @param {Object} dataObject - Target object to populate (e.g. programData or projectData).
+	 * @param {Object} orgConfig - Organization configuration object (from org service).
+	 * @param {String} orgCode - Code of the current organization.
+	 * @param {String}tenantCode - Tenant code for identifying the tenant.
+	 * @returns {Promise<Object>} - Returns an object containing success flag, dataObject, statusCode, and message.
+	 */
+	static async populateVisibilityAndRelatedOrgs(dataObject, orgConfig, orgCode, tenantCode) {
+		try {
+			// Set visibility from org configuration
+			dataObject.visibility = orgConfig?.result?.config?.external_resource_visibility_policy
+
+			//Fetch related organizations
+			const getRelatedOrgs = await userRequests.fetchOrg(orgCode, tenantCode)
+
+			if (!getRelatedOrgs.success || !getRelatedOrgs?.data?.result?.related_org_details) {
+				return {
+					success: false,
+					statusCode: httpStatusCode.internal_server_error,
+					message: 'COULD_NOT_FETCH_ORG_DETAILS',
+				}
+			}
+
+			const visibleOrg = getRelatedOrgs.data.result.related_org_details.map((eachValue) => eachValue.code)
+
+			// Assign visible organization codes
+			dataObject.visible_to_organizations = visibleOrg
+
+			return { success: true, dataObject }
+		} catch (error) {
+			return {
+				success: false,
+				statusCode: httpStatusCode.internal_server_error,
+				message: error.message || 'SOMETHING_WENT_WRONG',
+			}
 		}
 	}
 }
