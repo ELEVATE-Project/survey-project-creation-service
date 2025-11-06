@@ -88,8 +88,6 @@ const CURSOR_TIMEOUT = 30 * 60 * 1000 // 30 minutes cursor timeout
 			//Skip projects without tenant/org details
 			tenantId: { $nin: [null, ''] },
 			orgId: { $nin: [null, ''] },
-			// Skip already migrated projects (having scp_reference_id)
-			$or: [{ scp_reference_id: { $exists: false } }, { scp_reference_id: null }, { scp_reference_id: '' }],
 		})
 
 		console.log(`Found ${totalCount} project templates to process`)
@@ -102,11 +100,6 @@ const CURSOR_TIMEOUT = 30 * 60 * 1000 // 30 minutes cursor timeout
 					isReusable: true,
 					tenantId: { $nin: [null, ''] },
 					orgId: { $nin: [null, ''] },
-					$or: [
-						{ scp_reference_id: { $exists: false } },
-						{ scp_reference_id: null },
-						{ scp_reference_id: '' },
-					],
 				},
 			},
 			{
