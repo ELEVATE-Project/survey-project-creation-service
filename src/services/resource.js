@@ -6,7 +6,7 @@
  */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
-const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
+// const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const reviewResourcesQueries = require('@database/queries/reviewsResources')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewStagesQueries = require('@database/queries/reviewStage')

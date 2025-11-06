@@ -17,7 +17,7 @@ const _ = require('lodash')
 const resourceService = require('@services/resource')
 const { Op } = require('sequelize')
 const utils = require('@generics/utils')
-const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
+// const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const kafkaCommunication = require('@generics/kafka-communication')
 const consumptionRequests = require('@consumption/index')
 const rolloutService = require('@services/rollouts')
@@ -737,24 +737,26 @@ module.exports = class reviewsHelper {
 	static async publishResource(resourceId, userId, organizationCode, tenantCode, userToken = '') {
 		try {
 			// Fetch the resource creator mapping
-			const resourceMapping = await resourceCreatorMappingQueries.findOne(
-				{
-					creator_id: userId,
-					resource_id: resourceId,
-					organization_code: organizationCode,
-					tenant_code: tenantCode,
-				},
-				['id'],
-				{
-					resourceAttributes: ['id', 'organization_code', 'tenant_code'],
-				}
-			)
+			// const resourceMapping = await resourceCreatorMappingQueries.findOne(
+			// 	{
+			// 		creator_id: userId,
+			// 		resource_id: resourceId,
+			// 		organization_code: organizationCode,
+			// 		tenant_code: tenantCode,
+			// 	},
+			// 	['id'],
+			// 	{
+			// 		resourceAttributes: ['id', 'organization_code', 'tenant_code'],
+			// 	}
+			// )
 
-			if (!resourceMapping?.id) throw new Error('RESOURCE_NOT_FOUND')
+			// if (!resourceMapping?.id) throw new Error('RESOURCE_NOT_FOUND')
 
 			let resourceDetails = await resourceService.getDetails(
-				resourceMapping.resource.id,
-				resourceMapping.resource.organization_code,
+				// resourceMapping.resource.id,
+				// resourceMapping.resource.organization_code,
+				resourceId,
+				organizationCode,
 				tenantCode,
 				userToken
 			)

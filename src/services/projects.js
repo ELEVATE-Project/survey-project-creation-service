@@ -6,7 +6,7 @@
  */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
-const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
+// const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const filesService = require('@services/files')
@@ -96,13 +96,13 @@ module.exports = class ProjectsHelper {
 			try {
 				//create project
 				projectCreate = await resourceQueries.create(projectData)
-				const mappingData = {
-					resource_id: projectCreate.id,
-					creator_id: loggedInUserId,
-					organization_code: orgCode,
-					tenant_code: tenantCode,
-				}
-				await resourceCreatorMappingQueries.create(mappingData)
+				// const mappingData = {
+				// 	resource_id: projectCreate.id,
+				// 	creator_id: loggedInUserId,
+				// 	organization_code: orgCode,
+				// 	tenant_code: tenantCode,
+				// }
+				// await resourceCreatorMappingQueries.create(mappingData)
 
 				// upload to blob
 				const resourceId = projectCreate.id
@@ -316,20 +316,49 @@ module.exports = class ProjectsHelper {
 
 	static async delete(resourceId, loggedInUserId, organizationCode, tenantCode) {
 		try {
-			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
-				{
-					resource_id: resourceId,
-					creator_id: loggedInUserId,
-					organization_code: organizationCode,
-					tenant_code: tenantCode,
-				},
-				['id', 'organization_code'],
-				{
-					resourceAttributes: ['id', 'type', 'organization_code'],
-				}
-			)
+			// const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
+			// 	{
+			// 		resource_id: resourceId,
+			// 		creator_id: loggedInUserId,
+			// 		organization_code: organizationCode,
+			// 		tenant_code: tenantCode,
+			// 	},
+			// 	['id', 'organization_code'],
+			// 	{
+			// 		resourceAttributes: ['id', 'type', 'organization_code'],
+			// 	}
+			// )
 
-			if (!resourceCreatorMapping?.id) {
+			// if (!resourceCreatorMapping?.id) {
+			// 	return responses.failureResponse({
+			// 		message: 'PROJECT_NOT_FOUND',
+			// 		statusCode: httpStatusCode.bad_request,
+			// 		responseCode: 'CLIENT_ERROR',
+			// 	})
+			// }
+
+			const resourceFilterQuery = {
+				// id: resourceCreatorMapping.resource.id,
+				id: resourceId,
+				user_id: loggedInUserId,
+				type: common.PROJECT,
+				organization_code: organizationCode,
+				tenant_code: tenantCode,
+				// type: resourceCreatorMapping.resource.type,
+				// organization_code: resourceCreatorMapping.resource.organization_code,
+			}
+
+			// if (!resource?.id && resource.type !== common.PROJECT) {
+			// 	return responses.failureResponse({
+			// 		message: 'PROJECT_NOT_FOUND',
+			// 		statusCode: httpStatusCode.bad_request,
+			// 		responseCode: 'CLIENT_ERROR',
+			// 	})
+			// }
+
+			let project = await resourceQueries.findOne(resourceFilterQuery)
+
+			if (!project?.id) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -337,29 +366,18 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const resource = {
-				id: resourceCreatorMapping.resource.id,
-				type: resourceCreatorMapping.resource.type,
-				organization_code: resourceCreatorMapping.resource.organization_code,
-			}
-
-			if (!resource?.id && resource.type !== common.PROJECT) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
-			let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
-				resourceCreatorMapping.id,
-				loggedInUserId,
-				organizationCode,
-				tenantCode
-			)
+			// let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
+			// 	resourceCreatorMapping.id,
+			// 	loggedInUserId,
+			// 	organizationCode,
+			// 	tenantCode
+			// )
 			let updatedProject = await resourceQueries.deleteOne(resourceId, organizationCode, tenantCode)
 
-			if (updatedProject === 0 && updatedProjectCreatorMapping === 0) {
+			if (
+				updatedProject === 0
+				// && updatedProjectCreatorMapping === 0
+			) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,

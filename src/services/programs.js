@@ -6,7 +6,7 @@
  */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
-const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
+// const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const orgExtensionService = require('@services/organization-extension')
@@ -161,13 +161,13 @@ module.exports = class ProgramsHelper {
 			let programCreate = await resourceQueries.create(programData)
 			const programId = programCreate?.id
 
-			const mappingData = {
-				resource_id: programId,
-				creator_id: loggedInUserId,
-				organization_code: org_code,
-				tenant_code: tenant_code,
-			}
-			await resourceCreatorMappingQueries.create(mappingData)
+			// const mappingData = {
+			// 	resource_id: programId,
+			// 	creator_id: loggedInUserId,
+			// 	organization_code: org_code,
+			// 	tenant_code: tenant_code,
+			// }
+			// await resourceCreatorMappingQueries.create(mappingData)
 
 			// Handle resources if present in the request
 			if (bodyData?.resources?.length > 0) {
@@ -844,28 +844,29 @@ module.exports = class ProgramsHelper {
 
 	static async delete(resourceId, loggedInUserId, tenant_code) {
 		try {
-			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
-				{
-					resource_id: resourceId,
-					creator_id: loggedInUserId,
-					tenant_code: tenant_code,
-				},
-				['id', 'organization_code']
-			)
+			// const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
+			// 	{
+			// 		resource_id: resourceId,
+			// 		creator_id: loggedInUserId,
+			// 		tenant_code: tenant_code,
+			// 	},
+			// 	['id', 'organization_code']
+			// )
 
-			if (!resourceCreatorMapping?.id) {
-				return responses.failureResponse({
-					message: 'PROGRAM_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
+			// if (!resourceCreatorMapping?.id) {
+			// 	return responses.failureResponse({
+			// 		message: 'PROGRAM_NOT_FOUND',
+			// 		statusCode: httpStatusCode.bad_request,
+			// 		responseCode: 'CLIENT_ERROR',
+			// 	})
+			// }
 
 			const resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
 					type: common.RESOURCE_TYPE_PROGRAM,
-					organization_code: resourceCreatorMapping.organization_code,
+					user_id: loggedInUserId,
+					// organization_code: resourceCreatorMapping.organization_code,
 					tenant_code: tenant_code,
 					status: common.RESOURCE_STATUS_DRAFT,
 					stage: common.RESOURCE_STAGE_CREATION,
@@ -886,14 +887,18 @@ module.exports = class ProgramsHelper {
 				resource.organization_code,
 				resource.tenant_code
 			)
-			let updatedResourceCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
-				resourceCreatorMapping.id,
-				loggedInUserId,
-				resource.organization_code,
-				resource.tenant_code
-			)
+			// let updatedResourceCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
+			// 	resourceCreatorMapping.id,
+			// 	loggedInUserId,
+			// 	resource.organization_code,
+			// 	resource.tenant_code
+			// )
 
-			if (updatedResource === 0 && updatedResourceCreatorMapping === 0) {
+			if (
+				updatedResource === 0
+				// &&
+				// updatedResourceCreatorMapping === 0
+			) {
 				return responses.failureResponse({
 					message: 'PROGRAM_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -1623,12 +1628,12 @@ async function handleResources(
 						// Map the duplicated resource to the creator and program
 						await Promise.all([
 							// Map the duplicated resource to the creator
-							resourceCreatorMappingQueries.create({
-								resource_id: duplicateResource.id,
-								creator_id: loggedInUserId,
-								organization_code: org_code,
-								tenant_code: tenant_code,
-							}),
+							// resourceCreatorMappingQueries.create({
+							// 	resource_id: duplicateResource.id,
+							// 	creator_id: loggedInUserId,
+							// 	organization_code: org_code,
+							// 	tenant_code: tenant_code,
+							// }),
 							// Map the duplicated resource to the program
 							programResourceMappingQueries.create({
 								program_id: programId,

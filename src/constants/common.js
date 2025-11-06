@@ -269,4 +269,6 @@ module.exports = {
 	OPERATION_REMOVE: 'remove',
 	PUT: 'PUT',
 	ALL: 'ALL',
+	IS_EXTERNAL: 'is_external',
+	DEPENDED_ON: 'depended_on',
 }
