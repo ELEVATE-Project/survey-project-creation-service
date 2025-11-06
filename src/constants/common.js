@@ -270,4 +270,11 @@ module.exports = {
 	OPERATION_REMOVE: 'remove',
 	PUT: 'PUT',
 	ALL: 'ALL',
+	CREATE: 'CREATE',
+	UPDATE: 'UPDATE',
+	VALID_POLICIES: {
+		ALL: 'ALL',
+		ASSOCIATED: 'ASSOCIATED',
+		CURRENT: 'CURRENT',
+	},
 }

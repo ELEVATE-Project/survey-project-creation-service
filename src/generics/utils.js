@@ -1050,6 +1050,20 @@ function isValidDate(dateValue) {
 	return date instanceof Date && !isNaN(date.getTime())
 }
 
+/**
+ * check org policies values or valid or not
+ * @function
+ * @name setPolicy
+ * @param {*} policy -  org policies value
+ * @returns {String|null} - Returns valid org policies data
+ */
+function setPolicy(policy) {
+	const trimmed = policy?.trim()
+	if (!trimmed) return null
+	const upper = trimmed.toUpperCase()
+	return common.VALID_POLICIES[upper] ? upper : null
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -1103,4 +1117,5 @@ module.exports = {
 	removeFile,
 	pathFinder,
 	isValidDate,
+	setPolicy,
 }
