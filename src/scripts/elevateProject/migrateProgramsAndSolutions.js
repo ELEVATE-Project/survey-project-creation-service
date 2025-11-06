@@ -154,8 +154,6 @@ const entityDetailsCache = new Map() // Cache for entity details by ID and tenan
 			components: { $exists: true, $type: 'array', $not: { $size: 0 } },
 			tenantId: { $nin: [null, ''] },
 			orgId: { $nin: [null, ''] },
-			// Skip already migrated programs (having scp_reference_id)
-			$or: [{ scp_reference_id: { $exists: false } }, { scp_reference_id: null }, { scp_reference_id: '' }],
 		}
 
 		// Add filtering based on command-line arguments if provided
