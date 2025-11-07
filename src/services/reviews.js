@@ -8,7 +8,6 @@
 const httpStatusCode = require('@generics/http-status')
 const common = require('@constants/common')
 const reviewsQueries = require('@database/queries/reviews')
-const reviewResourceQueries = require('@database/queries/reviewResources')
 const resourceQueries = require('@database/queries/resources')
 const responses = require('@helpers/responses')
 const orgExtensionService = require('@services/organization-extension')
@@ -17,7 +16,6 @@ const _ = require('lodash')
 const resourceService = require('@services/resource')
 const { Op } = require('sequelize')
 const utils = require('@generics/utils')
-// const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const kafkaCommunication = require('@generics/kafka-communication')
 const consumptionRequests = require('@consumption/index')
 const rolloutService = require('@services/rollouts')
@@ -48,7 +46,12 @@ module.exports = class reviewsHelper {
 				{ attributes: ['id', 'status', 'organization_code', 'type', 'next_stage', 'stage'] }
 			)
 			// If no resource is found return error
-			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
+			if (!resource?.id) {
+				throw {
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.bad_request,
+				}
+			}
 
 			// Validate if there is an ongoing review for the given resourceId, userId, resource status, and orgCode.
 			let ongoingReview = await this.validateReview(resourceId, userId, resource.status, orgCode, tenantCode)
@@ -60,7 +63,10 @@ module.exports = class reviewsHelper {
 
 			// if already requested for changes then throw error
 			if (review?.status === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)
-				throw new Error('CHANGES_ALREADY_REQUESTED')
+				throw {
+					message: 'CHANGES_ALREADY_REQUESTED',
+					statusCode: httpStatusCode.bad_request,
+				}
 
 			// If the bodyData contains a comment Add or update comments
 			if (bodyData?.comment) {
@@ -120,11 +126,19 @@ module.exports = class reviewsHelper {
 			)
 
 			// If no resource is found return error
-			if (!resource?.id) throw new Error('RESOURCE_NOT_FOUND')
+			if (!resource?.id)
+				throw {
+					message: 'RESOURCE_NOT_FOUND',
+					statusCode: httpStatusCode.not_found,
+				}
 
 			// Validate the current status of the resource to determine if it is available for review.
 			const validateResourceStatus = await this.isResourceAvailableForReview(resource.status)
-			if (!validateResourceStatus) throw new Error(`Resource is already ${resource.status}. You can't review it`)
+			if (!validateResourceStatus)
+				throw {
+					message: `Resource is already ${resource.status}. You can't review it`,
+					statusCode: httpStatusCode.bad_request,
+				}
 
 			// Fetch the configuration settings for the organization based on the provided orgCode.
 			const orgConfig = await orgExtensionService.getConfig(orgCode, tenantCode)
@@ -138,19 +152,16 @@ module.exports = class reviewsHelper {
 			// Extract review type and minimum approval for the resource type
 			const { review_type: reviewType } = orgConfigList[resource.type]
 
-			//Check if the logged-in user started the review
-			const reviewResource = await reviewResourceQueries.findOne(
-				{
-					reviewer_id: userId,
-					resource_id: resourceId,
-					organization_code: orgCode,
-					tenant_code: tenantCode,
-				},
-				{ attributes: ['id', 'organization_code'] }
-			)
+			// fetch the review details for the specific organization, resource
+			const review = await reviewsQueries.findOne({
+				organization_code: orgCode,
+				tenant_code: tenantCode,
+				resource_id: resourceId,
+				reviewer_id: userId,
+			})
 
 			// If the review resource does not exist create the review
-			if (!reviewResource?.id) {
+			if (!review?.id) {
 				return await this.createReview(
 					resourceId,
 					reviewType,
@@ -160,21 +171,9 @@ module.exports = class reviewsHelper {
 					orgCode,
 					resource.next_stage,
 					userRoles,
-					resource.type,
-					resource.stage
+					resource.type
 				)
 			}
-
-			// If reviewResource exists, fetch the review details for the specific organization, resource
-			const review = await reviewsQueries.findOne({
-				organization_code: reviewResource.organization_code,
-				tenant_code: tenantCode,
-				resource_id: resourceId,
-				reviewer_id: userId,
-			})
-
-			// Check if the review exists; if not, return a failure response
-			if (!review?.id) throw new Error('REVIEW_NOT_FOUND')
 
 			// If the review status is 'NOT_STARTED', validate that no active review is being conducted by others.
 			if (review?.status === common.REVIEW_STATUS_NOT_STARTED) {
@@ -482,8 +481,7 @@ module.exports = class reviewsHelper {
 		userOrgId,
 		nextStage = null,
 		userRoles,
-		resourceType,
-		resourceStage
+		resourceType
 	) {
 		try {
 			// If the review type is 'SEQUENTIAL', Check if there are no active reviews by others for the same resource
@@ -524,8 +522,6 @@ module.exports = class reviewsHelper {
 			if (!newReview?.id) {
 				throw new Error('FAILED_TO_START_REVIEW')
 			}
-			// Create a corresponding entry in the review_resources table
-			await reviewResourceQueries.create(_.omit(reviewData, [common.STATUS]))
 			// Update resource table data
 			let updateData = {
 				status: common.REVIEW_STATUS_INPROGRESS,
@@ -572,7 +568,7 @@ module.exports = class reviewsHelper {
 			}
 
 			// Check if a review exists for the specified user and resource
-			const reviewValidation = await this.getReviewDetails(userId, resourceId, tenantCode)
+			const reviewValidation = await this.getReviewDetails(userId, resourceId, tenantCode, orgCode)
 			if (reviewValidation.statusCode !== httpStatusCode.ok) {
 				return reviewValidation
 			}
@@ -624,25 +620,15 @@ module.exports = class reviewsHelper {
 	 * @name getReviewDetails
 	 * @param {String} userId - The ID of the user who is the reviewer.
 	 * @param {Integer} resourceId - The ID of the resource being reviewed.
+	 * @param {String} tenantCode - The tenant code.
+	 * @param {String} orgCode - The organization code.
 	 * @returns {JSON} -  Returns a success response with review details or an error response if the review is not found.
 	 */
-	static async getReviewDetails(userId, resourceId, tenantCode) {
+	static async getReviewDetails(userId, resourceId, tenantCode, orgCode) {
 		try {
-			//Check if the logged-in user started the review
-			const reviewResource = await reviewResourceQueries.findOne({
-				reviewer_id: userId,
-				resource_id: resourceId,
-				tenant_code: tenantCode,
-			})
-
-			// If the review resource is not found, return an error response
-			if (!reviewResource?.id) {
-				throw new Error('REVIEW_NOT_FOUND')
-			}
-
 			// Fetch the review details of the user
 			const review = await reviewsQueries.findOne({
-				organization_code: reviewResource.organization_code,
+				organization_code: orgCode,
 				tenant_code: tenantCode,
 				resource_id: resourceId,
 				reviewer_id: userId,
@@ -736,30 +722,7 @@ module.exports = class reviewsHelper {
 	 */
 	static async publishResource(resourceId, userId, organizationCode, tenantCode, userToken = '') {
 		try {
-			// Fetch the resource creator mapping
-			// const resourceMapping = await resourceCreatorMappingQueries.findOne(
-			// 	{
-			// 		creator_id: userId,
-			// 		resource_id: resourceId,
-			// 		organization_code: organizationCode,
-			// 		tenant_code: tenantCode,
-			// 	},
-			// 	['id'],
-			// 	{
-			// 		resourceAttributes: ['id', 'organization_code', 'tenant_code'],
-			// 	}
-			// )
-
-			// if (!resourceMapping?.id) throw new Error('RESOURCE_NOT_FOUND')
-
-			let resourceDetails = await resourceService.getDetails(
-				// resourceMapping.resource.id,
-				// resourceMapping.resource.organization_code,
-				resourceId,
-				organizationCode,
-				tenantCode,
-				userToken
-			)
+			let resourceDetails = await resourceService.getDetails(resourceId, organizationCode, tenantCode, userToken)
 
 			if (resourceDetails.statusCode !== httpStatusCode.ok) {
 				return resourceDetails

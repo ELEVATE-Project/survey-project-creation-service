@@ -6,7 +6,6 @@
  */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
-// const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const orgExtensionService = require('@services/organization-extension')
@@ -21,7 +20,6 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const commentQueries = require('@database/queries/comments')
 const projectService = require('@services/projects')
-const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 const reviewService = require('@services/reviews')
 const rolloutService = require('@services/rollouts')
 module.exports = class ProgramsHelper {
@@ -178,14 +176,6 @@ module.exports = class ProgramsHelper {
 			let programCreate = await resourceQueries.create(programData)
 			const programId = programCreate?.id
 
-			// const mappingData = {
-			// 	resource_id: programId,
-			// 	creator_id: loggedInUserId,
-			// 	organization_code: org_code,
-			// 	tenant_code: tenant_code,
-			// }
-			// await resourceCreatorMappingQueries.create(mappingData)
-
 			// Handle resources if present in the request
 			if (bodyData?.resources?.length > 0) {
 				await handleResources(
@@ -272,11 +262,10 @@ module.exports = class ProgramsHelper {
 
 			let programId = fetchResource?.id
 			if (!programId) {
-				return responses.failureResponse({
+				throw {
 					message: 'PROGRAM_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				}
 			}
 
 			// Check if the program is in the review stage and has no requested changes
@@ -387,11 +376,10 @@ module.exports = class ProgramsHelper {
 			)
 
 			if (updateCount === 0) {
-				return responses.failureResponse({
+				throw {
 					message: 'PROGRAM_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				}
 			}
 
 			return responses.successResponse({
@@ -404,7 +392,7 @@ module.exports = class ProgramsHelper {
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.internal_server_error,
+				statusCode: error?.statusCode || httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
@@ -859,31 +847,14 @@ module.exports = class ProgramsHelper {
 	 * @returns {JSON} - program delete response.
 	 */
 
-	static async delete(resourceId, loggedInUserId, tenant_code) {
+	static async delete(resourceId, loggedInUserId, organization_code, tenant_code) {
 		try {
-			// const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
-			// 	{
-			// 		resource_id: resourceId,
-			// 		creator_id: loggedInUserId,
-			// 		tenant_code: tenant_code,
-			// 	},
-			// 	['id', 'organization_code']
-			// )
-
-			// if (!resourceCreatorMapping?.id) {
-			// 	return responses.failureResponse({
-			// 		message: 'PROGRAM_NOT_FOUND',
-			// 		statusCode: httpStatusCode.bad_request,
-			// 		responseCode: 'CLIENT_ERROR',
-			// 	})
-			// }
-
 			const resource = await resourceQueries.findOne(
 				{
 					id: resourceId,
 					type: common.RESOURCE_TYPE_PROGRAM,
 					user_id: loggedInUserId,
-					// organization_code: resourceCreatorMapping.organization_code,
+					organization_code: organization_code,
 					tenant_code: tenant_code,
 					status: common.RESOURCE_STATUS_DRAFT,
 					stage: common.RESOURCE_STAGE_CREATION,
@@ -892,11 +863,10 @@ module.exports = class ProgramsHelper {
 			)
 
 			if (!resource?.id) {
-				return responses.failureResponse({
+				throw {
 					message: 'PROGRAM_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				}
 			}
 
 			let updatedResource = await resourceQueries.deleteOne(
@@ -904,23 +874,12 @@ module.exports = class ProgramsHelper {
 				resource.organization_code,
 				resource.tenant_code
 			)
-			// let updatedResourceCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
-			// 	resourceCreatorMapping.id,
-			// 	loggedInUserId,
-			// 	resource.organization_code,
-			// 	resource.tenant_code
-			// )
 
-			if (
-				updatedResource === 0
-				// &&
-				// updatedResourceCreatorMapping === 0
-			) {
-				return responses.failureResponse({
+			if (updatedResource === 0) {
+				throw {
 					message: 'PROGRAM_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				}
 			}
 
 			return responses.successResponse({
@@ -931,7 +890,7 @@ module.exports = class ProgramsHelper {
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
-				statusCode: httpStatusCode.internal_server_error,
+				statusCode: error?.statusCode || httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
 		}
@@ -1156,11 +1115,7 @@ module.exports = class ProgramsHelper {
 							),
 
 						// Insert new reviews and related resources for new reviewers
-						inserts.length > 0 &&
-							Promise.all([
-								reviewsResourcesQueries.bulkCreate(inserts.map(({ status, ...rest }) => rest)),
-								reviewsQueries.bulkCreate(inserts),
-							]),
+						inserts.length > 0 && Promise.all([reviewsQueries.bulkCreate(inserts)]),
 					].filter(Boolean)
 				)
 			}
@@ -1644,13 +1599,6 @@ async function handleResources(
 
 						// Map the duplicated resource to the creator and program
 						await Promise.all([
-							// Map the duplicated resource to the creator
-							// resourceCreatorMappingQueries.create({
-							// 	resource_id: duplicateResource.id,
-							// 	creator_id: loggedInUserId,
-							// 	organization_code: org_code,
-							// 	tenant_code: tenant_code,
-							// }),
 							// Map the duplicated resource to the program
 							programResourceMappingQueries.create({
 								program_id: programId,

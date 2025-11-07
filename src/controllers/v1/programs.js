@@ -26,6 +26,7 @@ module.exports = class Programs {
 					program = await programService.delete(
 						req.params.id,
 						req.decodedToken.id,
+						req.decodedToken.organization_code,
 						req.decodedToken.tenant_code
 					)
 				} else {
