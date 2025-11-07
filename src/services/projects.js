@@ -430,7 +430,7 @@ module.exports = class ProjectsHelper {
 				options
 			)
 
-			if (!project) {
+			if (!project?.id) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -576,6 +576,7 @@ module.exports = class ProjectsHelper {
 				userDetails.tenant_code,
 				commentsOptions
 			)
+
 			if (projectDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROJECT_ACCESS',
@@ -620,12 +621,8 @@ module.exports = class ProjectsHelper {
 				)
 			}
 
-			//validate entity type if entity tagging is enabled
-			const isEntityTaggingEnabled =
-				String(process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS).toLowerCase() === 'true'
-			if (isEntityTaggingEnabled && !projectData.entity_type) {
-				validationErrors.push(utils.errorObject(common.ENTITY_TYPE, '', 'Entity type is required'))
-			}
+			// Validate entity tagging
+			await this._validateEntityTagging(projectData, validationErrors)
 
 			//validate task start_date and end_date if enabled
 			const isTaskDateValidationEnabled =
@@ -1304,6 +1301,50 @@ module.exports = class ProjectsHelper {
 					utils.errorObject(taskPath, 'end_date', `${taskType} end date must be after start date`)
 				)
 			}
+		}
+	}
+
+	/**
+	 * Validates entity tagging based on organization and project settings.
+	 * @method
+	 * @name _validateEntityTagging
+	 * @param {Object} projectData - The project data.
+	 * @param {Array} validationErrors - Array to collect validation errors.
+	 * @returns {Promise<void>}
+	 * @private
+	 */
+	static async _validateEntityTagging(projectData, validationErrors) {
+		try {
+			// 1. Default to environment-level setting
+			let isEntityTaggingEnabled =
+				String(process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS || 'false').toLowerCase() === 'true'
+
+			// 2. Get organization-level configuration and override if it exists
+			const orgConfig = await orgExtensionService.getConfig(
+				projectData.organization_code,
+				projectData.tenant_code
+			)
+
+			if (orgConfig.statusCode === httpStatusCode.ok && orgConfig?.result?.resource) {
+				const projectOrgConfig = orgConfig.result.resource.find((item) => item.resource_type === common.PROJECT)
+				// If org-level config for 'enable_entity_tagging' is explicitly defined, it overrides the environment default
+				if (projectOrgConfig && projectOrgConfig.enable_entity_tagging !== undefined) {
+					isEntityTaggingEnabled = String(projectOrgConfig.enable_entity_tagging).toLowerCase() === 'true'
+				}
+			}
+
+			// 3. If tagging is enabled, validate the project-specific setting
+			if (isEntityTaggingEnabled) {
+				const projectTaggingEnabled =
+					String(projectData.enable_entity_tagging || 'false').toLowerCase() === 'true'
+
+				if (projectTaggingEnabled && !projectData.entity_type) {
+					validationErrors.push(utils.errorObject(common.ENTITY_TYPE, '', 'Entity type is required'))
+				}
+			}
+		} catch (error) {
+			// Log the error and continue without blocking submission
+			console.error('Error in _validateEntityTagging:', error)
 		}
 	}
 
