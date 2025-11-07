@@ -129,7 +129,7 @@ module.exports = class reviewsHelper {
 			if (!resource?.id)
 				throw {
 					message: 'RESOURCE_NOT_FOUND',
-					statusCode: httpStatusCode.not_found,
+					statusCode: httpStatusCode.bad_request,
 				}
 
 			// Validate the current status of the resource to determine if it is available for review.

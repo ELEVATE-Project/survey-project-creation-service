@@ -777,8 +777,6 @@ module.exports = class ProjectsHelper {
 				}))
 
 				await reviewsQueries.bulkCreate(reviewsData)
-				// delete reviewsData.status
-				// await reviewsResourcesQueries.bulkCreate(reviewsData)
 			}
 
 			//update the reviews and resource status
