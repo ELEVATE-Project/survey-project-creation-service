@@ -4690,28 +4690,40 @@ paths:
       summary: Project Details
       tags:
         - Projects
+      operationId: getProjectDetails
       description: |-
-        You can use this API to get project details
-         - The API Endpoint for get project details is `/scp/v1/projects/details` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Retrieves comprehensive details of a specific project including metadata, tasks, certificates, and comments
+        - Fetches project data from cloud storage (blob_path) and merges with database fields
+        - Converts entity values to label-value pairs for display purposes
+        - Includes organization details from user service
+        - Returns project with all associated reviewers and their review status
+        - Scoped to user's organization and tenant for data isolation
+
+        **Validation Rules**:
+        - `projectId` must be a valid integer (1 to 2147483647)
+        - Project must exist in the specified organization and tenant
+        - Project type must be PROJECT
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains organization_code and tenant_code for scoping.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: projectId
-          description: Please append a valid project Id to the Request URL.
+          description: 'Unique project ID to retrieve (numeric, positive integer, 1 to 2147483647).'
           schema:
-            type: number
+            type: integer
+            minimum: 1
+            maximum: 2147483647
           required: true
           example: 2
       responses:
         '200':
-          description: Project fetched successfully
+          description: 'Project details retrieved successfully'
           content:
             application/json:
               schema:
@@ -4728,14 +4740,72 @@ paths:
                         type: integer
                       title:
                         type: string
-                      tenant_code:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      stage:
+                        type: string
+                      user_id:
                         type: string
                       organization_code:
                         type: string
+                      tenant_code:
+                        type: string
+                      reference_id:
+                        type: integer
+                      published_id:
+                        type: string
+                      created_by:
+                        type: string
+                      updated_by:
+                        type: string
+                      submitted_on:
+                        type: string
+                        format: date-time
+                      published_on:
+                        type: string
+                        format: date-time
+                      last_reviewed_on:
+                        type: string
+                        format: date-time
+                      is_under_edit:
+                        type: boolean
+                      is_reusable:
+                        type: boolean
+                      visibility:
+                        type: string
+                      meta:
+                        type: object
+                      organization:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+                          code:
+                            type: string
+                      reviewers:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                            status:
+                              type: string
                       categories:
                         type: array
                         items:
-                          type: string
+                          type: object
+                          properties:
+                            label:
+                              type: string
+                            value:
+                              type: string
                       recommented_duration:
                         type: object
                         properties:
@@ -4748,11 +4818,21 @@ paths:
                       recommeneded_for:
                         type: array
                         items:
-                          type: string
+                          type: object
+                          properties:
+                            label:
+                              type: string
+                            value:
+                              type: string
                       languages:
                         type: array
                         items:
-                          type: string
+                          type: object
+                          properties:
+                            label:
+                              type: string
+                            value:
+                              type: string
                       learning_resources:
                         type: array
                         items:
@@ -4766,7 +4846,7 @@ paths:
                         type: object
                       licence:
                         type: string
-                      task:
+                      tasks:
                         type: array
                         items:
                           type: object
@@ -4867,15 +4947,29 @@ paths:
                             version:
                               type: number
               examples:
-                example1:
+                projectDetailsExample:
                   value:
                     responseCode: OK
                     message: Project fetched successfully
                     result:
                       id: 1
-                      organization_code: default_code,
-                      tenant_code: default,
+                      title: Sample Project
+                      type: project
                       status: IN_REVIEW
+                      stage: REVIEW
+                      user_id: '25'
+                      organization_code: default_code
+                      tenant_code: default
+                      reference_id: null
+                      published_id: null
+                      created_by: '25'
+                      updated_by: '25'
+                      submitted_on: '2024-04-10T10:30:00.000Z'
+                      published_on: null
+                      last_reviewed_on: null
+                      is_under_edit: false
+                      is_reusable: true
+                      visibility: CURRENT
                       organization:
                         id: 2
                         name: Shikshlokam
@@ -4884,9 +4978,8 @@ paths:
                         - id: 24
                           name: Raven
                           status: REQUEST_FOR_CHANGES
-                      title: Sample Project
                       categories:
-                        - label: communication
+                        - label: Communication
                           value: communication
                       recommented_duration:
                         type: week
@@ -4930,6 +5023,7 @@ paths:
                           url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
                         code: two-logo-two-sign
                         name: Two Logo Two Signature
+                        issuer: SPD
                         logos:
                           no_of_logos: 2
                           stateLogo1: 'https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI'
@@ -4938,7 +5032,6 @@ paths:
                           no_of_signature: 2
                           signatureImg1: 'https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E'
                           signatureImg2: 'https://unsplash.com/photos/person-in-orange-long-sleeve-shirt-writing-on-white-paper-doplSDELX7E'
-                        issuer: SPD
                         criteria:
                           expressions: C1&&C2
                           conditions:
@@ -4987,11 +5080,8 @@ paths:
                             id: 25
                             name: Adithya
                           resolved_at: '2024-04-11T06:43:43.995Z'
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                      created_at: '2024-04-10T10:00:00.000Z'
+                      updated_at: '2024-04-10T12:00:00.000Z'
         '400':
           description: Bad Request.
           content:
@@ -5003,35 +5093,50 @@ paths:
       summary: Reviewer List
       tags:
         - Projects
+      operationId: getReviewerList
       description: |-
-        You can use this API to get the list all project reviewers
-         - The API Endpoint for list all project reviewers is `/scp/v1/projects/reviewerList` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Retrieves a paginated list of users with reviewer role from the user service
+        - Excludes the authenticated user from the reviewer list
+        - Fetches reviewer details including name, email, phone, organization information
+        - Supports pagination with configurable page size (max 100 records per page)
+        - Returns empty list if no reviewers found or user service call fails
+        - Scoped to user's organization and tenant
+
+        **Validation Rules**:
+        - `page` must be a positive integer (defaults to 1 if not provided or invalid)
+        - `limit` must be a positive integer between 1 and 100 (defaults to 100)
+        - Authenticated user is automatically excluded from results
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for user service API calls.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: page
           in: query
-          description: The page number for pagination.
+          description: 'Page number for pagination (1-indexed). Defaults to 1 if not provided or invalid. Minimum value is 1.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            default: 1
           example: 1
         - name: limit
           in: query
-          description: The limit of resources per page.
+          description: 'Number of records per page. Defaults to 100 if not provided. Maximum allowed is 100. Values exceeding 100 will be capped at 100.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
           example: 10
       responses:
         '200':
-          description: Reviewer list fetched successfully
+          description: 'Reviewer list retrieved successfully'
           content:
             application/json:
               schema:
@@ -5044,30 +5149,40 @@ paths:
                   result:
                     type: object
                     properties:
-                      resource_id:
-                        type: string
-                      comments:
-                        type: array
-                        items:
-                          type: object
-                      count:
-                        type: string
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
+                      data:
                         type: array
                         items:
                           type: object
                           properties:
                             id:
-                              type: number
-                            type:
+                              type: integer
+                            name:
                               type: string
-                            version:
-                              type: number
+                            email:
+                              type: string
+                            username:
+                              type: string
+                            phone_code:
+                              type: string
+                            phone:
+                              type: string
+                            status:
+                              type: string
+                            organization_code:
+                              type: string
+                            organization:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                name:
+                                  type: string
+                                code:
+                                  type: string
+                      count:
+                        type: integer
               examples:
-                example1:
+                reviewerListExample:
                   value:
                     responseCode: OK
                     message: Reviewer list fetched successfully
@@ -5075,105 +5190,142 @@ paths:
                       data:
                         - id: 1
                           name: Priyanka
-                          organization_code: 2
-                          tenant_code: default
+                          email: priyanka@example.com
+                          username: priyanka_reviewer
+                          phone_code: '+91'
+                          phone: '9876543210'
+                          status: ACTIVE
+                          organization_code: sl
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 2
                           name: Adithya
-                          organization_code: 2
-                          tenant_code: default
+                          email: adithya@example.com
+                          username: adithya_reviewer
+                          phone_code: '+91'
+                          phone: '9876543211'
+                          status: ACTIVE
+                          organization_code: sl
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 3
                           name: Ankit
-                          organization_code: 2
-                          tenant_code: default
+                          email: ankit@example.com
+                          username: ankit_reviewer
+                          phone_code: '+91'
+                          phone: '9876543212'
+                          status: ACTIVE
+                          organization_code: sl
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                       count: 3
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                emptyListExample:
+                  summary: 'No reviewers found'
+                  value:
+                    responseCode: OK
+                    message: REVIEWER_LIST_FETCHED_SUCCESSFULLY
+                    result:
+                      data: []
+                      count: 0
   /scp/v1/resource/list:
     get:
       summary: Resource List
       tags:
         - Resource
+      operationId: listResources
       description: |-
-        You can use this API to list resources like project
-         - The API Endpoint for listing resources is `/scp/v1/resource/list` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - Query Param `listing` is mandatory for this API which can have any one value ['drafts','submitted_for_review','browse_existing'].
-         - In case of `drafts` Status key is redundant as it returns resources with status drafts only.
-         - In case of `browse_existing` only type and sort can be passed as filters.
+        **Overview**:
+        - Retrieves paginated list of resources (projects, programs, surveys, observations) based on listing type
+        - Supports three listing modes: drafts, submitted_for_review, up_for_review
+        - Fetches user-created resources with organization and creator details
+        - Applies search, filtering, and sorting capabilities
+        - Returns resources with metadata including status, dates, and review information
+        - Scoped to authenticated user and their organization/tenant
+
+        **Validation Rules**:
+        - `listing` parameter is mandatory (drafts, submitted_for_review, or browse_existing)
+        - `type` must be from allowed values: project, program, survey, observation, observation_with_rubric
+        - `status` is only applicable for submitted_for_review listing (redundant for drafts)
+        - `page` defaults to 1 if not provided (minimum 1)
+        - `limit` defaults to 100 if not provided (maximum 100)
+        - `search` cannot contain special characters
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: page
           in: query
-          description: The page number for pagination.
+          description: 'Page number for pagination (1-indexed). Defaults to 1 if not provided or invalid. Minimum value is 1.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            default: 1
           example: 1
         - name: limit
           in: query
-          description: The limit of resources per page.
+          description: 'Number of records per page. Defaults to 100 if not provided. Maximum allowed is 100. Values exceeding 100 will be capped at 100.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
           example: 10
         - name: search
           in: query
-          description: The search value to filter resource based on title.
+          description: 'Search text to filter resources by title (case-insensitive). Cannot contain special characters.'
           required: false
           schema:
             type: string
+          example: 'education'
         - name: type
           in: query
-          description: Type of the resource(project, program, observation, survey, observation_with_rubric)
+          description: 'Resource type filter. Comma-separated values allowed for multiple types: project, program, observation, survey, observation_with_rubric.'
           required: false
           schema:
             type: string
           example: project
         - name: status
           in: query
-          description: "The status of the resource (['IN_REVIEW', 'SUBMITTED', 'PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'] if `listing` is `submitted_for_review`. This key is redundant in other cases. )"
+          description: 'Status filter (only for submitted_for_review listing). Comma-separated values: IN_REVIEW, SUBMITTED, PUBLISHED, REJECTED, REJECTED_AND_REPORTED. Redundant for drafts listing.'
           required: false
           schema:
             type: string
-          example: DRAFT
+          example: SUBMITTED
         - name: listing
           in: query
-          description: "To identify the page from frontend. Values can be ['drafts','submitted_for_review','browse_existing']"
+          description: 'Mandatory parameter to identify listing mode. Values: drafts (user drafts only), submitted_for_review (submitted resources), browse_existing (published resources).'
           required: true
           schema:
             type: string
-          example: DRAFT
+            enum:
+              - drafts
+              - submitted_for_review
+          example: drafts
         - name: sort_by
           in: query
-          description: 'Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request'
+          description: 'Sort field. Options: status, title. Default sorting is by title if not specified.'
           required: false
           schema:
             type: string
+            enum:
+              - status
+              - title
           example: status
         - name: sort_order
           in: query
-          description: Sort order (ascending or descending).
+          description: 'Sort order: asc (ascending) or desc (descending).'
           required: false
           schema:
             type: string
@@ -5183,7 +5335,7 @@ paths:
           example: asc
       responses:
         '200':
-          description: project listed successfully
+          description: 'Resources listed successfully'
           content:
             application/json:
               schema:
@@ -5200,114 +5352,185 @@ paths:
                         type: array
                         items:
                           type: object
-                      count:
-                        type: number
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
                           properties:
                             id:
-                              type: number
+                              type: integer
+                            title:
+                              type: string
                             type:
                               type: string
-                            version:
-                              type: number
+                            status:
+                              type: string
+                            stage:
+                              type: string
+                            organization:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                name:
+                                  type: string
+                                code:
+                                  type: string
+                            creator:
+                              type: string
+                            created_at:
+                              type: string
+                              format: date-time
+                            updated_at:
+                              type: string
+                              format: date-time
+                            submitted_on:
+                              type: string
+                              format: date-time
+                            published_on:
+                              type: string
+                              format: date-time
+                            last_reviewed_on:
+                              type: string
+                              format: date-time
+                            is_under_edit:
+                              type: boolean
+                            published_id:
+                              type: string
+                            notes:
+                              type: string
+                            start_date:
+                              type: string
+                              format: date-time
+                            end_date:
+                              type: string
+                              format: date-time
+                      count:
+                        type: integer
+                      changes_requested_count:
+                        type: integer
               examples:
-                example1:
+                draftsExample:
+                  summary: 'Draft resources listing'
                   value:
                     responseCode: OK
                     message: project listed successfully
                     result:
                       data:
                         - id: 4
-                          title: sample project
+                          title: Sample Project
                           type: project
+                          status: DRAFT
+                          stage: CREATION
                           organization:
                             id: 24
                             name: Shikshalokam
                             code: sl
-                          status: DRAFT
-                          created_by: 32
                           creator: Adithya
-                          organiation_code: default_code
+                          created_at: '2024-10-29T10:00:00.000Z'
+                          updated_at: '2024-10-29T12:00:00.000Z'
+                          notes: ''
+                      count: 1
+                submittedExample:
+                  summary: 'Submitted resources listing'
+                  value:
+                    responseCode: OK
+                    message: RESOURCE_LISTED_SUCCESSFULLY
+                    result:
+                      data:
                         - id: 5
                           title: Improve Education Quality
                           type: program
+                          status: SUBMITTED
+                          stage: REVIEW
                           organization:
                             id: 25
                             name: Default Organization
                             code: default_code
-                          status: DRAFT
+                          creator: Priyanka
+                          created_at: '2024-10-29T11:00:00.000Z'
+                          updated_at: '2024-10-29T11:30:00.000Z'
+                          submitted_on: '2024-10-29T11:35:08.694Z'
+                          is_under_edit: false
+                          notes: ''
                           start_date: '2024-10-29T11:35:08.694Z'
                           end_date: '2024-11-29T11:36:31.117Z'
-                          created_by: 33
-                          creator: Priyanka
-                          organiation_code: default_code
                       count: 1
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projecsuccessfullytCreation
-                          version: 3
+                      changes_requested_count: 0
   /scp/v1/resource/getPublishedResources:
     get:
       summary: Browse Existing List
       tags:
         - Resource
       description: |-
-        You can use this API to list published resources like project
-         - The API Endpoint for listing resources is `/scp/v1/resource/getPublishedResources` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - Query Param `type` is a non mandatory field which can have values [`'project'`,`'survey'`,`'observation'`,`'observation_with_rubric'`, `'program'`].
+        **Overview**:
+        - Retrieves paginated list of published resources filtered by user's role-based permissions
+        - Supports resource types: project, program, survey, observation, observation_with_rubric
+        - Applies organization visibility policies (CURRENT, ASSOCIATED, ALL) to control resource access
+        - Resources filtered by PUBLISHED status and is_reusable flag
+        - Includes creator details, reviewer names, and organization information
+        - Supports search, filtering, and sorting capabilities
+        - Default sort by updated_at if not specified
+
+        **Validation Rules**:
+        - `type` must be from allowed values: project, program, survey, observation, observation_with_rubric
+        - Multiple types supported as comma-separated values
+        - User must have role permissions for requested resource types
+        - `page` defaults to 1 (minimum 1)
+        - `limit` defaults to 100 (maximum 100)
+        - `search` performs case-insensitive title matching
+        - Organization visibility policy enforced based on organization configuration
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, roles array, and token for service calls.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: page
           in: query
-          description: The page number for pagination.
+          description: 'Page number for pagination (1-indexed). Defaults to 1 if not provided. Minimum value is 1.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            default: 1
           example: 1
         - name: limit
           in: query
-          description: The limit of projects per page.
+          description: 'Number of records per page. Defaults to 100 if not provided. Maximum allowed is 100. Values exceeding 100 will be capped at 100.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
           example: 10
         - name: search
           in: query
-          description: The search value to filter resources based on title.
+          description: 'Search text to filter resources by title (case-insensitive, uses iLike matching).'
           required: false
           schema:
             type: string
+          example: 'education'
         - name: type
           in: query
-          description: Type of the resource(project, program, observation, survey, observation_with_rubric). Type can be coma separated values for multiple types from the above list.
+          description: 'Resource type filter. Comma-separated values allowed for multiple types. Must be from: project, program, observation, survey, observation_with_rubric. Only types allowed by user role permissions will be returned.'
           required: false
           schema:
             type: string
-          example: project
+          example: 'project,program'
         - name: sort_by
           in: query
-          description: Sort the response by `created_at` or `title` of the resource.
+          description: 'Sort field. Options: created_at, updated_at, title. Default is updated_at if not specified.'
           required: false
           schema:
             type: string
+            enum:
+              - created_at
+              - updated_at
+              - title
           example: title
         - name: sort_order
           in: query
-          description: Sort order (ascending or descending).
+          description: 'Sort order: asc (ascending) or desc (descending).'
           required: false
           schema:
             type: string
@@ -5317,7 +5540,7 @@ paths:
           example: asc
       responses:
         '200':
-          description: Resources listed successfully
+          description: 'Resources fetched successfully'
           content:
             application/json:
               schema:
@@ -5325,8 +5548,10 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: Resources fetched successfully
                   result:
                     type: object
                     properties:
@@ -5334,24 +5559,52 @@ paths:
                         type: array
                         items:
                           type: object
-                      count:
-                        type: number
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
                           properties:
                             id:
-                              type: number
+                              type: integer
+                              description: 'Unique resource ID'
+                            title:
+                              type: string
+                              description: 'Resource title'
                             type:
                               type: string
-                            version:
-                              type: number
+                              description: 'Resource type (project, program, survey, observation, observation_with_rubric)'
+                            organization:
+                              type: object
+                              description: 'Organization details'
+                              properties:
+                                id:
+                                  type: integer
+                                name:
+                                  type: string
+                                code:
+                                  type: string
+                            created_by:
+                              type: string
+                              description: 'User ID of creator'
+                            published_on:
+                              type: string
+                              format: date-time
+                              description: 'Timestamp when resource was published'
+                            creator:
+                              type: string
+                              description: 'Name of creator'
+                            reviewed_by:
+                              type: string
+                              description: 'Comma-separated names of approved reviewers'
+                            start_date:
+                              type: string
+                              format: date-time
+                              description: 'Program start date (only for program type)'
+                            end_date:
+                              type: string
+                              format: date-time
+                              description: 'Program end date (only for program type)'
+                      count:
+                        type: integer
+                        description: 'Total count of resources matching the filter'
               examples:
-                example1:
+                projectExample:
                   value:
                     responseCode: OK
                     message: Resources listed successfully
@@ -5364,11 +5617,17 @@ paths:
                             id: 24
                             name: Shikshalokam
                             code: sl
-                          status: DRAFT
-                          created_by: 32
-                          published_on: 2025-01-03T10:49:02.318Z
+                          created_by: '32'
+                          published_on: '2025-01-03T10:49:02.318Z'
                           creator: Priyanka
-                          organiation_code: default_code
+                          reviewed_by: 'John Doe , Jane Smith'
+                      count: 1
+                programExample:
+                  value:
+                    responseCode: OK
+                    message: RESOURCES_FETCHED
+                    result:
+                      data:
                         - id: 5
                           title: Improve Education Quality
                           type: program
@@ -5376,29 +5635,34 @@ paths:
                             id: 25
                             name: Default Organization
                             code: default_code
-                          status: DRAFT
+                          created_by: '32'
+                          published_on: '2025-01-03T10:49:02.318Z'
+                          creator: Adithya
+                          reviewed_by: 'Alice Johnson'
                           start_date: '2024-10-29T11:35:08.694Z'
                           end_date: '2024-11-29T11:36:31.117Z'
-                          created_by: 32
-                          published_on: 2025-01-03T10:49:02.318Z
-                          creator: Adithya
-                          organiation_code: default_code
-                      count: 2
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projecsuccessfullytCreation
-                          version: 3
+                      count: 1
     post:
-      summary: Fetch Published Resources by ID
+      summary: Fetch Published Resources by IDs
       tags:
         - Resource
       description: |-
-        You can use this API to fetch published resources based on the provided `resource_ids`.
-         - The API Endpoint for fetching resources is `/scp/v1/resource/getPublishedResources`.
-         - The request body must include the `resource_ids` array, which contains the IDs of the resources to fetch.
+        **Overview**:
+        - Retrieves specific published resources by their IDs
+        - Applies same role-based permission filtering as GET endpoint
+        - Bypasses is_reusable filter when resource_ids are provided
+        - Includes creator details, reviewer names, and organization information
+        - Applies organization visibility policies based on configuration
+        - Returns empty array if user lacks permissions or no resources found
+
+        **Validation Rules**:
+        - `resource_ids` is required in request body (array of integers)
+        - Resources must be in PUBLISHED status
+        - Resources filtered by user's role permissions
+        - Organization visibility policy enforced
+        - Resources must belong to accessible organizations per policy
       requestBody:
-        description: A JSON object containing resource IDs to fetch details.
+        description: 'JSON object containing array of resource IDs to fetch'
         required: true
         content:
           application/json:
@@ -5409,14 +5673,16 @@ paths:
                   type: array
                   items:
                     type: integer
+                  description: 'Array of resource IDs to fetch details for'
               required:
                 - resource_ids
             example:
               resource_ids:
                 - 2
+                - 5
       responses:
         '200':
-          description: Resources fetched successfully
+          description: 'Resources fetched successfully'
           content:
             application/json:
               schema:
@@ -5424,44 +5690,93 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: RESOURCES_FETCHED
                   result:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: number
-                        title:
-                          type: string
-                        type:
-                          type: string
-                        organization:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
                           type: object
                           properties:
                             id:
-                              type: number
-                            name:
+                              type: integer
+                              description: 'Unique resource ID'
+                            title:
                               type: string
-                            code:
+                              description: 'Resource title'
+                            type:
                               type: string
-                        status:
-                          type: string
+                              description: 'Resource type (project, program, survey, observation, observation_with_rubric)'
+                            organization:
+                              type: object
+                              description: 'Organization details'
+                              properties:
+                                id:
+                                  type: integer
+                                name:
+                                  type: string
+                                code:
+                                  type: string
+                            created_by:
+                              type: string
+                              description: 'User ID of creator'
+                            published_on:
+                              type: string
+                              format: date-time
+                              description: 'Timestamp when resource was published'
+                            creator:
+                              type: string
+                              description: 'Name of creator'
+                            reviewed_by:
+                              type: string
+                              description: 'Comma-separated names of approved reviewers'
+                            start_date:
+                              type: string
+                              format: date-time
+                              description: 'Program start date (only for program type)'
+                            end_date:
+                              type: string
+                              format: date-time
+                              description: 'Program end date (only for program type)'
+                      count:
+                        type: integer
+                        description: 'Total count of resources returned'
               examples:
-                example1:
+                multipleResources:
                   value:
                     responseCode: OK
                     message: Resources fetched successfully
                     result:
-                      - id: 2
-                        title: sample resource
-                        type: project
-                        organization:
-                          id: 24
-                          name: Shikshalokam
-                          code: sl
-                        status: PUBLISHED
+                      data:
+                        - id: 2
+                          title: sample resource
+                          type: project
+                          organization:
+                            id: 24
+                            name: Shikshalokam
+                            code: sl
+                          created_by: '15'
+                          published_on: '2025-01-03T10:49:02.318Z'
+                          creator: John Smith
+                          reviewed_by: 'Alice Johnson'
+                        - id: 5
+                          title: Education Enhancement Program
+                          type: program
+                          organization:
+                            id: 25
+                            name: Default Organization
+                            code: default_code
+                          created_by: '32'
+                          published_on: '2025-01-04T14:20:15.500Z'
+                          creator: Adithya
+                          reviewed_by: 'Bob Williams , Charlie Brown'
+                          start_date: '2024-10-29T11:35:08.694Z'
+                          end_date: '2024-11-29T11:36:31.117Z'
+                      count: 2
   /scp/v1/resource/upForReview:
     get:
       summary: Up For Review Resource List
