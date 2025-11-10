@@ -130,7 +130,7 @@ module.exports = async function (req, res, next) {
 		}
 
 		req.decodedToken.token = authHeader
-		const { tenantCode, organizationCode, error } = utils._extractTenantAndOrgCodes(req)
+		const { tenantCode, organizationCode, error } = await utils._extractTenantAndOrgCodes(req)
 		if (error) {
 			throw responses.failureResponse({
 				message: error,
