@@ -5783,61 +5783,91 @@ paths:
       tags:
         - Resource
       description: |-
-        You can use this API to list resources which are up for review for the reviewers
-         - The API Endpoint : `/scp/v1/resource/upForReview` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Retrieves paginated list of resources assigned to reviewer or available for review
+        - Supports sequential and parallel review workflows based on organization configuration
+        - Filters resources based on reviewer assignments and review status
+        - Excludes resources already reviewed (APPROVED, REJECTED, REQUESTED_FOR_CHANGES)
+        - Returns resources with creator details, organization info, and review status
+        - Excludes authenticated reviewer's own created resources
+        - Includes in_progress_count for resources currently under review by the reviewer
+
+        **Validation Rules**:
+        - `type` must be from allowed values: project, program, survey, observation, observation_with_rubric
+        - `status` must be from: INPROGRESS, NOT_STARTED, CHANGES_UPDATED, STARTED
+        - `page` defaults to 1 (minimum 1)
+        - `limit` defaults to 100 (maximum 100)
+        - `search` performs case-insensitive title matching
+        - Resources filtered by reviewer role and organization policies
+        - Sequential review: only shows resources at correct review stage
+        - Parallel review: shows all resources available for review
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains reviewer_id (user_id), organization_code, tenant_code, roles, and token for service calls.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: page
           in: query
-          description: The page number for pagination.
+          description: 'Page number for pagination (1-indexed). Defaults to 1 if not provided. Minimum value is 1.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            default: 1
           example: 1
         - name: limit
           in: query
-          description: The limit of projects per page.
+          description: 'Number of records per page. Defaults to 100 if not provided. Maximum allowed is 100. Values exceeding 100 will be capped at 100.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
           example: 10
         - name: search
           in: query
-          description: The search value to filter projects based on title.
+          description: 'Search text to filter resources by title (case-insensitive, uses iLike matching).'
           required: false
           schema:
             type: string
+          example: 'education'
         - name: type
           in: query
-          description: Type of the resource(project, program, observation, survey, observation_with_rubric)
+          description: 'Resource type filter. Comma-separated values allowed for multiple types: project, program, observation, survey, observation_with_rubric.'
           required: false
           schema:
             type: string
-          example: project
+          example: 'project,program'
         - name: status
           in: query
-          description: "Pass status =  'INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED' to get the resources with curresponding statuses."
+          description: 'Review status filter. Allowed values: INPROGRESS (currently reviewing), NOT_STARTED (not yet started), CHANGES_UPDATED (creator updated after changes requested), STARTED (review started). If INPROGRESS specified, only shows resources actively being reviewed by the user.'
           required: false
           schema:
             type: string
+            enum:
+              - INPROGRESS
+              - NOT_STARTED
+              - CHANGES_UPDATED
+              - STARTED
           example: INPROGRESS
         - name: sort_by
           in: query
-          description: 'Sort the response by status or title of the resource. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request'
+          description: 'Sort field. Options: status, title, created_at. Default sorting is by created_at if not specified.'
           required: false
           schema:
             type: string
+            enum:
+              - status
+              - title
+              - created_at
           example: status
         - name: sort_order
           in: query
-          description: Sort order (ascending or descending).
+          description: 'Sort order: asc (ascending) or desc (descending). Default is desc.'
           required: false
           schema:
             type: string
@@ -5847,7 +5877,7 @@ paths:
           example: asc
       responses:
         '200':
-          description: resource listed successfully
+          description: 'Resources listed successfully'
           content:
             application/json:
               schema:
@@ -5855,8 +5885,10 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: RESOURCE_LISTED_SUCCESSFULLY
                   result:
                     type: object
                     properties:
@@ -5864,24 +5896,76 @@ paths:
                         type: array
                         items:
                           type: object
-                      count:
-                        type: number
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
                           properties:
                             id:
-                              type: number
+                              type: integer
+                              description: 'Unique resource ID'
+                            title:
+                              type: string
+                              description: 'Resource title'
                             type:
                               type: string
-                            version:
-                              type: number
+                              description: 'Resource type (project, program, survey, observation, observation_with_rubric)'
+                            organization:
+                              type: object
+                              description: 'Organization details'
+                              properties:
+                                id:
+                                  type: integer
+                                name:
+                                  type: string
+                                code:
+                                  type: string
+                            status:
+                              type: string
+                              description: 'Resource status (SUBMITTED, IN_REVIEW, INPROGRESS, APPROVED)'
+                            stage:
+                              type: string
+                              description: 'Resource stage (CREATION, REVIEW, COMPLETION)'
+                            submitted_on:
+                              type: string
+                              format: date-time
+                              description: 'Timestamp when resource was submitted for review'
+                            last_reviewed_on:
+                              type: string
+                              format: date-time
+                              description: 'Timestamp of last review action'
+                            created_at:
+                              type: string
+                              format: date-time
+                              description: 'Timestamp when resource was created'
+                            published_id:
+                              type: string
+                              description: 'Published resource ID from consumption portal (if previously published)'
+                            published_on:
+                              type: string
+                              format: date-time
+                              description: 'Timestamp when resource was published'
+                            creator:
+                              type: string
+                              description: 'Name of resource creator'
+                            notes:
+                              type: string
+                              description: 'Notes to reviewer from creator'
+                            review_status:
+                              type: string
+                              description: 'Reviewer-specific review status (NOT_STARTED, STARTED, INPROGRESS, CHANGES_UPDATED)'
+                            start_date:
+                              type: string
+                              format: date-time
+                              description: 'Program start date (only for program type)'
+                            end_date:
+                              type: string
+                              format: date-time
+                              description: 'Program end date (only for program type)'
+                      count:
+                        type: integer
+                        description: 'Total count of resources matching the filter'
+                      in_progress_count:
+                        type: integer
+                        description: 'Count of resources currently being reviewed (INPROGRESS status) by the reviewer'
               examples:
-                example1:
+                projectExample:
                   value:
                     responseCode: OK
                     message: Resource listed successfully
@@ -5894,13 +5978,21 @@ paths:
                             id: 24
                             name: Shikshalokam
                             code: sl
-                          status: INPROGRESS
-                          created_by: 32
-                          organiation_code: default_code
-                          creator: Priyanka
-                          notes: Note to the reviewer,
-                          created_at: 2024-12-26T03:36:45.062Z
+                          status: SUBMITTED
                           stage: REVIEW
+                          submitted_on: '2024-12-25T10:30:00.000Z'
+                          created_at: '2024-12-26T03:36:45.062Z'
+                          creator: Priyanka
+                          notes: 'Please review the updated objectives'
+                          review_status: NOT_STARTED
+                      count: 1
+                      in_progress_count: 0
+                programInProgressExample:
+                  value:
+                    responseCode: OK
+                    message: RESOURCE_LISTED_SUCCESSFULLY
+                    result:
+                      data:
                         - id: 5
                           title: Improve Education Quality
                           type: program
@@ -5908,55 +6000,63 @@ paths:
                             id: 25
                             name: Default Organization
                             code: default_code
-                          status: SUBMITTED
+                          status: INPROGRESS
+                          stage: REVIEW
+                          submitted_on: '2024-12-20T08:15:30.000Z'
+                          last_reviewed_on: '2024-12-24T14:20:00.000Z'
+                          created_at: '2024-12-26T03:36:45.062Z'
+                          creator: Adithya
+                          notes: 'Note to the reviewer'
+                          review_status: INPROGRESS
                           start_date: '2024-10-29T11:35:08.694Z'
                           end_date: '2024-11-29T11:36:31.117Z'
-                          created_by: 33
-                          organiation_code: default_code
-                          creator: Adithya
-                          notes: Note to the reviewer,
-                          created_at: 2024-12-26T03:36:45.062Z
-                          stage: REVIEW
-                      count: 2
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projecsuccessfullytCreation
-                          version: 3
+                      count: 1
+                      in_progress_count: 1
   /scp/v1/resource/publishCallback:
     post:
       summary: Callback URL for Update Published Resource
       tags:
         - Resource
       description: |-
-        You can use this API to update the resource details after publishing the resource in consumption portal
-         - The API Endpoint : `/scp/v1/resource/publishCallback` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Callback endpoint used by consumption portal after successfully publishing a resource
+        - Updates resource with published_id from consumption portal
+        - Sets resource status to PUBLISHED and stage to COMPLETION
+        - Records published_on timestamp
+        - Only updates resources not in DRAFT status
+        - Returns 400 error if resource not found or already in DRAFT status
+
+        **Validation Rules**:
+        - `resource_id` is required (integer, positive)
+        - `published_id` is required (string from consumption portal)
+        - Resource must exist and not be in DRAFT status
+        - Resource must have been submitted for publishing
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from consumption portal or internal service.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: resource_id
           in: query
-          description: Resource id
-          required: false
+          description: 'Resource ID (integer, required). Must be a valid resource that was submitted for publishing.'
+          required: true
           schema:
             type: integer
+            minimum: 1
           example: 1
         - name: published_id
           in: query
-          description: Consumption side resource id
-          required: false
+          description: 'Published resource ID from consumption portal (string, required). This is the identifier assigned by the consumption service.'
+          required: true
           schema:
             type: string
-          example: 10
+          example: '507f1f77bcf86cd799439011'
       responses:
-        '200':
-          description: Resource updated successfully
+        '202':
+          description: 'Resource updated successfully (Accepted)'
           content:
             application/json:
               schema:
@@ -5964,6 +6064,7 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
                   meta:
@@ -5981,7 +6082,7 @@ paths:
                             version:
                               type: number
               examples:
-                example1:
+                updatedExampleRes:
                   value:
                     responseCode: OK
                     message: Resource updated successfully
@@ -5996,27 +6097,42 @@ paths:
       tags:
         - Review
       description: |-
-        You can use this API to start the review
-         - The API Endpoint is `/scp/v1/reviews/start` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Initiates review process for a submitted resource by a reviewer
+        - Creates review record if not exists or updates existing review to INPROGRESS
+        - Validates resource is available for review (not PUBLISHED, REJECTED, or DRAFT)
+        - Updates resource status to INPROGRESS if not already in REQUESTED_FOR_CHANGES
+        - Records last_reviewed_on timestamp in resource
+        - Supports both sequential and parallel review workflows based on organization config
+        - Prevents multiple reviewers from reviewing simultaneously in sequential mode
+
+        **Validation Rules**:
+        - `resourceId` must be a valid integer (1 to 2147483647)
+        - Resource must exist in reviewer's organization and tenant
+        - Resource must be in reviewable status (SUBMITTED, IN_REVIEW, INPROGRESS, CHANGES_UPDATED)
+        - For sequential review: no other reviewer should be actively reviewing
+        - Reviewer must have reviewer role in organization
+        - Review record created with status INPROGRESS
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains reviewer_id (user_id), organization_code, tenant_code, and roles array.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: resourceId
-          description: Please append a valid resource Id to the Request URL.
+          description: 'Unique resource ID to start reviewing (integer, 1 to 2147483647). Resource must be submitted for review.'
           schema:
-            type: number
+            type: integer
+            minimum: 1
+            maximum: 2147483647
           required: true
           example: 12
       responses:
         '200':
-          description: Review started successfully
+          description: 'Review started successfully'
           content:
             application/json:
               schema:
@@ -6024,81 +6140,114 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
-                  result:
-                    type: object
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
+                    example: Review started successfully
               examples:
-                example1:
+                success:
                   value:
                     responseCode: OK
                     message: Review started successfully
-                    result: {}
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+        '400':
+          description: 'Bad Request - Resource not found, not available for review, or already being reviewed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: CLIENT_ERROR
+                  message:
+                    type: string
+                    example: Resource not found
+              examples:
+                notFound:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Resource not found
+                alreadyReviewing:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Resource is already PUBLISHED. You can't review it
   '/scp/v1/reviews/update/{resourceId}':
     post:
-      summary: Request for changes
+      summary: Request Changes on Resource Review
       tags:
         - Review
       description: |-
-        You can use this API to create or request for changes
-         - The API Endpoint is `/scp/v1/reviews/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - comment can be array or array of object. 
-         - Pass the id of the comment in comment object if the current status of the comment is DRAFT. And pass the comment status as OPEN.
-         - While reviewing the resource reviewer can create the comment with draft status. That will be available to the creator if reviewer is doing action either approve, reject, report or changes requested
+        **Overview**:
+        - Allows reviewer to request changes on a resource under review
+        - Updates review status to REQUESTED_FOR_CHANGES
+        - Optionally creates or updates comments associated with the review
+        - Updates resource status to REQUESTED_FOR_CHANGES
+        - Records last_reviewed_on timestamp in resource
+        - Validates reviewer has an active review for the resource
+        - Prevents requesting changes if already requested
+
+        **Validation Rules**:
+        - `resourceId` must be a valid integer (1 to 2147483647)
+        - Resource must exist in reviewer's organization and tenant
+        - Resource must be in reviewable status (SUBMITTED, IN_REVIEW, INPROGRESS, CHANGES_UPDATED)
+        - Reviewer must have an ongoing review record for the resource
+        - Review status cannot already be REQUESTED_FOR_CHANGES
+        - `comment` is optional but if provided can be object or array of objects
+        - Comments support draft status and can be finalized with OPEN status
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains reviewer_id (user_id), organization_code, and tenant_code.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: resourceId
-          description: Please append a valid resource Id to the Request URL.
+          description: 'Unique resource ID to request changes on (integer, 1 to 2147483647). Resource must be under review by authenticated reviewer.'
           schema:
-            type: number
+            type: integer
+            minimum: 1
+            maximum: 2147483647
           required: true
           example: 12
       requestBody:
+        description: 'Optional request body containing comments for the review'
+        required: false
         content:
           application/json:
             schema:
               type: object
               properties:
                 comment:
-                  description: 'Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.'
+                  description: 'Optional comment field. Can be a single object or array of comment objects. Comments can have DRAFT status (private to reviewer) or OPEN status (visible to creator). Include comment id if updating existing DRAFT comment.'
+                  oneOf:
+                    - type: object
+                    - type: array
+                      items:
+                        type: object
             examples:
-              example1:
+              singleComment:
                 value:
                   comment:
                     id: 10
                     text: Check spelling
                     context: page
                     page: 1
+                    status: OPEN
+              multipleComments:
+                value:
+                  comment:
+                    - text: Fix formatting on page 1
+                      context: page
+                      page: 1
+                      status: OPEN
+                    - id: 10
+                      text: Updated comment
+                      status: OPEN
       responses:
         '200':
-          description: resource review updated
+          description: 'Changes requested successfully'
           content:
             application/json:
               schema:
@@ -6110,58 +6259,14 @@ paths:
                     type: string
                   result:
                     type: object
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
               examples:
-                example1:
+                success:
                   value:
                     responseCode: OK
                     message: Changes requested successfully
                     result: {}
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
-  '/scp/v1/reviews/approve/{resourceId}':
-    post:
-      summary: Approve Resource
-      tags:
-        - Review
-      description: |-
-        You can use this API to approve the resource
-         - The API Endpoint for update review status is `/scp/v1/reviews/approve` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: resourceId
-          description: Please append a valid resource Id to the Request URL.
-          schema:
-            type: number
-          required: true
-          example: 12
-      responses:
-        '200':
-          description: You have successfully published the resource
+        '400':
+          description: 'Bad Request - Resource not found, not reviewable, or changes already requested'
           content:
             application/json:
               schema:
@@ -6173,84 +6278,221 @@ paths:
                     type: string
                   result:
                     type: object
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
               examples:
-                example1:
+                notFound:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Resource not found
+                    result: {}
+                alreadyRequested:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Changes already requested
+                    result: {}
+  '/scp/v1/reviews/approve/{resourceId}':
+    post:
+      summary: Approve Resource Review
+      tags:
+        - Review
+      description: |-
+        **Overview**:
+        - Approves a resource under review and updates review status to APPROVED
+        - Optionally creates or updates comments associated with the approval
+        - Checks if minimum approval threshold is met based on organization configuration
+        - Automatically publishes resource if approval threshold reached
+        - Supports sequential review (next stage increment) and parallel review workflows
+        - Updates resource status and last_reviewed_on timestamp
+        - Deletes all comments after successful publication
+
+        **Validation Rules**:
+        - `resourceId` must be a valid integer (1 to 2147483647)
+        - Resource must exist in reviewer's organization and tenant
+        - Resource must be in reviewable status (SUBMITTED, IN_REVIEW, INPROGRESS, CHANGES_UPDATED)
+        - Reviewer must have an ongoing review record for the resource
+        - Review cannot already be APPROVED or REQUESTED_FOR_CHANGES
+        - `comment` is optional (can be array of comment objects)
+        - Resource publishes when approved count >= min_approval from org config
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains reviewer_id (user_id), organization_code, tenant_code, and token for publishing.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: path
+          name: resourceId
+          description: 'Unique resource ID to approve (integer, 1 to 2147483647). Resource must be under review by authenticated reviewer.'
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          required: true
+          example: 12
+      requestBody:
+        description: 'Optional request body containing comments for the approval'
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  description: 'Optional comment array. Comments are created/updated with OPEN status and visible to creator.'
+                  type: array
+                  items:
+                    type: object
+            examples:
+              withComments:
+                value:
+                  comment:
+                    - text: 'Approved with minor suggestions'
+                      context: page
+                      page: 1
+                      status: OPEN
+              noComments:
+                value: {}
+      responses:
+        '200':
+          description: 'Review approved successfully or resource published'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+              examples:
+                approved:
+                  value:
+                    responseCode: OK
+                    message: Review approved successfully
+                    result: {}
+                published:
                   value:
                     responseCode: OK
                     message: You have successfully published the resource
                     result: {}
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                programPublished:
+                  value:
+                    responseCode: OK
+                    message: You have successfully published the program
+                    result: {}
+        '400':
+          description: 'Bad Request - Resource not found, not reviewable, already approved, or approval failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+              examples:
+                notFound:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Resource not found
+                    result: {}
+                approvalFailed:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Resource approval either failed or has already been approved.
+                    result: {}
   '/scp/v1/reviews/rejectOrReport/{resourceId}':
     post:
-      summary: Reject or Report Resource
+      summary: Reject or Report Resource Review
       tags:
         - Review
       description: |-
-        You can use this API to reject or report the resource
-         - The API Endpoint is `/scp/v1/reviews/rejectOrReport` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Allows reviewer to reject or report a resource under review
+        - Updates review status to REJECTED or REJECTED_AND_REPORTED based on isReported flag
+        - Optionally adds notes explaining reason for rejection/report
+        - Optionally creates or updates comments associated with the rejection
+        - Updates resource status and sets stage to COMPLETION
+        - Records last_reviewed_on timestamp in resource
+        - Certain resource types cannot be rejected (configured via NON_REJECTABLE_RESOURCE_TYPES)
+
+        **Validation Rules**:
+        - `resourceId` must be a valid integer (1 to 2147483647)
+        - `isReported` is optional boolean (true for report, false/omitted for reject)
+        - Resource must exist in reviewer's organization and tenant
+        - Resource must be in reviewable status (SUBMITTED, IN_REVIEW, INPROGRESS, CHANGES_UPDATED)
+        - Resource type must be rejectable (not in NON_REJECTABLE_RESOURCE_TYPES)
+        - Reviewer must have an ongoing review record for the resource
+        - `notes` is optional but must contain alphanumeric characters and allowed symbols
+        - `comment` is optional (can be object or array of objects)
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains reviewer_id (user_id), organization_code, and tenant_code.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: resourceId
-          description: Please append a valid resource Id to the Request URL.
+          description: 'Unique resource ID to reject or report (integer, 1 to 2147483647). Resource must be under review by authenticated reviewer.'
           schema:
-            type: number
+            type: integer
+            minimum: 1
+            maximum: 2147483647
           required: true
           example: 5
         - in: query
           name: isReported
-          description: 'If the resource is reported, pass this as true else false or omit this key.'
+          description: 'Optional boolean flag. If true, resource is rejected and reported. If false or omitted, resource is only rejected.'
           schema:
             type: boolean
-          required: true
+          required: false
           example: true
       requestBody:
+        description: 'Optional request body containing notes and comments for the rejection/report'
+        required: false
         content:
           application/json:
             schema:
               type: object
               properties:
                 notes:
-                  description: Reviewer can add the note if he is reporting the resource
+                  description: 'Optional notes explaining the reason for rejection/report. Allowed characters: alphanumeric, space, underscore, ampersand, angle brackets, hyphen.'
+                  type: string
                 comment:
-                  description: 'Comment can be an array or an object. Incase if the reviewer is saving the review as draft , once it is completed the draft comment needs to me send in the body of the api.'
+                  description: 'Optional comment field. Can be a single object or array of comment objects. Comments are created/updated with OPEN status.'
+                  oneOf:
+                    - type: object
+                    - type: array
+                      items:
+                        type: object
             examples:
-              example1:
+              rejectWithNotes:
                 value:
                   notes: invalid resource
+                  comment:
+                    - text: Content violates guidelines
+                      context: page
+                      page: 1
+                      status: OPEN
+              reportWithComment:
+                value:
+                  notes: Inappropriate content reported
                   comment:
                     id: 10
                     text: Check spelling
                     context: page
                     page: 1
+                    status: OPEN
       responses:
         '200':
-          description: This resource has been rejected and reported
+          description: 'Resource rejected or reported successfully'
           content:
             application/json:
               schema:
@@ -6262,31 +6504,41 @@ paths:
                     type: string
                   result:
                     type: object
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
               examples:
-                example1:
+                rejected:
+                  value:
+                    responseCode: OK
+                    message: This resource has been rejected
+                    result: {}
+                rejectedAndReported:
                   value:
                     responseCode: OK
                     message: This resource has been rejected and reported
                     result: {}
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+        '400':
+          description: 'Bad Request - Resource not found, not reviewable, or rejection not allowed for resource type'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+              examples:
+                notFound:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Resource not found
+                    result: {}
+                notRejectable:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: The program cannot be rejected or reported
+                    result: {}
   '/scp/v1/comments/update/{id}':
     post:
       summary: Add or Update Comment
