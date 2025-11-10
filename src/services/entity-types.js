@@ -110,13 +110,13 @@ module.exports = class EntityTypeHelper {
 			bodyData.updated_by = loggedInUserId
 			if (bodyData.value) bodyData.value = bodyData.value.toLowerCase()
 
-			if ('is_external' in bodyData && bodyData.is_external !== '') {
+			if (common.IS_EXTERNAL in bodyData && bodyData[common.IS_EXTERNAL] !== '') {
 				bodyData.config = {
-					is_external: bodyData.is_external ? true : false,
+					is_external: bodyData[common.IS_EXTERNAL] ? true : false,
 				}
 			}
 
-			if ('depended_on' in bodyData && bodyData.depended_on !== '') {
+			if (common.DEPENDED_ON in bodyData && bodyData[common.DEPENDED_ON] !== '') {
 				const checkDependedEntityType = await entityTypeQueries.findOneEntityType({
 					id: bodyData.depended_on,
 					organization_code: orgCode,
