@@ -6545,179 +6545,124 @@ paths:
       tags:
         - Comment
       description: |-
-        You can use this API to create or update comment
-         - The API Endpoint for adding or updating a comment is `/scp/v1/comments/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - In case of bulk comment update , pass the body with `comment` as an array of objects with mandatory fields.
-         - In case of single comment update , pass the comment id and body with `comment` as an object with mandatory fields.
-         - If you are creating a comment for the first time. Its status can be DRAFT/OPEN not RESOLVED for the first time. It is handled in backend.
+        **Overview**:
+        - Creates new comment(s) or updates existing comment by ID
+        - Supports single comment object or array of comment objects for bulk operations
+        - Comments can have status: DRAFT (private), OPEN (visible), or RESOLVED
+        - When resolving comment, records resolver ID and timestamp
+        - Validates resource exists and is in commentable status
+        - Prevents comments on PUBLISHED, REJECTED, REJECTED_AND_REPORTED, or DRAFT resources (except program-associated resources)
+        - Handles comment field mapping (text → comment in database)
+
+        **Validation Rules**:
+        - `resource_id` is required in query (integer, positive)
+        - `id` in path is optional for creation, required for single update
+        - If `id` provided, `comment` must be object (not array)
+        - If no `id`, `comment` can be object or array for bulk creation
+        - Comment `status` must be one of: DRAFT, OPEN, RESOLVED
+        - `comment` field is required for comment content
+        - `context` and `page` fields required for comment location
+        - `parent_id` optional for threaded comments (integer)
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, and tenant_code.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: id
-          description: Please append a valid comment Id to the Request URL. Id is not mandatory
+          description: 'Optional comment ID for updating specific comment. Omit for creating new comment(s). Must be integer (1 to 2147483647).'
           schema:
-            type: number
-          required: true
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          required: false
           example: 2
         - in: query
           name: resource_id
-          description: Please append a valid resource Id to the Request URL.
+          description: 'Required resource ID (integer, positive). Resource must exist and be in commentable status.'
           schema:
-            type: number
+            type: integer
+            minimum: 1
           required: true
           example: 1
       requestBody:
+        description: 'Comment data. Can be single comment object (for update/create) or array of comments (for bulk create only).'
+        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
                 comment:
+                  description: 'Comment object or array. For single update (with id), must be object. For bulk create (no id), can be array.'
                   oneOf:
                     - type: object
                       properties:
-                        id:
-                          type: integer
-                          description: ID of the comment
-                        resource_id:
-                          type: integer
-                          description: ID of the resource associated with the comment
-                        text:
+                        comment:
                           type: string
-                          description: The actual content of the comment
-                        parent_id:
-                          type: integer
-                          description: 'ID of the parent comment, if applicable'
+                          description: 'Comment content (required)'
                         status:
                           type: string
-                          description: 'Status of the comment (e.g., "OPEN", "DRAFT", "RESOLVED")'
+                          enum: [DRAFT, OPEN, RESOLVED]
+                          description: 'Comment status. DRAFT = private, OPEN = visible, RESOLVED = closed'
                         context:
                           type: string
-                          description: 'Context of the comment (e.g., "page" or any tag)'
+                          description: 'Context type (e.g., "page", "tag")'
                         page:
                           type: string
-                          description: 'Page number associated with the comment (e.g., "1")'
-                        is_read:
-                          type: boolean
-                          description: Whether the comment has been read
+                          description: 'Page identifier or number'
+                        parent_id:
+                          type: integer
+                          description: 'Parent comment ID for threaded comments (optional, default 0)'
                     - type: array
                       items:
                         type: object
                         properties:
-                          id:
-                            type: integer
-                            description: ID of the comment
-                          resource_id:
-                            type: integer
-                            description: ID of the resource associated with the comment
-                          text:
+                          comment:
                             type: string
-                            description: The actual content of the comment
-                          user_id:
-                            type: string
-                            description: ID of the user who made the comment
-                          parent_id:
-                            type: integer
-                            description: 'ID of the parent comment, if applicable'
+                            description: 'Comment content'
                           status:
                             type: string
-                            description: 'Status of the comment (e.g., "OPEN", "DRAFT", "RESOLVED")'
-                          resolved_by:
-                            type: string
-                            description: 'ID of the user who resolved the comment, if applicable'
-                          resolved_at:
-                            type: string
-                            format: date-time
-                            description: Timestamp when the comment was resolved
+                            enum: [DRAFT, OPEN, RESOLVED]
                           context:
                             type: string
-                            description: 'Context of the comment (e.g., "page" or any tag)'
                           page:
                             type: string
-                            description: 'Page number associated with the comment (e.g., "1")'
-                          is_read:
-                            type: boolean
-                            description: Whether the comment has been read
-                          created_at:
-                            type: string
-                            format: date-time
-                            description: Timestamp when the comment was created
-                          updated_at:
-                            type: string
-                            format: date-time
-                            description: Timestamp when the comment was last updated
-                          deleted_at:
-                            type: string
-                            format: date-time
-                            description: 'Timestamp when the comment was deleted, if applicable'
-                          commenter:
-                            type: object
-                            properties:
-                              id:
-                                type: integer
-                                description: ID of the commenter
-                              name:
-                                type: string
-                                description: Name of the commenter
-                          resolver:
-                            type: object
-                            description: 'Details of the user who resolved the comment, if applicable'
+                          parent_id:
+                            type: integer
             examples:
-              array_of_comments:
+              createSingleComment:
                 value:
                   comment:
-                    - id: 26
-                      resource_id: 371
-                      text: Check spelling
-                      user_id: '102'
-                      parent_id: 0
-                      status: RESOLVED
-                      resolved_by: null
-                      resolved_at: null
-                      context: page
-                      page: '1'
-                      is_read: false
-                    - resource_id: 371
-                      text: Check spelling
-                      user_id: '102'
-                      parent_id: 0
-                      status: OPEN
-                      resolved_by: null
-                      resolved_at: null
-                      context: page
-                      page: '1'
-                      is_read: false
-              one_comment:
-                value:
-                  comment:
-                    id: 26
-                    resource_id: 371
-                    text: Check spelling
-                    user_id: '102'
-                    parent_id: 0
-                    status: RESOLVED
-                    resolved_by: null
-                    resolved_at: null
+                    comment: 'Check spelling on this page'
+                    status: OPEN
                     context: page
                     page: '1'
-                    is_read: false
-                    created_at: '2024-08-27T13:25:02.752Z'
-                    updated_at: '2024-08-27T13:25:02.752Z'
-                    deleted_at: null
-                    commenter:
-                      id: 102
-                      name: Default Org Admin Two
-                    resolver: {}
+                    parent_id: 0
+              createBulkComments:
+                value:
+                  comment:
+                    - comment: 'Fix formatting'
+                      status: OPEN
+                      context: page
+                      page: '1'
+                    - comment: 'Update content'
+                      status: DRAFT
+                      context: page
+                      page: '2'
+              updateComment:
+                value:
+                  comment:
+                    text: 'Updated comment text'
+                    status: All comments have been resolved
+                    context: page
+                    page: '1'
       responses:
-        '201':
-          description: Comment updated successfully
+        '200':
+          description: 'Comment created or updated successfully'
           content:
             application/json:
               schema:
@@ -6727,72 +6672,92 @@ paths:
                     type: string
                   message:
                     type: string
-                  meta:
+                  result:
                     type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
               examples:
-                example1:
+                commentUpdated:
                   value:
                     responseCode: OK
-                    message: Comment updated successfully
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                    message: Your changes have been saved
+                    result: {}
+                commentResolved:
+                  value:
+                    responseCode: OK
+                    message: All comments have been resolved
+                    result: {}
         '400':
-          description: Bad Request. Resource not found
+          description: 'Bad Request - Resource not found, invalid status, or comment restrictions'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/updateComment400Response'
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+              examples:
+                resourceNotFound:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Resource not found
+                    result: {}
+                commentNotFound:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Comment not found
+                    result: {}
   '/scp/v1/comments/update/{commentId}':
     delete:
       summary: Delete Comment
       tags:
         - Comment
       description: |-
-        You can use this API to delete a comment
-         - The API Endpoint for deleting a comment is `/scp/v1/comments/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - Only comments in draft status can be deleted.
-         - Only the comment owner is allowed to delete the comment
+        **Overview**:
+        - Soft deletes a comment from the system (paranoid deletion)
+        - Only comment owner can delete their own comments
+        - Only comments in DRAFT status can be deleted
+        - Validates comment belongs to specified resource
+        - Scoped to user's organization and tenant for security
+        - Comment record marked as deleted but preserved in database
+
+        **Validation Rules**:
+        - `commentId` must be a valid integer (1 to 2147483647)
+        - `resource_id` is required (integer, positive)
+        - Comment must exist and belong to authenticated user (user_id match)
+        - Comment status must be DRAFT (cannot delete OPEN or RESOLVED comments)
+        - Comment must belong to specified resource
+        - Comment must belong to user's organization and tenant
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, and tenant_code.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: commentId
-          description: Please append a valid comment Id to the Request URL. Id is not mandatory
+          description: 'Unique comment ID to delete (integer, 1 to 2147483647). Comment must be in DRAFT status and belong to the authenticated user.'
           schema:
-            type: number
+            type: integer
+            minimum: 1
+            maximum: 2147483647
           required: true
           example: 2
         - in: query
           name: resource_id
-          description: Please append a valid resource Id to the Request URL.
+          description: 'Resource ID associated with the comment (integer, required). Used to validate comment belongs to specified resource.'
           schema:
-            type: number
+            type: integer
+            minimum: 1
           required: true
           example: 1
       responses:
         '200':
-          description: Comment deleted successfully
+          description: 'Comment deleted successfully (soft delete)'
           content:
             application/json:
               schema:
@@ -6802,32 +6767,16 @@ paths:
                     type: string
                   message:
                     type: string
-                  meta:
+                  result:
                     type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
               examples:
-                example1:
+                success:
                   value:
                     responseCode: OK
                     message: Comment deleted successfully
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                    result: {}
         '400':
-          description: Bad Request. Resource not found
+          description: 'Bad Request - Comment not found or does not meet deletion criteria'
           content:
             application/json:
               schema:
@@ -6838,41 +6787,53 @@ paths:
       tags:
         - Comment
       description: |-
-        You can use this API to get the list all comments
-         - The API Endpoint for get the list of comments is `/scp/v1/comments/list` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Retrieves all comments for a specific resource with optional filtering
+        - Returns comments visible to authenticated user (OPEN/RESOLVED status or user's own DRAFT comments)
+        - Includes commenter and resolver user details from user service
+        - For program resources, also fetches child resources with their comment counts
+        - Supports filtering by page location (page_value) and context (page/tag)
+        - Comments returned with complete metadata including status, timestamps, and user info
+
+        **Validation Rules**:
+        - `resource_id` is required (integer, positive)
+        - `page_value` is optional (string) - filters comments by specific page/location
+        - `context` is optional (string) - filters comments by context type (page/tag)
+        - Comments filtered by organization and tenant scope automatically
+        - Only non-DRAFT comments visible to others, user's own DRAFT comments included
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for user service calls.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: query
           name: resource_id
-          description: Please append a valid resource Id to the Request URL.
+          description: 'Resource ID to fetch comments for (integer, required). Comments will be filtered by this resource.'
           schema:
-            type: number
+            type: integer
+            minimum: 1
           required: true
           example: 1
         - in: query
           name: page_value
-          description: Please append a valid page number or name.
+          description: 'Optional page identifier or location name to filter comments (e.g., task_page, objective_page).'
           schema:
             type: string
           required: false
           example: task_page
         - in: query
           name: context
-          description: Please append a valid context value like tag or page.
+          description: 'Optional context type to filter comments. Values: page (page-level comments) or tag (entity tag comments).'
           schema:
             type: string
           required: false
           example: page
       responses:
         '200':
-          description: Comment fetched successfully
+          description: 'Comments fetched successfully'
           content:
             application/json:
               schema:
@@ -6886,36 +6847,84 @@ paths:
                     type: object
                     properties:
                       resource_id:
-                        type: string
+                        type: integer
+                        description: 'Resource ID for which comments were fetched'
                       commented_by:
                         type: array
                         items:
                           type: string
+                        description: 'Unique list of commenter names'
                       comments:
-                        type: array
-                        items:
-                          type: object
-                      count:
-                        type: string
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
                         type: array
                         items:
                           type: object
                           properties:
                             id:
-                              type: number
-                            type:
+                              type: integer
+                            comment:
                               type: string
-                            version:
-                              type: number
+                              description: 'Comment content (aliased from comment field)'
+                            context:
+                              type: string
+                            page:
+                              type: string
+                            status:
+                              type: string
+                              enum: [DRAFT, OPEN, RESOLVED]
+                            parent_id:
+                              type: integer
+                              nullable: true
+                            user_id:
+                              type: string
+                            commenter:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                name:
+                                  type: string
+                            is_read:
+                              type: boolean
+                            resolved_by:
+                              type: string
+                              nullable: true
+                            resolver:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                name:
+                                  type: string
+                            resolved_at:
+                              type: string
+                              format: date-time
+                              nullable: true
+                            created_at:
+                              type: string
+                              format: date-time
+                            updated_at:
+                              type: string
+                              format: date-time
+                      count:
+                        type: integer
+                        description: 'Total count of comments returned'
+                      childResources:
+                        type: array
+                        description: 'For program resources only - lists child resources with comment counts'
+                        items:
+                          type: object
+                          properties:
+                            resource_id:
+                              type: integer
+                            is_comments:
+                              type: boolean
+                            count:
+                              type: integer
               examples:
-                example1:
+                success:
                   value:
                     responseCode: OK
-                    message: Comment fetched successfully
+                    message: Comments fetched successfully
                     result:
                       resource_id: 1
                       commented_by:
@@ -6927,38 +6936,42 @@ paths:
                           page: 1
                           status: RESOLVED
                           parent_id: 1
+                          user_id: '24'
                           commenter:
-                            id: 24
+                            id: '24'
                             name: Priyanka
                           is_read: true
-                          resolved_by: 25
+                          resolved_by: '25'
                           resolver:
-                            id: 25
+                            id: '25'
                             name: Adithya
                           resolved_at: '2024-04-11T06:43:43.995Z'
-                        - comment: Add valid title
+                          created_at: '2024-04-10T10:30:00.000Z'
+                          updated_at: '2024-04-11T06:43:43.995Z'
+                        - id: 3
+                          comment: Add valid title
                           context: page
                           page: 1
-                          status: UNRESOLVED
+                          status: OPEN
                           parent_id: null
+                          user_id: '24'
                           commenter:
-                            id: 24
+                            id: '24'
                             name: Priyanka
                           is_read: true
+                          resolved_by: null
+                          resolver: {}
+                          resolved_at: null
+                          created_at: '2024-04-10T11:00:00.000Z'
+                          updated_at: '2024-04-10T11:00:00.000Z'
                       count: 2
                       childResources:
                         - resource_id: 2
                           is_comments: true
-                          count: '2'
+                          count: 2
                         - resource_id: 3
                           is_comments: true
-                          count: '1'
-
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                          count: 1
   /scp/v1/rollouts/list:
     get:
       summary: Rollout List
