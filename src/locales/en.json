@@ -176,5 +176,13 @@
 	"CONSUMPTION_LINK_FETCH_FAILED": "Consumption link fetch failed",
 	"CONSUMPTION_LINK_FETCHED": "Link fetched successfully",
 	"ENTITY_TYPE_FETCHED_SUCCESSFULLY": "Entity types fetched successfully",
-	"FAILED_TO_FETCH_ENTITY_TYPES": "Failed to fetch entity types"
+	"FAILED_TO_FETCH_ENTITY_TYPES": "Failed to fetch entity types",
+	"CANNOT_REPUBLISH_UNPUBLISHED_PROJECT": "This project cannot be republished as it has not been published yet.",
+	"PROJECT_ALREADY_PUBLISHED": "This project has already been published. No need to republish.",
+	"PROJECT_REPUBLISHED_SUCCESSFULLY": "Project republished successfully.",
+	"PROJECT_REPUBLISH_FAILED": "Project republish failed.",
+	"FAILED_TO_FETCH_ENTITIES": "Failed to fetch entities",
+	"ENTITIES_FETCHED_SUCCESSFULLY": "Entities fetched successfully",
+	"ORGANIZATION_NOT_FOUND_IN_TENANT": "Organization not found in tenant",
+	"TENANT_NOT_FOUND": "Tenant fetch failed"
 }

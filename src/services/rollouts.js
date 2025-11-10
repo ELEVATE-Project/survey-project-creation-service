@@ -849,7 +849,7 @@ module.exports = class RolloutsHelper {
 				organization_code: org_code,
 				type: common.ROLL_OUT,
 				userToken,
-				userId: loggedInUserId,
+				userId: rolloutDetailsResult.user_id,
 			}
 
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
@@ -1214,6 +1214,7 @@ module.exports = class RolloutsHelper {
 					const fetchResourceDetails = await resourceService.getDetails(
 						resource?.id,
 						programData.organization_code,
+						programData.tenant_code,
 						userToken
 					)
 					const rolloutDetails = _.omit(fetchResourceDetails?.result, [

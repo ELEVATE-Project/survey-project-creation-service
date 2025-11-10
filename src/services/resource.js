@@ -6,8 +6,6 @@
  */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
-const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
-const reviewResourcesQueries = require('@database/queries/reviewsResources')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewStagesQueries = require('@database/queries/reviewStage')
 const responses = require('@helpers/responses')
@@ -28,6 +26,7 @@ const rolePermissionMappingQueries = require('@database/queries/role-permission-
 const consumptionConfig = require('@consumption/config')
 const endPoints = require('@constants/endpoints')
 const requests = require('@generics/requests')
+const organizationConfigQueries = require('@database/queries/organizationConfig')
 
 module.exports = class resourceHelper {
 	/**
@@ -519,7 +518,7 @@ module.exports = class resourceHelper {
 	 * @param {Object} queryParams -  queryParams contain sort details like sort_by, sort_order
 	 * @returns {JSON} - Response contain sort filter
 	 */
-	static async constructSortOptions(sort_by, sort_order, defaultSortBy = common.CREATED_AT) {
+	static async constructSortOptions(sort_by, sort_order, defaultSortBy = common.UPDATED_AT) {
 		let sort = {}
 		if (sort_by && sort_order) {
 			sort.sort_by = sort_by
@@ -1466,9 +1465,8 @@ module.exports = class resourceHelper {
 				? query[common.TYPE].split(',').filter((type) => allowedResources.includes(type))
 				: allowedResources
 			const search = searchText != '' ? searchText : ''
-
 			let filterQuery = {
-				organization_code,
+				// organization_code,
 				tenant_code: tenant_code,
 				status: common.RESOURCE_STATUS_PUBLISHED,
 				is_reusable: true,
@@ -1491,6 +1489,27 @@ module.exports = class resourceHelper {
 				}
 				delete filterQuery.is_reusable
 			}
+
+			let getOrgPolicies = await organizationConfigQueries.findAll(
+				{
+					organization_code: organization_code,
+					tenant_code: tenant_code,
+				},
+				['organization_code', 'external_resource_visibility_policy', 'resource_visibility_policy']
+			)
+			// get orgPolicies filter for the organization
+			const orgPoliciesFilter = this.applyOrgVisibilityPolicy(getOrgPolicies, organization_code, filterQuery)
+
+			if (!orgPoliciesFilter.success) {
+				return responses.failureResponse({
+					message: orgPoliciesFilter.message || 'ORG_POLICY_APPLICATION_FAILED',
+					statusCode: httpStatusCode.internal_server_error,
+					responseCode: 'SERVER_ERROR',
+					result: { data: [], count: 0 },
+				})
+			}
+
+			filterQuery = orgPoliciesFilter.filterQuery
 
 			const internalResources = await resourceQueries.resourceList(
 				filterQuery,
@@ -1565,6 +1584,92 @@ module.exports = class resourceHelper {
 					count: 0,
 				},
 			})
+		}
+	}
+
+	/**
+	 * Builds a Sequelize filter query based on organization visibility policy.
+	 * applyOrgVisibilityPolicy
+	 * @param {Array} orgPolicies - Array of organization policy records.
+	 * @param {String} organization_code - The current organization code.
+	 * @param {Object} filterQuery - (optional) Existing filter query to extend.
+	 * @returns {Object} Sequelize-compatible filterQuery object.
+	 */
+	static applyOrgVisibilityPolicy(orgPolicies, organization_code, filterQuery = {}) {
+		try {
+			if (!orgPolicies?.length) {
+				filterQuery.organization_code = organization_code
+				return { success: common.TRUE, filterQuery }
+			}
+
+			const orgPolicy = orgPolicies[0].external_resource_visibility_policy
+
+			const sharedWithOrgCondition = {
+				[Op.and]: [
+					{ visibility: { [Op.ne]: common.VALID_POLICIES.CURRENT } },
+					{ visible_to_organizations: { [Op.contains]: [organization_code] } },
+				],
+			}
+
+			const ownOrgCondition = { organization_code }
+
+			switch (orgPolicy) {
+				// --------------------------------------------------------------------
+				// CASE 1: CURRENT
+				// --------------------------------------------------------------------
+				// Fetch resources that belong ONLY to the current organization.
+				// This policy is the strictest visibility level — no shared or public data.
+				//--------------------------------------------------------------------
+				case common.VALID_POLICIES.CURRENT:
+					filterQuery.organization_code = organization_code
+					break
+				// --------------------------------------------------------------------
+				// CASE 2: ASSOCIATED
+				// --------------------------------------------------------------------
+				// Fetch resources that are:
+				//   1. Belonging to the current org
+				//   2. Shared with the current org via "visible_to_organizations" array
+				// --------------------------------------------------------------------
+				case common.VALID_POLICIES.ASSOCIATED:
+					filterQuery[Op.or] = [sharedWithOrgCondition, ownOrgCondition]
+					break
+
+				// --------------------------------------------------------------------
+				// CASE 3: ALL
+				// --------------------------------------------------------------------
+				// Fetch ALL possible visible resources for the current org, including:
+				//  1. Public resources (visibility = 'ALL')
+				//  2. Shared resources visible to this org
+				//      (visibility != 'CURRENT' AND org is in visible_to_organizations)
+				//  3. Org’s own resources
+				// --------------------------------------------------------------------
+
+				case common.VALID_POLICIES.ALL:
+					filterQuery[Op.or] = [
+						{ visibility: common.VALID_POLICIES.ALL },
+						sharedWithOrgCondition,
+						ownOrgCondition,
+					]
+					break
+
+				default:
+					filterQuery.organization_code = organization_code
+					return {
+						success: common.TRUE,
+						statusCode: httpStatusCode.bad_request,
+						message: 'INVALID_POLICY',
+						filterQuery,
+					}
+			}
+
+			return { success: common.TRUE, filterQuery }
+		} catch (error) {
+			return {
+				success: common.FALSE,
+				statusCode: httpStatusCode.internal_server_error,
+				message: error.message || 'POLICY_APPLICATION_ERROR',
+				filterQuery,
+			}
 		}
 	}
 

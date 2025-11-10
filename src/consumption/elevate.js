@@ -8,7 +8,6 @@ const MongoDBConnection = require('@configs/mongoConnection')
 const resourceService = require('@services/resource')
 const rolloutService = require('@services/rollouts')
 const targetingHelpers = require('@helpers/targetingCriteria')
-const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const { Op } = require('sequelize')
 const requests = require('@generics/requests')
 const responseCode = require('@generics/http-status')
@@ -645,12 +644,14 @@ const publishProjectTemplates = function (templateData) {
 				projectsMongoConnection
 			)
 
+			// Set visibility based on org policies
+			template.visibility = common.ORG_POLICY_CURRENT
+			template.visibleToOrganizations = [templateData.organization_code]
+
+			// Override visibility if org policies are successfully fetched
 			if (orgPolicies.success) {
 				template.visibility = orgPolicies.policies.visibility
 				template.visibleToOrganizations = orgPolicies.policies.visibleToOrganizations
-			} else {
-				template.policies.visibility = ''
-				template.policies.visibleToOrganizations = []
 			}
 
 			// Process Categories
@@ -719,8 +720,10 @@ const publishProjectTemplates = function (templateData) {
 			//return result
 			result.success = true
 			result.templateId = templateId
+			console.log('Template published successfully with ID:', templateId)
 			return resolve(result)
 		} catch (error) {
+			console.log('Error in publishProjectTemplates:', error.message)
 			if (mongoConnection) mongoConnection.disconnect()
 			result.error = error.message || error
 			return reject(error)

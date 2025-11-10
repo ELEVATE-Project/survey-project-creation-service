@@ -11,6 +11,8 @@ const logger = elevateLog.init()
 const { Kafka } = require('kafkajs')
 const { consumptionService } = require('@consumption/index')
 const adminService = require('@services/admin')
+const orgExtensionsService = require('@services/organization-extension')
+const common = require('@constants/common')
 
 const topics = [
 	process.env.CLEAR_INTERNAL_CACHE,
@@ -18,6 +20,7 @@ const topics = [
 	process.env.ROLLOUT_PUBLISH_KAFKA_TOPIC,
 	process.env.PROGRAM_PUBLISH_KAFKA_TOPIC,
 	process.env.USER_SERVICE_TENANT_CREATION_TOPIC,
+	process.env.USER_SERVICE_ORG_UPDATE_TOPIC,
 ]
 async function ensureTopics(KafkaClient) {
 	const admin = KafkaClient.admin()
@@ -122,6 +125,21 @@ module.exports = async () => {
 								streamingData.org_code,
 								streamingData.created_by
 							)
+						} else if (topic === process.env.USER_SERVICE_ORG_UPDATE_TOPIC) {
+							const eventType = streamingData.eventType?.toUpperCase()
+							if (eventType === common.CREATE) {
+								await orgExtensionsService.createOrUpdate(
+									{},
+									streamingData.code,
+									streamingData.tenant_code
+								)
+							} else if (eventType === common.UPDATE && streamingData.newValues?.related_org_details) {
+								await orgExtensionsService.updateRelatedOrgs(
+									streamingData.newValues,
+									streamingData.code,
+									streamingData.tenant_code
+								)
+							}
 						}
 					} catch (error) {
 						logger.error('Error processing Kafka message:', { error })
