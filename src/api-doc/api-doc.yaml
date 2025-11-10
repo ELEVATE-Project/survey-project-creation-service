@@ -20,8 +20,8 @@ info:
 
     ## Header Requirements
     - **`X-auth-token`**: (Required) Authentication token from login response
-    - **`tenant-id`**: (Required for admin) System-wide tenant identifier; backend extracts from token for other role
-    - **`organization-id`**: (Required for admin) Organization identifier; backend extracts from token for other role
+    - **`X-tenant-code`**: (Required for admin) System-wide tenant identifier; backend extracts from token for other role
+    - **`X-organization-code`**: (Required for admin) Organization identifier; backend extracts from token for other role
     - **Note**: These headers are configurable based on system requirements
 
     ## Role-Based Access
@@ -54,26 +54,14 @@ paths:
       tags:
         - Modules
       description: |-
-        Creates a new module in the system. Modules serve as foundational building blocks that organize and manage different types of resources (projects, programs, surveys, observations).
+        Creates a new module in the system. Modules organize and manage different types of resources (projects, programs, surveys, observations).
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
-        **Business Rules**:
-        - Module code must be globally unique across the system
-        - Code must contain only letters, hyphens, and underscores (no spaces)
-        - Code must follow naming convention (lowercase or mixed case with separators)
+        **Validation Rules**:
+        - Module code must be globally unique and immutable after creation
+        - Code must contain only letters, hyphens, and underscores (no spaces or special characters)
+        - Code must follow naming convention in lowercase or mixed case with separators
         - Status defaults to ACTIVE if not provided
-        - Module code cannot be empty or null
-
-        **Use Cases**:
-        - Define new module types for resource management
-        - Extend system capabilities with custom modules
-        - Create foundational structure for permissions and role mapping
-
-        **Important Notes**:
-        - Once created, module code is immutable
-        - Modules are referenced in permissions and role mappings
-        - Cannot create modules with reserved names
+        - Code cannot be empty, null, or reserved
       operationId: createModule
       parameters:
         - name: X-auth-token
@@ -200,20 +188,14 @@ paths:
       tags:
         - Modules
       description: |-
-        Updates an existing module configuration. This endpoint allows administrators to modify module properties such as code or status.
+        Updates an existing module configuration including code and status properties.
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
-        **Business Rules**:
-        - Module must exist (ID must be valid)
-        - Updated code must remain unique if changed
-        - Cannot update module ID itself
-        - Status changes are audited for compliance
-
-        **Use Cases**:
-        - Deactivate/activate modules based on feature requirements
-        - Update module configuration without recreating
-        - Manage module lifecycle
+        **Validation Rules**:
+        - Module ID must exist and be valid
+        - Updated code must remain unique across the system if changed
+        - Code must contain only letters, hyphens, and underscores (no spaces or special characters)
+        - Status must be either ACTIVE or INACTIVE
+        - Module ID itself cannot be modified
       operationId: updateModule
       parameters:
         - name: X-auth-token
@@ -238,10 +220,14 @@ paths:
                 code:
                   type: string
                   description: Unique code for modules.
+                status:
+                  type: string
+                  enum: [ACTIVE, INACTIVE]
+                  description: Status of the module.
               required:
                 - code
             examples:
-              example1:
+              ModuleUpdate:
                 value:
                   code: projects
                   status: INACTIVE
@@ -294,26 +280,18 @@ paths:
       tags:
         - Modules
       description: |-
-        Retrieves a paginated list of all modules in the system with optional filtering and search capabilities.
+        Retrieves a paginated list of all modules in the system with optional search and filtering.
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
-        **Features**:
-        - Pagination support with configurable page size
+        **Capabilities**:
+        - Pagination with configurable page size (defaults to 10, max 100 per page)
         - Full-text search across module codes (partial match, case-insensitive)
-        - Returns count of total matching modules
         - Search text cannot contain special characters
+        - Returns total count of matching modules
 
         **Query Parameters**:
-        - `page`: Page number for pagination (1-indexed, defaults to 1)
-        - `limit`: Records per page (defaults to 100, max 100)
-        - `search`: Filter modules by code
-
-        **Use Cases**:
-        - Display all available modules
-        - Search for specific module by code name
-        - Implement paginated module listings
-        - Monitor system modules
+        - `page`: Page number (1-indexed, defaults to 1)
+        - `limit`: Records per page (defaults to 10, max 100)
+        - `search`: Filter modules by code (optional, case-insensitive partial match)
       operationId: listModules
       parameters:
         - name: X-auth-token
@@ -463,32 +441,19 @@ paths:
       tags:
         - Modules
       description: |-
-        Soft deletes a module from the system. The module record is marked as deleted but preserved in the database for audit and compliance purposes.
+        Soft deletes a module from the system. The module record is marked as deleted but preserved for audit and compliance.
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
-        **Soft Delete Behavior**:
+        **Soft Delete Details**:
         - Module record is marked as deleted in the database (not permanently removed)
         - Deleted module cannot be accessed through normal API operations
-        - Deleted module data is preserved for audit trails and compliance
-        - Soft-deleted modules can be restored through database recovery if needed
+        - Module data is preserved for audit trails and compliance
         - Module code remains reserved and cannot be reused
+        - Soft-deleted modules can be restored through database recovery if needed
 
-        **Rules**:
+        **Validation Rules**:
         - Module ID must exist in the system
         - Module must not have already been deleted
         - Soft deletion is permanent (cannot be undone through API)
-
-        **Important Notes**:
-        - Use with caution in production environments
-        - Deletion is logged with audit trail for compliance and security
-        - Deleted module will not appear in list operations
-        - Associated permissions still reference the deleted module code
-
-        **Use Cases**:
-        - Remove custom module definitions from active use
-        - Archive outdated module structures while preserving history
-        - Decommission modules with full audit trail
       operationId: deleteModule
       parameters:
         - name: X-auth-token
@@ -552,31 +517,16 @@ paths:
       tags:
         - Permissions
       description: |-
-        Creates a new permission that maps an API endpoint to specific HTTP methods and modules. Permissions define granular access control for role-based authorization.
+        Creates a new permission that maps an API endpoint to specific HTTP methods and modules for role-based access control.
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
-        **Rules**:
-        - Permission code must be globally unique across the system
-        - Code must contain only lowercase letters and underscores (no spaces, no uppercase, no hyphens, no numbers)
-        - Module must exist in the system
-        - API path must follow strict format pattern: `/[controller]/v[number]/[path]`
-        - request_type must be an array with at least one HTTP method
-        - Status defaults to ACTIVE if not provided
-        - All fields must be non-empty and non-null
-
-        **Use Cases**:
-        - Define new API permissions for custom modules
-        - Map endpoints to specific HTTP methods for role-based access
-        - Create fine-grained access control for module operations
-        - Support permission-to-role assignments
-        - Multiple HTTP methods can be grouped under a single permission
-
-        **Important Notes**:
-        - Permission code must follow naming convention: `[action]_[resource]` (e.g., `create_project`, `list_user`)
-        - API path format must start with `/scp` or similar service identifier
-        - request_type accepts multiple methods: [GET], [POST], [GET, POST, DELETE], [GET, POST, PATCH, PUT, DELETE], etc.
-        - Once created, permission properties should not change frequently
+        **Details**:
+        - Permission code serves as a unique identifier and remains immutable after creation
+        - Code accepts lowercase letters and underscores for standardized naming
+        - Module must be an existing module in the system
+        - API path follows a consistent format pattern: `/[controller]/v[number]/[path]` (starting with `/scp`)
+        - HTTP methods can be specified as an array including GET, POST, PATCH, PUT, DELETE
+        - Status is set to ACTIVE by default for immediate availability
+        - All required fields must be provided with non-empty values
       operationId: createPermission
       parameters:
         - name: X-auth-token
@@ -752,9 +702,7 @@ paths:
       description: |-
         Updates an existing permission mapping API endpoint to HTTP methods and modules. Allows modification of permission properties such as code, module, request methods, and status.
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
-        **Rules**:
+        **Validations**:
         - Permission ID must exist in the system
         - Permission must not have already been deleted
         - Updated code must remain unique across the system if changed
@@ -764,13 +712,6 @@ paths:
         - API path must follow strict format pattern: `/[controller]/v[number]/[path]`
         - All fields must be non-empty and non-null when provided
         - Status field is optional and defaults to current value if not provided
-
-        **Use Cases**:
-        - Modify permission code while maintaining uniqueness
-        - Update HTTP methods granted by a permission
-        - Change module association for a permission
-        - Update permission status (ACTIVE/INACTIVE)
-        - Deactivate permissions without deleting them
 
         **Important Notes**:
         - Permission ID must be a valid positive integer
@@ -939,8 +880,6 @@ paths:
       description: |-
         Retrieves a paginated list of all permissions in the system with optional search and filtering capabilities.
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
         **Features**:
         - Pagination support with configurable page size (defaults to 100, max 100 per page)
         - Full-text search across permission codes (case-insensitive, partial match)
@@ -1085,33 +1024,17 @@ paths:
       tags:
         - Permissions
       description: |-
-        Retrieves the list of permissions accessible to the authenticated user based on their assigned roles. This API determines what modules and HTTP methods the user can access.
+        Retrieves the permissions accessible to the authenticated user based on their assigned roles. This API provides information about the modules and HTTP methods the user can access.
 
-        **Access Control**: User-facing API. Requires valid authentication token. Any authenticated user can call this API to view their own permissions. Used in all roles: admin, org_admin, content_creator, reviewer, program_designer, rollout_manager, data_manager, program_manager.
+        **Overview**:
+        - Requires a valid authentication token and is accessible to all authenticated users
+        - Extracts user roles from the authentication token
+        - Fetches permissions mapped to each role from the role-permission-mapping
+        - Merges permissions across multiple roles with deduplication
+        - Returns consolidated permissions grouped by module
+        - Returns an array of permission objects containing module names and allowed HTTP methods
+        - No pagination or search applied
 
-        **Role-Based Permission Filtering**:
-        - Extracts user's roles from authentication token (req.decodedToken.roles)
-        - Queries role-permission-mapping table filtering by role_title
-        - Returns permissions mapped to the user's roles
-        - Multiple roles result in merged permissions (union of all role permissions)
-
-        **Permission Merging Logic**:
-        - If user has multiple roles, permissions are combined for each module
-        - request_type arrays are merged and deduplicated (using Set to remove duplicates)
-        - Result: Array of {module, request_type} objects (one entry per module)
-        - Example: If user has role 'admin' (can POST/GET) and 'reviewer' (can GET), result includes [GET, POST] for that module
-
-        **Response Structure**:
-        - Returns array of permission objects
-        - Each object has: module (string), request_type (array of HTTP methods)
-        - No pagination or search - all permissions for user's roles are returned
-
-        **Use Cases**:
-        - Display user's accessible modules in UI/dashboard
-        - Determine which API endpoints user can call
-        - Show role-based feature access in applications
-        - Implement client-side permission checks
-        - Audit user capabilities
       operationId: listPermissions
       parameters:
         - name: X-auth-token
@@ -1172,38 +1095,21 @@ paths:
         - Permissions
       operationId: deletePermission
       description: |-
-        Soft deletes a permission from the system. The permission record is marked as deleted but preserved in the database for audit and compliance purposes.
-
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
-        **Soft Delete Behavior**:
-        - Permission record is marked as deleted in the database (not permanently removed)
+        **Overview**:
+        - Soft deletes a permission from the system while preserving data for audit and compliance purposes
+        - Admin-only API requiring `admin` or `org_admin` role from authentication token
+        - Permission record is marked as deleted in database but not permanently removed
         - Deleted permission cannot be accessed through normal API operations (getPermissions, list)
-        - Deleted permission data is preserved for audit trails and compliance
-        - Soft-deleted permissions can be restored through database recovery if needed
         - Permission code remains reserved and cannot be reused for new permissions
         - Role-permission-mapping entries referencing deleted permission are also soft-deleted
-        - HTTP status 202 (Accepted) indicates deletion is queued/processed asynchronously
+        - Use with caution in production environments as deletion cannot be undone through API
+        - Deletion is logged with audit trail for compliance and security
+        - Any roles mapped to this permission will have the mapping removed
 
         **Validation Rules**:
-        - Permission ID must be a valid positive integer (1 to 2147483647)
-        - Permission ID must exist in the system
+        - Permission ID must be a valid positive integer (1 to 2147483647) and exist in the system
         - Permission must not have already been deleted
         - ID parameter is required and cannot be empty or null
-
-        **Important Notes**:
-        - Use with caution in production environments
-        - Deletion is logged with audit trail for compliance and security
-        - Deleted permission will not appear in list operations
-        - Cannot be undone through API (requires database recovery)
-        - Any roles mapped to this permission will have the mapping removed
-        - Useful for removing obsolete permissions while maintaining historical records
-
-        **Use Cases**:
-        - Remove permission definitions that are no longer needed
-        - Archive outdated API permissions while preserving history
-        - Decommission module permissions with full audit trail
-        - Clean up permissions for deprecated endpoints
       parameters:
         - name: X-auth-token
           in: header
@@ -1271,35 +1177,24 @@ paths:
         - Role Permission Mapping
       operationId: createRolePermissionMapping
       description: |-
-        Creates a new mapping between a role and a permission, granting the role access to specific API endpoints and HTTP methods.
-
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
-        **Business Rules**:
-        - Permission ID must exist in the system
-        - Role title must exist in the system
-        - Each role-permission combination must be unique (no duplicate mappings)
+        **Overview**:
+        - Creates a new mapping between a role and a permission, granting the role access to specific API endpoints and HTTP methods
         - API automatically retrieves module and request_type from the permission record
         - created_by field captures the user who created the mapping (from authentication token)
-
-        **Validation**:
-        - Permission must be in ACTIVE status
-        - Permission must not have been soft-deleted
-        - Permission record must contain valid module, request_type, and api_path
-        - role_title must follow naming convention: letters, hyphens, underscores only
-
-        **Use Cases**:
-        - Assign permissions to newly created roles
-        - Add new permissions to existing roles
-        - Grant specific API access to role-based user groups
-        - Build role-based access control (RBAC) mappings
-        - Support permission scaling as new features are added
-
-        **Important Notes**:
         - Multiple permissions can be assigned to a single role
         - Single permission can be assigned to multiple roles
         - Changes take effect immediately for new user sessions
         - Existing sessions may require re-authentication to reflect new permissions
+        - Useful for assigning permissions to newly created roles, adding new permissions to existing roles, granting specific API access to role-based user groups, building role-based access control (RBAC) mappings, and supporting permission scaling as new features are added
+
+        **Validation Rules**:
+        - Permission ID must exist in the system and be in ACTIVE status (not soft-deleted)
+        - Role title must exist in the system and follow naming convention: letters, hyphens, underscores only
+        - Each role-permission combination must be unique (no duplicate mappings)
+        - Permission must be in ACTIVE status
+        - Permission must not have been soft-deleted
+        - Permission record must contain valid module, request_type, and api_path
+        - role_title must follow naming convention: letters, hyphens, underscores only
       parameters:
         - name: X-auth-token
           in: header
@@ -1444,29 +1339,15 @@ paths:
         - Role Permission Mapping
       operationId: listRolePermissionMappings
       description: |-
-        Retrieves all permissions assigned to the authenticated user's roles, with automatic deduplication of request methods across multiple permissions for the same module.
-
-        **Access Control**: User-facing API. Requires valid authentication token. Any authenticated user can call this API to view their own permissions based on assigned roles. Does not require admin role.
-
-        **Role-Based Permission Retrieval**:
-        - Extracts user's roles from authentication token (req.decodedToken.roles)
-        - Filters role-permission-mapping table by each user role (multiple roles supported)
-        - Returns permissions union across all user roles
-
-        **Use Cases**:
-        - Display user's accessible modules in UI/dashboard
-        - Determine which API endpoints user can call
-        - Show user's capabilities and features available
-        - Implement client-side permission checks
-        - Audit user role capabilities
-        - Validate user access before operations
-
-        **Important Notes**:
-        - Empty result (permissions: []) does NOT return error - returns 200 with ROLE_PERMISSION_NOT_FOUND message
-        - Permissions are deduplicated per module automatically across multiple user roles
-        - Automatic extraction from authentication token - no additional parameters needed
+        **Overview**:
+        - Retrieves all permissions assigned to the authenticated user's roles with automatic deduplication of request methods across multiple permissions for the same module
+        - User-facing API requiring valid authentication token - any authenticated user can access their own permissions without admin role
+        - Extracts user roles from authentication token and filters role-permission-mapping table by each user role (supports multiple roles)
+        - Returns consolidated permissions grouped by module with deduplicated HTTP methods
         - Returns only module and request_type fields (not permission codes or IDs)
-        - Multiple user roles are supported and merged automatically
+        - Supports multiple user roles merged automatically across all assigned roles
+        - Empty result returns 200 status with ROLE_PERMISSION_NOT_FOUND message instead of error
+        - No pagination or search parameters required - automatic extraction from authentication token
       parameters:
         - name: X-auth-token
           required: true
@@ -1538,8 +1419,6 @@ paths:
       operationId: deleteRolePermissionMapping
       description: |-
         Deletes a mapping between a role and a permission, removing the role's access to specific API endpoints and HTTP methods.
-
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
 
         **Rules**:
         - Role-permission mapping must exist (combination of role_title and permission_id)
@@ -1638,8 +1517,6 @@ paths:
       operationId: createEntityType
       description: |-
         Creates a new entity type in the system. Entity types are used to categorize and manage different types of entities (e.g., languages, regions, schools).
-
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
 
         **Rules**:
         - Entity type `value` must be globally unique per organization
@@ -1870,9 +1747,7 @@ paths:
       description: |-
         Updates an existing entity type configuration. Allows modification of entity type properties such as value, label, status, and advanced options.
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
-        **Business Rules**:
+        **Rules**:
         - Entity type ID must exist in the system
         - Updated `value` must remain unique per organization if changed
         - `value` must contain only letters and underscores (no spaces, lowercase)
@@ -2094,7 +1969,6 @@ paths:
          - The API Endpoint for getting the list of entity types is `/scp/v1/entity-types/read` 
          - It is mandatory to provide values for parameters which are marked as `required` 
          - This is a mandatory parameter and cannot be empty or null.
-         - This is an Admin API which will be used by admins.
       parameters:
         - name: X-auth-token
           in: header
@@ -2296,8 +2170,6 @@ paths:
       description: |-
         Soft deletes an entity type from the system. The record is marked as deleted but preserved in the database for audit and compliance.
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
         **Business Rules**:
         - Entity type ID must exist in the system
         - Entity type must belong to user's organization
@@ -2365,9 +2237,7 @@ paths:
       description: |-
         Creates a new entity within a specified entity type. Entities are organizational units categorized by entity types (e.g., languages, regions, schools).
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
-
-        **Business Rules**:
+        **Rules**:
         - Entity `value` must be unique per entity type, organization, and tenant (automatically converted to lowercase)
         - `label` can contain letters, numbers, and spaces
         - `value` must contain only letters and underscores (no spaces, no special characters)
@@ -2545,8 +2415,6 @@ paths:
       description: |-
         Updates an existing entity with new values. Allows modification of entity properties such as value, label, status, and type.
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role. User can only update entities they created (unless admin).
-
         **Business Rules**:
         - Entity ID must exist and belong to user's organization and tenant
         - Updated `value` must remain unique per entity type if changed (automatically converted to lowercase)
@@ -2716,8 +2584,6 @@ paths:
       operationId: readEntity
       description: |-
         Retrieves detailed information about one or more entities. Supports three operational modes for flexible querying.
-
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role. Users can only read system entities or entities they created.
 
         **Three Operational Modes**:
 
@@ -2918,8 +2784,6 @@ paths:
       description: |-
         Soft deletes an entity from the system. The entity record is marked as deleted but preserved in the database for audit and compliance purposes.
 
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role. User can only delete entities they created.
-
         **Rules**:
         - Entity ID must exist in the system
         - User must be the creator of the entity (or admin)
@@ -2997,8 +2861,6 @@ paths:
         - Entity
       description: |-
         Retrieves a paginated list of entities with optional search and filtering capabilities.
-
-        **Access Control**: Admin-only API. Requires `admin` or `org_admin` role.
 
         **Features**:
         - Pagination support with configurable page size (defaults to 100, max 100 per page)
@@ -3151,8 +3013,6 @@ paths:
         - Cloud Services
       description: |-
         Generates signed URLs for uploading files to cloud storage (Azure Blob Storage). Supports multiple reference types with automatic folder structure generation based on tenant, organization, user, and reference type.
-
-        **Access Control**: Requires authentication token. User's organization and tenant from token used for scoping.
 
         **Reference Types Supported**:
         - `certificate`: For certificate uploads
@@ -3309,8 +3169,6 @@ paths:
         - Cloud Services
       description: |-
         Generates downloadable signed URLs for files stored in cloud storage.
-
-        **Access Control**: Requires authentication token. User organization and tenant derived from token.
 
         **Use Cases**:
         - Download certificates, images, or documents from storage
@@ -3984,30 +3842,48 @@ paths:
       summary: Create or Update Project
       tags:
         - Projects
+      operationId: updateProject
       description: |-
-        You can use this API to update a project 
-         - The API Endpoint for update a project is `/scp/v1/projects/update/{id}` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Creates a new project or updates an existing project based on whether `projectId` is provided
+        - Project creation supports cloning from an existing published project using `reference_id` query parameter
+        - Requires authentication token with user organization and tenant context
+        - Project data is uploaded to cloud storage (blob_path) for persistence
+        - Project status transitions: DRAFT (creation) → SUBMITTED → IN_REVIEW → APPROVED/REJECTED → PUBLISHED
+        - Projects in PUBLISHED, REJECTED, REJECTED_AND_REPORTED, SUBMITTED, or INPROGRESS status cannot be updated
+
+        **Validation Rules**:
+        - `title` is required and must not exceed character limit (validated by utils.validateTitle)
+        - `projectId` must be a valid integer (1 to 2147483647) for updates
+        - `reference_id` cannot be used with `projectId` (only for creation)
+        - `reference_id` must reference a PUBLISHED project in the same organization and tenant
+        - Project must be in DRAFT or CREATION stage for updates, unless reviewer requested changes
+        - Cannot update projects in COMPLETION stage
+        - When reviewer requests changes, `is_under_edit` is automatically set to true
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, and tenant_code.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: projectId
-          description: 'For creating the project, id is not required. For update please append a valid project Id to the Request URL.'
+          description: 'Project ID for update operations (numeric, 1-2147483647). Omit or leave empty for project creation.'
           schema:
             type: number
-          required: true
+            minimum: 1
+            maximum: 2147483647
+          required: false
           example: 1
         - in: query
           name: reference_id
-          description: "(Optional) The ID of an existing project to clone/reference. When provided, a new project is created as a copy of the referenced project with all its structure, tasks, and configurations. The cloned project will be created in DRAFT status and will belong to the current user's organization. Example: reference_id=12345"
+          description: 'Optional. ID of published project to clone during creation (numeric). Creates new project with copied structure, tasks, and configurations. Cannot be used with projectId. New project created in DRAFT status.'
           schema:
-            type: string
+            type: number
+            minimum: 1
+            maximum: 2147483647
           required: false
           example: 3
       requestBody:
@@ -4414,8 +4290,8 @@ paths:
                               task_details:
                                 - 7a8b13fb-c9e1-4296-8abd-8b64b357a128
       responses:
-        '201':
-          description: Project updated successfully
+        '200':
+          description: 'Project created successfully'
           content:
             application/json:
               schema:
@@ -4423,13 +4299,17 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: 'OK'
                   message:
                     type: string
+                    example: 'PROJECT_CREATED_SUCCESSFULLY'
                   result:
                     type: object
                     properties:
                       id:
                         type: number
+                        description: 'Unique project ID (resource ID)'
+                        example: 1
                   meta:
                     type: object
                     properties:
@@ -4445,10 +4325,11 @@ paths:
                             version:
                               type: number
               examples:
-                example1:
+                createExample:
+                  summary: 'Project Created Successfully'
                   value:
                     responseCode: OK
-                    message: Project updated successfully
+                    message: PROJECT_CREATED_SUCCESSFULLY
                     result:
                       id: 1
                     meta:
@@ -4456,38 +4337,8 @@ paths:
                         - id: 3
                           type: projectCreation
                           version: 3
-        '400':
-          description: Bad Request. Project Update Failed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/createProject400Response'
-    delete:
-      summary: Delete Project
-      tags:
-        - Projects
-      description: |-
-        You can use this API to delete a project 
-         - The API Endpoint for deleting project is `/scp/v1/projects/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: projectId
-          description: Please append a valid project Id to the Request URL.
-          schema:
-            type: number
-          required: true
-          example: 1
-      responses:
         '202':
-          description: Project deleted successfully
+          description: 'Project updated successfully'
           content:
             application/json:
               schema:
@@ -4495,92 +4346,242 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: 'OK'
                   message:
                     type: string
+                    enum:
+                      - PROJECT_UPDATED_SUCCESSFUL
+                      - PROJECT_SAVED_SUCCESSFULLY
+                    description: 'Message varies based on project stage: PROJECT_SAVED_SUCCESSFULLY for REVIEW stage, PROJECT_UPDATED_SUCCESSFUL otherwise'
+                    example: 'PROJECT_UPDATED_SUCCESSFUL'
+                  result:
+                    type: number
+                    description: 'Updated project ID'
+                    example: 1
                   meta:
                     type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
               examples:
-                example1:
+                updateExample:
+                  summary: 'Project Updated Successfully'
                   value:
                     responseCode: OK
-                    message: Project deleted successfully
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                    message: PROJECT_UPDATED_SUCCESSFUL
+                    result: 1
+                    meta: {}
         '400':
-          description: Bad Request. Project not found
+          description: 'Bad Request - Various validation or business rule failures'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/deleteProject400Response'
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    enum:
+                      - PROJECT_NOT_FOUND
+                      - CHARACTER_LIMIT_EXCEED
+                      - FORBIDDEN_RESOURCE_UPDATE
+                      - FILE_UPLOADED_FAILED
+                    example: 'PROJECT_NOT_FOUND'
+                  result:
+                    type: object
+              examples:
+                notFoundExample:
+                  summary: 'Project Not Found'
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: PROJECT_NOT_FOUND
+                    result: {}
+                characterLimitExample:
+                  summary: 'Title Character Limit Exceeded'
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: CHARACTER_LIMIT_EXCEED
+                    result: {}
+                forbiddenUpdateExample:
+                  summary: 'Forbidden Resource Update (in review without change requests)'
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message:
+                      key: FORBIDDEN_RESOURCE_UPDATE
+                      interpolation:
+                        resourceTitle: Sample Project
+                        reviewer_count: 0
+                    result: {}
+    delete:
+      summary: Delete Project (Soft Delete)
+      tags:
+        - Projects
+      operationId: deleteProject
+      description: |-
+        **Overview**:
+        - Soft deletes a project from the system by marking it as deleted in the database
+        - Only the project creator can delete their own projects
+        - Project data is preserved in database with deletion timestamp for audit purposes
+        - Requires authentication token with user_id, organization_code, and tenant_code
+
+        **Validation Rules**:
+        - `projectId` must be a valid integer (1 to 2147483647)
+        - Project must exist and belong to the authenticated user (user_id match)
+        - Project must be in DRAFT status (cannot delete submitted/published projects)
+        - Project must be in CREATION stage (cannot delete projects in REVIEW or COMPLETION stage)
+        - Project must belong to user's organization and tenant
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, and tenant_code.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: path
+          name: projectId
+          description: 'Unique project ID to soft delete (numeric, positive integer, 1 to 2147483647). Must belong to authenticated user.'
+          schema:
+            type: number
+            minimum: 1
+            maximum: 2147483647
+          required: true
+          example: 1
+      responses:
+        '202':
+          description: 'Project deleted successfully (soft delete accepted)'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'OK'
+                  message:
+                    type: string
+                    example: 'PROJECT_DELETED_SUCCESSFUL'
+                  result:
+                    type: object
+                    description: 'Empty object for successful deletion'
+                    example: {}
+                  meta:
+                    type: object
+              examples:
+                deleteExample:
+                  summary: 'Project Deleted Successfully'
+                  value:
+                    responseCode: OK
+                    message: PROJECT_DELETED_SUCCESSFUL
+                    result: {}
+                    meta: {}
+        '400':
+          description: 'Bad Request - Project not found or does not meet deletion criteria'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    example: 'PROJECT_NOT_FOUND'
+                  result:
+                    type: object
+              examples:
+                notFoundExample:
+                  summary: 'Project Not Found'
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: PROJECT_NOT_FOUND
+                    result: {}
+                unauthorizedExample:
+                  summary: 'Project Not Owned by User'
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: PROJECT_NOT_FOUND
+                    result: {}
   '/scp/v1/projects/submitForReview/{projectId}':
     post:
       summary: Submit Project for Review
       tags:
         - Projects
+      operationId: submitForReview
       description: |-
-        Use this API to submit a project for review.
-        - The API endpoint for submitting the project for review is `/scp/v1/projects/submitForReview/{projectId}`.
-        - It is mandatory to provide values for parameters marked as `required`.
-        - The `projectId` parameter is mandatory and cannot be empty or null.
+        **Overview**:
+        - Submits a project for review by creating review entries for selected reviewers or making it available to all reviewers
+        - Validates project data including tasks, entity tagging, and task dates before submission
+        - Supports optional reviewer selection or submission to all reviewers based on organization configuration
+        - If review is not mandatory (per organization config), project is automatically published
+        - Changes project status to SUBMITTED and stage to REVIEW upon successful submission
+        - Only project creator can submit their own projects for review
+
+        **Validation Rules**:
+        - `projectId` must be a valid integer (1 to 2147483647) and exist in the system
+        - Project must belong to the authenticated user (creator only)
+        - Project cannot be in PUBLISHED, REJECTED, REJECTED_AND_REPORTED, or already SUBMITTED status
+        - All open comments must be resolved before submission
+        - Project task count must not exceed MAX_PROJECT_TASK_COUNT environment variable limit
+        - `notes` character length must not exceed MAX_RESOURCE_NOTE_LENGTH (optional field)
+        - `reviewer_ids` must be an array of valid reviewer user IDs (optional, excluding creator)
+        - Reviewer IDs must belong to users with reviewer role in the same organization and tenant
+        - Entity tagging validation is performed if enabled
+        - Task start/end date validation if ENABLE_TASK_START_END_DATE_IN_PROJECTS is true
+        - All entity type validations for project and tasks are enforced
       parameters:
         - name: X-auth-token
           in: header
-          description: The `X-auth-token` is required to use this API. It is available in the login API response.
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for reviewer validation.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: projectId
-          description: A valid project ID must be appended to the request URL.
+          description: 'Unique project ID to submit for review (numeric, positive integer, 1 to 2147483647). Must belong to authenticated user.'
           schema:
             type: integer
+            minimum: 1
+            maximum: 2147483647
           required: true
           example: 1
       requestBody:
+        description: 'Optional request body for reviewer selection and notes'
+        required: false
         content:
           application/json:
             schema:
               type: object
               properties:
                 reviewer_ids:
-                  description: The IDs of the reviewers assigned to review the project.
+                  description: 'Optional array of reviewer user IDs. If provided, project is assigned to specific reviewers. If omitted, project is available to all reviewers based on organization config.'
                   type: array
                   items:
                     type: string
+                  minItems: 1
+                  example: ['23', '25']
                 notes:
-                  description: Additional notes for the reviewer.
+                  description: 'Optional notes for reviewers. Character length must not exceed MAX_RESOURCE_NOTE_LENGTH environment variable.'
                   type: string
+                  maxLength: 500
+                  example: 'Note to the reviewer'
             examples:
-              example1:
-                summary: Example when specific reviewers are selected
+              specificReviewers:
+                summary: 'Submit to specific reviewers'
                 description: 'When specific reviewers are selected, their user IDs are sent as an array, and the project is assigned to those reviewers.'
                 value:
                   reviewer_ids:
-                    - 23
-                    - 25
-                  notes: Note to the reviewer
-              example2:
-                summary: Example when sending to all reviewers
-                description: 'When the project is sent to all reviewers, the API does not expect any body parameters, and the project will be available for all reviewers according to other factors.'
+                    - '23'
+                    - '25'
+                  notes: 'Note to the reviewer'
+              allReviewers:
+                summary: 'Submit to all reviewers'
+                description: 'When the project is sent to all reviewers, no body parameters are required. The project will be available for all reviewers based on organization configuration.'
                 value: {}
       responses:
-        '201':
-          description: Project submitted for review successfully.
+        '200':
+          description: 'Project submitted for review successfully (or auto-published if review not mandatory)'
           content:
             application/json:
               schema:
@@ -4588,34 +4589,29 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: 'OK'
                   message:
                     type: string
-                  meta:
+                  result:
                     type: object
                     properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: integer
-                            type:
-                              type: string
-                            version:
-                              type: integer
+                      id:
+                        type: integer
+                        description: 'Project ID'
+                        example: 1
+                  meta:
+                    type: object
               examples:
-                example1:
+                submitExample:
+                  summary: 'Project Submitted Successfully'
                   value:
                     responseCode: OK
-                    message: Project submitted for review successfully
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                    message: Project Submitted Successfully
+                    result:
+                      id: 1
+                    meta: {}
         '400':
-          description: Bad Request.
+          description: 'Bad Request - Various validation failures'
           content:
             application/json:
               schema:
@@ -4625,28 +4621,43 @@ paths:
       summary: Republish Project
       tags:
         - Projects
+      operationId: republishProject
       description: |-
-        Use this API to republish a project that has already been published.
-        - The API endpoint for republishing a project is `/scp/v1/projects/republish/{projectId}`.
-        - It is mandatory to provide values for parameters marked as `required`.
-        - The `projectId` parameter is mandatory and cannot be empty or null.
+        **Overview**:
+        - Republishes an already published project to the consumption portal/service
+        - Validates project exists and user has access (authorization check via project details)
+        - Only projects with PUBLISHED status can be republished
+        - Project must not have been previously published (no published_id)
+        - Publishes project data through Kafka or API endpoint based on configuration
+        - Updates project status to PUBLISHED with published_on timestamp
+        - Project stage changes to COMPLETION after republish
+        - All associated comments are deleted after successful republish
+
+        **Validation Rules**:
+        - `projectId` must be a valid integer (1 to 2147483647)
+        - Project must exist and belong to user's organization and tenant
+        - Project status must be PUBLISHED (cannot republish drafts or submitted projects)
+        - Project must not have published_id already set (prevents duplicate republish)
       parameters:
         - name: X-auth-token
           in: header
-          description: The `X-auth-token` is required to use this API. It is available in the login API response.
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for authorization.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: projectId
-          description: A valid project ID must be appended to the request URL.
+          description: 'Unique project ID to republish (numeric, positive integer, 1 to 2147483647). Must be a published project.'
           schema:
             type: integer
+            minimum: 1
+            maximum: 2147483647
           required: true
           example: 1
       responses:
         '200':
-          description: Project republished successfully.
+          description: 'Project republished successfully'
           content:
             application/json:
               schema:
@@ -4661,34 +4672,15 @@ paths:
                     properties:
                       id:
                         type: integer
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: integer
-                            type:
-                              type: string
-                            version:
-                              type: integer
               examples:
-                example1:
+                republishExample:
                   value:
                     responseCode: OK
                     message: Project republished successfully.
                     result:
                       id: 1
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
         '400':
-          description: Bad Request.
+          description: 'Bad Request - Various validation failures'
           content:
             application/json:
               schema:
