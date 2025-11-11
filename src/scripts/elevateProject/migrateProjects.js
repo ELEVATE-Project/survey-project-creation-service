@@ -659,7 +659,7 @@ async function getUserOrgTenantDetails(userIds, tenantCode) {
 	}
 
 	try {
-		const users = await userRequest.list('all', '', '', '', '', { user_ids: userIds }, '', tenantCode)
+		const users = await userRequest.list('all', '', '', '', '', tenantCode, { user_ids: userIds }, '')
 
 		if (users.success && users.data?.result?.data?.length > 0) {
 			return _.keyBy(users.data.result.data, (item) => String(item.id))

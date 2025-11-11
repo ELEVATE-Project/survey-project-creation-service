@@ -15,7 +15,8 @@ const { transliterate: tr } = require('transliteration')
 const fs = require('fs')
 const request = require('request')
 const path = require('path')
-
+const endpoints = require('@constants/endpoints')
+const requests = require('@generics/requests')
 const composeEmailBody = (body, params) => {
 	return body.replace(/{([^{}]*)}/g, (a, b) => {
 		var r = params[b]
@@ -802,30 +803,106 @@ function validateTenantAndOrganizationInHeader(req) {
 }
 
 /**
-+	 * Extract tenant and organization codes based on user role
-+	 */
-function _extractTenantAndOrgCodes(req) {
-	let tenantCode = req.decodedToken.tenant_code
-	let organizationCode = req.decodedToken.organization_code
+ * Fetches tenant public details for a given tenant code from user service
+ * @method
+ * @name fetchPublicTenantDetails
+ * @param {String} tenantCode - The code of the tenant
+ * @returns {Promise<Object>} Returns object with structure:
+ *   {
+ *     success: Boolean,
+ *     data: {
+ *       // Tenant details if success is true
+ *     }
+ *   }
+ */
+const fetchInternalTenantDetails = async function (tenantCode) {
+	let result = {
+		success: false,
+		data: {},
+	}
+	try {
+		const userBaseUrl = buildUrl(process.env.INTERFACE_SERVICE_HOST, process.env.USER_SERVICE_BASE_URL)
+		const tenantReadUrl = buildUrl(userBaseUrl, endpoints.FETCH_TENANT_INTERNAL, {}, tenantCode)
+		const tenantDetails = await requests.get(tenantReadUrl, '', true)
+		if (tenantDetails && tenantDetails?.success) {
+			result.success = true
+			result.data = tenantDetails?.data?.result || {}
+		}
+		return result
+	} catch (error) {
+		console.error(`Failed to fetch tenant details for ${tenantCode}:`, error)
+		return result
+	}
+}
 
-	if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
-		const validHeader = validateTenantAndOrganizationInHeader({ headers: req.headers })
-		if (!validHeader) {
-			return {
-				error: 'TENANT_ORGANIZATION_HEADER_MISSING',
+/**
+ * Extracts and validates tenant and organization codes based on user role and headers
+ * @method
+ * @name _extractTenantAndOrgCodes
+ * @param {Object} req - Express request object
+ * @param {Object} req.decodedToken - Decoded JWT token
+ * @param {String} req.decodedToken.tenant_code - User's tenant code
+ * @param {String} req.decodedToken.organization_code - User's organization code
+ * @param {Array} req.decodedToken.roles - User's roles
+ * @param {Object} req.headers - Request headers
+ * @returns {Promise<Object>} Returns object with structure:
+ *   {
+ *     tenantCode: String,        // Validated tenant code
+ *     organizationCode: String,  // Validated organization code
+ *     error?: String            // Error message if validation fails
+ *   }
+ * @throws {Error} - If tenant or organization validation fails
+ */
+async function _extractTenantAndOrgCodes(req) {
+	try {
+		let tenantCode = req.decodedToken.tenant_code
+		let organizationCode = req.decodedToken.organization_code
+		// if tenant admin role, validate if organization exists within tenant
+		// return the org code from header else from token
+		// tenant passed in the header will be ignored
+		if (validateRoleAccess(req.decodedToken.roles, common.TENANT_ADMIN_ROLE)) {
+			organizationCode =
+				req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()] || req.decodedToken.organization_code
+			const fetchTenantData = await fetchInternalTenantDetails(tenantCode)
+			if (fetchTenantData.success) {
+				const orgWithInTenant =
+					fetchTenantData?.data?.organizations && Array.isArray(fetchTenantData.data.organizations)
+						? fetchTenantData.data.organizations.find((org) => org.code === organizationCode)
+						: null
+				if (!orgWithInTenant) {
+					return {
+						error: 'ORGANIZATION_NOT_FOUND_IN_TENANT',
+					}
+				}
+			} else {
+				return {
+					error: 'TENANT_NOT_FOUND',
+				}
+			}
+		}
+		// if super admin role, fetch tenant and organization from headers
+		// admin will override the tenant_admin privilages if the user have both rights
+		if (validateRoleAccess(req.decodedToken.roles, common.ADMIN_ROLE)) {
+			const validHeader = validateTenantAndOrganizationInHeader({ headers: req.headers })
+			if (!validHeader) {
+				return {
+					error: 'TENANT_ORGANIZATION_HEADER_MISSING',
+				}
+			}
+
+			if (
+				req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()] &&
+				req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
+			) {
+				tenantCode = req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()]
+				organizationCode = req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
 			}
 		}
 
-		if (
-			req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()] &&
-			req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
-		) {
-			tenantCode = req.headers?.[process.env.TENANT_ID_HEADER_NAME.toLocaleLowerCase()]
-			organizationCode = req.headers?.[process.env.ORG_ID_HEADER_NAME.toLocaleLowerCase()]
-		}
+		return { tenantCode, organizationCode }
+	} catch (error) {
+		throw error
 	}
-
-	return { tenantCode, organizationCode }
 }
 
 /**
@@ -978,6 +1055,20 @@ function isValidDate(dateValue) {
 	return date instanceof Date && !isNaN(date.getTime())
 }
 
+/**
+ * check org policies values or valid or not
+ * @function
+ * @name setPolicy
+ * @param {*} policy -  org policies value
+ * @returns {String|null} - Returns valid org policies data
+ */
+function setPolicy(policy) {
+	const trimmed = policy?.trim()
+	if (!trimmed) return null
+	const upper = trimmed.toUpperCase()
+	return common.VALID_POLICIES[upper] ? upper : null
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -1031,4 +1122,5 @@ module.exports = {
 	removeFile,
 	pathFinder,
 	isValidDate,
+	setPolicy,
 }

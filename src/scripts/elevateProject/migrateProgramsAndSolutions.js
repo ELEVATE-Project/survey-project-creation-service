@@ -987,8 +987,9 @@ async function processProgram(
 		convertedProgramRolloutTemplate.tenant_code,
 		false
 	)
+	let programRolloutId = createProgramRolloutResponse?.result?.id
 	// Validate program rollout creation
-	if (createProgramRolloutResponse.success) {
+	if (createProgramRolloutResponse.statusCode == 200 && programRolloutId) {
 		// If successful, log success
 		await writeSuccessRecord(
 			csvWriter,
@@ -997,7 +998,7 @@ async function processProgram(
 			common.RESOURCE_TYPE_PROGRAM,
 			'Success',
 			programDetail.id,
-			createProgramRolloutResponse.rolloutId,
+			programRolloutId,
 			tenant_code,
 			organization_code,
 			program.createdBy || 'N/A',
@@ -1021,7 +1022,6 @@ async function processProgram(
 		)
 	}
 
-	let programRolloutId = createProgramRolloutResponse.result.id
 	// Process each solution within the program for rollout creation
 	for (let solutionData of programDetail.resources) {
 		// Convert solution rollout data
@@ -1912,10 +1912,10 @@ async function getOrgAndTenantWithFallback(createdBy, userOrgTenantMap, programT
 	// Default to program's org and tenant
 	let organization_code = programOrgId
 	let tenant_code = programTenantId
-	let user_id = createdBy
+	let user_id = userOrgTenantMap[createdBy]?.user_id || null
 
 	// Override with user's org and tenant if available
-	if (createdBy && userOrgTenantMap[createdBy]) {
+	if (user_id && userOrgTenantMap[user_id]) {
 		organization_code = userOrgTenantMap[createdBy]?.user_organizations?.[0]?.organization_code || programOrgId
 		tenant_code = userOrgTenantMap[createdBy]?.tenant_code || programTenantId
 	}
@@ -1948,18 +1948,25 @@ async function getOrgAndTenantWithFallback(createdBy, userOrgTenantMap, programT
  * @returns {Promise<string|null>} The default org admin ID or null if not found
  */
 async function getDefaultOrgAdmin(tenantId, orgId) {
-	// Fetch organization details to get the org admin
-	const orgDetails = await userRequest.fetchOrg(orgId, tenantId)
-
-	// Return the first org admin if available
-	if (
-		orgDetails.success &&
-		Array.isArray(orgDetails?.data?.result?.org_admin) &&
-		orgDetails.data.result.org_admin.length > 0
-	) {
-		return orgDetails.data.result.org_admin[0]
+	// Fetch user details using the user request service
+	let users = await userRequest.list(common.ORG_ADMIN_ROLE, '', '', '', orgId, tenantId, {})
+	users = users?.data?.result?.data || []
+	let orgAdmin = users?.[0]?.id || null
+	if (!orgAdmin && orgId !== process.env.DEFAULT_ORGANIZATION_CODE) {
+		let users = await userRequest.list(
+			common.ORG_ADMIN_ROLE,
+			'',
+			'',
+			'',
+			process.env.DEFAULT_ORGANIZATION_CODE,
+			tenantId,
+			{}
+		)
+		users = users?.data?.result?.data || []
+		orgAdmin = users?.[0]?.id || null
 	}
-	return null
+	// Return a keyed object of users if found, otherwise return an empty object
+	return orgAdmin
 }
 
 /**

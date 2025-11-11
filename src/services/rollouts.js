@@ -187,6 +187,18 @@ module.exports = class RolloutsHelper {
 					responseCode: 'CLIENT_ERROR',
 				})
 			}
+			let resourceData = {}
+			// return resource details for internal calls based on getResourceData flag
+			if (getResourceData && rollout?.resource_details?.blob_path) {
+				const response = await filesService.fetchJsonFromCloud(rollout?.resource_details?.blob_path)
+				if (
+					response.statusCode === httpStatusCode.ok &&
+					response.result &&
+					Object.keys(response.result).length > 0
+				) {
+					resourceData = response.result
+				}
+			}
 
 			//get the data from storage
 			if (rollout.blob_path) {
@@ -232,6 +244,9 @@ module.exports = class RolloutsHelper {
 					}
 					result = { ...resultData }
 				}
+			}
+			if (result?.resource_details && Object.keys(result?.resource_details).length > 0) {
+				result.resource_details = { ...result.resource_details, ...resourceData }
 			}
 
 			return responses.successResponse({
@@ -834,7 +849,7 @@ module.exports = class RolloutsHelper {
 				organization_code: org_code,
 				type: common.ROLL_OUT,
 				userToken,
-				userId: loggedInUserId,
+				userId: rolloutDetailsResult.user_id,
 			}
 
 			if (process.env.CONSUMPTION_SERVICE != common.SELF) {
@@ -1199,6 +1214,7 @@ module.exports = class RolloutsHelper {
 					const fetchResourceDetails = await resourceService.getDetails(
 						resource?.id,
 						programData.organization_code,
+						programData.tenant_code,
 						userToken
 					)
 					const rolloutDetails = _.omit(fetchResourceDetails?.result, [

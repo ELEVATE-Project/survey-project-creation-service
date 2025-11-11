@@ -10,6 +10,7 @@ const userRequests = require('@requests/user')
 const utils = require('@generics/utils')
 const organizationExtensionsQueries = require('@database/queries/organizationExtensions')
 const organizationConfigQueries = require('@database/queries/organizationConfig')
+const resourceQueries = require('@database/queries/resources')
 const Op = require('sequelize').Op
 module.exports = class orgExtensionsHelper {
 	/**
@@ -17,6 +18,8 @@ module.exports = class orgExtensionsHelper {
 	 * @method
 	 * @name createConfig
 	 * @param {Object} bodyData - Organization Config body data.
+	 * @param {String} orgCode - organization code
+	 * @param {String} tenantCode - tenant code
 	 * @returns {JSON} - Organization Config created response.
 	 */
 
@@ -318,7 +321,7 @@ module.exports = class orgExtensionsHelper {
 					is_auth_token_bearer: process.env.IS_AUTH_TOKEN_BEARER === 'true',
 				},
 			}
-			// fetch org config for organization_code
+			// fetch org config for organization_code (prioritize user's org over default)
 			const orgConfigs = await organizationConfigQueries.findAll(
 				{
 					organization_code: {
@@ -326,26 +329,38 @@ module.exports = class orgExtensionsHelper {
 					},
 					tenant_code: tenantCode,
 				},
-				['meta', 'organization_code']
+				['meta', 'organization_code', 'external_resource_visibility_policy', 'resource_visibility_policy']
 			)
 
-			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
-				result.config =
-					orgConfigs.length > 1
-						? orgConfigs.find((config) => config.organization_code == organization_code)?.meta
-						: orgConfigs[0]?.meta
+			// Find user's org config first, fallback to default org config
+			const userOrgConfig = orgConfigs?.find((config) => config.organization_code === organization_code)
+			const defaultOrgConfig = orgConfigs?.find(
+				(config) => config.organization_code === process.env.DEFAULT_ORGANIZATION_CODE
+			)
+			const selectedConfig = userOrgConfig || defaultOrgConfig
+
+			// Set meta configuration
+			if (selectedConfig?.meta && typeof selectedConfig.meta === 'object') {
+				result.config = selectedConfig.meta
 			}
 
-			if (orgConfigs?.meta?.data_managers?.length == 0 || orgConfigs?.meta?.data_managers?.length == undefined) {
-				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',') || []
+			// Set default managers if not present
+			if (!result.config.data_managers?.length) {
+				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS?.split(',') || []
 			}
 
-			if (
-				orgConfigs?.meta?.program_managers?.length == 0 ||
-				orgConfigs?.meta?.program_managers?.length == undefined
-			) {
-				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',') || []
+			if (!result.config.program_managers?.length) {
+				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS?.split(',') || []
 			}
+
+			// Set organization policy (prioritize user's org)
+			result.config.external_resource_visibility_policy =
+				userOrgConfig?.external_resource_visibility_policy ||
+				defaultOrgConfig?.external_resource_visibility_policy ||
+				undefined
+
+			result.config.resource_visibility_policy =
+				userOrgConfig?.resource_visibility_policy || defaultOrgConfig?.resource_visibility_policy || undefined
 
 			// attributes to fetch from organisation Extenstion
 			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
@@ -410,7 +425,8 @@ module.exports = class orgExtensionsHelper {
 			_.forEach(configData, (item) => {
 				if (item.resource_type === common.PROJECT) {
 					item.max_task_count = utils.convertToInteger(process.env.MAX_PROJECT_TASK_COUNT)
-					item.observation_link_regex = process.env.OBSERVATION_DEEP_LINK_REGEX
+					item.observation_link_regex = process.env.OBSERVATION_DEEP_LINK_REGEX || ''
+					item.project_reflection_task_redirect_url = process.env.PROJECT_REFLECTION_TASK_REDIRECT_URL || ''
 				}
 			})
 
@@ -428,6 +444,165 @@ module.exports = class orgExtensionsHelper {
 				statusCode: httpStatusCode.internal_server_error,
 				message: 'CONFIG_FETCH_FAILED',
 				result: [],
+			})
+		}
+	}
+
+	/**
+	 * createOrUpdate Organization Config.
+	 * @method
+	 * @name createOrUpdate
+	 * @param {Object} bodyData - Organization Config body data.
+	 * @param {String} orgCode - organization code
+	 * @param {String} tenantCode - tenant code
+	 * @param {Boolean} skipReviewCreation - skip review and orgeExtension creation
+	 * @returns {JSON} - Organization Config created response.
+	 */
+
+	static async createOrUpdate(bodyData, orgCode, tenantCode) {
+		try {
+			// Validate org and tenant codes
+			if (!orgCode?.trim() || !tenantCode?.trim()) {
+				return responses.failureResponse({
+					statusCode: httpStatusCode.bad_request,
+					message: 'ORGANIZATION_CODE_AND_TENANT_CODE_REQUIRED',
+				})
+			}
+			orgCode = orgCode.trim()
+			tenantCode = tenantCode.trim()
+			// Prepare base update data
+			const updateData = {
+				organization_code: orgCode,
+				tenant_code: tenantCode,
+				meta: {},
+				updated_at: new Date(),
+			}
+
+			const { data_managers, program_managers, resource_visibility_policy, external_resource_visibility_policy } =
+				bodyData || {}
+
+			// Meta construction (only non-empty arrays)
+			if (Array.isArray(data_managers) && data_managers.length) {
+				updateData.meta.data_managers = data_managers
+			}
+			if (Array.isArray(program_managers) && program_managers.length) {
+				updateData.meta.program_managers = program_managers
+			}
+
+			// Policy handling using helper
+			const orgPolicies = {
+				resource_visibility_policy,
+				external_resource_visibility_policy,
+			}
+
+			for (const [key, value] of Object.entries(orgPolicies)) {
+				const policy = utils.setPolicy(value)
+				if (policy) updateData[key] = policy
+			}
+
+			// Fetch existing config (limit fields for efficiency)
+			const existingConfig = await organizationConfigQueries.findOne(
+				{ organization_code: orgCode, tenant_code: tenantCode },
+				['organization_code']
+			)
+
+			// Upsert logic
+			if (existingConfig) {
+				// Update (omit meta if empty)
+				if (!Object.keys(updateData.meta).length) delete updateData.meta
+
+				const [updatedCount] = await organizationConfigQueries.update(
+					{ organization_code: orgCode, tenant_code: tenantCode },
+					updateData
+				)
+
+				return updatedCount > 0
+					? responses.successResponse({
+							statusCode: httpStatusCode.ok,
+							message: 'CONFIG_UPDATED_SUCCESSFULLY',
+					  })
+					: responses.failureResponse({
+							statusCode: httpStatusCode.bad_request,
+							message: 'CONFIG_UPDATE_FAILED',
+					  })
+			}
+
+			// Create new config
+			const created = await organizationConfigQueries.upsert(updateData, {
+				organization_code: orgCode,
+				tenant_code: tenantCode,
+			})
+
+			return created
+				? responses.successResponse({
+						statusCode: httpStatusCode.created,
+						message: 'CONFIG_ADDED_SUCCESSFULLY',
+				  })
+				: responses.failureResponse({
+						statusCode: httpStatusCode.bad_request,
+						message: 'CONFIG_CREATION_FAILED',
+				  })
+		} catch (error) {
+			// Handle known errors
+			if (error instanceof UniqueConstraintError) {
+				return responses.failureResponse({
+					message: 'CONFIG_ALREADY_EXIST',
+					statusCode: httpStatusCode.bad_request,
+					responseCode: 'CLIENT_ERROR',
+				})
+			}
+
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
+			})
+		}
+	}
+
+	static async updateRelatedOrgs(bodyData, orgCode, tenantCode) {
+		try {
+			if (bodyData?.hasOwnProperty('related_org_details')) {
+				//get the code to store it in  visibleToOrganizations key
+				const visibleOrg = bodyData.related_org_details
+					?.map((eachValue) => eachValue?.code?.trim())
+					.filter((code) => code)
+
+				let updateData = {
+					organization_code: orgCode,
+					tenant_code: tenantCode,
+					visible_to_organizations: visibleOrg,
+					updated_at: new Date(),
+				}
+
+				const [updatedCount] = await resourceQueries.updateOne(
+					{ organization_code: orgCode, tenant_code: tenantCode, is_reusable: true },
+					updateData
+				)
+
+				if (updatedCount > 0) {
+					return responses.successResponse({
+						statusCode: httpStatusCode.ok,
+						message: 'RELATED_ORGS_UPDATED_SUCCESSFULLY',
+					})
+				} else {
+					// fallback: something went wrong during update
+					return responses.failureResponse({
+						statusCode: httpStatusCode.bad_request,
+						message: 'RELATED_ORGS_UPDATE_FAILED',
+					})
+				}
+			} else {
+				return responses.successResponse({
+					statusCode: httpStatusCode.ok,
+					message: 'NO_RELATED_ORGS_TO_UPDATE',
+				})
+			}
+		} catch (error) {
+			return responses.failureResponse({
+				message: error.message || error,
+				statusCode: httpStatusCode.internal_server_error,
+				responseCode: 'CLIENT_ERROR',
 			})
 		}
 	}

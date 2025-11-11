@@ -6,8 +6,6 @@
  */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
-const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
-const reviewResourcesQueries = require('@database/queries/reviewsResources')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewStagesQueries = require('@database/queries/reviewStage')
 const responses = require('@helpers/responses')
@@ -28,6 +26,7 @@ const rolePermissionMappingQueries = require('@database/queries/role-permission-
 const consumptionConfig = require('@consumption/config')
 const endPoints = require('@constants/endpoints')
 const requests = require('@generics/requests')
+const organizationConfigQueries = require('@database/queries/organizationConfig')
 
 module.exports = class resourceHelper {
 	/**
@@ -60,6 +59,8 @@ module.exports = class resourceHelper {
 		let filter = {}
 		// create the final filter by combining primary filters , query params and search text
 		filter = await this.constructCustomFilter(primaryFilter, queryParams, searchText)
+		// return a sort object with sorting parameters. if no params are provided returns {}
+		const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
 
 		// Add id, organization_code, and status filters
 		filter = {
@@ -70,45 +71,36 @@ module.exports = class resourceHelper {
 					: common.PAGE_STATUS_VALUES['submitted_for_review'],
 			},
 			is_reusable: true,
+			created_by: userId,
+			tenant_code,
 		}
 
-		// fetch all resource ids created by the logged in user
-		const { count, rows } = await this.resourcesCreatedByUser(
-			userId,
-			tenant_code,
-			['resource_id', 'organization_code'],
-			{
-				resourceAttributes: [
-					'id',
-					'title',
-					'organization_code',
-					'type',
-					'status',
-					'stage',
-					'user_id',
-					'created_at',
-					'updated_at',
-					'submitted_on',
-					'published_on',
-					'last_reviewed_on',
-					'meta',
-					'is_under_edit',
-					'published_id',
-				],
-				resourceFilter: filter,
-				resourceOptions: {
-					limit,
-					offset: common.getPaginationOffset(page, limit),
-				},
-			}, // resource related options
-			{
-				reviewsAttributes: ['resource_id', 'reviewer_id', 'created_at', 'updated_at', 'status', 'notes'],
-				reviewsFilter: {
-					tenant_code: tenant_code,
-				},
-			} // reviews related options
+		const resourceList = await resourceQueries.resourceList(
+			filter,
+			[
+				'id',
+				'title',
+				'organization_code',
+				'type',
+				'status',
+				'stage',
+				'user_id',
+				'created_at',
+				'updated_at',
+				'submitted_on',
+				'published_on',
+				'last_reviewed_on',
+				'meta',
+				'is_under_edit',
+				'published_id',
+			],
+			sort,
+			page,
+			limit,
+			true
 		)
-		if (count <= 0) {
+
+		if (resourceList.count <= 0) {
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -118,18 +110,19 @@ module.exports = class resourceHelper {
 		let uniqueResourceIds = []
 		let OrganizationIds = []
 
-		const resourcesCreatedByMe = rows.map((item) => {
-			uniqueResourceIds.push(item.resource.id)
+		const resourcesCreatedByMe = resourceList.result.map((item) => {
+			uniqueResourceIds.push(item.id)
 			OrganizationIds.push(item.organization_code)
-			return item.resource
+			return item
 		})
 
 		// get the unique organization ids from resource creator mapping table by the user
 		OrganizationIds = utils.getUniqueElements(OrganizationIds)
 
 		// get the review details of all the resources created by the logged in user
-		const resourceReviews = resourcesCreatedByMe.map((resource) => resource.reviews)
-
+		const resourceReviews = resourcesCreatedByMe
+			.flatMap((resource) => resource.reviews || [])
+			.filter((review) => review != null && review.id != null)
 		// fetches data from resource table with the passed filters
 		const response = {
 			result: resourcesCreatedByMe.map((resource) => {
@@ -139,13 +132,12 @@ module.exports = class resourceHelper {
 		}
 
 		let requestedForChangesResourcesFilter = {
-			id: {
-				[Op.in]: uniqueResourceIds,
-			},
+			created_by: userId,
 			organization_code: {
 				[Op.in]: OrganizationIds,
 			},
 			status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+			tenant_code,
 		}
 		if (queryParams.type && queryParams.type != '') {
 			requestedForChangesResourcesFilter.type = {
@@ -246,6 +238,7 @@ module.exports = class resourceHelper {
 
 		// generic function to merge all the collected data about the resource
 		result = await this.responseBuilder(response, userDetails, orgDetails, additionalResourceInformation)
+		result.count = resourceList?.count || 0
 		// count of requested for changes resources
 		result.changes_requested_count = requestedForChangesResources > 0 ? requestedForChangesResources : 0
 		return responses.successResponse({
@@ -270,7 +263,7 @@ module.exports = class resourceHelper {
 
 	static async listAllDrafts(userId, queryParams, searchText = '', page, limit, userToken, org_code, tenant_code) {
 		try {
-			let result = {
+			let draftResult = {
 				data: [],
 				count: 0,
 			}
@@ -279,6 +272,8 @@ module.exports = class resourceHelper {
 					status: {
 						[Op.in]: common.PAGE_STATUS_VALUES[common.PAGE_STATUS_DRAFTS],
 					},
+					created_by: userId,
+					tenant_code,
 				},
 				queryParams,
 				searchText
@@ -287,40 +282,33 @@ module.exports = class resourceHelper {
 			// return a sort object with sorting parameters. if no params are provided returns {}
 			const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
 
-			// fetch all resources created by the logged in user
-			const { count, rows } = await this.resourcesCreatedByUser(
-				userId, // loggedIn userId
-				tenant_code, // user's tenant code
-				['resource_id', 'organization_code', 'tenant_code'], // mapping table attributes
-				{
-					resourceAttributes: [
-						'id',
-						'title',
-						'organization_code',
-						'type',
-						'status',
-						'user_id',
-						'created_at',
-						'updated_at',
-						'stage',
-						'meta',
-					], // resource table attributes
-					resourceFilter, // resource table filter
-					resourceOptions: {
-						limit,
-						offset: common.getPaginationOffset(page, limit), // pagination offset
-						...sort,
-					}, // resource table related options
-				} // resource table related options
+			const { count, result } = await resourceQueries.resourceList(
+				resourceFilter,
+				[
+					'id',
+					'title',
+					'organization_code',
+					'type',
+					'status',
+					'user_id',
+					'created_at',
+					'updated_at',
+					'stage',
+					'meta',
+				],
+				sort,
+				page,
+				limit,
+				false
 			)
 
-			const resourcesCreatedByMe = rows
+			const resourcesCreatedByMe = result
 
 			if (resourcesCreatedByMe.length <= 0) {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'RESOURCE_LISTED_SUCCESSFULLY',
-					result,
+					draftResult,
 				})
 			}
 
@@ -329,31 +317,18 @@ module.exports = class resourceHelper {
 				resourcesCreatedByMe.map((item) => item.organization_code)
 			)
 
-			// fetches data from resource table with the passed filters
-			const response = {
-				result: resourcesCreatedByMe.map((r) => r.resource),
-			}
-
-			if (response.result.length <= 0) {
-				return responses.successResponse({
-					statusCode: httpStatusCode.ok,
-					message: 'RESOURCE_LISTED_SUCCESSFULLY',
-					result,
-				})
-			}
-
 			// fetch the user details from user service
 			const userDetails = await this.fetchUserDetails([userId], org_code, tenant_code, userToken)
 
 			// fetch the org details from user service
 			const orgDetails = await orgExtension.fetchOrganizationDetails(OrganizationCodes, tenant_code)
-			result = await this.responseBuilder(response, userDetails, orgDetails, {})
-			result.count = count
+			draftResult = await this.responseBuilder({ result: resourcesCreatedByMe }, userDetails, orgDetails, {})
+			draftResult.count = count
 
 			return responses.successResponse({
 				statusCode: httpStatusCode.ok,
 				message: 'RESOURCE_LISTED_SUCCESSFULLY',
-				result,
+				result: draftResult,
 			})
 		} catch (error) {
 			return responses.successResponse({
@@ -543,7 +518,7 @@ module.exports = class resourceHelper {
 	 * @param {Object} queryParams -  queryParams contain sort details like sort_by, sort_order
 	 * @returns {JSON} - Response contain sort filter
 	 */
-	static async constructSortOptions(sort_by, sort_order, defaultSortBy = common.CREATED_AT) {
+	static async constructSortOptions(sort_by, sort_order, defaultSortBy = common.UPDATED_AT) {
 		let sort = {}
 		if (sort_by && sort_order) {
 			sort.sort_by = sort_by
@@ -554,31 +529,6 @@ module.exports = class resourceHelper {
 			sort.order = [common.SORT_DESC]
 		}
 		return sort
-	}
-
-	/**
-	 * Get all resources of User
-	 * @name resourcesCreatedByUser
-	 * @param {String} loggedInUserId -  loggedInUserId.
-	 * @returns {Array} - Response contain array of resources
-	 */
-	static async resourcesCreatedByUser(
-		loggedInUserId,
-		tenant_code,
-		attributes = ['resource_id'],
-		resourceOptions = {},
-		reviewOptions = {}
-	) {
-		let resourceData = {}
-		if (loggedInUserId && tenant_code) {
-			// fetch the details of resource and organization from resource creator mapping table by the user
-			resourceData = await resourceCreatorMappingQueries.findAndCountAll(
-				{ creator_id: loggedInUserId, tenant_code: tenant_code },
-				attributes,
-				{ ...resourceOptions, ...reviewOptions }
-			)
-		}
-		return resourceData
 	}
 
 	/**
@@ -612,57 +562,41 @@ module.exports = class resourceHelper {
 				in_progress_count: 0,
 			}
 
-			const sort = {
-				sort_by: queryParams.sort_by || common.CREATED_AT,
-				order: queryParams.sort_order?.toUpperCase() === common.SORT_ASC ? common.SORT_ASC : common.SORT_DESC,
-			}
+			// return a sort object with sorting parameters. if no params are provided returns {}
+			const sort = await this.constructSortOptions(queryParams.sort_by, queryParams.sort_order)
+
 			let finalResourceIds = []
 			let resourceIdsToBeRemoved = []
 			let inProgressResources = []
 			let uniqueOrganizationIds = [organization_code]
 
-			// check review resources and find all resources and org for the reviewer name.
-			const fetchReviewResourceDetails = await reviewResourcesQueries.findAll(
+			const distinctResourceIds = await reviewsQueries.distinctResources(
 				{
 					reviewer_id: user_id,
-					tenant_code: tenant_code,
-				},
-				['organization_code']
-			)
-			if (fetchReviewResourceDetails.length > 0) {
-				uniqueOrganizationIds = utils.getUniqueElements(
-					fetchReviewResourceDetails.map((item) => item.organization_code)
-				)
-
-				const distinctResourceIds = await reviewsQueries.distinctResources(
-					{
-						organization_code: {
-							[Op.in]: uniqueOrganizationIds,
-						},
-						reviewer_id: user_id,
-						status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
-						tenant_code: tenant_code,
-					},
-					['resource_id']
-				)
-
-				inProgressResources = utils.getUniqueElements(distinctResourceIds.resource_ids)
-				let inProgressCountFilter = {
-					id: {
-						[Op.in]: inProgressResources,
-					},
 					status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
 					tenant_code: tenant_code,
-				}
-				if (queryParams.type && queryParams.type != '') {
-					inProgressCountFilter.type = {
-						[Op.in]: queryParams.type.split(','),
-					}
-				}
-				const in_progress_count = await resourceQueries.count(inProgressCountFilter)
-				result.in_progress_count = in_progress_count
-				finalResourceIds = inProgressResources
+				},
+				['resource_id']
+			)
+
+			inProgressResources = utils.getUniqueElements(distinctResourceIds.resource_ids)
+			let inProgressCountFilter = {
+				id: {
+					[Op.in]: inProgressResources,
+				},
+				status: { [Op.in]: [common.REVIEW_STATUS_INPROGRESS] },
+				tenant_code: tenant_code,
 			}
+
+			if (queryParams.type && queryParams.type != '') {
+				inProgressCountFilter.type = {
+					[Op.in]: queryParams.type.split(','),
+				}
+			}
+			const in_progress_count = await resourceQueries.count(inProgressCountFilter)
+			result.in_progress_count = in_progress_count
+			finalResourceIds = inProgressResources
+
 			if (!(common.STATUS in queryParams && queryParams[common.STATUS] === common.REVIEW_STATUS_INPROGRESS)) {
 				// fetch the resources types of an organization based on parallel and sequential review type
 				let { sequential: resourceTypesInSequentialReview, parallel: resourceTypesInParallelReview } =
@@ -747,7 +681,6 @@ module.exports = class resourceHelper {
 			}
 
 			let resourceFilter = {
-				organization_code: { [Op.in]: uniqueOrganizationIds },
 				tenant_code: tenant_code,
 				id: { [Op.in]: finalResourceIds },
 				user_id: {
@@ -796,10 +729,11 @@ module.exports = class resourceHelper {
 				],
 				sort,
 				page,
-				limit
+				limit,
+				false
 			)
 
-			if (response.length === 0) {
+			if (response.result.length === 0) {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'RESOURCE_LISTED_SUCCESSFULLY',
@@ -812,14 +746,11 @@ module.exports = class resourceHelper {
 					return item.user_id
 				})
 			)
-
+			uniqueOrganizationIds = utils.getUniqueElements(response.result.map((item) => item.organization_code))
 			const userDetails = await this.fetchUserDetails(uniqueCreatorIds, null, tenant_code, userToken)
 			const orgDetails = await orgExtension.fetchOrganizationDetails(uniqueOrganizationIds, tenant_code)
 			const reviewDetails = await reviewsQueries.findAll(
 				{
-					organization_code: {
-						[Op.in]: uniqueOrganizationIds,
-					},
 					tenant_code,
 					resource_id: {
 						[Op.in]: finalResourceIds,
@@ -1534,9 +1465,8 @@ module.exports = class resourceHelper {
 				? query[common.TYPE].split(',').filter((type) => allowedResources.includes(type))
 				: allowedResources
 			const search = searchText != '' ? searchText : ''
-
 			let filterQuery = {
-				organization_code,
+				// organization_code,
 				tenant_code: tenant_code,
 				status: common.RESOURCE_STATUS_PUBLISHED,
 				is_reusable: true,
@@ -1560,12 +1490,34 @@ module.exports = class resourceHelper {
 				delete filterQuery.is_reusable
 			}
 
+			let getOrgPolicies = await organizationConfigQueries.findAll(
+				{
+					organization_code: organization_code,
+					tenant_code: tenant_code,
+				},
+				['organization_code', 'external_resource_visibility_policy', 'resource_visibility_policy']
+			)
+			// get orgPolicies filter for the organization
+			const orgPoliciesFilter = this.applyOrgVisibilityPolicy(getOrgPolicies, organization_code, filterQuery)
+
+			if (!orgPoliciesFilter.success) {
+				return responses.failureResponse({
+					message: orgPoliciesFilter.message || 'ORG_POLICY_APPLICATION_FAILED',
+					statusCode: httpStatusCode.internal_server_error,
+					responseCode: 'SERVER_ERROR',
+					result: { data: [], count: 0 },
+				})
+			}
+
+			filterQuery = orgPoliciesFilter.filterQuery
+
 			const internalResources = await resourceQueries.resourceList(
 				filterQuery,
 				['id', 'title', 'type', 'created_by', 'created_at', 'published_on', 'organization_code', 'meta'],
 				sort,
 				pageNo,
-				pageSize
+				pageSize,
+				false
 			)
 
 			let userIds = internalResources.result.map((item) => item.created_by)
@@ -1632,6 +1584,92 @@ module.exports = class resourceHelper {
 					count: 0,
 				},
 			})
+		}
+	}
+
+	/**
+	 * Builds a Sequelize filter query based on organization visibility policy.
+	 * applyOrgVisibilityPolicy
+	 * @param {Array} orgPolicies - Array of organization policy records.
+	 * @param {String} organization_code - The current organization code.
+	 * @param {Object} filterQuery - (optional) Existing filter query to extend.
+	 * @returns {Object} Sequelize-compatible filterQuery object.
+	 */
+	static applyOrgVisibilityPolicy(orgPolicies, organization_code, filterQuery = {}) {
+		try {
+			if (!orgPolicies?.length) {
+				filterQuery.organization_code = organization_code
+				return { success: common.TRUE, filterQuery }
+			}
+
+			const orgPolicy = orgPolicies[0].external_resource_visibility_policy
+
+			const sharedWithOrgCondition = {
+				[Op.and]: [
+					{ visibility: { [Op.ne]: common.VALID_POLICIES.CURRENT } },
+					{ visible_to_organizations: { [Op.contains]: [organization_code] } },
+				],
+			}
+
+			const ownOrgCondition = { organization_code }
+
+			switch (orgPolicy) {
+				// --------------------------------------------------------------------
+				// CASE 1: CURRENT
+				// --------------------------------------------------------------------
+				// Fetch resources that belong ONLY to the current organization.
+				// This policy is the strictest visibility level — no shared or public data.
+				//--------------------------------------------------------------------
+				case common.VALID_POLICIES.CURRENT:
+					filterQuery.organization_code = organization_code
+					break
+				// --------------------------------------------------------------------
+				// CASE 2: ASSOCIATED
+				// --------------------------------------------------------------------
+				// Fetch resources that are:
+				//   1. Belonging to the current org
+				//   2. Shared with the current org via "visible_to_organizations" array
+				// --------------------------------------------------------------------
+				case common.VALID_POLICIES.ASSOCIATED:
+					filterQuery[Op.or] = [sharedWithOrgCondition, ownOrgCondition]
+					break
+
+				// --------------------------------------------------------------------
+				// CASE 3: ALL
+				// --------------------------------------------------------------------
+				// Fetch ALL possible visible resources for the current org, including:
+				//  1. Public resources (visibility = 'ALL')
+				//  2. Shared resources visible to this org
+				//      (visibility != 'CURRENT' AND org is in visible_to_organizations)
+				//  3. Org’s own resources
+				// --------------------------------------------------------------------
+
+				case common.VALID_POLICIES.ALL:
+					filterQuery[Op.or] = [
+						{ visibility: common.VALID_POLICIES.ALL },
+						sharedWithOrgCondition,
+						ownOrgCondition,
+					]
+					break
+
+				default:
+					filterQuery.organization_code = organization_code
+					return {
+						success: common.TRUE,
+						statusCode: httpStatusCode.bad_request,
+						message: 'INVALID_POLICY',
+						filterQuery,
+					}
+			}
+
+			return { success: common.TRUE, filterQuery }
+		} catch (error) {
+			return {
+				success: common.FALSE,
+				statusCode: httpStatusCode.internal_server_error,
+				message: error.message || 'POLICY_APPLICATION_ERROR',
+				filterQuery,
+			}
 		}
 	}
 

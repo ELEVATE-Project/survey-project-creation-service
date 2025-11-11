@@ -6,9 +6,7 @@
  */
 
 const orgExtensionService = require('@services/organization-extension')
-const utils = require('@generics/utils')
-const responses = require('@helpers/responses')
-const httpStatusCode = require('@generics/http-status')
+
 module.exports = class configs {
 	/**
 	 * List Configs.
@@ -24,6 +22,44 @@ module.exports = class configs {
 			)
 
 			return configList
+		} catch (error) {
+			return error
+		}
+	}
+
+	/**
+	 * createOrUpdate org config.
+	 * @method
+	 * @name createOrUpdate
+	 * @returns {JSON} - createOrUpdate configs message  as response.
+	 */
+	async createOrUpdate(req) {
+		try {
+			let configs = await orgExtensionService.createOrUpdate(
+				req.body,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
+			return configs
+		} catch (error) {
+			return error
+		}
+	}
+
+	/**
+	 * updateRelated org resource.
+	 * @method
+	 * @name updateRelatedOrgs
+	 * @returns {JSON} - updateRelatedOrgs message as response.
+	 */
+	async updateRelatedOrgs(req) {
+		try {
+			let configs = await orgExtensionService.updateRelatedOrgs(
+				req.body,
+				req.decodedToken.organization_code,
+				req.decodedToken.tenant_code
+			)
+			return configs
 		} catch (error) {
 			return error
 		}

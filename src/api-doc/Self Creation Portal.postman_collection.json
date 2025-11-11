@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "8f4c6931-ac54-44f4-9d8b-b2a6eb0ab679",
+		"_postman_id": "84057ec4-7c65-4311-be72-e136cb15857f",
 		"name": "Self Creation Portal",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "41751792"
@@ -16,8 +16,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -44,8 +58,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -78,8 +106,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -105,8 +147,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -133,8 +189,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -168,8 +238,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -194,8 +278,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -238,7 +336,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -265,7 +378,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -306,7 +434,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -331,7 +474,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -368,7 +526,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -395,7 +568,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -436,7 +624,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -467,7 +670,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -500,7 +718,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -533,8 +766,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -557,12 +804,26 @@
 				{
 					"name": "Update Form",
 					"request": {
-						"method": "PUT",
+						"method": "POST",
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -581,7 +842,7 @@
 							"variable": [
 								{
 									"key": "id",
-									"value": ""
+									"value": "123"
 								}
 							]
 						},
@@ -596,8 +857,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -624,8 +899,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -654,8 +943,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -683,8 +986,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -718,8 +1035,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -743,8 +1074,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -763,8 +1108,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -798,8 +1157,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -830,8 +1203,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -859,8 +1246,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -888,8 +1289,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -907,14 +1322,35 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
 							"raw": "{{SCPBaseUrl}}scp/v1/entity-types/read",
 							"host": ["{{SCPBaseUrl}}scp"],
-							"path": ["v1", "entity-types", "read"]
+							"path": ["v1", "entity-types", "read"],
+							"query": [
+								{
+									"key": "",
+									"value": null,
+									"disabled": true
+								}
+							]
 						},
 						"description": "NOTE: Query Parmas\n1). type is mandatory\n2). deleted is optional\n3). status is optional"
 					},
@@ -927,8 +1363,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -978,8 +1428,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1002,8 +1466,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1016,8 +1494,8 @@
 							}
 						},
 						"url": {
-							"raw": "{{selfCreationPortalBaseUrl}}scp/v1/organization-extensions/createConfig",
-							"host": ["{{selfCreationPortalBaseUrl}}scp"],
+							"raw": "{{SCPBaseUrl}}scp/v1/organization-extensions/createConfig",
+							"host": ["{{SCPBaseUrl}}scp"],
 							"path": ["v1", "organization-extensions", "createConfig"]
 						}
 					},
@@ -1030,8 +1508,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1069,7 +1561,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1096,7 +1603,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1123,8 +1645,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1148,8 +1684,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1179,7 +1729,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1212,7 +1777,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1232,6 +1812,45 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Republish Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-auth-token",
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/projects/republish/:id",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "projects", "republish", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -1245,7 +1864,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1272,7 +1906,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1305,7 +1954,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1338,7 +2002,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1371,8 +2050,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1396,8 +2089,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1433,7 +2140,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1471,8 +2193,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1516,8 +2252,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1561,7 +2311,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1601,8 +2366,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1651,7 +2430,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1688,8 +2482,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1734,7 +2542,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1761,7 +2584,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1794,8 +2632,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1819,7 +2671,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1859,7 +2726,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1877,7 +2759,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1901,7 +2798,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1924,7 +2836,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}"
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1942,8 +2869,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -1970,8 +2911,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -2117,7 +3072,7 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text",
 								"disabled": true
 							},
@@ -2166,7 +3121,7 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
 							},
 							{
@@ -2200,7 +3155,7 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
 							},
 							{
@@ -2239,8 +3194,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -2267,8 +3236,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -2295,7 +3278,7 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
 							},
 							{
@@ -2339,7 +3322,7 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text",
 								"disabled": true
 							},
@@ -2375,8 +3358,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -2419,8 +3416,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -2459,8 +3470,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -2490,8 +3515,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -2528,8 +3567,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -2547,8 +3600,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -2587,8 +3654,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -2618,8 +3699,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -2646,8 +3741,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -2685,8 +3794,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -2720,8 +3843,22 @@
 						"header": [
 							{
 								"key": "X-auth-token",
-								"value": "bearer {{token}}",
+								"value": "{{token}}",
 								"type": "text"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -2732,6 +3869,104 @@
 								{
 									"key": "resource_type",
 									"value": "project"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Targeting",
+			"item": [
+				{
+					"name": "Hierarchy Based On ParentEntity",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-auth-token",
+								"value": "{{token}}"
+							},
+							{
+								"key": "content-type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/targeting/hierarchy/:entityExternalId",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "targeting", "hierarchy", ":entityExternalId"],
+							"variable": [
+								{
+									"key": "entityExternalId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Fetch Depended SubEntities",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-auth-token",
+								"value": "{{token}}"
+							},
+							{
+								"key": "content-type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-tenant-code",
+								"value": "",
+								"description": "Only in the case of super admin",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "X-organization-code",
+								"value": "",
+								"description": "Only in the case of super admin / tenant admin",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"parentEntities\" : [\"teacher\" , \"student\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{SCPBaseUrl}}scp/v1/targeting/subEntityList?subEntityType=professional_subroles",
+							"host": ["{{SCPBaseUrl}}scp"],
+							"path": ["v1", "targeting", "subEntityList"],
+							"query": [
+								{
+									"key": "subEntityType",
+									"value": "professional_subroles"
 								}
 							]
 						}

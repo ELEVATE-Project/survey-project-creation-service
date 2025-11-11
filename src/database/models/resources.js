@@ -103,6 +103,16 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.STRING,
 				defaultValue: null,
 			},
+			visibility: {
+				allowNull: false,
+				type: DataTypes.ENUM('CURRENT', 'ASSOCIATED', 'ALL'),
+				defaultValue: 'CURRENT',
+			},
+			visible_to_organizations: {
+				allowNull: false,
+				type: DataTypes.ARRAY(DataTypes.STRING),
+				defaultValue: [],
+			},
 		},
 		{
 			modelName: 'Resource',
@@ -129,19 +139,9 @@ module.exports = (sequelize, DataTypes) => {
 			onUpdate: 'CASCADE',
 		})
 		Resource.hasMany(models.Review, {
-			// Fix: Change from models.Comment to models.Review
 			foreignKey: 'resource_id',
 			sourceKey: 'id',
 			as: 'reviews',
-			constraints: true,
-			onDelete: 'CASCADE',
-			onUpdate: 'CASCADE',
-		})
-		Resource.hasMany(models.ReviewResource, {
-			// Fix: Change from models.Comment to models.Review
-			foreignKey: 'resource_id',
-			sourceKey: 'id',
-			as: 'ReviewResource',
 			constraints: true,
 			onDelete: 'CASCADE',
 			onUpdate: 'CASCADE',
