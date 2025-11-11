@@ -6978,61 +6978,81 @@ paths:
       tags:
         - Rollout
       description: |-
-        You can use this API to get the list all rollouts
-         - The API Endpoint for get the list of rollouts is `/scp/v1/rollouts/list` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Retrieves paginated list of rollouts created by authenticated user
+        - Includes creator details and organization information from external services
+        - Supports search by title (case-insensitive), filtering by resource type and status
+        - Returns rollouts with metadata including dates, status, and creator info
+        - Scoped to user's organization and tenant
+
+        **Validation Rules**:
+        - `page` defaults to 1 if not provided (minimum 1)
+        - `limit` defaults to 100 if not provided (maximum 100)
+        - `search` performs case-insensitive title matching
+        - `resource_type` filters by resource type (comma-separated for multiple types, excludes 'program')
+        - `status` must be from: DRAFT, ROLLED_OUT, INACTIVE, PROCESSING, FAILED (comma-separated)
+        - `sort_by` options: status, title (defaults to title if not specified)
+        - `sort_order` options: asc, desc
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: page
           in: query
-          description: The page number for pagination.
+          description: 'Page number for pagination (1-indexed). Defaults to 1 if not provided. Minimum value is 1.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            default: 1
           example: 1
         - name: limit
           in: query
-          description: The limit of projects per page.
+          description: 'Number of records per page. Defaults to 100 if not provided. Maximum allowed is 100.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
           example: 10
         - name: search
           in: query
-          description: The search value to filter projects based on title.
+          description: 'Search text to filter rollouts by title (case-insensitive, uses iLike matching).'
           required: false
           schema:
             type: string
+          example: 'education project'
         - name: resource_type
           in: query
-          description: Type of the resource
+          description: 'Resource type filter. Comma-separated values for multiple types. Excludes program-type rollouts. Valid values: project, survey, observation.'
           required: false
           schema:
             type: string
           example: project
         - name: status
           in: query
-          description: "The status of the rollout (['PENDING', 'ROLLED_OUT'])"
+          description: 'Status filter. Comma-separated values for multiple statuses. Valid values: DRAFT (pending), ROLLED_OUT (published), INACTIVE, PROCESSING, FAILED.'
           required: false
           schema:
             type: string
-          example: PENDING
+            enum: [DRAFT, ROLLED_OUT, INACTIVE, PROCESSING, FAILED]
+          example: DRAFT
         - name: sort_by
           in: query
-          description: 'Sort the response by status or title of the rollout. Default sorting is by title. If the user chooses to sort by status, they should include this key in the request'
+          description: 'Sort field. Options: status, title. Default sorting is by title if not specified.'
           required: false
           schema:
             type: string
+            enum: [status, title]
           example: status
         - name: sort_order
           in: query
-          description: Sort order (ascending or descending).
+          description: 'Sort order: asc (ascending) or desc (descending).'
           required: false
           schema:
             type: string
@@ -7042,7 +7062,7 @@ paths:
           example: asc
       responses:
         '200':
-          description: Rollout Listed successfully
+          description: 'Rollouts listed successfully'
           content:
             application/json:
               schema:
@@ -7050,10 +7070,8 @@ paths:
                 properties:
                   responseCode:
                     type: string
-                    example: OK
                   message:
                     type: string
-                    example: Rollout Listed successfully
                   result:
                     type: object
                     properties:
@@ -7063,124 +7081,121 @@ paths:
                           type: object
                           properties:
                             id:
-                              type: number
-                              example: 595
+                              type: integer
+                              description: 'Rollout unique identifier'
                             title:
                               type: string
-                              example: test rollout
+                              description: 'Rollout title'
                             resource_id:
-                              type: number
-                              example: 2
+                              type: integer
+                              description: 'Associated resource ID'
                             resource_type:
                               type: string
-                              example: project
+                              description: 'Type of resource (project, survey, observation)'
                             status:
                               type: string
-                              example: PENDING
+                              enum: [DRAFT, ROLLED_OUT, INACTIVE, PROCESSING, FAILED]
+                              description: 'Rollout status'
                             start_date:
                               type: string
                               format: date-time
-                              example: '2024-10-29T11:35:08.694Z'
+                              nullable: true
+                              description: 'Rollout start date'
                             end_date:
                               type: string
                               format: date-time
-                              example: '2024-11-29T11:36:31.117Z'
+                              nullable: true
+                              description: 'Rollout end date'
                             organization:
                               type: object
+                              nullable: true
                               properties:
                                 id:
-                                  type: number
-                                  example: 1
+                                  type: integer
                                 name:
                                   type: string
-                                  example: Default Organization
                                 code:
                                   type: string
-                                  example: default_code
                                 description:
                                   type: string
-                                  example: Default Organisation
                             creator:
                               type: string
-                              example: Sumatest
+                              nullable: true
+                              description: 'Creator name fetched from user service'
                             created_at:
                               type: string
                               format: date-time
-                              example: '2024-10-28T09:06:19.079Z'
                             updated_at:
                               type: string
                               format: date-time
-                              example: '2024-10-29T11:36:31.118Z'
-                        example:
-                          - id: 595
-                            title: test rollout
-                            resource_id: 2
-                            resource_type: project
-                            status: PENDING
-                            start_date: '2024-10-29T11:35:08.694Z'
-                            end_date: '2024-11-29T11:36:31.117Z'
-                            organization:
-                              id: 1
-                              name: Default Organization
-                              code: default_code
-                              description: Default Organisation
-                            creator: Sumatest
-                            created_at: '2024-10-28T09:06:19.079Z'
-                            updated_at: '2024-10-29T11:36:31.118Z'
-                      count:
-                        type: number
-                        example: 1
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                              example: 3
                             type:
                               type: string
-                              example: solutionlist
-                            version:
-                              type: number
-                              example: 49
-                        example:
-                          - id: 3
-                            type: solutionlist
-                            version: 49
-                      correlation:
-                        type: string
-                        example: fca8dae2-0b87-4f50-a74b-60e2b6d4aa07
+                              enum: [program, solution]
+                              nullable: true
+                              description: 'Rollout type'
+                      count:
+                        type: integer
+                        description: 'Total count of rollouts matching filters'
+              examples:
+                success:
+                  value:
+                    responseCode: OK
+                    message: ROLLOUT_LISTED_SUCCESSFULLY
+                    result:
+                      data:
+                        - id: 595
+                          title: test rollout
+                          resource_id: 2
+                          resource_type: project
+                          status: DRAFT
+                          start_date: '2024-10-29T11:35:08.694Z'
+                          end_date: '2024-11-29T11:36:31.117Z'
+                          organization:
+                            id: 1
+                            name: Default Organization
+                            code: default_code
+                            description: Default Organisation
+                          creator: Sumatest
+                          created_at: '2024-10-28T09:06:19.079Z'
+                          updated_at: '2024-10-29T11:36:31.118Z'
+                          type: solution
+                      count: 1
   '/scp/v1/rollouts/update/{id}':
     delete:
       summary: Delete Rollout
       tags:
         - Rollout
       description: |-
-        You can use this API to delete rollout
-         - The API Endpoint for delete the rollout is `/scp/v1/rollouts/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Soft deletes a rollout from the system (paranoid deletion)
+        - Only rollouts in DRAFT status can be deleted
+        - Validates rollout belongs to authenticated user
+        - Rollout record marked as deleted but preserved in database
+
+        **Validation Rules**:
+        - `id` must be a valid integer (rollout ID)
+        - Rollout must exist and belong to authenticated user (user_id match)
+        - Rollout status must be DRAFT (cannot delete ROLLED_OUT, INACTIVE, PROCESSING, or FAILED rollouts)
+        - Rollout must belong to user's organization and tenant
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id for ownership validation.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: id
           in: path
-          description: Rollout Id
+          description: 'Rollout ID to delete (integer, required). Rollout must be in DRAFT status and belong to authenticated user.'
           required: true
           schema:
             type: integer
+            minimum: 1
           example: 1
       responses:
-        '200':
-          description: Rollout deleted successfully
+        '202':
+          description: 'Rollout deleted successfully (soft delete accepted)'
           content:
             application/json:
               schema:
@@ -7188,57 +7203,67 @@ paths:
                 properties:
                   responseCode:
                     type: string
-                    example: OK
                   message:
                     type: string
-                    example: Rollout deleted successfully
-                  meta:
+                  result:
                     type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                              example: 3
-                            type:
-                              type: string
-                              example: projectCreation
-                            version:
-                              type: number
-                              example: 3
-                        example:
-                          - id: 3
-                            type: projectCreation
-                            version: 3
+              examples:
+                success:
+                  value:
+                    responseCode: OK
+                    message: Rollout deleted successfully
+                    result: {}
+        '400':
+          description: 'Bad Request - Rollout not found or does not meet deletion criteria'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+              examples:
+                rolloutNotFound:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Rollout not found
   '/scp/v1/rollouts/details/{id}':
     get:
       summary: Rollout Details
       tags:
         - Rollout
       description: |-
-        Use this API to get details of a specific rollout.
-        - The API endpoint for getting rollout details is `/scp/v1/rollouts/details/{id}`.
-        - Mandatory parameters must be provided and cannot be empty or null.
+        **Overview**:
+        - Retrieves comprehensive details of a specific rollout created by authenticated user
+        - Includes viewer details from user service (name, email, organization)
+        - Includes organization details from organization extension service
+        - Validates user ownership (only creator can view their rollout details)
+        - Scoped to user's organization and tenant for data isolation
+
+        **Validation Rules**:
+        - `id` must be a valid integer (rollout ID)
+        - Rollout must exist and belong to authenticated user (user_id match)
+        - Rollout must belong to user's organization and tenant
       parameters:
         - name: X-auth-token
           in: header
-          description: Required X-auth-token available in the login API response.
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
           required: true
           schema:
             type: string
         - name: id
           in: path
-          description: The unique identifier for the rollout.
+          description: 'Unique rollout ID (integer, required). Rollout must belong to authenticated user.'
           required: true
           schema:
             type: integer
+            minimum: 1
             example: 1
       responses:
         '200':
-          description: Rollout fetched successfully.
+          description: 'Rollout fetched successfully'
           content:
             application/json:
               schema:
@@ -7249,42 +7274,55 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: Rollout fetched successfully
+                    example: 'Rollout fetched successfully'
                   result:
                     type: object
                     properties:
                       id:
-                        type: number
+                        type: integer
                         example: 595
                       title:
                         type: string
                         example: test rollout
                       resource_id:
-                        type: number
+                        type: integer
                         example: 2
                       resource_type:
                         type: string
                         example: project
                       status:
                         type: string
-                        example: PENDING
+                        enum: [DRAFT, ROLLED_OUT, INACTIVE, PROCESSING, FAILED]
+                        example: DRAFT
                       targeting_criteria:
                         type: array
                         items:
                           type: object
                           properties:
                             state:
-                              type: string
-                              example: 6687b8d38ead9320cf997c65
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                  example: '6852c86c7248c20014b38a4d'
+                                name:
+                                  type: string
+                                  example: Tripura
+                                externalId:
+                                  type: string
+                                  example: '16'
                             entity_targeting:
-                              type: string
-                              example: district
-                            district:
-                              type: string
-                              example: 671097d667b6747799a761a4
-                            block:
-                              type: string
-                              example: 6710d01167b6747799a7671d
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                  example: district
+                                value:
+                                  type: string
+                                  example: district
+                                name:
+                                  type: string
+                                  example: district
                             roles:
                               type: array
                               items:
@@ -7292,20 +7330,57 @@ paths:
                                 properties:
                                   _id:
                                     type: string
-                                    example: 66b9df998d2c4516ea1b4494
+                                    example: '6825950197b5680013e6a17c'
+                                  name:
+                                    type: string
+                                    example: Functionaries/Officials
+                                  externalId:
+                                    type: string
+                                    example: functionaries-officials
+                            sub_roles:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: '6825a7a597b5680013e841ca'
+                                  name:
+                                    type: string
+                                    example: Art/Music/Performing Teacher
+                                  externalId:
+                                    type: string
+                                    example: art-music-performing-teacher
+                            district:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: '6852c8ae7248c20014b38a57'
+                                  name:
+                                    type: string
+                                    example: West Tripura
+                                  externalId:
+                                    type: string
+                                    example: westTripura
+                                  district:
+                                    type: string
+                                    example: West Tripura
                                   label:
                                     type: string
-                                    example: Block Education Officer
-                                  value:
-                                    type: string
-                                    example: deo
+                                    example: West Tripura
+                            label:
+                              type: string
+                              example: 'Tripura - district (2)'
                       viewers:
                         type: array
                         items:
                           type: object
                           properties:
                             id:
-                              type: number
+                              type: integer
                               example: 23
                             name:
                               type: string
@@ -7325,7 +7400,7 @@ paths:
                               type: object
                               properties:
                                 id:
-                                  type: number
+                                  type: integer
                                   example: 1
                                 code:
                                   type: string
@@ -7345,7 +7420,7 @@ paths:
                         type: object
                         properties:
                           id:
-                            type: number
+                            type: integer
                             example: 1
                           name:
                             type: string
@@ -7353,12 +7428,15 @@ paths:
                           code:
                             type: string
                             example: default_code
-                          description:
-                            type: string
-                            example: Default Organisation
-                      creator:
+                      user_id:
                         type: string
-                        example: Sumatest
+                        example: '12'
+                      organization_code:
+                        type: string
+                        example: default_code
+                      tenant_code:
+                        type: string
+                        example: default_tenant
                       created_at:
                         type: string
                         format: date-time
@@ -7367,20 +7445,48 @@ paths:
                         type: string
                         format: date-time
                         example: '2024-10-29T11:36:31.118Z'
+        '400':
+          description: 'Bad Request - Rollout not found or does not belong to user'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: CLIENT_ERROR
+                  message:
+                    type: string
+                    example: 'Rollout not found'
+                  result:
+                    type: object
   /scp/v1/rollouts/update:
     post:
       summary: Create Rollout
       tags:
         - Rollout
       description: |-
-        You can use this API to create rollout
-         - The API Endpoint for create rollout is `/scp/v1/rollouts/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Creates a new rollout for a published resource
+        - Validates resource exists and is in COMPLETION stage with PUBLISHED status
+        - Uploads rollout data including targeting criteria to cloud storage
+        - Creates rollout record with DRAFT status initially
+        - Supports targeting by state, entity type, districts, roles, and sub-roles, it can be configurable
+        - Includes viewer assignments and date range configuration
+        - Returns rollout ID upon successful creation
+
+        **Validation Rules**:
+        - `title` is required (string, cannot exceed max title length)
+        - `resource_id` is required (integer, 1 to 2147483647)
+        - Resource must exist, be PUBLISHED, and in COMPLETION stage
+        - `start_date` is optional (must be before end_date if both provided)
+        - `end_date` is optional (must be after start_date if both provided)
+        - `targeting_criteria` is optional array with state, entity_targeting, roles, sub_roles, districts
+        - `viewers` is optional array of user IDs (integers)
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, and tenant_code.'
           required: true
           schema:
             type: string
@@ -7390,15 +7496,21 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - title
+                - resource_id
               properties:
                 title:
                   type: string
+                  description: 'Rollout title (required, string)'
                   example: test rollout
                 resource_id:
-                  type: number
+                  type: integer
+                  description: 'Resource ID to create rollout for (required, must be published resource in COMPLETION stage)'
                   example: 2
                 targeting_criteria:
                   type: array
+                  description: 'Optional targeting criteria defining which users/locations can access the rollout'
                   items:
                     type: object
                     properties:
@@ -7407,28 +7519,25 @@ paths:
                         properties:
                           _id:
                             type: string
-                            example: 6687b8d38ead9320cf997c65
+                            example: '6852c86c7248c20014b38a4d'
                           name:
                             type: string
-                            example: Karnataka
+                            example: Tripura
+                          externalId:
+                            type: string
+                            example: '16'
                       entity_targeting:
-                        type: string
-                        example: district
-                      district:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            _id:
-                              type: string
-                              example: 671097d667b6747799a761a4
-                            name:
-                              type: string
-                              example: Bangalore
-                            state:
-                              type: string
-                              example: Karnataka
-
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: district
+                          value:
+                            type: string
+                            example: district
+                          name:
+                            type: string
+                            example: district
                       roles:
                         type: array
                         items:
@@ -7436,29 +7545,69 @@ paths:
                           properties:
                             _id:
                               type: string
-                              example: 66b9df998d2c4516ea1b4494
+                              example: '6825950197b5680013e6a17c'
+                            name:
+                              type: string
+                              example: Functionaries/Officials
+                            externalId:
+                              type: string
+                              example: functionaries-officials
+                      sub_roles:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: '6825a7a597b5680013e841ca'
+                            name:
+                              type: string
+                              example: Art/Music/Performing Teacher
+                            externalId:
+                              type: string
+                              example: art-music-performing-teacher
+                      district:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: '6852c8ae7248c20014b38a57'
+                            name:
+                              type: string
+                              example: West Tripura
+                            externalId:
+                              type: string
+                              example: westTripura
+                            district:
+                              type: string
+                              example: West Tripura
                             label:
                               type: string
-                              example: Block Education Officer
-                            value:
-                              type: string
-                              example: deo
+                              example: West Tripura
+                      label:
+                        type: string
+                        example: 'Tripura - district (2)'
                 viewers:
                   type: array
+                  description: 'Optional array of user IDs who can view this rollout'
                   items:
-                    type: number
+                    type: integer
                     example: 23
                 start_date:
                   type: string
                   format: date-time
+                  description: 'Optional rollout start date (must be before end_date if both provided)'
                   example: '2024-10-29T11:35:08.694Z'
                 end_date:
                   type: string
                   format: date-time
+                  description: 'Optional rollout end date (must be after start_date if both provided)'
                   example: '2024-11-29T11:36:31.117Z'
       responses:
-        '201':
-          description: saved successfully
+        '200':
+          description: 'Rollout created successfully'
           content:
             application/json:
               schema:
@@ -7469,36 +7618,67 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: Saved successfully
+                    example: 'Saved successfully'
                   result:
                     type: object
                     properties:
                       id:
-                        type: number
+                        type: integer
                         example: 1
+        '400':
+          description: 'Bad Request - Resource not found or validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: CLIENT_ERROR
+                  message:
+                    type: string
+                    example: 'Resource not found'
+                  result:
+                    type: object
   '/scp/v1/rollouts/update/{rolloutid}':
     patch:
       summary: Update Rollout
       tags:
         - Rollout
       description: |-
-        You can use this API to update rollout
-         - The API Endpoint for update rollout is `/scp/v1/rollouts/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Updates an existing rollout by ID
+        - Validates user ownership (only creator can update their rollout)
+        - Prevents changing resource_id if rollout is already published
+        - Supports updating targeting criteria by state, entity type, districts, roles, and sub-roles
+        - Allows updating viewer assignments and date range configuration
+        - Returns rollout ID upon successful update
+
+        **Validation Rules**:
+        - `rolloutid` must be a valid integer (rollout ID, 1 to 2147483647)
+        - Rollout must exist and belong to authenticated user (user_id match)
+        - Rollout must belong to user's organization and tenant
+        - `title` is optional (string, cannot exceed max title length if provided)
+        - `resource_id` cannot be changed if rollout is already published
+        - `start_date` is optional (must be before end_date if both provided)
+        - `end_date` is optional (must be after start_date if both provided)
+        - `targeting_criteria` is optional array with state, entity_targeting, roles, sub_roles, districts
+        - `viewers` is optional array of user IDs (integers)
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, and tenant_code.'
           required: true
           schema:
             type: string
         - name: rolloutid
           in: path
-          description: Rollout Id
+          description: 'Rollout ID to update (integer, required, 1 to 2147483647). Rollout must belong to authenticated user.'
           required: true
           schema:
             type: integer
+            minimum: 1
+            maximum: 2147483647
           example: 1
       requestBody:
         required: true
@@ -7509,12 +7689,15 @@ paths:
               properties:
                 title:
                   type: string
-                  example: test rollout
+                  description: 'Optional rollout title (string)'
+                  example: test rollout updated
                 resource_id:
-                  type: number
+                  type: integer
+                  description: 'Optional resource ID (cannot be changed if rollout is published)'
                   example: 2
                 targeting_criteria:
                   type: array
+                  description: 'Optional targeting criteria defining which users/locations can access the rollout'
                   items:
                     type: object
                     properties:
@@ -7523,28 +7706,25 @@ paths:
                         properties:
                           _id:
                             type: string
-                            example: 6687b8d38ead9320cf997c65
+                            example: '6852c86c7248c20014b38a4d'
                           name:
                             type: string
-                            example: Karnataka
+                            example: Tripura
+                          externalId:
+                            type: string
+                            example: '16'
                       entity_targeting:
-                        type: string
-                        example: district
-                      district:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            _id:
-                              type: string
-                              example: 671097d667b6747799a761a4
-                            name:
-                              type: string
-                              example: Bangalore
-                            state:
-                              type: string
-                              example: Karnataka
-
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: district
+                          value:
+                            type: string
+                            example: district
+                          name:
+                            type: string
+                            example: district
                       roles:
                         type: array
                         items:
@@ -7552,29 +7732,69 @@ paths:
                           properties:
                             _id:
                               type: string
-                              example: 66b9df998d2c4516ea1b4494
+                              example: '6825950197b5680013e6a17c'
+                            name:
+                              type: string
+                              example: Functionaries/Officials
+                            externalId:
+                              type: string
+                              example: functionaries-officials
+                      sub_roles:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: '6825a7a597b5680013e841ca'
+                            name:
+                              type: string
+                              example: Art/Music/Performing Teacher
+                            externalId:
+                              type: string
+                              example: art-music-performing-teacher
+                      district:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: '6852c8ae7248c20014b38a57'
+                            name:
+                              type: string
+                              example: West Tripura
+                            externalId:
+                              type: string
+                              example: westTripura
+                            district:
+                              type: string
+                              example: West Tripura
                             label:
                               type: string
-                              example: Block Education Officer
-                            value:
-                              type: string
-                              example: deo
+                              example: West Tripura
+                      label:
+                        type: string
+                        example: 'Tripura - district (2)'
                 viewers:
                   type: array
+                  description: 'Optional array of user IDs who can view this rollout'
                   items:
-                    type: number
+                    type: integer
                     example: 23
                 start_date:
                   type: string
                   format: date-time
+                  description: 'Optional rollout start date (must be before end_date if both provided)'
                   example: '2024-10-29T11:35:08.694Z'
                 end_date:
                   type: string
                   format: date-time
+                  description: 'Optional rollout end date (must be after start_date if both provided)'
                   example: '2024-11-29T11:36:31.117Z'
       responses:
-        '200':
-          description: Saved successfully
+        '202':
+          description: 'Rollout updated successfully (Accepted)'
           content:
             application/json:
               schema:
@@ -7585,40 +7805,65 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: Saved successfully
+                    example: 'Saved successfully'
+                  result:
+                    type: integer
+                    example: 1
+        '400':
+          description: 'Bad Request - Rollout not found, access denied, or validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: CLIENT_ERROR
+                  message:
+                    type: string
+                    example: 'Rollout not found'
                   result:
                     type: object
-                    properties:
-                      id:
-                        type: number
-                        example: 1
   '/scp/v1/rollouts/publish/{id}':
     get:
       summary: Publish Rollout
       tags:
         - Rollout
       description: |-
-        You can use this API to publish rollout
-         - The API Endpoint for publish rollout is `/scp/v1/rollouts/publish` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Publishes a rollout to make it available to target users
+        - Validates rollout details and targeting criteria
+        - Validates resource exists and is in valid status for rollout
+        - Creates solution rollout for non-program resources if not exists
+        - Updates rollout status to PROCESSING during publication
+        - Returns accepted status (202) as publication is asynchronous
+
+        **Validation Rules**:
+        - `id` must be a valid integer (rollout ID, 1 to 2147483647)
+        - Rollout must exist and belong to authenticated user
+        - Rollout must belong to user's organization and tenant
+        - Resource must exist and not be in forbidden status for rollout
+        - Targeting criteria must be valid (state, districts, roles validated)
+        - Rollout validation must pass before publishing
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
           required: true
           schema:
             type: string
         - name: id
           in: path
-          description: Id of the rollout
+          description: 'Rollout ID to publish (integer, required, 1 to 2147483647). Rollout must belong to authenticated user and pass all validations.'
           required: true
           schema:
             type: integer
+            minimum: 1
+            maximum: 2147483647
           example: 1
       responses:
-        '200':
-          description: Resource rolled out successfully
+        '202':
+          description: 'Rollout published successfully (Accepted - asynchronous processing)'
           content:
             application/json:
               schema:
@@ -7629,33 +7874,11 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: Your resource has been successfully rolled out
+                    example: 'Your changes have been published.'
                   result:
                     type: object
-                    properties:
-                      id:
-                        type: number
-                        example: 1
-  /scp/v1/rollouts/getDataManagers:
-    get:
-      summary: Get Data Manager List
-      tags:
-        - Rollout
-      description: |-
-        You can use this API to retrieve a list of all users who have access to the program dashboard.
-         - The API endpoint to retrieve all data managers is `/scp/v1/rollouts/getDataManagers`.
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Users fetched successfully
+        '400':
+          description: 'Bad Request - Rollout not found, validation failed, or resource in forbidden status'
           content:
             application/json:
               schema:
@@ -7663,19 +7886,119 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: CLIENT_ERROR
                   message:
                     type: string
+                    example: 'Rollout validation failed'
+                  result:
+                    type: object
+  /scp/v1/rollouts/getDataManagers:
+    get:
+      summary: Get Data Manager List
+      tags:
+        - Rollout
+      description: |-
+        **Overview**:
+        - Retrieves paginated list of users with data manager roles
+        - Fetches data manager roles from organization configuration
+        - Excludes authenticated user from the list
+        - Returns user details including name, email, phone, and organization information
+        - Supports pagination for large datasets
+        - Scoped to user's organization and tenant
+
+        **Validation Rules**:
+        - `page` defaults to 1 if not provided (minimum 1)
+        - `limit` defaults to 100 if not provided (maximum 100)
+        - Organization must have data_managers configuration
+        - Returns empty list if no data managers found
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for user service calls.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - name: page
+          in: query
+          description: 'Page number for pagination (1-indexed). Defaults to 1 if not provided.'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: limit
+          in: query
+          description: 'Number of records per page. Defaults to 100 if not provided. Maximum allowed is 100.'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+          example: 10
+      responses:
+        '200':
+          description: 'Data Manager list fetched successfully.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Data Manager list fetched successfully.
                   result:
                     type: object
                     properties:
-                      resource_id:
-                        type: string
-                      comments:
+                      data:
                         type: array
                         items:
                           type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            name:
+                              type: string
+                              example: Priyanka
+                            email:
+                              type: string
+                              example: priyanka@example.com
+                            username:
+                              type: string
+                              example: priyanka_user
+                            phone_code:
+                              type: string
+                              example: '+91'
+                            phone:
+                              type: string
+                              example: '9876543210'
+                            status:
+                              type: string
+                              example: ACTIVE
+                            organization_code:
+                              type: integer
+                              example: 2
+                            organization:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 2
+                                name:
+                                  type: string
+                                  example: Shikshalokam
+                                code:
+                                  type: string
+                                  example: sl
                       count:
-                        type: string
+                        type: integer
+                        example: 3
                   meta:
                     type: object
                     properties:
@@ -7683,22 +8006,20 @@ paths:
                         type: array
                         items:
                           type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
               examples:
                 example1:
                   value:
                     responseCode: OK
-                    message: Users fetched successfully
+                    message: Data Manager list fetched successfully.
                     result:
                       data:
                         - id: 1
                           name: Priyanka
+                          email: priyanka@example.com
+                          username: priyanka_user
+                          phone_code: '+91'
+                          phone: '9876543210'
+                          status: ACTIVE
                           organization_code: 2
                           organization:
                             id: 2
@@ -7706,6 +8027,11 @@ paths:
                             code: sl
                         - id: 2
                           name: Adithya
+                          email: adithya@example.com
+                          username: adithya_user
+                          phone_code: '+91'
+                          phone: '9876543211'
+                          status: ACTIVE
                           organization_code: 2
                           organization:
                             id: 2
@@ -7713,6 +8039,11 @@ paths:
                             code: sl
                         - id: 3
                           name: Ankit
+                          email: ankit@example.com
+                          username: ankit_user
+                          phone_code: '+91'
+                          phone: '9876543212'
+                          status: ACTIVE
                           organization_code: 2
                           organization:
                             id: 2
@@ -7732,30 +8063,50 @@ paths:
       tags:
         - Programs
       description: |-
-        You can use this API to create or update program
-         - The API Endpoint for create or update program is `/scp/v1/programs/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - Use this endpoint to copy an existing program by providing the `reference_id` of the program you want to duplicate. The `reference_id` corresponds to the ID of the existing program.
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Creates a new program or updates an existing program by ID
+        - Supports duplicating published programs via reference_id parameter
+        - Validates resource status and stage for reference program (must be PUBLISHED and COMPLETION)
+        - Supports adding/updating/removing resources within the program
+        - Uploads program data including targeting criteria to cloud storage
+        - Automatically sets review_type based on organization configuration
+        - Applies organization visibility policy (CURRENT, ASSOCIATED, ALL) for resource access
+        - Returns program ID upon successful creation/update
+
+        **Validation Rules**:
+        - `title` is required for create/update (string, cannot exceed max title length)
+        - `id` must be a valid integer (1 to 2147483647) for update operations
+        - `reference_id` must be a valid published program ID in COMPLETION stage (if duplicating)
+        - Program cannot be updated if in REJECTED, REJECTED_AND_REPORTED, SUBMITTED, or INPROGRESS status
+        - Program in REVIEW stage can only be updated if reviewer requested changes
+        - Resources can be added, updated, or removed during program update
+        - `start_date` and `end_date` are optional date fields
+        - `targeting_criteria` is optional array with state, entity_targeting, roles, districts, This can be cofigurable
+        - `viewers` is optional array of user IDs (integers)
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: id
           in: path
-          description: Pass program Id for updating a program
+          description: 'Program ID for update operation (integer, 1 to 2147483647). Omit from URL path for create operation.'
           required: true
           schema:
             type: integer
+            minimum: 1
+            maximum: 2147483647
           example: 1
         - in: query
           name: reference_id
-          description: Please append a program Id to copy a program
+          description: 'Optional program ID to duplicate an existing published program. Reference program must be PUBLISHED and in COMPLETION stage.'
           schema:
-            type: number
+            type: integer
+            minimum: 1
+            maximum: 2147483647
           required: false
           example: 1
       requestBody:
@@ -7806,9 +8157,21 @@ paths:
                           name:
                             type: string
                             example: Karnataka
+                          externalId:
+                            type: string
+                            example: KA
                       entity_targeting:
-                        type: string
-                        example: district
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: 671097d667b6747799a761a4
+                          value:
+                            type: string
+                            example: district
+                          name:
+                            type: string
+                            example: District
                       district:
                         type: array
                         items:
@@ -7820,10 +8183,15 @@ paths:
                             name:
                               type: string
                               example: Bangalore
-                            state:
+                            externalId:
                               type: string
-                              example: Karnataka
-
+                              example: BLR
+                            district:
+                              type: string
+                              example: Bangalore
+                            label:
+                              type: string
+                              example: Bangalore, Karnataka
                       roles:
                         type: array
                         items:
@@ -7832,12 +8200,29 @@ paths:
                             _id:
                               type: string
                               example: 66b9df998d2c4516ea1b4494
-                            label:
+                            name:
                               type: string
                               example: Block Education Officer
-                            value:
+                            externalId:
                               type: string
                               example: deo
+                      sub_roles:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              example: 66b9df998d2c4516ea1b4495
+                            name:
+                              type: string
+                              example: Assistant Block Education Officer
+                            externalId:
+                              type: string
+                              example: abeo
+                      label:
+                        type: string
+                        example: Karnataka, Bangalore, Block Education Officer
                 resources:
                   type: array
                   items:
@@ -7974,9 +8359,21 @@ paths:
                                 name:
                                   type: string
                                   example: Karnataka
+                                externalId:
+                                  type: string
+                                  example: KA
                             entity_targeting:
-                              type: string
-                              example: district
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                  example: 671097d667b6747799a761a4
+                                value:
+                                  type: string
+                                  example: district
+                                name:
+                                  type: string
+                                  example: District
                             district:
                               type: array
                               items:
@@ -7988,10 +8385,15 @@ paths:
                                   name:
                                     type: string
                                     example: Bangalore
-                                  state:
+                                  externalId:
                                     type: string
-                                    example: Karnataka
-
+                                    example: BLR
+                                  district:
+                                    type: string
+                                    example: Bangalore
+                                  label:
+                                    type: string
+                                    example: Bangalore, Karnataka
                             roles:
                               type: array
                               items:
@@ -8000,15 +8402,58 @@ paths:
                                   _id:
                                     type: string
                                     example: 66b9df998d2c4516ea1b4494
-                                  label:
+                                  name:
                                     type: string
                                     example: Block Education Officer
-                                  value:
+                                  externalId:
                                     type: string
                                     example: deo
+                            sub_roles:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 66b9df998d2c4516ea1b4495
+                                  name:
+                                    type: string
+                                    example: Assistant Block Education Officer
+                                  externalId:
+                                    type: string
+                                    example: abeo
+                            label:
+                              type: string
+                              example: Karnataka, Bangalore, Block Education Officer
       responses:
         '201':
-          description: Your program has been saved as draft
+          description: 'Program created successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Program created successfully
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+        '202':
+          description: 'Program updated successfully (Accepted)'
           content:
             application/json:
               schema:
@@ -8021,38 +8466,17 @@ paths:
                     type: string
                     example: Your program has been saved as draft
                   result:
+                    type: integer
+                    example: 1
+                  meta:
                     type: object
                     properties:
-                      id:
-                        type: number
-                        example: 1
-    delete:
-      summary: Delete Program
-      tags:
-        - Programs
-      description: |-
-        You can use this API to delete a program 
-         - The API Endpoint for deleting program is `/scp/v1/programs/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: id
-          description: Please append a valid program Id to the Request URL.
-          schema:
-            type: number
-          required: true
-          example: 1
-
-      responses:
-        '202':
-          description: Program deleted successfully
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+        '400':
+          description: 'Bad Request - Program not found, validation failed, or update forbidden'
           content:
             application/json:
               schema:
@@ -8060,8 +8484,60 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: CLIENT_ERROR
                   message:
                     type: string
+                    example: PROGRAM_NOT_FOUND
+                  meta:
+                    type: object
+    delete:
+      summary: Delete Program
+      tags:
+        - Programs
+      description: |-
+        **Overview**:
+        - Soft deletes a program from the system (paranoid deletion)
+        - Only programs in DRAFT status can be deleted
+        - Validates program belongs to authenticated user
+        - Program record marked as deleted but preserved in database
+
+        **Validation Rules**:
+        - `id` must be a valid integer (program ID, 1 to 2147483647)
+        - Program must exist and belong to authenticated user (user_id match)
+        - Program status must be DRAFT (cannot delete programs in other statuses)
+        - Program must belong to user's organization and tenant
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains user_id for ownership validation.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: path
+          name: id
+          description: 'Program ID to delete (integer, required, 1 to 2147483647). Program must be in DRAFT status and belong to authenticated user.'
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          required: true
+          example: 1
+
+      responses:
+        '202':
+          description: 'Program deleted successfully (soft delete accepted)'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: Program deleted successfully
                   meta:
                     type: object
                     properties:
@@ -8071,11 +8547,11 @@ paths:
                           type: object
                           properties:
                             id:
-                              type: number
+                              type: integer
                             type:
                               type: string
                             version:
-                              type: number
+                              type: integer
               examples:
                 example1:
                   value:
@@ -8087,7 +8563,7 @@ paths:
                           type: projectCreation
                           version: 3
         '400':
-          description: Bad Request. Program not found
+          description: 'Bad Request - Program not found or does not meet deletion criteria'
           content:
             application/json:
               schema:
@@ -8098,27 +8574,39 @@ paths:
       tags:
         - Programs
       description: |-
-        You can use this API to get the details of the program
-         - The API Endpoint for get the details of program is `/scp/v1/programs/details` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Retrieves comprehensive details of a specific program
+        - Fetches program data from cloud storage blob if available
+        - Includes viewer details from user service
+        - Fetches associated resources with their details and comment status
+        - Converts entity type values to label-value pairs for display
+        - Returns resources sorted by order with deep link URLs
+        - Scoped to user's organization and tenant
+
+        **Validation Rules**:
+        - `id` must be a valid integer (program ID, 1 to 2147483647)
+        - Program must exist in specified organization and tenant
+        - Program type must be 'program'
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains organization_code, tenant_code, and token for service calls.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: id
           in: path
-          description: program Id
+          description: 'Program ID (integer, required, 1 to 2147483647).'
           required: true
           schema:
             type: integer
+            minimum: 1
+            maximum: 2147483647
           example: 1
       responses:
         '200':
-          description: Program fetched successfully
+          description: 'Program fetched successfully'
           content:
             application/json:
               schema:
@@ -8168,9 +8656,21 @@ paths:
                                 name:
                                   type: string
                                   example: Karnataka
+                                externalId:
+                                  type: string
+                                  example: KA
                             entity_targeting:
-                              type: string
-                              example: district
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                  example: 671097d667b6747799a761a4
+                                value:
+                                  type: string
+                                  example: district
+                                name:
+                                  type: string
+                                  example: District
                             district:
                               type: array
                               items:
@@ -8182,10 +8682,15 @@ paths:
                                   name:
                                     type: string
                                     example: Bangalore
-                                  state:
+                                  externalId:
                                     type: string
-                                    example: Karnataka
-
+                                    example: BLR
+                                  district:
+                                    type: string
+                                    example: Bangalore
+                                  label:
+                                    type: string
+                                    example: Bangalore, Karnataka
                             roles:
                               type: array
                               items:
@@ -8194,12 +8699,29 @@ paths:
                                   _id:
                                     type: string
                                     example: 66b9df998d2c4516ea1b4494
-                                  label:
+                                  name:
                                     type: string
                                     example: Block Education Officer
-                                  value:
+                                  externalId:
                                     type: string
                                     example: deo
+                            sub_roles:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  _id:
+                                    type: string
+                                    example: 66b9df998d2c4516ea1b4495
+                                  name:
+                                    type: string
+                                    example: Assistant Block Education Officer
+                                  externalId:
+                                    type: string
+                                    example: abeo
+                            label:
+                              type: string
+                              example: Karnataka, Bangalore, Block Education Officer
                       viewers:
                         type: array
                         items:
@@ -8401,9 +8923,21 @@ paths:
                                       name:
                                         type: string
                                         example: Karnataka
+                                      externalId:
+                                        type: string
+                                        example: KA
                                   entity_targeting:
-                                    type: string
-                                    example: district
+                                    type: object
+                                    properties:
+                                      _id:
+                                        type: string
+                                        example: 671097d667b6747799a761a4
+                                      value:
+                                        type: string
+                                        example: district
+                                      name:
+                                        type: string
+                                        example: District
                                   district:
                                     type: array
                                     items:
@@ -8415,10 +8949,15 @@ paths:
                                         name:
                                           type: string
                                           example: Bangalore
-                                        state:
+                                        externalId:
                                           type: string
-                                          example: Karnataka
-
+                                          example: BLR
+                                        district:
+                                          type: string
+                                          example: Bangalore
+                                        label:
+                                          type: string
+                                          example: Bangalore, Karnataka
                                   roles:
                                     type: array
                                     items:
@@ -8427,12 +8966,29 @@ paths:
                                         _id:
                                           type: string
                                           example: 66b9df998d2c4516ea1b4494
-                                        label:
+                                        name:
                                           type: string
                                           example: Block Education Officer
-                                        value:
+                                        externalId:
                                           type: string
                                           example: deo
+                                  sub_roles:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        _id:
+                                          type: string
+                                          example: 66b9df998d2c4516ea1b4495
+                                        name:
+                                          type: string
+                                          example: Assistant Block Education Officer
+                                        externalId:
+                                          type: string
+                                          example: abeo
+                                  label:
+                                    type: string
+                                    example: Karnataka, Bangalore, Block Education Officer
                             start_date:
                               type: string
                               format: date-time
@@ -8441,6 +8997,34 @@ paths:
                               type: string
                               format: date-time
                               example: '2024-11-29T11:36:31.117Z'
+                            is_comments:
+                              type: boolean
+                              example: false
+                            order:
+                              type: integer
+                              example: 1
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+        '400':
+          description: 'Bad Request - Program not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: CLIENT_ERROR
+                  message:
+                    type: string
+                    example: Program not found.
+                  meta:
+                    type: object
   /scp/v1/programs/addResources/{program_id}:
     post:
       summary: Add resources to program
