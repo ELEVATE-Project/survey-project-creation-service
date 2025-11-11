@@ -9031,21 +9031,34 @@ paths:
       tags:
         - Programs
       description: |-
-        You can use this API to add resource to program
-        - The API Endpoint to add resource to program is `/scp/v1/programs/addResource` 
-        - It is mandatory to provide values for parameters which are marked as `required`
+        **Overview**:
+        - Adds resources to an existing program by creating copies of reusable resources
+        - Validates program exists and belongs to authenticated user
+        - Only reusable resources can be added to programs
+        - Returns program ID upon successful addition
+
+        **Validation Rules**:
+        - `program_id` must be a valid integer (1 to 2147483647)
+        - Program must exist and belong to authenticated user (user_id match)
+        - `resource_ids` is required (array of integers, at least one resource)
+        - All resource IDs must be valid and exist in the system
+        - Resources must be reusable (is_reusable flag must be true)
+        - Request body must contain only resource_ids field
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: program_id
-          description: Mention the program id to append resources.
+          description: 'Program ID to add resources to (integer, required, 1 to 2147483647). Program must belong to authenticated user.'
           schema:
-            type: number
+            type: integer
+            minimum: 1
+            maximum: 2147483647
           required: true
           example: 123
       requestBody:
@@ -9064,7 +9077,7 @@ paths:
                   example: [2, 12, 200, 1]
       responses:
         '200':
-          description: Resource added to program successfully
+          description: 'Resources have been added to the program successfully.'
           content:
             application/json:
               schema:
@@ -9075,40 +9088,58 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: Resource added to program successfully
+                    example: Resources have been added to the program successfully.
                   result:
+                    type: integer
+                    example: 123
+                  meta:
                     type: object
                     properties:
-                      id:
-                        type: number
-                        example: 123
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
         '400':
-          description: Bad Request. Program not found
+          description: 'Bad Request - Program not found, invalid resource IDs, or non-reusable resources'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/deleteProgram400Response'
   /scp/v1/programs/removeResources/{program_id}:
     post:
-      summary: Remove resources to program
+      summary: Remove resources from program
       tags:
         - Programs
       description: |-
-        You can use this API to remove resource from program
-        - The API Endpoint to remove resource from program is `/scp/v1/programs/removeResources` 
-        - It is mandatory to provide values for parameters which are marked as `required`
+        **Overview**:
+        - Removes resources from an existing program by deleting resource mappings
+        - For published programs, only resources added after publishing can be removed
+        - Validates all resource IDs exist in the program before removal
+        - Prevents removal of resources added before program publication
+        - Returns program ID upon successful removal
+
+        **Validation Rules**:
+        - `program_id` must be a valid integer (1 to 2147483647)
+        - Program must exist in the system
+        - `resource_ids` is required (array of integers, at least one resource)
+        - All resource IDs must be valid and exist in the program
+        - For published programs, resources added before publishing cannot be removed
+        - Request body must contain only resource_ids field
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains organization_code, tenant_code for scoping.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: program_id
-          description: Mention the program id to append resources.
+          description: 'Program ID to remove resources from (integer, required, 1 to 2147483647).'
           schema:
-            type: number
+            type: integer
+            minimum: 1
+            maximum: 2147483647
           required: true
           example: 123
       requestBody:
@@ -9122,12 +9153,13 @@ paths:
               properties:
                 resource_ids:
                   type: array
+                  description: 'Array of resource IDs to remove from the program. All IDs must exist in the program.'
                   items:
                     type: integer
-                  example: [2]
+                  example: [2, 5, 8]
       responses:
         '200':
-          description: Resource added to program successfully
+          description: 'Resources removed successfully.'
           content:
             application/json:
               schema:
@@ -9138,74 +9170,20 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: Resource added to program successfully
+                    example: 'Resources removed successfully.'
                   result:
+                    type: integer
+                    description: 'Program ID from which resources were removed'
+                    example: 123
+                  meta:
                     type: object
                     properties:
-                      id:
-                        type: number
-                        example: 123
+                      formsVersion:
+                        type: array
+                        items:
+                          type: string
         '400':
-          description: Bad Request. Program not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/deleteProgram400Response'
-
-  '/scp/v1/programs/submitForReview/{id}':
-    post:
-      summary: Submit Program for Review
-      tags:
-        - Programs
-      description: |-
-        Use this API to submit a program for review.
-        - The API endpoint for submitting the program for review is `/scp/v1/programs/submitForReview/{id}`.
-        - It is mandatory to provide values for parameters marked as `required`.
-        - The `id` parameter is mandatory and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: The `X-auth-token` is required to use this API. It is available in the login API response.
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: id
-          description: A valid program ID must be appended to the request URL.
-          schema:
-            type: integer
-          required: true
-          example: 1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reviewer_ids:
-                  description: The IDs of the reviewers assigned to review the project.
-                  type: array
-                  items:
-                    type: string
-                notes:
-                  description: Additional notes for the reviewer.
-                  type: string
-            examples:
-              example1:
-                summary: Example when specific reviewers are selected
-                description: 'When specific reviewers are selected, their user IDs are sent as an array, and the project is assigned to those reviewers.'
-                value:
-                  reviewer_ids:
-                    - 23
-                    - 25
-                  notes: Note to the reviewer
-              example2:
-                summary: Example when sending to all reviewers
-                description: 'When the project is sent to all reviewers, the API does not expect any body parameters, and the project will be available for all reviewers according to other factors.'
-                value: {}
-      responses:
-        '201':
-          description: Your program has been sent for review
+          description: 'Bad Request - Program not found, invalid resource IDs, or resources cannot be removed'
           content:
             application/json:
               schema:
@@ -9213,8 +9191,109 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: CLIENT_ERROR
                   message:
                     type: string
+                    example: 'Resource cannot be removed after the program has been published.'
+                  result:
+                    type: object
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: string
+
+  '/scp/v1/programs/submitForReview/{id}':
+    post:
+      summary: Submit Program for Review
+      tags:
+        - Programs
+      description: |-
+        **Overview**:
+        - Submits a program for review by assigned reviewers or all available reviewers
+        - Validates program ownership (only creator can submit)
+        - Validates program status (cannot submit if already in non-reviewable status)
+        - Checks all comments are resolved before submission
+        - Opens all draft comments when submitting
+        - Automatically publishes if review is not mandatory for the organization
+        - Updates program status to SUBMITTED and stage to REVIEW
+
+        **Validation Rules**:
+        - `id` must be a valid integer (program ID, 1 to 2147483647)
+        - Program must exist and belong to authenticated user
+        - Program cannot be in non-reviewable status (PUBLISHED, REJECTED, REJECTED_AND_REPORTED, SUBMITTED, INPROGRESS)
+        - All open comments must be resolved before submission
+        - `notes` is optional (must not exceed MAX_RESOURCE_NOTE_LENGTH if provided)
+        - `reviewer_ids` is optional array of reviewer user IDs (minimum 1 element if provided)
+        - If no reviewer_ids provided, program available to all eligible reviewers
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: path
+          name: id
+          description: 'Program ID to submit for review (integer, required, 1 to 2147483647). Program must belong to authenticated user.'
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          required: true
+          example: 1
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reviewer_ids:
+                  description: 'Optional array of reviewer user IDs to assign for review. If omitted, program available to all eligible reviewers.'
+                  type: array
+                  items:
+                    type: integer
+                  example: [23, 25]
+                notes:
+                  description: 'Optional notes for the reviewer. Must not exceed MAX_RESOURCE_NOTE_LENGTH characters.'
+                  type: string
+                  example: 'Please review the program structure and content'
+            examples:
+              example1:
+                summary: Submit to specific reviewers
+                description: 'When specific reviewers are selected, their user IDs are sent as an array.'
+                value:
+                  reviewer_ids: [23, 25]
+                  notes: 'Please review the program structure and content'
+              example2:
+                summary: Submit to all reviewers
+                description: 'When submitted to all reviewers, no body parameters required.'
+                value: {}
+      responses:
+        '200':
+          description: 'Your program has been sent for review'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: 'Your program has been sent for review'
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: 'Program ID that was submitted for review'
+                        example: 1
                   meta:
                     type: object
                     properties:
@@ -9233,14 +9312,16 @@ paths:
                 example1:
                   value:
                     responseCode: OK
-                    message: Your program has been sent for review
+                    message: 'Your program has been sent for review'
+                    result:
+                      id: 1
                     meta:
                       formsVersion:
                         - id: 3
-                          type: projectCreation
+                          type: programCreation
                           version: 3
         '400':
-          description: Bad Request. Program not found
+          description: 'Bad Request - Program not found, access denied, unresolved comments, or validation failed'
           content:
             application/json:
               schema:
@@ -9251,131 +9332,49 @@ paths:
       tags:
         - Programs
       description: |-
-        You can use this API to get the list all program reviewers
-         - The API Endpoint for program reviewer list is `/scp/v1/programs/reviewerList` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        **Overview**:
+        - Retrieves paginated list of program reviewers from user service
+        - Fetches users with reviewer role (configurable via DEFAULT_REVIEWER_ROLE)
+        - Excludes authenticated user from the list
+        - Returns reviewer details including name, email, phone, and organization information
+        - Supports pagination for large datasets
+        - Scoped to user's organization and tenant
+
+        **Validation Rules**:
+        - `page` defaults to 1 if not provided (minimum 1)
+        - `limit` defaults to 100 if not provided (maximum 100)
+        - Authenticated user is automatically excluded from results
+        - Returns empty list if no reviewers found or user service call fails
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for user service calls.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - name: page
           in: query
-          description: The page number for pagination.
+          description: 'Page number for pagination (1-indexed). Defaults to 1 if not provided.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            default: 1
           example: 1
         - name: limit
           in: query
-          description: The limit of resources per page.
+          description: 'Number of records per page. Defaults to 100 if not provided. Maximum allowed is 100.'
           required: false
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
           example: 10
       responses:
         '200':
-          description: Reviewer list fetched successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: object
-                    properties:
-                      resource_id:
-                        type: string
-                      tenant_code:
-                        type: string
-                      comments:
-                        type: array
-                        items:
-                          type: object
-                      count:
-                        type: string
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
-              examples:
-                example1:
-                  value:
-                    responseCode: OK
-                    message: Reviewer list fetched successfully
-                    result:
-                      data:
-                        - id: 1
-                          name: Priyanka
-                          organization_code: default_code
-                          organization:
-                            id: 2
-                            name: Shikshalokam
-                            code: sl
-                        - id: 2
-                          name: Adithya
-                          organization_code: 2
-                          organization:
-                            id: 2
-                            name: Shikshalokam
-                            code: sl
-                        - id: 3
-                          name: Ankit
-                          organization_code: 2
-                          organization:
-                            id: 2
-                            name: Shikshalokam
-                            code: sl
-                      count: 3
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
-  '/scp/v1/programs/publish/{id}':
-    get:
-      summary: Publish Program
-      tags:
-        - Programs
-      description: |-
-        You can use this API to publish program
-         - The API Endpoint for publish rollout is `/scp/v1/programs/publish` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
-          required: true
-          schema:
-            type: string
-        - name: id
-          in: path
-          description: Id of the Program
-          required: true
-          schema:
-            type: integer
-          example: 1
-      responses:
-        '200':
-          description: Your changes have been published
+          description: 'Reviewers list fetched successfully'
           content:
             application/json:
               schema:
@@ -9386,53 +9385,53 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: Your changes have been published
+                    example: 'Reviewers list fetched successfully'
                   result:
                     type: object
                     properties:
-                      id:
-                        type: number
-                        example: 1
-  /scp/v1/programs/getProgramManagers:
-    get:
-      summary: Get Program Manager List
-      tags:
-        - Programs
-      description: |-
-        You can use this API to retrieve a list of all users who have access to the program dashboard.
-         - The API endpoint to retrieve all program managers is `/scp/v1/programs/getProgramManagers`.
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Users fetched successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                  message:
-                    type: string
-                  result:
-                    type: object
-                    properties:
-                      resource_id:
-                        type: string
-                      comments:
+                      data:
                         type: array
+                        description: 'Array of reviewer user objects'
                         items:
                           type: object
+                          properties:
+                            id:
+                              type: integer
+                              description: 'User ID'
+                            name:
+                              type: string
+                              description: 'Full name of the reviewer'
+                            email:
+                              type: string
+                              description: 'Email address'
+                            username:
+                              type: string
+                              description: 'Username'
+                            phone_code:
+                              type: string
+                              description: 'Phone country code'
+                            phone:
+                              type: string
+                              description: 'Phone number'
+                            status:
+                              type: string
+                              description: 'User account status'
+                            organization_code:
+                              type: string
+                              description: 'Organization code'
+                            organization:
+                              type: object
+                              description: 'Organization details'
+                              properties:
+                                id:
+                                  type: integer
+                                name:
+                                  type: string
+                                code:
+                                  type: string
                       count:
-                        type: string
+                        type: integer
+                        description: 'Total number of reviewers returned'
                   meta:
                     type: object
                     properties:
@@ -9442,34 +9441,311 @@ paths:
                           type: object
                           properties:
                             id:
-                              type: number
+                              type: integer
                             type:
                               type: string
                             version:
-                              type: number
+                              type: integer
               examples:
                 example1:
                   value:
                     responseCode: OK
-                    message: Users fetched successfully
+                    message: 'Reviewers list fetched successfully'
                     result:
                       data:
                         - id: 1
+                          name: 'Priyanka'
+                          email: 'priyanka@example.com'
+                          username: 'priyanka_user'
+                          phone_code: '+91'
+                          phone: '9876543210'
+                          status: 'ACTIVE'
+                          organization_code: 'default_code'
+                          organization:
+                            id: 2
+                            name: 'Shikshalokam'
+                            code: 'sl'
+                        - id: 2
+                          name: 'Adithya'
+                          email: 'adithya@example.com'
+                          username: 'adithya_user'
+                          phone_code: '+91'
+                          phone: '9876543211'
+                          status: 'ACTIVE'
+                          organization_code: 'default_code'
+                          organization:
+                            id: 2
+                            name: 'Shikshalokam'
+                            code: 'sl'
+                        - id: 3
+                          name: 'Ankit'
+                          email: 'ankit@example.com'
+                          username: 'ankit_user'
+                          phone_code: '+91'
+                          phone: '9876543212'
+                          status: 'ACTIVE'
+                          organization_code: 'default_code'
+                          organization:
+                            id: 2
+                            name: 'Shikshalokam'
+                            code: 'sl'
+                      count: 3
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: programCreation
+                          version: 3
+  '/scp/v1/programs/publish/{id}':
+    get:
+      summary: Publish Program
+      tags:
+        - Programs
+      description: |-
+        **Overview**:
+        - Publishes an approved program to make it available to target users
+        - Validates program status (must be PUBLISHED or SUBMITTED)
+        - Validates program details and resources before publishing
+        - Updates program status to PUBLISHED and stage to COMPLETION
+        - Records published_on timestamp
+
+        **Validation Rules**:
+        - `id` must be a valid integer (program ID, 1 to 2147483647)
+        - Program must exist and user must have access
+        - Program status must be PUBLISHED or SUBMITTED (cannot publish DRAFT, REJECTED programs)
+        - Program must pass validation checks (all resources valid, no validation errors)
+        - Program rollout must be created successfully
+        - Rollout must publish successfully to distribution service
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - name: id
+          in: path
+          description: 'Program ID to publish (integer, required, 1 to 2147483647). Program must be in valid status for publishing.'
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          example: 1
+      responses:
+        '200':
+          description: 'You have successfully published the program'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: 'You have successfully published the program'
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: 'Program ID that was published'
+                        example: 1
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            type:
+                              type: string
+                            version:
+                              type: integer
+        '400':
+          description: 'Bad Request - Program not found, invalid status, or validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: CLIENT_ERROR
+                  message:
+                    type: string
+                    example: 'This Program cannot be published.'
+                  result:
+                    type: object
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: string
+  /scp/v1/programs/getProgramManagers:
+    get:
+      summary: Get Program Manager List
+      tags:
+        - Programs
+      description: |-
+        **Overview**:
+        - Retrieves paginated list of users with program manager roles
+        - Fetches program manager roles from organization configuration
+        - Excludes authenticated user from the list
+        - Returns user details including name, email, phone, and organization information
+        - Supports pagination for large datasets
+        - Scoped to user's organization and tenant
+
+        **Validation Rules**:
+        - `page` defaults to 1 if not provided (minimum 1)
+        - `limit` defaults to 100 if not provided (maximum 100)
+        - Organization must have program_managers configuration
+        - Returns empty list if no program managers found
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for user service calls.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - name: page
+          in: query
+          description: 'Page number for pagination (1-indexed). Defaults to 1 if not provided.'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: limit
+          in: query
+          description: 'Number of records per page. Defaults to 100 if not provided. Maximum allowed is 100.'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+          example: 10
+      responses:
+        '200':
+          description: 'Data Manager list fetched successfully.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: 'Data Manager list fetched successfully.'
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              description: 'User ID'
+                            email:
+                              type: string
+                              description: 'User email address'
+                            name:
+                              type: string
+                              description: 'User full name'
+                            username:
+                              type: string
+                              description: 'Username'
+                            phone_code:
+                              type: string
+                              description: 'Phone country code'
+                            phone:
+                              type: string
+                              description: 'Phone number'
+                            status:
+                              type: string
+                              description: 'User status'
+                            organization:
+                              type: object
+                              description: 'Organization details object'
+                              properties:
+                                id:
+                                  type: integer
+                                name:
+                                  type: string
+                                code:
+                                  type: string
+                            organization_code:
+                              type: string
+                              description: 'Organization code'
+                      count:
+                        type: integer
+                        description: 'Total count of program managers'
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            type:
+                              type: string
+                            version:
+                              type: integer
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: 'Data Manager list fetched successfully.'
+                    result:
+                      data:
+                        - id: 1
+                          email: priyanka@example.com
                           name: Priyanka
+                          username: priyanka_user
+                          phone_code: '+91'
+                          phone: '9876543210'
+                          status: ACTIVE
                           organization_code: default_code
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 2
+                          email: adithya@example.com
                           name: Adithya
+                          username: adithya_user
+                          phone_code: '+91'
+                          phone: '9876543211'
+                          status: ACTIVE
                           organization_code: default_code
                           organization:
                             id: 2
                             name: Shikshalokam
                             code: sl
                         - id: 3
+                          email: ankit@example.com
                           name: Ankit
+                          username: ankit_user
+                          phone_code: '+91'
+                          phone: '9876543212'
+                          status: ACTIVE
                           organization_code: default_code
                           organization:
                             id: 2
@@ -9484,67 +9760,95 @@ paths:
     parameters: []
   /scp/v1/organization-extensions/createConfig:
     post:
-      summary: Create the organization configurations
+      summary: Create Organization Configuration
       tags:
         - Organization
       description: |-
-        You can use this API to create organization configurations, for example change the minimum number of approvals for the resource.
-         - The API Endpoint for add organization configurations is `/scp/v1/organization-extensions/createConfig` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - `observation_link_regex` Add regular expression to validate the observation link.
-         - `open_external_link` Boolean value to indicate if the external link should be opened in the portal or not.
+        **Overview**:
+        - Creates organization-specific configuration for resource management
+        - Configures review settings (min approvals, review type, review stages)
+        - Manages data managers and program managers roles
+        - Supports both PARALLEL and SEQUENTIAL review workflows
+        - For SEQUENTIAL review, creates review stages with role hierarchy
+        - Scoped to user's organization and tenant
+
+        **Validation Rules**:
+        - `resource_type` is required (must be one of configured RESOURCE_TYPES)
+        - `data_managers` is optional (comma-separated list of alphabetic role names)
+        - `program_managers` is optional (comma-separated list of alphabetic role names)
+        - `review_type` must be PARALLEL or SEQUENTIAL
+        - For SEQUENTIAL review, `review_stages` array is required with role and level properties
+        - Each review stage must have unique role and level combination
+        - Configuration is unique per organization, tenant, and resource_type
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains organization_code and tenant_code.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
-                show_reviewer_list:
-                  type: boolean
-                min_approval:
-                  type: string
                 resource_type:
                   type: string
+                  description: 'Type of resource (required, must be valid RESOURCE_TYPE)'
+                show_reviewer_list:
+                  type: boolean
+                  description: 'Whether to show reviewer list to creators'
+                min_approval:
+                  type: integer
+                  description: 'Minimum number of approvals required for resource publication'
                 review_type:
                   type: string
+                  enum: [PARALLEL, SEQUENTIAL]
+                  description: 'Review workflow type'
                 review_stages:
                   type: array
+                  description: 'Required for SEQUENTIAL review type - defines role hierarchy'
                   items:
                     type: object
                     properties:
                       role:
                         type: string
+                        description: 'Reviewer role name'
                       level:
-                        type: number
+                        type: integer
+                        description: 'Review stage level (hierarchy)'
+                data_managers:
+                  type: string
+                  description: 'Optional comma-separated list of data manager role names'
+                program_managers:
+                  type: string
+                  description: 'Optional comma-separated list of program manager role names'
             examples:
-              review type parallel:
+              parallel_review:
                 value:
+                  resource_type: project
                   show_reviewer_list: true
                   min_approval: 2
-                  resource_type: project
                   review_type: PARALLEL
-              review type sequential:
+                  data_managers: 'data_admin,data_manager'
+              sequential_review:
                 value:
+                  resource_type: project
                   show_reviewer_list: true
                   min_approval: 2
-                  resource_type: project
                   review_type: SEQUENTIAL
                   review_stages:
                     - role: reviewer_level_1
                       level: 1
                     - role: reviewer_level_2
                       level: 2
+                  program_managers: 'program_admin,program_lead'
       responses:
         '201':
-          description: Config added successfully
+          description: 'Config added successfully'
           content:
             application/json:
               schema:
@@ -9552,13 +9856,42 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: 'Config added successfully'
                   result:
                     type: object
                     properties:
+                      id:
+                        type: integer
+                        description: 'Configuration ID'
                       organization_code:
                         type: string
+                        description: 'Organization code'
+                      tenant_code:
+                        type: string
+                        description: 'Tenant code'
+                      resource_type:
+                        type: string
+                        description: 'Resource type'
+                      show_reviewer_list:
+                        type: boolean
+                        description: 'Show reviewer list flag'
+                      min_approval:
+                        type: integer
+                        description: 'Minimum approvals required'
+                      review_type:
+                        type: string
+                        description: 'Review workflow type'
+                      created_at:
+                        type: string
+                        format: date-time
+                        description: 'Creation timestamp'
+                      updated_at:
+                        type: string
+                        format: date-time
+                        description: 'Last update timestamp'
                   meta:
                     type: object
                     properties:
@@ -9568,67 +9901,85 @@ paths:
                           type: object
                           properties:
                             id:
-                              type: number
+                              type: integer
                             type:
                               type: string
                             version:
-                              type: number
+                              type: integer
               examples:
                 example1:
                   value:
                     responseCode: OK
-                    message: Config added successfully
+                    message: 'Config added successfully'
                     result:
-                      organiation_code: default_code
+                      id: 1
+                      organization_code: default_code
+                      tenant_code: default_tenant
+                      resource_type: project
                       show_reviewer_list: true
                       min_approval: 2
-                      resource_type: s
+                      review_type: PARALLEL
+                      created_at: '2024-11-11T10:00:00.000Z'
+                      updated_at: '2024-11-11T10:00:00.000Z'
                     meta:
                       formsVersion:
                         - id: 3
                           type: projectCreation
                           version: 3
         '400':
-          description: Bad Request.
+          description: 'Bad Request - Invalid resource type, review stages, or duplicate configuration'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/createConfig400Response'
   '/scp/v1/organization-extensions/updateConfig/{id}':
     post:
-      summary: Update the organization configurations
+      summary: Update Organization Configuration
       tags:
         - Organization
       description: |-
-        You can use this API to update organization configurations, for example change the minimum number of approvals for the resource.
-         - The API Endpoint for update organization configurations is `/scp/v1/organization-extensions/updateConfig` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-         - `observation_link_regex` and `open_external_link` are project specific fields. 
-         - `observation_link_regex` Add regular expression to validate the observation link.
-         - `open_external_link` Boolean value to indicate if the external link should be opened in the portal or not.
+        **Overview**:
+        - Updates existing organization-specific configuration for resource management
+        - Modifies review settings (min approvals, review type, review stages)
+        - Updates data managers and program managers roles
+        - For SEQUENTIAL review, can add new review stages while preserving existing ones
+        - Cannot update if configuration does not exist
+        - Scoped to user's organization and tenant
+
+        **Validation Rules**:
+        - `id` must be a valid integer (configuration ID, 1 to 2147483647)
+        - `resource_type` is required in query (must be valid RESOURCE_TYPE)
+        - Configuration must exist for the specified id, resource_type, organization, and tenant
+        - `data_managers` is optional (comma-separated list or array of alphabetic role names, empty array allowed)
+        - `program_managers` is optional (comma-separated list or array of alphabetic role names, empty array allowed)
+        - For SEQUENTIAL review with new `review_stages`, validates role and level properties
+        - New review stages are added without removing existing stages
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token from login API response. Token contains organization_code and tenant_code.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: id
-          description: Please append a valid config Id to the Request URL.
+          description: 'Configuration ID to update (integer, required, 1 to 2147483647).'
           schema:
-            type: number
+            type: integer
+            minimum: 1
+            maximum: 2147483647
           required: true
           example: 1
         - in: query
           name: resource_type
-          description: Please append a valid resource type to the Request URL.
+          description: 'Resource type for the configuration (required, must be valid RESOURCE_TYPE like project, program).'
           schema:
             type: string
           required: true
           example: project
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -9636,16 +9987,64 @@ paths:
               properties:
                 show_reviewer_list:
                   type: boolean
+                  description: 'Whether to show reviewer list to creators'
                 min_approval:
+                  type: integer
+                  description: 'Minimum number of approvals required'
+                review_type:
                   type: string
+                  enum: [PARALLEL, SEQUENTIAL]
+                  description: 'Review workflow type'
+                review_stages:
+                  type: array
+                  description: 'For SEQUENTIAL review - adds new review stages'
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                        description: 'Reviewer role name'
+                      level:
+                        type: integer
+                        description: 'Review stage level'
+                data_managers:
+                  oneOf:
+                    - type: string
+                      description: 'Comma-separated list of data manager role names'
+                    - type: array
+                      description: 'Array of data manager role names'
+                      items:
+                        type: string
+                  description: 'Optional data manager roles (can be empty array to clear)'
+                program_managers:
+                  oneOf:
+                    - type: string
+                      description: 'Comma-separated list of program manager role names'
+                    - type: array
+                      description: 'Array of program manager role names'
+                      items:
+                        type: string
+                  description: 'Optional program manager roles (can be empty array to clear)'
             examples:
-              example1:
+              update_approval_settings:
+                value:
+                  show_reviewer_list: false
+                  min_approval: 3
+              update_with_managers:
                 value:
                   show_reviewer_list: true
                   min_approval: 2
+                  data_managers: ['data_admin', 'data_lead']
+                  program_managers: ['program_admin']
+              add_review_stages:
+                value:
+                  review_type: SEQUENTIAL
+                  review_stages:
+                    - role: reviewer_level_3
+                      level: 3
       responses:
-        '201':
-          description: Config updated successfully
+        '200':
+          description: 'Organization config updated successfully'
           content:
             application/json:
               schema:
@@ -9653,13 +10052,45 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    example: OK
                   message:
                     type: string
+                    example: 'Organization config updated successfully'
                   result:
-                    type: object
-                    properties:
-                      organization_code:
-                        type: string
+                    type: array
+                    description: 'Array containing updated configuration object'
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: 'Configuration ID'
+                        organization_code:
+                          type: string
+                          description: 'Organization code'
+                        tenant_code:
+                          type: string
+                          description: 'Tenant code'
+                        resource_type:
+                          type: string
+                          description: 'Resource type'
+                        show_reviewer_list:
+                          type: boolean
+                          description: 'Show reviewer list flag'
+                        min_approval:
+                          type: integer
+                          description: 'Minimum approvals required'
+                        review_type:
+                          type: string
+                          description: 'Review workflow type'
+                        created_at:
+                          type: string
+                          format: date-time
+                          description: 'Creation timestamp'
+                        updated_at:
+                          type: string
+                          format: date-time
+                          description: 'Last update timestamp'
                   meta:
                     type: object
                     properties:
@@ -9669,52 +10100,68 @@ paths:
                           type: object
                           properties:
                             id:
-                              type: number
+                              type: integer
                             type:
                               type: string
                             version:
-                              type: number
+                              type: integer
               examples:
                 example1:
                   value:
                     responseCode: OK
-                    message: Config updated successfully
+                    message: 'Organization config updated successfully'
                     result:
-                      organiation_code: default_code
-                      show_reviewer_list: true
-                      min_approval: 2
-                      resource_type: project
+                      - id: 1
+                        organization_code: default_code
+                        tenant_code: default_tenant
+                        resource_type: project
+                        show_reviewer_list: true
+                        min_approval: 2
+                        review_type: PARALLEL
+                        created_at: '2024-11-11T10:00:00.000Z'
+                        updated_at: '2024-11-11T12:00:00.000Z'
                     meta:
                       formsVersion:
                         - id: 3
                           type: projectCreation
                           version: 3
         '400':
-          description: Bad Request.
+          description: 'Bad Request - Invalid resource type, config not found, or validation failed'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/updateConfig400Response'
   /scp/v1/config/list:
     get:
-      summary: List configurations
+      summary: List Configurations
       tags:
         - Config APIs
       description: |-
-        Use this API to list organization configurations and instance-level configurations.
-         - The API endpoint to list all configurations is `/scp/v1/config/list`.
-         - It is mandatory to provide values for parameters marked as `required`.
-         - The `X-auth-token` header parameter is mandatory and cannot be empty or null.
+        **Overview**:
+        - Retrieves comprehensive configuration for organization and instance levels
+        - Returns targeting criteria configuration from organization config
+        - Fetches resource-specific configurations for all resource types
+        - Includes instance-level settings like auto-save interval and note length
+        - Prioritizes user's organization config, falls back to default organization
+        - Merges database configs with environment defaults for missing resource types
+        - Scoped to user's organization and tenant
+
+        **Validation Rules**:
+        - X-auth-token must be valid and contain organization_code and tenant_code
+        - Returns default configurations from environment variables if not set in database
+        - Data managers and program managers default to environment values if not configured
+        - Resource visibility policies prioritize user's org over default org
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API response.'
+          description: 'Authentication token from login API response. Token contains organization_code and tenant_code.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       responses:
         '200':
-          description: Config fetched successfully
+          description: 'Config fetched successfully'
           content:
             application/json:
               schema:
