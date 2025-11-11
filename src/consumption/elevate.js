@@ -25,6 +25,7 @@ let projectsMongoConnection = null
 let mongoConnection = null
 let scopeKeys = {}
 let socketInUse = false
+const resourceQuery = require('@database/queries/resources')
 
 // Define the mongoDb collection names used
 const COLLECTIONS_MAP = new Map(
@@ -248,6 +249,7 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 	const result = { success: false, taskIds: [], externalIds: [], error: null }
 	try {
 		const taskCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TASKS'))
+		const projectTemplatesCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
 		const taskIds = []
 		const externalIds = []
 
@@ -278,6 +280,41 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 					redirectLink: task.link,
 					buttonLabel: common.START_REFLECTION,
 				}
+			}
+
+			//if task type improvementProject add projectTemplateDetails
+			if (task.type === common.TASK_TYPE_PROJECT) {
+				const validateProject = await resourceQuery.findOne(
+					{
+						id: task.project_id,
+						type: common.PROJECT,
+						status: common.RESOURCE_STATUS_PUBLISHED,
+					},
+					[]
+				)
+				if (!validateProject) {
+					throw new Error(`Project with ID ${task.project_id} not found`)
+				}
+
+				// Convert published_id to ObjectId
+				const publishedObjectId = new ObjectId(validateProject.published_id)
+
+				// get projectTemplate details
+				let projectTemplates = await projectTemplatesCollection.findOne({ _id: publishedObjectId })
+
+				if (!projectTemplates) {
+					throw new Error(`Project template not found for published_id: ${validateProject.published_id}`)
+				}
+
+				taskData.projectTemplateDetails = {
+					_id: projectTemplates._id,
+					type: projectTemplates.type,
+					entityType: projectTemplates.entityType,
+					isReusable: projectTemplates.isReusable,
+					externalId: projectTemplates.externalId,
+				}
+
+				taskData.type = projectTemplates.type
 			}
 
 			// Create the task
@@ -1411,6 +1448,56 @@ const duplicateResources = async (resourceDetails, resourceCertificate, programD
 								}
 							)
 						})
+					}
+
+					if (projectTask.type === common.SOLUTIONS_TYPE.project) {
+						const fetchProjectDetails = projectService.details(
+							projectTask.project_id,
+							resourceDetails?.organization_code,
+							resourceDetails?.tenant_code
+						)
+						const projectData = fetchProjectDetails?.result
+						projectCertificate = projectData?.certificate
+						// create child projectTemplate for task
+						let duplicateResource = duplicateResources(
+							{ ...projectData, published_id: projectData.published_id },
+							projectCertificate,
+							programData
+						)
+						if (!duplicateResource.success) {
+							console.log('Error in creating duplicate Resource')
+							throw new Error(
+								`Error in creating duplicate Resource ${duplicateResource?.error || 'Unknown Error'}`
+							)
+						}
+						// create and mapping solutions with project template
+						const createSolutionsData = createSolutions(
+							duplicateResource.data,
+							programData,
+							programData.userToken
+						)
+						if (!createSolutionsData.success)
+							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
+						let solutionsData = createSolutionsData.data[0]
+						let duplicateResourceData = duplicateResource.data[0]
+						//Adding solutionDetails in task
+						projectTask.solutionDetails = {
+							type: solutionsData?.type,
+							_id: solutionsData?._id,
+							externalId: solutionsData?.externalId,
+							isReusable: solutionsData?.isReusable,
+							minNoOfSubmissionsRequired: solutionsData?.minNoOfSubmissionsRequired,
+						}
+
+						//adding projectTemaplateDetails in task
+
+						projectTask.projectTemplateDetails = {
+							_id: duplicateResourceData?._id,
+							externalId: duplicateResourceData?.externalId,
+							isReusable: duplicateResourceData?.isReusable,
+							type: duplicateResourceData?.type,
+							minNoOfSubmissionsRequired: duplicateResourceData?.minNoOfSubmissionsRequired,
+						}
 					}
 					// replace old task id by new task id in sequence
 					_.update(taskSeqMap, projectTask.projectTemplateExternalId + externalId_suffixing, (tasks) =>

@@ -907,7 +907,7 @@ module.exports = class ProjectsHelper {
 			)
 			if (requiredValidation) {
 				let required = utils.checkRequired(requiredValidation, fieldData)
-				if (!required) {
+				if (!required && entityType.value != common.TASK_TYPE_PROJECT) {
 					validationErrors.push(
 						utils.errorObject(
 							model == common.PROJECT ? entityType.value : sourceType,
@@ -1014,6 +1014,46 @@ module.exports = class ProjectsHelper {
 								reflectionPath,
 								common.URL,
 								regexValidation.message || `Invalid REFLECTION URL in ${model}`
+							)
+						)
+					}
+				}
+			}
+
+			//check for project as a task
+			if (
+				model == common.TASKS &&
+				entityType.value === common.TASK_TYPE_PROJECT &&
+				entityData.type === common.TASK_TYPE_PROJECT
+			) {
+				let projectPath =
+					sourceType == '' ? `${common.TASK_TYPE_PROJECT}` : `${sourceType}.${common.TASK_TYPE_PROJECT}`
+				// Validate the project_id is present
+				if (!entityData.project_id) {
+					validationErrors.push(
+						utils.errorObject(
+							projectPath,
+							common.PROJECT_ID,
+							regexValidation.message || `Required project_id${model}`
+						)
+					)
+				}
+				// Validate published projectId
+				if (entityData.project_id && entityMapping[common.TASK_TYPE_PROJECT]?.validations) {
+					const validateProject = await resourceQueries.findOne(
+						{
+							id: entityData.project_id,
+							type: common.PROJECT,
+							status: common.RESOURCE_STATUS_PUBLISHED,
+						},
+						[]
+					)
+					if (!validateProject) {
+						validationErrors.push(
+							utils.errorObject(
+								projectPath,
+								common.PROJECT_ID,
+								requiredValidation.message || `Project not PUBLISHED${model}`
 							)
 						)
 					}
