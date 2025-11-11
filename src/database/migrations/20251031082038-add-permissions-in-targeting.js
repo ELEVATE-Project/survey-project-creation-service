@@ -33,12 +33,22 @@ module.exports = {
 					'Required environment variables are not defined. Please set DEFAULT_CONTENT_CREATOR_ROLE and DEFAULT_REVIEWER_ROLE'
 				)
 			}
-			const modulesData = [
-				{ code: 'targeting', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
-			]
+			// Check if targeting module already exists
+			const existingModule = await queryInterface.sequelize.query(
+				`SELECT code FROM modules WHERE code = 'targeting'`,
+				{ type: queryInterface.sequelize.QueryTypes.SELECT }
+			)
 
-			// Insert the data into the 'modules' table
-			await queryInterface.bulkInsert('modules', modulesData)
+			if (existingModule.length === 0) {
+				const modulesData = [
+					{ code: 'targeting', status: 'ACTIVE', created_at: new Date(), updated_at: new Date() },
+				]
+				// Insert the data into the 'modules' table only if it doesn't exist
+				await queryInterface.bulkInsert('modules', modulesData)
+				console.log('✅ Successfully added targeting module')
+			} else {
+				console.log('ℹ️ Targeting module already exists, skipping creation')
+			}
 
 			// Step 2: Create the permission
 			const permissionsData = [

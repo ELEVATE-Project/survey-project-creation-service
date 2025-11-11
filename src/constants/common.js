@@ -62,6 +62,7 @@ module.exports = {
 	REVIEWER: 'reviewer',
 	RESOURCE_CREATOR: 'resource_creator',
 	ADMIN_ROLE: 'admin',
+	TENANT_ADMIN_ROLE: 'tenant_admin',
 	ORG_ADMIN_ROLE: 'org_admin',
 	CERTIFICATE_PATH: 'certificate/',
 	LOGO_PATH: 'certificate_logo/',
@@ -269,6 +270,8 @@ module.exports = {
 	OPERATION_REMOVE: 'remove',
 	PUT: 'PUT',
 	ALL: 'ALL',
+	IS_EXTERNAL: 'is_external',
+	DEPENDED_ON: 'depended_on',
 	CREATE: 'CREATE',
 	UPDATE: 'UPDATE',
 	VALID_POLICIES: {

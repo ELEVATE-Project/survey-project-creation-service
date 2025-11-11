@@ -35,4 +35,7 @@ module.exports = {
 	SUB_ENTITY_LISTBASED_ON_ROLE_AND_LOCATION: process.env.SUB_ENTITY_LISTBASED_ON_ROLE_AND_LOCATION
 		? process.env.SUB_ENTITY_LISTBASED_ON_ROLE_AND_LOCATION
 		: 'v1/entities/subEntityListBasedOnRoleAndLocation',
+	FETCH_TENANT_INTERNAL: process.env.FETCH_TENANT_INTERNAL
+		? process.env.FETCH_TENANT_INTERNAL
+		: 'v1/tenant/readInternal',
 }

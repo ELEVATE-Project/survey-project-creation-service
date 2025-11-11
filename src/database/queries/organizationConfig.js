@@ -23,17 +23,6 @@ exports.findAll = async (filter, attributes = null) => {
 	}
 }
 
-exports.findAll = async (filter, attributes = []) => {
-	try {
-		return await organizationConfig.findAll({
-			where: filter,
-			attributes,
-			raw: true,
-		})
-	} catch (error) {
-		return error
-	}
-}
 exports.create = async (data) => {
 	try {
 		return await organizationConfig.create(data, { returning: true })

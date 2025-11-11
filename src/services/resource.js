@@ -6,8 +6,6 @@
  */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
-const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
-const reviewResourcesQueries = require('@database/queries/reviewsResources')
 const reviewsQueries = require('@database/queries/reviews')
 const reviewStagesQueries = require('@database/queries/reviewStage')
 const responses = require('@helpers/responses')
@@ -520,7 +518,7 @@ module.exports = class resourceHelper {
 	 * @param {Object} queryParams -  queryParams contain sort details like sort_by, sort_order
 	 * @returns {JSON} - Response contain sort filter
 	 */
-	static async constructSortOptions(sort_by, sort_order, defaultSortBy = common.CREATED_AT) {
+	static async constructSortOptions(sort_by, sort_order, defaultSortBy = common.UPDATED_AT) {
 		let sort = {}
 		if (sort_by && sort_order) {
 			sort.sort_by = sort_by

@@ -321,7 +321,7 @@ module.exports = class orgExtensionsHelper {
 					is_auth_token_bearer: process.env.IS_AUTH_TOKEN_BEARER === 'true',
 				},
 			}
-			// fetch org config for organization_code
+			// fetch org config for organization_code (prioritize user's org over default)
 			const orgConfigs = await organizationConfigQueries.findAll(
 				{
 					organization_code: {
@@ -332,33 +332,36 @@ module.exports = class orgExtensionsHelper {
 				['meta', 'organization_code', 'external_resource_visibility_policy', 'resource_visibility_policy']
 			)
 
-			if (Array.isArray(orgConfigs) && orgConfigs.length > 0) {
-				const selectedMeta =
-					orgConfigs.length > 1
-						? orgConfigs.find((config) => config.organization_code == organization_code)?.meta
-						: orgConfigs[0]?.meta
-				// Only reassign if meta is a valid object
-				if (selectedMeta && typeof selectedMeta === 'object') {
-					result.config = selectedMeta
-				}
+			// Find user's org config first, fallback to default org config
+			const userOrgConfig = orgConfigs?.find((config) => config.organization_code === organization_code)
+			const defaultOrgConfig = orgConfigs?.find(
+				(config) => config.organization_code === process.env.DEFAULT_ORGANIZATION_CODE
+			)
+			const selectedConfig = userOrgConfig || defaultOrgConfig
+
+			// Set meta configuration
+			if (selectedConfig?.meta && typeof selectedConfig.meta === 'object') {
+				result.config = selectedConfig.meta
 			}
 
-			if (orgConfigs?.meta?.data_managers?.length == 0 || orgConfigs?.meta?.data_managers?.length == undefined) {
-				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS.split(',') || []
+			// Set default managers if not present
+			if (!result.config.data_managers?.length) {
+				result.config.data_managers = process.env.DEFAULT_DATA_MANAGERS?.split(',') || []
 			}
 
-			if (
-				orgConfigs?.meta?.program_managers?.length == 0 ||
-				orgConfigs?.meta?.program_managers?.length == undefined
-			) {
-				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS.split(',') || []
+			if (!result.config.program_managers?.length) {
+				result.config.program_managers = process.env.DEFAULT_PROGRAM_MANAGERS?.split(',') || []
 			}
-			// adding orgPolicies visibilty
-			const orgSpecificPolicy = orgConfigs.find(
-				(config) => config.organization_code === organization_code
-			)?.external_resource_visibility_policy
 
-			result.config.external_resource_visibility_policy = orgSpecificPolicy
+			// Set organization policy (prioritize user's org)
+			result.config.external_resource_visibility_policy =
+				userOrgConfig?.external_resource_visibility_policy ||
+				defaultOrgConfig?.external_resource_visibility_policy ||
+				undefined
+
+			result.config.resource_visibility_policy =
+				userOrgConfig?.resource_visibility_policy || defaultOrgConfig?.resource_visibility_policy || undefined
+
 			// attributes to fetch from organisation Extenstion
 			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
 

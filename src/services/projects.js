@@ -6,7 +6,6 @@
  */
 const httpStatusCode = require('@generics/http-status')
 const resourceQueries = require('@database/queries/resources')
-const resourceCreatorMappingQueries = require('@database/queries/resourcesCreatorMapping')
 const responses = require('@helpers/responses')
 const common = require('@constants/common')
 const filesService = require('@services/files')
@@ -15,13 +14,10 @@ const orgExtensionService = require('@services/organization-extension')
 const _ = require('lodash')
 const { Op } = require('sequelize')
 const reviewsQueries = require('@database/queries/reviews')
-const reviewsResourcesQueries = require('@database/queries/reviewsResources')
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
-const certificateBasetemplateQueries = require('@database/queries/certificateBaseTemplate')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
-const commentQueries = require('@database/queries/comments')
 module.exports = class ProjectsHelper {
 	/**
 	 *  project create
@@ -92,12 +88,8 @@ module.exports = class ProjectsHelper {
 				updated_by: loggedInUserId,
 			}
 
-			if (
-				orgConfig &&
-				orgConfig?.result?.config &&
-				orgConfig?.result?.config?.external_resource_visibility_policy
-			) {
-				//get visiblity and related_org details
+			if (orgConfig?.result?.config?.external_resource_visibility_policy) {
+				// get visibility and related_org details
 				const result = await this.populateVisibilityAndRelatedOrgs(projectData, orgConfig, orgCode, tenantCode)
 				if (result.success) {
 					projectData = result.dataObject
@@ -108,13 +100,6 @@ module.exports = class ProjectsHelper {
 			try {
 				//create project
 				projectCreate = await resourceQueries.create(projectData)
-				const mappingData = {
-					resource_id: projectCreate.id,
-					creator_id: loggedInUserId,
-					organization_code: orgCode,
-					tenant_code: tenantCode,
-				}
-				await resourceCreatorMappingQueries.create(mappingData)
 
 				// upload to blob
 				const resourceId = projectCreate.id
@@ -328,20 +313,20 @@ module.exports = class ProjectsHelper {
 
 	static async delete(resourceId, loggedInUserId, organizationCode, tenantCode) {
 		try {
-			const resourceCreatorMapping = await resourceCreatorMappingQueries.findOne(
-				{
-					resource_id: resourceId,
-					creator_id: loggedInUserId,
-					organization_code: organizationCode,
-					tenant_code: tenantCode,
-				},
-				['id', 'organization_code'],
-				{
-					resourceAttributes: ['id', 'type', 'organization_code'],
-				}
-			)
+			// check if the project exists
+			const resourceFilterQuery = {
+				id: resourceId,
+				user_id: loggedInUserId,
+				type: common.PROJECT,
+				organization_code: organizationCode,
+				tenant_code: tenantCode,
+				status: common.RESOURCE_STATUS_DRAFT,
+				stage: common.RESOURCE_STAGE_CREATION,
+			}
 
-			if (!resourceCreatorMapping?.id) {
+			let project = await resourceQueries.findOne(resourceFilterQuery)
+
+			if (!project?.id) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -349,29 +334,10 @@ module.exports = class ProjectsHelper {
 				})
 			}
 
-			const resource = {
-				id: resourceCreatorMapping.resource.id,
-				type: resourceCreatorMapping.resource.type,
-				organization_code: resourceCreatorMapping.resource.organization_code,
-			}
-
-			if (!resource?.id && resource.type !== common.PROJECT) {
-				return responses.failureResponse({
-					message: 'PROJECT_NOT_FOUND',
-					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
-			}
-
-			let updatedProjectCreatorMapping = await resourceCreatorMappingQueries.deleteOne(
-				resourceCreatorMapping.id,
-				loggedInUserId,
-				organizationCode,
-				tenantCode
-			)
+			// delete the project
 			let updatedProject = await resourceQueries.deleteOne(resourceId, organizationCode, tenantCode)
 
-			if (updatedProject === 0 && updatedProjectCreatorMapping === 0) {
+			if (updatedProject === 0) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -430,7 +396,7 @@ module.exports = class ProjectsHelper {
 				options
 			)
 
-			if (!project) {
+			if (!project?.id) {
 				return responses.failureResponse({
 					message: 'PROJECT_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
@@ -576,6 +542,7 @@ module.exports = class ProjectsHelper {
 				userDetails.tenant_code,
 				commentsOptions
 			)
+
 			if (projectDetails.statusCode !== httpStatusCode.ok) {
 				return responses.failureResponse({
 					message: 'DONT_HAVE_PROJECT_ACCESS',
@@ -620,12 +587,8 @@ module.exports = class ProjectsHelper {
 				)
 			}
 
-			//validate entity type if entity tagging is enabled
-			const isEntityTaggingEnabled =
-				String(process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS).toLowerCase() === 'true'
-			if (isEntityTaggingEnabled && !projectData.entity_type) {
-				validationErrors.push(utils.errorObject(common.ENTITY_TYPE, '', 'Entity type is required'))
-			}
+			// Validate entity tagging
+			await this._validateEntityTagging(projectData, validationErrors)
 
 			//validate task start_date and end_date if enabled
 			const isTaskDateValidationEnabled =
@@ -661,19 +624,30 @@ module.exports = class ProjectsHelper {
 					userDetails.token
 				)
 
-				if (!reviewers.success) throw new Error('REVIEWER_IDS_NOT_FOUND')
+				if (!reviewers.success) {
+					throw {
+						message: 'REVIEWER_IDS_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+					}
+				}
 
 				//written as a backup will remove once the user service PR merged
 				if (Array.isArray(reviewers?.data?.result?.data) && reviewers.data.result.data.length > 0) {
 					reviewerIds = reviewers.data.result.data.map((item) => item.id)
 				} else {
 					// If no valid reviewers data is found, return an error response
-					throw new Error('REVIEWER_IDS_NOT_FOUND')
+					throw {
+						message: 'REVIEWER_IDS_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+					}
 				}
 
 				//return error message if the reviewer is invalid or not found
 				if (uniqueReviewerIds.length > reviewers.data.result.data.length) {
-					throw new Error('REVIEWER_IDS_NOT_FOUND')
+					throw {
+						message: 'REVIEWER_IDS_NOT_FOUND',
+						statusCode: httpStatusCode.bad_request,
+					}
 				}
 			}
 
@@ -800,8 +774,6 @@ module.exports = class ProjectsHelper {
 				}))
 
 				await reviewsQueries.bulkCreate(reviewsData)
-				delete reviewsData.status
-				await reviewsResourcesQueries.bulkCreate(reviewsData)
 			}
 
 			//update the reviews and resource status
@@ -1304,6 +1276,50 @@ module.exports = class ProjectsHelper {
 					utils.errorObject(taskPath, 'end_date', `${taskType} end date must be after start date`)
 				)
 			}
+		}
+	}
+
+	/**
+	 * Validates entity tagging based on organization and project settings.
+	 * @method
+	 * @name _validateEntityTagging
+	 * @param {Object} projectData - The project data.
+	 * @param {Array} validationErrors - Array to collect validation errors.
+	 * @returns {Promise<void>}
+	 * @private
+	 */
+	static async _validateEntityTagging(projectData, validationErrors) {
+		try {
+			// 1. Default to environment-level setting
+			let isEntityTaggingEnabled =
+				String(process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS || 'false').toLowerCase() === 'true'
+
+			// 2. Get organization-level configuration and override if it exists
+			const orgConfig = await orgExtensionService.getConfig(
+				projectData.organization_code,
+				projectData.tenant_code
+			)
+
+			if (orgConfig.statusCode === httpStatusCode.ok && orgConfig?.result?.resource) {
+				const projectOrgConfig = orgConfig.result.resource.find((item) => item.resource_type === common.PROJECT)
+				// If org-level config for 'enable_entity_tagging' is explicitly defined, it overrides the environment default
+				if (projectOrgConfig && projectOrgConfig.enable_entity_tagging !== undefined) {
+					isEntityTaggingEnabled = String(projectOrgConfig.enable_entity_tagging).toLowerCase() === 'true'
+				}
+			}
+
+			// 3. If tagging is enabled, validate the project-specific setting
+			if (isEntityTaggingEnabled) {
+				const projectTaggingEnabled =
+					String(projectData.enable_entity_tagging || 'false').toLowerCase() === 'true'
+
+				if (projectTaggingEnabled && !projectData.entity_type) {
+					validationErrors.push(utils.errorObject(common.ENTITY_TYPE, '', 'Entity type is required'))
+				}
+			}
+		} catch (error) {
+			// Log the error and continue without blocking submission
+			console.error('Error in _validateEntityTagging:', error)
 		}
 	}
 
