@@ -3917,29 +3917,135 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/updateForm400Response'
+  /scp/v1/projects/update:
+    post:
+      summary: Create Project
+      tags:
+        - Projects
+      operationId: createProject
+      description: |-
+        This API creates new projects in DRAFT status with customizable metadata, tasks, and configuration. Supports cloning published projects using `reference_id` to copy structure, tasks, and configurations. Used by administrators and creators to initialize new projects for project lifecycle management. Project data is stored in cloud storage and scoped automatically to the authenticated user's organization and tenant.
+
+        **Validations**:
+        - `title` required and cannot exceed character limit
+        - `reference_id` must reference PUBLISHED project in same organization/tenant (optional, for cloning)
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, and tenant_code.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: query
+          name: reference_id
+          description: 'Optional. ID of published project to clone (numeric). Copies project structure, tasks, and configurations. New project created in DRAFT status. Cannot be used with another project reference.'
+          schema:
+            type: number
+            minimum: 1
+            maximum: 2147483647
+          required: false
+          example: 3
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: 'The title of the project'
+            examples:
+              project creation:
+                value:
+                  title: Sample Project
+      responses:
+        '200':
+          description: 'Project created successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'OK'
+                  message:
+                    type: string
+                    example: 'PROJECT_CREATED_SUCCESSFULLY'
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                        description: 'Unique project ID (resource ID)'
+                        example: 1
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            type:
+                              type: string
+                            version:
+                              type: number
+              examples:
+                createExample:
+                  summary: 'Project Created Successfully'
+                  value:
+                    responseCode: OK
+                    message: Project Created Successfully
+                    result:
+                      id: 1
+                    meta:
+                      formsVersion:
+                        - id: 3
+                          type: projectCreation
+                          version: 3
+        '400':
+          description: 'Bad Request - Various validation or business rule failures'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    enum:
+                      - Value exceeds the allowed length for the field title
+                      - FILE_UPLOADED_FAILED
+                    example: 'Value exceeds the allowed length for the field title'
+                  result:
+                    type: object
+              examples:
+                characterLimitExample:
+                  summary: 'Title Character Limit Exceeded'
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Value exceeds the allowed length for the field title
+                    result: {}
   '/scp/v1/projects/update/{projectId}':
     post:
-      summary: Create or Update Project
+      summary: Update Project
       tags:
         - Projects
       operationId: updateProject
       description: |-
-        **Overview**:
-        - Creates a new project or updates an existing project based on whether `projectId` is provided
-        - Project creation supports cloning from an existing published project using `reference_id` query parameter
-        - Requires authentication token with user organization and tenant context
-        - Project data is uploaded to cloud storage (blob_path) for persistence
-        - Project status transitions: DRAFT (creation) → SUBMITTED → IN_REVIEW → APPROVED/REJECTED → PUBLISHED
-        - Projects in PUBLISHED, REJECTED, REJECTED_AND_REPORTED, SUBMITTED, or INPROGRESS status cannot be updated
+        This API updates existing projects with new metadata, tasks, and configuration. Supports updating projects in DRAFT or CREATION stage with automatic draft saving and validation. Used by administrators and creators to modify project details through the lifecycle before submission. Project updates are scoped to organization and tenant, with data stored in cloud storage.
 
-        **Validation Rules**:
-        - `title` is required and must not exceed character limit (validated by utils.validateTitle)
-        - `projectId` must be a valid integer (1 to 2147483647) for updates
-        - `reference_id` cannot be used with `projectId` (only for creation)
-        - `reference_id` must reference a PUBLISHED project in the same organization and tenant
-        - Project must be in DRAFT or CREATION stage for updates, unless reviewer requested changes
-        - Cannot update projects in COMPLETION stage
-        - When reviewer requests changes, `is_under_edit` is automatically set to true
+        **Validations**:
+        - `projectId` must be valid integer (1 to 2147483647) and must exist in system
+        - `title` required and cannot exceed character limit
+        - Project must be in DRAFT or CREATION stage for updates
+        - Cannot update projects in PUBLISHED, SUBMITTED, or COMPLETION status
       parameters:
         - name: X-auth-token
           in: header
@@ -3950,22 +4056,13 @@ paths:
           example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: projectId
-          description: 'Project ID for update operations (numeric, 1-2147483647). Omit or leave empty for project creation.'
+          description: 'Project ID for update operations (numeric, positive integer, 1-2147483647, must exist in system).'
           schema:
             type: number
             minimum: 1
             maximum: 2147483647
           required: true
           example: 1
-        - in: query
-          name: reference_id
-          description: 'Optional. ID of published project to clone during creation (numeric). Creates new project with copied structure, tasks, and configurations. Cannot be used with projectId. New project created in DRAFT status.'
-          schema:
-            type: number
-            minimum: 1
-            maximum: 2147483647
-          required: false
-          example: 3
       requestBody:
         content:
           application/json:
@@ -4037,9 +4134,6 @@ paths:
                       type: string
                     value:
                       type: string
-                reference_id:
-                  type: string
-                  description: Project solution id from the consumption side.
                 task:
                   type: array
                   items:
@@ -4370,53 +4464,6 @@ paths:
                               task_details:
                                 - 7a8b13fb-c9e1-4296-8abd-8b64b357a128
       responses:
-        '200':
-          description: 'Project created successfully'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                    example: 'OK'
-                  message:
-                    type: string
-                    example: 'PROJECT_CREATED_SUCCESSFULLY'
-                  result:
-                    type: object
-                    properties:
-                      id:
-                        type: number
-                        description: 'Unique project ID (resource ID)'
-                        example: 1
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
-              examples:
-                createExample:
-                  summary: 'Project Created Successfully'
-                  value:
-                    responseCode: OK
-                    message: PROJECT_CREATED_SUCCESSFULLY
-                    result:
-                      id: 1
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
         '202':
           description: 'Project updated successfully'
           content:
@@ -4430,10 +4477,9 @@ paths:
                   message:
                     type: string
                     enum:
-                      - PROJECT_UPDATED_SUCCESSFUL
-                      - PROJECT_SAVED_SUCCESSFULLY
+                      - Your resource has been saved as draft
                     description: 'Message varies based on project stage: PROJECT_SAVED_SUCCESSFULLY for REVIEW stage, PROJECT_UPDATED_SUCCESSFUL otherwise'
-                    example: 'PROJECT_UPDATED_SUCCESSFUL'
+                    example: 'Your resource has been saved as draft'
                   result:
                     type: number
                     description: 'Updated project ID'
@@ -4445,7 +4491,7 @@ paths:
                   summary: 'Project Updated Successfully'
                   value:
                     responseCode: OK
-                    message: PROJECT_UPDATED_SUCCESSFUL
+                    message: Your resource has been saved as draft
                     result: 1
                     meta: {}
         '400':
@@ -4473,20 +4519,20 @@ paths:
                   summary: 'Project Not Found'
                   value:
                     responseCode: CLIENT_ERROR
-                    message: PROJECT_NOT_FOUND
+                    message: Project not found
                     result: {}
                 characterLimitExample:
                   summary: 'Title Character Limit Exceeded'
                   value:
                     responseCode: CLIENT_ERROR
-                    message: CHARACTER_LIMIT_EXCEED
+                    message: Value exceeds the allowed length for the field title
                     result: {}
                 forbiddenUpdateExample:
                   summary: 'Forbidden Resource Update (in review without change requests)'
                   value:
                     responseCode: CLIENT_ERROR
                     message:
-                      key: FORBIDDEN_RESOURCE_UPDATE
+                      key: Update Failed! Resource already submitted
                       interpolation:
                         resourceTitle: Sample Project
                         reviewer_count: 0
@@ -4497,18 +4543,13 @@ paths:
         - Projects
       operationId: deleteProject
       description: |-
-        **Overview**:
-        - Soft deletes a project from the system by marking it as deleted in the database
-        - Only the project creator can delete their own projects
-        - Project data is preserved in database with deletion timestamp for audit purposes
-        - Requires authentication token with user_id, organization_code, and tenant_code
+        This API soft deletes a project from the system by marking it as deleted in the database while preserving the record for audit purposes. Only the project creator can delete their own projects, ensuring data isolation and preventing unauthorized deletions. Project deletion is permanently marked with deletion timestamp and cannot be undone through the API. Used by project creators to remove unwanted or incomplete projects from the system during the DRAFT stage.
 
-        **Validation Rules**:
-        - `projectId` must be a valid integer (1 to 2147483647)
-        - Project must exist and belong to the authenticated user (user_id match)
-        - Project must be in DRAFT status (cannot delete submitted/published projects)
+        **Validations**:
+        - `projectId` must be valid integer (1 to 2147483647) and must exist in system
+        - Project must belong to authenticated user (creator only)
+        - Project must be in DRAFT status (cannot delete PUBLISHED, SUBMITTED, or COMPLETION status projects)
         - Project must be in CREATION stage (cannot delete projects in REVIEW or COMPLETION stage)
-        - Project must belong to user's organization and tenant
       parameters:
         - name: X-auth-token
           in: header
@@ -4589,26 +4630,16 @@ paths:
         - Projects
       operationId: submitForReview
       description: |-
-        **Overview**:
-        - Submits a project for review by creating review entries for selected reviewers or making it available to all reviewers
-        - Validates project data including tasks, entity tagging, and task dates before submission
-        - Supports optional reviewer selection or submission to all reviewers based on organization configuration
-        - If review is not mandatory (per organization config), project is automatically published
-        - Changes project status to SUBMITTED and stage to REVIEW upon successful submission
-        - Only project creator can submit their own projects for review
+        This API submits a completed project for review by creating review entries for selected reviewers or all reviewers based on organization configuration. Validates project data including tasks, entity tagging, and comments before submission, with automatic publishing if review is not mandatory. Changes project status to SUBMITTED and stage to REVIEW upon successful submission. Used by project creators to move projects through the review workflow.
 
-        **Validation Rules**:
-        - `projectId` must be a valid integer (1 to 2147483647) and exist in the system
-        - Project must belong to the authenticated user (creator only)
-        - Project cannot be in PUBLISHED, REJECTED, REJECTED_AND_REPORTED, or already SUBMITTED status
+        **Validations**:
+        - `projectId` must be valid integer (1 to 2147483647) and must exist in system
+        - Project must belong to authenticated user (creator only)
+        - Project cannot be in PUBLISHED, REJECTED, REJECTED_AND_REPORTED, or SUBMITTED status
         - All open comments must be resolved before submission
-        - Project task count must not exceed MAX_PROJECT_TASK_COUNT environment variable limit
+        - Project task count must not exceed MAX_PROJECT_TASK_COUNT environment limit
         - `notes` character length must not exceed MAX_RESOURCE_NOTE_LENGTH (optional field)
-        - `reviewer_ids` must be an array of valid reviewer user IDs (optional, excluding creator)
-        - Reviewer IDs must belong to users with reviewer role in the same organization and tenant
-        - Entity tagging validation is performed if enabled
-        - Task start/end date validation if ENABLE_TASK_START_END_DATE_IN_PROJECTS is true
-        - All entity type validations for project and tasks are enforced
+        - `reviewer_ids` must be array of valid reviewer user IDs in same organization/tenant (optional)
       parameters:
         - name: X-auth-token
           in: header
@@ -4703,19 +4734,11 @@ paths:
         - Projects
       operationId: republishProject
       description: |-
-        **Overview**:
-        - Republishes an already published project to the consumption portal/service
-        - Validates project exists and user has access (authorization check via project details)
-        - Only projects with PUBLISHED status can be republished
-        - Project must not have been previously published (no published_id)
-        - Publishes project data through Kafka or API endpoint based on configuration
-        - Updates project status to PUBLISHED with published_on timestamp
-        - Project stage changes to COMPLETION after republish
-        - All associated comments are deleted after successful republish
+        This API republishes an already published project to the consumption portal or service using Kafka or configured API endpoints. Updates project status and stage to COMPLETION while automatically cleaning up associated comments and metadata. Used by administrators to push updated project versions to consumption systems after reviews or modifications. Project data is preserved with updated timestamps and republish is permanent, with deleted comments providing audit trail through database records.
 
-        **Validation Rules**:
-        - `projectId` must be a valid integer (1 to 2147483647)
-        - Project must exist and belong to user's organization and tenant
+        **Validations**:
+        - `projectId` must be valid integer (1 to 2147483647) and must exist in system
+        - Project must belong to authenticated user's organization and tenant
         - Project status must be PUBLISHED (cannot republish drafts or submitted projects)
         - Project must not have published_id already set (prevents duplicate republish)
       parameters:
@@ -4772,17 +4795,11 @@ paths:
         - Projects
       operationId: getProjectDetails
       description: |-
-        **Overview**:
-        - Retrieves comprehensive details of a specific project including metadata, tasks, certificates, and comments
-        - Fetches project data from cloud storage (blob_path) and merges with database fields
-        - Converts entity values to label-value pairs for display purposes
-        - Includes organization details from user service
-        - Returns project with all associated reviewers and their review status
-        - Scoped to user's organization and tenant for data isolation
+        This API retrieves comprehensive project details including metadata, tasks, certificates, and reviewer information. Returns complete project with all associated reviewers, their review status, and linked comments. Used by administrators and creators to view full project context, configuration, and review progress scoped to organization and tenant.
 
-        **Validation Rules**:
-        - `projectId` must be a valid integer (1 to 2147483647)
-        - Project must exist in the specified organization and tenant
+        **Validations**:
+        - `projectId` must be valid integer (1 to 2147483647) and must exist in system
+        - Project must exist in authenticated user's organization and tenant
         - Project type must be PROJECT
       parameters:
         - name: X-auth-token
@@ -5175,18 +5192,11 @@ paths:
         - Projects
       operationId: getReviewerList
       description: |-
-        **Overview**:
-        - Retrieves a paginated list of users with reviewer role from the user service
-        - Excludes the authenticated user from the reviewer list
-        - Fetches reviewer details including name, email, phone, organization information
-        - Supports pagination with configurable page size (max 100 records per page)
-        - Returns empty list if no reviewers found or user service call fails
-        - Scoped to user's organization and tenant
+        This API retrieves a paginated list of users with reviewer role from the user service, excluding the authenticated user from results. Fetches reviewer details including name, email, phone, and organization information for project reviewer assignment. Used by project creators to discover available reviewers when submitting projects for review with optional reviewer selection. Results are automatically scoped to the authenticated user's organization and tenant.
 
-        **Validation Rules**:
-        - `page` must be a positive integer (defaults to 1 if not provided or invalid)
-        - `limit` must be a positive integer between 1 and 100 (defaults to 100)
-        - Authenticated user is automatically excluded from results
+        **Validations**:
+        - `page` must be positive integer (1-indexed, defaults to 1 if not provided or invalid)
+        - `limit` must be between 1 and 100 (defaults to 100, values exceeding 100 are capped)
       parameters:
         - name: X-auth-token
           in: header
