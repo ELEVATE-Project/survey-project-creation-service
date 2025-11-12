@@ -2576,7 +2576,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/updateUserEntity400Response'
-  '/scp/v1/entities/read/{id}':
+  '/scp/v1/entities/read':
     post:
       summary: Read Entity Details
       tags:
@@ -3875,7 +3875,7 @@ paths:
             type: number
             minimum: 1
             maximum: 2147483647
-          required: false
+          required: true
           example: 1
         - in: query
           name: reference_id
@@ -6545,24 +6545,44 @@ paths:
       tags:
         - Comment
       description: |-
+        This API enables users to create, update, and resolve comments on resources (projects, programs, surveys, observations) within the ELEVATE platform. Comments are essential for collaborative feedback, capturing review suggestions, tracking change requests, and maintaining a complete discussion thread during resource development and approval workflows.
+
         **Overview**:
-        - Creates new comment(s) or updates existing comment by ID
-        - Supports single comment object or array of comment objects for bulk operations
-        - Comments can have status: DRAFT (private), OPEN (visible), or RESOLVED
-        - When resolving comment, records resolver ID and timestamp
-        - Validates resource exists and is in commentable status
-        - Prevents comments on PUBLISHED, REJECTED, REJECTED_AND_REPORTED, or DRAFT resources (except program-associated resources)
-        - Handles comment field mapping (text → comment in database)
+        - Supports two modes: **CREATE** (omit id in path) for new comments, **UPDATE** (id in path) for modifications
+        - Bulk creation enabled for efficient batch comment submission via array format
+        - Comments support three visibility statuses: **DRAFT** (private, creator-only), **OPEN** (shared/visible), **RESOLVED** (completed)
+        - Automatic resolver tracking when comments transition to RESOLVED status (records resolver ID and timestamp)
+        - Validates resource exists and maintains commentable status constraints
+        - Prevents comments on final resources (PUBLISHED, REJECTED, REJECTED_AND_REPORTED) unless program-associated
+        - Supports threaded comments via parent_id for organized feedback discussions
+        - Automatic field mapping converts request `text` field to database `comment` field
+
+        **Operational Modes**:
+
+        **Mode 1 - Create Comment(s)** (omit `id` from path):
+        - Single comment object creates one comment; array enables bulk creation
+        - Status code: 200 (OK)
+        - Response: "Your changes have been saved" or "All comments have been resolved"
+
+        **Mode 2 - Update Single Comment** (include `id` in path):
+        - Modifies existing comment by ID with single comment object (not array)
+        - Updates comment content, status, or other properties
+        - Status code: 200 (OK)
+        - Response: "Your changes have been saved" or "All comments have been resolved"
 
         **Validation Rules**:
-        - `resource_id` is required in query (integer, positive)
-        - `id` in path is optional for creation, required for single update
-        - If `id` provided, `comment` must be object (not array)
-        - If no `id`, `comment` can be object or array for bulk creation
-        - Comment `status` must be one of: DRAFT, OPEN, RESOLVED
-        - `comment` field is required for comment content
-        - `context` and `page` fields required for comment location
-        - `parent_id` optional for threaded comments (integer)
+        - `resource_id` required in query parameter (integer, positive: 1 to 2147483647)
+        - `id` in path required for UPDATE mode (omit for CREATE mode) - integer 1-2147483647
+        - For UPDATE operations: request body must be single comment object (not array)
+        - For CREATE operations: request body can be single object or array for bulk submission
+        - `text` field is required for comment content
+        - `context` and `page` fields required for comment location identification
+        - `status` field must be one of: DRAFT (private), OPEN (public/visible), RESOLVED (closed)
+        - `parent_id` field optional for threaded replies (integer, defaults to 0 for root comments)
+        - Resource must exist and be in valid status for commenting:
+          - ✓ Allowed: DRAFT (except for owned resources), SUBMITTED, IN_REVIEW, INPROGRESS
+          - ✗ Not Allowed: PUBLISHED, REJECTED, REJECTED_AND_REPORTED (exception: program-associated resources)
+        - User must have organization and tenant access to the resource
       parameters:
         - name: X-auth-token
           in: header
@@ -6573,12 +6593,12 @@ paths:
           example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: id
-          description: 'Optional comment ID for updating specific comment. Omit for creating new comment(s). Must be integer (1 to 2147483647).'
+          description: 'Comment ID for update operations. When provided, updates specific comment. When omitted, creates new comment(s). Must be integer (1 to 2147483647).'
           schema:
             type: integer
             minimum: 1
             maximum: 2147483647
-          required: false
+          required: true
           example: 2
         - in: query
           name: resource_id
@@ -6589,77 +6609,173 @@ paths:
           required: true
           example: 1
       requestBody:
-        description: 'Comment data. Can be single comment object (for update/create) or array of comments (for bulk create only).'
+        description: |-
+          **Comment Data Structure**:
+          The `comment` property accepts either a single comment object or an array of comments (for bulk operations).
+
+          **Field Details**:
+          - `id` (optional): Comment ID - only for UPDATE operations. Identifies existing comment to modify.
+          - `text` (required): Comment content/body. Automatically mapped to `comment` field in database.
+          - `context` (required): Context type - typically "page" for page-level comments.
+          - `page` (required): Page identifier - numeric string indicating page number or location.
+          - `status` (optional): Comment visibility (DRAFT=private, OPEN=visible, RESOLVED=closed). Defaults to DRAFT.
+          - `parent_id` (optional): Parent comment ID for threaded replies. Defaults to 0 for root comments.
+          - `resource_id` (required in query, shown here for clarity): The resource this comment belongs to.
+
+          **Important Notes**:
+          - Request uses `text` field, but database stores as `comment` field (auto-converted)
+          - For CREATE: omit `id` field
+          - For UPDATE: include `id` field with existing comment ID
+          - For RESOLVE: set `status: RESOLVED`
+          - For bulk operations: pass array of comment objects
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - comment
               properties:
                 comment:
-                  description: 'Comment object or array. For single update (with id), must be object. For bulk create (no id), can be array.'
+                  description: 'Single comment object or array of comment objects'
                   oneOf:
                     - type: object
+                      description: 'Single comment (create or update)'
                       properties:
-                        comment:
+                        id:
+                          type: integer
+                          description: 'Comment ID (only for UPDATE, omit for CREATE)'
+                        resource_id:
+                          type: integer
+                          description: 'Resource ID comment belongs to'
+                        text:
                           type: string
                           description: 'Comment content (required)'
+                        context:
+                          type: string
+                          description: 'Context type (required, usually "page")'
+                        page:
+                          type: string
+                          description: 'Page identifier (required, numeric string)'
                         status:
                           type: string
                           enum: [DRAFT, OPEN, RESOLVED]
-                          description: 'Comment status. DRAFT = private, OPEN = visible, RESOLVED = closed'
-                        context:
-                          type: string
-                          description: 'Context type (e.g., "page", "tag")'
-                        page:
-                          type: string
-                          description: 'Page identifier or number'
+                          description: 'Comment status (optional, defaults DRAFT)'
                         parent_id:
                           type: integer
-                          description: 'Parent comment ID for threaded comments (optional, default 0)'
+                          description: 'Parent comment ID for threaded replies (optional, defaults 0)'
                     - type: array
+                      description: 'Array of comments (for bulk create/update)'
                       items:
                         type: object
                         properties:
-                          comment:
+                          id:
+                            type: integer
+                            description: 'Comment ID (only if updating)'
+                          resource_id:
+                            type: integer
+                          text:
                             type: string
-                            description: 'Comment content'
-                          status:
-                            type: string
-                            enum: [DRAFT, OPEN, RESOLVED]
                           context:
                             type: string
                           page:
                             type: string
+                          status:
+                            type: string
+                            enum: [DRAFT, OPEN, RESOLVED]
                           parent_id:
                             type: integer
             examples:
-              createSingleComment:
+              scenario1SingleCreate:
+                summary: 'Scenario 1: Create Single Comment'
+                description: 'Creates one new comment without id field. Status defaults to DRAFT.'
                 value:
                   comment:
-                    comment: 'Check spelling on this page'
-                    status: OPEN
+                    resource_id: 66
+                    parent_id: 0
+                    status: DRAFT
                     context: page
                     page: '1'
-                    parent_id: 0
-              createBulkComments:
+                    text: '<p>assd</p>'
+              scenario2BulkCreate:
+                summary: 'Scenario 2: Bulk Create Comments'
+                description: 'Creates multiple comments in single request. All without id field.'
                 value:
                   comment:
-                    - comment: 'Fix formatting'
+                    - resource_id: 66
+                      parent_id: 0
+                      status: DRAFT
+                      context: page
+                      page: '1'
+                      text: '<p>First comment</p>'
+                    - resource_id: 66
+                      parent_id: 0
+                      status: OPEN
+                      context: page
+                      page: '2'
+                      text: '<p>Second comment visible to all</p>'
+                    - resource_id: 66
+                      parent_id: 0
+                      status: DRAFT
+                      context: page
+                      page: '3'
+                      text: '<p>Third comment private</p>'
+              scenario3BulkUpdate:
+                summary: 'Scenario 3: Bulk Update Comments'
+                description: 'Updates multiple existing comments. All include id field with comment ID.'
+                value:
+                  comment:
+                    - id: 33
+                      resource_id: 66
+                      parent_id: 0
                       status: OPEN
                       context: page
                       page: '1'
-                    - comment: 'Update content'
-                      status: DRAFT
+                      text: '<p>Updated comment 1 - now visible</p>'
+                    - id: 34
+                      resource_id: 66
+                      parent_id: 0
+                      status: OPEN
                       context: page
                       page: '2'
-              updateComment:
+                      text: '<p>Updated comment 2 - now visible</p>'
+              scenario4MixedCreateUpdate:
+                summary: 'Scenario 4: Mixed Create and Update'
+                description: 'Single request with mix of creating (no id) and updating (with id) comments.'
                 value:
                   comment:
-                    text: 'Updated comment text'
-                    status: All comments have been resolved
+                    - id: 33
+                      resource_id: 66
+                      parent_id: 0
+                      status: OPEN
+                      context: page
+                      page: '1'
+                      text: '<p>Updating existing comment</p>'
+                    - resource_id: 66
+                      parent_id: 0
+                      status: DRAFT
+                      context: page
+                      page: '1'
+                      text: '<p>Creating new comment</p>'
+                    - id: 35
+                      resource_id: 66
+                      parent_id: 0
+                      status: RESOLVED
+                      context: page
+                      page: '2'
+                      text: '<p>Another update - resolving this one</p>'
+              scenario5Resolve:
+                summary: 'Scenario 5: Resolve Comment'
+                description: 'Updates existing comment status to RESOLVED. Include id field.'
+                value:
+                  comment:
+                    id: 33
+                    resource_id: 66
+                    parent_id: 0
+                    status: RESOLVED
                     context: page
                     page: '1'
+                    text: '<p>Issue has been addressed</p>'
       responses:
         '200':
           description: 'Comment created or updated successfully'
@@ -6675,7 +6791,7 @@ paths:
                   result:
                     type: object
               examples:
-                commentUpdated:
+                commentCreated:
                   value:
                     responseCode: OK
                     message: Your changes have been saved
@@ -6709,27 +6825,53 @@ paths:
                     responseCode: CLIENT_ERROR
                     message: Comment not found
                     result: {}
+                invalidComment:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Comment should have context, page and text.
+                    result: {}
+                invalidParent:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Invalid comment parent.
+                    result: {}
+                restrictedStatus:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Resource is already PUBLISHED. You can't add comment
+                    result: {}
+                missingFields:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Comment should have context, page and text.
+                    result: {}
+                unauthorizedUpdate:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Comment not found
+                    result: {}
   '/scp/v1/comments/update/{commentId}':
     delete:
       summary: Delete Comment
       tags:
         - Comment
       description: |-
+        This API enables users to delete draft comments that haven't been shared or published. It provides a cleanup mechanism for comment management, allowing users to discard unsaved feedback before it becomes visible to other collaborators, making it part of the safe draft editing workflow.
+
         **Overview**:
-        - Soft deletes a comment from the system (paranoid deletion)
-        - Only comment owner can delete their own comments
-        - Only comments in DRAFT status can be deleted
-        - Validates comment belongs to specified resource
-        - Scoped to user's organization and tenant for security
-        - Comment record marked as deleted but preserved in database
+        - Soft deletes (paranoid delete) a comment with record preservation in database for audit/compliance
+        - Enforces strict ownership - only comment creator can delete their own comments
+        - Restricts deletion to DRAFT status only - OPEN and RESOLVED comments are permanent (cannot be deleted)
+        - Preserves deleted comment record in database with deletion timestamp for audit trail
+        - Scoped to user's organization and tenant for multi-tenancy compliance
 
         **Validation Rules**:
-        - `commentId` must be a valid integer (1 to 2147483647)
-        - `resource_id` is required (integer, positive)
-        - Comment must exist and belong to authenticated user (user_id match)
-        - Comment status must be DRAFT (cannot delete OPEN or RESOLVED comments)
-        - Comment must belong to specified resource
-        - Comment must belong to user's organization and tenant
+        - `commentId` required as path parameter (integer: 1 to 2147483647)
+        - `resource_id` required as query parameter (integer, positive) - validates comment belongs to resource
+        - Comment must exist and belong to authenticated user (user_id ownership check required)
+        - Comment status must be DRAFT (OPEN or RESOLVED comments cannot be deleted for audit integrity)
+        - Comment must belong to the specified resource (prevents cross-resource deletion attempts)
+        - Comment and resource must belong to authenticated user's organization and tenant scope
       parameters:
         - name: X-auth-token
           in: header
@@ -6780,27 +6922,54 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/updateComment400Response'
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+              examples:
+                commentNotFound:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Comment not found
+                    result: {}
+                notDraftStatus:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Cannot delete comment with status OPEN. Only DRAFT comments can be deleted.
+                    result: {}
+                unauthorizedDelete:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: You can only delete your own comments
+                    result: {}
   /scp/v1/comments/list:
     get:
       summary: Comment List
       tags:
         - Comment
       description: |-
+
+        This API retrieves and displays all comments associated with a specific resource, enabling users to view feedback, suggestions, and discussion threads from collaborators and reviewers. It provides a unified feedback interface for understanding what changes are needed and tracking collaborative input during the resource development and review lifecycle.
+
         **Overview**:
-        - Retrieves all comments for a specific resource with optional filtering
-        - Returns comments visible to authenticated user (OPEN/RESOLVED status or user's own DRAFT comments)
-        - Includes commenter and resolver user details from user service
-        - For program resources, also fetches child resources with their comment counts
-        - Supports filtering by page location (page_value) and context (page/tag)
-        - Comments returned with complete metadata including status, timestamps, and user info
+        - Retrieves all comments for a specific resource with optional filtering by page location and context type
+        - Enforces visibility rules based on comment status:
+          - **OPEN/RESOLVED comments**: Always visible to all users (shared feedback)
+          - **DRAFT comments**: Only visible to the comment creator (private feedback)
+        - Includes complete commenter and resolver details fetched from user service (name, email, profile info)
+        - For program resources, fetches and aggregates comments from child resources with counts
+        - Returns comments with complete metadata including status, timestamps, resolver info, and parent comment references
+        - Applies multi-tenancy boundaries automatically (organization and tenant scoping)
 
         **Validation Rules**:
-        - `resource_id` is required (integer, positive)
-        - `page_value` is optional (string) - filters comments by specific page/location
-        - `context` is optional (string) - filters comments by context type (page/tag)
-        - Comments filtered by organization and tenant scope automatically
-        - Only non-DRAFT comments visible to others, user's own DRAFT comments included
+        - `resource_id` is required in query parameters (integer, positive value 1 to 2147483647)
+        - `page_value` is optional (string) - filters comments to specific page/section (e.g., "task_page", "objective_page")
+        - `context` is optional (string) - filters by context type: "page" (page-level) or "tag" (entity tag comments)
+        - Resource must exist in authenticated user's organization and tenant scope
       parameters:
         - name: X-auth-token
           in: header
