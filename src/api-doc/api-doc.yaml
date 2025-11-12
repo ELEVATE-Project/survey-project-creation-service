@@ -10773,49 +10773,119 @@ paths:
       tags:
         - Certificate
       description: |-
-        You can use this API to create certificate base template 
-         - The API Endpoint for create certificate base template  is `/scp/v1/certificates/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        This API creates a new certificate base template configuration with metadata and properties. Certificate templates are used to generate customized certificates with organization-specific logos, signatures, and branding. This API is used in certificate management settings to add new template configurations for different certificate layouts and designs.
+
+        **Overview:**
+        - Creates new certificate template with code, name, and metadata
+        - Stores base SVG template URL in cloud storage
+        - Configures logos and signatures array structure for template
+        - Scoped to authenticated user's organization and tenant
+        - Returns created template with ID and all properties
+
+        **Validations:**
+        - `code` is required (unique per organization and tenant combination)
+        - `name` is required (display name for template)
+        - `url` is required (cloud storage path to SVG template)
+        - `resource_type` is required (must be one of configured RESOURCE_TYPES)
+        - `meta` is required (JSON object containing logos and signatures arrays)
+        - Logos must be array of objects with stateLogo field
+        - Signatures must be array of objects with signature, signatureName, signatureDesignation fields
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token containing user_id, organization_code, and tenant_code.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - code
+                - name
+                - url
+                - resource_type
+                - meta
               properties:
                 code:
-                  type: boolean
+                  type: string
+                  description: Unique code identifier for template (must be unique per org/tenant)
+                  example: two_logo_two_sign
                 name:
                   type: string
+                  description: Display name for the certificate template
+                  example: Two Logo Two Signature
                 url:
                   type: string
-                meta:
-                  type: object
+                  description: Cloud storage URL path to base SVG template
+                  example: 'https://blob.storage.com/templates/two_logo_two_sig.svg?sv=2023'
                 resource_type:
                   type: string
+                  description: Resource type this template is for (e.g., project, program)
+                  example: project
+                meta:
+                  type: object
+                  required:
+                    - logos
+                    - signatures
+                  description: Template configuration including logos, signatures, and QR code details
+                  properties:
+                    logos:
+                      type: array
+                      description: Array of logo configurations for the certificate template
+                      items:
+                        type: object
+                        properties:
+                          stateLogo:
+                            type: string
+                            description: State logo identifier
+                            example: stateLogo1
+                    signatures:
+                      type: array
+                      description: Array of signature configurations for the certificate template
+                      items:
+                        type: object
+                        properties:
+                          signature:
+                            type: string
+                            description: Signature image identifier
+                            example: signatureImg1
+                          signatureDesignation:
+                            type: string
+                            description: Designation title for the signature
+                            example: signatureTitleDesignation1
+                          signatureName:
+                            type: string
+                            description: Name associated with the signature
+                            example: signatureTitleName1
+                    QrCode:
+                      type: string
+                      nullable: true
+                      description: QR code configuration (optional, can be null)
+                      example: null
             examples:
               example1:
                 value:
                   code: two_logo_two_sign
                   name: Two Logo Two Signature
                   resource_type: project
-                  url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
+                  url: 'https://blob.storage.com/templates/cert_template.svg?sv=2023-01-03'
                   meta:
                     logos:
-                      no_of_logos: 2
-                      stateLogo1: null
-                      stateLogo2: null
-                    signature:
-                      no_of_signature: 2
-                      signatureImg1: null
-                      signatureImg2: null
+                      - stateLogo: stateLogo1
+                      - stateLogo: stateLogo2
+                    signatures:
+                      - signature: signatureImg1
+                        signatureDesignation: signatureTitleDesignation1
+                        signatureName: signatureTitleName1
+                      - signature: signatureImg2
+                        signatureDesignation: signatureTitleDesignation2
+                        signatureName: signatureTitleName2
+                    QrCode: null
       responses:
         '201':
           description: Template created successfully
@@ -10831,27 +10901,52 @@ paths:
                   result:
                     type: object
                     properties:
-                      data:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            url:
-                              type: string
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
+                      id:
+                        type: integer
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      url:
+                        type: string
+                      resource_type:
+                        type: string
+                      organization_code:
+                        type: string
+                      tenant_code:
+                        type: string
+                      meta:
+                        type: object
+                        properties:
+                          logos:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                stateLogo:
+                                  type: string
+                          signatures:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                signature:
+                                  type: string
+                                signatureDesignation:
+                                  type: string
+                                signatureName:
+                                  type: string
+                          QrCode:
+                            type: string
+                            nullable: true
+                      created_by:
+                        type: string
+                      created_at:
+                        type: string
+                        format: date-time
+                      updated_at:
+                        type: string
+                        format: date-time
               examples:
                 example1:
                   value:
@@ -10859,69 +10954,178 @@ paths:
                     message: Template created successfully
                     result:
                       id: 2
-                      code: one_logo_one_sign
-                      name: One Logo One Signature
+                      code: two_logo_two_sign
+                      name: Two Logo Two Signature
                       resource_type: project
-                      url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
+                      url: 'https://blob.storage.com/templates/cert_template.svg?sv=2023-01-03'
+                      organization_code: org_123
+                      tenant_code: default
                       meta:
                         logos:
-                          no_of_logos: 2
-                          stateLogo1: null
-                          stateLogo2: null
-                        signature:
-                          no_of_signature: 2
-                          signatureImg1: null
-                          signatureImg2: null
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                          - stateLogo: stateLogo1
+                          - stateLogo: stateLogo2
+                        signatures:
+                          - signature: signatureImg1
+                            signatureDesignation: signatureTitleDesignation1
+                            signatureName: signatureTitleName1
+                          - signature: signatureImg2
+                            signatureDesignation: signatureTitleDesignation2
+                            signatureName: signatureTitleName2
+                        QrCode: null
+                      created_by: user_456
+                      created_at: '2024-01-10T08:30:00Z'
+                      updated_at: '2024-01-10T08:30:00Z'
         '400':
-          description: Bad Request.
+          description: Bad Request - Invalid resource type, required fields missing, or code already exists
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/createCertificate400Response'
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+              examples:
+                missingFields:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: 'code field is empty'
+                codeExists:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: 'Template already exists'
   '/scp/v1/certificates/update/{id}':
     post:
       summary: Update certificate base template
       tags:
         - Certificate
-      description: |-
-        You can use this API to update certificate base template 
-         - The API Endpoint for update certificate base template  is `/scp/v1/certificates/update` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+      description: |
+        This API updates an existing certificate base template configuration with new metadata and properties. Certificate templates are used to generate customized certificates with organization-specific logos, signatures, and branding. This API is used in certificate management settings to modify template details such as name, logos configuration, and signature information without recreating the entire template.
+
+        **Overview:**
+        - Updates certificate template details (name, code, resource type, meta information)
+        - Validates template exists in organization and tenant
+        - Stores metadata for logos and signature configuration
+        - Returns complete updated template with all properties
+        - Scoped to authenticated user's organization and tenant
+
+        **Validations:**
+        - `id` must be a valid integer (1 to 2147483647) and reference existing certificate
+        - `code` is required (unique per organization and tenant combination)
+        - `name` is required (display name for template)
+        - `url` is required (cloud storage path to SVG template)
+        - `resource_type` is required (must be one of configured RESOURCE_TYPES like project, program)
+        - `meta` is required (JSON object containing logos and signature configuration)
+        - Certificate must exist in specified organization and tenant scope
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
+          description: 'Authentication token containing user_id, organization_code, and tenant_code.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: id
-          description: Please append a valid certificate id to the Request URL.
+          description: Certificate template ID to update (integer, required, 1 to 2147483647).
           schema:
-            type: string
+            type: integer
+            minimum: 1
+            maximum: 2147483647
           required: true
-          example: 3
+          example: 2
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - code
+                - name
+                - url
+                - resource_type
+                - meta
               properties:
+                code:
+                  type: string
+                  description: Unique code identifier for template (must be unique per org/tenant)
+                  example: two_logo_two_sign
                 name:
                   type: string
+                  description: Display name for the certificate template
+                  example: Two Logo Two Signature
+                url:
+                  type: string
+                  description: Cloud storage URL path to base SVG template
+                  example: 'https://blob.storage.com/templates/two_logo_two_sig.svg?sv=2023'
+                resource_type:
+                  type: string
+                  description: Resource type this template is for (e.g., project, program)
+                  example: project
+                meta:
+                  type: object
+                  required:
+                    - logos
+                    - signatures
+                  description: Template configuration including logos, signatures, and QR code details
+                  properties:
+                    logos:
+                      type: array
+                      description: Array of logo configurations for the certificate template
+                      items:
+                        type: object
+                        properties:
+                          stateLogo:
+                            type: string
+                            description: State logo identifier
+                            example: stateLogo1
+                    signatures:
+                      type: array
+                      description: Array of signature configurations for the certificate template
+                      items:
+                        type: object
+                        properties:
+                          signature:
+                            type: string
+                            description: Signature image identifier
+                            example: signatureImg1
+                          signatureDesignation:
+                            type: string
+                            description: Designation title for the signature
+                            example: signatureTitleDesignation1
+                          signatureName:
+                            type: string
+                            description: Name associated with the signature
+                            example: signatureTitleName1
+                    QrCode:
+                      type: string
+                      nullable: true
+                      description: QR code configuration (optional, can be null)
+                      example: null
             examples:
               example1:
                 value:
+                  code: two_logo_two_sign
                   name: Two Logo Two Signature
+                  url: 'https://blob.storage.com/templates/cert_template.svg?sv=2023-01-03'
+                  resource_type: project
+                  meta:
+                    logos:
+                      - stateLogo: stateLogo1
+                      - stateLogo: stateLogo2
+                    signatures:
+                      - signature: signatureImg1
+                        signatureDesignation: signatureTitleDesignation1
+                        signatureName: signatureTitleName1
+                      - signature: signatureImg2
+                        signatureDesignation: signatureTitleDesignation2
+                        signatureName: signatureTitleName2
+                    QrCode: null
       responses:
-        '201':
-          description: Template updated successfully
+        '202':
+          description: Certificate template updated successfully
           content:
             application/json:
               schema:
@@ -10934,27 +11138,52 @@ paths:
                   result:
                     type: object
                     properties:
-                      data:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            url:
-                              type: string
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
+                      id:
+                        type: integer
+                      code:
+                        type: string
+                      name:
+                        type: string
+                      url:
+                        type: string
+                      resource_type:
+                        type: string
+                      organization_code:
+                        type: string
+                      tenant_code:
+                        type: string
+                      meta:
+                        type: object
+                        properties:
+                          logos:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                stateLogo:
+                                  type: string
+                          signatures:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                signature:
+                                  type: string
+                                signatureDesignation:
+                                  type: string
+                                signatureName:
+                                  type: string
+                          QrCode:
+                            type: string
+                            nullable: true
+                      created_by:
+                        type: string
+                      created_at:
+                        type: string
+                        format: date-time
+                      updated_at:
+                        type: string
+                        format: date-time
               examples:
                 example1:
                   value:
@@ -10965,71 +11194,26 @@ paths:
                       code: two_logo_two_sign
                       name: Two Logo Two Signature
                       resource_type: project
-                      url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
+                      url: 'https://blob.storage.com/templates/cert_template.svg?sv=2023-01-03'
+                      organization_code: org_123
+                      tenant_code: default
                       meta:
                         logos:
-                          no_of_logos: 2
-                          stateLogo1: null
-                          stateLogo2: null
-                        signature:
-                          no_of_signature: 2
-                          signatureImg1: null
-                          signatureImg2: null
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                          - stateLogo: stateLogo1
+                          - stateLogo: stateLogo2
+                        signatures:
+                          - signature: signatureImg1
+                            signatureDesignation: signatureTitleDesignation1
+                            signatureName: signatureTitleName1
+                          - signature: signatureImg2
+                            signatureDesignation: signatureTitleDesignation2
+                            signatureName: signatureTitleName2
+                        QrCode: null
+                      created_by: user_456
+                      created_at: '2024-01-10T08:30:00Z'
+                      updated_at: '2024-01-20T14:45:00Z'
         '400':
-          description: Bad Request.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/updateCertificate400Response'
-  /scp/v1/certificates/createSVG:
-    post:
-      summary: Edit Certificate SVG
-      tags:
-        - Certificate
-      description: |-
-        You can use this API to edit certificate svg 
-         - The API Endpoint for edit certificate svg is `/scp/v1/certificates/createSVG` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
-      parameters:
-        - name: X-auth-token
-          in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API Response.'
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                state_logo1:
-                  type: boolean
-                state_title:
-                  type: string
-                signature_img1:
-                  type: string
-                signature_title_name1:
-                  type: string
-                signature_title_designation1:
-                  type: string
-            examples:
-              example1:
-                value:
-                  state_logo1: /user/state.png
-                  state_title: Karnataka
-                  signature_img1: /user/sign.png
-                  signature_title_name1: Director
-                  signature_title_designation1: SPD
-      responses:
-        '201':
-          description: Template edited successfully
+          description: Bad Request - Template not found, invalid ID, code/name/url/resource_type/meta missing, or code already exists
           content:
             application/json:
               schema:
@@ -11039,42 +11223,23 @@ paths:
                     type: string
                   message:
                     type: string
-                  result:
-                    type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            url:
-                              type: string
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: number
-                            type:
-                              type: string
-                            version:
-                              type: number
               examples:
-                example1:
+                notFound:
                   value:
-                    responseCode: OK
-                    message: Template edited successfully
-                    result:
-                      url: 'https://sunbirdstagingpublic.blob.core.windows.net/samiksha/certificateBASE_TEMPLATEs/_30-3-2024-1714461130260.svg?sv=2023-01-03&st=2024-04-30T07%3A12%3A10Z&se=2024-05-01T13%3A12%3A10Z&sr=b&sp=r&sig=kRGFlSbwSw5hHRqHMcDLVRGX%2Br8l2hxG5D2WnTU3Jpk%3D'
-                    meta:
-                      formsVersion:
-                        - id: 3
-                          type: projectCreation
-                          version: 3
+                    responseCode: CLIENT_ERROR
+                    message: Template not found
+                invalidId:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: 'id param is invalid, must be an integer'
+                codeExists:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Template already exists
+                missingFields:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: 'code field is empty'
   '/review-stages/update/{id}':
     post:
       summary: Update Review Stage
