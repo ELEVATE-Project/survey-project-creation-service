@@ -6295,13 +6295,15 @@ paths:
       tags:
         - Review
       description: |-
+        This API enables reviewers to approve resources during review and automatically publish them when approval thresholds are met. It checks organization-configured approval requirements and manages the transition from review to publication, making it essential for resource completion workflows in review portals and quality assurance processes.
+
         **Overview**:
         - Approves a resource under review and updates review status to APPROVED
-        - Optionally creates or updates comments associated with the approval
         - Checks if minimum approval threshold is met based on organization configuration
         - Automatically publishes resource if approval threshold reached
         - Supports sequential review (next stage increment) and parallel review workflows
-        - Updates resource status and last_reviewed_on timestamp
+        - Optionally creates or updates comments associated with the approval
+        - Records last_reviewed_on timestamp in resource for audit tracking
         - Deletes all comments after successful publication
 
         **Validation Rules**:
@@ -6412,24 +6414,24 @@ paths:
       tags:
         - Review
       description: |-
+        This API enables reviewers to decline resource approval when quality standards are not met or escalate issues to administrators by marking resources as rejected or reported. It maintains audit trails through detailed notes and comments, supporting quality control and compliance workflows throughout the resource approval lifecycle in review portals and publication workflows.
+
         **Overview**:
-        - Allows reviewer to reject or report a resource under review
+        - Allows reviewer to reject or report a resource under review with optional notes and comments
         - Updates review status to REJECTED or REJECTED_AND_REPORTED based on isReported flag
-        - Optionally adds notes explaining reason for rejection/report
-        - Optionally creates or updates comments associated with the rejection
-        - Updates resource status and sets stage to COMPLETION
-        - Records last_reviewed_on timestamp in resource
+        - Updates resource status to final state and sets stage to COMPLETION
+        - Records last_reviewed_on timestamp in resource for audit tracking
         - Certain resource types cannot be rejected (configured via NON_REJECTABLE_RESOURCE_TYPES)
 
         **Validation Rules**:
         - `resourceId` must be a valid integer (1 to 2147483647)
-        - `isReported` is optional boolean (true for report, false/omitted for reject)
+        - `isReported` is optional boolean (true for report with escalation, false/omitted for reject)
         - Resource must exist in reviewer's organization and tenant
         - Resource must be in reviewable status (SUBMITTED, IN_REVIEW, INPROGRESS, CHANGES_UPDATED)
         - Resource type must be rejectable (not in NON_REJECTABLE_RESOURCE_TYPES)
         - Reviewer must have an ongoing review record for the resource
         - `notes` is optional but must contain alphanumeric characters and allowed symbols
-        - `comment` is optional (can be object or array of objects)
+        - `comment` is optional (can be object or array of objects for detailed feedback)
       parameters:
         - name: X-auth-token
           in: header
@@ -9933,7 +9935,7 @@ paths:
       tags:
         - Organization
       description: |-
-        This API creates organization-specific configurations for resource management including review workflows, approval requirements, and role assignments. Organizations use this API to define how resources (projects, programs, surveys, observations, etc.) will be reviewed and approved through either parallel or sequential approval workflows. This API is used during organization setup to establish the foundational review and approval policies that govern resource submission and publication workflows.
+        This API creates organization-specific configurations that define how resources (projects, programs, surveys, observations) will be reviewed and approved through parallel or sequential workflows. Organizations use this API to establish foundational review and approval policies including review type, minimum approval counts, and role assignments during organization setup. Used to configure multi-level review stages with role hierarchies for sequential workflows and assign data/program manager roles. This API enables organizations to establish the complete approval governance framework needed for resource submission and publication workflows.
 
         **Overview:**
         - Creates review workflow configuration for specified resource type (PARALLEL or SEQUENTIAL)
@@ -9941,7 +9943,6 @@ paths:
         - Assigns data manager and program manager roles for the organization
         - For SEQUENTIAL review, defines multi-level review stages with role hierarchy
         - Stores reviewer visibility preference (show_reviewer_list flag)
-        - Unique per organization, tenant, and resource type combination
 
         **Validations:**
         - `resource_type` is required (must be one of configured RESOURCE_TYPES like project, program, survey)
@@ -10107,20 +10108,18 @@ paths:
       tags:
         - Organization
       description: |-
-        This API updates organization-specific configurations for resource management including review workflows, approval settings, and role assignments. Organizations use this API to modify review type (parallel or sequential), set minimum approval counts, configure data and program manager roles, and define multi-level review stages for complex approval workflows. This API is used in organization configuration management interfaces to customize resource review settings and role-based approval chains for different resource types (projects, programs, surveys, observations, etc.).
+        This API updates organization-specific configurations for resource management including review workflows, approval requirements, and role assignments. Organizations use this API to modify review type (parallel or sequential), set minimum approval counts, and configure data/program manager roles for different resource types. Used in organization configuration management interfaces to customize resource review settings and role-based approval chains for projects, programs, surveys, and observations. This API enables management of multi-level review stages for sequential workflows while preserving existing stage configurations.
 
         **Overview:**
         - Updates review workflow type (PARALLEL or SEQUENTIAL) and approval count requirements
         - Modifies data manager and program manager role assignments for the organization
         - For SEQUENTIAL review workflows, can add new review stages while preserving existing ones
         - Stores reviewer visibility preference (show_reviewer_list flag) for creators
-        - Validates configuration exists before updating (cannot create via this API)
         - Scoped to authenticated user's organization and tenant
 
         **Validations:**
-        - `id` must be a valid integer (configuration ID, 1 to 2147483647) and must exist
+        - `id` must be a valid integer (configuration ID, 1 to 2147483647) and must exist for specified resource_type
         - `resource_type` is required in query (must be valid RESOURCE_TYPE like project, program, survey)
-        - Configuration must exist for specified id, resource_type, organization, and tenant combination
         - `data_managers` and `program_managers` are optional (can be comma-separated list or array, empty array clears them)
         - For SEQUENTIAL review with `review_stages`, validates role names and unique level assignments
       parameters:
@@ -10305,23 +10304,18 @@ paths:
       summary: List Configurations
       tags:
         - Config APIs
-      description: |
-        This API retrieves comprehensive organization and instance-level configurations for resource management. It provides centralized access to review settings, targeting criteria, data manager and program manager roles, and instance-level settings. This API is used during application initialization and in configuration management interfaces to load all necessary settings for resource workflows, targeting options, and user role assignments.
+      description: |-
+        This API retrieves comprehensive organization and instance-level configurations needed for resource management workflows. It provides centralized access to review settings, approval requirements, data/program manager roles, and resource-specific configurations for all resource types. Used during application initialization and in configuration management interfaces to load all settings for resource workflows and user role assignments. This API returns targeting criteria with UI layout, instance-level settings (auto-save, note length), and role configurations for the authenticated user's organization.
 
         **Overview:**
         - Retrieves organization-specific configuration (review types, approvals, data/program managers)
         - Returns targeting criteria with configurable factors and UI layout for location-based filtering
         - Provides resource-specific configurations for all resource types (project, program, survey, observation, etc.)
         - Includes instance-level settings (auto-save interval, note length, auth token format)
-        - Prioritizes user's organization config, falls back to default organization if not configured
-        - Merges database configurations with environment variable defaults for missing resource types
         - Scoped to authenticated user's organization and tenant
 
         **Validations:**
         - X-auth-token must be valid and contain organization_code and tenant_code
-        - Returns environment variable defaults for missing database configurations
-        - Data managers and program managers use environment defaults if not set in organization config
-        - Targeting criteria factors are ordered by configuration order field
       parameters:
         - name: X-auth-token
           in: header
@@ -10696,22 +10690,20 @@ paths:
       tags:
         - Config APIs
       description: |-
-        This API creates or updates organization-level configuration settings for managing data and program managers, as well as resource visibility policies. Organizations use this API to define which users have data manager and program manager roles, and to control how resources are shared between organizations. This API is used in organization admin settings to configure organizational policies and role assignments for resource management workflows.
+        This API creates or updates organization-level configuration with role assignments and resource visibility policies for data and program managers. Organizations use this API to establish governance rules defining which users have data/program manager roles and control cross-organization resource sharing. Used in organization admin settings to configure foundational policies that govern role-based access and resource visibility workflows. This API enables organizations to define their resource management structure with upserting support (create if not exists, update if exists).
 
         **Overview:**
-        - Creates or updates organization configuration with managers and visibility policies
-        - Manages data manager and program manager role assignments
-        - Configures resource visibility policies (internal and external organization sharing)
-        - Supports upserting (create if not exists, update if exists)
-        - Applies to authenticated user's organization and tenant
+        - Supports upserting configuration (create if not exists, update if exists)
+        - Independently manages data/program manager role assignments and resource visibility policies
+        - Configures both internal and external organization resource sharing policies
+        - Scoped to authenticated user's organization and tenant
         - Can update policies without affecting managers and vice versa
 
         **Validations:**
-        - `data_managers` is optional (array of alphabetic role names)
-        - `program_managers` is optional (array of alphabetic role names)
+        - At least one field (data_managers, program_managers, or visibility policies) must be provided
+        - `data_managers` and `program_managers` are optional (array of role names)
         - `resource_visibility_policy` is optional (controls internal organization resource sharing)
         - `external_resource_visibility_policy` is optional (controls external organization resource sharing)
-        - At least one field must be provided for meaningful update
       parameters:
         - name: X-auth-token
           in: header
@@ -10794,14 +10786,13 @@ paths:
       tags:
         - Config APIs
       description: |-
-        This API updates the list of related organizations that can access a resource when it is marked as reusable. Related organizations define which other organizations have visibility to and can use reusable resources created by the current organization. This API is used in organization configuration to manage cross-organization resource sharing policies and define the organizational network for resource collaboration.
+        This API updates which organizations have visibility and access to reusable resources created by the current organization. Related organizations define the external organizational network for cross-organization resource sharing and collaboration. Used in organization configuration settings to manage cross-organization resource sharing policies and establish trusted partner organizations. This API enables organizations to control which other organizations can discover and use their reusable resources.
 
         **Overview:**
         - Updates reusable resources with list of visible organizations
         - Manages cross-organization resource accessibility
         - Applies to all reusable resources in authenticated user's organization and tenant
         - Automatically updates visible_to_organizations field for matching resources
-        - Used to control which organizations can see and use reusable resources
         - Supports adding multiple related organizations in single request
 
         **Validations:**
@@ -10809,7 +10800,6 @@ paths:
         - Each organization object must have `code` field (string, will be trimmed)
         - Empty or null codes are automatically filtered out
         - If no valid codes provided, API returns success with no-update message
-        - Only applies to reusable resources (is_reusable: true)
       parameters:
         - name: X-auth-token
           in: header
@@ -10873,8 +10863,8 @@ paths:
       summary: List Certificate Templates
       tags:
         - Certificate
-      description: |
-        This API retrieves all certificate base templates configured for an organization. Certificate templates are used as base designs for generating customized certificates with organization-specific logos, signatures, and branding. This API is used to display available certificate templates in the certificate management interface, allowing users to select templates for certificate customization and generation workflows.
+      description: |-
+        This API retrieves all certificate base templates configured for an organization with full metadata for customization and generation. Certificate templates are base designs that define the structure for generating customized certificates with organization-specific logos and signatures. Used in the certificate management interface to display and help users select templates for different certificate layouts. This API supports filtering by resource type and searching by template name for easy template discovery.
 
         **Overview:**
         - Retrieves certificate templates scoped to authenticated user's organization and tenant
@@ -10888,7 +10878,6 @@ paths:
         - X-auth-token must be valid and contain organization_code and tenant_code
         - `resource_type` is optional (query parameter) - if omitted, returns templates for all resource types
         - `search` is optional (query parameter) - filters templates by name using case-insensitive matching
-        - `page` and `limit` parameters are optional for pagination (defaults provided by service)
       parameters:
         - name: X-auth-token
           in: header
@@ -11103,7 +11092,7 @@ paths:
       tags:
         - Certificate
       description: |-
-        This API creates a new certificate base template configuration with metadata and properties. Certificate templates are used to generate customized certificates with organization-specific logos, signatures, and branding. This API is used in certificate management settings to add new template configurations for different certificate layouts and designs.
+        This API creates a new certificate base template with code, name, and metadata for generating customized organizational certificates. Certificate templates define the base design and branding structure with configurable logos and signature placements. Used in certificate management settings to add new template configurations for different certificate layouts and resource types. This API enables organizations to establish standardized certificate designs for their certificates across resources.
 
         **Overview:**
         - Creates new certificate template with code, name, and metadata
@@ -11330,8 +11319,8 @@ paths:
       summary: Update certificate base template
       tags:
         - Certificate
-      description: |
-        This API updates an existing certificate base template configuration with new metadata and properties. Certificate templates are used to generate customized certificates with organization-specific logos, signatures, and branding. This API is used in certificate management settings to modify template details such as name, logos configuration, and signature information without recreating the entire template.
+      description: |-
+        This API updates an existing certificate base template with new metadata, logos, and signature configurations for customizing organizational certificates. Certificate templates serve as base designs for generating customized certificates with organization-specific branding. Used in certificate management settings to modify template properties without recreating the template. This API ensures consistent certificate design management across resource types with organization-scoped access control.
 
         **Overview:**
         - Updates certificate template details (name, code, resource type, meta information)
@@ -11347,7 +11336,6 @@ paths:
         - `url` is required (cloud storage path to SVG template)
         - `resource_type` is required (must be one of configured RESOURCE_TYPES like project, program)
         - `meta` is required (JSON object containing logos and signature configuration)
-        - Certificate must exist in specified organization and tenant scope
       parameters:
         - name: X-auth-token
           in: header
@@ -11575,12 +11563,11 @@ paths:
       summary: Update Review Stage
       tags:
         - Review Stages
-      description: |
-        This API enables organizations to update the role-based review stage hierarchy for their resources. Review stages define the sequential workflow levels through which resources pass during the review process, with each stage assigned to specific roles. By updating review stages, organizations can configure the approval chain and manage which roles are responsible for reviewing resources at different levels. This is essential for implementing complex review workflows where multiple stakeholders with different roles need to approve resources in a defined sequence.
+      description: |-
+        This API enables organizations to update review stage role assignments and hierarchy levels for implementing sequential approval workflows. Review stages define which roles are responsible for reviewing resources at each level, making them essential for configuring complex multi-stakeholder approval chains. Used in organization settings and workflow configuration interfaces to adjust approval stage hierarchies and role assignments for different resource types. This API ensures consistent enforcement of approval workflows where multiple roles with different responsibilities review resources in a defined sequence.
 
         **Overview:**
         - Updates review stage role and level hierarchy within organization scope
-        - Review stages define role-based workflow levels for resource reviews
         - Validates resource type exists in environment configuration
         - Scoped to authenticated user's organization and tenant context
         - Returns updated review stage record with all properties
@@ -11702,8 +11689,8 @@ paths:
       summary: List Review Stages
       tags:
         - Review Stages
-      description: |
-        This API retrieves the role-based review stage hierarchy configured for your organization. Review stages define the sequential approval workflow levels for resources, specifying which roles are responsible for reviewing resources at each stage. This API is used to display the current review stage configuration in organization settings, enabling administrators to view and manage the approval chain for their resources.
+      description: |-
+        This API retrieves the role-based review stage hierarchy configured for an organization, showing which roles are responsible for reviewing resources at each approval level. It displays the sequential workflow stages and their role assignments, essential for understanding how resources flow through multi-stage approval processes. Used in organization settings and workflow configuration interfaces to view and manage the approval chain structure. This API helps administrators and reviewers understand the review stage hierarchy for their resource workflows.
 
         **Overview:**
         - Retrieves all review stages configured for an organization and resource type
@@ -11715,7 +11702,6 @@ paths:
         **Validations:**
         - X-auth-token must be valid and contain organization_code and tenant_code
         - `resource_type` is optional (query parameter) - lists all resource types if not provided
-        - `organization_code` is optional (query parameter, should match user's org)
       parameters:
         - in: query
           name: resource_type
