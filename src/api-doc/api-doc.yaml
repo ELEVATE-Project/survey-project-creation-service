@@ -3317,78 +3317,46 @@ paths:
       tags:
         - Form
       description: |-
-        You can use this API to create a form  
-         - The API Endpoint for creating a form is `/scp/v1/form/create` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        This API creates a new form template with customizable fields, validators, and layout configuration. Used by administrators to define form structures for different resource types (projects, programs, surveys) with field controls, validation rules, and UI properties. Forms are scoped to organization and tenant, supporting template-based control definitions for flexible data collection. The API validates form uniqueness by type within the organization/tenant scope.
+
+        **Validations**:
+        - `type` field is required and must be a valid form type (e.g., project, program, survey)
+        - Form with same `type`, `sub_type` combination must not already exist for the organization/tenant
+        - `data` object is required and must contain `template_name` and `fields` properties
+
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This token is available in the login API Response.'
+          description: 'Authentication token from login API response. Required for all requests. Token provides organization_code and tenant_code context.'
           required: true
           schema:
             type: string
       requestBody:
+        description: 'Form object containing type, sub_type, and form data with field controls and validators'
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - type
+                - sub_type
+                - data
               properties:
                 type:
                   type: string
-                  description: The type of the form.
+                  description: 'The type of the form (e.g., project, program, survey, observation). Must be unique per organization/tenant.'
+                  example: 'project'
                 sub_type:
                   type: string
-                  description: The sub-type or category of the form.
+                  description: 'The sub-type or category of the form for further categorization'
+                  example: 'createProject'
                 data:
                   description: The main data structure for the form.
                   type: object
-                  properties:
-                    template_name:
-                      type: string
-                    fields:
-                      type: object
-                      properties:
-                        controls:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              name:
-                                type: string
-                              label:
-                                type: string
-                              value:
-                                type: string
-                              class:
-                                type: string
-                              type:
-                                type: string
-                              position:
-                                type: string
-                              validators:
-                                type: object
-                                properties:
-                                  required:
-                                    type: boolean
-                                  min_length:
-                                    type: number
-                              disabled:
-                                type: boolean
-                              show_select_all:
-                                type: boolean
-                            required:
-                              - name
-                              - label
-                              - value
-                              - class
-                              - type
-                              - position
-                              - validators
-                              - disabled
-                              - show_select_all
             examples:
               example1:
+                summary: Create project form with text and chip controls
                 value:
                   type: project
                   sub_type: createProject
@@ -3397,7 +3365,7 @@ paths:
                     fields:
                       controls:
                         - name: title
-                          label: title
+                          label: 'Project Title'
                           value: ''
                           class: ion-margin
                           type: text
@@ -3405,8 +3373,10 @@ paths:
                           validators:
                             required: true
                             min_length: 5
+                          disabled: false
+                          show_select_all: false
                         - name: categories
-                          label: Select categories
+                          label: Select Categories
                           value: ''
                           class: ion-margin
                           type: chip
@@ -3415,9 +3385,10 @@ paths:
                           show_select_all: true
                           validators:
                             required: true
+
       responses:
         '201':
-          description: Created
+          description: 'Form created successfully'
           content:
             application/json:
               schema:
@@ -3425,22 +3396,35 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response status code (OK for success)'
+                    example: 'OK'
                   message:
                     type: string
+                    description: 'Status message from en.json locales file'
+                    example: 'Form created successfully'
                   result:
                     type: object
+                    description: 'The created form object with all properties'
                     properties:
                       id:
                         type: number
+                        description: 'Unique form ID assigned by the system'
+                        example: 16
                       type:
                         type: string
+                        description: 'Form type'
+                        example: 'project'
                       sub_type:
                         type: string
+                        description: 'Form sub-type'
+                        example: 'createProject'
                       data:
                         type: object
+                        description: 'Form data structure containing template and controls'
                         properties:
                           template_name:
                             type: string
+                            example: 'defaultTemplate'
                           fields:
                             type: object
                             properties:
@@ -3472,42 +3456,44 @@ paths:
                                       type: boolean
                                     show_select_all:
                                       type: boolean
-                                  required:
-                                    - name
-                                    - label
-                                    - value
-                                    - class
-                                    - type
-                                    - position
-                                    - validators
-                                    - disabled
-                                    - show_select_all
                       updated_at:
                         type: string
-                      created_at:
-                        type: string
+                        format: date-time
+                        description: 'Timestamp when the form was last updated'
+                        example: '2023-07-18T20:48:10.492Z'
                       deleted_at:
+                        type: string
                         format: date-time
                         nullable: true
-                        type: string
+                        description: 'Soft delete timestamp (null if not deleted)'
+                        example: null
                       organization_code:
                         type: string
+                        description: 'Organization code from authentication token'
+                        example: 'default_code'
                       tenant_code:
                         type: string
+                        description: 'Tenant code from authentication token'
+                        example: 'default_tenant'
                   meta:
                     type: object
+                    description: 'Metadata object containing forms version information'
                     properties:
                       formsVersion:
                         type: array
+                        description: 'Array of form version objects'
                         items:
                           type: object
                           properties:
                             id:
                               type: number
+                              example: 16
                             type:
                               type: string
+                              example: 'session'
               examples:
                 example1:
+                  summary: Successfully created form response
                   value:
                     responseCode: OK
                     message: Form created successfully
@@ -3520,7 +3506,7 @@ paths:
                         fields:
                           controls:
                             - name: title
-                              label: title
+                              label: 'Project Title'
                               value: ''
                               class: ion-margin
                               type: text
@@ -3528,8 +3514,10 @@ paths:
                               validators:
                                 required: true
                                 min_length: 5
+                              disabled: false
+                              show_select_all: false
                             - name: categories
-                              label: Select categories
+                              label: Select Categories
                               value: ''
                               class: ion-margin
                               type: chip
@@ -3538,16 +3526,18 @@ paths:
                               show_select_all: true
                               validators:
                                 required: true
-                      updated_at: '2023-07-18T20:48:10.492Z'
                       created_at: '2023-07-18T20:48:10.492Z'
+                      updated_at: '2023-07-18T20:48:10.492Z'
                       deleted_at: null
-                      organiation_code: default_code
+                      organization_code: default_code
+                      tenant_code: default_tenant
                     meta:
                       formsVersion:
                         - id: 16
                           type: session
+
         '400':
-          description: Bad Request. Form already exists
+          description: 'Bad Request - Invalid input, missing required fields, or form already exists'
           content:
             application/json:
               schema:
@@ -3555,29 +3545,37 @@ paths:
   '/scp/v1/form/update/{formId}':
     post:
       operationId: formUpdate
-      summary: Update form
+      summary: Update Form
       tags:
         - Form
       description: |-
-        You can use this API to update a form.  
-         - The API Endpoint for updating a form is `/scp/v1/form/update/{formId}` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        This API updates an existing form template with new field definitions, validators, and configuration. Used by administrators to modify form structures including adding/removing controls, changing validation rules, and updating UI properties. Forms are scoped to organization and tenant, and updates increment the form version for tracking changes. The API validates form existence and organization/tenant access before applying updates.
+
+        **Validations**:
+        - `formId` is required and must be a valid positive integer (1 to 2147483647)
+        - Form must exist in the system and belong to authenticated user's organization/tenant
+        - `type` and `sub_type` are required if provided
+        - `data` object required with `template_name` and `fields` properties
+
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This token is available in the login API Response.'
+          description: 'Authentication token from login API response. Required for all requests. Token provides organization_code and tenant_code context.'
           required: true
           schema:
             type: string
         - in: path
           name: formId
-          description: Please append a valid form Id to the Request URL.
+          description: 'Valid form ID to update (numeric, positive integer, 1 to 2147483647, must exist in system)'
           schema:
             type: number
+            minimum: 1
+            maximum: 2147483647
           required: true
-          example: 1
+          example: 16
       requestBody:
+        description: 'Form update object with type, sub_type, and updated form data with field controls and validators'
+        required: true
         content:
           application/json:
             schema:
@@ -3585,67 +3583,36 @@ paths:
               properties:
                 type:
                   type: string
-                  description: The type of the form.
+                  description: 'The form type (e.g., project, program, survey). Used to categorize forms for different resource types.'
+                  example: 'project'
                 sub_type:
                   type: string
-                  description: The sub-type or category of the form.
+                  description: 'The form sub-type or category (e.g., createProject, updateProject). Provides additional classification within form type.'
+                  example: 'createProject'
                 data:
-                  description: The main data structure for the form.
+                  type: object
+                  description: 'The main form structure containing template configuration and field definitions'
                   properties:
                     template_name:
                       type: string
+                      description: 'Descriptive name for the form template (e.g., "Project Creation Template")'
+                      example: 'Project Creation Template'
                     fields:
                       type: object
-                      properties:
-                        controls:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              name:
-                                type: string
-                              label:
-                                type: string
-                              value:
-                                type: string
-                              class:
-                                type: string
-                              type:
-                                type: string
-                              position:
-                                type: string
-                              validators:
-                                type: object
-                                properties:
-                                  required:
-                                    type: boolean
-                                  min_length:
-                                    type: number
-                              disabled:
-                                type: boolean
-                              show_select_all:
-                                type: boolean
-                            required:
-                              - name
-                              - label
-                              - value
-                              - class
-                              - type
-                              - position
-                              - validators
-                              - disabled
-                              - show_select_all
+                      description: 'Object containing controls array with all form field definitions'
+
             examples:
               example1:
+                summary: 'Update Project Form with New Fields'
                 value:
                   type: project
                   sub_type: createProject
                   data:
-                    template_name: Test
+                    template_name: 'Enhanced Project Creation Template'
                     fields:
                       controls:
                         - name: title
-                          label: title
+                          label: 'Project Title'
                           value: ''
                           class: ion-margin
                           type: text
@@ -3653,19 +3620,32 @@ paths:
                           validators:
                             required: true
                             min_length: 5
+                          disabled: false
+                          show_select_all: false
+                        - name: description
+                          label: 'Project Description'
+                          value: ''
+                          class: ion-margin
+                          type: textarea
+                          position: floating
+                          validators:
+                            required: true
+                            min_length: 10
+                          disabled: false
+                          show_select_all: false
                         - name: categories
-                          label: Select categories
+                          label: 'Select Categories'
                           value: ''
                           class: ion-margin
                           type: chip
-                          position: ''
-                          disabled: false
-                          show_select_all: true
+                          position: floating
                           validators:
                             required: true
+                          disabled: false
+                          show_select_all: true
       responses:
-        '200':
-          description: ok
+        '202':
+          description: 'Form updated successfully (Accepted)'
           content:
             application/json:
               schema:
@@ -3673,36 +3653,51 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response status code (OK for success)'
+                    example: 'OK'
                   message:
                     type: string
+                    description: 'Localized message from server'
+                    example: 'Form updated successfully'
                   result:
-                    type: array
-                    items:
-                      type: string
+                    type: object
+                    description: 'Empty object for update operations (form version incremented on backend)'
                   meta:
                     type: object
+                    description: 'Metadata including form version information'
                     properties:
                       formsVersion:
                         type: array
+                        description: 'Array of form versions available after update'
                         items:
                           type: object
                           properties:
                             id:
                               type: number
+                              description: 'Form ID'
+                              example: 16
                             type:
                               type: string
+                              description: 'Form type'
+                              example: 'project'
+                            version:
+                              type: number
+                              description: 'Current form version (incremented on update)'
+                              example: 2
               examples:
                 example1:
+                  summary: 'Successful Form Update Response'
                   value:
                     responseCode: OK
                     message: Form updated successfully
-                    result: []
+                    result: {}
                     meta:
                       formsVersion:
                         - id: 16
                           type: project
+                          version: 2
         '400':
-          description: Bad Request. Form not found
+          description: 'Bad Request - Form not found, invalid input, or missing required fields'
           content:
             application/json:
               schema:
@@ -3710,29 +3705,49 @@ paths:
   /scp/v1/form/read:
     post:
       operationId: formRead
-      summary: Get form data
+      summary: Read Form
       tags:
         - Form
       description: |-
-        You can use this API to read data from a form.  
-         - The API Endpoint to read form data is `/scp/v1/form/read/{formID}` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        This API retrieves a complete form template with all field definitions, controls, and validation rules. Supports two operational modes: fetch by form ID or search by type/sub_type combination, with automatic fallback to system default forms if organization-specific form not found. Used by administrators and clients to retrieve form configurations for rendering, validation, or management. Forms are scoped to organization and tenant with priority given to user's organization over system defaults.
+
+        **How to Fetch Data**:
+
+        **Method 1 - Fetch by Form ID (Direct)**:
+        - Pass `formId` as query parameter: `GET /scp/v1/form/read?formId=16`
+        - Returns specific form directly without requiring request body
+        - Fastest approach when you know the form ID
+
+        **Method 2 - Fetch by Type and Sub-Type (Lookup)**:
+        - Send request body with `type` and `sub_type`: `{type: "project", sub_type: "createProject"}`
+        - Searches form by identifier combination
+        - Use when you don't have form ID but know the form type
+
+        **Validations**:
+        - `formId` must be valid positive integer (1 to 2147483647)
+        - Either `formId` query parameter OR request body (type+sub_type) required
+        - Form must exist in user's organization or system default
+        - Only tenant-scoped forms returned; org forms take precedence over defaults
+
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This token is available in the login API Response.'
+          description: 'Authentication token from login API response. Required for all requests. Token provides organization_code and tenant_code context for form scoping.'
           required: true
           schema:
             type: string
         - in: query
           name: formId
-          description: Please append a valid form Id to the Request URL.
+          description: 'Optional form ID to retrieve specific form directly (numeric, positive integer, 1 to 2147483647). If provided, request body is ignored. Cannot be used with type/sub_type.'
           schema:
             type: number
+            minimum: 1
+            maximum: 2147483647
           required: false
-          example: 2
+          example: 16
       requestBody:
+        description: 'Optional request body with type and sub_type for form lookup. Required if formId query parameter is not provided. Either formId or (type+sub_type) must be supplied.'
+        required: false
         content:
           application/json:
             schema:
@@ -3740,18 +3755,21 @@ paths:
               properties:
                 type:
                   type: string
-                  description: The type of the form.
+                  description: 'Form type identifier (e.g., project, program, survey). Used with sub_type to find specific form.'
+                  example: 'project'
                 sub_type:
                   type: string
-                  description: The sub-type or category of the form.
+                  description: 'Form sub-type or category (e.g., createProject, updateProject). Used with type to identify form uniquely.'
+                  example: 'createProject'
             examples:
               example1:
+                summary: 'Retrieve Form by Type and Sub-Type'
                 value:
                   type: project
                   sub_type: createProject
       responses:
         '200':
-          description: ok
+          description: 'Form retrieved successfully'
           content:
             application/json:
               schema:
@@ -3759,91 +3777,96 @@ paths:
                 properties:
                   responseCode:
                     type: string
+                    description: 'Response status code (OK for success)'
+                    example: 'OK'
                   message:
                     type: string
+                    description: 'Localized message from server'
+                    example: 'Form fetched successfully'
                   result:
                     type: object
+                    description: 'Complete form object with all configuration and controls'
                     properties:
                       id:
                         type: number
+                        description: 'Unique form identifier'
+                        example: 16
                       type:
                         type: string
+                        description: 'Form type (project, program, survey, etc.)'
+                        example: 'project'
                       sub_type:
                         type: string
+                        description: 'Form sub-type or category'
+                        example: 'createProject'
                       data:
                         type: object
+                        description: 'Form structure containing template configuration and field controls'
                         properties:
                           template_name:
                             type: string
+                            description: 'Name of the form template'
+                            example: 'Project Creation Template'
                           fields:
                             type: object
-                            properties:
-                              controls:
-                                type: array
-                                items:
-                                  type: object
-                                  properties:
-                                    name:
-                                      type: string
-                                    label:
-                                      type: string
-                                    value:
-                                      type: string
-                                    class:
-                                      type: string
-                                    type:
-                                      type: string
-                                    position:
-                                      type: string
-                                    validators:
-                                      type: object
-                                      properties:
-                                        required:
-                                          type: boolean
-                                        min_length:
-                                          type: number
-                                    disabled:
-                                      type: boolean
-                                    show_select_all:
-                                      type: boolean
-                                  required:
-                                    - name
-                                    - label
-                                    - value
-                                    - class
-                                    - type
-                                    - position
-                                    - validators
-                                    - disabled
-                                    - show_select_all
-                      updated_at:
-                        type: string
+                            description: 'Object containing all form controls'
+
+                      version:
+                        type: number
+                        description: 'Current form version (incremented on updates)'
+                        example: 1
                       created_at:
                         type: string
+                        format: date-time
+                        description: 'Form creation timestamp'
+                        example: '2023-07-18T20:48:10.492Z'
+                      updated_at:
+                        type: string
+                        format: date-time
+                        description: 'Last form update timestamp'
+                        example: '2023-07-18T20:48:10.492Z'
                       deleted_at:
+                        type: string
                         format: date-time
                         nullable: true
-                        type: string
+                        description: 'Soft delete timestamp (null if not deleted)'
+                        example: null
                       organization_code:
                         type: string
+                        description: 'Organization code that owns this form'
+                        example: 'default_code'
                       tenant_code:
                         type: string
+                        description: 'Tenant code that owns this form'
+                        example: 'default_tenant'
                   meta:
                     type: object
+                    description: 'Metadata including form version information'
                     properties:
                       formsVersion:
                         type: array
+                        description: 'Array of available form versions'
                         items:
                           type: object
                           properties:
                             id:
                               type: number
+                              description: 'Form ID'
+                              example: 16
                             type:
                               type: string
+                              description: 'Form type'
+                              example: 'project'
+                            version:
+                              type: number
+                              description: 'Form version'
+                              example: 1
                       correlation:
                         type: string
+                        description: 'Correlation ID for request tracking'
               examples:
                 example1:
+                  summary: 'Successful Form Read Response'
                   value:
                     responseCode: OK
                     message: Form fetched successfully
@@ -3851,12 +3874,13 @@ paths:
                       id: 16
                       type: project
                       sub_type: createProject
+                      version: 1
                       data:
-                        template_name: defaultTemplate
+                        template_name: Project Creation Template
                         fields:
                           controls:
                             - name: title
-                              label: title
+                              label: Project Title
                               value: ''
                               class: ion-margin
                               type: text
@@ -3864,26 +3888,31 @@ paths:
                               validators:
                                 required: true
                                 min_length: 5
+                              disabled: false
+                              show_select_all: false
                             - name: categories
-                              label: Select categories
+                              label: Select Categories
                               value: ''
                               class: ion-margin
                               type: chip
-                              position: ''
+                              position: floating
                               disabled: false
                               show_select_all: true
                               validators:
                                 required: true
-                      updated_at: '2023-07-18T20:48:10.492Z'
                       created_at: '2023-07-18T20:48:10.492Z'
+                      updated_at: '2023-07-18T20:48:10.492Z'
                       deleted_at: null
-                      organiation_code: default_code
+                      organization_code: default_code
+                      tenant_code: default_tenant
                     meta:
                       formsVersion:
                         - id: 16
                           type: project
+                          version: 1
+                      correlation: 'correlation-uuid-string'
         '400':
-          description: Bad Request.Form not found
+          description: 'Bad Request - Form not found, invalid input, or missing required parameters'
           content:
             application/json:
               schema:
