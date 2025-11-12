@@ -11081,38 +11081,56 @@ paths:
       tags:
         - Review Stages
       description: |
-        Use this API to update the review stages within an organization. Review stages define the hierarchy of roles and their respective levels. The resource will be listed on the "up for review" page based on these levels.
+        This API enables organizations to update the role-based review stage hierarchy for their resources. Review stages define the sequential workflow levels through which resources pass during the review process, with each stage assigned to specific roles. By updating review stages, organizations can configure the approval chain and manage which roles are responsible for reviewing resources at different levels. This is essential for implementing complex review workflows where multiple stakeholders with different roles need to approve resources in a defined sequence.
 
-        - Endpoint: `/scp/v1/review-stages/update`
-        - Provide values for parameters marked as `required`.
-        - The X-auth-token is mandatory and cannot be empty or null.
+        **Overview:**
+        - Updates review stage role and level hierarchy within organization scope
+        - Review stages define role-based workflow levels for resource reviews
+        - Validates resource type exists in environment configuration
+        - Scoped to authenticated user's organization and tenant context
+        - Returns updated review stage record with all properties
+
+        **Validations:**
+        - ID must be a positive integer between 1 and 2147483647
+        - ID must reference existing review stage in organization
+        - Role field is required and must not be empty
+        - Role must match pattern ^[a-z_-]+$ (lowercase with hyphens/underscores only)
+        - Level must be a numeric integer value
+        - Resource type must be defined in RESOURCE_TYPES environment variable
       parameters:
-        - in: query
-          name: organization_code
-          schema:
-            type: string
-          description: Optional parameter
-          example: 1
         - in: path
           name: id
           required: true
           schema:
-            type: string
+            type: integer
+            minimum: 1
+            maximum: 2147483647
           description: ID of the review stage to update
-          example: 10
+          example: 2
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - role
+                - level
+                - resource_type
               properties:
                 role:
                   type: string
+                  pattern: '^[a-z_-]+$'
+                  description: Role identifier for review stage (lowercase, hyphens/underscores allowed)
                   example: content_creator
                 level:
                   type: integer
+                  description: Level in role hierarchy for sequential reviews
                   example: 1
+                resource_type:
+                  type: string
+                  description: Resource type for this review stage (e.g., project, program)
+                  example: project
       responses:
         '200':
           description: Review stages updated successfully
@@ -11125,69 +11143,92 @@ paths:
                     type: string
                   message:
                     type: string
-                  tenant_code:
-                    type: string
                   result:
                     type: object
                     properties:
+                      id:
+                        type: integer
                       role:
                         type: string
-                      resource_type:
-                        type: number
                       level:
-                        type: number
-                      id:
-                        type: number
-                      organization_code:
-                        type: number
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: string
-                      correlation:
+                        type: integer
+                      resource_type:
                         type: string
+                      organization_code:
+                        type: string
+                      tenant_code:
+                        type: string
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Review stages updated successfully
                     result:
-                      id: 10
-                      role: CONTENT_CREATOR
+                      id: 2
+                      role: content_creator
                       level: 1
-                      organiation_code: default_code
-                      tenant_code: default
                       resource_type: project
-                    meta:
-                      formsVersion: []
+                      organization_code: org_123
+                      tenant_code: default
+                      createdAt: '2024-01-15T10:30:00Z'
+                      updatedAt: '2024-01-20T14:45:00Z'
         '400':
-          description: Bad Request.
+          description: Bad Request - Invalid ID, role format, resource type, or review stage not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/updateReviewStage400Response'
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
+              examples:
+                invalidId:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: 'id param is invalid, must be an integer'
+                notFound:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Review stages not found
+                invalidResource:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: 'resource_type project is not a valid'
   /review-stages/list:
     get:
       summary: List Review Stages
       tags:
         - Review Stages
       description: |
-        Use this API to list the review stages within an organization. Review stages define the hierarchy of roles and their respective levels. The resource will be listed on the "up for review" page based on these levels.
+        This API retrieves the role-based review stage hierarchy configured for your organization. Review stages define the sequential approval workflow levels for resources, specifying which roles are responsible for reviewing resources at each stage. This API is used to display the current review stage configuration in organization settings, enabling administrators to view and manage the approval chain for their resources.
 
-        - Endpoint: `/scp/v1/review-stages/list`
-        - Provide values for parameters marked as `required`.
-        - The X-auth-token is mandatory and cannot be empty or null.
+        **Overview:**
+        - Retrieves all review stages configured for an organization and resource type
+        - Returns review stages with role hierarchy information (role, level, resource_type)
+        - Scoped to authenticated user's organization and tenant
+        - Returns empty result if no review stages exist for the filter criteria
+        - Supports filtering by resource_type (optional, lists all stages if omitted)
+
+        **Validations:**
+        - X-auth-token must be valid and contain organization_code and tenant_code
+        - `resource_type` is optional (query parameter) - lists all resource types if not provided
+        - `organization_code` is optional (query parameter, should match user's org)
       parameters:
         - in: query
           name: resource_type
           schema:
             type: string
           example: project
-          required: true
-          description: The type of resource to list review stages for
+          required: false
+          description: Optional resource type to filter review stages (e.g., project, program)
       responses:
         '200':
           description: Review stages fetched successfully
@@ -11203,43 +11244,67 @@ paths:
                   result:
                     type: object
                     properties:
-                      role:
-                        type: string
-                      resource_type:
-                        type: number
-                      level:
-                        type: number
-                      id:
-                        type: number
-                      organization_code:
-                        type: number
-                      tenant_code:
-                        type: string
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: array
-                        items:
-                          type: string
-                      correlation:
-                        type: string
+                      results:
+                        type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                role:
+                                  type: string
+                                level:
+                                  type: integer
+                                resource_type:
+                                  type: string
+                                organization_code:
+                                  type: string
+                                tenant_code:
+                                  type: string
+                                createdAt:
+                                  type: string
+                                  format: date-time
+                                updatedAt:
+                                  type: string
+                                  format: date-time
+                          count:
+                            type: integer
               examples:
                 example1:
                   value:
                     responseCode: OK
                     message: Review stages fetched successfully
                     result:
-                      data:
-                        id: 10
-                        role: CONTENT_CREATOR
-                        level: 1
-                        organiation_code: default_code
-                        resource_type: project
-                        tenant_code: shikshagraha
-                      count: 1
-                    meta:
-                      formsVersion: []
+                      results:
+                        data:
+                          - id: 2
+                            role: content_creator
+                            level: 1
+                            resource_type: project
+                            organization_code: org_123
+                            tenant_code: default
+                            createdAt: '2024-01-15T10:30:00Z'
+                            updatedAt: '2024-01-15T10:30:00Z'
+                          - id: 3
+                            role: data_manager
+                            level: 2
+                            resource_type: project
+                            organization_code: org_123
+                            tenant_code: default
+                            createdAt: '2024-01-15T10:35:00Z'
+                            updatedAt: '2024-01-15T10:35:00Z'
+                        count: 2
+                example2:
+                  value:
+                    responseCode: OK
+                    message: Review stages fetched successfully
+                    result:
+                      results:
+                        data: []
+                        count: 0
   /user/v1/user-role/create:
     post:
       summary: Create User Roles
