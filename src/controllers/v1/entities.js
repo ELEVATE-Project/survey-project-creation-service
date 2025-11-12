@@ -7,10 +7,7 @@
 
 // Dependencies
 const entityService = require('@services/entities')
-const utils = require('@generics/utils')
-const common = require('@constants/common')
-const responses = require('@helpers/responses')
-const httpStatusCode = require('@generics/http-status')
+
 module.exports = class Entity {
 	/**
 	 * create entity
