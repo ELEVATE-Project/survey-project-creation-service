@@ -5330,21 +5330,15 @@ paths:
         - Resource
       operationId: listResources
       description: |-
-        **Overview**:
-        - Retrieves paginated list of resources (projects, programs, surveys, observations) based on listing type
-        - Supports three listing modes: drafts, submitted_for_review, up_for_review
-        - Fetches user-created resources with organization and creator details
-        - Applies search, filtering, and sorting capabilities
-        - Returns resources with metadata including status, dates, and review information
-        - Scoped to authenticated user and their organization/tenant
+        This API retrieves a paginated list of resources (projects, programs, surveys, observations) based on listing mode with support for search, filtering, and sorting. Supports three modes: drafts (user-created), submitted_for_review (awaiting review), and browse_existing (published resources). Returns resources with metadata including status, dates, creator details, and organization information. Used by creators to manage their resources and track progress through the resource lifecycle scoped to organization and tenant.
 
-        **Validation Rules**:
-        - `listing` parameter is mandatory (drafts, submitted_for_review, or browse_existing)
+        **Validations**:
+        - `listing` parameter is required (drafts, submitted_for_review, or browse_existing)
         - `type` must be from allowed values: project, program, survey, observation, observation_with_rubric
-        - `status` is only applicable for submitted_for_review listing (redundant for drafts)
-        - `page` defaults to 1 if not provided (minimum 1)
-        - `limit` defaults to 100 if not provided (maximum 100)
-        - `search` cannot contain special characters
+        - `page` must be positive integer (1-indexed, defaults to 1)
+        - `limit` must be between 1 and 100 (defaults to 100, capped at 100)
+        - `search` text cannot contain special characters if provided
+        - `status` filter only applicable for submitted_for_review listing
       parameters:
         - name: X-auth-token
           in: header
@@ -5549,23 +5543,14 @@ paths:
       tags:
         - Resource
       description: |-
-        **Overview**:
-        - Retrieves paginated list of published resources filtered by user's role-based permissions
-        - Supports resource types: project, program, survey, observation, observation_with_rubric
-        - Applies organization visibility policies (CURRENT, ASSOCIATED, ALL) to control resource access
-        - Resources filtered by PUBLISHED status and is_reusable flag
-        - Includes creator details, reviewer names, and organization information
-        - Supports search, filtering, and sorting capabilities
-        - Default sort by updated_at if not specified
+        This API retrieves a paginated list of published resources (projects, programs, surveys, observations) filtered by user's role-based permissions and organization visibility policies. Supports multiple resource types with flexible search, filtering, and sorting capabilities including creator details and reviewer information. Resources are filtered by PUBLISHED status and is_reusable flag to ensure only appropriate resources are displayed. Used by all users to discover and browse published resources available to them within their organization scope.
 
-        **Validation Rules**:
+        **Validations**:
         - `type` must be from allowed values: project, program, survey, observation, observation_with_rubric
-        - Multiple types supported as comma-separated values
-        - User must have role permissions for requested resource types
-        - `page` defaults to 1 (minimum 1)
-        - `limit` defaults to 100 (maximum 100)
-        - `search` performs case-insensitive title matching
-        - Organization visibility policy enforced based on organization configuration
+        - `page` must be positive integer (1-indexed, defaults to 1)
+        - `limit` must be between 1 and 100 (defaults to 100, capped at 100)
+        - `search` performs case-insensitive title matching if provided
+        - `sort_by` must be from: created_at, updated_at, title (defaults to updated_at)
       parameters:
         - name: X-auth-token
           in: header
@@ -5873,24 +5858,15 @@ paths:
       tags:
         - Resource
       description: |-
-        **Overview**:
-        - Retrieves paginated list of resources assigned to reviewer or available for review
-        - Supports sequential and parallel review workflows based on organization configuration
-        - Filters resources based on reviewer assignments and review status
-        - Excludes resources already reviewed (APPROVED, REJECTED, REQUESTED_FOR_CHANGES)
-        - Returns resources with creator details, organization info, and review status
-        - Excludes authenticated reviewer's own created resources
-        - Includes in_progress_count for resources currently under review by the reviewer
+        This API retrieves a paginated list of resources assigned to the reviewer or available for review based on organization configuration. Supports both sequential and parallel review workflows, automatically filtering resources by reviewer assignments, review status, and excluding already-reviewed items. Returns resources with creator details, organization info, review status, and in_progress count for currently reviewed items. Used by reviewers to discover and manage resources requiring their review during the approval workflow.
 
-        **Validation Rules**:
+        **Validations**:
         - `type` must be from allowed values: project, program, survey, observation, observation_with_rubric
         - `status` must be from: INPROGRESS, NOT_STARTED, CHANGES_UPDATED, STARTED
-        - `page` defaults to 1 (minimum 1)
-        - `limit` defaults to 100 (maximum 100)
-        - `search` performs case-insensitive title matching
-        - Resources filtered by reviewer role and organization policies
-        - Sequential review: only shows resources at correct review stage
-        - Parallel review: shows all resources available for review
+        - `page` must be positive integer (1-indexed, defaults to 1)
+        - `limit` must be between 1 and 100 (defaults to 100, capped at 100)
+        - `search` performs case-insensitive title matching if provided
+        - `sort_by` must be from: status, title, created_at (defaults to created_at)
       parameters:
         - name: X-auth-token
           in: header
@@ -6108,19 +6084,7 @@ paths:
       tags:
         - Resource
       description: |-
-        **Overview**:
-        - Callback endpoint used by consumption portal after successfully publishing a resource
-        - Updates resource with published_id from consumption portal
-        - Sets resource status to PUBLISHED and stage to COMPLETION
-        - Records published_on timestamp
-        - Only updates resources not in DRAFT status
-        - Returns 400 error if resource not found or already in DRAFT status
-
-        **Validation Rules**:
-        - `resource_id` is required (integer, positive)
-        - `published_id` is required (string from consumption portal)
-        - Resource must exist and not be in DRAFT status
-        - Resource must have been submitted for publishing
+        This API is a callback endpoint invoked by the consumption portal after successfully publishing a resource to confirm and update resource status. Updates the resource with the published_id from the consumption service and sets status to PUBLISHED with stage to COMPLETION, recording the published timestamp. Used by consumption portal integration to establish the link between SCP resources and their published counterparts in consumption systems. Ensures complete synchronization of published resource metadata across systems.
       parameters:
         - name: X-auth-token
           in: header
