@@ -6535,24 +6535,23 @@ paths:
       tags:
         - Comment
       description: |-
-        Enables users to create, update, and resolve comments on resources during the development and review lifecycle. Supports single and bulk comment creation, three visibility statuses (DRAFT/OPEN/RESOLVED), threaded comments via parent_id, and automatic resolver tracking. Comments enforce resource commentability constraints and prevent commenting on final statuses unless program-associated. Used by reviewers and creators to provide collaborative feedback and track discussions.
+        Creates or updates review comments on a resource during drafting and review. Supports DRAFT (private), OPEN (shared), and RESOLVED (with resolver tracking) states, plus threaded replies via `parent_id`. Used by creators and reviewers to exchange precise, location-based feedback while enforcing resource-level commentability rules. Accepts single or bulk create requests; updates modify one existing comment identified by path `id`.
 
         **Overview**:
-        - **CREATE mode** (omit `id`): Single object or array for bulk submission
-        - **UPDATE mode** (include `id`): Single comment object only, updates content/status
-        - **Visibility**: DRAFT (private), OPEN (shared), RESOLVED (with resolver tracking)
-        - **Threaded comments** via parent_id for organized feedback
-        - **Resource constraints**: Prevents comments on PUBLISHED, REJECTED, REJECTED_AND_REPORTED unless program-associated
+        - Create: send a single object or an array of comment objects
+        - Update: send a single comment object and provide the comment `id` in the path
+        - Visibility: DRAFT (default), OPEN, RESOLVED (captures resolver details)
+        - Threading: `parent_id` enables replies (defaults to 0 for root)
+        - Constraints: commenting blocked on PUBLISHED, REJECTED, REJECTED_AND_REPORTED unless program-associated
 
-        **Validation Rules**:
-        - `resource_id` (query): Required positive integer (1-2147483647)
-        - `id` (path): Only for UPDATE mode, positive integer (1-2147483647)
-        - `text` (body): Required comment content
-        - `context` & `page` (body): Required for location identification
-        - `status` (body): DRAFT | OPEN | RESOLVED (defaults DRAFT); RESOLVED triggers resolver tracking
-        - `parent_id` (body): Optional, defaults to 0 for root comments
-        - For UPDATE: Single object; for CREATE: Object or array allowed
-        - Resource must exist and be in: DRAFT, SUBMITTED, IN_REVIEW, or INPROGRESS status
+        **Validation**:
+        - `resource_id` (query): required positive integer (1–2147483647)
+        - `id` (path, update only): positive integer (1–2147483647)
+        - `text`, `context`, `page` (body): required
+        - `status` (body, optional): DRAFT | OPEN | RESOLVED (default DRAFT)
+        - `parent_id` (body, optional): defaults to 0
+        - Update accepts a single object; create accepts an object or array
+        - Resource must exist and be in DRAFT, SUBMITTED, IN_REVIEW, or INPROGRESS
       parameters:
         - name: X-auth-token
           in: header
