@@ -54,12 +54,11 @@ paths:
       tags:
         - Modules
       description: |-
-        Creates a new module in the system. Modules organize and manage different types of resources (projects, programs, surveys, observations).
+        This API creates a new module that organizes and manages different types of resources (projects, programs, surveys, observations) in the system. Modules serve as organizational containers that group related resources and control their availability within the platform. Used during system setup and administration to establish the foundational module structure for resource categorization. This API enables administrators to define which resource types can be managed and tracked within their organization.
 
-        **Validation Rules**:
+        **Validations:**
         - Module code must be globally unique and immutable after creation
         - Code must contain only letters, hyphens, and underscores (no spaces or special characters)
-        - Code must follow naming convention in lowercase or mixed case with separators
         - Status defaults to ACTIVE if not provided
         - Code cannot be empty, null, or reserved
       operationId: createModule
@@ -188,14 +187,13 @@ paths:
       tags:
         - Modules
       description: |-
-        Updates an existing module configuration including code and status properties.
+        This API updates the configuration of an existing module including its code and status within the system. Modules serve as foundational organizational containers that control resource availability across the platform. Used during system maintenance and administration to modify module codes or change their active/inactive status. This API enables administrators to evolve module configurations as organizational needs change and resources are added or removed.
 
-        **Validation Rules**:
+        **Validations:**
         - Module ID must exist and be valid
         - Updated code must remain unique across the system if changed
         - Code must contain only letters, hyphens, and underscores (no spaces or special characters)
         - Status must be either ACTIVE or INACTIVE
-        - Module ID itself cannot be modified
       operationId: updateModule
       parameters:
         - name: X-auth-token
@@ -280,18 +278,12 @@ paths:
       tags:
         - Modules
       description: |-
-        Retrieves a paginated list of all modules in the system with optional search and filtering.
+        This API retrieves a paginated list of all available modules in the system with support for search and filtering. Modules are foundational organizational containers used to manage and categorize different types of resources across the platform. Used by administrators and system managers to discover and review all configured modules for resource management. This API enables browsing and searching for specific modules with flexible pagination controls.
 
-        **Capabilities**:
-        - Pagination with configurable page size (defaults to 10, max 100 per page)
-        - Full-text search across module codes (partial match, case-insensitive)
+        **Validations:**
         - Search text cannot contain special characters
-        - Returns total count of matching modules
-
-        **Query Parameters**:
-        - `page`: Page number (1-indexed, defaults to 1)
-        - `limit`: Records per page (defaults to 10, max 100)
-        - `search`: Filter modules by code (optional, case-insensitive partial match)
+        - Page number must be a positive integer (1-indexed)
+        - Limit must be between 1 and 100 (defaults to 100 if exceeded)
       operationId: listModules
       parameters:
         - name: X-auth-token
@@ -441,19 +433,10 @@ paths:
       tags:
         - Modules
       description: |-
-        Soft deletes a module from the system. The module record is marked as deleted but preserved for audit and compliance.
-
-        **Soft Delete Details**:
-        - Module record is marked as deleted in the database (not permanently removed)
-        - Deleted module cannot be accessed through normal API operations
-        - Module data is preserved for audit trails and compliance
-        - Module code remains reserved and cannot be reused
-        - Soft-deleted modules can be restored through database recovery if needed
+        This API soft deletes a module from the system while preserving the record for audit and compliance purposes. Module records are marked as deleted in the database but not permanently removed, and deleted modules cannot be accessed through normal API operations. Used by system administrators to decommission modules while maintaining audit trails and compliance documentation. Soft deletion is permanent through the API and cannot be undone, though data can be restored through database recovery if needed.
 
         **Validation Rules**:
         - Module ID must exist in the system
-        - Module must not have already been deleted
-        - Soft deletion is permanent (cannot be undone through API)
       operationId: deleteModule
       parameters:
         - name: X-auth-token
@@ -517,16 +500,14 @@ paths:
       tags:
         - Permissions
       description: |-
-        Creates a new permission that maps an API endpoint to specific HTTP methods and modules for role-based access control.
+        This API establishes fine-grained access control by mapping API endpoints to specific HTTP methods and modules. Used by administrators to define which API operations are available within the system and assign them to roles for implementing role-based access control (RBAC). Permission codes are immutable identifiers automatically created in ACTIVE status, enabling immediate availability for role mapping.
 
-        **Details**:
-        - Permission code serves as a unique identifier and remains immutable after creation
-        - Code accepts lowercase letters and underscores for standardized naming
-        - Module must be an existing module in the system
-        - API path follows a consistent format pattern: `/[controller]/v[number]/[path]` (starting with `/scp`)
-        - HTTP methods can be specified as an array including GET, POST, PATCH, PUT, DELETE
-        - Status is set to ACTIVE by default for immediate availability
-        - All required fields must be provided with non-empty values
+        **Validations**:
+        - Permission code must be globally unique and immutable after creation (lowercase letters and underscores only)
+        - Module must exist in the system and follow naming conventions (letters, hyphens, underscores)
+        - API path must follow format pattern: `/[controller]/v[number]/[path]` (starting with `/scp`)
+        - HTTP methods must be specified as array: GET, POST, PATCH, PUT, DELETE (minimum one method required)
+        - All required fields (code, module, request_type, api_path) must be provided with non-empty values
       operationId: createPermission
       parameters:
         - name: X-auth-token
@@ -700,25 +681,16 @@ paths:
       tags:
         - Permissions
       description: |-
-        Updates an existing permission mapping API endpoint to HTTP methods and modules. Allows modification of permission properties such as code, module, request methods, and status.
+        This API modifies existing permission mappings to control API endpoint access and HTTP method assignments. Used by administrators to maintain and evolve permission configurations as system requirements change, including updating permission codes, associated modules, HTTP methods, and status. Changes take effect immediately for new sessions and updates are permanent, enabling dynamic management of role-based access control (RBAC).
 
         **Validations**:
-        - Permission ID must exist in the system
-        - Permission must not have already been deleted
-        - Updated code must remain unique across the system if changed
-        - Code must contain only lowercase letters and underscores (no spaces, no uppercase, no hyphens, no numbers)
-        - Module must exist in the system
-        - request_type must be an array with at least one HTTP method
-        - API path must follow strict format pattern: `/[controller]/v[number]/[path]`
-        - All fields must be non-empty and non-null when provided
-        - Status field is optional and defaults to current value if not provided
-
-        **Important Notes**:
-        - Permission ID must be a valid positive integer
-        - Code changes trigger uniqueness validation across all permissions
-        - Response returns updated permission details in same format as create
-        - All validation rules from permission creation apply to updates
-        - Update is permanent and cannot be undone through API
+        - Permission ID must exist in the system and not be soft-deleted
+        - Updated code must remain unique across the system if changed (lowercase letters and underscores only)
+        - Module must exist in the system and follow naming conventions (letters, hyphens, underscores)
+        - request_type must be an array with minimum one HTTP method: GET, POST, PATCH, PUT, DELETE
+        - API path must follow format pattern: `/[controller]/v[number]/[path]` (starting with `/scp`)
+        - All provided fields must be non-empty and non-null (code, module, request_type, api_path are required)
+        - Status field is optional and maintains current value if not provided
       parameters:
         - name: X-auth-token
           in: header
@@ -878,30 +850,15 @@ paths:
       tags:
         - Permissions
       description: |-
-        Retrieves a paginated list of all permissions in the system with optional search and filtering capabilities.
+        This API retrieves all system permissions with flexible pagination and search capabilities. Used by administrators to discover, audit, and monitor permission configurations across the system with support for code-based filtering. Results include complete permission details (id, code, module, request_type, api_path, status) with case-insensitive partial matching on permission codes.
 
-        **Features**:
-        - Pagination support with configurable page size (defaults to 100, max 100 per page)
-        - Full-text search across permission codes (case-insensitive, partial match)
-        - Search text cannot contain special characters
-        - Returns total count of matching permissions
-        - Each permission includes all details: id, code, module, request_type (array), api_path, status
-
-        **Search Behavior**:
-        - Search filters permissions by code field (case-insensitive partial match)
-        - Uses iLike operator for flexible searching (e.g., searching 'project' matches 'create_project', 'list_project', 'update_project')
-        - If no search term provided, returns all permissions
-        - Special characters in search text will be rejected with validation error
-
-        **Query Parameters**:
-        - `page`: Page number for pagination (1-indexed, defaults to 1)
-        - `limit`: Records per page (defaults to 100, max 100)
-        - `search`: Filter permissions by code (optional, case-insensitive partial match)
-
-        **Use Cases**:
-        - Display all available permissions with pagination
-        - Search for specific permission by code
-        - Monitor all system permissions
+        **Validations**:
+        - Page number must be a positive integer (1-indexed, defaults to 1, minimum value 1)
+        - Limit must be between 1 and 100 (defaults to 100, values exceeding 100 are capped)
+        - Search text cannot contain special characters (validation error if present)
+        - Search filters permissions by code field using iLike operator for flexible partial matching (e.g., 'project' matches 'create_project', 'list_project', 'update_project')
+        - If no search term provided, returns all permissions sorted by relevance
+        - Each result includes all details: id, code, module, request_type (array), api_path, status with total count of matching permissions
       operationId: getPermissions
       parameters:
         - name: X-auth-token
@@ -1024,16 +981,15 @@ paths:
       tags:
         - Permissions
       description: |-
-        Retrieves the permissions accessible to the authenticated user based on their assigned roles. This API provides information about the modules and HTTP methods the user can access.
+        This API retrieves the modules and HTTP methods accessible to the authenticated user based on their assigned roles. Used by client applications to discover available API operations and enforce UI-level access control based on user permissions. Results are automatically consolidated and deduplicated across multiple roles with no pagination required, returning only module names and allowed HTTP methods.
 
-        **Overview**:
-        - Requires a valid authentication token and is accessible to all authenticated users
-        - Extracts user roles from the authentication token
-        - Fetches permissions mapped to each role from the role-permission-mapping
-        - Merges permissions across multiple roles with deduplication
-        - Returns consolidated permissions grouped by module
-        - Returns an array of permission objects containing module names and allowed HTTP methods
-        - No pagination or search applied
+        **Validations**:
+        - Authentication token is required and must be valid (any authenticated user can access)
+        - User roles are automatically extracted from the authentication token
+        - Role-permission mappings are fetched and merged with automatic deduplication of HTTP methods across multiple permissions for the same module
+        - Results are grouped by module with deduplicated request_type (HTTP methods)
+        - Returns only module and request_type fields (not permission codes or IDs)
+        - Empty results return 200 status with ROLE_PERMISSION_NOT_FOUND message (not an error)
 
       operationId: listPermissions
       parameters:
@@ -1095,21 +1051,12 @@ paths:
         - Permissions
       operationId: deletePermission
       description: |-
-        **Overview**:
-        - Soft deletes a permission from the system while preserving data for audit and compliance purposes
-        - Admin-only API requiring `admin` or `org_admin` role from authentication token
-        - Permission record is marked as deleted in database but not permanently removed
-        - Deleted permission cannot be accessed through normal API operations (getPermissions, list)
-        - Permission code remains reserved and cannot be reused for new permissions
-        - Role-permission-mapping entries referencing deleted permission are also soft-deleted
-        - Use with caution in production environments as deletion cannot be undone through API
-        - Deletion is logged with audit trail for compliance and security
-        - Any roles mapped to this permission will have the mapping removed
+        This API soft deletes a permission from the system while preserving the record for audit and compliance purposes. Admin-only operation requiring `admin` or `org_admin` role that marks the permission as deleted in the database without permanent removal. Cascading soft deletion also removes role-permission-mapping entries, and the permission code remains reserved preventing reuse. Use with caution as deletion is permanent through the API and cannot be undone.
 
-        **Validation Rules**:
-        - Permission ID must be a valid positive integer (1 to 2147483647) and exist in the system
-        - Permission must not have already been deleted
-        - ID parameter is required and cannot be empty or null
+        **Validations**:
+        - Permission ID must be a valid positive integer (1 to 2147483647), exist in system, and not be already soft-deleted
+        - Admin or org_admin role required from authentication token
+
       parameters:
         - name: X-auth-token
           in: header
@@ -1177,24 +1124,13 @@ paths:
         - Role Permission Mapping
       operationId: createRolePermissionMapping
       description: |-
-        **Overview**:
-        - Creates a new mapping between a role and a permission, granting the role access to specific API endpoints and HTTP methods
-        - API automatically retrieves module and request_type from the permission record
-        - created_by field captures the user who created the mapping (from authentication token)
-        - Multiple permissions can be assigned to a single role
-        - Single permission can be assigned to multiple roles
-        - Changes take effect immediately for new user sessions
-        - Existing sessions may require re-authentication to reflect new permissions
-        - Useful for assigning permissions to newly created roles, adding new permissions to existing roles, granting specific API access to role-based user groups, building role-based access control (RBAC) mappings, and supporting permission scaling as new features are added
+        This API creates a mapping between a role and a permission, granting the role access to specific API endpoints and HTTP methods. Admin-only operation that automatically retrieves module and request_type from the permission record and captures the authenticated user ID in created_by field. Changes take effect immediately for new user sessions, though existing sessions may require re-authentication to reflect new permissions. Multiple permissions can be assigned to a single role and vice versa, enabling flexible role-based access control (RBAC) configuration.
 
-        **Validation Rules**:
+        **Validations**:
         - Permission ID must exist in the system and be in ACTIVE status (not soft-deleted)
-        - Role title must exist in the system and follow naming convention: letters, hyphens, underscores only
+        - Role title must exist in the system and follow naming convention (letters, hyphens, underscores only)
         - Each role-permission combination must be unique (no duplicate mappings)
-        - Permission must be in ACTIVE status
-        - Permission must not have been soft-deleted
-        - Permission record must contain valid module, request_type, and api_path
-        - role_title must follow naming convention: letters, hyphens, underscores only
+        - Permission record must contain valid module, request_type, and api_path fields
       parameters:
         - name: X-auth-token
           in: header
@@ -1339,15 +1275,10 @@ paths:
         - Role Permission Mapping
       operationId: listRolePermissionMappings
       description: |-
-        **Overview**:
-        - Retrieves all permissions assigned to the authenticated user's roles with automatic deduplication of request methods across multiple permissions for the same module
-        - User-facing API requiring valid authentication token - any authenticated user can access their own permissions without admin role
-        - Extracts user roles from authentication token and filters role-permission-mapping table by each user role (supports multiple roles)
-        - Returns consolidated permissions grouped by module with deduplicated HTTP methods
-        - Returns only module and request_type fields (not permission codes or IDs)
-        - Supports multiple user roles merged automatically across all assigned roles
-        - Empty result returns 200 status with ROLE_PERMISSION_NOT_FOUND message instead of error
-        - No pagination or search parameters required - automatic extraction from authentication token
+        This API retrieves all modules and HTTP methods accessible to the authenticated user based on their assigned roles. User-facing endpoint that automatically extracts user roles from the authentication token and merges permissions across multiple roles with deduplication. Results are consolidated and grouped by module, returning only module names and allowed HTTP methods without pagination.
+
+        **Validations**:
+        - Authentication token is required and must be valid (any authenticated user can access)
       parameters:
         - name: X-auth-token
           required: true
@@ -1418,24 +1349,13 @@ paths:
         - Role Permission Mapping
       operationId: deleteRolePermissionMapping
       description: |-
-        Deletes a mapping between a role and a permission, removing the role's access to specific API endpoints and HTTP methods.
+        This API permanently deletes a role-permission mapping, revoking the role's access to specific API endpoints and HTTP methods. Admin-only operation that removes the association between a role and permission, immediately affecting user access control. Used by administrators to manage role-based access control (RBAC) lifecycle and revoke specific permissions from roles.
 
-        **Rules**:
+        **Validations**:
         - Role-permission mapping must exist (combination of role_title and permission_id)
         - role_title must exist in the system
         - permission_id must exist in the system
         - Both role_title and permission_id are required fields
-
-        **Use Cases**:
-        - Remove permissions from roles
-        - Revoke API access for specific role-permission combinations
-        - Update role capabilities by removing specific permissions
-        - Manage role-based access control (RBAC) lifecycle
-
-        **Important Notes**:
-        - Operation is permanent - mapping is deleted from database
-        - Changes take effect immediately for new user sessions
-        - Existing sessions may require re-authentication to reflect permission changes
       parameters:
         - name: X-auth-token
           in: header
@@ -1516,34 +1436,14 @@ paths:
         - Entity Types
       operationId: createEntityType
       description: |-
-        Creates a new entity type in the system. Entity types are used to categorize and manage different types of entities (e.g., languages, regions, schools).
+        This API creates new entity types to categorize and organize different types of entities like languages, regions, or schools. Admin-only operation used during system setup and administration to define organizational structures and data classifications. Entity types enable flexible categorization with validation for uniqueness and format requirements.
 
-        **Rules**:
+        **Validations**:
         - Entity type `value` must be globally unique per organization
         - `value` must contain only letters and underscores (no spaces, lowercase)
         - `label` can contain letters, numbers, and spaces
         - `data_type` must contain only letters and brackets (e.g., STRING, Array[STRING])
-        - `status` defaults to ACTIVE if not provided
-        - `allow_filtering` is set automatically by the system (cannot be provided in request)
-        - `allow_custom_entities` defaults to true
-        - `has_entities` defaults to true
-
-        **Optional Advanced Fields**:
-        - `is_external`: Boolean flag to mark entity type as external (stored in config)
-        - `depended_on`: Entity type ID this type depends on (must exist and belong to same org)
-        - `model`: Data model mapping for external integrations
-
-        **Use Cases**:
-        - Create organizational entity types for categorization
-        - Define custom entity types for business requirements
-        - Set up external entity type integrations
-        - Create dependent entity hierarchies
-
-        **Important Notes**:
-        - Entity type value is auto-converted to lowercase
-        - Organization code and tenant code are derived from authentication token
-        - Created by and Updated by are automatically captured from user token
-        - Config object is automatically populated with external and dependency metadata
+        - `depended_on` entity type ID must exist and belong to same organization if provided
       parameters:
         - name: X-auth-token
           in: header
@@ -1745,9 +1645,9 @@ paths:
         - Entity Types
       operationId: updateEntityType
       description: |-
-        Updates an existing entity type configuration. Allows modification of entity type properties such as value, label, status, and advanced options.
+        This API modifies existing entity type configurations to update properties like value, label, status, and dependencies. Admin-only operation used during system maintenance and administration to evolve entity type definitions as organizational needs change. Changes take effect immediately with validation for uniqueness and format requirements.
 
-        **Rules**:
+        **Validations**:
         - Entity type ID must exist in the system
         - Updated `value` must remain unique per organization if changed
         - `value` must contain only letters and underscores (no spaces, lowercase)
@@ -1755,29 +1655,7 @@ paths:
         - `data_type` must contain only letters and brackets (e.g., STRING, Array[STRING])
         - `data_type` is mandatory and must be provided in update
         - `status` must be either ACTIVE or INACTIVE
-        - `allow_filtering` cannot be modified (system-controlled)
-        - Value is auto-converted to lowercase during update
-
-        **Optional Update Fields**:
-        - `value`: Update unique identifier (will be converted to lowercase)
-        - `label`: Update descriptive label
-        - `status`: Change entity type status (ACTIVE/INACTIVE)
-        - `is_external`: Boolean flag for external entity type (stored in config)
-        - `depended_on`: Entity type ID this type depends on (must exist and belong to same org)
-
-        **Use Cases**:
-        - Update entity type properties based on business requirements
-        - Change status to activate/deactivate entity types
-        - Update entity type labels or descriptions
-        - Manage entity type configuration changes
-        - Set up dependency relationships
-
-        **Important Notes**:
-        - At least `data_type` is mandatory for updates
-        - Organization code and tenant code are derived from authentication token
-        - Updated by field is automatically captured from user token
-        - Config object is automatically populated with external and dependency metadata
-        - All timestamps are automatically managed
+        - `depended_on` entity type ID must exist and belong to same organization if provided
       parameters:
         - name: X-auth-token
           in: header
@@ -1965,10 +1843,19 @@ paths:
         - Entity Types
       operationId: readEntityType
       description: |-
-        You can use this API to retrieve a list of entity types. 
-         - The API Endpoint for getting the list of entity types is `/scp/v1/entity-types/read` 
-         - It is mandatory to provide values for parameters which are marked as `required` 
-         - This is a mandatory parameter and cannot be empty or null.
+        This API retrieves entity types with two operational modes: fetch specific entity types with their entities, or retrieve all system entity types. Used by administrators and clients to discover entity type configurations with flexible filtering and automatic organization and tenant scoping. Supports optional user-created entity inclusion and provides comprehensive entity type metadata including dependencies and configurations.
+
+        **Two Operational Modes**:
+
+        **Mode 1 - Read Specific Entity Types** (provide `value` array): Returns entity types matching the provided values with their ACTIVE associated entities, filtered to user's organization and tenant.
+
+        **Mode 2 - Read All System Entity Types** (empty request body): Returns all ACTIVE entity types available to the organization, including both organization-specific and system-wide (default organization) entity types without nested entities.
+
+        **Validations**:
+        - Authentication token is required and must be valid (admin or org_admin role)
+        - Entity type values must exist in the system if provided in value array
+        - Only ACTIVE entity types and entities are returned
+        - Results automatically scoped to authenticated user's organization and tenant
       parameters:
         - name: X-auth-token
           in: header
@@ -1992,17 +1879,17 @@ paths:
                     example: 'ln'
                 read_user_entity:
                   type: boolean
-                  description: 'Deprecated - ignored when value array is provided'
+                  description: 'Optional flag to include user-created entities in results. Defaults to false'
             examples:
               example1:
-                summary: 'Fetch specific entity types with entities'
+                summary: 'Mode 1: Fetch specific entity types with entities (provide value array)'
                 value:
                   value:
                     - ln
                     - region
                   read_user_entity: true
               example2:
-                summary: 'Fetch all system entity types'
+                summary: 'Mode 2: Fetch all system entity types (empty body or no value array)'
                 value: {}
       responses:
         '200':
@@ -2121,7 +2008,7 @@ paths:
                                 format: date-time
               examples:
                 example1:
-                  summary: 'With entity types and entities'
+                  summary: 'Mode 1 Response: Entity types with entities'
                   value:
                     responseCode: OK
                     message: Entity type fetched successfully
@@ -2155,6 +2042,21 @@ paths:
                             updated_by: null
                             created_at: '2023-09-21T10:16:33.583Z'
                             updated_at: '2023-09-21T10:16:33.583Z'
+                example2:
+                  summary: 'Mode 2 Response: All system entity types (without entities)'
+                  value:
+                    responseCode: OK
+                    message: Entity type fetched successfully
+                    result:
+                      - id: 4
+                        value: ln
+                        label: Languages
+                      - id: 5
+                        value: region
+                        label: Regions
+                      - id: 6
+                        value: subject
+                        label: Subjects
         '400':
           description: 'Bad Request - Entity type not found or invalid input'
           content:
@@ -2168,18 +2070,12 @@ paths:
         - Entity Types
       operationId: deleteEntityType
       description: |-
-        Soft deletes an entity type from the system. The record is marked as deleted but preserved in the database for audit and compliance.
+        This API soft deletes an entity type from the system while preserving the record for audit and compliance purposes. Admin-only operation that marks the entity type as deleted without permanent removal, cascading the deletion to related entities and model mappings. Used by administrators to decommission entity types while maintaining audit trails and compliance documentation. Soft deletion is permanent through the API and cannot be undone.
 
-        **Business Rules**:
-        - Entity type ID must exist in the system
-        - Entity type must belong to user's organization
-        - Soft deletion is permanent (cannot be undone through API)
-
-        **Important Notes**:
-        - Cascading soft delete: All related Entity and EntityModelMapping records are soft-deleted
-        - Use with caution in production environments
-        - Deletion is logged with audit trail for compliance and security
-        - Deleted entity type will not appear in list/read operations
+        **Validations**:
+        - Entity type ID must exist in the system and belong to user's organization
+        - Entity type must be in the same tenant as the authenticated user
+        - Admin or org_admin role required from authentication token
       parameters:
         - name: X-auth-token
           in: header
@@ -2217,17 +2113,30 @@ paths:
                     example: {}
               examples:
                 example1:
-                  summary: 'Successful deletion'
+                  summary: 'Successful entity type deletion'
                   value:
                     responseCode: OK
-                    message: Entity type deleted successfully
-                    result: []
+                    message: ENTITY_TYPE_DELETED_SUCCESSFULLY
+                    result: {}
         '400':
           description: 'Bad Request - Entity type not found or invalid ID'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/updateUserEntityType400Response'
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: CLIENT_ERROR
+                  message:
+                    type: string
+                    example: ENTITY_TYPE_NOT_FOUND
+              examples:
+                example1:
+                  summary: 'Entity type not found'
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: ENTITY_TYPE_NOT_FOUND
   /scp/v1/entities/create:
     post:
       summary: Create Entity
@@ -2235,27 +2144,14 @@ paths:
         - Entity
       operationId: createEntity
       description: |-
-        Creates a new entity within a specified entity type. Entities are organizational units categorized by entity types (e.g., languages, regions, schools).
+        This API creates new entities within a specified entity type to build organizational units and data classifications. Admin-only operation used to populate entity types with values like languages, regions, or schools. Entity values are automatically converted to lowercase and enforced as unique per entity type, organization, and tenant. Organization and tenant context are automatically set from the authentication token.
 
-        **Rules**:
+        **Validations**:
         - Entity `value` must be unique per entity type, organization, and tenant (automatically converted to lowercase)
-        - `label` can contain letters, numbers, and spaces
         - `value` must contain only letters and underscores (no spaces, no special characters)
-        - `entity_type_id` must reference an existing entity type in the system
+        - `label` can contain letters, numbers, and spaces
+        - `entity_type_id` must reference an existing entity type in the system and belong to the same organization and tenant
         - `status` defaults to ACTIVE if not provided (ACTIVE or INACTIVE)
-        - `type` is optional and typically set to SYSTEM or USER (user-defined classification)
-        - Organization code and tenant code are automatically set from authentication token
-
-        **Use Cases**:
-        - Create language options for projects
-        - Define regional categorizations
-        - Add school/institution entities to system
-        - Build organizational unit hierarchies
-
-        **Important Notes**:
-        - Duplicate values within same entity type are rejected
-        - All created/updated timestamps are automatically managed
-        - created_by captures authenticated user ID
       parameters:
         - name: X-auth-token
           in: header
@@ -2294,11 +2190,26 @@ paths:
                 - entity_type_id
             examples:
               example1:
-                summary: 'Create Basic Entity'
+                summary: 'Create Basic Entity (Minimal - Required Fields Only)'
                 value:
                   value: en
                   label: English
                   entity_type_id: 4
+              example2:
+                summary: 'Create Entity with Status'
+                value:
+                  value: hi
+                  label: Hindi
+                  entity_type_id: 4
+                  status: ACTIVE
+              example4:
+                summary: 'Create Entity with All Optional Fields'
+                value:
+                  value: es
+                  label: Spanish
+                  entity_type_id: 4
+                  status: ACTIVE
+                  type: USER
       responses:
         '201':
           description: 'Entity created successfully'
@@ -2405,7 +2316,30 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/createEntity400Response'
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    description: 'Response code (CLIENT_ERROR for failure)'
+                  message:
+                    type: string
+                    description: 'Error message key from en.json (ENTITY_ALREADY_EXISTS or ENTITY_TYPE_NOT_FOUND)'
+                  result:
+                    type: object
+                    description: 'Empty object on error'
+              examples:
+                example1:
+                  summary: 'Entity Already Exists'
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Entity already exists
+                    result: {}
+                example2:
+                  summary: 'Entity Type Not Found'
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: Entity Type Not Found
+                    result: {}
   '/scp/v1/entities/update/{id}':
     put:
       summary: Update Entity
@@ -2413,24 +2347,18 @@ paths:
         - Entity
       operationId: updateEntity
       description: |-
-        Updates an existing entity with new values. Allows modification of entity properties such as value, label, status, and type.
+        This API modifies an existing entity with updated values for label, status, type, or entity type assignment. Admin-only operation used to maintain entity configurations, change status, or correct entity values within the system. At least one field must be provided to perform an update, and value must remain unique per entity type and organization if changed. Entity ID must exist and belong to the authenticated user's organization and tenant.
 
-        **Business Rules**:
-        - Entity ID must exist and belong to user's organization and tenant
-        - Updated `value` must remain unique per entity type if changed (automatically converted to lowercase)
+        **Validations**:
+        - Entity ID must exist in the system and belong to user's organization and tenant
+        - At least one field must be provided for update (cannot send empty body)
+        - Updated `value` must remain unique per entity type, organization, and tenant if changed (automatically converted to lowercase)
         - `value` must contain only letters and underscores (no spaces, no special characters)
         - `label` can contain letters, numbers, and spaces
-        - `entity_type_id` if provided must reference an existing entity type
+        - `entity_type_id` if provided must reference an existing entity type in same organization and tenant
         - `status` must be either ACTIVE or INACTIVE
         - `type` is optional custom classification (all uppercase letters only)
-        - At least one field must be provided for update (cannot send empty body)
-        - updated_by is automatically set to authenticated user ID
-
-        **Use Cases**:
-        - Change entity status (activate/deactivate)
-        - Update entity label or description
-        - Change entity classification type
-        - Correct entity values
+        - `updated_by` is automatically set to authenticated user ID
 
       parameters:
         - name: X-auth-token
@@ -2475,10 +2403,31 @@ paths:
                   description: 'Entity classification type (optional, all uppercase letters only)'
             examples:
               example1:
+                summary: 'Update Entity Label Only'
                 value:
                   label: English US
+              example2:
+                summary: 'Update Entity Status'
+                value:
+                  status: INACTIVE
+              example3:
+                summary: 'Update Entity Type Classification'
+                value:
+                  type: USER
+              example4:
+                summary: 'Update Entity Value'
+                value:
+                  value: eng
+              example5:
+                summary: 'Update Multiple Fields'
+                value:
+                  label: English Language
                   status: ACTIVE
-                  entity_type_id: 1
+                  type: SYSTEM
+              example6:
+                summary: 'Change Entity Type Assignment'
+                value:
+                  entity_type_id: 2
       responses:
         '202':
           description: 'Entity updated successfully (Accepted)'
@@ -2557,16 +2506,16 @@ paths:
                     result:
                       id: 1
                       value: en
-                      label: English
+                      label: English US
                       status: ACTIVE
                       type: SYSTEM
                       entity_type_id: 1
                       organization_code: 'sot'
                       tenant_code: 'shikshalokam'
                       created_by: '12345'
-                      updated_by: '67890'
+                      updated_by: '12345'
                       created_at: '2023-07-20T10:00:00.000Z'
-                      updated_at: '2023-07-21T21:46:41.392Z'
+                      updated_at: '2023-07-22T10:30:25.500Z'
                       deleted_at: null
                     meta:
                       formsVersion: []
@@ -2583,40 +2532,19 @@ paths:
         - Entity
       operationId: readEntity
       description: |-
-        Retrieves detailed information about one or more entities. Supports three operational modes for flexible querying.
+        This API retrieves one or more entities using flexible query modes: by ID, by value, or all entities for the user's organization. Supports filtering by specific entity identifiers or retrieving complete entity lists with optional inclusion of user-created entities. Only ACTIVE entities are returned with automatic scoping to the authenticated user's organization and tenant. Used to fetch entity data for UI dropdowns, forms, configurations, or administrative entity management.
 
         **Three Operational Modes**:
 
-        **Mode 1 - Read by ID** (query param: `id=<number>`):
-        - Fetch specific entity by its ID
-        - Returns single entity if found
-        - Filters for ACTIVE status only
-        - Scope: System entities + user-created entities
+        **Mode 1 - Read by ID** (query param: `id=<number>`): Fetches a specific entity by its ID, returning a single entity if found from both system and user-created entities within the organization and tenant scope.
 
-        **Mode 2 - Read by Value** (query param: `value=<string>`):
-        - Fetch specific entity by its value/identifier (case-insensitive)
-        - Value automatically converted to lowercase
-        - Returns single entity if found
-        - Filters for ACTIVE status only
-        - Scope: System entities + user-created entities
+        **Mode 2 - Read by Value** (query param: `value=<string>`): Fetches a specific entity by its value/identifier (case-insensitive, auto-converted to lowercase), returning a single entity if found from both system and user-created entities.
 
-        **Mode 3 - Read All** (no query params or `read_user_entity=true`):
-        - Fetch all system entities (default)
-        - If `read_user_entity=true`: fetch both system and user-created entities
-        - Returns array of all matching entities
-        - Scope: Scoped to user's organization and tenant
+        **Mode 3 - Read All** (no query params or `read_user_entity=<true|false>`): Fetches all system entities by default; if `read_user_entity=true`, includes both system and user-created entities for the authenticated user's organization and tenant.
 
-        **Business Rules**:
-        - Only returns ACTIVE entities (deleted/inactive entities excluded)
-        - Results automatically scoped to authenticated user's organization and tenant
-        - Case-insensitive value matching
-        - User can only see their own created entities or system-wide entities
-
-        **Use Cases**:
-        - Display entity details by ID
-        - Search for entity by value
-        - List all system entities for dropdown/selection
-        - Load all user-created entities for admin purposes
+        **Validations**:
+        - Query parameters are mutually exclusive (id and value cannot be used together)
+        - Entity ID must be a valid positive integer (1 to 2147483647) if provided
 
       parameters:
         - name: X-auth-token
@@ -2719,7 +2647,7 @@ paths:
                   summary: 'Mode 1 - Fetch by ID (Single Entity Response)'
                   value:
                     responseCode: OK
-                    message: Entity fetched successfully
+                    message: ENTITY_FETCHED_SUCCESSFULLY
                     result:
                       - id: 1
                         entity_type_id: 1
@@ -2773,7 +2701,24 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/updateUserEntity400Response'
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    description: 'Response code (CLIENT_ERROR for failure)'
+                  message:
+                    type: string
+                    description: 'Error message key from en.json'
+                  result:
+                    type: object
+                    description: 'Empty object on error'
+              examples:
+                example1:
+                  summary: 'Entity Not Found (by ID or Value)'
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: ENTITY_NOT_FOUND
+                    result: {}
     parameters: []
   '/scp/v1/entities/delete/{id}':
     delete:
@@ -2782,18 +2727,11 @@ paths:
         - Entity
       operationId: deleteEntity
       description: |-
-        Soft deletes an entity from the system. The entity record is marked as deleted but preserved in the database for audit and compliance purposes.
+        This API performs a soft delete on an entity, marking it as deleted in the database while preserving the record for audit purposes. It is used by administrators to decommission entities without permanent removal, ensuring compliance and maintaining historical data. Soft deletion is permanent and cannot be undone.
 
-        **Rules**:
-        - Entity ID must exist in the system
-        - User must be the creator of the entity (or admin)
-        - Entity must belong to user's organization and tenant
-        - HTTP status 202 (Accepted) indicates soft delete is processed
-
-        **Use Cases**:
-        - Remove entity definitions from active use while preserving history
-        - Archive outdated entities with full audit trail
-        - Decommission entities with compliance logging
+        **Validations**:
+        - Entity ID must be a valid positive integer (1 to 2147483647)
+        - Entity must exist and not already be deleted
 
       parameters:
         - name: X-auth-token
@@ -2840,19 +2778,36 @@ paths:
                         type: string
               examples:
                 example1:
+                  summary: 'Entity Deleted Successfully (Soft Delete)'
                   value:
                     responseCode: OK
-                    message: Entity deleted successfully
-                    result: []
+                    message: ENTITY_DELETED_SUCCESSFULLY
+                    result: {}
                     meta:
                       formsVersion: []
-                      correlation: 2f8b1d3d-0a25-4dda-ae5f-8d8bb9dd9282
         '400':
-          description: Bad Request. User Entity has already been deleted.
+          description: 'Bad Request - Entity not found or already deleted'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/updateUserEntity400Response'
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    description: 'Response code (CLIENT_ERROR for failure)'
+                  message:
+                    type: string
+                    description: 'Error message key from en.json'
+                  result:
+                    type: object
+                    description: 'Empty object on error'
+              examples:
+                example1:
+                  summary: 'Entity Not Found or Already Deleted'
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: ENTITY_NOT_FOUND
+                    result: {}
   /scp/v1/entities/list:
     get:
       operationId: listEntities
@@ -2860,28 +2815,15 @@ paths:
       tags:
         - Entity
       description: |-
-        Retrieves a paginated list of entities with optional search and filtering capabilities.
+        This API retrieves a paginated list of entities for a specific entity type, supporting optional search and pagination. It is used by administrators to browse and filter entities within their organization and tenant scope. Results are sorted by creation date for easy management.
 
-        **Features**:
-        - Pagination support with configurable page size (defaults to 100, max 100 per page)
-        - Full-text search on entity label (case-insensitive, iLike matching)
-        - Filter by entity type (required parameter)
-        - Sort by created_at in descending order
-        - Results scoped to authenticated user's organization and tenant
-        - Search text cannot contain special characters (validation error if present)
-        - If no search term provided, returns all entities of specified type
+        **List Entities with Pagination & Search** (required param: `entity_type_id`): Provides paginated results with optional label-based search and configurable page size.
 
-        **Query Parameters**:
-        - `entity_type_id`: Required entity type ID to filter entities (numeric, required)
-        - `page`: Page number for pagination (1-indexed, defaults to 1 if not provided)
-        - `limit`: Records per page (defaults to 100, maximum 100, will be capped at 100)
-        - `search`: Optional search term to filter entities by label (case-insensitive, no special chars)
-
-        **Use Cases**:
-        - Display paginated entity lists for dropdowns
-        - Search entities by label within an entity type
-        - Load organizational entities with filtering
-        - Implement entity browsing with pagination
+        **Validations**:
+        - `entity_type_id` is required and must be a valid positive integer (must reference existing entity type)
+        - `page` must be a positive integer (1-indexed, defaults to 1)
+        - `limit` must be between 1 and 100 (defaults to 100, capped at 100)
+        - `search` text cannot contain special characters if provided
       parameters:
         - name: X-auth-token
           in: header
@@ -3012,22 +2954,23 @@ paths:
       tags:
         - Cloud Services
       description: |-
-        Generates signed URLs for uploading files to cloud storage (Azure Blob Storage). Supports multiple reference types with automatic folder structure generation based on tenant, organization, user, and reference type.
+        This API generates temporary signed URLs for uploading files to cloud storage with support for multiple resource types (certificates, logos, signatures, templates, roll-outs). Used by clients to obtain secure, time-limited upload URLs before pushing files to cloud storage. Automatically organizes files by tenant, organization, and resource type in cloud folder structure. Supports both direct cloud storage URLs and service endpoint URLs based on deployment configuration.
 
         **Reference Types Supported**:
-        - `certificate`: For certificate uploads
-        - `logo`: For logo image uploads
-        - `signature`: For digital signature uploads
-        - `base_template`: For base template files
-        - `roll_out`: For roll-out related file uploads
-        - `certificate_template`: For certificate template files
+        - `certificate`: Certificate file uploads
+        - `logo`: Logo and image uploads
+        - `signature`: Digital signature uploads
+        - `base_template`: Base template files
+        - `roll_out`: Roll-out related files
+        - `certificate_template`: Certificate template files
+        - `resources`: Generic resource files
 
-        **Folder Structure**: Files are stored in path pattern: `tenant_code/organization_code/userId/reference_type/resourceId/uniqueId/filename`
-
-        **Use Cases**:
-        - Get temporary upload URLs for file attachments
-        - Support certificate and template management
-        - Enable user file uploads with cloud storage integration
+        **Validations**:
+        - `request` object must contain resource IDs with non-empty files array (minimum 1 file)
+        - `ref` (reference type) must be one of the supported types listed above
+        - `organization_code` and `tenant_code` must be present in authentication token (required for scope)
+        - File names must follow cloud storage naming conventions (no validation of special characters at API level)
+        - Generated URLs expire after configured time period (default expiry based on environment settings)
 
       parameters:
         - name: X-auth-token
@@ -3045,7 +2988,7 @@ paths:
             enum: ['true', 'false']
           example: 'false'
       requestBody:
-        description: 'Request object containing resource IDs with file names and reference type'
+        description: 'Request object containing resource IDs mapped to files array and reference type for organizing uploads'
         required: true
         content:
           application/json:
@@ -3054,7 +2997,7 @@ paths:
               properties:
                 request:
                   type: object
-                  description: 'Object with resource IDs as keys. Each resource ID contains a files array with file names. Example: { "resourceId1": { "files": ["file1.png", "file2.jpg"] } }'
+                  description: 'Object with resource IDs as keys. Each resource ID maps to an object containing files array with file names to upload. Supports single or multiple files per resource ID'
                   example:
                     resourceId1:
                       files:
@@ -3062,7 +3005,7 @@ paths:
                         - fileName2.jpg
                 ref:
                   type: string
-                  description: 'Reference type for organizing uploads. Determines folder path. Must be one of the supported reference types.'
+                  description: 'Reference type for organizing file uploads in cloud storage folder structure. Determines folder hierarchy and categorization. Must be one of the supported reference types'
                   enum:
                     - certificate
                     - logo
@@ -3077,6 +3020,7 @@ paths:
                 - ref
             examples:
               example1:
+                summary: Multiple files for certificate upload
                 value:
                   request:
                     123:
@@ -3085,15 +3029,25 @@ paths:
                         - attestation.pdf
                   ref: certificate
               example2:
+                summary: Single logo file upload
                 value:
                   request:
-                    logoId456:
+                    logoResourceId:
                       files:
-                        - logo.svg
+                        - company-logo.svg
                   ref: logo
+              example3:
+                summary: Multiple template files
+                value:
+                  request:
+                    templateId456:
+                      files:
+                        - base_template.pdf
+                        - guidelines.docx
+                  ref: base_template
       responses:
         '200':
-          description: 'Signed URLs generated successfully'
+          description: 'Signed URLs generated successfully with expiry time configured for security'
           content:
             application/json:
               schema:
@@ -3101,63 +3055,96 @@ paths:
                 properties:
                   responseCode:
                     type: string
-                    description: 'Response code (OK for success)'
+                    description: 'Response code (OK for success, CLIENT_ERROR for failure)'
+                    example: 'OK'
                   message:
                     type: string
-                    description: 'Status message'
+                    description: 'Status message from en.json locales file'
+                    example: 'Signed Url Generated Successfully.'
                   result:
                     type: object
-                    description: 'Object with resource IDs as keys, each containing files array with signed URLs'
+                    description: 'Object with resource IDs as keys, each containing files array with signed URLs. Each resource ID maps to an object with files array'
                     additionalProperties:
                       type: object
                       properties:
                         files:
                           type: array
-                          description: 'Array of file objects with signed URLs'
+                          description: 'Array of file objects containing signed URLs and metadata for each file'
                           items:
                             type: object
+                            required:
+                              - file
+                              - url
+                              - downloadableUrl
+                              - payload
+                              - cloudStorage
                             properties:
                               file:
                                 type: string
-                                description: 'Full cloud storage file path including resource ID and unique ID'
+                                description: 'Full cloud storage file path in format: tenant_code/organization_code/userId/referenceType/resourceId/uniqueId/filename'
+                                example: 'tenant_code/org_code/userId/certificate/projectId123/abc-uuid-xyz/certificateFile.png'
                               url:
                                 type: string
-                                description: 'Signed URL for file upload (POST/PUT). Valid for configured expiry time.'
+                                description: 'Signed URL for file upload (POST/PUT) with write permission. Valid for configured expiry time (typically a few hours)'
+                                example: 'https://storageaccount.blob.core.windows.net/container/...?sv=2023-01-03&sp=w&sig=SIGNATURE'
                               downloadableUrl:
                                 type: string
-                                description: 'Signed URL for file download (GET). Valid for configured expiry time.'
+                                description: 'Signed URL for file download (GET) with read permission. Valid for configured expiry time (typically a few hours)'
+                                example: 'https://storageaccount.blob.core.windows.net/container/...?sv=2023-01-03&sp=r&sig=SIGNATURE'
                               payload:
                                 type: object
-                                description: 'Metadata object'
+                                description: 'Metadata object containing source file path reference'
+                                required:
+                                  - sourcePath
                                 properties:
                                   sourcePath:
                                     type: string
-                                    description: 'Source file path in cloud storage'
+                                    description: 'Source file path in cloud storage (same as file property)'
+                                    example: 'tenant_code/org_code/userId/certificate/projectId123/abc-uuid-xyz/certificateFile.png'
                               cloudStorage:
                                 type: string
-                                description: 'Cloud storage provider name'
+                                description: 'Cloud storage provider name (configured in environment)'
+                                example: 'AZURE'
                   meta:
                     type: object
-                    description: 'Metadata object (empty)'
+                    description: 'Metadata object containing optional context information (typically empty for this API)'
+                    properties:
+                      correlation:
+                        type: string
+                        description: 'Correlation ID for request tracing (optional)'
               examples:
                 example1:
                   value:
                     responseCode: OK
-                    message: Signed URL Generated Successfully.
+                    message: Signed Url Generated Successfully.
                     result:
                       projectId123:
                         files:
-                          - file: tenant_code/org_code/userId/certificate/projectId123/uniqueId/certificateFile.png
-                            url: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/uniqueId/certificateFile.png?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=w&sig=SIGNATURE_HERE'
-                            downloadableUrl: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/uniqueId/certificateFile.png?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=r&sig=SIGNATURE_HERE'
+                          - file: tenant_code/org_code/userId/certificate/projectId123/abc-uuid-123/certificateFile.png
+                            url: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/abc-uuid-123/certificateFile.png?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-08T07%3A02%3A44Z&sr=b&sp=w&sig=SIGNATURE_HERE'
+                            downloadableUrl: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/abc-uuid-123/certificateFile.png?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-08T07%3A02%3A44Z&sr=b&sp=r&sig=SIGNATURE_HERE'
                             payload:
-                              sourcePath: tenant_code/org_code/userId/certificate/projectId123/uniqueId/certificateFile.png
+                              sourcePath: tenant_code/org_code/userId/certificate/projectId123/abc-uuid-123/certificateFile.png
                             cloudStorage: AZURE
-                          - file: tenant_code/org_code/userId/certificate/projectId123/uniqueId/attestation.pdf
-                            url: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/uniqueId/attestation.pdf?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=w&sig=SIGNATURE_HERE2'
-                            downloadableUrl: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/uniqueId/attestation.pdf?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-10T15%3A02%3A44Z&sr=b&sp=r&sig=SIGNATURE_HERE2'
+                          - file: tenant_code/org_code/userId/certificate/projectId123/abc-uuid-124/attestation.pdf
+                            url: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/abc-uuid-124/attestation.pdf?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-08T07%3A02%3A44Z&sr=b&sp=w&sig=SIGNATURE_HERE2'
+                            downloadableUrl: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/projectId123/abc-uuid-124/attestation.pdf?sv=2023-01-03&st=2024-05-08T03%3A02%3A44Z&se=2024-05-08T07%3A02%3A44Z&sr=b&sp=r&sig=SIGNATURE_HERE2'
                             payload:
-                              sourcePath: tenant_code/org_code/userId/certificate/projectId123/uniqueId/attestation.pdf
+                              sourcePath: tenant_code/org_code/userId/certificate/projectId123/abc-uuid-124/attestation.pdf
+                            cloudStorage: AZURE
+                    meta: {}
+                example2:
+                  value:
+                    responseCode: OK
+                    message: Signed Url Generated Successfully.
+                    result:
+                      logoResourceId:
+                        files:
+                          - file: tenant_code/org_code/userId/logo/logoResourceId/xyz-uuid-789/company-logo.svg
+                            url: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/logo/logoResourceId/xyz-uuid-789/company-logo.svg?sv=2023-01-03&st=2024-05-08T10%3A00%3A00Z&se=2024-05-08T14%3A00%3A00Z&sr=b&sp=w&sig=LOGO_SIGNATURE'
+                            downloadableUrl: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/logo/logoResourceId/xyz-uuid-789/company-logo.svg?sv=2023-01-03&st=2024-05-08T10%3A00%3A00Z&se=2024-05-08T14%3A00%3A00Z&sr=b&sp=r&sig=LOGO_SIGNATURE'
+                            payload:
+                              sourcePath: tenant_code/org_code/userId/logo/logoResourceId/xyz-uuid-789/company-logo.svg
                             cloudStorage: AZURE
                     meta: {}
 
@@ -3168,27 +3155,24 @@ paths:
       tags:
         - Cloud Services
       description: |-
-        Generates downloadable signed URLs for files stored in cloud storage.
+        This API generates temporary signed URLs for downloading files stored in cloud storage with read-only access. Used by clients to retrieve certificates, documents, templates, and other files previously uploaded with time-limited validity for security. Processes batch file requests and returns download URLs scoped to the authenticated user's organization and tenant. Supports Azure Blob Storage and other cloud providers configured in the system.
 
-        **Use Cases**:
-        - Download certificates, images, or documents from storage
-        - Generate temporary access URLs with time-limited validity
-        - Support batch file downloads with multiple paths
-
-        **File Path Requirements**:
-        - Paths must be valid cloud storage paths
-        - Paths must belong to authenticated user's organization/tenant
-        - Path format: `tenant/organization/userId/type/resourceId/uuid/filename`
+        **Validations**:
+        - `filePaths` array is required and must contain at least one valid file path (minimum 1)
+        - Each file path must follow format: `tenant_code/organization_code/userId/reference_type/resourceId/uniqueId/filename`
+        - File paths must exist and be accessible in cloud storage
+        - Empty or null file paths are skipped during processing
+        - Batch processing continues even if individual files fail (partial results returned)
 
       parameters:
         - name: X-auth-token
           in: header
-          description: Authentication token from login API response. Required for all requests.
+          description: 'Authentication token from login API response. Required for all requests. Token provides user context (organization_code, tenant_code, user_id).'
           required: true
           schema:
             type: string
       requestBody:
-        description: Request object containing array of cloud storage file paths
+        description: 'Request object containing array of cloud storage file paths to generate downloadable URLs for'
         required: true
         content:
           application/json:
@@ -3199,21 +3183,30 @@ paths:
               properties:
                 filePaths:
                   type: array
+                  minItems: 1
+                  description: 'Array of cloud storage file paths to generate signed downloadable URLs. Each path should follow the format: tenant_code/organization_code/userId/reference_type/resourceId/uniqueId/filename'
                   items:
                     type: string
-                  description: Array of cloud storage file paths to generate downloadable URLs for
                   example:
-                    - tenant/org/user123/certificate/project1/a1b2c3d4/cert.pdf
-                    - tenant/org/user123/logo/org1/x9y8z7w6/logo.png
-            example:
-              filePaths:
-                - tenant/org/user123/certificate/project1/a1b2c3d4/certificate.pdf
-                - tenant/org/user123/logo/org1/x9y8z7w6/logo.png
-                - tenant/org/user123/signature/sig1/p5q4r3s2/signature.jpg
+                    - tenant_code/org_code/userId/certificate/project1/abc-uuid-123/certificate.pdf
+                    - tenant_code/org_code/userId/logo/org1/xyz-uuid-789/logo.png
+            examples:
+              example1:
+                summary: Multiple file downloads
+                value:
+                  filePaths:
+                    - tenant_code/org_code/userId/certificate/project1/abc-uuid-123/certificate.pdf
+                    - tenant_code/org_code/userId/certificate/project1/abc-uuid-124/attestation.pdf
+                    - tenant_code/org_code/userId/signature/sig1/pqr-uuid-456/signature.jpg
+              example2:
+                summary: Single file download
+                value:
+                  filePaths:
+                    - tenant_code/org_code/userId/logo/logoId/xyz-uuid-789/company-logo.svg
 
       responses:
         '200':
-          description: Downloadable URLs generated successfully
+          description: 'Downloadable URLs generated successfully with read-only access'
           content:
             application/json:
               schema:
@@ -3221,43 +3214,101 @@ paths:
                 properties:
                   responseCode:
                     type: string
-                    example: OK
-                    description: Response status code
+                    description: 'Response status code (OK for success, CLIENT_ERROR for failure)'
+                    example: 'OK'
                   message:
                     type: string
-                    example: DOWNLOAD_URL_GENERATED_SUCCESSFULLY
-                    description: Human-readable status message
+                    description: 'Status message from en.json locales file'
+                    example: 'Download Url Generated Successfully.'
                   result:
                     type: array
-                    description: Array of generated downloadable URLs
+                    description: 'Array of file objects containing download URLs and metadata'
                     items:
                       type: object
+                      required:
+                        - cloudStorage
+                        - filePath
+                        - url
                       properties:
                         cloudStorage:
                           type: string
-                          description: Cloud storage provider (AZURE, GCS, S3, etc.)
-                          example: AZURE
+                          description: 'Cloud storage provider name (configured in environment)'
+                          example: 'AZURE'
                         filePath:
                           type: string
-                          description: Original cloud storage file path
-                          example: tenant/org/user123/certificate/project1/a1b2c3d4/certificate.pdf
+                          description: 'Original cloud storage file path provided in request'
+                          example: 'tenant_code/org_code/userId/certificate/project1/abc-uuid-123/certificate.pdf'
                         url:
                           type: string
-                          description: Signed URL for downloading file (READ permission)
-                          example: https://storage.azure.com/...?sv=2021-06-08&sp=r&sig=XXXX...
-              example:
-                responseCode: OK
-                message: DOWNLOAD_URL_GENERATED_SUCCESSFULLY
-                result:
-                  - cloudStorage: AZURE
-                    filePath: tenant/org/user123/certificate/project1/a1b2c3d4/certificate.pdf
-                    url: https://storage.azure.com/container/tenant/org/user123/certificate/project1/a1b2c3d4/certificate.pdf?sv=2021-06-08&ss=bfqt&srt=sco&sp=racwd&se=2024-01-15T10:30:00Z&sig=XXXXXXXXXXXXXX
-                  - cloudStorage: AZURE
-                    filePath: tenant/org/user123/logo/org1/x9y8z7w6/logo.png
-                    url: https://storage.azure.com/container/tenant/org/user123/logo/org1/x9y8z7w6/logo.png?sv=2021-06-08&ss=bfqt&srt=sco&sp=racwd&se=2024-01-15T10:30:00Z&sig=XXXXXXXXXXXXXX
-                  - cloudStorage: AZURE
-                    filePath: tenant/org/user123/signature/sig1/p5q4r3s2/signature.jpg
-                    url: https://storage.azure.com/container/tenant/org/user123/signature/sig1/p5q4r3s2/signature.jpg?sv=2021-06-08&ss=bfqt&srt=sco&sp=racwd&se=2024-01-15T10:30:00Z&sig=XXXXXXXXXXXXXX
+                          description: 'Signed URL for downloading file (GET) with read-only permission. Valid for configured expiry time (typically a few hours)'
+                          example: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/project1/abc-uuid-123/certificate.pdf?sv=2023-01-03&st=2024-05-08T10%3A00%3A00Z&se=2024-05-08T14%3A00%3A00Z&sr=b&sp=r&sig=DOWNLOAD_SIGNATURE'
+                  meta:
+                    type: object
+                    description: 'Metadata object (typically empty for this API)'
+              examples:
+                example1:
+                  summary: Multiple files download response
+                  value:
+                    responseCode: OK
+                    message: Download Url Generated Successfully.
+                    result:
+                      - cloudStorage: AZURE
+                        filePath: tenant_code/org_code/userId/certificate/project1/abc-uuid-123/certificate.pdf
+                        url: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/project1/abc-uuid-123/certificate.pdf?sv=2023-01-03&st=2024-05-08T10%3A00%3A00Z&se=2024-05-08T14%3A00%3A00Z&sr=b&sp=r&sig=SIGNATURE_1'
+                      - cloudStorage: AZURE
+                        filePath: tenant_code/org_code/userId/certificate/project1/abc-uuid-124/attestation.pdf
+                        url: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/certificate/project1/abc-uuid-124/attestation.pdf?sv=2023-01-03&st=2024-05-08T10%3A00%3A00Z&se=2024-05-08T14%3A00%3A00Z&sr=b&sp=r&sig=SIGNATURE_2'
+                      - cloudStorage: AZURE
+                        filePath: tenant_code/org_code/userId/signature/sig1/pqr-uuid-456/signature.jpg
+                        url: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/signature/sig1/pqr-uuid-456/signature.jpg?sv=2023-01-03&st=2024-05-08T10%3A00%3A00Z&se=2024-05-08T14%3A00%3A00Z&sr=b&sp=r&sig=SIGNATURE_3'
+                    meta: {}
+                example2:
+                  summary: Single file download response
+                  value:
+                    responseCode: OK
+                    message: Download Url Generated Successfully.
+                    result:
+                      - cloudStorage: AZURE
+                        filePath: tenant_code/org_code/userId/logo/logoId/xyz-uuid-789/company-logo.svg
+                        url: 'https://storageaccount.blob.core.windows.net/container/tenant_code/org_code/userId/logo/logoId/xyz-uuid-789/company-logo.svg?sv=2023-01-03&st=2024-05-08T12%3A00%3A00Z&se=2024-05-08T16%3A00%3A00Z&sr=b&sp=r&sig=LOGO_SIGNATURE'
+                    meta: {}
+
+        '400':
+          description: 'Bad Request - Invalid input or no valid file paths provided'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    example: 'Invalid request or no file paths provided'
+              examples:
+                emptyArray:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: 'filePaths array is required and must contain at least one file path'
+                missingParameter:
+                  value:
+                    responseCode: CLIENT_ERROR
+                    message: 'filePaths parameter is required'
+
+        '500':
+          description: 'Internal Server Error - Cloud service or unexpected error occurred'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    example: 'Failed to generate downloadable URLs. Please try again.'
 
   /scp/v1/form/create:
     post:
