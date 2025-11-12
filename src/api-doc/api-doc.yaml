@@ -6151,22 +6151,7 @@ paths:
       tags:
         - Review
       description: |-
-        **Overview**:
-        - Initiates review process for a submitted resource by a reviewer
-        - Creates review record if not exists or updates existing review to INPROGRESS
-        - Validates resource is available for review (not PUBLISHED, REJECTED, or DRAFT)
-        - Updates resource status to INPROGRESS if not already in REQUESTED_FOR_CHANGES
-        - Records last_reviewed_on timestamp in resource
-        - Supports both sequential and parallel review workflows based on organization config
-        - Prevents multiple reviewers from reviewing simultaneously in sequential mode
-
-        **Validation Rules**:
-        - `resourceId` must be a valid integer (1 to 2147483647)
-        - Resource must exist in reviewer's organization and tenant
-        - Resource must be in reviewable status (SUBMITTED, IN_REVIEW, INPROGRESS, CHANGES_UPDATED)
-        - For sequential review: no other reviewer should be actively reviewing
-        - Reviewer must have reviewer role in organization
-        - Review record created with status INPROGRESS
+        This API initiates the review process by a reviewer for a submitted resource and creates or updates the review record to INPROGRESS status. Supports both sequential and parallel review workflows based on organization configuration, with enforcement of exclusivity in sequential mode to prevent simultaneous reviews. Updates resource status to INPROGRESS while recording the last_reviewed_on timestamp for audit tracking. Used by reviewers to begin assessment of resources during the approval workflow.
       parameters:
         - name: X-auth-token
           in: header
@@ -6231,23 +6216,7 @@ paths:
       tags:
         - Review
       description: |-
-        **Overview**:
-        - Allows reviewer to request changes on a resource under review
-        - Updates review status to REQUESTED_FOR_CHANGES
-        - Optionally creates or updates comments associated with the review
-        - Updates resource status to REQUESTED_FOR_CHANGES
-        - Records last_reviewed_on timestamp in resource
-        - Validates reviewer has an active review for the resource
-        - Prevents requesting changes if already requested
-
-        **Validation Rules**:
-        - `resourceId` must be a valid integer (1 to 2147483647)
-        - Resource must exist in reviewer's organization and tenant
-        - Resource must be in reviewable status (SUBMITTED, IN_REVIEW, INPROGRESS, CHANGES_UPDATED)
-        - Reviewer must have an ongoing review record for the resource
-        - Review status cannot already be REQUESTED_FOR_CHANGES
-        - `comment` is optional but if provided can be object or array of objects
-        - Comments support draft status and can be finalized with OPEN status
+        This API allows reviewers to request changes on a resource under review and optionally attach comments with detailed feedback. Updates the review status to REQUESTED_FOR_CHANGES and resource status accordingly while recording the last_reviewed_on timestamp. Supports both single and bulk comment submissions with draft and open visibility modes for flexible feedback management. Used by reviewers to communicate required modifications before approval during the review workflow.
       parameters:
         - name: X-auth-token
           in: header
@@ -6349,25 +6318,7 @@ paths:
       tags:
         - Review
       description: |-
-        This API enables reviewers to approve resources during review and automatically publish them when approval thresholds are met. It checks organization-configured approval requirements and manages the transition from review to publication, making it essential for resource completion workflows in review portals and quality assurance processes.
-
-        **Overview**:
-        - Approves a resource under review and updates review status to APPROVED
-        - Checks if minimum approval threshold is met based on organization configuration
-        - Automatically publishes resource if approval threshold reached
-        - Supports sequential review (next stage increment) and parallel review workflows
-        - Optionally creates or updates comments associated with the approval
-        - Records last_reviewed_on timestamp in resource for audit tracking
-        - Deletes all comments after successful publication
-
-        **Validation Rules**:
-        - `resourceId` must be a valid integer (1 to 2147483647)
-        - Resource must exist in reviewer's organization and tenant
-        - Resource must be in reviewable status (SUBMITTED, IN_REVIEW, INPROGRESS, CHANGES_UPDATED)
-        - Reviewer must have an ongoing review record for the resource
-        - Review cannot already be APPROVED or REQUESTED_FOR_CHANGES
-        - `comment` is optional (can be array of comment objects)
-        - Resource publishes when approved count >= min_approval from org config
+        This API enables reviewers to approve resources under review and automatically publishes them when approval thresholds are met based on organization configuration. Updates review status to APPROVED with support for both sequential and parallel review workflows while recording audit timestamps. Optionally accepts comments for approval feedback and automatically cleans up all associated comments upon successful publication. Used by reviewers to complete resource approval and trigger publication when minimum approval requirements are satisfied.
       parameters:
         - name: X-auth-token
           in: header
@@ -6468,24 +6419,7 @@ paths:
       tags:
         - Review
       description: |-
-        This API enables reviewers to decline resource approval when quality standards are not met or escalate issues to administrators by marking resources as rejected or reported. It maintains audit trails through detailed notes and comments, supporting quality control and compliance workflows throughout the resource approval lifecycle in review portals and publication workflows.
-
-        **Overview**:
-        - Allows reviewer to reject or report a resource under review with optional notes and comments
-        - Updates review status to REJECTED or REJECTED_AND_REPORTED based on isReported flag
-        - Updates resource status to final state and sets stage to COMPLETION
-        - Records last_reviewed_on timestamp in resource for audit tracking
-        - Certain resource types cannot be rejected (configured via NON_REJECTABLE_RESOURCE_TYPES)
-
-        **Validation Rules**:
-        - `resourceId` must be a valid integer (1 to 2147483647)
-        - `isReported` is optional boolean (true for report with escalation, false/omitted for reject)
-        - Resource must exist in reviewer's organization and tenant
-        - Resource must be in reviewable status (SUBMITTED, IN_REVIEW, INPROGRESS, CHANGES_UPDATED)
-        - Resource type must be rejectable (not in NON_REJECTABLE_RESOURCE_TYPES)
-        - Reviewer must have an ongoing review record for the resource
-        - `notes` is optional but must contain alphanumeric characters and allowed symbols
-        - `comment` is optional (can be object or array of objects for detailed feedback)
+        This API enables reviewers to decline resource approval by rejecting or escalating issues through the report flag based on quality assessment outcomes. Updates review and resource status to final states while recording audit timestamps and optional notes explaining the rejection reason. Supports optional comments and comprehensive feedback with configurable resource type rejection restrictions for compliance. Used by reviewers to return resources that don't meet quality standards or to escalate policy violations to administrators.
       parameters:
         - name: X-auth-token
           in: header
