@@ -10524,45 +10524,44 @@ paths:
       summary: List Certificate Templates
       tags:
         - Certificate
-      description: |-
-        You can use this API to list certificate templates.
+      description: |
+        This API retrieves all certificate base templates configured for an organization. Certificate templates are used as base designs for generating customized certificates with organization-specific logos, signatures, and branding. This API is used to display available certificate templates in the certificate management interface, allowing users to select templates for certificate customization and generation workflows.
 
-        - The API endpoint for listing certificate templates is `/scp/v1/certificates/list`. 
-        - It is mandatory to provide values for parameters marked as `required`.
-        - The X-auth-token header is required and cannot be empty or null.
+        **Overview:**
+        - Retrieves certificate templates scoped to authenticated user's organization and tenant
+        - Returns templates with full metadata including logos and signatures configuration
+        - Fetches presigned URLs for accessing template SVG files from cloud storage
+        - Supports filtering by resource type (project, program, etc.)
+        - Supports searching templates by name
+        - Returns empty list if no templates match the filter criteria
+
+        **Validations:**
+        - X-auth-token must be valid and contain organization_code and tenant_code
+        - `resource_type` is optional (query parameter) - if omitted, returns templates for all resource types
+        - `search` is optional (query parameter) - filters templates by name using case-insensitive matching
+        - `page` and `limit` parameters are optional for pagination (defaults provided by service)
       parameters:
         - name: X-auth-token
           in: header
-          description: 'To use this API, you require an X-auth-token. This is available in the login API response.'
+          description: 'Authentication token containing user_id, organization_code, and tenant_code.'
           required: true
           schema:
             type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: query
           name: resource_type
-          description: Resource type for which certificate templates need to be fetched.
+          description: Optional resource type to filter templates (e.g., project, program).
           schema:
             type: string
           example: project
         - in: query
-          name: page
-          description: Page number for pagination.
-          schema:
-            type: integer
-          example: 1
-        - in: query
-          name: limit
-          description: Number of records per page.
-          schema:
-            type: integer
-          example: 10
-        - in: query
           name: search
-          description: Search keyword for filtering templates (e.g., by name).
+          description: Optional search keyword to filter templates by name (case-insensitive).
           schema:
             type: string
           example: one logo
       responses:
-        '201':
+        '200':
           description: Certificate template listed successfully
           content:
             application/json:
@@ -10602,37 +10601,25 @@ paths:
                               type: object
                               properties:
                                 logos:
-                                  type: object
-                                  properties:
-                                    no_of_logos:
-                                      type: integer
-                                    stateLogo1:
-                                      type: string
-                                      nullable: true
-                                    stateLogo2:
-                                      type: string
-                                      nullable: true
-                                signature:
-                                  type: object
-                                  properties:
-                                    no_of_signature:
-                                      type: integer
-                                    signatureImg1:
-                                      type: string
-                                      nullable: true
-                                    signatureImg2:
-                                      type: string
-                                      nullable: true
-                                signatureTitleName1:
-                                  type: string
-                                signatureTitleDesignation1:
-                                  type: string
-                                signatureTitleName2:
-                                  type: string
-                                  nullable: true
-                                signatureTitleDesignation2:
-                                  type: string
-                                  nullable: true
+                                  type: array
+                                  description: Array of logo configurations
+                                  items:
+                                    type: object
+                                    properties:
+                                      stateLogo:
+                                        type: string
+                                signatures:
+                                  type: array
+                                  description: Array of signature configurations
+                                  items:
+                                    type: object
+                                    properties:
+                                      signature:
+                                        type: string
+                                      signatureName:
+                                        type: string
+                                      signatureDesignation:
+                                        type: string
                                 QrCode:
                                   type: string
                                   nullable: true
@@ -10652,13 +10639,7 @@ paths:
                               type: string
                       count:
                         type: integer
-                  meta:
-                    type: object
-                    properties:
-                      formsVersion:
-                        type: object
-                      correlation:
-                        type: string
+                        description: Total number of certificate templates in result
               examples:
                 example1:
                   value:
@@ -10667,105 +10648,105 @@ paths:
                     result:
                       data:
                         - id: 1
-                          code: one_logo_one_sign
+                          code: onelogo_onesign
                           name: One Logo One Signature
-                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/dcccf547-e625-48fd-a1f5-902c1f77a0db/one_logo_one_sign.svg'
+                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/dcccf547-e625-48fd-a1f5-902c1f77a0db/onelogo_onesign.svg'
                           resource_type: project
                           organization_code: default_code
                           tenant_code: shikshagraha
                           meta:
                             logos:
-                              no_of_logos: 1
-                              stateLogo1: null
-                            signature:
-                              no_of_signature: 1
-                              signatureImg1: null
-                            signatureTitleName1: Name
-                            signatureTitleDesignation1: Designation
+                              - stateLogo: stateLogo1
+                            signatures:
+                              - signature: signatureImg1
+                                signatureName: signatureTitleName1
+                                signatureDesignation: signatureTitleDesignation1
                             QrCode: null
                           created_by: '0'
                           created_at: '2025-09-02T09:14:10.843Z'
                           updated_at: '2025-09-02T09:14:10.844Z'
                           deleted_at: null
-                          filePath: 'system/BASE_TEMPLATE/resource/cert/dcccf547-e625-48fd-a1f5-902c1f77a0db/one_logo_one_sign.svg'
+                          filePath: 'system/BASE_TEMPLATE/resource/cert/dcccf547-e625-48fd-a1f5-902c1f77a0db/onelogo_onesign.svg'
                         - id: 2
-                          code: one_logo_two_sign
+                          code: onelogo_twosign
                           name: One Logo Two Signature
-                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/09d123e7-6795-4123-a920-a79629e65486/one_logo_two_sign.svg'
+                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/09d123e7-6795-4123-a920-a79629e65486/onelogo_twosign.svg'
                           resource_type: project
                           organization_code: default_code
                           tenant_code: shikshagraha
                           meta:
                             logos:
-                              no_of_logos: 1
-                              stateLogo1: null
-                            signature:
-                              no_of_signature: 2
-                              signatureImg1: null
-                              signatureImg2: null
-                            signatureTitleName1: Name
-                            signatureTitleDesignation1: Designation
-                            signatureTitleName2: Name
-                            signatureTitleDesignation2: Designation
+                              - stateLogo: stateLogo1
+                            signatures:
+                              - signature: signatureImg1
+                                signatureName: signatureTitleName1
+                                signatureDesignation: signatureTitleDesignation1
+                              - signature: signatureImg2
+                                signatureName: signatureTitleName2
+                                signatureDesignation: signatureTitleDesignation2
                             QrCode: null
                           created_by: '0'
                           created_at: '2025-09-02T09:14:10.845Z'
                           updated_at: '2025-09-02T09:14:10.845Z'
                           deleted_at: null
-                          filePath: 'system/BASE_TEMPLATE/resource/cert/09d123e7-6795-4123-a920-a79629e65486/one_logo_two_sign.svg'
+                          filePath: 'system/BASE_TEMPLATE/resource/cert/09d123e7-6795-4123-a920-a79629e65486/onelogo_twosign.svg'
                         - id: 3
-                          code: two_logo_one_sign
+                          code: twologo_onesign
                           name: Two Logo One Signature
-                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/b9cbcb52-87bc-472b-8b1c-7dcf6170841c/two_logo_one_sign.svg'
+                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/b9cbcb52-87bc-472b-8b1c-7dcf6170841c/twologo_onesign.svg'
                           resource_type: project
                           organization_code: default_code
                           tenant_code: shikshagraha
                           meta:
                             logos:
-                              no_of_logos: 2
-                              stateLogo1: null
-                              stateLogo2: null
-                            signature:
-                              no_of_signature: 1
-                              signatureImg1: null
-                            signatureTitleName1: Name
-                            signatureTitleDesignation1: Designation
+                              - stateLogo: stateLogo1
+                              - stateLogo: stateLogo2
+                            signatures:
+                              - signature: signatureImg1
+                                signatureName: signatureTitleName1
+                                signatureDesignation: signatureTitleDesignation1
                             QrCode: null
                           created_by: '0'
                           created_at: '2025-09-02T09:14:11.930Z'
                           updated_at: '2025-09-02T09:14:11.930Z'
                           deleted_at: null
-                          filePath: 'system/BASE_TEMPLATE/resource/cert/b9cbcb52-87bc-472b-8b1c-7dcf6170841c/two_logo_one_sign.svg'
+                          filePath: 'system/BASE_TEMPLATE/resource/cert/b9cbcb52-87bc-472b-8b1c-7dcf6170841c/twologo_onesign.svg'
                         - id: 4
-                          code: two_logo_two_sign
+                          code: twologo_twosign
                           name: Two Logo Two Signature
-                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/e273fff0-fd1c-4de4-aeba-d6ae1ff9c330/two_logo_two_sign.svg'
+                          url: 'https://mentoring-prod-storage.s3.ap-south-1.amazonaws.com/system/BASE_TEMPLATE/resource/cert/e273fff0-fd1c-4de4-aeba-d6ae1ff9c330/twologo_twosign.svg'
                           resource_type: project
                           organization_code: default_code
                           tenant_code: shikshagraha
                           meta:
                             logos:
-                              no_of_logos: 2
-                              stateLogo1: null
-                              stateLogo2: null
-                            signature:
-                              no_of_signature: 2
-                              signatureImg1: null
-                              signatureImg2: null
-                            signatureTitleName1: Name
-                            signatureTitleDesignation1: Designation
-                            signatureTitleName2: Name
-                            signatureTitleDesignation2: Designation
+                              - stateLogo: stateLogo1
+                              - stateLogo: stateLogo2
+                            signatures:
+                              - signature: signatureImg1
+                                signatureName: signatureTitleName1
+                                signatureDesignation: signatureTitleDesignation1
+                              - signature: signatureImg2
+                                signatureName: signatureTitleName2
+                                signatureDesignation: signatureTitleDesignation2
                             QrCode: null
                           created_by: '0'
                           created_at: '2025-09-02T09:14:11.931Z'
                           updated_at: '2025-09-02T09:14:11.931Z'
                           deleted_at: null
-                          filePath: 'system/BASE_TEMPLATE/resource/cert/e273fff0-fd1c-4de4-aeba-d6ae1ff9c330/two_logo_two_sign.svg'
+                          filePath: 'system/BASE_TEMPLATE/resource/cert/e273fff0-fd1c-4de4-aeba-d6ae1ff9c330/twologo_twosign.svg'
                       count: 4
-                    meta:
-                      formsVersion: {}
-                      correlation: 7588016e-33c6-4580-a679-4e894d7c1141
+        '400':
+          description: Bad Request - Invalid filter parameters or missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                  message:
+                    type: string
 
   /scp/v1/certificates/update:
     post:
