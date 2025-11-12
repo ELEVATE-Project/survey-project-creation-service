@@ -9764,22 +9764,22 @@ paths:
       tags:
         - Organization
       description: |-
-        **Overview**:
-        - Creates organization-specific configuration for resource management
-        - Configures review settings (min approvals, review type, review stages)
-        - Manages data managers and program managers roles
-        - Supports both PARALLEL and SEQUENTIAL review workflows
-        - For SEQUENTIAL review, creates review stages with role hierarchy
-        - Scoped to user's organization and tenant
+        This API creates organization-specific configurations for resource management including review workflows, approval requirements, and role assignments. Organizations use this API to define how resources (projects, programs, surveys, observations, etc.) will be reviewed and approved through either parallel or sequential approval workflows. This API is used during organization setup to establish the foundational review and approval policies that govern resource submission and publication workflows.
 
-        **Validation Rules**:
-        - `resource_type` is required (must be one of configured RESOURCE_TYPES)
-        - `data_managers` is optional (comma-separated list of alphabetic role names)
-        - `program_managers` is optional (comma-separated list of alphabetic role names)
-        - `review_type` must be PARALLEL or SEQUENTIAL
-        - For SEQUENTIAL review, `review_stages` array is required with role and level properties
-        - Each review stage must have unique role and level combination
-        - Configuration is unique per organization, tenant, and resource_type
+        **Overview:**
+        - Creates review workflow configuration for specified resource type (PARALLEL or SEQUENTIAL)
+        - Sets minimum approval count required for resource publication
+        - Assigns data manager and program manager roles for the organization
+        - For SEQUENTIAL review, defines multi-level review stages with role hierarchy
+        - Stores reviewer visibility preference (show_reviewer_list flag)
+        - Unique per organization, tenant, and resource type combination
+
+        **Validations:**
+        - `resource_type` is required (must be one of configured RESOURCE_TYPES like project, program, survey)
+        - `review_type` is required (must be PARALLEL or SEQUENTIAL)
+        - `min_approval` is required (integer, minimum approval count for publication)
+        - For SEQUENTIAL review, `review_stages` array is required with unique role-level combinations
+        - `data_managers` and `program_managers` are optional (comma-separated list of alphabetic role names)
       parameters:
         - name: X-auth-token
           in: header
@@ -9938,22 +9938,22 @@ paths:
       tags:
         - Organization
       description: |-
-        **Overview**:
-        - Updates existing organization-specific configuration for resource management
-        - Modifies review settings (min approvals, review type, review stages)
-        - Updates data managers and program managers roles
-        - For SEQUENTIAL review, can add new review stages while preserving existing ones
-        - Cannot update if configuration does not exist
-        - Scoped to user's organization and tenant
+        This API updates organization-specific configurations for resource management including review workflows, approval settings, and role assignments. Organizations use this API to modify review type (parallel or sequential), set minimum approval counts, configure data and program manager roles, and define multi-level review stages for complex approval workflows. This API is used in organization configuration management interfaces to customize resource review settings and role-based approval chains for different resource types (projects, programs, surveys, observations, etc.).
 
-        **Validation Rules**:
-        - `id` must be a valid integer (configuration ID, 1 to 2147483647)
-        - `resource_type` is required in query (must be valid RESOURCE_TYPE)
-        - Configuration must exist for the specified id, resource_type, organization, and tenant
-        - `data_managers` is optional (comma-separated list or array of alphabetic role names, empty array allowed)
-        - `program_managers` is optional (comma-separated list or array of alphabetic role names, empty array allowed)
-        - For SEQUENTIAL review with new `review_stages`, validates role and level properties
-        - New review stages are added without removing existing stages
+        **Overview:**
+        - Updates review workflow type (PARALLEL or SEQUENTIAL) and approval count requirements
+        - Modifies data manager and program manager role assignments for the organization
+        - For SEQUENTIAL review workflows, can add new review stages while preserving existing ones
+        - Stores reviewer visibility preference (show_reviewer_list flag) for creators
+        - Validates configuration exists before updating (cannot create via this API)
+        - Scoped to authenticated user's organization and tenant
+
+        **Validations:**
+        - `id` must be a valid integer (configuration ID, 1 to 2147483647) and must exist
+        - `resource_type` is required in query (must be valid RESOURCE_TYPE like project, program, survey)
+        - Configuration must exist for specified id, resource_type, organization, and tenant combination
+        - `data_managers` and `program_managers` are optional (can be comma-separated list or array, empty array clears them)
+        - For SEQUENTIAL review with `review_stages`, validates role names and unique level assignments
       parameters:
         - name: X-auth-token
           in: header
@@ -10136,21 +10136,23 @@ paths:
       summary: List Configurations
       tags:
         - Config APIs
-      description: |-
-        **Overview**:
-        - Retrieves comprehensive configuration for organization and instance levels
-        - Returns targeting criteria configuration from organization config
-        - Fetches resource-specific configurations for all resource types
-        - Includes instance-level settings like auto-save interval and note length
-        - Prioritizes user's organization config, falls back to default organization
-        - Merges database configs with environment defaults for missing resource types
-        - Scoped to user's organization and tenant
+      description: |
+        This API retrieves comprehensive organization and instance-level configurations for resource management. It provides centralized access to review settings, targeting criteria, data manager and program manager roles, and instance-level settings. This API is used during application initialization and in configuration management interfaces to load all necessary settings for resource workflows, targeting options, and user role assignments.
 
-        **Validation Rules**:
+        **Overview:**
+        - Retrieves organization-specific configuration (review types, approvals, data/program managers)
+        - Returns targeting criteria with configurable factors and UI layout for location-based filtering
+        - Provides resource-specific configurations for all resource types (project, program, survey, observation, etc.)
+        - Includes instance-level settings (auto-save interval, note length, auth token format)
+        - Prioritizes user's organization config, falls back to default organization if not configured
+        - Merges database configurations with environment variable defaults for missing resource types
+        - Scoped to authenticated user's organization and tenant
+
+        **Validations:**
         - X-auth-token must be valid and contain organization_code and tenant_code
-        - Returns default configurations from environment variables if not set in database
-        - Data managers and program managers default to environment values if not configured
-        - Resource visibility policies prioritize user's org over default org
+        - Returns environment variable defaults for missing database configurations
+        - Data managers and program managers use environment defaults if not set in organization config
+        - Targeting criteria factors are ordered by configuration order field
       parameters:
         - name: X-auth-token
           in: header
@@ -11728,6 +11730,379 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/updateUser400Response'
+
+  /scp/v1/actions/update:
+    post:
+      summary: Create Action
+      tags:
+        - Actions
+      description: |-
+        This API creates a new action that can be assigned to activities within the system. Actions represent specific tasks or operations that can be performed as part of an activity workflow. This API is used in activity management to define reusable action templates that can be referenced when configuring activities and tracking user interactions.
+
+        **Overview:**
+        - Creates new action with unique code and description
+        - Action code must be unique across the system (alphanumeric with hyphens/underscores only)
+        - Sets action status to ACTIVE by default
+        - Returns created action with ID and all properties
+        - Used as reference in activity workflows
+
+        **Validations:**
+        - `code` is required (unique, alphanumeric with hyphens and underscores only, no spaces)
+        - `description` is required (string, maximum 255 characters)
+        - `status` is optional (ACTIVE or INACTIVE, defaults to ACTIVE)
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - description
+              properties:
+                code:
+                  type: string
+                  description: 'Unique action code (alphanumeric with hyphens/underscores, no spaces)'
+                  example: 'submit_activity'
+                description:
+                  type: string
+                  description: 'Action description (max 255 characters)'
+                  example: 'Submit activity for review'
+                status:
+                  type: string
+                  enum: [ACTIVE, INACTIVE]
+                  description: 'Action status (defaults to ACTIVE if not provided)'
+                  example: 'ACTIVE'
+      responses:
+        '200':
+          description: 'Action created successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: 'Action created successfully'
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: 'Action ID'
+                      code:
+                        type: string
+                        description: 'Action code'
+                      description:
+                        type: string
+                        description: 'Action description'
+                      status:
+                        type: string
+                        description: 'Action status'
+        '400':
+          description: 'Bad Request - Invalid code format, duplicate code, or validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    examples:
+                      - 'Action already exists'
+                      - 'Failed to create action'
+
+  '/scp/v1/actions/update/{id}':
+    post:
+      summary: Update Action
+      tags:
+        - Actions
+      description: |-
+        This API updates an existing action's properties such as code, description, or status. Actions are used to track specific operations within activity workflows. This API is used in action management interfaces to modify action details after creation without recreating the entire action record.
+
+        **Overview:**
+        - Updates action code, description, or status for existing action
+        - Validates action exists before updating
+        - Code must be unique (if being changed)
+        - Returns updated action with all properties
+        - Used to maintain action definitions in workflow system
+
+        **Validations:**
+        - `id` must be a valid integer (1 to 2147483647) and must exist
+        - `code` is optional (if provided, must be alphanumeric with hyphens/underscores, must be unique)
+        - `description` is optional (if provided, must be 255 characters or less)
+        - `status` is optional (must be ACTIVE or INACTIVE if provided)
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: path
+          name: id
+          description: 'Action ID to update (integer, required, 1 to 2147483647).'
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: 'Action code (optional, must be unique)'
+                  example: 'submit_activity_v2'
+                description:
+                  type: string
+                  description: 'Action description (optional, max 255 characters)'
+                  example: 'Submit activity for review and approval'
+                status:
+                  type: string
+                  enum: [ACTIVE, INACTIVE]
+                  description: 'Action status (optional)'
+                  example: 'ACTIVE'
+      responses:
+        '200':
+          description: 'Action updated successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: 'Action updated successfully'
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      code:
+                        type: string
+                      description:
+                        type: string
+                      status:
+                        type: string
+        '400':
+          description: 'Bad Request - Action not found, duplicate code, or validation failed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    examples:
+                      - 'Action not found.'
+                      - 'Action already exists'
+
+  /scp/v1/actions/list:
+    get:
+      summary: List Actions
+      tags:
+        - Actions
+      description: |-
+        This API retrieves a paginated list of all available actions in the system. Actions are building blocks used in activity workflows to define reusable operations and tasks. This API is used in action management interfaces and activity configuration screens to display available actions for selection and assignment.
+
+        **Overview:**
+        - Retrieves paginated list of all actions with pagination support
+        - Returns actions with ID, code, and status
+        - Supports searching by action code (case-insensitive partial matching)
+        - Returns total count and paginated data
+        - Useful for displaying action selection dropdowns and management tables
+
+        **Validations:**
+        - `page` defaults to 1 if not provided (must be minimum 1)
+        - `limit` defaults to system default if not provided (maximum 100)
+        - `search` is optional (filters by action code using case-insensitive matching)
+        - Returns empty data array with count 0 if no actions match criteria
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: query
+          name: page
+          description: 'Page number for pagination (1-indexed, defaults to 1).'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - in: query
+          name: limit
+          description: 'Number of records per page (defaults to system default, maximum 100).'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          example: 10
+        - in: query
+          name: search
+          description: 'Search text to filter actions by code (case-insensitive).'
+          required: false
+          schema:
+            type: string
+          example: 'submit'
+      responses:
+        '200':
+          description: 'Actions fetched successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: 'Actions fetched successfully'
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        description: 'Array of actions'
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              description: 'Action ID'
+                            code:
+                              type: string
+                              description: 'Action code'
+                            status:
+                              type: string
+                              description: 'Action status'
+                      count:
+                        type: integer
+                        description: 'Total count of actions matching criteria'
+              examples:
+                with actions:
+                  value:
+                    responseCode: OK
+                    message: 'Actions fetched successfully'
+                    result:
+                      data:
+                        - id: 1
+                          code: 'submit_activity'
+                          status: 'ACTIVE'
+                        - id: 2
+                          code: 'approve_activity'
+                          status: 'ACTIVE'
+                        - id: 3
+                          code: 'reject_activity'
+                          status: 'ACTIVE'
+                      count: 3
+                without actions:
+                  value:
+                    responseCode: OK
+                    message: 'Actions fetched successfully'
+                    result:
+                      data: []
+                      count: 0
+
+  '/scp/v1/actions/delete/{id}':
+    delete:
+      summary: Delete Action
+      tags:
+        - Actions
+      description: |-
+        This API deletes an action from the system. Actions can only be deleted if they are not referenced by any existing activities. This API is used in action management interfaces to remove unused action definitions and maintain a clean action repository.
+
+        **Overview:**
+        - Soft deletes an action (paranoid deletion with timestamp)
+        - Validates action exists before deletion
+        - Prevents deletion if action is referenced by any activities
+        - Returns success message without response body on successful deletion
+        - Used to remove unused action definitions from workflow system
+
+        **Validations:**
+        - `id` must be a valid integer (1 to 2147483647) and must exist
+        - Action must not be referenced by any activities (linked activities prevent deletion)
+        - Action must exist in the system before deletion
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: path
+          name: id
+          description: 'Action ID to delete (integer, required, 1 to 2147483647). Action must not be referenced by any activities.'
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+          example: 1
+      responses:
+        '202':
+          description: 'Action deleted successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: 'Action deleted successfully'
+        '400':
+          description: 'Bad Request - Action not found or has associated activities'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    example:
+                      - 'Action not found.'
+                      - 'Activities have been added for this action, so it cannot be deleted.'
+
   /scp/v1/observation/list:
     get:
       summary: Observations list
@@ -11939,18 +12314,6 @@ components:
           items:
             type: string
           example: []
-    cloudServicesDownloadResponse200:
-      type: object
-      properties:
-        responseCode:
-          type: string
-          example: OK
-        message:
-          type: string
-          example: Download URL Generated Successfully.
-        result:
-          type: string
-          example: 'https://aws-bucket-storage-name.s3.ap-south-1.amazonaws.com/users/62832531a05cbd57b273aebb-1654149589875-image.jpg'
     createForm400Response:
       description: Bad Request. Form Already Exist
       type: object
@@ -12011,48 +12374,7 @@ components:
           items:
             type: string
           example: []
-    updateReviewStage400Response:
-      type: object
-      properties:
-        responseCode:
-          type: string
-          example: CLIENT_ERROR
-        message:
-          type: string
-          example: Review stages not found
-        error:
-          type: array
-          items:
-            type: string
-          example: []
-    updateCertificate400Response:
-      type: object
-      properties:
-        responseCode:
-          type: string
-          example: CLIENT_ERROR
-        message:
-          type: string
-          example: Template not found
-        error:
-          type: array
-          items:
-            type: string
-          example: []
-    createCertificate400Response:
-      type: object
-      properties:
-        responseCode:
-          type: string
-          example: CLIENT_ERROR
-        message:
-          type: string
-          example: template already exist
-        error:
-          type: array
-          items:
-            type: string
-          example: []
+
     updateConfig400Response:
       type: object
       properties:
@@ -12109,24 +12431,7 @@ components:
           items:
             type: string
           example: []
-    createProject400Response:
-      type: object
-      description: project creation error.
-      properties:
-        responseCode:
-          type: string
-          example: CLIENT_ERROR
-        error:
-          type: array
-          items:
-            type: string
-          example:
-            - location: body
-              param: title
-              msg: title is invalid
-            - location: body
-              param: categories
-              msg: categories required
+
     updateForm400Response:
       description: Bad Request. Form not found
       type: object
