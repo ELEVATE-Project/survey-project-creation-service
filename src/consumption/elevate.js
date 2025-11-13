@@ -292,6 +292,9 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 					},
 					[]
 				)
+				if (!validateProject?.id) {
+					throw new Error(`Project not found or not published for task project_id: ${task.project_id}`)
+				}
 				//if task project not published then will publish
 				if (!validateProject?.published_id) {
 					let publishedProject = await publishProjectTemplates({
