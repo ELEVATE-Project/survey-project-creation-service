@@ -1,3 +1,9 @@
+/**
+ * name : elevate.js
+ * author : Adithya Dinesh
+ * Date : 12-NOV-2025
+ * Description : Create data in elevate-project service.
+ */
 const { projectsMongoDBUrl, surveyMongoDBUrl } = require('@consumption/config')
 
 const projectService = require('@services/projects')
@@ -381,6 +387,37 @@ const fetchExternalEntities = async (apiData, dataToFetch = [], entityType, tena
 const processTargetingCriteria = async (targetingData, organizationCode, tenantCode) => {
 	try {
 		let scope = {}
+		let keysToRemoveFromScope = []
+
+		// Configuration for mapping keys to data paths
+		const scopeKeyToDataPath = {
+			roles: 'professional_role',
+			sub_roles: 'professional_subroles',
+		}
+		targetingData = targetingData.map((criteria) => {
+			for (let criteriaKey of Object.keys(criteria)) {
+				let isKeyModified = false
+				// find data path if the key is modified
+				const dataPath = scopeKeyToDataPath?.[criteriaKey] || null
+				// if key is modified (i.e dataPath is not null ) and the scope is expecting multi select
+				if (dataPath && scopeKeys?.[dataPath].multi_select) {
+					// if key is modified and the actual data path has values
+					if (criteria?.[dataPath]?.length > 0 && criteria?.[criteriaKey]?.length > 0) {
+						criteria[dataPath] = [...criteria[dataPath], ...criteria[criteriaKey]]
+						isKeyModified = true
+						// if key is modified and the actual data path has no values or the key is not present in targeting
+					} else if (!criteria?.[dataPath] && criteria?.[criteriaKey].length > 0) {
+						criteria[dataPath] = [...criteria[criteriaKey]]
+						isKeyModified = true
+					}
+				} else if (dataPath && !scopeKeys?.[dataPath].multi_select) {
+					criteria[dataPath] = criteria[criteriaKey]
+					isKeyModified = true
+				}
+				if (dataPath && isKeyModified) keysToRemoveFromScope.push(criteriaKey)
+			}
+			return criteria
+		})
 		// add organization into the scope by default
 		scope[`${common.SCOPE_ELEMENT_ORGANIZATIONS}`] = [organizationCode]
 		let mandatoryKeys = []
@@ -501,6 +538,11 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 					Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined
 				)
 			)
+		}
+		if (keysToRemoveFromScope.length > 0) {
+			for (const key of keysToRemoveFromScope) {
+				scope[key] && delete scope[key]
+			}
 		}
 		return { scope, metaInformation, success: true }
 	} catch (error) {
