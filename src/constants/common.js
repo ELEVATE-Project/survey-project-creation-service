@@ -279,4 +279,6 @@ module.exports = {
 		ASSOCIATED: 'ASSOCIATED',
 		CURRENT: 'CURRENT',
 	},
+	TASK_TYPE_PROJECT: 'improvement_projects',
+	PROJECT_ID: 'project_id',
 }
