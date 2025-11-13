@@ -1,3 +1,9 @@
+/**
+ * name : elevate.js
+ * author : Adithya Dinesh
+ * Date : 12-NOV-2025
+ * Description : Create data in elevate-project service.
+ */
 const { projectsMongoDBUrl, surveyMongoDBUrl } = require('@consumption/config')
 
 const projectService = require('@services/projects')

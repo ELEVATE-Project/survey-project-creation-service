@@ -1,8 +1,8 @@
 /**
- * name : consumption.js
+ * name : sunbird.js
  * author : Priyanka Pradeep
  * Date : 13-Dec-2024
- * Description : Create data in elevate-project service.
+ * Description : Create data in sunbird service.
  */
 const common = require('@constants/common')
 const MongoDBConnection = require('@configs/mongoConnection')
@@ -21,15 +21,13 @@ const axios = require('axios')
 const cheerio = require('cheerio')
 const path = require('path')
 const fs = require('fs')
-const filesService = require('@services/files')
-const request = require('request')
 const _ = require('lodash')
 let mongoDb
 let socketInUse = false // Flag to track socket status
 let projectsMongoConnection = null
 let projectsMongoDB = null
 const { Op } = require('sequelize')
-const isSunbird = process.env.CONSUMPTION_SERVICE.toLowerCase() == common.SUNBIRD.toLowerCase()
+const projectsDTO = require('@consumption/dtos/sunbird/projects')
 
 if (process.env.CONSUMPTION_SERVICE != common.CONSUMPTION_SERVICE_SELF) {
 	const projectsMongoUrl = process.env.PROJECTS_MONGODB_URL || null
@@ -86,7 +84,7 @@ const publishProjectTemplates = function (templateData) {
 		const result = { success: false, templateId: null, error: null }
 		try {
 			// Format the template
-			let formattedTemplate = formatTemplate(templateData)
+			let formattedTemplate = projectsDTO.projectTemplateDTO(templateData)
 			if (!formattedTemplate.success) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
@@ -94,7 +92,7 @@ const publishProjectTemplates = function (templateData) {
 			let template = formattedTemplate.template
 
 			//add duration key if consumption service is sunbird
-			if (process.env.CONSUMPTION_SERVICE == common.SUNBIRD && templateData.recommended_duration) {
+			if (templateData.recommended_duration) {
 				template.duration = utils.convertDuration(templateData.recommended_duration)
 			}
 
@@ -426,6 +424,8 @@ const publishProject = function (templateData) {
  */
 async function convertRecommendedRolesForProjects(recommendedFor) {
 	try {
+		// If the user role is not present in the userRoles collection , the recommendedFor role will be skipped
+		// as we don't know the entity of the role in that case to create.
 		if (process.env.CONSUMPTION_SERVICE == common.SUNBIRD) {
 			const userRoleCollection = mongoDb.collection(COLLECTIONS.USER_ROLES)
 			const roles = await userRoleCollection.find({ status: 'active' }).toArray()
@@ -742,13 +742,10 @@ const duplicateResources = async (resourceDetails, resourceCertificate, programD
 						resource_id: resourceDetails.resource_id,
 						rollout_id: resourceDetails.id,
 					}
-
-					if (isSunbird) {
-						project.averageRating = 0
-						project.parentTemplateId = project.externalId
-						project.programExternalId = programData?.externalId
-						project.programId = programData?._id
-					}
+					project.averageRating = 0
+					project.parentTemplateId = project.externalId
+					project.programExternalId = programData?.externalId
+					project.programId = programData?._id
 
 					templateProjects.push(project)
 				})
@@ -913,16 +910,11 @@ const duplicateResources = async (resourceDetails, resourceCertificate, programD
  */
 const processTargetingCriteria = async (targetingData) => {
 	try {
-		let scope = isSunbird
-			? {
-					entityType: '',
-					roles: [],
-					entities: [],
-			  }
-			: {
-					roles: [],
-					entityType: [],
-			  }
+		let scope = {
+			entityType: '',
+			roles: [],
+			entities: [],
+		}
 
 		let metaInformation = process.env.PROGRAM_META_INFO_KEYS.split(',').reduce((acc, key) => {
 			acc[key] = []
@@ -933,50 +925,19 @@ const processTargetingCriteria = async (targetingData) => {
 			// Iterate through each targeting criterion
 			targetingData.forEach((targeting) => {
 				const targetingEntity = targeting?.entity_targeting?.value
-				if (isSunbird) {
-					scope.entityType = targetingEntity
-					const entities = targeting?.[targetingEntity].map((eachTargetEntity) => eachTargetEntity._id)
+				scope.entityType = targetingEntity
+				const entities = targeting?.[targetingEntity].map((eachTargetEntity) => eachTargetEntity._id)
 
-					scope.entities = [...scope.entities, ...entities]
+				scope.entities = [...scope.entities, ...entities]
 
-					if (targeting?.roles?.length) {
-						// Add unique roles to scope and metaInformation
-						targeting.roles.forEach(({ code, _id }) => {
-							scope.roles.push({ _id, code })
-						})
-					} else {
-						// Reset roles if no roles are present
-						scope.roles = []
-					}
+				if (targeting?.roles?.length) {
+					// Add unique roles to scope and metaInformation
+					targeting.roles.forEach(({ code, _id }) => {
+						scope.roles.push({ _id, code })
+					})
 				} else {
-					scope.entityType.push(targetingEntity)
-
-					if (targeting?.roles?.length) {
-						// Add unique roles to scope and metaInformation
-						targeting.roles.forEach(({ code, label }) => {
-							scope.roles.push(code)
-							if (metaInformation.hasOwnProperty('recommendedFor')) {
-								metaInformation.recommendedFor.push(label)
-							}
-						})
-
-						process.env.PROGRAM_META_INFO_KEYS.split(',').forEach((metaKey) => {
-							if (targeting[metaKey]) {
-								targeting[metaKey].forEach((eachKeys) => {
-									metaInformation[metaKey].push(eachKeys.name)
-								})
-							}
-						})
-
-						targeting[targetingEntity]?.forEach(({ _id }) => {
-							scope[targetingEntity] = scope[targetingEntity] || []
-							scope[targetingEntity].push(_id)
-						})
-					} else {
-						// Reset roles and recommendedFor if no roles are present
-						scope.roles = []
-						metaInformation.recommendedFor = []
-					}
+					// Reset roles if no roles are present
+					scope.roles = []
 				}
 			})
 		}
@@ -988,16 +949,14 @@ const processTargetingCriteria = async (targetingData) => {
 			}
 		})
 
-		if (!isSunbird) {
-			// convert the 'entityType' array to coma separated string
-			scope.entityType = scope?.entityType ? [...new Set(scope.entityType)] : []
-			// refactor metaInformation to remove duplicates
-			Object.keys(metaInformation).forEach((key) => {
-				if (Array.isArray(metaInformation[key]) && metaInformation[key].length > 0) {
-					metaInformation[key] = [...new Set(metaInformation[key])] // Remove duplicates while preserving array structure
-				}
-			})
-		}
+		// convert the 'entityType' array to coma separated string
+		scope.entityType = scope?.entityType ? [...new Set(scope.entityType)] : []
+		// refactor metaInformation to remove duplicates
+		Object.keys(metaInformation).forEach((key) => {
+			if (Array.isArray(metaInformation[key]) && metaInformation[key].length > 0) {
+				metaInformation[key] = [...new Set(metaInformation[key])] // Remove duplicates while preserving array structure
+			}
+		})
 
 		return { scope, metaInformation, success: true }
 	} catch (error) {
