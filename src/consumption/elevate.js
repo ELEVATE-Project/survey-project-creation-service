@@ -288,10 +288,11 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 						id: task.project_id,
 						type: common.PROJECT,
 						status: common.RESOURCE_STATUS_PUBLISHED,
+						tenant_code: tenantCode,
 					},
 					[]
 				)
-				if (!validateProject) {
+				if (!validateProject?.id) {
 					throw new Error(`Project with ID ${task.project_id} not found`)
 				}
 
@@ -299,7 +300,10 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				const publishedObjectId = new ObjectId(validateProject.published_id)
 
 				// get projectTemplate details
-				let projectTemplates = await projectTemplatesCollection.findOne({ _id: publishedObjectId })
+				let projectTemplates = await projectTemplatesCollection.findOne({
+					_id: publishedObjectId,
+					tenantId: tenantCode,
+				})
 
 				if (!projectTemplates) {
 					throw new Error(`Project template not found for published_id: ${validateProject.published_id}`)
@@ -1407,7 +1411,8 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					})
 					.toArray()
 				// duplicate project task details to create
-				projectsTasksDetails.forEach((projectTask) => {
+
+				for (const projectTask of projectsTasksDetails) {
 					let oldTaskExtId = projectTask.externalId
 					projectTask.externalId = utils.generateUniqueId()
 					// if task is part of certificate criteria , replace the old task name with new task name
@@ -1449,15 +1454,15 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					}
 
 					if (projectTask.type === common.SOLUTIONS_TYPE.project) {
-						const fetchProjectDetails = projectService.details(
+						const fetchProjectDetails = await projectService.details(
 							projectTask.project_id,
 							resourceDetails?.organization_code,
 							resourceDetails?.tenant_code
 						)
 						const projectData = fetchProjectDetails?.result
-						projectCertificate = projectData?.certificate
+						const projectCertificate = projectData?.certificate
 						// create child projectTemplate for task
-						let duplicateResource = duplicateResources(
+						let duplicateResource = await duplicateResources(
 							{ ...projectData, published_id: projectData.published_id },
 							projectCertificate,
 							programData
@@ -1469,7 +1474,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 							)
 						}
 						// create and mapping solutions with project template
-						const createSolutionsData = createSolutions(
+						const createSolutionsData = await createSolutions(
 							duplicateResource.data,
 							programData,
 							programData.userToken
@@ -1509,7 +1514,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					projectTask.projectTemplateExternalId = projectTask.projectTemplateExternalId + externalId_suffixing
 					delete projectTask._id
 					duplicateTasks.push(projectTask)
-				})
+				}
 
 				await projectsTaskCollection.insertMany(duplicateTasks)
 

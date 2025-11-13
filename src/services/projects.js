@@ -1103,7 +1103,7 @@ module.exports = class ProjectsHelper {
 						},
 						[]
 					)
-					if (!validateProject) {
+					if (!validateProject?.published_id) {
 						validationErrors.push(
 							utils.errorObject(
 								projectPath,
