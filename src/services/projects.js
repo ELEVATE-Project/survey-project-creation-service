@@ -591,11 +591,7 @@ module.exports = class ProjectsHelper {
 			await this._validateEntityTagging(projectData, validationErrors)
 
 			//validate task start_date and end_date if enabled
-			const isTaskDateValidationEnabled =
-				String(process.env.ENABLE_TASK_START_END_DATE_IN_PROJECTS).toLowerCase() === 'true'
-			if (isTaskDateValidationEnabled && taskLength > 0) {
-				this.validateTaskDates(projectData.tasks, validationErrors)
-			}
+			await this._validateTaskDates(projectData, validationErrors)
 
 			// Check that the note character limit does not exceed the maximum limit
 			if (bodyData?.notes?.length > process.env.MAX_RESOURCE_NOTE_LENGTH) {
@@ -1245,28 +1241,76 @@ module.exports = class ProjectsHelper {
 	/**
 	 * Validates task start and end dates
 	 * @method
-	 * @name validateTaskDates
-	 * @param {Array} tasks - Array of task objects to validate
+	 * @name _validateTaskDates
+	 * @param {Object} projectData - Project data containing tasks to validate
 	 * @param {Array} validationErrors - Array to collect validation errors
 	 * @returns {void} - Modifies validationErrors array in place
 	 */
-	static validateTaskDates(tasks, validationErrors = []) {
+	static async _validateTaskDates(projectData, validationErrors = []) {
+		const tasks = projectData.tasks || []
 		if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
 			return
 		}
 
-		tasks.forEach((task, index) => {
-			this._validateSingleTaskDates(task, `tasks[${index}]`, validationErrors)
+		// Check if task date validation is enabled (environment or organization level)
+		const isTaskDateValidationEnabled = await this._isTaskDateValidationEnabled(
+			projectData.organization_code,
+			projectData.tenant_code
+		)
 
-			// Validate child tasks (subtasks) if they exist
+		if (!isTaskDateValidationEnabled) {
+			return
+		}
+
+		// Recursively validate all tasks and their children
+		this._validateTasksRecursively(tasks, common.TASKS, validationErrors)
+	}
+
+	/**
+	 * Checks if task date validation is enabled at environment or organization level
+	 * @method
+	 * @name _isTaskDateValidationEnabled
+	 * @param {String} organizationCode - Organization code
+	 * @param {String} tenantCode - Tenant code
+	 * @returns {Promise<Boolean>} - True if validation is enabled
+	 * @private
+	 */
+	static async _isTaskDateValidationEnabled(organizationCode, tenantCode) {
+		// 1. Default to environment-level setting
+		let isEnabled = String(process.env.ENABLE_TASK_START_END_DATE_IN_PROJECTS || 'false').toLowerCase() === 'true'
+
+		// 2. Get organization-level configuration and override if it exists
+		const orgConfig = await orgExtensionService.getConfig(organizationCode, tenantCode)
+
+		if (orgConfig.statusCode === httpStatusCode.ok && orgConfig?.result?.resource) {
+			const projectOrgConfig = orgConfig.result.resource.find((item) => item.resource_type === common.PROJECT)
+			// If org-level config for 'enable_task_start_end_date' is explicitly defined, it overrides the environment default
+			if (projectOrgConfig && projectOrgConfig.enable_task_start_end_dates !== undefined) {
+				isEnabled = String(projectOrgConfig.enable_task_start_end_dates).toLowerCase() === 'true'
+			}
+		}
+
+		return isEnabled
+	}
+
+	/**
+	 * Recursively validates tasks and their children
+	 * @method
+	 * @name _validateTasksRecursively
+	 * @param {Array} tasks - Array of tasks to validate
+	 * @param {String} basePath - Base path for error messages
+	 * @param {Array} validationErrors - Array to collect validation errors
+	 * @returns {void} - Modifies validationErrors array in place
+	 * @private
+	 */
+	static _validateTasksRecursively(tasks, basePath, validationErrors) {
+		tasks.forEach((task, index) => {
+			const taskPath = `${basePath}[${index}]`
+			this._validateSingleTaskDates(task, taskPath, validationErrors)
+
+			// Recursively validate child tasks (subtasks) if they exist
 			if (task.children && Array.isArray(task.children) && task.children.length > 0) {
-				task.children.forEach((childTask, childIndex) => {
-					this._validateSingleTaskDates(
-						childTask,
-						`tasks[${index}].children[${childIndex}]`,
-						validationErrors
-					)
-				})
+				this._validateTasksRecursively(task.children, `${taskPath}.children`, validationErrors)
 			}
 		})
 	}
@@ -1281,45 +1325,39 @@ module.exports = class ProjectsHelper {
 	 * @returns {void} - Modifies validationErrors array in place
 	 * @private
 	 */
-
 	static _validateSingleTaskDates(task, taskPath, validationErrors) {
-		const isSubtask = taskPath.includes('children')
-		const taskType = isSubtask ? 'Subtask' : 'Task'
+		const taskType = taskPath.includes(common.CHILDREN) ? 'Subtask' : 'Task'
+		const hasStartDate = !!(task.start_date && task.start_date.trim())
+		const hasEndDate = !!(task.end_date && task.end_date.trim())
 
-		// Validate start_date
-		if (!task.start_date || task.start_date === '') {
-			validationErrors.push(utils.errorObject(taskPath, 'start_date', `${taskType} start date is required`))
-			return // Early exit if start_date is missing
+		// Check required fields
+		if (!hasStartDate) {
+			validationErrors.push(utils.errorObject(taskPath, common.START_DATE, `${taskType} start date is required`))
+		}
+		if (!hasEndDate) {
+			validationErrors.push(utils.errorObject(taskPath, common.END_DATE, `${taskType} end date is required`))
 		}
 
-		const isStartDateValid = utils.isValidDate(task.start_date)
-		if (!isStartDateValid) {
+		// Validate date formats if dates exist
+		const isStartDateValid = hasStartDate && utils.isValidDate(task.start_date)
+		const isEndDateValid = hasEndDate && utils.isValidDate(task.end_date)
+
+		if (hasStartDate && !isStartDateValid) {
 			validationErrors.push(
-				utils.errorObject(taskPath, 'start_date', `${taskType} start date must be a valid date`)
+				utils.errorObject(taskPath, common.START_DATE, `${taskType} start date must be a valid date`)
+			)
+		}
+		if (hasEndDate && !isEndDateValid) {
+			validationErrors.push(
+				utils.errorObject(taskPath, common.END_DATE, `${taskType} end date must be a valid date`)
 			)
 		}
 
-		// Validate end_date
-		if (!task.end_date || task.end_date === '') {
-			validationErrors.push(utils.errorObject(taskPath, 'end_date', `${taskType} end date is required`))
-			return // Early exit if end_date is missing
-		}
-
-		const isEndDateValid = utils.isValidDate(task.end_date)
-		if (!isEndDateValid) {
-			validationErrors.push(utils.errorObject(taskPath, 'end_date', `${taskType} end date must be a valid date`))
-			return // Early exit if end_date is invalid
-		}
-
-		// Validate date ordering - only if both dates are valid
-		if (isStartDateValid && isEndDateValid) {
-			const startDate = new Date(task.start_date)
-			const endDate = new Date(task.end_date)
-			if (startDate > endDate) {
-				validationErrors.push(
-					utils.errorObject(taskPath, 'end_date', `${taskType} end date must be after start date`)
-				)
-			}
+		// Validate date ordering only if both are present and valid
+		if (isStartDateValid && isEndDateValid && new Date(task.start_date) > new Date(task.end_date)) {
+			validationErrors.push(
+				utils.errorObject(taskPath, common.END_DATE, `${taskType} end date must be after start date`)
+			)
 		}
 	}
 
