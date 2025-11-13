@@ -962,7 +962,9 @@ module.exports = class ProjectsHelper {
 			)
 			if (requiredValidation) {
 				let required = utils.checkRequired(requiredValidation, fieldData)
-				if (!required) {
+				// Add validation error when a required field is missing,
+				// except for tasks of type 'project', which are handled separately below.
+				if (!required && entityType.value != common.TASK_TYPE_PROJECT) {
 					validationErrors.push(
 						utils.errorObject(
 							model == common.PROJECT ? entityType.value : sourceType,
@@ -1069,6 +1071,48 @@ module.exports = class ProjectsHelper {
 								reflectionPath,
 								common.URL,
 								regexValidation.message || `Invalid REFLECTION URL in ${model}`
+							)
+						)
+					}
+				}
+			}
+
+			//check for project as a task
+			if (
+				model == common.TASKS &&
+				entityType.value === common.TASK_TYPE_PROJECT &&
+				entityData.type === common.TASK_TYPE_PROJECT
+			) {
+				let projectPath =
+					sourceType == '' ? `${common.TASK_TYPE_PROJECT}` : `${sourceType}.${common.TASK_TYPE_PROJECT}`
+				// Validate the project_id is present
+				if (!entityData.project_id) {
+					validationErrors.push(
+						utils.errorObject(
+							projectPath,
+							common.PROJECT_ID,
+							regexValidation.message || `Required project_id${model}`
+						)
+					)
+				}
+				// Validate published projectId
+				if (entityData.project_id && entityMapping[common.TASK_TYPE_PROJECT]?.validations) {
+					const validateProject = await resourceQueries.findOne(
+						{
+							id: entityData.project_id,
+							type: common.PROJECT,
+							status: common.RESOURCE_STATUS_PUBLISHED,
+						},
+						[]
+					)
+					// Validate that the project has a published_id
+					// Only perform this check if the consumption service is not SELF
+					if (process.env.CONSUMPTION_SERVICE !== common.SELF && !validateProject?.published_id) {
+						validationErrors.push(
+							utils.errorObject(
+								projectPath,
+								common.PROJECT_ID,
+								requiredValidation.message || `Project not PUBLISHED${model}`
 							)
 						)
 					}
