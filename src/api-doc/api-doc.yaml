@@ -7096,21 +7096,16 @@ paths:
       tags:
         - Rollout
       description: |-
-        **Overview**:
-        - Retrieves paginated list of rollouts created by authenticated user
-        - Includes creator details and organization information from external services
-        - Supports search by title (case-insensitive), filtering by resource type and status
-        - Returns rollouts with metadata including dates, status, and creator info
-        - Scoped to user's organization and tenant
+        Provides a paginated, filterable list of rollouts created by the authenticated user with title search, resource type & status filters, and sorting by title or status. Returns essential rollout metadata (id, title, resource_id, resource_type, status, dates) plus creator and organization context. Used to monitor draft and active rollout progress prior to publishing within tenant and organization scope. Always scoped to the user's organization and tenant for isolation.
 
-        **Validation Rules**:
-        - `page` defaults to 1 if not provided (minimum 1)
-        - `limit` defaults to 100 if not provided (maximum 100)
-        - `search` performs case-insensitive title matching
-        - `resource_type` filters by resource type (comma-separated for multiple types, excludes 'program')
-        - `status` must be from: DRAFT, ROLLED_OUT, INACTIVE, PROCESSING, FAILED (comma-separated)
-        - `sort_by` options: status, title (defaults to title if not specified)
-        - `sort_order` options: asc, desc
+        **Validation**:
+        - `page`: integer ≥ 1 (default 1)
+        - `limit`: integer 1–100 (default 100)
+        - `search`: optional string (case-insensitive match)
+        - `resource_type`: optional comma-separated values: project, survey, observation
+        - `status`: optional comma-separated subset of DRAFT, ROLLED_OUT, INACTIVE, PROCESSING, FAILED
+        - `sort_by`: optional title | status (default title)
+        - `sort_order`: optional asc | desc
       parameters:
         - name: X-auth-token
           in: header
@@ -7284,16 +7279,12 @@ paths:
       tags:
         - Rollout
       description: |-
-        **Overview**:
-        - Soft deletes a rollout from the system (paranoid deletion)
-        - Only rollouts in DRAFT status can be deleted
-        - Validates rollout belongs to authenticated user
-        - Rollout record marked as deleted but preserved in database
+        Soft deletes (paranoid) a DRAFT rollout owned by the authenticated creator, retaining the record for audit and compliance. Used to clean up unused draft rollout configurations before publishing while preserving timestamps for traceability. Protected statuses (ROLLED_OUT, INACTIVE, PROCESSING, FAILED) cannot be deleted. Deletion is strictly scoped to the user's organization and tenant.
 
-        **Validation Rules**:
-        - `id` must be a valid integer (rollout ID)
-        - Rollout must exist and belong to authenticated user (user_id match)
-        - Rollout status must be DRAFT (cannot delete ROLLED_OUT, INACTIVE, PROCESSING, or FAILED rollouts)
+        **Validation**:
+        - `id`: required path integer (1–2147483647)
+        - Rollout must exist and belong to authenticated user
+        - Rollout status must be DRAFT (cannot delete ROLLED_OUT, INACTIVE, PROCESSING, FAILED)
         - Rollout must belong to user's organization and tenant
       parameters:
         - name: X-auth-token
