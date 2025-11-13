@@ -415,6 +415,12 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 					isKeyModified = true
 				}
 				if (dataPath && isKeyModified) keysToRemoveFromScope.push(criteriaKey)
+				if (
+					scopeKeys &&
+					!Object.keys(scopeKeys).includes(criteriaKey) &&
+					!keysToRemoveFromScope.includes(criteriaKey)
+				)
+					keysToRemoveFromScope.push(criteriaKey)
 			}
 			return criteria
 		})
