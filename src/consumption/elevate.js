@@ -24,7 +24,7 @@ let projectsMongoConnection = null
 let mongoConnection = null
 let scopeKeys = {}
 let socketInUse = false
-const resourceQuery = require('@database/queries/resources')
+const resourceQueries = require('@database/queries/resources')
 
 // Define the mongoDb collection names used
 const COLLECTIONS_MAP = new Map(
@@ -248,7 +248,6 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 	const result = { success: false, taskIds: [], externalIds: [], error: null }
 	try {
 		const taskCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TASKS'))
-		const projectTemplatesCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
 		const taskIds = []
 		const externalIds = []
 
@@ -283,7 +282,8 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 
 			//if task type improvementProject add projectTemplateDetails
 			if (task.type === common.TASK_TYPE_PROJECT) {
-				const validateProject = await resourceQuery.findOne(
+				const projectTemplatesCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
+				const validateProject = await resourceQueries.findOne(
 					{
 						id: task.project_id,
 						type: common.PROJECT,
@@ -292,8 +292,17 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 					},
 					[]
 				)
-				if (!validateProject?.id) {
-					throw new Error(`Project with ID ${task.project_id} not found`)
+				//if task project not published then will publish
+				if (!validateProject?.published_id) {
+					let publishedProject = await publishProjectTemplates({
+						id: task.project_id,
+						tenant_code: tenantCode,
+						organization_code: organizationCode,
+					})
+					if (!publishedProject.success || !publishedProject?.templateId) {
+						throw new Error(`Task Project template publish failed: ${validateProject.project_id}`)
+					}
+					validateProject.published_id = publishedProject.templateId
 				}
 
 				// Convert published_id to ObjectId
@@ -1459,7 +1468,11 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 							resourceDetails?.organization_code,
 							resourceDetails?.tenant_code
 						)
-						const projectData = fetchProjectDetails?.result
+
+						const projectData = fetchProjectDetails?.result || {}
+						if (Object.keys(projectData).length <= 0) {
+							throw new Error('FAILED_TO_FETCH_PROJECT')
+						}
 						const projectCertificate = projectData?.certificate
 						// create child projectTemplate for task
 						let duplicateResource = await duplicateResources(
@@ -1467,7 +1480,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 							projectCertificate,
 							programData
 						)
-						if (!duplicateResource.success) {
+						if (!duplicateResource.success || duplicateResource?.data?.length <= 0) {
 							console.log('Error in creating duplicate Resource')
 							throw new Error(
 								`Error in creating duplicate Resource ${duplicateResource?.error || 'Unknown Error'}`
@@ -1479,7 +1492,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 							programData,
 							programData.userToken
 						)
-						if (!createSolutionsData.success)
+						if (!createSolutionsData.success || createSolutionsData?.data?.length <= 0)
 							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
 						let solutionsData = createSolutionsData.data[0]
 						let duplicateResourceData = duplicateResource.data[0]

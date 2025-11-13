@@ -962,6 +962,8 @@ module.exports = class ProjectsHelper {
 			)
 			if (requiredValidation) {
 				let required = utils.checkRequired(requiredValidation, fieldData)
+				// Add validation error when a required field is missing,
+				// except for tasks of type 'project', which are handled separately below.
 				if (!required && entityType.value != common.TASK_TYPE_PROJECT) {
 					validationErrors.push(
 						utils.errorObject(
@@ -1103,7 +1105,9 @@ module.exports = class ProjectsHelper {
 						},
 						[]
 					)
-					if (!validateProject?.published_id) {
+					// Validate that the project has a published_id
+					// Only perform this check if the consumption service is not SELF
+					if (process.env.CONSUMPTION_SERVICE !== common.SELF && !validateProject?.published_id) {
 						validationErrors.push(
 							utils.errorObject(
 								projectPath,
