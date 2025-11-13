@@ -52,6 +52,10 @@ module.exports = {
 					resourceType == 'project' && process.env.ENABLE_ENTITY_TAGGING_IN_PROJECTS === 'true'
 						? true
 						: false,
+				enable_task_start_end_dates:
+					resourceType == 'project' && process.env.ENABLE_TASK_START_END_DATE_IN_PROJECTS === 'true'
+						? true
+						: false,
 				created_at: now,
 				updated_at: now,
 			}))
