@@ -1,4 +1,4 @@
-const { getConfig } = require('@services/organization-extension')
+const orgExtensionService = require('@services/organization-extension')
 const defaultOrgCode = process.env.DEFAULT_ORGANIZATION_CODE
 const defaultTenantCode = process.env.DEFAULT_TENANT_CODE
 const entityModelMappingQuery = require('@database/queries/entityModelMapping')
@@ -45,7 +45,7 @@ module.exports = class targetingCriteria {
 				})
 			}
 
-			const orgConfig = await getConfig(orgCode, tenantCode)
+			const orgConfig = await orgExtensionService.getConfig(orgCode, tenantCode)
 			const targerting_factors = orgConfig?.result?.config?.targeting_criteria?.factors || {}
 			let index = 0
 			for (let eachTargeting of Object.keys(targeting)) {
@@ -76,7 +76,7 @@ module.exports = class targetingCriteria {
 	}
 
 	static async scopeKeys(orgCode, tenantCode) {
-		const orgConfig = await getConfig(orgCode, tenantCode)
+		const orgConfig = await orgExtensionService.getConfig(orgCode, tenantCode)
 		const targetingFactors = Array.isArray(orgConfig?.result?.config?.targeting_criteria?.factors)
 			? orgConfig.result.config.targeting_criteria.factors
 			: []
