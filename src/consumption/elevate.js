@@ -329,13 +329,13 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 
 				taskData.projectTemplateDetails = {
 					_id: projectTemplates._id,
-					type: projectTemplates.type,
+					type: projectTemplates.type ?? common.SOLUTIONS_TYPE.project,
 					entityType: projectTemplates.entityType,
 					isReusable: projectTemplates.isReusable,
 					externalId: projectTemplates.externalId,
 				}
 
-				taskData.type = projectTemplates.type
+				taskData.type = projectTemplates.type ?? common.SOLUTIONS_TYPE.project
 			}
 
 			// Create the task
@@ -453,7 +453,7 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 				// find data path if the key is modified
 				const dataPath = scopeKeyToDataPath?.[criteriaKey] || null
 				// if key is modified (i.e dataPath is not null ) and the scope is expecting multi select
-				if (dataPath && scopeKeys?.[dataPath].multi_select) {
+				if (dataPath && scopeKeys?.[dataPath]?.multi_select) {
 					// if key is modified and the actual data path has values
 					if (criteria?.[dataPath]?.length > 0 && criteria?.[criteriaKey]?.length > 0) {
 						criteria[dataPath] = [...criteria[dataPath], ...criteria[criteriaKey]]
@@ -463,7 +463,7 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 						criteria[dataPath] = [...criteria[criteriaKey]]
 						isKeyModified = true
 					}
-				} else if (dataPath && !scopeKeys?.[dataPath].multi_select) {
+				} else if (dataPath && !scopeKeys?.[dataPath]?.multi_select) {
 					criteria[dataPath] = criteria[criteriaKey]
 					isKeyModified = true
 				}
@@ -1472,7 +1472,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					.toArray()
 				// duplicate project task details to create
 
-				for (const projectTask of projectsTasksDetails) {
+				for (const [index, projectTask] of projectsTasksDetails.entries()) {
 					let oldTaskExtId = projectTask.externalId
 					projectTask.externalId = utils.generateUniqueId()
 					// if task is part of certificate criteria , replace the old task name with new task name
@@ -1515,7 +1515,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 
 					if (projectTask.type === common.SOLUTIONS_TYPE.project) {
 						const fetchProjectDetails = await projectService.details(
-							projectTask.project_id,
+							resourceDetails?.tasks[index]?.project_id,
 							resourceDetails?.organization_code,
 							resourceDetails?.tenant_code
 						)
@@ -1552,7 +1552,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 							type: solutionsData?.type,
 							_id: solutionsData?._id,
 							externalId: solutionsData?.externalId,
-							isReusable: solutionsData?.isReusable,
+							isReusable: solutionsData?.isReusable ?? common.FALSE,
 							minNoOfSubmissionsRequired: solutionsData?.minNoOfSubmissionsRequired,
 						}
 
@@ -1561,7 +1561,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 						projectTask.projectTemplateDetails = {
 							_id: duplicateResourceData?._id,
 							externalId: duplicateResourceData?.externalId,
-							isReusable: duplicateResourceData?.isReusable,
+							isReusable: duplicateResourceData?.isReusable ?? common.FALSE,
 							type: duplicateResourceData?.type,
 							minNoOfSubmissionsRequired: duplicateResourceData?.minNoOfSubmissionsRequired,
 						}
