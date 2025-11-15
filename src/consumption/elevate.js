@@ -1376,15 +1376,19 @@ async function insertCertificateTemplate(
  * @name duplicateResources
  * @param {Object} resourceDetails - Object of resource details
  * @param {String} created_by - created by user id
+ * @param {String} template -togetProgramInformation for project as a task
  * @returns {Array} Array of objects of duplicate templates
  */
-const duplicateResources = async (resourceDetails, resourceCertificate = {}, programData) => {
+const duplicateResources = async (resourceDetails, resourceCertificate = {}, programData, template) => {
 	try {
 		// initialise list of project templates to create
 		let projectTemplateIds = []
 		//initialise list of solution templates to create
 		let solutionTemplateIds = []
 		let certificate = resourceCertificate || {}
+		//Getting program id for project as a task
+		let programId = template?._id ? ObjectId(template?._id) : null
+
 		if (certificate && Object.keys(certificate).length > 0) {
 			// append task name in each task certificate criterias
 			const certificateCriteriaConditions = Object.keys(certificate.criteria.conditions)
@@ -1529,7 +1533,8 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 						let duplicateResource = await duplicateResources(
 							{ ...projectData, published_id: projectData.published_id },
 							projectCertificate,
-							programData
+							programData,
+							template
 						)
 						if (!duplicateResource.success || duplicateResource?.data?.length <= 0) {
 							console.log('Error in creating duplicate Resource')
@@ -1537,16 +1542,35 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 								`Error in creating duplicate Resource ${duplicateResource?.error || 'Unknown Error'}`
 							)
 						}
+						let programDetails = {
+							_id: programId,
+							externalId: template.externalId,
+							name: template?.name,
+							description: template?.description ? template?.description : '',
+							end_date: template?.endDate,
+							start_date: template?.startDate,
+							created_by: programData.userId,
+							orgId: programData.organization_code,
+							tenantId: programData.tenant_code,
+							referenceFrom: common.PROJECT,
+						}
 						// create and mapping solutions with project template
 						const createSolutionsData = await createSolutions(
 							duplicateResource.data,
-							programData,
+							programDetails,
 							programData.userToken
 						)
 						if (!createSolutionsData.success || createSolutionsData?.data?.length <= 0)
 							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
-						let solutionsData = createSolutionsData.data[0]
-						let duplicateResourceData = duplicateResource.data[0]
+						const duplicateResourceData = duplicateResource.data[0]
+
+						// Pre-calc target ID once
+						const targetId = duplicateResourceData?._id?.toString()
+
+						// Find matching solution safely
+						const solutionsData = createSolutionsData?.data?.find(
+							(a) => a?.projectTemplateId?.toString() === targetId
+						)
 						//Adding solutionDetails in task
 						projectTask.solutionDetails = {
 							type: solutionsData?.type,
@@ -1740,6 +1764,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				creator: programDetails.created_by,
 				orgId: programDetails.orgId,
 				tenantId: programDetails.tenantId,
+				referenceFrom: programDetails.referenceFrom ? programDetails.referenceFrom : '',
 			}
 
 			solutionRolloutMap[solutionTemplate.externalId] = resource.rolloutId
@@ -2092,7 +2117,8 @@ const publishProgram = function async(programData) {
 								published_id: publishedProject?.templateId,
 							},
 							projectCertificate,
-							programData
+							programData,
+							template
 						)
 						if (!duplicateResource.success) {
 							console.log('Error in creating duplicate Resource')
