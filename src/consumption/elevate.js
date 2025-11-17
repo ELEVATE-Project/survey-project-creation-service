@@ -30,6 +30,7 @@ let projectsMongoConnection = null
 let mongoConnection = null
 let scopeKeys = {}
 let socketInUse = false
+const resourceQueries = require('@database/queries/resources')
 
 // Define the mongoDb collection names used
 const COLLECTIONS_MAP = new Map(
@@ -285,6 +286,58 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				}
 			}
 
+			//if task type improvementProject add projectTemplateDetails
+			if (task.type === common.TASK_TYPE_PROJECT) {
+				const projectTemplatesCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
+				const validateProject = await resourceQueries.findOne(
+					{
+						id: task.project_id,
+						type: common.PROJECT,
+						status: common.RESOURCE_STATUS_PUBLISHED,
+						tenant_code: tenantCode,
+					},
+					[]
+				)
+				if (!validateProject?.id) {
+					throw new Error(`Project not found or not published for task project_id: ${task.project_id}`)
+				}
+				//if task project not published then will publish
+				if (!validateProject?.published_id) {
+					let publishedProject = await publishProjectTemplates({
+						id: task.project_id,
+						tenant_code: tenantCode,
+						organization_code: organizationCode,
+					})
+					if (!publishedProject.success || !publishedProject?.templateId) {
+						throw new Error(`Task Project template publish failed: ${validateProject.project_id}`)
+					}
+					validateProject.published_id = publishedProject.templateId
+				}
+
+				// Convert published_id to ObjectId
+				const publishedObjectId = new ObjectId(validateProject.published_id)
+
+				// get projectTemplate details
+				let projectTemplates = await projectTemplatesCollection.findOne({
+					_id: publishedObjectId,
+					tenantId: tenantCode,
+				})
+
+				if (!projectTemplates) {
+					throw new Error(`Project template not found for published_id: ${validateProject.published_id}`)
+				}
+
+				taskData.projectTemplateDetails = {
+					_id: projectTemplates._id,
+					type: projectTemplates.type ?? common.SOLUTIONS_TYPE.project,
+					entityType: projectTemplates.entityType,
+					isReusable: projectTemplates.isReusable,
+					externalId: projectTemplates.externalId,
+				}
+
+				taskData.type = projectTemplates.type ?? common.SOLUTIONS_TYPE.project
+			}
+
 			// Create the task
 			const taskCreationRes = await taskCollection.insertOne(taskData)
 			// Validate the insertion result
@@ -387,6 +440,43 @@ const fetchExternalEntities = async (apiData, dataToFetch = [], entityType, tena
 const processTargetingCriteria = async (targetingData, organizationCode, tenantCode) => {
 	try {
 		let scope = {}
+		let keysToRemoveFromScope = []
+
+		// Configuration for mapping keys to data paths
+		const scopeKeyToDataPath = {
+			roles: 'professional_role',
+			sub_roles: 'professional_subroles',
+		}
+		targetingData = targetingData.map((criteria) => {
+			for (let criteriaKey of Object.keys(criteria)) {
+				let isKeyModified = false
+				// find data path if the key is modified
+				const dataPath = scopeKeyToDataPath?.[criteriaKey] || null
+				// if key is modified (i.e dataPath is not null ) and the scope is expecting multi select
+				if (dataPath && scopeKeys?.[dataPath]?.multi_select) {
+					// if key is modified and the actual data path has values
+					if (criteria?.[dataPath]?.length > 0 && criteria?.[criteriaKey]?.length > 0) {
+						criteria[dataPath] = [...criteria[dataPath], ...criteria[criteriaKey]]
+						isKeyModified = true
+						// if key is modified and the actual data path has no values or the key is not present in targeting
+					} else if (!criteria?.[dataPath] && criteria?.[criteriaKey].length > 0) {
+						criteria[dataPath] = [...criteria[criteriaKey]]
+						isKeyModified = true
+					}
+				} else if (dataPath && !scopeKeys?.[dataPath]?.multi_select) {
+					criteria[dataPath] = criteria[criteriaKey]
+					isKeyModified = true
+				}
+				if (dataPath && isKeyModified) keysToRemoveFromScope.push(criteriaKey)
+				if (
+					scopeKeys &&
+					!Object.keys(scopeKeys).includes(criteriaKey) &&
+					!keysToRemoveFromScope.includes(criteriaKey)
+				)
+					keysToRemoveFromScope.push(criteriaKey)
+			}
+			return criteria
+		})
 		// add organization into the scope by default
 		scope[`${common.SCOPE_ELEMENT_ORGANIZATIONS}`] = [organizationCode]
 		let mandatoryKeys = []
@@ -507,6 +597,11 @@ const processTargetingCriteria = async (targetingData, organizationCode, tenantC
 					Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined
 				)
 			)
+		}
+		if (keysToRemoveFromScope.length > 0) {
+			for (const key of keysToRemoveFromScope) {
+				scope[key] && delete scope[key]
+			}
 		}
 		return { scope, metaInformation, success: true }
 	} catch (error) {
@@ -1281,15 +1376,19 @@ async function insertCertificateTemplate(
  * @name duplicateResources
  * @param {Object} resourceDetails - Object of resource details
  * @param {String} created_by - created by user id
+ * @param {String} template -togetProgramInformation for project as a task
  * @returns {Array} Array of objects of duplicate templates
  */
-const duplicateResources = async (resourceDetails, resourceCertificate = {}, programData) => {
+const duplicateResources = async (resourceDetails, resourceCertificate = {}, programData, template) => {
 	try {
 		// initialise list of project templates to create
 		let projectTemplateIds = []
 		//initialise list of solution templates to create
 		let solutionTemplateIds = []
 		let certificate = resourceCertificate || {}
+		//Getting program id for project as a task
+		let programId = template?._id ? ObjectId(template?._id) : null
+
 		if (certificate && Object.keys(certificate).length > 0) {
 			// append task name in each task certificate criterias
 			const certificateCriteriaConditions = Object.keys(certificate.criteria.conditions)
@@ -1376,7 +1475,8 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					})
 					.toArray()
 				// duplicate project task details to create
-				projectsTasksDetails.forEach((projectTask) => {
+
+				for (const [index, projectTask] of projectsTasksDetails.entries()) {
 					let oldTaskExtId = projectTask.externalId
 					projectTask.externalId = utils.generateUniqueId()
 					// if task is part of certificate criteria , replace the old task name with new task name
@@ -1416,6 +1516,80 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 							)
 						})
 					}
+
+					if (projectTask.type === common.SOLUTIONS_TYPE.project) {
+						const fetchProjectDetails = await projectService.details(
+							resourceDetails?.tasks[index]?.project_id,
+							resourceDetails?.organization_code,
+							resourceDetails?.tenant_code
+						)
+
+						const projectData = fetchProjectDetails?.result || {}
+						if (Object.keys(projectData).length <= 0) {
+							throw new Error('FAILED_TO_FETCH_PROJECT')
+						}
+						const projectCertificate = projectData?.certificate
+						// create child projectTemplate for task
+						let duplicateResource = await duplicateResources(
+							{ ...projectData, published_id: projectData.published_id },
+							projectCertificate,
+							programData,
+							template
+						)
+						if (!duplicateResource.success || duplicateResource?.data?.length <= 0) {
+							console.log('Error in creating duplicate Resource')
+							throw new Error(
+								`Error in creating duplicate Resource ${duplicateResource?.error || 'Unknown Error'}`
+							)
+						}
+						let programDetails = {
+							_id: programId,
+							externalId: template.externalId,
+							name: template?.name,
+							description: template?.description ? template?.description : '',
+							end_date: template?.endDate,
+							start_date: template?.startDate,
+							created_by: programData.userId,
+							orgId: programData.organization_code,
+							tenantId: programData.tenant_code,
+							referenceFrom: common.PROJECT,
+						}
+						// create and mapping solutions with project template
+						const createSolutionsData = await createSolutions(
+							duplicateResource.data,
+							programDetails,
+							programData.userToken
+						)
+						if (!createSolutionsData.success || createSolutionsData?.data?.length <= 0)
+							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
+						const duplicateResourceData = duplicateResource.data[0]
+
+						// Pre-calc target ID once
+						const targetId = duplicateResourceData?._id?.toString()
+
+						// Find matching solution safely
+						const solutionsData = createSolutionsData?.data?.find(
+							(a) => a?.projectTemplateId?.toString() === targetId
+						)
+						//Adding solutionDetails in task
+						projectTask.solutionDetails = {
+							type: solutionsData?.type,
+							_id: solutionsData?._id,
+							externalId: solutionsData?.externalId,
+							isReusable: solutionsData?.isReusable ?? common.FALSE,
+							minNoOfSubmissionsRequired: solutionsData?.minNoOfSubmissionsRequired,
+						}
+
+						//adding projectTemaplateDetails in task
+
+						projectTask.projectTemplateDetails = {
+							_id: duplicateResourceData?._id,
+							externalId: duplicateResourceData?.externalId,
+							isReusable: duplicateResourceData?.isReusable ?? common.FALSE,
+							type: duplicateResourceData?.type,
+							minNoOfSubmissionsRequired: duplicateResourceData?.minNoOfSubmissionsRequired,
+						}
+					}
 					// replace old task id by new task id in sequence
 					_.update(taskSeqMap, projectTask.projectTemplateExternalId + externalId_suffixing, (tasks) =>
 						tasks.map((task) => (task === oldTaskExtId ? projectTask.externalId : task))
@@ -1428,7 +1602,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					projectTask.projectTemplateExternalId = projectTask.projectTemplateExternalId + externalId_suffixing
 					delete projectTask._id
 					duplicateTasks.push(projectTask)
-				})
+				}
 
 				await projectsTaskCollection.insertMany(duplicateTasks)
 
@@ -1590,6 +1764,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				creator: programDetails.created_by,
 				orgId: programDetails.orgId,
 				tenantId: programDetails.tenantId,
+				referenceFrom: programDetails.referenceFrom ? programDetails.referenceFrom : '',
 			}
 
 			solutionRolloutMap[solutionTemplate.externalId] = resource.rolloutId
@@ -1942,7 +2117,8 @@ const publishProgram = function async(programData) {
 								published_id: publishedProject?.templateId,
 							},
 							projectCertificate,
-							programData
+							programData,
+							template
 						)
 						if (!duplicateResource.success) {
 							console.log('Error in creating duplicate Resource')

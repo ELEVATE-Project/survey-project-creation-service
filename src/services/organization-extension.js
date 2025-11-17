@@ -12,6 +12,8 @@ const organizationExtensionsQueries = require('@database/queries/organizationExt
 const organizationConfigQueries = require('@database/queries/organizationConfig')
 const resourceQueries = require('@database/queries/resources')
 const Op = require('sequelize').Op
+const path = require('path')
+const fs = require('fs')
 module.exports = class orgExtensionsHelper {
 	/**
 	 * Create Organization Config.
@@ -305,15 +307,20 @@ module.exports = class orgExtensionsHelper {
 	 */
 	static async getConfig(organization_code, tenantCode) {
 		try {
-			let orgExtenstionData = {}
 			let configData = []
 			// define filter
 			const filter = {
-				organization_code,
+				organization_code: {
+					[Op.in]: [organization_code, process.env.DEFAULT_ORGANIZATION_CODE].filter(Boolean),
+				},
 				tenant_code: tenantCode,
 			}
 			let result = {
-				config: {},
+				config: {
+					data_managers: process.env.DEFAULT_DATA_MANAGERS?.split(',') || [],
+					program_managers: process.env.DEFAULT_PROGRAM_MANAGERS?.split(',') || [],
+					targeting_criteria: await this.getTargetingCriteriaConfig(),
+				},
 				resource: [],
 				instance: {
 					auto_save_interval: utils.convertToInteger(process.env.RESOURCE_AUTO_SAVE_TIMER),
@@ -322,15 +329,12 @@ module.exports = class orgExtensionsHelper {
 				},
 			}
 			// fetch org config for organization_code (prioritize user's org over default)
-			const orgConfigs = await organizationConfigQueries.findAll(
-				{
-					organization_code: {
-						[Op.in]: [organization_code, process.env.DEFAULT_ORGANIZATION_CODE].filter(Boolean),
-					},
-					tenant_code: tenantCode,
-				},
-				['meta', 'organization_code', 'external_resource_visibility_policy', 'resource_visibility_policy']
-			)
+			const orgConfigs = await organizationConfigQueries.findAll(filter, [
+				'meta',
+				'organization_code',
+				'external_resource_visibility_policy',
+				'resource_visibility_policy',
+			])
 
 			// Find user's org config first, fallback to default org config
 			const userOrgConfig = orgConfigs?.find((config) => config.organization_code === organization_code)
@@ -363,7 +367,7 @@ module.exports = class orgExtensionsHelper {
 				userOrgConfig?.resource_visibility_policy || defaultOrgConfig?.resource_visibility_policy || undefined
 
 			// attributes to fetch from organisation Extenstion
-			const attributes = common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES
+			let attributes = [...common.INSTANCE_LEVEL_CONFIG_ATTRIBUTES, 'tenant_code', 'organization_code']
 
 			// fetch the current list of resources
 			const resourceListArr = process.env.RESOURCE_TYPES.split(',')
@@ -384,43 +388,56 @@ module.exports = class orgExtensionsHelper {
 			}
 
 			// fetch the configuration from Organization extension for the user's organization
-			orgExtenstionData = await organizationExtensionsQueries.findMany(filter, attributes)
-			// get the list of resource types not set by the org-admin
+			let orgExtensionData = await organizationExtensionsQueries.findMany(filter, attributes)
+
+			// Separate user org and default org extensions
+			const userOrgExtensions =
+				orgExtensionData?.filter((extension) => extension.organization_code === organization_code) || []
+			const defaultOrgExtensions =
+				orgExtensionData?.filter(
+					(extension) => extension.organization_code === process.env.DEFAULT_ORGANIZATION_CODE
+				) || []
+
+			// Track which resource types have been configured
 			let resourceTypeFromDB = []
 
-			// fetch the config data
+			// Build config for each resource type with proper fallback chain
 			configData = resourceListArr
 				.map((resourceType) => {
-					const filterData = orgExtenstionData.filter((orgExt) => {
-						if (orgExt.resource_type.toLowerCase() === resourceType.toLowerCase()) {
-							resourceTypeFromDB.push(orgExt.resource_type)
-							return {
-								review_required: orgExt.review_required,
-								show_reviewer_list: orgExt.show_reviewer_list,
-								min_approval: orgExt.min_approval,
-								review_type: orgExt.review_type,
-								resource_type: orgExt.resource_type,
-								review_required_after_publish: orgExt.review_required_after_publish,
-								enable_entity_tagging: orgExt.enable_entity_tagging,
-								enable_task_start_end_dates: orgExt.enable_task_start_end_dates,
-							}
-						}
-					})
-					return filterData
-				})
-				.flat()
+					// Try to find config in user's org first
+					let orgExtConfig = userOrgExtensions.find(
+						(ext) => ext.resource_type.toLowerCase() === resourceType.toLowerCase()
+					)
 
-			// check and fill for the missing configs from DB
-			const missedResourceTypes = _.difference(resourceListArr, resourceTypeFromDB)
-				.map((resourceType) => {
+					// If not found in user org, try default org
+					if (!orgExtConfig) {
+						orgExtConfig = defaultOrgExtensions.find(
+							(ext) => ext.resource_type.toLowerCase() === resourceType.toLowerCase()
+						)
+					}
+
+					// If found in either org, use it
+					if (orgExtConfig) {
+						resourceTypeFromDB.push(resourceType)
+						return {
+							review_required: orgExtConfig.review_required,
+							show_reviewer_list: orgExtConfig.show_reviewer_list,
+							min_approval: orgExtConfig.min_approval,
+							review_type: orgExtConfig.review_type,
+							resource_type: orgExtConfig.resource_type,
+							review_required_after_publish: orgExtConfig.review_required_after_publish,
+							enable_entity_tagging: orgExtConfig.enable_entity_tagging,
+							enable_task_start_end_dates: orgExtConfig.enable_task_start_end_dates,
+						}
+					}
+
+					// If not found in any org, use instance-level defaults
 					return {
 						...default_configs,
 						resource_type: resourceType,
 					}
 				})
 				.flat()
-
-			configData = configData.length > 0 ? _.concat(configData, missedResourceTypes) : missedResourceTypes
 
 			_.forEach(configData, (item) => {
 				if (item.resource_type === common.PROJECT) {
@@ -604,6 +621,47 @@ module.exports = class orgExtensionsHelper {
 				statusCode: httpStatusCode.internal_server_error,
 				responseCode: 'CLIENT_ERROR',
 			})
+		}
+	}
+
+	/**
+	 * Get targeting criteria configuration from config file
+	 * @method
+	 * @name getTargetingCriteriaConfig
+	 * @returns {Object} - Targeting criteria configuration object
+	 * @private
+	 */
+	static async getTargetingCriteriaConfig() {
+		try {
+			let targetingConfig = {}
+
+			// Return empty config if no config file path is defined
+			if (!process.env.AUTH_CONFIG_FILE_PATH) {
+				return targetingConfig
+			}
+
+			const configFilePath = path.resolve(PROJECT_ROOT_DIRECTORY, process.env.AUTH_CONFIG_FILE_PATH)
+
+			// Check if config file exists
+			if (!fs.existsSync(configFilePath)) {
+				return targetingConfig
+			}
+
+			try {
+				const rawData = fs.readFileSync(configFilePath, 'utf8')
+				const configData = JSON.parse(rawData)
+
+				if (configData?.targeting_criteria) {
+					targetingConfig = configData?.targeting_criteria || {}
+				}
+			} catch (parseError) {
+				console.error('Error parsing config.json:', parseError)
+			}
+
+			return targetingConfig
+		} catch (error) {
+			console.error('Error in getTargetingCriteriaConfig:', error)
+			return {}
 		}
 	}
 }
