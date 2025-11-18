@@ -81,3 +81,87 @@ exports.formatSolutionTemplate = (resource, programDetails) => {
 		}
 	}
 }
+
+/**
+ * Format certificate document for insertion into database
+ * @method
+ * @name formatCertificateDocument
+ * @param {Object} certificateData - Certificate data
+ * @param {String} solutionId - Solution ID
+ * @param {String} programId - Program ID
+ * @param {Object} baseTemplate - Base template object with _id
+ * @param {String} templateUrl - SVG template URL from file upload
+ * @param {String} orgCode - Organization code
+ * @param {String} tenantCode - Tenant code
+ * @returns {Object} - Formatted certificate document
+ */
+exports.formatCertificateDocument = (
+	certificateData,
+	solutionId,
+	programId,
+	baseTemplate,
+	templateUrl,
+	orgCode,
+	tenantCode
+) => {
+	try {
+		const certificateDocument = {
+			status: common.STATUS_ACTIVE.toLowerCase(),
+			deleted: false,
+			solutionId,
+			programId,
+			baseTemplateId: baseTemplate._id,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+			templateUrl,
+			issuer: { name: certificateData.issuer },
+			criteria: certificateData.criteria,
+			tenantId: tenantCode,
+			orgId: orgCode,
+		}
+
+		return {
+			success: true,
+			data: certificateDocument,
+		}
+	} catch (error) {
+		return {
+			success: false,
+			error: error.message || error,
+		}
+	}
+}
+
+/**
+ * Format certificate base template document for insertion into database
+ * @method
+ * @name formatCertificateBaseTemplateDocument
+ * @param {Object} certificateData - Certificate base template data from query
+ * @param {String} orgCode - Organization code
+ * @param {String} tenantCode - Tenant code
+ * @returns {Object} - Formatted certificate base template document
+ */
+exports.formatCertificateBaseTemplateDocument = (certificateData, orgCode, tenantCode) => {
+	try {
+		const certificateBaseTemplateDocument = {
+			code: certificateData.code,
+			name: certificateData.name,
+			url: certificateData.url,
+			tenantId: tenantCode,
+			orgId: orgCode,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+			deleted: false,
+		}
+
+		return {
+			success: true,
+			data: certificateBaseTemplateDocument,
+		}
+	} catch (error) {
+		return {
+			success: false,
+			error: error.message || error,
+		}
+	}
+}

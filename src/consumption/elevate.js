@@ -49,6 +49,141 @@ const connectMongo = async (url) => {
 }
 
 /**
+ * Publish the project template
+ * @name publishProjectTemplates
+ * @param {Object} templateData - Project template data
+ * @returns {Object} - Response of template creation
+ */
+const publishProjectTemplates = function (templateData) {
+	return new Promise(async (resolve, reject) => {
+		const result = { success: false, templateId: null, error: null }
+		try {
+			const requiredKeys = ['id', 'tenant_code', 'organization_code']
+
+			const hasAllRequiredKeys = requiredKeys.every((key) => key in templateData)
+
+			if (Object.keys(templateData).length <= 0 || !hasAllRequiredKeys) {
+				throw new Error('FAILED_TO_FETCH_PROJECT')
+			}
+
+			// fetch project details
+			let projectData = await projectService.details(
+				templateData.id,
+				templateData.organization_code,
+				templateData.tenant_code
+			)
+
+			projectData = projectData?.result || {}
+
+			if (Object.keys(projectData).length <= 0) {
+				throw new Error('FAILED_TO_FETCH_PROJECT')
+			}
+
+			// Format the template using DTO
+			const formattedTemplate = projectDTO.formatProjectTemplateDTO({ ...projectData })
+			if (!formattedTemplate.success || !formattedTemplate?.data) {
+				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
+			}
+
+			let template = formattedTemplate.data
+
+			projectsMongoConnection = projectsMongoConnection
+				? projectsMongoConnection
+				: await connectMongo(projectsMongoDBUrl)
+
+			// Fetch Org Policies
+			const orgPolicies = await fetchOrgPolicies(
+				templateData.organization_code,
+				templateData.tenant_code,
+				projectsMongoConnection
+			)
+
+			// Set visibility based on org policies
+			template.visibility = common.ORG_POLICY_CURRENT
+			template.visibleToOrganizations = [templateData.organization_code]
+
+			// Override visibility if org policies are successfully fetched
+			if (orgPolicies.success) {
+				template.visibility = orgPolicies.policies.visibility
+				template.visibleToOrganizations = orgPolicies.policies.visibleToOrganizations
+			}
+
+			// Process Categories
+			if (projectData.categories?.length > 0) {
+				let categoriesResponse = await processCategories(
+					projectData.categories,
+					projectData.organization_code,
+					projectData.tenant_code
+				)
+				if (!categoriesResponse.success) {
+					throw new Error('FAILED_TO_FETCH_OR_CREATE_CATEGORIES')
+				}
+				template.categories = categoriesResponse.categories
+			}
+
+			//process recommededFor
+			if (projectData.recommended_for?.length > 0) {
+				let recommededForResponse = projectDTO.formatRecommendedRoles(projectData.recommended_for)
+				if (!recommededForResponse.success || !recommededForResponse?.data) {
+					throw new Error('FAILED_TO_FETCH_RECOMMENDED_FOR')
+				}
+				template.recommendedFor = recommededForResponse?.data
+			}
+
+			// Insert the template into the database
+			const templateCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
+			const result = await templateCollection.insertOne(template) // Validate the result of the template creation
+			if (!result || !result.insertedId) {
+				throw new Error('FAILED_TO_CREATE_TEMPLATE')
+			}
+
+			const templateId = result.insertedId
+
+			// Process and Create Tasks
+			const processedTasks = projectDTO.assignSequenceNumbers(projectData.tasks || [])
+			const taskCreationResponse = await createTasks(
+				processedTasks,
+				templateId,
+				template.externalId,
+				null,
+				projectData.organization_code,
+				projectData.tenant_code
+			)
+
+			// Validate the result of the task creation
+			if (!taskCreationResponse.success) {
+				throw new Error('FAILED_TO_CREATE_TASKS')
+			}
+
+			// Update Template with tasks and sequence
+			await templateCollection.updateOne(
+				{ _id: templateId },
+				{
+					$set: {
+						tasks: taskCreationResponse.taskIds,
+						taskSequence: taskCreationResponse.externalIds,
+					},
+				}
+			)
+
+			//update the published id in resource table
+			await resourceService.publishCallback(projectData.id, templateId.toString())
+
+			//return result
+			result.success = true
+			result.templateId = templateId
+			console.log('Template published successfully with ID:', templateId)
+			return resolve(result)
+		} catch (error) {
+			console.log('Error in publishProjectTemplates:', error.message)
+			if (mongoConnection) mongoConnection.disconnect()
+			result.error = error.message || error
+			return reject(error)
+		}
+	})
+}
+
+/**
  * Create and Find Categories
  * @name processCategories
  * @param {Object} categories - Categories Data
@@ -294,141 +429,6 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 }
 
 /**
- * Publish the project template
- * @name publishProjectTemplates
- * @param {Object} templateData - Project template data
- * @returns {Object} - Response of template creation
- */
-const publishProjectTemplates = function (templateData) {
-	return new Promise(async (resolve, reject) => {
-		const result = { success: false, templateId: null, error: null }
-		try {
-			const requiredKeys = ['id', 'tenant_code', 'organization_code']
-
-			const hasAllRequiredKeys = requiredKeys.every((key) => key in templateData)
-
-			if (Object.keys(templateData).length <= 0 || !hasAllRequiredKeys) {
-				throw new Error('FAILED_TO_FETCH_PROJECT')
-			}
-
-			// fetch project details
-			let projectData = await projectService.details(
-				templateData.id,
-				templateData.organization_code,
-				templateData.tenant_code
-			)
-
-			projectData = projectData?.result || {}
-
-			if (Object.keys(projectData).length <= 0) {
-				throw new Error('FAILED_TO_FETCH_PROJECT')
-			}
-
-			// Format the template using DTO
-			const formattedTemplate = projectDTO.formatProjectTemplateDTO({ ...projectData })
-			if (!formattedTemplate.success || !formattedTemplate?.data) {
-				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
-			}
-
-			let template = formattedTemplate.data
-
-			projectsMongoConnection = projectsMongoConnection
-				? projectsMongoConnection
-				: await connectMongo(projectsMongoDBUrl)
-
-			// Fetch Org Policies
-			const orgPolicies = await fetchOrgPolicies(
-				templateData.organization_code,
-				templateData.tenant_code,
-				projectsMongoConnection
-			)
-
-			// Set visibility based on org policies
-			template.visibility = common.ORG_POLICY_CURRENT
-			template.visibleToOrganizations = [templateData.organization_code]
-
-			// Override visibility if org policies are successfully fetched
-			if (orgPolicies.success) {
-				template.visibility = orgPolicies.policies.visibility
-				template.visibleToOrganizations = orgPolicies.policies.visibleToOrganizations
-			}
-
-			// Process Categories
-			if (projectData.categories?.length > 0) {
-				let categoriesResponse = await processCategories(
-					projectData.categories,
-					projectData.organization_code,
-					projectData.tenant_code
-				)
-				if (!categoriesResponse.success) {
-					throw new Error('FAILED_TO_FETCH_OR_CREATE_CATEGORIES')
-				}
-				template.categories = categoriesResponse.categories
-			}
-
-			//process recommededFor
-			if (projectData.recommended_for?.length > 0) {
-				let recommededForResponse = projectDTO.formatRecommendedRoles(projectData.recommended_for)
-				if (!recommededForResponse.success || !recommededForResponse?.data) {
-					throw new Error('FAILED_TO_FETCH_RECOMMENDED_FOR')
-				}
-				template.recommendedFor = recommededForResponse?.data
-			}
-
-			// Insert the template into the database
-			const templateCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
-			const result = await templateCollection.insertOne(template) // Validate the result of the template creation
-			if (!result || !result.insertedId) {
-				throw new Error('FAILED_TO_CREATE_TEMPLATE')
-			}
-
-			const templateId = result.insertedId
-
-			// Process and Create Tasks
-			const processedTasks = projectDTO.assignSequenceNumbers(projectData.tasks || [])
-			const taskCreationResponse = await createTasks(
-				processedTasks,
-				templateId,
-				template.externalId,
-				null,
-				projectData.organization_code,
-				projectData.tenant_code
-			)
-
-			// Validate the result of the task creation
-			if (!taskCreationResponse.success) {
-				throw new Error('FAILED_TO_CREATE_TASKS')
-			}
-
-			// Update Template with tasks and sequence
-			await templateCollection.updateOne(
-				{ _id: templateId },
-				{
-					$set: {
-						tasks: taskCreationResponse.taskIds,
-						taskSequence: taskCreationResponse.externalIds,
-					},
-				}
-			)
-
-			//update the published id in resource table
-			await resourceService.publishCallback(projectData.id, templateId.toString())
-
-			//return result
-			result.success = true
-			result.templateId = templateId
-			console.log('Template published successfully with ID:', templateId)
-			return resolve(result)
-		} catch (error) {
-			console.log('Error in publishProjectTemplates:', error.message)
-			if (mongoConnection) mongoConnection.disconnect()
-			result.error = error.message || error
-			return reject(error)
-		}
-	})
-}
-
-/**
  * Fetch Org Policy related keys
  * @name fetchOrgPolicies
  * @param {String} orgCode Organization Code
@@ -593,16 +593,19 @@ async function checkCertificateBaseTemplate(baseTemplateDetails, orgCode, tenant
 		const certificateFetched = await certificateBaseTemplateQueries.findOne({
 			code: baseTemplateDetails.code,
 		})
-		const certificateBaseTemplateDocument = {
-			code: certificateFetched.code,
-			name: certificateFetched.name,
-			url: certificateFetched.url,
-			tenantId: tenantCode,
-			orgId: orgCode,
-			createdAt: new Date(),
-			updatedAt: new Date(),
-			deleted: false,
+
+		// Format certificate base template document using DTO
+		const formattedBaseTemplate = solutionDTO.formatCertificateBaseTemplateDocument(
+			certificateFetched,
+			orgCode,
+			tenantCode
+		)
+
+		if (!formattedBaseTemplate.success || !formattedBaseTemplate?.data) {
+			throw new Error('FAILED_TO_FORMAT_CERTIFICATE_BASE_TEMPLATE')
 		}
+
+		const certificateBaseTemplateDocument = formattedBaseTemplate.data
 
 		const insertResult = await certificateBaseTemplateCollection.insertOne(certificateBaseTemplateDocument)
 		result._id = insertResult.insertedId
@@ -630,20 +633,23 @@ async function insertCertificateTemplate(
 ) {
 	const svgTemplateCreation = await certificateHelper.createSvg(certificateData, loggedInUserId, userToken)
 	const baseTemplate = await checkCertificateBaseTemplate(certificateData, orgCode, tenantCode)
-	const certificateDocument = {
-		status: common.STATUS_ACTIVE.toLowerCase(),
-		deleted: false,
+
+	// Format certificate document using DTO
+	const formattedCertificate = solutionDTO.formatCertificateDocument(
+		certificateData,
 		solutionId,
 		programId,
-		baseTemplateId: baseTemplate._id,
-		createdAt: new Date(),
-		updatedAt: new Date(),
-		templateUrl: svgTemplateCreation.filePath,
-		issuer: { name: certificateData.issuer },
-		criteria: certificateData.criteria,
-		tenantId: tenantCode,
-		orgId: orgCode,
+		baseTemplate,
+		svgTemplateCreation.filePath,
+		orgCode,
+		tenantCode
+	)
+
+	if (!formattedCertificate.success || !formattedCertificate?.data) {
+		throw new Error('FAILED_TO_FORMAT_CERTIFICATE_DOCUMENT')
 	}
+
+	const certificateDocument = formattedCertificate.data
 
 	// Insert the template into the database
 	const certificateTemplateCollection = projectsMongoConnection.collection(
