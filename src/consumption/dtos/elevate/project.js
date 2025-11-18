@@ -9,6 +9,7 @@
 
 const utils = require('@generics/utils')
 const common = require('@constants/common')
+const consumptionCommon = require('@consumption/constants/elevate/common')
 
 /**
  * Assign sequence numbers to tasks
@@ -42,6 +43,65 @@ exports.assignSequenceNumbers = (tasks) => {
 }
 
 /**
+ * Format categories from project data
+ * @method
+ * @name formatCategories
+ * @param {Array} categories - Array of category objects with label and value
+ * @returns {Object} - Response with success status and formatted categories array
+ */
+exports.formatCategories = (categories) => {
+	try {
+		if (!categories || !Array.isArray(categories)) {
+			throw new Error('Categories must be an array')
+		}
+
+		const formattedCategories = categories.map((category) => {
+			if (!category.label || !category.value) {
+				throw new Error('EACH_CATEGORY_MUST_BE_LABEL_AND_VALUE')
+			}
+			return {
+				label: category.label,
+				value: category.value,
+				formattedName: utils.formatToTitleCase(category.value),
+				externalId: category.value.replace(/_/g, '').toLowerCase(),
+			}
+		})
+
+		return { success: true, data: formattedCategories }
+	} catch (error) {
+		return { success: false, error: `Failed to format categories: ${error.message}` }
+	}
+}
+
+/**
+ * Create MongoDB category documents ready for insertion
+ * @method
+ * @name createCategoryDocuments
+ * @param {Array} formattedCategories - Array of formatted categories from formatCategories
+ * @param {String} orgCode - Organization code
+ * @param {String} tenantCode - Tenant code
+ * @returns {Array} - Array of complete MongoDB category documents
+ */
+exports.createCategoryDocuments = (formattedCategories, orgCode, tenantCode) => {
+	return formattedCategories.map(({ formattedName, externalId, label }) => ({
+		createdBy: consumptionCommon.CREATED_BY_SYSTEM,
+		updatedBy: consumptionCommon.CREATED_BY_SYSTEM,
+		isDeleted: false,
+		isVisible: true,
+		status: consumptionCommon.STATUS_ACTIVE,
+		icon: '',
+		noOfProjects: 0,
+		name: formattedName,
+		externalId: externalId,
+		label: label,
+		tenantId: tenantCode,
+		orgId: orgCode,
+		createdAt: new Date(),
+		updatedAt: new Date(),
+	}))
+}
+
+/**
  * Format Recommended Roles from project data
  * @method
  * @name formatRecommendedRoles
@@ -57,6 +117,40 @@ exports.formatRecommendedRoles = (recommendedFor) => {
 		return { success: true, data: recommendedRoles }
 	} catch (error) {
 		return { success: false, error: `Failed to process recommended for: ${error.message}` }
+	}
+}
+
+/**
+ * Format task data for MongoDB insertion
+ * @method
+ * @name formatTaskDocument
+ * @param {Object} task - Task data from input
+ * @param {String} templateId - Template ID
+ * @param {String} templateExternalId - Template external ID
+ * @param {String|null} parentId - Parent task ID
+ * @param {String} organizationCode - Organization code
+ * @param {String} tenantCode - Tenant code
+ * @returns {Object} - Formatted task document
+ */
+exports.formatTaskDocument = (task, templateId, templateExternalId, parentId, organizationCode, tenantCode) => {
+	return {
+		name: task.name,
+		description: task.name,
+		externalId: utils.generateExternalId(task.name),
+		type: task.type,
+		isDeleted: false,
+		isDeletable: !task.is_mandatory,
+		sequenceNumber: task.sequence_no,
+		projectTemplateId: templateId,
+		projectTemplateExternalId: templateExternalId,
+		hasSubTasks: task.children?.length > 0,
+		learningResources: utils.convertResources(task.learning_resources || []),
+		parentId,
+		deleted: false,
+		orgId: organizationCode,
+		tenantId: tenantCode,
+		createdAt: new Date(),
+		updatedAt: new Date(),
 	}
 }
 
