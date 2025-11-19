@@ -30,4 +30,5 @@ module.exports = {
 	COLLECTIONS_MAP,
 	CREATED_BY_SYSTEM: 'SYSTEM',
 	STATUS_ACTIVE: 'active',
+	REQUIRED_KEYS_FOR_PROJECT_PUBLISH: ['id', 'tenant_code', 'organization_code'],
 }

@@ -168,20 +168,17 @@ exports.formatProjectTemplateDTO = (templateData) => {
 			throw new Error('Invalid template data provided')
 		}
 
-		if (!templateData.title) {
-			throw new Error('Template title is required')
+		const requiredFields = {
+			title: 'Template title is required',
+			tenant_code: 'Tenant code is required',
+			organization_code: 'Organization code is required',
+			user_id: 'User ID is required',
 		}
 
-		if (!templateData.tenant_code) {
-			throw new Error('Tenant code is required')
-		}
-
-		if (!templateData.organization_code) {
-			throw new Error('Organization code is required')
-		}
-
-		if (!templateData.user_id) {
-			throw new Error('User ID is required')
+		for (const [field, errorMsg] of Object.entries(requiredFields)) {
+			if (!templateData[field]) {
+				throw new Error(errorMsg)
+			}
 		}
 
 		// Build the formatted template

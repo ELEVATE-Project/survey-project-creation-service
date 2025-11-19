@@ -29,7 +29,8 @@ const solutionDTO = require('@consumption/dtos/elevate/solution')
 const targetingHelper = require('@consumption/helpers/elevate/targeting')
 const userMappingHelper = require('@consumption/helpers/elevate/userMapping')
 const certificateHelper = require('@consumption/helpers/elevate/certificate')
-const { COLLECTIONS_MAP } = require('@consumption/constants/elevate/common')
+const commonElevate = require('@consumption/constants/elevate/common')
+const COLLECTIONS_MAP = commonElevate.COLLECTIONS_MAP
 
 /**
  * To connect with the mongoDB with the given url
@@ -58,8 +59,9 @@ const publishProjectTemplates = function (templateData) {
 	return new Promise(async (resolve, reject) => {
 		const result = { success: false, templateId: null, error: null }
 		try {
-			const requiredKeys = ['id', 'tenant_code', 'organization_code']
-
+			console.log(projectsMongoDBUrl, 'projectsMongoDBUrl')
+			// Validate required keys
+			const requiredKeys = commonElevate.REQUIRED_KEYS_FOR_PROJECT_PUBLISH
 			const hasAllRequiredKeys = requiredKeys.every((key) => key in templateData)
 
 			if (Object.keys(templateData).length <= 0 || !hasAllRequiredKeys) {
@@ -73,11 +75,15 @@ const publishProjectTemplates = function (templateData) {
 				templateData.tenant_code
 			)
 
-			projectData = projectData?.result || {}
-
-			if (Object.keys(projectData).length <= 0) {
+			if (
+				projectData.statusCode !== 200 ||
+				!projectData?.result ||
+				Object.keys(projectData.result).length === 0
+			) {
 				throw new Error('FAILED_TO_FETCH_PROJECT')
 			}
+
+			projectData = projectData.result
 
 			// Format the template using DTO
 			const formattedTemplate = projectDTO.formatProjectTemplateDTO({ ...projectData })
