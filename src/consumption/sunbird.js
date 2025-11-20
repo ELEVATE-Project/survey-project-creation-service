@@ -31,6 +31,33 @@ const ProjectTemplateDTO = require('@consumptionDTOs/sunbird/project')
 // User program mapping DTO (attached to project DTO file)
 const UserProgramMappingDTO = ProjectTemplateDTO.userProgramMapping
 
+// Adapter objects to match the DTO shape used in elevate.js
+const projectDTO = {
+	formatProjectTemplateDTO: async (projectData) => {
+		try {
+			const formatted = await ProjectTemplateDTO.transform(projectData)
+			if (!formatted || !formatted.success) return { success: false, error: formatted?.error }
+			return { success: true, data: formatted.template }
+		} catch (err) {
+			return { success: false, error: err.message || err }
+		}
+	},
+	assignSequenceNumbers: (...args) => assignSequenceNumbers(...args),
+}
+
+const programDTO = {
+	formatProgramTemplateDTO: async (programData, scopeKeysArg) => {
+		try {
+			const formatted = await formatProgramTemplate(programData)
+			if (!formatted || !formatted.success) return { success: false, error: formatted?.error }
+			return { success: true, data: formatted.programDocument }
+		} catch (err) {
+			return { success: false, error: err.message || err }
+		}
+	},
+	orderSolutionsInProgram: (...args) => orderSolutionsInProgram(...args),
+}
+
 /**
  * To connect with the mongoDB with the given url
  * @name connectMongo
@@ -97,13 +124,13 @@ const publishProjectTemplates = function (templateData) {
 			if (Object.keys(projectData).length <= 0) {
 				throw new Error('FAILED_TO_FETCH_PROJECT')
 			}
-			// Format the template using DTO transformer
-			const formattedTemplate = await ProjectTemplateDTO.transform(projectData)
-			if (!formattedTemplate || !formattedTemplate.success) {
+			// Format the template using DTO transformer (adapter to elevate-style DTO)
+			const formattedTemplate = await projectDTO.formatProjectTemplateDTO(projectData)
+			if (!formattedTemplate || !formattedTemplate.success || Object.keys(formattedTemplate.data).length == 0) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
 
-			const template = formattedTemplate.template
+			let template = formattedTemplate.data
 
 			//add duration key if consumption service is sunbird
 			if (projectData.recommended_duration) {
@@ -128,6 +155,10 @@ const publishProjectTemplates = function (templateData) {
 				template.recommendedFor = recommededForResponse?.recommendedRoles
 			}
 
+			// ensure mongo connection (lazy init similar to elevate.js)
+			projectsMongoConnection = projectsMongoConnection
+				? projectsMongoConnection
+				: await connectMongo(projectsMongoDBUrl)
 			// Insert the template into the database
 			const templateCollection = projectsMongoConnection.collection(COLLECTIONS.TEMPLATES)
 			const result = await templateCollection.insertOne(template)
@@ -140,7 +171,7 @@ const publishProjectTemplates = function (templateData) {
 			const templateId = result.insertedId
 
 			// Process and Create Tasks
-			const processedTasks = assignSequenceNumbers(projectData.tasks || [])
+			const processedTasks = projectDTO.assignSequenceNumbers(projectData.tasks || [])
 			const taskCreationResponse = await createTasks(processedTasks, templateId, template.externalId)
 
 			// Validate the result of the task creation
@@ -181,6 +212,10 @@ const publishProjectTemplates = function (templateData) {
  */
 async function processCategories(categories) {
 	try {
+		// ensure mongo connection (lazy init similar to elevate.js)
+		projectsMongoConnection = projectsMongoConnection
+			? projectsMongoConnection
+			: await connectMongo(projectsMongoDBUrl)
 		const categoriesCollection = projectsMongoConnection.collection(COLLECTIONS.CATEGORIES)
 
 		// Format categories
@@ -274,6 +309,10 @@ async function processCategories(categories) {
 async function createTasks(tasks, templateId, templateExternalId, parentId = null) {
 	const result = { success: false, taskIds: [], externalIds: [], error: null }
 	try {
+		// ensure mongo connection (lazy init similar to elevate.js)
+		projectsMongoConnection = projectsMongoConnection
+			? projectsMongoConnection
+			: await connectMongo(projectsMongoDBUrl)
 		const taskCollection = projectsMongoConnection.collection(COLLECTIONS.TASKS)
 		const taskIds = []
 		const externalIds = []
@@ -404,29 +443,25 @@ async function convertRecommendedRolesForProjects(recommendedFor) {
 	try {
 		// If the user role is not present in the userRoles collection , the recommendedFor role will be skipped
 		// as we don't know the entity of the role in that case to create.
-		if (process.env.CONSUMPTION_SERVICE == common.SUNBIRD) {
-			const userRoleCollection = projectsMongoConnection.collection(COLLECTIONS.USER_ROLES)
-			const roles = await userRoleCollection.find({ status: 'active' }).toArray()
+		// ensure mongo connection (lazy init similar to elevate.js)
+		projectsMongoConnection = projectsMongoConnection
+			? projectsMongoConnection
+			: await connectMongo(projectsMongoDBUrl)
+		const userRoleCollection = projectsMongoConnection.collection(COLLECTIONS.USER_ROLES)
+		const roles = await userRoleCollection.find({ status: 'active' }).toArray()
 
-			// Prepare the recommended roles for the Sunbird project
-			const recommendedRoles = recommendedFor
-				.filter((item) => item?.label && item?.value)
-				// Validate label and value exist
-				.map((item) => {
-					// Find the matching role for each item
-					const matchingRole = roles.find((role) => role.title.trim() === item.label.trim())
-					return matchingRole ? { roleId: matchingRole._id, code: matchingRole.code } : null
-				})
-				.filter((role) => role !== null) // Remove any null roles from the output
+		// Prepare the recommended roles for the Sunbird project
+		const recommendedRoles = recommendedFor
+			.filter((item) => item?.label && item?.value)
+			// Validate label and value exist
+			.map((item) => {
+				// Find the matching role for each item
+				const matchingRole = roles.find((role) => role.title.trim() === item.label.trim())
+				return matchingRole ? { roleId: matchingRole._id, code: matchingRole.code } : null
+			})
+			.filter((role) => role !== null) // Remove any null roles from the output
 
-			return { success: true, recommendedRoles }
-		} else {
-			const recommendedRoles = recommendedFor?.length
-				? recommendedFor.filter((item) => item?.label).map((item) => item.label)
-				: []
-
-			return { success: true, recommendedRoles }
-		}
+		return { success: true, recommendedRoles }
 	} catch (error) {
 		return { success: false, error: `Failed to process recommeded for: ${error.message}` }
 	}
@@ -521,6 +556,10 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 			solutionsToCreate.push(solutionTemplate)
 		})
 
+		// ensure mongo connection (lazy init similar to elevate.js)
+		projectsMongoConnection = projectsMongoConnection
+			? projectsMongoConnection
+			: await connectMongo(projectsMongoDBUrl)
 		const solutionCollection = projectsMongoConnection.collection(COLLECTIONS.SOLUTIONS)
 		await solutionCollection.insertMany(solutionsToCreate)
 		let createdSolutions = await solutionCollection
@@ -584,6 +623,10 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 				}
 			})
 		)
+		// ensure mongo connection (lazy init similar to elevate.js)
+		projectsMongoConnection = projectsMongoConnection
+			? projectsMongoConnection
+			: await connectMongo(projectsMongoDBUrl)
 		const projectTemplateCollection = projectsMongoConnection.collection(COLLECTIONS.TEMPLATES)
 
 		const createdSolutionsResponse = await Promise.all(
@@ -682,6 +725,10 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 
 		// handling only project creation now. Make changes here for observation , survey etc...
 		if (projectTemplateIds.length > 0) {
+			// ensure mongo connection (lazy init similar to elevate.js)
+			projectsMongoConnection = projectsMongoConnection
+				? projectsMongoConnection
+				: await connectMongo(projectsMongoDBUrl)
 			const projectsCollection = projectsMongoConnection.collection(COLLECTIONS.TEMPLATES)
 			const projectTemplates = await projectsCollection
 				.find({
@@ -739,6 +786,10 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					templateTaskIds = [...templateTaskIds, ...templateProjectsTaskMap[projectExtId]]
 				})
 				templateTaskIds = [...new Set(templateTaskIds)]
+				// ensure mongo connection (lazy init similar to elevate.js)
+				projectsMongoConnection = projectsMongoConnection
+					? projectsMongoConnection
+					: await connectMongo(projectsMongoDBUrl)
 				const projectsTaskCollection = projectsMongoConnection.collection(COLLECTIONS.TASKS)
 				const projectsTasksDetails = await projectsTaskCollection
 					.find({
@@ -899,173 +950,31 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
  * @param {Object} targetingData - Program template data
  * @returns {Object} - Response contains scope and metaInformation
  */
-const processTargetingCriteria = async (targetingData, organizationCode, tenantCode) => {
+const processTargetingCriteria = async (targetingData) => {
 	try {
-		let scope = {}
-		let keysToRemoveFromScope = []
-
-		// Configuration for mapping keys to data paths
-		const scopeKeyToDataPath = {
-			roles: 'professional_role',
-			sub_roles: 'professional_subroles',
+		let scope = {
+			entityType: 'state',
+			entities: [],
+			roles: [],
 		}
+		const entitiesList = ['state', 'district', 'block', 'cluster', 'school']
+
 		targetingData = targetingData.map((criteria) => {
 			for (let criteriaKey of Object.keys(criteria)) {
-				let isKeyModified = false
-				// find data path if the key is modified
-				const dataPath = scopeKeyToDataPath?.[criteriaKey] || null
-				// if key is modified (i.e dataPath is not null ) and the scope is expecting multi select
-				if (dataPath && scopeKeys?.[dataPath]?.multi_select) {
-					// if key is modified and the actual data path has values
-					if (criteria?.[dataPath]?.length > 0 && criteria?.[criteriaKey]?.length > 0) {
-						criteria[dataPath] = [...criteria[dataPath], ...criteria[criteriaKey]]
-						isKeyModified = true
-						// if key is modified and the actual data path has no values or the key is not present in targeting
-					} else if (!criteria?.[dataPath] && criteria?.[criteriaKey].length > 0) {
-						criteria[dataPath] = [...criteria[criteriaKey]]
-						isKeyModified = true
-					}
-				} else if (dataPath && !scopeKeys?.[dataPath]?.multi_select) {
-					criteria[dataPath] = criteria[criteriaKey]
-					isKeyModified = true
+				if (entitiesList.includes(criteriaKey)) {
+					scope.entities = criteria[criteriaKey]
+						.map((entity) => entity?.id || entity?._id || null)
+						.filter((id) => id !== null)
+				} else if (criteriaKey === 'roles') {
+					scope.roles = criteria[criteriaKey]
+						.map((role) => role?.id || role?._id || null)
+						.filter((id) => id !== null)
 				}
-				if (dataPath && isKeyModified) keysToRemoveFromScope.push(criteriaKey)
-				if (
-					scopeKeys &&
-					!Object.keys(scopeKeys).includes(criteriaKey) &&
-					!keysToRemoveFromScope.includes(criteriaKey)
-				)
-					keysToRemoveFromScope.push(criteriaKey)
 			}
 			return criteria
 		})
-		// add organization into the scope by default
-		scope[`${common.SCOPE_ELEMENT_ORGANIZATIONS}`] = [organizationCode]
-		let mandatoryKeys = []
-		// iterate through the scope keys and create empty array for each key
-		// also track the mandatory keys
-		for (let scopeElement of Object.keys(scopeKeys)) {
-			scope[scopeElement] = []
-			if (scopeKeys[scopeElement]?.mandatory) {
-				mandatoryKeys.push(scopeElement)
-			}
-		}
 
-		let metaInformation = {}
-		const metaInformationKeys = [...new Set(process.env.PROGRAM_META_INFO_KEYS.split(',').map((key) => key))]
-
-		if (targetingData && Object.keys(targetingData).length > 0 && scope && Object.keys(scope).length > 0) {
-			// Iterate through each targeting criterion
-			for (let i = 0; i < targetingData.length; i++) {
-				const targeting = targetingData[i]
-				let skipTargeting = false // flag to skip further processing if 'ALL' is found
-				for (let eachTargeting of Object.keys(targeting)) {
-					const target = targeting?.[eachTargeting] || null
-					if (!Object.keys(scope).includes(eachTargeting)) scope[eachTargeting] = []
-					// check if the current scope already has 'ALL' keyword and set the flag
-					if (
-						scope[eachTargeting] == common.TARGETING_ALL ||
-						scope[eachTargeting].includes(common.TARGETING_ALL)
-					) {
-						skipTargeting = true
-					}
-					// if the particular targeting has 'ALL' keyword, ignore the processing
-					if (!skipTargeting) {
-						if (target && typeof target == common.STRING) {
-							// if the target is string , possibly we are expecting the _id of the entity.
-							// Hence push it directly making sure the value is unique
-							if (!scope[eachTargeting].includes(target)) {
-								if (scope[eachTargeting] == common.TARGETING_ALL) {
-									scope[eachTargeting] = [common.TARGETING_ALL] // if targeting is all , set the array as ["ALL"]
-								} else {
-									scope[eachTargeting].push(target)
-								}
-							}
-						} else if (target && Array.isArray(target) && target.length > 0) {
-							// if any of the element is ALL , record only ALL
-							if (target.includes(common.TARGETING_ALL)) {
-								scope[eachTargeting] = [common.TARGETING_ALL] // if targeting is all , set the array as ["ALL"]
-							} else {
-								// if the target is an array , iterate through each element
-								target.forEach((targetEntity) => {
-									// if the element inside array is string , possibly we are expecting the _id of the entity.
-									// Hence push it directly making sure the value is unique
-									if (typeof targetEntity == common.STRING)
-										if (!scope[eachTargeting].includes(targetEntity))
-											scope[eachTargeting].push(targetEntity)
-									if (typeof targetEntity == common.OBJECT) {
-										// if the element inside array is an object.
-										// check for _id or id within the object
-										const id = targetEntity?._id || targetEntity?.id || null
-										if (id && !scope[eachTargeting].includes(id)) scope[eachTargeting].push(id)
-									}
-								})
-							}
-						} else if (target && typeof target == common.OBJECT && Object.keys(target).length > 0) {
-							// if the target is an object.
-							// check for _id or id within the object.
-							const id = target?._id || target?.id || null
-							if (id && !scope[eachTargeting].includes(target)) scope[eachTargeting].push(id)
-						}
-					}
-				}
-			}
-
-			function createMetaInfo(targetingCriteria, metaInformationKeys, keyToDataPath) {
-				const metaInfo = {}
-				metaInformationKeys.forEach((key) => {
-					metaInfo[key] = new Set()
-				})
-
-				targetingCriteria.forEach((criteria) => {
-					metaInformationKeys.forEach((key) => {
-						const dataPath = keyToDataPath[key]
-						if (dataPath) {
-							const items = criteria[dataPath] || []
-							items.forEach((item) => {
-								if (item.name) {
-									metaInfo[key].add(item.name)
-								}
-							})
-						}
-					})
-				})
-
-				metaInformationKeys.forEach((key) => {
-					metaInfo[key] = Array.from(metaInfo[key])
-				})
-
-				return metaInfo
-			}
-
-			// Configuration for mapping keys to data paths
-			const keyToDataPath = {
-				state: 'state',
-				recommendedFor: 'roles',
-			}
-
-			metaInformation = createMetaInfo(targetingData, metaInformationKeys, keyToDataPath)
-		}
-		if (mandatoryKeys.length > 0) {
-			for (const key of mandatoryKeys) {
-				if (!scope[key] || scope[key].length == 0) {
-					scope[key] = [common.TARGETING_ALL]
-				}
-			}
-		}
-		if (scope) {
-			scope = Object.fromEntries(
-				Object.entries(scope).filter(([key, value]) =>
-					Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined
-				)
-			)
-		}
-		if (keysToRemoveFromScope.length > 0) {
-			for (const key of keysToRemoveFromScope) {
-				scope[key] && delete scope[key]
-			}
-		}
-		return { scope, metaInformation, success: true }
+		return { scope, success: true }
 	} catch (error) {
 		console.log('Error in creating targeting : ', error)
 		return {
@@ -1138,7 +1047,6 @@ const formatProgramTemplate = async (programData) => {
 				}
 			}
 			programDocument.scope = targeting?.scope ? targeting?.scope : {}
-			programDocument.metaInformation = targeting?.metaInformation ? targeting?.metaInformation : {}
 		}
 		programDocument.updatedAt = new Date()
 		programDocument.endDate = new Date(programData?.end_date)
@@ -1361,6 +1269,8 @@ async function uploadFile(dirPath, fileName, fileUploadUrl) {
  * @returns {Object} result - baseTemplateId
  */
 async function checkCertificateBaseTemplate(baseTemplateDetails) {
+	// ensure mongo connection (lazy init similar to elevate.js)
+	projectsMongoConnection = projectsMongoConnection ? projectsMongoConnection : await connectMongo(projectsMongoDBUrl)
 	const certificateBaseTemplateCollection = projectsMongoConnection.collection(COLLECTIONS.CERTIFICATE_BASE_TEMPLATE)
 	const certificateBaseTemplate = await certificateBaseTemplateCollection.findOne({
 		code: baseTemplateDetails.code,
@@ -1413,6 +1323,8 @@ async function insertCertificateTemplate(certificateData, solutionId, programId,
 	}
 
 	// Insert the template into the database
+	// ensure mongo connection (lazy init similar to elevate.js)
+	projectsMongoConnection = projectsMongoConnection ? projectsMongoConnection : await connectMongo(projectsMongoDBUrl)
 	const certificateTemplateCollection = projectsMongoConnection.collection(COLLECTIONS.CERTIFICATE_TEMPLATE)
 	const result = await certificateTemplateCollection.insertOne(certificateDocument)
 
@@ -1421,6 +1333,8 @@ async function insertCertificateTemplate(certificateData, solutionId, programId,
 		throw new Error(`Failed to insert the template into the ${COLLECTIONS.CERTIFICATE_TEMPLATE} collection.`)
 	}
 	// update the solution with the certificate template id
+	// ensure mongo connection (lazy init similar to elevate.js)
+	projectsMongoConnection = projectsMongoConnection ? projectsMongoConnection : await connectMongo(projectsMongoDBUrl)
 	const solutionTemplateCollection = projectsMongoConnection.collection(COLLECTIONS.SOLUTIONS)
 	const resultUpdateSolution = await solutionTemplateCollection.updateOne(
 		{ _id: solutionId },
@@ -1436,6 +1350,8 @@ async function insertCertificateTemplate(certificateData, solutionId, programId,
 		throw new Error(`Failed to update the template into the ${COLLECTIONS.SOLUTIONS} collection.`)
 	}
 	// update the template into projectTemplate collection
+	// ensure mongo connection (lazy init similar to elevate.js)
+	projectsMongoConnection = projectsMongoConnection ? projectsMongoConnection : await connectMongo(projectsMongoDBUrl)
 	const projectTemplateCollection = projectsMongoConnection.collection(COLLECTIONS.TEMPLATES)
 	const resultUpdateProjecTemplate = await projectTemplateCollection.updateOne(
 		{ solutionId },
@@ -1583,6 +1499,10 @@ async function downloadAndConvertToBase64(url) {
 async function createProgram(programTemplate) {
 	try {
 		// Insert the template into the database
+		// ensure mongo connection (lazy init similar to elevate.js)
+		projectsMongoConnection = projectsMongoConnection
+			? projectsMongoConnection
+			: await connectMongo(projectsMongoDBUrl)
 		const programsCollection = projectsMongoConnection.collection(COLLECTIONS.PROGRAMS)
 		const result = await programsCollection.insertOne(programTemplate)
 		// Validate the result of the template creation
@@ -1613,6 +1533,10 @@ async function createProgram(programTemplate) {
 async function updateProgram(programId, updateTemplate) {
 	try {
 		// Update the template in the database
+		// ensure mongo connection (lazy init similar to elevate.js)
+		projectsMongoConnection = projectsMongoConnection
+			? projectsMongoConnection
+			: await connectMongo(projectsMongoDBUrl)
 		const programsCollection = projectsMongoConnection.collection(COLLECTIONS.PROGRAMS)
 		await programsCollection.updateOne(
 			{ _id: programId },
@@ -1759,7 +1683,7 @@ const publishProgram = function async(programData) {
 				throw new Error('NO_RESOURCE_ADDED')
 			}
 			let solutionIds = []
-			let solutionOrderMap = orderSolutionsInProgram(resourceWithInProgram)
+			let solutionOrderMap = programDTO.orderSolutionsInProgram(resourceWithInProgram)
 			let resourceToUpdate = []
 
 			for (const resource of resourceWithInProgram) {
@@ -1835,11 +1759,7 @@ const publishProgram = function async(programData) {
 							)
 						}
 
-						const targeting = await processTargetingCriteria(
-							fetchDetails?.result?.targeting_criteria,
-							fetchDetails?.result?.organization_code,
-							fetchDetails?.result?.tenant_code
-						)
+						const targeting = await processTargetingCriteria(fetchDetails?.result?.targeting_criteria)
 						if (!targeting?.success) {
 							throw new Error(
 								`Error in processing targetting criteria : ${targeting?.error || 'Unknown Error'}`
@@ -1886,6 +1806,10 @@ const publishProgram = function async(programData) {
 				}
 			}
 			if (resourceToUpdate.length > 0) {
+				// ensure mongo connection (lazy init similar to elevate.js)
+				projectsMongoConnection = projectsMongoConnection
+					? projectsMongoConnection
+					: await connectMongo(projectsMongoDBUrl)
 				const solutionCollection = projectsMongoConnection.collection(COLLECTIONS.SOLUTIONS)
 
 				const resourceToUpdatePromise = resourceToUpdate.map((resourceData) => {
@@ -2018,6 +1942,10 @@ async function createOrUpdateUserProgramMapping(viewers = [], programId, orgCode
 			throw new Error('No roles defined in DEFAULT_PROGRAM_MANAGERS environment variable')
 		}
 
+		// ensure mongo connection (lazy init similar to elevate.js)
+		projectsMongoConnection = projectsMongoConnection
+			? projectsMongoConnection
+			: await connectMongo(projectsMongoDBUrl)
 		const userExtColl = projectsMongoConnection.collection(COLLECTIONS.USER_EXTENSIONS)
 
 		// Deduplicate viewers
