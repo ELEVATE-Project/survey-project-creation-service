@@ -34,7 +34,7 @@ exports.createOrUpdateUserProgramMapping = async (
 	return new Promise(async (resolve, reject) => {
 		try {
 			// Validate required parameters
-			if (!viewers || !Array.isArray(viewers)) {
+			if (!viewers || !Array.isArray(viewers) || viewers.length === 0) {
 				throw new Error('Viewers must be a non-empty array')
 			}
 

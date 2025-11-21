@@ -59,7 +59,6 @@ const publishProjectTemplates = function (templateData) {
 	return new Promise(async (resolve, reject) => {
 		const result = { success: false, templateId: null, error: null }
 		try {
-			console.log(projectsMongoDBUrl, 'projectsMongoDBUrl')
 			// Validate required keys
 			const requiredKeys = commonElevate.REQUIRED_KEYS_FOR_PROJECT_PUBLISH
 			const hasAllRequiredKeys = requiredKeys.every((key) => key in templateData)

@@ -22,6 +22,11 @@ const common = require('@constants/common')
 exports.processTargetingCriteria = async (targetingData, organizationCode, tenantCode, scopeKeys = {}) => {
 	try {
 		let scope = {}
+
+		if (!Array.isArray(targetingData) || targetingData.length === 0) {
+			return { scope, metaInformation: {}, success: true }
+		}
+
 		let keysToRemoveFromScope = []
 
 		// Configuration for mapping keys to data paths
