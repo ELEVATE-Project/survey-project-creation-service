@@ -12243,6 +12243,317 @@ paths:
                     type: string
                     example: 'Internal server error'
 
+  '/scp/v1/targeting/hierarchy/{stateId}':
+    get:
+      summary: Get Entity Type Hierarchy Based on State
+      tags:
+        - Targeting
+      description: |-
+        This API retrieves the hierarchical structure of entity types for a specific state. It returns a tree-like structure showing parent-child relationships between entity types, starting from the state level and drilling down through districts, blocks, clusters, and schools. This API is used in targeting interfaces and rollout management to help users understand the organizational hierarchy and select appropriate targeting criteria.
+
+        **Overview:**
+        - Retrieves entity type hierarchy starting from a specific state
+        - Returns nested structure showing parent-child relationships
+        - Scoped to authenticated user's tenant
+        - Used for building dynamic targeting forms and rollout wizards
+        - Helps users visualize organizational structure before creating rollouts
+
+        **Validations:**
+        - `stateId` is required (must be a valid entity external ID)
+        - Entity must exist and be of type 'state'
+        - Entity must belong to authenticated user's tenant
+        - User must have appropriate permissions to access entity data
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: path
+          name: stateId
+          description: 'External ID of the state entity to fetch hierarchy for (required)'
+          required: true
+          schema:
+            type: string
+          example: 'KA_STATE'
+      responses:
+        '200':
+          description: 'Entity type hierarchy fetched successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: 'Hierarchy fetched successfully'
+                  result:
+                    type: object
+                    description: 'Hierarchical structure of entity types'
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: 'Hierarchy fetched successfully'
+                    result:
+                      state:
+                        label: 'State'
+                        children:
+                          district:
+                            label: 'District'
+                            children:
+                              block:
+                                label: 'Block'
+                                children:
+                                  cluster:
+                                    label: 'Cluster'
+                                    children:
+                                      school:
+                                        label: 'School'
+        '400':
+          description: 'Bad Request - State ID not provided or invalid'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    example: 'State ID is required'
+        '404':
+          description: 'Not Found - State entity does not exist'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    example: 'State entity not found'
+        '500':
+          description: 'Internal Server Error - Failed to fetch hierarchy'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'SERVER_ERROR'
+                  message:
+                    type: string
+                    example: 'Internal server error'
+
+  '/scp/v1/targeting/subEntityList/{stateId}':
+    post:
+      summary: Fetch Sub Entities Based on Multiple Parent IDs
+      tags:
+        - Targeting
+      description: |-
+        This API retrieves a list of child entities based on multiple parent entity IDs and a specified sub-entity type. It enables bulk fetching of entities at a specific level in the hierarchy (e.g., all schools under multiple blocks, or all districts under multiple states). This API is used in targeting interfaces, rollout creation, and filtering workflows where users need to fetch related entities based on selected parent entities.
+
+        **Overview:**
+        - Fetches child entities for multiple parent entities in a single request
+        - Supports pagination for large result sets
+        - Filters by sub-entity type (e.g., 'school', 'district', 'block')
+        - Returns entity details including ID, name, and external ID
+        - Scoped to authenticated user's tenant
+        - Used in cascading dropdowns and multi-select targeting interfaces
+
+        **Validations:**
+        - `stateId` is required (must be a valid entity external ID)
+        - `subEntityType` query parameter is required (must be a valid entity type value)
+        - `parentEntities` in request body can be array or comma-separated string
+        - `page` defaults to 1 if not provided (minimum 1)
+        - `limit` defaults to system default if not provided (maximum 100)
+        - All parent entities must exist and belong to authenticated user's tenant
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: path
+          name: stateId
+          description: 'External ID of the state entity (required, used for scoping)'
+          required: true
+          schema:
+            type: string
+          example: 'KA_STATE'
+        - in: query
+          name: subEntityType
+          description: 'Type of sub-entity to fetch (required, e.g., district, block, cluster, school)'
+          required: true
+          schema:
+            type: string
+          example: 'school'
+        - in: query
+          name: page
+          description: 'Page number for pagination (1-indexed, defaults to 1)'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - in: query
+          name: limit
+          description: 'Number of records per page (defaults to system default, maximum 100)'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          example: 10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parentEntities:
+                  oneOf:
+                    - type: array
+                      items:
+                        type: string
+                      description: 'Array of parent entity external IDs'
+                    - type: string
+                      description: 'Comma-separated string of parent entity external IDs'
+              required:
+                - parentEntities
+            examples:
+              example1:
+                summary: 'Array format'
+                value:
+                  parentEntities:
+                    - 'BLOCK_001'
+                    - 'BLOCK_002'
+                    - 'BLOCK_003'
+              example2:
+                summary: 'Comma-separated string format'
+                value:
+                  parentEntities: 'BLOCK_001,BLOCK_002,BLOCK_003'
+      responses:
+        '200':
+          description: 'Sub-entities fetched successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: 'Sub-entities fetched successfully'
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        description: 'Array of sub-entity objects'
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              description: 'Entity database ID'
+                            name:
+                              type: string
+                              description: 'Entity name'
+                            external_id:
+                              type: string
+                              description: 'Entity external ID'
+                            entity_type:
+                              type: string
+                              description: 'Entity type value'
+                            parent_id:
+                              type: string
+                              description: 'Parent entity external ID'
+                      count:
+                        type: integer
+                        description: 'Total count of matching sub-entities'
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: 'Sub-entities fetched successfully'
+                    result:
+                      data:
+                        - id: 101
+                          name: 'Government High School ABC'
+                          external_id: 'SCHOOL_ABC_001'
+                          entity_type: 'school'
+                          parent_id: 'BLOCK_001'
+                        - id: 102
+                          name: 'Government High School XYZ'
+                          external_id: 'SCHOOL_XYZ_002'
+                          entity_type: 'school'
+                          parent_id: 'BLOCK_001'
+                        - id: 103
+                          name: 'Primary School DEF'
+                          external_id: 'SCHOOL_DEF_003'
+                          entity_type: 'school'
+                          parent_id: 'BLOCK_002'
+                      count: 3
+        '400':
+          description: 'Bad Request - Required parameters missing or invalid'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    examples:
+                      - 'State ID is required'
+                      - 'Sub-entity type is required'
+                      - 'Parent entities are required'
+        '404':
+          description: 'Not Found - Parent entities or sub-entity type not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    example: 'Parent entities not found'
+        '500':
+          description: 'Internal Server Error - Failed to fetch sub-entities'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'SERVER_ERROR'
+                  message:
+                    type: string
+                    example: 'Internal server error'
+
   /user/v1/user-role/create:
     post:
       summary: Create User Roles
