@@ -12249,11 +12249,12 @@ paths:
       tags:
         - Targeting
       description: |-
-        This API retrieves the hierarchical structure of entity types for a specific state. It returns a tree-like structure showing parent-child relationships between entity types, starting from the state level and drilling down through districts, blocks, clusters, and schools. This API is used in targeting interfaces and rollout management to help users understand the organizational hierarchy and select appropriate targeting criteria.
+        This API retrieves the hierarchical structure of entity types for a specific state. It returns the complete hierarchy path showing the organizational structure from state level down to the lowest entity type. This API is used in targeting interfaces and rollout management to help users understand the organizational hierarchy and select appropriate targeting criteria.
 
         **Overview:**
         - Retrieves entity type hierarchy starting from a specific state
-        - Returns nested structure showing parent-child relationships
+        - Returns child hierarchy path as an ordered array of entity types
+        - Includes state metadata (external ID, name, and other information)
         - Scoped to authenticated user's tenant
         - Used for building dynamic targeting forms and rollout wizards
         - Helps users visualize organizational structure before creating rollouts
@@ -12273,14 +12274,14 @@ paths:
           example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
         - in: path
           name: stateId
-          description: 'External ID of the state entity to fetch hierarchy for (required)'
+          description: 'External ID of the state entity to fetch hierarchy for (required). This is the externalId field of the state entity.'
           required: true
           schema:
             type: string
-          example: 'KA_STATE'
+          example: '16'
       responses:
         '200':
-          description: 'Entity type hierarchy fetched successfully'
+          description: 'Entity types fetched successfully'
           content:
             application/json:
               schema:
@@ -12291,30 +12292,54 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: 'Hierarchy fetched successfully'
+                    example: 'Entity types fetched successfully'
                   result:
                     type: object
-                    description: 'Hierarchical structure of entity types'
+                    properties:
+                      _id:
+                        type: string
+                        description: 'Database ID of the state entity'
+                      metaInformation:
+                        type: object
+                        description: 'Metadata about the state entity'
+                        properties:
+                          targetedEntityTypes:
+                            type: array
+                            description: 'Array of targeted entity types (if any)'
+                            items:
+                              type: string
+                          externalId:
+                            type: string
+                            description: 'External ID of the state'
+                          name:
+                            type: string
+                            description: 'Name of the state'
+                      childHierarchyPath:
+                        type: array
+                        description: 'Ordered array showing the complete entity type hierarchy from state to lowest level'
+                        items:
+                          type: string
+                      entityType:
+                        type: string
+                        description: 'Entity type (will always be "state" for this API)'
               examples:
                 example1:
                   value:
                     responseCode: OK
-                    message: 'Hierarchy fetched successfully'
+                    message: 'Entity types fetched successfully'
                     result:
-                      state:
-                        label: 'State'
-                        children:
-                          district:
-                            label: 'District'
-                            children:
-                              block:
-                                label: 'Block'
-                                children:
-                                  cluster:
-                                    label: 'Cluster'
-                                    children:
-                                      school:
-                                        label: 'School'
+                      _id: '6852c86c7248c20014b38a4d'
+                      metaInformation:
+                        targetedEntityTypes: []
+                        externalId: '16'
+                        name: 'Tripura'
+                      childHierarchyPath:
+                        - 'state'
+                        - 'district'
+                        - 'block'
+                        - 'cluster'
+                        - 'school'
+                      entityType: 'state'
         '400':
           description: 'Bad Request - State ID not provided or invalid'
           content:
@@ -12325,22 +12350,27 @@ paths:
                   responseCode:
                     type: string
                     example: 'CLIENT_ERROR'
+                  error:
+                    type: array
+                    items:
+                      type: object
                   message:
                     type: string
-                    example: 'State ID is required'
-        '404':
-          description: 'Not Found - State entity does not exist'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                    example: 'CLIENT_ERROR'
-                  message:
-                    type: string
-                    example: 'State entity not found'
+                    example: 'Failed to fetch entity types'
+                  meta:
+                    type: object
+                    properties:
+                      correlation:
+                        type: string
+                        description: 'Unique correlation ID for tracking the request'
+              examples:
+                example1:
+                  value:
+                    responseCode: 'CLIENT_ERROR'
+                    error: []
+                    meta:
+                      correlation: '4c6bb5bb-b5bc-49b4-8dfd-948ad3c2a797'
+                    message: 'Failed to fetch entity types'
         '500':
           description: 'Internal Server Error - Failed to fetch hierarchy'
           content:
@@ -12355,7 +12385,7 @@ paths:
                     type: string
                     example: 'Internal server error'
 
-  '/scp/v1/targeting/subEntityList/{stateId}':
+  '/scp/v1/targeting/subEntityList':
     post:
       summary: Fetch Sub Entities Based on Multiple Parent IDs
       tags:
@@ -12367,57 +12397,30 @@ paths:
         - Fetches child entities for multiple parent entities in a single request
         - Supports pagination for large result sets
         - Filters by sub-entity type (e.g., 'school', 'district', 'block')
-        - Returns entity details including ID, name, and external ID
-        - Scoped to authenticated user's tenant
+        - Returns entity details including _id, name, and externalId
+        - Scoped to authenticated user's tenant (extracted from token)
         - Used in cascading dropdowns and multi-select targeting interfaces
 
         **Validations:**
-        - `stateId` is required (must be a valid entity external ID)
         - `subEntityType` query parameter is required (must be a valid entity type value)
-        - `parentEntities` in request body can be array or comma-separated string
-        - `page` defaults to 1 if not provided (minimum 1)
-        - `limit` defaults to system default if not provided (maximum 100)
+        - `parentEntities` in request body is required (array of parent entity external IDs)
+        - Pagination parameters (page, limit) are automatically handled from request
         - All parent entities must exist and belong to authenticated user's tenant
       parameters:
         - name: X-auth-token
           in: header
-          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
+          description: 'Authentication token from login API response. Token contains tenant_code which is used for scoping entities.'
           required: true
           schema:
             type: string
           example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
-        - in: path
-          name: stateId
-          description: 'External ID of the state entity (required, used for scoping)'
-          required: true
-          schema:
-            type: string
-          example: 'KA_STATE'
         - in: query
           name: subEntityType
           description: 'Type of sub-entity to fetch (required, e.g., district, block, cluster, school)'
           required: true
           schema:
             type: string
-          example: 'school'
-        - in: query
-          name: page
-          description: 'Page number for pagination (1-indexed, defaults to 1)'
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-          example: 1
-        - in: query
-          name: limit
-          description: 'Number of records per page (defaults to system default, maximum 100)'
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-          example: 10
+          example: 'district'
       requestBody:
         required: true
         content:
@@ -12437,19 +12440,15 @@ paths:
                 - parentEntities
             examples:
               example1:
-                summary: 'Array format'
+                summary: 'Array format - Multiple blocks'
                 value:
                   parentEntities:
-                    - 'BLOCK_001'
-                    - 'BLOCK_002'
-                    - 'BLOCK_003'
-              example2:
-                summary: 'Comma-separated string format'
-                value:
-                  parentEntities: 'BLOCK_001,BLOCK_002,BLOCK_003'
+                    - '1'
+                    - '2'
+                    - '3'
       responses:
         '200':
-          description: 'Sub-entities fetched successfully'
+          description: 'Entities fetched successfully'
           content:
             application/json:
               schema:
@@ -12460,7 +12459,7 @@ paths:
                     example: OK
                   message:
                     type: string
-                    example: 'Sub-entities fetched successfully'
+                    example: 'Entities fetched successfully'
                   result:
                     type: object
                     properties:
@@ -12470,47 +12469,48 @@ paths:
                         items:
                           type: object
                           properties:
-                            id:
-                              type: integer
+                            _id:
+                              type: string
                               description: 'Entity database ID'
                             name:
                               type: string
                               description: 'Entity name'
-                            external_id:
+                            externalId:
                               type: string
                               description: 'Entity external ID'
-                            entity_type:
-                              type: string
-                              description: 'Entity type value'
-                            parent_id:
-                              type: string
-                              description: 'Parent entity external ID'
                       count:
                         type: integer
                         description: 'Total count of matching sub-entities'
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: object
+                        description: 'Forms version information (typically empty object)'
+                      correlation:
+                        type: string
+                        description: 'Unique correlation ID for tracking the request'
               examples:
                 example1:
+                  summary: 'Districts under a state'
                   value:
                     responseCode: OK
-                    message: 'Sub-entities fetched successfully'
+                    message: 'Entities fetched successfully'
                     result:
                       data:
-                        - id: 101
-                          name: 'Government High School ABC'
-                          external_id: 'SCHOOL_ABC_001'
-                          entity_type: 'school'
-                          parent_id: 'BLOCK_001'
-                        - id: 102
-                          name: 'Government High School XYZ'
-                          external_id: 'SCHOOL_XYZ_002'
-                          entity_type: 'school'
-                          parent_id: 'BLOCK_001'
-                        - id: 103
-                          name: 'Primary School DEF'
-                          external_id: 'SCHOOL_DEF_003'
-                          entity_type: 'school'
-                          parent_id: 'BLOCK_002'
-                      count: 3
+                        - _id: '6852c8ae7248c20014b38a50'
+                          name: 'Dhalai'
+                          externalId: 'dhalai'
+                        - _id: '6852c8ae7248c20014b38a51'
+                          name: 'Gomati'
+                          externalId: 'gomati'
+                        - _id: '6852c8ae7248c20014b38a52'
+                          name: 'Khowai'
+                          externalId: 'khowai'
+                      count: 42
+                    meta:
+                      formsVersion: {}
+                      correlation: 'fbb8a594-7fec-45d3-a1f6-7fb1a8b3d8f6'
         '400':
           description: 'Bad Request - Required parameters missing or invalid'
           content:
@@ -12521,25 +12521,28 @@ paths:
                   responseCode:
                     type: string
                     example: 'CLIENT_ERROR'
+                  error:
+                    type: array
+                    items:
+                      type: object
                   message:
                     type: string
-                    examples:
-                      - 'State ID is required'
-                      - 'Sub-entity type is required'
-                      - 'Parent entities are required'
-        '404':
-          description: 'Not Found - Parent entities or sub-entity type not found'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  responseCode:
-                    type: string
-                    example: 'CLIENT_ERROR'
-                  message:
-                    type: string
-                    example: 'Parent entities not found'
+                    example: 'Failed to fetch sub entities'
+                  meta:
+                    type: object
+                    properties:
+                      correlation:
+                        type: string
+                        description: 'Unique correlation ID for tracking the request'
+              examples:
+                example1:
+                  summary: 'Missing or invalid parameters'
+                  value:
+                    responseCode: 'CLIENT_ERROR'
+                    error: []
+                    meta:
+                      correlation: '4c6bb5bb-b5bc-49b4-8dfd-948ad3c2a797'
+                    message: 'Failed to fetch sub entities'
         '500':
           description: 'Internal Server Error - Failed to fetch sub-entities'
           content:
