@@ -1864,9 +1864,11 @@ const publishProgram = function async(programData) {
 				)
 			})
 
-			//create user and program mapping
-			const viewerIds = rolloutDetails.viewers.map((viewer) => viewer?.id || viewer)
-			if (programId && viewerIds.length > 0) {
+			// create user and program mapping
+			// guard rolloutDetails.viewers in case it's missing or not an array
+			const viewersArray = Array.isArray(rolloutDetails?.viewers) ? rolloutDetails.viewers : []
+			const viewerIds = viewersArray.map((viewer) => viewer?.id || viewer)
+			if (programId && Array.isArray(viewerIds) && viewerIds.length > 0) {
 				let createMappingResponse = await createOrUpdateUserProgramMapping(
 					viewerIds,
 					programId,
@@ -1938,8 +1940,16 @@ async function createOrUpdateUserProgramMapping(viewers = [], programId, orgCode
 			.map((r) => r.trim())
 			.filter(Boolean)
 
+		// If no program manager roles are configured, treat this as a no-op.
+		// Log a warning with contextual info and return a successful no-op result
+		// instead of throwing, to match the optional nature of this feature.
 		if (roleCodes.length === 0) {
-			throw new Error('No roles defined in DEFAULT_PROGRAM_MANAGERS environment variable')
+			console.warn(
+				`DEFAULT_PROGRAM_MANAGERS is empty; skipping user->program mapping for program=${String(
+					programId
+				)}, org=${orgCode}, tenant=${tenantCode}`
+			)
+			return { success: true, message: 'No program manager roles configured, skipping mapping' }
 		}
 
 		// ensure mongo connection (lazy init similar to elevate.js)

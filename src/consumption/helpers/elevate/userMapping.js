@@ -56,8 +56,14 @@ exports.createOrUpdateUserProgramMapping = async (
 				.map((role) => role.trim())
 				.filter(Boolean)
 
+			// If no roles configured, log a warning and treat as a no-op (resolve true).
 			if (roles.length === 0) {
-				throw new Error('No roles defined in DEFAULT_PROGRAM_MANAGERS environment variable')
+				console.warn(
+					`DEFAULT_PROGRAM_MANAGERS is empty; skipping user->program mapping for program=${String(
+						programId
+					)}, org=${orgCode}, tenant=${tenantCode}`
+				)
+				return resolve(true)
 			}
 
 			// Get user extensions collection
