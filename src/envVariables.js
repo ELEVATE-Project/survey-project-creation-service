@@ -450,7 +450,7 @@ let environmentVariables = {
 	DB_FIND_ENDPOINT: {
 		message: 'Required dbFind url',
 		optional: true,
-		default: '/survey/',
+		default: '/v1/admin/dbFind',
 		requiredIf: {
 			key: 'CONSUMPTION_SERVICE',
 			operator: 'EQUALS',
@@ -460,7 +460,7 @@ let environmentVariables = {
 	IMPORT_FROM_SOLUTION_ENDPOINT: {
 		message: 'Required importFromSolution url',
 		optional: true,
-		default: '/survey/',
+		default: '/v1/solutions/importFromSolution',
 		requiredIf: {
 			key: 'CONSUMPTION_SERVICE',
 			operator: 'EQUALS',
