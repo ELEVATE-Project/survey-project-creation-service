@@ -1156,7 +1156,7 @@ module.exports = class ProjectsHelper {
 						return responses.failureResponse({
 							message: 'CONSUMPTION_LINK_NOT_FOUND',
 							statusCode: httpStatusCode.bad_request,
-							result,
+							result: {},
 						})
 					}
 					// Override for Sunbird
@@ -1189,8 +1189,8 @@ module.exports = class ProjectsHelper {
 					if (process.env.CONSUMPTION_SERVICE !== common.SELF && (results.length === 0 || !results[0]._id)) {
 						validationErrors.push(
 							utils.errorObject(
-								projectPath,
-								common.PROJECT_ID,
+								observationPath,
+								common.EXTERNAL_ID,
 								requiredValidation.message || `Solution not found${model}`
 							)
 						)

@@ -582,7 +582,7 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 			if (task.type === common.OBSERVATION) {
 				const ObservationRes = await processObservationAsTask(task, tenantCode, organizationCode)
 				if (!ObservationRes.success || !ObservationRes?.solutionDetails) {
-					throw new Error(`Failed to process Observation as task: ${projectResult.error}`)
+					throw new Error(`Failed to process Observation as task: ${ObservationRes.error}`)
 				}
 				taskData.solutionDetails = ObservationRes.solutionDetails
 				taskData.type = ObservationRes.type

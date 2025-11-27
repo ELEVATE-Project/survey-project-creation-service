@@ -1073,7 +1073,7 @@ function setPolicy(policy) {
  * Get epoch time from current date.
  * @function
  * @name epochTime
- * @returns {Date} returns epoch time.
+ * @returns {Number} Epoch time
  */
 
 function epochTime() {
