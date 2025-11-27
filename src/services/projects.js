@@ -18,6 +18,9 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
+const endpoints = require('@constants/endpoints')
+const consumptionConfig = require('@consumption/config')
+const requests = require('@generics/requests')
 module.exports = class ProjectsHelper {
 	/**
 	 *  project create
@@ -718,7 +721,8 @@ module.exports = class ProjectsHelper {
 									common.TASKS,
 									taskPath,
 									taskEntityTypesMapping,
-									validationErrors
+									validationErrors,
+									userDetails
 								)
 							})
 						)
@@ -737,7 +741,8 @@ module.exports = class ProjectsHelper {
 												common.SUB_TASK,
 												subTaskPath,
 												taskEntityTypesMapping,
-												validationErrors
+												validationErrors,
+												userDetails
 											)
 										})
 									)
@@ -927,7 +932,15 @@ module.exports = class ProjectsHelper {
 	 * @param {string} sourceType - Specifies the source of the input, which can be 'body', 'param', or 'query'.
 	 * @returns {JSON} - Response containing error details, if any.
 	 */
-	static async validateEntityData(entityData, entityType, model, sourceType, entityMapping, validationErrors = []) {
+	static async validateEntityData(
+		entityData,
+		entityType,
+		model,
+		sourceType,
+		entityMapping,
+		validationErrors = [],
+		userDetails
+	) {
 		try {
 			let fieldData = entityData[entityType.value]
 
@@ -959,8 +972,12 @@ module.exports = class ProjectsHelper {
 			if (requiredValidation) {
 				let required = utils.checkRequired(requiredValidation, fieldData)
 				// Add validation error when a required field is missing,
-				// except for tasks of type 'project', which are handled separately below.
-				if (!required && entityType.value != common.TASK_TYPE_PROJECT) {
+				// except for tasks of type 'project' and "obseravtion", which are handled separately below.
+				if (
+					!required &&
+					entityType.value != common.TASK_TYPE_PROJECT &&
+					entityType.value != common.OBSERVATION
+				) {
 					validationErrors.push(
 						utils.errorObject(
 							model == common.PROJECT ? entityType.value : sourceType,
@@ -1109,6 +1126,72 @@ module.exports = class ProjectsHelper {
 								projectPath,
 								common.PROJECT_ID,
 								requiredValidation.message || `Project not PUBLISHED${model}`
+							)
+						)
+					}
+				}
+			}
+
+			//check for observation as a task
+			if (
+				model == common.TASKS &&
+				entityType.value === common.OBSERVATION &&
+				entityData.type === common.OBSERVATION
+			) {
+				let observationPath = sourceType == '' ? `${common.OBSERVATION}` : `${sourceType}.${common.OBSERVATION}`
+				// Validate the parent solution externalId is present
+				if (!entityData.external_id || entityData.external_id.trim() === '') {
+					validationErrors.push(
+						utils.errorObject(
+							observationPath,
+							common.EXTERNAL_ID,
+							requiredValidation.message || `Required ExternalId${model}`
+						)
+					)
+				}
+				// Validate published externalId
+				if (entityData.external_id && entityMapping[common.OBSERVATION]?.validations) {
+					let consumptionServiceUrl = consumptionConfig.fetchConsumptionServiceUrls(common.OBSERVATION)
+					if (!consumptionServiceUrl) {
+						return responses.failureResponse({
+							message: 'CONSUMPTION_LINK_NOT_FOUND',
+							statusCode: httpStatusCode.bad_request,
+							result,
+						})
+					}
+					// Override for Sunbird
+					if (process.env.CONSUMPTION_SERVICE === common.SUNBIRD) {
+						consumptionServiceUrl = process.env.INTERFACE_SERVICE_HOST
+					}
+					const url = utils.buildUrl(consumptionServiceUrl, endpoints.DB_FIND, {}, 'solutions')
+
+					// Body for dbFind
+					const payload = {
+						query: {
+							externalId: entityData.external_id,
+							type: common.OBSERVATION,
+							isReusable: common.TRUE,
+						},
+					}
+
+					const response = await requests.post(url, payload, userDetails.token, true)
+
+					if (!response.success || !response.data) {
+						return responses.failureResponse({
+							message: 'DB_FIND_FAILED',
+							statusCode: httpStatusCode.internal_server_error,
+						})
+					}
+
+					const results = response.data?.result || []
+					// Validate that the solution exits in samiksha service
+					// Only perform this check if the consumption service is not SELF
+					if (process.env.CONSUMPTION_SERVICE !== common.SELF && (results.length === 0 || !results[0]._id)) {
+						validationErrors.push(
+							utils.errorObject(
+								projectPath,
+								common.PROJECT_ID,
+								requiredValidation.message || `Solution not found${model}`
 							)
 						)
 					}

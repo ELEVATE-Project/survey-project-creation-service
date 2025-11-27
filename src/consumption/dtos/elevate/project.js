@@ -20,13 +20,10 @@ const consumptionCommon = require('@consumption/constants/elevate/common')
  * @description Filters out 'observation' type tasks (temporary fix), sorts by existing sequence_no, and reassigns sequential numbers
  */
 exports.assignSequenceNumbers = (tasks) => {
-	/* Temporary fix start, because elevate-project doesn't have the observation capability in tasks now */
-	// Filter out 'observation' type tasks
-	const filteredTasks = tasks.filter((task) => task.type !== common.OBSERVATION)
 	// Sort tasks based on their current sequence number (ascending order)
-	filteredTasks.sort((a, b) => a.sequence_no - b.sequence_no)
+	tasks.sort((a, b) => a.sequence_no - b.sequence_no)
 	let sequenceCounter = 1
-	return filteredTasks.map((task) => {
+	return tasks.map((task) => {
 		task.sequence_no = sequenceCounter++ // Reassign sequence number
 		return task
 	})

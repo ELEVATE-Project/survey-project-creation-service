@@ -60,7 +60,8 @@ var post = function (
 	body,
 	token = '',
 	internal_access_token = false,
-	internalAccessTokenKey = 'internal_access_token'
+	internalAccessTokenKey = 'internal_access_token',
+	admin_access_token = false
 ) {
 	return new Promise((resolve, reject) => {
 		try {
@@ -73,6 +74,9 @@ var post = function (
 
 			if (token) {
 				headers[process.env.AUTH_TOKEN_HEADER_NAME] = token
+			}
+			if (admin_access_token) {
+				headers[process.env.ADMIN_TOKEN_HEADER_NAME] = process.env.ADMIN_ACCESS_TOKEN
 			}
 
 			const options = {
@@ -90,6 +94,7 @@ var post = function (
 				} else {
 					let response = data.body
 					if (data.headers['content-type'].split(';')[0] !== 'application/json') {
+						console.log('response', response)
 						response = parser.toJson(data.body)
 					} else if (/text\/xml|application\/xml/.test(data.headers['content-type'])) {
 						response = parser.toJson(response, { object: true })

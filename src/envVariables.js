@@ -447,6 +447,26 @@ let environmentVariables = {
 			value: 'ON',
 		},
 	},
+	DB_FIND_ENDPOINT: {
+		message: 'Required dbFind url',
+		optional: true,
+		default: '/survey/',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'EQUALS',
+			value: 'sunbird',
+		},
+	},
+	IMPORT_FROM_SOLUTION_ENDPOINT: {
+		message: 'Required importFromSolution url',
+		optional: true,
+		default: '/survey/',
+		requiredIf: {
+			key: 'CONSUMPTION_SERVICE',
+			operator: 'EQUALS',
+			value: 'sunbird',
+		},
+	},
 }
 
 let success = true

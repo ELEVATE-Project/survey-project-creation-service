@@ -31,6 +31,10 @@ const userMappingHelper = require('@consumption/helpers/elevate/userMapping')
 const certificateHelper = require('@consumption/helpers/elevate/certificate')
 const commonElevate = require('@consumption/constants/elevate/common')
 const COLLECTIONS_MAP = commonElevate.COLLECTIONS_MAP
+let surveyMongoConnection = null
+const endpoints = require('@constants/endpoints')
+const consumptionConfig = require('@consumption/config')
+const requests = require('@generics/requests')
 
 /**
  * To connect with the mongoDB with the given url
@@ -337,6 +341,197 @@ async function processProjectAsTask(task, tenantCode, organizationCode) {
 }
 
 /**
+ * Process observation as a task - validate parent solution and get details
+ * @name processObservationAsTask
+ * @param {Object} task - Task data
+ * @param {String} tenantCode - Tenant code
+ * @param {String} organizationCode - Organization code
+ * @returns {Object} - Response with solutionDetails or error
+ */
+async function processObservationAsTask(task, tenantCode, organizationCode) {
+	try {
+		const solutionCollection = surveyMongoConnection.collection(COLLECTIONS_MAP.get('SOLUTIONS'))
+
+		// Fetch parent reusable solution
+		const parentSolution = await solutionCollection.findOne({
+			externalId: task.external_id,
+			tenantId: tenantCode,
+			orgId: organizationCode,
+			isReusable: true,
+			type: common.OBSERVATION,
+		})
+
+		if (!parentSolution) {
+			throw new Error(`Parent solution not found for external_id: ${task.external_id}`)
+		}
+
+		// Return formatted solution details
+		return {
+			success: true,
+			solutionDetails: {
+				_id: parentSolution._id,
+				type: parentSolution.type ?? common.OBSERVATION,
+				entityType: parentSolution.entityType,
+				isReusable: parentSolution.isReusable,
+				externalId: parentSolution.externalId,
+				name: parentSolution.name,
+				minNoOfSubmissionsRequired: parentSolution.minNoOfSubmissionsRequired,
+			},
+			type: parentSolution.type ?? common.OBSERVATION,
+		}
+	} catch (error) {
+		console.error('Error in processObservationAsTask:', error.message)
+		return {
+			success: false,
+			error: error.message,
+		}
+	}
+}
+
+/**
+ * Create child observation solution from parent reusable observation
+ * @name processChildObservationSolution
+ * @param {Object} projectTask - Task object
+ * @param {Object} template - Parent project template data
+ * @param {Object} programData - Program details (tenant, org, userToken)
+ * @returns {Object} - Response with child solutionDetails or error
+ */
+async function processChildObservationSolution(projectTask, template, programData) {
+	try {
+		const consumptionServiceUrl = consumptionConfig.fetchConsumptionServiceUrls(common.OBSERVATION)
+		if (!consumptionServiceUrl) {
+			throw new Error(`Error : Failed to generate consumption service URL`)
+		}
+
+		// Step 1: Build request URL
+		const queryParam = {
+			solutionId: projectTask?.solutionDetails?.externalId,
+			entityType: projectTask?.solutionDetails?.entityType,
+		}
+
+		const url = utils.buildUrl(consumptionServiceUrl, endpoints.IMPORT_FROM_SOLUTION, queryParam)
+
+		const timestamp = utils.epochTime()
+
+		// Step 2: Prepare payload
+		const payload = {
+			programExternalId: template._id.toString(),
+			externalId: projectTask.solutionDetails.externalId + '-' + timestamp,
+			name: projectTask.solutionDetails.name ?? template.name,
+			description: projectTask.solutionDetails.description ?? template.description,
+			tenantData: {
+				tenantId: programData.tenant_code,
+				orgId: programData.organization_code,
+			},
+		}
+
+		// Step 3: Call consumption service
+		const response = await requests.post(
+			url,
+			payload,
+			programData.userToken,
+			true,
+			common.INTERNAL_ACCESS_TOKEN,
+			true
+		)
+
+		if (!response.success || !response.data) {
+			throw new Error(`Error : ${response?.error || 'Child observation solution creation failed'}`)
+		}
+
+		const results = response.data?.result
+
+		if (!results) {
+			throw new Error(`Error: Consumption service did not return a result`)
+		}
+
+		// Step 4: Fetch child solution created in DB
+		const solutionCollection = surveyMongoConnection.collection(COLLECTIONS_MAP.get('SOLUTIONS'))
+
+		const childSolution = await solutionCollection.findOne({
+			externalId: results.externalId,
+			tenantId: programData.tenant_code,
+			orgId: programData.organization_code,
+			isReusable: false,
+			type: common.OBSERVATION,
+		})
+
+		if (!childSolution) {
+			throw new Error(`Child solution not found for external_id: ${results.externalId}`)
+		}
+
+		// Step 5: Return formatted solution details
+		return {
+			success: true,
+			solutionDetails: {
+				_id: childSolution._id,
+				type: childSolution.type ?? common.OBSERVATION,
+				entityType: childSolution.entityType,
+				isReusable: childSolution.isReusable,
+				externalId: childSolution.externalId,
+				name: childSolution.name,
+				minNoOfSubmissionsRequired: childSolution.minNoOfSubmissionsRequired,
+			},
+			type: childSolution.type ?? common.OBSERVATION,
+		}
+	} catch (error) {
+		console.error('Error in processChildObservationSolution:', error.message)
+		return {
+			success: false,
+			error: error.message,
+		}
+	}
+}
+
+/**
+ * Update observation parent solution with project reference
+ * @name updateObservationReference
+ * @param {String} externalId - Solution external_id
+ * @param {String} tenantCode - Tenant code
+ * @param {String} organizationCode - Org code
+ * @param {String} templateId - Project template _id
+ * @param {String} taskId - Newly created task's _id
+ * @param {Boolean} isReusable - isReusable
+ * @returns {Object} - Status object
+ */
+async function updateObservationReference(externalId, tenantCode, organizationCode, templateId, taskId, isReusable) {
+	try {
+		const solutionCollection = surveyMongoConnection.collection(COLLECTIONS_MAP.get('SOLUTIONS'))
+
+		let updatePayload = {
+			referenceFrom: common.PROJECT,
+			project: {
+				_id: templateId,
+				taskId: taskId,
+			},
+		}
+
+		const updateRes = await solutionCollection.updateOne(
+			{
+				externalId,
+				tenantId: tenantCode,
+				orgId: organizationCode,
+				isReusable: isReusable,
+				type: common.OBSERVATION,
+			},
+			{ $set: updatePayload }
+		)
+
+		if (updateRes.matchedCount === 0) {
+			throw new Error(`Observation solution not found for external_id: ${externalId}`)
+		}
+
+		return { success: true }
+	} catch (error) {
+		console.error('Error in updateObservationReference:', error.message)
+		return {
+			success: false,
+			error: error.message,
+		}
+	}
+}
+
+/**
  * Create Task
  * @name createTasks
  * @param {Object} tasks - task data
@@ -383,14 +578,35 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				taskData.type = projectResult?.type
 			}
 
+			//if taskType observation add solutionDetails
+			if (task.type === common.OBSERVATION) {
+				const ObservationRes = await processObservationAsTask(task, tenantCode, organizationCode)
+				if (!ObservationRes.success || !ObservationRes?.solutionDetails) {
+					throw new Error(`Failed to process Observation as task: ${projectResult.error}`)
+				}
+				taskData.solutionDetails = ObservationRes.solutionDetails
+				taskData.type = ObservationRes.type
+			}
+
 			// Create the task
 			const taskCreationRes = await taskCollection.insertOne(taskData)
 			// Validate the insertion result
 			if (!taskCreationRes || !taskCreationRes.insertedId) {
 				throw new Error(`Failed to insert task: ${task.name}`)
 			}
-
+			// updateObservationReference
+			if (task.type === common.OBSERVATION) {
+				await updateObservationReference(
+					task.external_id,
+					tenantCode,
+					organizationCode,
+					templateId,
+					taskCreationRes.insertedId,
+					true //isReusable
+				)
+			}
 			const taskId = taskCreationRes.insertedId
+
 			taskIds.push(taskId)
 			externalIds.push(taskData.externalId)
 
@@ -775,6 +991,10 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 			let templateTaskIds = []
 			// array of created template tasks
 			let duplicateTasks = []
+			// Track observation tasks that need reference updates with their project template externalId
+			let observationTasksToUpdate = []
+			//Track projectTaskAfterInsert
+			let projectsTasksDetailsAfterInsert = []
 
 			//taskMap = {
 			// 	projectTaskId : duplicateProjectTaskId
@@ -932,6 +1152,21 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 							minNoOfSubmissionsRequired: duplicateResourceData?.minNoOfSubmissionsRequired,
 						}
 					}
+					//Create childSolution for observation as a task
+					if (projectTask.type === common.OBSERVATION) {
+						const childObs = await processChildObservationSolution(projectTask, template, programData)
+
+						if (!childObs.success) throw new Error(childObs.error)
+
+						projectTask.solutionDetails = childObs.solutionDetails
+						projectTask.type = childObs.type
+						// Store observation task for later reference update with project template external id
+						observationTasksToUpdate.push({
+							solutionExternalId: childObs.solutionDetails?.externalId,
+							projectTask: projectTask,
+							projectTemplateExternalId: projectTask.projectTemplateExternalId + externalId_suffixing,
+						})
+					}
 					// replace old task id by new task id in sequence
 					_.update(taskSeqMap, projectTask.projectTemplateExternalId + externalId_suffixing, (tasks) =>
 						tasks.map((task) => (task === oldTaskExtId ? projectTask.externalId : task))
@@ -948,7 +1183,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 
 				await projectsTaskCollection.insertMany(duplicateTasks)
 
-				const projectsTasksDetailsAfterInsert = await projectsTaskCollection
+				projectsTasksDetailsAfterInsert = await projectsTaskCollection
 					.find({
 						externalId: {
 							$in: duplicateTasks.map((tasks) => tasks.externalId),
@@ -1012,6 +1247,43 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 						},
 					})
 					.toArray()) || []
+			// Update observation references after project templates are inserted with their _id
+			if (observationTasksToUpdate.length > 0 && updatedProjectTemplates.length > 0) {
+				for (const obsTask of observationTasksToUpdate) {
+					// Find the corresponding project template for this observation task
+					const projectTemplate = updatedProjectTemplates.find(
+						(project) => project.externalId === obsTask.projectTemplateExternalId
+					)
+
+					if (!projectTemplate) {
+						console.warn(
+							`Warning: Project template not found for observation task with external id: ${obsTask.projectTemplateExternalId}`
+						)
+						continue
+					}
+
+					const insertedTask = projectsTasksDetailsAfterInsert.find(
+						(task) => task.externalId === obsTask.projectTask.externalId
+					)
+
+					if (insertedTask && obsTask.solutionExternalId) {
+						const updateResult = await updateObservationReference(
+							obsTask.solutionExternalId,
+							resourceDetails.tenant_code,
+							resourceDetails.organization_code,
+							projectTemplate._id, //  project template _id
+							insertedTask._id,
+							false //isReusable
+						)
+
+						if (!updateResult.success) {
+							console.warn(
+								`Warning: Failed to update observation reference for ${obsTask.solutionExternalId}`
+							)
+						}
+					}
+				}
+			}
 
 			// Add a new 'type', 'resource_id' , 'rolloutId' keys to each project
 			updatedProjectTemplates = updatedProjectTemplates.map((project) => ({
@@ -1278,6 +1550,7 @@ const publishProgram = function async(programData) {
 			projectsMongoConnection = projectsMongoConnection
 				? projectsMongoConnection
 				: await connectMongo(projectsMongoDBUrl)
+			surveyMongoConnection = surveyMongoConnection ? surveyMongoConnection : await connectMongo(surveyMongoDBUrl)
 
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {

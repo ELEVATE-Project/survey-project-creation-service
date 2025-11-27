@@ -762,6 +762,10 @@ module.exports = class reviewsHelper {
 							organization_code: resourceData.organization_code,
 							tenant_code: resourceData.tenant_code,
 						}
+						// Add token only for Sunbird consumption service
+						if (process.env.CONSUMPTION_SERVICE === common.SUNBIRD) {
+							payload.userToken = userToken
+						}
 						await kafkaCommunication.pushResourceToKafka(payload, resourceData.type)
 					}
 				} else if (resourceData.type == common.PROJECT && process.env.PROJECT_PUBLISH_END_POINT) {
