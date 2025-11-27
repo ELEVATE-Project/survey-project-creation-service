@@ -27,10 +27,13 @@ const certificateBaseTemplateQueries = require('@database/queries/certificateBas
 const userRequests = require('@requests/user')
 const interfaceRequests = require('@requests/interface')
 let projectsMongoConnection = null
+let surveyMongoConnection = null
 let mongoConnection = null
 let scopeKeys = {}
 let socketInUse = false
 const resourceQueries = require('@database/queries/resources')
+const endpoints = require('@constants/endpoints')
+const consumptionConfig = require('@consumption/config')
 
 // Define the mongoDb collection names used
 const COLLECTIONS_MAP = new Map(
@@ -220,13 +223,10 @@ async function convertRecommendedRolesForProjects(recommendedFor) {
  * @returns {Object} - Response contains task object
  */
 const assignSequenceNumbers = (tasks) => {
-	/* Temporory fix start, because elevate-project doent have the observation capability in tasks now */
-	// Filter out 'observation' type tasks
-	const filteredTasks = tasks.filter((task) => task.type !== common.OBSERVATION)
 	// Sort tasks based on their current sequence number (ascending order)
-	filteredTasks.sort((a, b) => a.sequence_no - b.sequence_no)
+	tasks.sort((a, b) => a.sequence_no - b.sequence_no)
 	let sequenceCounter = 1
-	return filteredTasks.map((task) => {
+	return tasks.map((task) => {
 		task.sequence_no = sequenceCounter++ // Reassign sequence number
 		return task
 	})
@@ -338,11 +338,65 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				taskData.type = projectTemplates.type ?? common.SOLUTIONS_TYPE.project
 			}
 
+			//if task type is observation add solutionDetails
+
+			if (task.type === common.OBSERVATION) {
+				const solutionCollection = surveyMongoConnection.collection(COLLECTIONS_MAP.get('SOLUTIONS'))
+
+				// get parentSolution details
+				let parentSolution = await solutionCollection.findOne({
+					externalId: task.external_id,
+					tenantId: tenantCode,
+					isReusable: true,
+					orgId: organizationCode,
+					type: common.OBSERVATION,
+				})
+
+				if (!parentSolution) {
+					throw new Error(` Parent solution not found for external_id: ${task.external_id}`)
+				}
+
+				taskData.solutionDetails = {
+					_id: parentSolution._id,
+					type: parentSolution.type ?? common.OBSERVATION,
+					entityType: parentSolution.entityType,
+					isReusable: parentSolution.isReusable,
+					externalId: parentSolution.externalId,
+					name: parentSolution.name,
+					minNoOfSubmissionsRequired: parentSolution.minNoOfSubmissionsRequired,
+				}
+
+				taskData.type = parentSolution.type ?? common.OBSERVATION
+			}
+
 			// Create the task
 			const taskCreationRes = await taskCollection.insertOne(taskData)
 			// Validate the insertion result
 			if (!taskCreationRes || !taskCreationRes.insertedId) {
 				throw new Error(`Failed to insert task: ${task.name}`)
+			}
+
+			if (task.type === common.OBSERVATION) {
+				let updatePayload = {
+					referenceFrom: common.PROJECT,
+					project: {
+						_id: templateId,
+						taskId: taskCreationRes.insertedId,
+					},
+				}
+				const solutionCollection = surveyMongoConnection.collection(COLLECTIONS_MAP.get('SOLUTIONS'))
+				await solutionCollection.updateOne(
+					{
+						externalId: task.external_id,
+						tenantId: tenantCode,
+						isReusable: true,
+						orgId: organizationCode,
+						type: common.OBSERVATION,
+					},
+					{
+						$set: updatePayload,
+					}
+				)
 			}
 
 			const taskId = taskCreationRes.insertedId
@@ -738,6 +792,7 @@ const publishProjectTemplates = function (templateData) {
 			projectsMongoConnection = projectsMongoConnection
 				? projectsMongoConnection
 				: await connectMongo(projectsMongoDBUrl)
+			surveyMongoConnection = surveyMongoConnection ? surveyMongoConnection : await connectMongo(surveyMongoDBUrl)
 			// Fetch Org Policies
 			const orgPolicies = await fetchOrgPolicies(
 				templateData.organization_code,
@@ -1590,6 +1645,78 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 							minNoOfSubmissionsRequired: duplicateResourceData?.minNoOfSubmissionsRequired,
 						}
 					}
+					if (projectTask.type === common.OBSERVATION) {
+						const consumptionServiceUrl = consumptionConfig.fetchConsumptionServiceUrls(common.OBSERVATION)
+						if (!consumptionServiceUrl) {
+							throw new Error(`Error : ${consumptionServiceUrl?.error || 'Failed generate url'}`)
+						}
+
+						let queryParam = {
+							solutionId: projectTask?.solutionDetails?.externalId,
+							entityType: projectTask?.solutionDetails?.entityType,
+						}
+						const url = utils.buildUrl(consumptionServiceUrl, endpoints.IMPORT_FROM_SOLUTION, queryParam)
+						const timestamp = utils.epochTime()
+						// Body for dbFind
+						const payload = {
+							programExternalId: template._id.toString(),
+							externalId: projectTask.solutionDetails.externalId + '-' + timestamp,
+							name: projectTask.solutionDetails.name ?? template.name,
+							description: projectTask.solutionDetails.name ?? template.description,
+							tenantData: {
+								tenantId: programData.tenant_code,
+								orgId: programData.organization_code,
+							},
+						}
+
+						const response = await requests.post(
+							url,
+							payload,
+							programData.userToken,
+							true,
+							common.INTERNAL_ACCESS_TOKEN,
+							true
+						)
+
+						if (!response.success || !response.data) {
+							throw new Error(
+								`Error : ${response?.error || 'child observation solution creation failed'}`
+							)
+						}
+
+						const results = response.data?.result
+
+						if (results) {
+							const solutionCollection = surveyMongoConnection.collection(
+								COLLECTIONS_MAP.get('SOLUTIONS')
+							)
+
+							// get parentSolution details
+							let childSolution = await solutionCollection.findOne({
+								externalId: results.externalId,
+								tenantId: programData.tenant_code,
+								isReusable: false,
+								orgId: programData.organization_code,
+								type: common.OBSERVATION,
+							})
+
+							if (!childSolution) {
+								throw new Error(` Parent solution not found for external_id: ${task.external_id}`)
+							}
+
+							projectTask.solutionDetails = {
+								_id: childSolution._id,
+								type: childSolution.type ?? common.OBSERVATION,
+								entityType: childSolution.entityType,
+								isReusable: childSolution.isReusable,
+								externalId: childSolution.externalId,
+								name: childSolution.name,
+								minNoOfSubmissionsRequired: childSolution.minNoOfSubmissionsRequired,
+							}
+
+							projectTask.type = childSolution.type ?? common.OBSERVATION
+						}
+					}
 					// replace old task id by new task id in sequence
 					_.update(taskSeqMap, projectTask.projectTemplateExternalId + externalId_suffixing, (tasks) =>
 						tasks.map((task) => (task === oldTaskExtId ? projectTask.externalId : task))
@@ -2027,6 +2154,8 @@ const publishProgram = function async(programData) {
 			projectsMongoConnection = projectsMongoConnection
 				? projectsMongoConnection
 				: await connectMongo(projectsMongoDBUrl)
+
+			surveyMongoConnection = surveyMongoConnection ? surveyMongoConnection : await connectMongo(surveyMongoDBUrl)
 
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
