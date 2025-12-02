@@ -723,7 +723,12 @@ async function convertTemplate(template, userId, orgId, tenantId, db) {
 
 			// Add fields for task
 			if (task.type === common.OBSERVATION) {
-				baseTask.external_id = task.solutionDetails?.externalId || null
+				baseTask.solution_details = {
+					name: task.solutionDetails?.name || null,
+					min_no_of_submissions_required: task.solutionDetails?.min_no_of_submissions_required || null,
+					type: task.solutionDetails?.type || common.OBSERVATION,
+					external_id: task.solutionDetails?.externalId || null,
+				}
 			} else if (task.type === common.SOLUTIONS_TYPE.project) {
 				const templates = await db
 					.collection('projectTemplates')
