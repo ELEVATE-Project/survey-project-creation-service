@@ -1168,7 +1168,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 						projectTask.type = childObs.result.type
 						// Store observation task for later reference update with project template external id
 						observationTasksToUpdate.push({
-							solutionExternalId: childObs.solutionDetails?.externalId,
+							solutionExternalId: childObs.result.solutionDetails?.externalId,
 							projectTask: projectTask,
 							projectTemplateExternalId: projectTask.projectTemplateExternalId + externalId_suffixing,
 						})

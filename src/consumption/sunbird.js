@@ -133,6 +133,7 @@ const publishProjectTemplates = function (templateData) {
 				processedTasks,
 				templateId,
 				template.externalId,
+				null,
 				templateData.userToken
 			)
 
@@ -354,7 +355,13 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 
 			// Recursively handle child tasks
 			if (task.children?.length) {
-				const childTaskResult = await createTasks(task.children, templateId, templateExternalId, taskId)
+				const childTaskResult = await createTasks(
+					task.children,
+					templateId,
+					templateExternalId,
+					taskId,
+					userToken
+				)
 
 				// Validate the child task creation
 				if (!childTaskResult.success) {

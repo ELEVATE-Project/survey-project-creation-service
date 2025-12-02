@@ -12,7 +12,7 @@ const endpoints = require('@constants/endpoints')
 const utils = require('@generics/utils')
 const common = require('@constants/common')
 const entityManagementBaseUrl = utils.buildUrl(interfaceBaseUrl, process.env.ENTITY_MANAGEMENT_SERVICE_NAME)
-
+const consumptionConfig = require('@consumption/config')
 /**
  * browse Existing resources List
  * @method

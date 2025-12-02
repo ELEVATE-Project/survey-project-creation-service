@@ -18,9 +18,8 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
-const endpoints = require('@constants/endpoints')
-const consumptionConfig = require('@consumption/config')
-const requests = require('@generics/requests')
+const interfaceRequests = require('@requests/interface')
+
 module.exports = class ProjectsHelper {
 	/**
 	 *  project create
@@ -972,7 +971,7 @@ module.exports = class ProjectsHelper {
 			if (requiredValidation) {
 				let required = utils.checkRequired(requiredValidation, fieldData)
 				// Add validation error when a required field is missing,
-				// except for tasks of type 'project' and "obseravtion", which are handled separately below.
+				// except for tasks of type 'project' and "observation", which are handled separately below.
 				if (
 					!required &&
 					entityType.value != common.TASK_TYPE_PROJECT &&
@@ -1322,14 +1321,16 @@ module.exports = class ProjectsHelper {
 		if (process.env.CONSUMPTION_SERVICE === common.SELF) return
 
 		// Fetch solution using the DBFIND
-		const response = await fetchObservationSolution(externalId, userDetails.token)
+		const response = await interfaceRequests.observationDbFind(externalId, userDetails.token)
 
 		if (!response.success) {
-			return responses.failureResponse({
-				message: response.message,
-				statusCode: response.statusCode,
-				result: {},
-			})
+			validationErrors.push(
+				utils.errorObject(
+					observationPath,
+					common.EXTERNAL_ID,
+					requiredValidation.message || `Failed to verify observation solution${model}`
+				)
+			)
 		}
 
 		const results = response.result
