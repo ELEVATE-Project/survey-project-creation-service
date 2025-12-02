@@ -1328,7 +1328,7 @@ module.exports = class ProjectsHelper {
 				utils.errorObject(
 					observationPath,
 					common.EXTERNAL_ID,
-					requiredValidation.message || `Failed to verify observation solution${model}`
+					response.message || `Failed to verify observation solution`
 				)
 			)
 		}
@@ -1341,7 +1341,7 @@ module.exports = class ProjectsHelper {
 				utils.errorObject(
 					observationPath,
 					common.EXTERNAL_ID,
-					requiredValidation.message || `Solution not found${model}`
+					`Observation solution not found or not marked as reusable`
 				)
 			)
 		}
