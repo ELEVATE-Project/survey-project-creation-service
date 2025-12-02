@@ -76,6 +76,70 @@ const entityDbFind = function (organization_code, tenant_code, token = '') {
 }
 
 /**
+ * observationDbFind
+ * Fetch reusable observation solution from consumption service
+ * @param {String} externalId - Observation solution externalId
+ * @param {String} token - User auth token
+ * @returns {Promise<Object>} - DB-FIND API response
+ */
+const observationDbFind = async (externalId, token) => {
+	try {
+		// If consumption service is SELF, no need to call API
+		if (process.env.CONSUMPTION_SERVICE === common.SELF) return { success: true, result: [] }
+
+		// Fetch consumption URL
+		let consumptionServiceUrl = consumptionConfig.fetchConsumptionServiceUrls(common.OBSERVATION)
+		if (!consumptionServiceUrl) {
+			return {
+				success: false,
+				message: 'CONSUMPTION_LINK_NOT_FOUND',
+				statusCode: 400,
+				result: [],
+			}
+		}
+
+		// Override for Sunbird environments
+		if (process.env.CONSUMPTION_SERVICE === common.SUNBIRD) {
+			if (!interfaceBaseUrl) {
+				return {
+					success: false,
+					message: 'INTERFACE_SERVICE_HOST_NOT_FOUND',
+					statusCode: 400,
+					result: [],
+				}
+			}
+			consumptionServiceUrl = interfaceBaseUrl
+		}
+
+		// Build DB-FIND URL
+		const url = utils.buildUrl(consumptionServiceUrl, endpoints.DB_FIND, {}, common.SOLUTIONS)
+		const payload = {
+			query: {
+				externalId,
+				type: common.OBSERVATION,
+				isReusable: common.TRUE,
+			},
+		}
+
+		// API call to DB-FIND
+		const response = await requests.post(url, payload, token, true)
+
+		if (!response.success || !response.data) {
+			return {
+				success: false,
+				message: 'DB_FIND_FAILED',
+				statusCode: 500,
+				result: [],
+			}
+		}
+
+		return { success: true, result: response.data.result || [] }
+	} catch (error) {
+		return { success: false, message: error.message || 'DB_FIND_ERROR', statusCode: 500, result: [] }
+	}
+}
+
+/**
  * Maps users to a program.
  * @param {Object} data - Mapping data (users, programId, operation, roles).
  * @param {String} organizationCode - Organization code.
@@ -134,4 +198,5 @@ module.exports = {
 	mapUserAndProgram,
 	entityFind,
 	hierarchyFetch,
+	observationDbFind,
 }

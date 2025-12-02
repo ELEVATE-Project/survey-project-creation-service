@@ -335,7 +335,7 @@ async function processTemplate(
 	await processTemplateTasks(template, db)
 
 	// Convert template
-	let convertedTemplate = await convertTemplate(template, user_id, organization_code, tenant_code)
+	let convertedTemplate = await convertTemplate(template, user_id, organization_code, tenant_code, db)
 	if (!convertedTemplate.success) {
 		console.error(`Error converting template ${templateIdStr}:`, convertedTemplate.error)
 		await writeErrorRecord(
@@ -693,7 +693,7 @@ async function checkProjectExist(templateId, tenantId, orgId) {
 	}
 }
 
-async function convertTemplate(template, userId, orgId, tenantId) {
+async function convertTemplate(template, userId, orgId, tenantId, db) {
 	try {
 		const convertResources = (resources) =>
 			resources
@@ -703,20 +703,41 @@ async function convertTemplate(template, userId, orgId, tenantId) {
 					url: link,
 				}))
 
-		const convertTask = (task, index) => ({
-			id: uuidv4(),
-			name: task.name,
-			type: task.type,
-			is_mandatory: task.isDeletable ? false : true,
-			allow_evidences: true,
-			evidence_details: {
-				file_types: task.evidenceDetails?.fileTypes || ['images', 'document', 'videos', 'audio'],
-				min_no_of_evidences: task.evidenceDetails?.minNoOfEvidences || 1,
-			},
-			learning_resources: Array.isArray(task.learningResources) ? convertResources(task.learningResources) : [],
-			sequence_no: task.sequenceNumber ? Number(task.sequenceNumber) : index + 1,
-			children: task.children ? task.children.map(convertTask) : [],
-		})
+		const convertTask = async (task, index) => {
+			const baseTask = {
+				id: uuidv4(),
+				name: task.name,
+				type: task.type === common.SOLUTIONS_TYPE.project ? common.TASK_TYPE_PROJECT : task.type,
+				is_mandatory: task.isDeletable ? false : true,
+				allow_evidences: true,
+				evidence_details: {
+					file_types: task.evidenceDetails?.fileTypes || ['images', 'document', 'videos', 'audio'],
+					min_no_of_evidences: task.evidenceDetails?.minNoOfEvidences || 1,
+				},
+				learning_resources: Array.isArray(task.learningResources)
+					? convertResources(task.learningResources)
+					: [],
+				sequence_no: task.sequenceNumber ? Number(task.sequenceNumber) : index + 1,
+				children: task.children ? task.children.map(convertTask) : [],
+			}
+
+			// Add fields for task
+			if (task.type === common.OBSERVATION) {
+				baseTask.external_id = task.solutionDetails?.externalId || null
+			} else if (task.type === common.SOLUTIONS_TYPE.project) {
+				const templates = await db
+					.collection('projectTemplates')
+					.findOne({ _id: task.projectTemplateDetails?._id })
+				const projectResp = await handleProjectTask(templates, userId, orgId, tenantId, db)
+				if (projectResp.success || projectResp.alreadyExists) {
+					baseTask.project_id = projectResp.projectId
+				}
+			} else if (task.type === common.TASK_TYPE_REFLECTION) {
+				baseTask.link = taskData.metaInformation.redirectLink
+			}
+
+			return baseTask
+		}
 
 		const convertedTemplate = {
 			title: template.title,
@@ -754,6 +775,50 @@ async function convertTemplate(template, userId, orgId, tenantId) {
 		console.error('Error occurred while converting the template:', error)
 		return { success: false, error }
 	}
+}
+//handle project as a task
+async function handleProjectTask(template, userId, orgId, tenantId, db) {
+	const templateIdStr = template._id.toString()
+	const tenant_code = tenantId
+	const organization_code = orgId
+
+	// 1. Check if project already exists
+	const isProjectExist = await checkProjectExist(templateIdStr, tenant_code, organization_code)
+	if (isProjectExist.success) {
+		return { alreadyExists: true, projectId: isProjectExist.projectId }
+	}
+
+	// 2. Process template tasks once
+	await processTemplateTasks(template, db)
+
+	// 3. Convert Template
+	let convertedTemplate = await convertTemplate(template, userId, organization_code, tenant_code)
+	if (!convertedTemplate.success) {
+		return { error: true }
+	}
+
+	convertedTemplate = convertedTemplate.template
+
+	// 5. Create Project + Entities
+	let projectCreateResponse = await createProjectAndEntities(
+		templateIdStr,
+		convertedTemplate,
+		{}, //entityTypeEntityMap
+		[], //entitiesToCreate
+		[], //entitiesToCreate
+		tenant_code,
+		organization_code
+	)
+
+	if (projectCreateResponse.success) {
+		await db
+			.collection('projectTemplates')
+			.updateOne({ _id: template._id }, { $set: { scp_reference_id: projectCreateResponse.projectId } })
+
+		return { success: true, projectId: projectCreateResponse.projectId }
+	}
+
+	return { error: true }
 }
 
 function convertDuration(duration) {

@@ -393,13 +393,13 @@ async function processChildObservationSolution(task, templateId, templateExterna
 
 		// Step 1: Fetch parent solution to get externalId and entityType
 		const parentSolution = await solutionCollection.findOne({
-			externalId: task.external_id,
+			externalId: task.solution_details?.external_id,
 			isReusable: true,
 			type: common.OBSERVATION,
 		})
 
 		if (!parentSolution) {
-			throw new Error(`Parent solution not found for external_id: ${task.external_id}`)
+			throw new Error(`Parent solution not found for external_id: ${task.solution_details?.external_id}`)
 		}
 
 		// Step 2: Build request URL for consumption service

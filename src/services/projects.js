@@ -1138,64 +1138,16 @@ module.exports = class ProjectsHelper {
 				entityType.value === common.OBSERVATION &&
 				entityData.type === common.OBSERVATION
 			) {
-				let observationPath = sourceType == '' ? `${common.OBSERVATION}` : `${sourceType}.${common.OBSERVATION}`
-				// Validate the parent solution externalId is present
-				if (!entityData.external_id || entityData.external_id.trim() === '') {
-					validationErrors.push(
-						utils.errorObject(
-							observationPath,
-							common.EXTERNAL_ID,
-							requiredValidation.message || `Required ExternalId${model}`
-						)
-					)
-				}
-				// Validate published externalId
-				if (entityData.external_id && entityMapping[common.OBSERVATION]?.validations) {
-					let consumptionServiceUrl = consumptionConfig.fetchConsumptionServiceUrls(common.OBSERVATION)
-					if (!consumptionServiceUrl) {
-						return responses.failureResponse({
-							message: 'CONSUMPTION_LINK_NOT_FOUND',
-							statusCode: httpStatusCode.bad_request,
-							result: {},
-						})
-					}
-					// Override for Sunbird
-					if (process.env.CONSUMPTION_SERVICE === common.SUNBIRD) {
-						consumptionServiceUrl = process.env.INTERFACE_SERVICE_HOST
-					}
-					const url = utils.buildUrl(consumptionServiceUrl, endpoints.DB_FIND, {}, 'solutions')
-
-					// Body for dbFind
-					const payload = {
-						query: {
-							externalId: entityData.external_id,
-							type: common.OBSERVATION,
-							isReusable: common.TRUE,
-						},
-					}
-
-					const response = await requests.post(url, payload, userDetails.token, true)
-
-					if (!response.success || !response.data) {
-						return responses.failureResponse({
-							message: 'DB_FIND_FAILED',
-							statusCode: httpStatusCode.internal_server_error,
-						})
-					}
-
-					const results = response.data?.result || []
-					// Validate that the solution exits in samiksha service
-					// Only perform this check if the consumption service is not SELF
-					if (process.env.CONSUMPTION_SERVICE !== common.SELF && (results.length === 0 || !results[0]._id)) {
-						validationErrors.push(
-							utils.errorObject(
-								observationPath,
-								common.EXTERNAL_ID,
-								requiredValidation.message || `Solution not found${model}`
-							)
-						)
-					}
-				}
+				await this.validateObservationTask({
+					entityData,
+					entityType,
+					model,
+					sourceType,
+					entityMapping,
+					requiredValidation,
+					validationErrors,
+					userDetails,
+				})
 			}
 
 			if (regexValidation && fieldData) {
@@ -1318,6 +1270,79 @@ module.exports = class ProjectsHelper {
 			}
 		} catch (error) {
 			return error
+		}
+	}
+
+	/**
+	 * Validates an Observation-type task.
+	 * @name validateObservationTask
+	 * @param {Object}  - Required parameters.
+	 * @param {Object} entityData - The incoming task object containing solution_details.
+	 * @param {Object} entityType - The metadata definition for the OBSERVATION entityType.
+	 * @param {String} model - The model name (e.g., "tasks").
+	 * @param {String} sourceType - Source path used for error mapping.
+	 * @param {Object} entityMapping - Master validation mapping for entities.
+	 * @param {Object} requiredValidation - Validation rule for required fields.
+	 * @param {Array}  validationErrors - Array to push validation errors into.
+	 * @param {Object} userDetails - Auth details for service-to-service API calls.
+	 *
+	 * @returns {Promise<void|Object>}
+	 */
+
+	static async validateObservationTask({
+		entityData,
+		entityType,
+		model,
+		sourceType,
+		entityMapping,
+		requiredValidation,
+		validationErrors,
+		userDetails,
+	}) {
+		let observationPath = sourceType == '' ? `${common.OBSERVATION}` : `${sourceType}.${common.OBSERVATION}`
+
+		// Extract externalId from solution_details
+		const externalId = entityData.solution_details?.external_id
+
+		// Validate required externalId
+		if (!externalId || externalId.trim() === '') {
+			validationErrors.push(
+				utils.errorObject(
+					observationPath,
+					common.EXTERNAL_ID,
+					requiredValidation.message || `Required ExternalId${model}`
+				)
+			)
+			return
+		}
+
+		// Check solution validations from Master Mapping
+		if (!entityMapping[common.OBSERVATION]?.validations) return
+		//if consumption service is self we dont need to make this api call
+		if (process.env.CONSUMPTION_SERVICE === common.SELF) return
+
+		// Fetch solution using the DBFIND
+		const response = await fetchObservationSolution(externalId, userDetails.token)
+
+		if (!response.success) {
+			return responses.failureResponse({
+				message: response.message,
+				statusCode: response.statusCode,
+				result: {},
+			})
+		}
+
+		const results = response.result
+
+		// Validate reusable solution exists
+		if (results.length === 0 || !results[0]._id) {
+			validationErrors.push(
+				utils.errorObject(
+					observationPath,
+					common.EXTERNAL_ID,
+					requiredValidation.message || `Solution not found${model}`
+				)
+			)
 		}
 	}
 

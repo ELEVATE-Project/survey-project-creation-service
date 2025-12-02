@@ -354,7 +354,7 @@ async function processObservationAsTask(task, tenantCode, organizationCode) {
 
 		// Fetch parent reusable solution
 		const parentSolution = await solutionCollection.findOne({
-			externalId: task.external_id,
+			externalId: task.solution_details?.external_id,
 			tenantId: tenantCode,
 			orgId: organizationCode,
 			isReusable: true,
@@ -362,22 +362,24 @@ async function processObservationAsTask(task, tenantCode, organizationCode) {
 		})
 
 		if (!parentSolution) {
-			throw new Error(`Parent solution not found for external_id: ${task.external_id}`)
+			throw new Error(`Parent solution not found for external_id: ${task.solution_details?.external_id}`)
 		}
 
 		// Return formatted solution details
 		return {
 			success: true,
-			solutionDetails: {
-				_id: parentSolution._id,
+			data: {
+				solutionDetails: {
+					_id: parentSolution._id,
+					type: parentSolution.type ?? common.OBSERVATION,
+					entityType: parentSolution.entityType,
+					isReusable: parentSolution.isReusable,
+					externalId: parentSolution.externalId,
+					name: parentSolution.name,
+					minNoOfSubmissionsRequired: parentSolution.minNoOfSubmissionsRequired,
+				},
 				type: parentSolution.type ?? common.OBSERVATION,
-				entityType: parentSolution.entityType,
-				isReusable: parentSolution.isReusable,
-				externalId: parentSolution.externalId,
-				name: parentSolution.name,
-				minNoOfSubmissionsRequired: parentSolution.minNoOfSubmissionsRequired,
 			},
-			type: parentSolution.type ?? common.OBSERVATION,
 		}
 	} catch (error) {
 		console.error('Error in processObservationAsTask:', error.message)
@@ -432,7 +434,8 @@ async function processChildObservationSolution(projectTask, template, programDat
 			programData.userToken,
 			true,
 			common.INTERNAL_ACCESS_TOKEN,
-			true
+			true,
+			process.env.ADMIN_TOKEN_HEADER_NAME
 		)
 
 		if (!response.success || !response.data) {
@@ -454,6 +457,7 @@ async function processChildObservationSolution(projectTask, template, programDat
 			orgId: programData.organization_code,
 			isReusable: false,
 			type: common.OBSERVATION,
+			author: programData.userId,
 		})
 
 		if (!childSolution) {
@@ -463,16 +467,18 @@ async function processChildObservationSolution(projectTask, template, programDat
 		// Step 5: Return formatted solution details
 		return {
 			success: true,
-			solutionDetails: {
-				_id: childSolution._id,
+			result: {
+				solutionDetails: {
+					_id: childSolution._id,
+					type: childSolution.type ?? common.OBSERVATION,
+					entityType: childSolution.entityType,
+					isReusable: childSolution.isReusable,
+					externalId: childSolution.externalId,
+					name: childSolution.name,
+					minNoOfSubmissionsRequired: childSolution.minNoOfSubmissionsRequired,
+				},
 				type: childSolution.type ?? common.OBSERVATION,
-				entityType: childSolution.entityType,
-				isReusable: childSolution.isReusable,
-				externalId: childSolution.externalId,
-				name: childSolution.name,
-				minNoOfSubmissionsRequired: childSolution.minNoOfSubmissionsRequired,
 			},
-			type: childSolution.type ?? common.OBSERVATION,
 		}
 	} catch (error) {
 		console.error('Error in processChildObservationSolution:', error.message)
@@ -581,11 +587,11 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 			//if taskType observation add solutionDetails
 			if (task.type === common.OBSERVATION) {
 				const ObservationRes = await processObservationAsTask(task, tenantCode, organizationCode)
-				if (!ObservationRes.success || !ObservationRes?.solutionDetails) {
+				if (!ObservationRes.success || !ObservationRes.data?.solutionDetails) {
 					throw new Error(`Failed to process Observation as task: ${ObservationRes.error}`)
 				}
-				taskData.solutionDetails = ObservationRes.solutionDetails
-				taskData.type = ObservationRes.type
+				taskData.solutionDetails = ObservationRes.data.solutionDetails
+				taskData.type = ObservationRes.data.type
 			}
 
 			// Create the task
@@ -597,7 +603,7 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 			// updateObservationReference
 			if (task.type === common.OBSERVATION) {
 				await updateObservationReference(
-					task.external_id,
+					task.solution_details?.external_id,
 					tenantCode,
 					organizationCode,
 					templateId,
@@ -1158,8 +1164,8 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 
 						if (!childObs.success) throw new Error(childObs.error)
 
-						projectTask.solutionDetails = childObs.solutionDetails
-						projectTask.type = childObs.type
+						projectTask.solutionDetails = childObs.result.solutionDetails
+						projectTask.type = childObs.result.type
 						// Store observation task for later reference update with project template external id
 						observationTasksToUpdate.push({
 							solutionExternalId: childObs.solutionDetails?.externalId,

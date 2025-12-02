@@ -17,7 +17,7 @@ const consumptionCommon = require('@consumption/constants/elevate/common')
  * @name assignSequenceNumbers
  * @param {Array} tasks - Array of task objects
  * @returns {Array} - Array of tasks with assigned sequence numbers
- * @description Filters out 'observation' type tasks (temporary fix), sorts by existing sequence_no, and reassigns sequential numbers
+ * @description sorts by existing sequence_no, and reassigns sequential numbers
  */
 exports.assignSequenceNumbers = (tasks) => {
 	// Sort tasks based on their current sequence number (ascending order)

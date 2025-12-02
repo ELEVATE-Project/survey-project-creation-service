@@ -1073,14 +1073,10 @@ function setPolicy(policy) {
  * Get epoch time from current date.
  * @function
  * @name epochTime
- * @returns {Number} Epoch time
+ * @returns {Number} Epoch time(milliseconds)
  */
 
-function epochTime() {
-	var currentDate = new Date()
-	currentDate = currentDate.getTime()
-	return currentDate
-}
+const epochTime = () => Date.now()
 
 module.exports = {
 	composeEmailBody,
