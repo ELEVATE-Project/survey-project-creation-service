@@ -281,4 +281,5 @@ module.exports = {
 	},
 	TASK_TYPE_PROJECT: 'improvement_projects',
 	PROJECT_ID: 'project_id',
+	DEFAULT_RESOURCE_VERSION: 1,
 }
