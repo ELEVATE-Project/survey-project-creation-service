@@ -1410,8 +1410,8 @@ async function handleProjectTask(projectTemplateId, solution, userId, orgId, ten
 
 		// Add meta (start/end date)
 		templateData.meta = {
-			start_date: solution.startDate || null,
-			end_date: solution.endDate || null,
+			start_date: solution?.startDate || null,
+			end_date: solution?.endDate || null,
 		}
 
 		// No targeting criteria
