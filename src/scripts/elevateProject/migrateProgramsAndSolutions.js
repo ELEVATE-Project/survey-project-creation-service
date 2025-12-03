@@ -1196,7 +1196,7 @@ async function convertProjectTemplate(template, user_id, organization_code, tena
 			let baseTask = {
 				id: newTaskId,
 				name: task.name,
-				type: common.SOLUTIONS_TYPE.project ? common.TASK_TYPE_PROJECT : task.type,
+				type: task.type === common.SOLUTIONS_TYPE.project ? common.TASK_TYPE_PROJECT : task.type,
 
 				// Set mandatory status - if task is deletable, it's not mandatory
 				is_mandatory: task.isDeletable ? false : true,
@@ -1215,7 +1215,7 @@ async function convertProjectTemplate(template, user_id, organization_code, tena
 				sequence_no: task.sequenceNumber ? Number(task.sequenceNumber) : index + 1,
 
 				// Recursively convert child tasks if they exist
-				children: task.children ? task.children.map(convertTask) : [],
+				children: task.children ? await Promise.all(task.children.map(convertTask)) : [],
 			}
 			// Add fields for task
 			if (task.type === common.OBSERVATION) {
