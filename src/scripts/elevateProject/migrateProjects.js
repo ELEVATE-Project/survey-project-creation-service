@@ -718,7 +718,7 @@ async function convertTemplate(template, userId, orgId, tenantId, db) {
 					? convertResources(task.learningResources)
 					: [],
 				sequence_no: task.sequenceNumber ? Number(task.sequenceNumber) : index + 1,
-				children: task.children ? task.children.map(convertTask) : [],
+				children: task.children ? await Promise.all(task.children.map(convertTask)) : [],
 			}
 
 			// Add fields for task
@@ -738,7 +738,7 @@ async function convertTemplate(template, userId, orgId, tenantId, db) {
 					baseTask.project_id = projectResp.projectId
 				}
 			} else if (task.type === common.TASK_TYPE_REFLECTION) {
-				baseTask.link = taskData.metaInformation.redirectLink
+				baseTask.link = task.metaInformation?.redirectLink
 			}
 
 			return baseTask
@@ -797,7 +797,7 @@ async function handleProjectTask(template, userId, orgId, tenantId, db) {
 	await processTemplateTasks(template, db)
 
 	// 3. Convert Template
-	let convertedTemplate = await convertTemplate(template, userId, organization_code, tenant_code)
+	let convertedTemplate = await convertTemplate(template, userId, organization_code, tenant_code, db)
 	if (!convertedTemplate.success) {
 		return { error: true }
 	}
@@ -810,7 +810,7 @@ async function handleProjectTask(template, userId, orgId, tenantId, db) {
 		convertedTemplate,
 		{}, //entityTypeEntityMap
 		[], //entitiesToCreate
-		[], //entitiesToCreate
+		{}, // createdEntityIds
 		tenant_code,
 		organization_code
 	)

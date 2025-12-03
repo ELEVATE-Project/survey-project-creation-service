@@ -1241,7 +1241,7 @@ async function convertProjectTemplate(template, user_id, organization_code, tena
 					baseTask.project_id = projectResp?.projectId
 				}
 			} else if (task.type === common.TASK_TYPE_REFLECTION) {
-				baseTask.link = taskData.metaInformation.redirectLink
+				baseTask.link = task.metaInformation?.redirectLink
 			}
 
 			return baseTask
@@ -1373,7 +1373,7 @@ async function handleProjectTask(projectTemplateId, solution, userId, orgId, ten
 		}
 
 		// STEP 4: CONVERT TEMPLATE
-		let converted = await convertProjectTemplate(projectTemplate, userId, orgId, tenantId)
+		let converted = await convertProjectTemplate(projectTemplate, userId, orgId, tenantId, db)
 
 		if (!converted.success) {
 			return {
