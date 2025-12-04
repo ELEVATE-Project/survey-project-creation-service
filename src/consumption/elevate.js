@@ -1556,7 +1556,7 @@ const publishProgram = function async(programData) {
 			projectsMongoConnection = projectsMongoConnection
 				? projectsMongoConnection
 				: await connectMongo(projectsMongoDBUrl)
-			surveyMongoConnection = surveyMongoConnection ? surveyMongoConnection : await connectMongo(surveyMongoDBUrl)
+			// surveyMongoConnection = surveyMongoConnection ? surveyMongoConnection : await connectMongo(surveyMongoDBUrl)
 
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
