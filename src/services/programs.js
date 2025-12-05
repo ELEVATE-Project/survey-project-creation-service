@@ -400,6 +400,11 @@ class ProgramsHelper {
 				}
 			}
 
+			if (childProgramId) {
+				const fetchProgramDetails = await this.details(childProgramId, orgCode, tenant_code, userToken)
+				await rolloutService.createProgramRollout(fetchProgramDetails.result, loggedInUserId, userToken)
+			}
+
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
 				message: [common.RESOURCE_STAGE_REVIEW, common.RESOURCE_STAGE_COMPLETION].includes(fetchResource.stage)
@@ -1516,6 +1521,26 @@ async function createProgramChild(parentId, programData) {
 			organization_code,
 			tenant_code
 		)
+
+		const mappedResource = await programResourceMappingQueries.findAll({
+			program_id: parentId,
+			organization_code: programData.organization_code,
+			tenant_code: programData.tenant_code,
+		})
+
+		const mappedResourceIds = mappedResource.map((resource) => resource.resource_id)
+		const mapResourcePromises = mappedResourceIds.map((resourceId) => {
+			return programResourceMappingQueries.create({
+				program_id: childProgram?.result?.id,
+				resource_id: resourceId,
+				organization_code: programData.organization_code,
+				tenant_code: programData.tenant_code,
+				created_by: programData.user_id,
+				updated_by: programData.user_id,
+			})
+		})
+		await Promise.all(mapResourcePromises)
+
 		response.success = childProgram?.statusCode == httpStatusCode.ok
 		if (response.success) {
 			response.result.id = childProgram?.result?.id

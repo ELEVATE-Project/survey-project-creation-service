@@ -733,7 +733,7 @@ module.exports = class resourceHelper {
 				false
 			)
 
-			if (response.result.length === 0) {
+			if (response.count === 0) {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'RESOURCE_LISTED_SUCCESSFULLY',
