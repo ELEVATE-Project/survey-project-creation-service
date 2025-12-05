@@ -272,6 +272,8 @@ module.exports = class resourceHelper {
 					},
 					created_by: userId,
 					tenant_code,
+					parent_id: null,
+					version: common.DEFAULT_RESOURCE_VERSION,
 				},
 				queryParams,
 				searchText
@@ -706,25 +708,25 @@ module.exports = class resourceHelper {
 			if (common.TYPE in queryParams && queryParams[common.TYPE]) {
 				resourceFilter.type = queryParams[common.TYPE].split(',')
 			}
-
+			const resourceAttributes = [
+				'id',
+				'title',
+				'type',
+				'organization_code',
+				'status',
+				'stage',
+				'user_id',
+				'submitted_on',
+				'last_reviewed_on',
+				'created_at',
+				'meta',
+				'published_id',
+				'published_on',
+			]
 			// fetches data from resource table with the passed filters
-			const response = await resourceQueries.resourceList(
+			let response = await resourceQueries.resourceList(
 				resourceFilter,
-				[
-					'id',
-					'title',
-					'type',
-					'organization_code',
-					'status',
-					'stage',
-					'user_id',
-					'submitted_on',
-					'last_reviewed_on',
-					'created_at',
-					'meta',
-					'published_id',
-					'published_on',
-				],
+				resourceAttributes,
 				sort,
 				page,
 				limit,
@@ -738,6 +740,8 @@ module.exports = class resourceHelper {
 					result,
 				})
 			}
+
+			response = await fetchChildPrograms(response, resourceAttributes, 'up_for_review')
 
 			const uniqueCreatorIds = utils.getUniqueElements(
 				response.result.map((item) => {
@@ -1271,9 +1275,9 @@ module.exports = class resourceHelper {
 	 * @name publishCallback
 	 * @returns {JSON} - details of resource
 	 */
-	static async publishCallback(resourceId, publishedId, link = false) {
+	static async publishCallback(resourceId, publishedId, link = false, parentId = null, version = null) {
 		try {
-			let resource = await resourceQueries.updateOne(
+			const [count, updated] = await resourceQueries.updateOne(
 				{
 					id: resourceId,
 					status: { [Op.notIn]: [common.RESOURCE_STATUS_DRAFT] },
@@ -1287,12 +1291,23 @@ module.exports = class resourceHelper {
 				}
 			)
 
-			if (resource === 0) {
+			if (count === 0) {
 				return responses.failureResponse({
 					message: 'RESOURCE_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
+			}
+
+			if (parentId && version != common.DEFAULT_RESOURCE_VERSION) {
+				await resourceQueries.updateOne(
+					{
+						id: parentId,
+					},
+					{
+						blob_path: updated[0].blob_path,
+					}
+				)
 			}
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
@@ -1894,10 +1909,10 @@ async function fetchChildPrograms(resourceList, attributes, listing) {
 		// find all program records where either the id is in programIds or parent_id is in programIds
 		const chldPrograms = await resourceQueries.findAll(
 			{
-				[Op.or]: [{ id: { [Op.in]: programIds } }, { parent_id: { [Op.in]: programIds } }],
+				parent_id: { [Op.in]: programIds },
 				type: common.RESOURCE_TYPE_PROGRAM,
 			},
-			attributes
+			[...attributes, 'parent_id', 'version']
 		)
 
 		// create a mapping of parent_id to its child programs (excluding default version)
@@ -1917,7 +1932,7 @@ async function fetchChildPrograms(resourceList, attributes, listing) {
 				if (parentChildMapping?.[resource.id].length <= 0) return resource
 				const highestVersionObj = _.maxBy(parentChildMapping?.[resource.id], 'version') || {}
 				if (Object.keys(highestVersionObj).length > 0 && listing == 'submitted_for_review') {
-					if (['INPROGRESS', 'SUBMITTED', 'REQUESTED_FOR_CHANGES'].includes(highestVersionObj.status)) {
+					if (!['PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'].includes(highestVersionObj.status)) {
 						return highestVersionObj
 					} else return resource
 				} else if (Object.keys(highestVersionObj).length > 0 && listing == 'up_for_review') {
@@ -1929,7 +1944,7 @@ async function fetchChildPrograms(resourceList, attributes, listing) {
 						return highestVersionObj
 					} else return resource
 				}
-			}
+			} else return resource
 		})
 
 		return resourceList

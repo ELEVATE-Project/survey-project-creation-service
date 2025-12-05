@@ -1975,6 +1975,9 @@ const publishProgram = function async(programData) {
 				false, //return blob path
 				true // return resource details
 			)
+			const parentId = rolloutDetails?.resource_details?.parentId || null
+			const version = rolloutDetails?.resource_details?.version || null
+
 			rolloutDetails = rolloutDetails?.result || {}
 			const isProgramResource = rolloutDetails.resource_type === common.RESOURCE_TYPE_PROGRAM
 			const programResourceTableId = isProgramResource ? rolloutDetails.resource_id : null
@@ -2205,7 +2208,13 @@ const publishProgram = function async(programData) {
 			}
 			if (isProgramResource && programResourceTableId) {
 				// update resource table with published Id
-				await resourceService.publishCallback(programResourceTableId, programId ? programId.toString() : null)
+				await resourceService.publishCallback(
+					programResourceTableId,
+					programId ? programId.toString() : null,
+					null,
+					parentId,
+					version
+				)
 			}
 			// update rollout table with published Id
 			await rolloutService.publishCallback(
