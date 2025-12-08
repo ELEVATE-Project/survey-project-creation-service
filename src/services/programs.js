@@ -297,13 +297,19 @@ class ProgramsHelper {
 				fetchResource.status == common.RESOURCE_STATUS_PUBLISHED &&
 				fetchResource.stage == common.RESOURCE_STAGE_COMPLETION
 			) {
-				const parentId =
-					fetchResource.parent_id == null && fetchResource.version == common.DEFAULT_RESOURCE_VERSION
-						? fetchResource.id
-						: fetchResource.parent_id
-				const childProgram = await createProgramChild(parentId, fetchResource)
-				if (childProgram.success) childProgramId = childProgram?.result?.id || null
-				else throw new Error(childProgram?.error || 'CHILD_PROGRAM_CREATION_FAILED')
+				// Get the review type of the organization
+				const orgConfig = await orgExtensionService.getConfig(orgCode, tenant_code)
+				const programConfig =
+					orgConfig.result.resource.find((conf) => conf.resource_type == common.RESOURCE_TYPE_PROGRAM) || {}
+				if (programConfig?.review_required_after_publish) {
+					const parentId =
+						fetchResource.parent_id == null && fetchResource.version == common.DEFAULT_RESOURCE_VERSION
+							? fetchResource.id
+							: fetchResource.parent_id
+					const childProgram = await createProgramChild(parentId, fetchResource)
+					if (childProgram.success) childProgramId = childProgram?.result?.id || null
+					else throw new Error(childProgram?.error || 'CHILD_PROGRAM_CREATION_FAILED')
+				}
 			}
 			// Omit fields that should not be updated
 			bodyData = _.omit(bodyData, [
@@ -1522,6 +1528,12 @@ async function createProgramChild(parentId, programData) {
 			tenant_code
 		)
 
+		// Verify child program creation succeeded and has an id before creating mappings.
+		if (!childProgram || childProgram?.statusCode !== httpStatusCode.ok || !childProgram?.result?.id) {
+			throw new Error('PROGRAM_DUPLICATION_FAILED')
+		}
+
+		// Only now fetch and create mappings for resources to the newly created child program
 		const mappedResource = await programResourceMappingQueries.findAll({
 			program_id: parentId,
 			organization_code: programData.organization_code,
@@ -1531,7 +1543,7 @@ async function createProgramChild(parentId, programData) {
 		const mappedResourceIds = mappedResource.map((resource) => resource.resource_id)
 		const mapResourcePromises = mappedResourceIds.map((resourceId) => {
 			return programResourceMappingQueries.create({
-				program_id: childProgram?.result?.id,
+				program_id: childProgram.result.id,
 				resource_id: resourceId,
 				organization_code: programData.organization_code,
 				tenant_code: programData.tenant_code,
@@ -1541,12 +1553,8 @@ async function createProgramChild(parentId, programData) {
 		})
 		await Promise.all(mapResourcePromises)
 
-		response.success = childProgram?.statusCode == httpStatusCode.ok
-		if (response.success) {
-			response.result.id = childProgram?.result?.id
-		} else {
-			throw new Error('PROGRAM_DUPLICATION_FAILED')
-		}
+		response.success = true
+		response.result.id = childProgram.result.id
 	} catch (error) {
 		response.success = false
 		response.error = error

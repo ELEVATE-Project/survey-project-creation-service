@@ -103,7 +103,11 @@ module.exports = class resourceHelper {
 			})
 		}
 
-		resourceList = await fetchChildPrograms(resourceList, resourceAttributes, 'submitted_for_review')
+		resourceList = await fetchChildPrograms(
+			resourceList,
+			resourceAttributes,
+			common.PAGE_STATUS_SUBMITTED_FOR_REVIEW
+		)
 
 		let uniqueResourceIds = []
 		let OrganizationIds = []
@@ -741,7 +745,7 @@ module.exports = class resourceHelper {
 				})
 			}
 
-			response = await fetchChildPrograms(response, resourceAttributes, 'up_for_review')
+			response = await fetchChildPrograms(response, resourceAttributes, common.PAGE_STATUS_UP_FOR_REVIEW)
 
 			const uniqueCreatorIds = utils.getUniqueElements(
 				response.result.map((item) => {
@@ -1878,9 +1882,9 @@ module.exports = class resourceHelper {
 				return common.DEFAULT_RESOURCE_VERSION
 			return Number(latest.version)
 		} catch (error) {
-			// On error, log and return 0 as a safe default
+			// On error, log and return def version as a safe default
 			console.error('Error in findLatestVersionOfResource:', error)
-			return 0
+			return common.DEFAULT_RESOURCE_VERSION
 		}
 	}
 }
@@ -1904,7 +1908,7 @@ async function fetchChildPrograms(resourceList, attributes, listing) {
 			.map((resource) => resource.id)
 
 		// if no program ids found, return the original resourceList
-		if (programIds.length === 0) resourceList
+		if (programIds.length === 0) return resourceList
 
 		// find all program records where either the id is in programIds or parent_id is in programIds
 		const chldPrograms = await resourceQueries.findAll(
@@ -1942,7 +1946,8 @@ async function fetchChildPrograms(resourceList, attributes, listing) {
 						)
 					) {
 						return highestVersionObj
-					} else return resource
+					}
+					return resource
 				}
 			} else return resource
 		})
