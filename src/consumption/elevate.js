@@ -35,6 +35,8 @@ let surveyMongoConnection = null
 const endpoints = require('@constants/endpoints')
 const consumptionConfig = require('@consumption/config')
 const requests = require('@generics/requests')
+let surveyConnection = null
+let projectsConnection = null
 
 /**
  * To connect with the mongoDB with the given url
@@ -53,6 +55,54 @@ const connectMongo = async (url) => {
 	}
 }
 
+// ✅ Add these helper functions
+const ensureProjectsConnection = async () => {
+	try {
+		// Check if connection exists and is still active
+		if (projectsConnection && (await projectsConnection.isConnected())) {
+			return projectsMongoConnection
+		}
+
+		// Connection is dead or doesn't exist, reconnect
+		console.log('🔄 Reconnecting to Projects MongoDB...')
+		projectsConnection = null
+		projectsMongoConnection = null
+
+		const mongoDBConn = new MongoDBConnection(projectsMongoDBUrl)
+		await mongoDBConn.connect()
+		projectsConnection = mongoDBConn
+		projectsMongoConnection = mongoDBConn.getDb()
+
+		return projectsMongoConnection
+	} catch (error) {
+		console.error('❌ Failed to ensure projects connection:', error.message)
+		throw error
+	}
+}
+
+const ensureSurveyConnection = async () => {
+	try {
+		// Check if connection exists and is still active
+		if (surveyConnection && (await surveyConnection.isConnected())) {
+			return surveyMongoConnection
+		}
+
+		// Connection is dead or doesn't exist, reconnect
+		console.log('🔄 Reconnecting to Survey MongoDB...')
+		surveyConnection = null
+		surveyMongoConnection = null
+
+		const mongoDBConn = new MongoDBConnection(surveyMongoDBUrl)
+		await mongoDBConn.connect()
+		surveyConnection = mongoDBConn
+		surveyMongoConnection = mongoDBConn.getDb()
+
+		return surveyMongoConnection
+	} catch (error) {
+		console.error('❌ Failed to ensure survey connection:', error.message)
+		throw error
+	}
+}
 /**
  * Publish the project template
  * @name publishProjectTemplates
@@ -96,9 +146,12 @@ const publishProjectTemplates = function (templateData) {
 
 			let template = formattedTemplate.data
 
-			projectsMongoConnection = projectsMongoConnection
-				? projectsMongoConnection
-				: await connectMongo(projectsMongoDBUrl)
+			projectsMongoConnection = await ensureProjectsConnection()
+			// projectsMongoConnection = projectsMongoConnection
+			// 	? projectsMongoConnection
+			// 	: await connectMongo(projectsMongoDBUrl)
+
+			surveyMongoConnection = await ensureSurveyConnection()
 
 			// Fetch Org Policies
 			const orgPolicies = await fetchOrgPolicies(
@@ -156,7 +209,8 @@ const publishProjectTemplates = function (templateData) {
 				template.externalId,
 				null,
 				projectData.organization_code,
-				projectData.tenant_code
+				projectData.tenant_code,
+				surveyMongoConnection
 			)
 
 			// Validate the result of the task creation
@@ -208,8 +262,10 @@ async function processCategories(categories, orgCode, tenantCode) {
 
 		const formattedCategories = formattedCategoriesResponse.data
 
+		const db = await ensureProjectsConnection()
+
 		// Fetch a specific collection
-		const categoriesCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('CATEGORIES'))
+		const categoriesCollection = db.collection(COLLECTIONS_MAP.get('CATEGORIES'))
 
 		// Fetch existing categories by externalId
 		let existingCategories = []
@@ -348,9 +404,11 @@ async function processProjectAsTask(task, tenantCode, organizationCode) {
  * @param {String} organizationCode - Organization code
  * @returns {Object} - Response with solutionDetails or error
  */
-async function processObservationAsTask(task, tenantCode, organizationCode) {
+async function processObservationAsTask(task, tenantCode, organizationCode, surveyMongoConnection) {
 	try {
-		const solutionCollection = surveyMongoConnection.collection(COLLECTIONS_MAP.get('SOLUTIONS'))
+		// ✅ Use helper to ensure connection
+		const db = await ensureSurveyConnection()
+		const solutionCollection = db.collection(COLLECTIONS_MAP.get('SOLUTIONS'))
 
 		// Fetch parent reusable solution
 		const parentSolution = await solutionCollection.findOne({
@@ -457,7 +515,6 @@ async function processChildObservationSolution(projectTask, template, programDat
 			orgId: programData.organization_code,
 			isReusable: false,
 			type: common.OBSERVATION,
-			author: programData.userId,
 		})
 
 		if (!childSolution) {
@@ -546,7 +603,15 @@ async function updateObservationReference(externalId, tenantCode, organizationCo
  * @param {String} parentId - parentId
  * @returns {Object} - Response contains task data
  */
-async function createTasks(tasks, templateId, templateExternalId, parentId = null, organizationCode, tenantCode) {
+async function createTasks(
+	tasks,
+	templateId,
+	templateExternalId,
+	parentId = null,
+	organizationCode,
+	tenantCode,
+	surveyMongoConnection
+) {
 	const result = { success: false, taskIds: [], externalIds: [], error: null }
 	try {
 		const taskCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TASKS'))
@@ -586,7 +651,12 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 
 			//if taskType observation add solutionDetails
 			if (task.type === common.OBSERVATION) {
-				const ObservationRes = await processObservationAsTask(task, tenantCode, organizationCode)
+				const ObservationRes = await processObservationAsTask(
+					task,
+					tenantCode,
+					organizationCode,
+					surveyMongoConnection
+				)
 				if (!ObservationRes.success || !ObservationRes.result?.solutionDetails) {
 					throw new Error(`Failed to process Observation as task: ${ObservationRes.error}`)
 				}
@@ -1553,10 +1623,16 @@ const publishProgram = function async(programData) {
 			let result = {}
 			let solutions = []
 			let programId = template?._id ? ObjectId(template?._id) : null
-			projectsMongoConnection = projectsMongoConnection
-				? projectsMongoConnection
-				: await connectMongo(projectsMongoDBUrl)
+			// projectsMongoConnection = projectsMongoConnection
+			// 	? projectsMongoConnection
+			// 	: await connectMongo(projectsMongoDBUrl)
 			// surveyMongoConnection = surveyMongoConnection ? surveyMongoConnection : await connectMongo(surveyMongoDBUrl)
+			projectsMongoConnection = await ensureProjectsConnection()
+			// projectsMongoConnection = projectsMongoConnection
+			// 	? projectsMongoConnection
+			// 	: await connectMongo(projectsMongoDBUrl)
+
+			surveyMongoConnection = await ensureSurveyConnection()
 
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
