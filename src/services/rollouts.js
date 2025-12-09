@@ -61,7 +61,7 @@ module.exports = class RolloutsHelper {
 
 			if (bodyData.start_date) rolloutData.start_date = bodyData.start_date
 			if (bodyData.end_date) rolloutData.end_date = bodyData.end_date
-			if (isSolutionType === true) rolloutData.parent_id = bodyData.parent_id
+			if (isSolutionType === true) rolloutData.parent_id = bodyData?.parent_id || 0
 
 			let rolloutCreate
 			try {
