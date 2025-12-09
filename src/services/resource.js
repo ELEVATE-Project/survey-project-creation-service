@@ -71,34 +71,29 @@ module.exports = class resourceHelper {
 					: common.PAGE_STATUS_VALUES['submitted_for_review'],
 			},
 			is_reusable: true,
+			parent_id: null,
+			version: common.DEFAULT_RESOURCE_VERSION,
 			created_by: userId,
 			tenant_code,
 		}
-
-		const resourceList = await resourceQueries.resourceList(
-			filter,
-			[
-				'id',
-				'title',
-				'organization_code',
-				'type',
-				'status',
-				'stage',
-				'user_id',
-				'created_at',
-				'updated_at',
-				'submitted_on',
-				'published_on',
-				'last_reviewed_on',
-				'meta',
-				'is_under_edit',
-				'published_id',
-			],
-			sort,
-			page,
-			limit,
-			true
-		)
+		const resourceAttributes = [
+			'id',
+			'title',
+			'organization_code',
+			'type',
+			'status',
+			'stage',
+			'user_id',
+			'created_at',
+			'updated_at',
+			'submitted_on',
+			'published_on',
+			'last_reviewed_on',
+			'meta',
+			'is_under_edit',
+			'published_id',
+		]
+		let resourceList = await resourceQueries.resourceList(filter, resourceAttributes, sort, page, limit, true)
 
 		if (resourceList.count <= 0) {
 			return responses.successResponse({
@@ -107,6 +102,13 @@ module.exports = class resourceHelper {
 				result,
 			})
 		}
+
+		resourceList = await fetchChildPrograms(
+			resourceList,
+			resourceAttributes,
+			common.PAGE_STATUS_SUBMITTED_FOR_REVIEW
+		)
+
 		let uniqueResourceIds = []
 		let OrganizationIds = []
 
@@ -274,6 +276,8 @@ module.exports = class resourceHelper {
 					},
 					created_by: userId,
 					tenant_code,
+					parent_id: null,
+					version: common.DEFAULT_RESOURCE_VERSION,
 				},
 				queryParams,
 				searchText
@@ -708,38 +712,40 @@ module.exports = class resourceHelper {
 			if (common.TYPE in queryParams && queryParams[common.TYPE]) {
 				resourceFilter.type = queryParams[common.TYPE].split(',')
 			}
-
+			const resourceAttributes = [
+				'id',
+				'title',
+				'type',
+				'organization_code',
+				'status',
+				'stage',
+				'user_id',
+				'submitted_on',
+				'last_reviewed_on',
+				'created_at',
+				'meta',
+				'published_id',
+				'published_on',
+			]
 			// fetches data from resource table with the passed filters
-			const response = await resourceQueries.resourceList(
+			let response = await resourceQueries.resourceList(
 				resourceFilter,
-				[
-					'id',
-					'title',
-					'type',
-					'organization_code',
-					'status',
-					'stage',
-					'user_id',
-					'submitted_on',
-					'last_reviewed_on',
-					'created_at',
-					'meta',
-					'published_id',
-					'published_on',
-				],
+				resourceAttributes,
 				sort,
 				page,
 				limit,
 				false
 			)
 
-			if (response.result.length === 0) {
+			if (response.count === 0) {
 				return responses.successResponse({
 					statusCode: httpStatusCode.ok,
 					message: 'RESOURCE_LISTED_SUCCESSFULLY',
 					result,
 				})
 			}
+
+			response = await fetchChildPrograms(response, resourceAttributes, common.PAGE_STATUS_UP_FOR_REVIEW)
 
 			const uniqueCreatorIds = utils.getUniqueElements(
 				response.result.map((item) => {
@@ -1273,9 +1279,9 @@ module.exports = class resourceHelper {
 	 * @name publishCallback
 	 * @returns {JSON} - details of resource
 	 */
-	static async publishCallback(resourceId, publishedId, link = false) {
+	static async publishCallback(resourceId, publishedId, link = false, parentId = null, version = null) {
 		try {
-			let resource = await resourceQueries.updateOne(
+			const [count, updated] = await resourceQueries.updateOne(
 				{
 					id: resourceId,
 					status: { [Op.notIn]: [common.RESOURCE_STATUS_DRAFT] },
@@ -1289,12 +1295,23 @@ module.exports = class resourceHelper {
 				}
 			)
 
-			if (resource === 0) {
+			if (count === 0) {
 				return responses.failureResponse({
 					message: 'RESOURCE_NOT_FOUND',
 					statusCode: httpStatusCode.bad_request,
 					responseCode: 'CLIENT_ERROR',
 				})
+			}
+
+			if (parentId && version != common.DEFAULT_RESOURCE_VERSION) {
+				await resourceQueries.updateOne(
+					{
+						id: parentId,
+					},
+					{
+						blob_path: updated[0].blob_path,
+					}
+				)
 			}
 			return responses.successResponse({
 				statusCode: httpStatusCode.accepted,
@@ -1465,11 +1482,16 @@ module.exports = class resourceHelper {
 				? query[common.TYPE].split(',').filter((type) => allowedResources.includes(type))
 				: allowedResources
 			const search = searchText != '' ? searchText : ''
+			// construct filter object
+			// status should be published and is_reusable true
+			// parent solution with version 1
 			let filterQuery = {
 				// organization_code,
 				tenant_code: tenant_code,
 				status: common.RESOURCE_STATUS_PUBLISHED,
 				is_reusable: true,
+				parent_id: null, // only fetch parent resources
+				version: common.DEFAULT_RESOURCE_VERSION, // fetch only parent version
 			}
 			// construct sort object
 			const sort = await this.constructSortOptions(query.sort_by, query.sort_order, common.UPDATED_AT)
@@ -1839,5 +1861,99 @@ module.exports = class resourceHelper {
 		} catch (error) {
 			throw error
 		}
+	}
+
+	/**
+	 * Find latest version number for a given parent resource
+	 * @method
+	 * @name findLatestVersionOfResource
+	 * @param {number|string} parentId - Parent resource id to lookup
+	 * @returns {number} - Highest version number found for the parent, or DEFAULT_RESOURCE_VERSION/0 when not found
+	 */
+	static async findLatestVersionOfResource(parentId, orgCode, tenantCode) {
+		try {
+			if (!parentId) return common.DEFAULT_RESOURCE_VERSION
+			// Find the resource with the highest version for the given parent_id
+			const latest = await resourceQueries.findOne(
+				{ parent_id: parentId, tenant_code: tenantCode, organization_code: orgCode },
+				{ attributes: ['version'], order: [['version', 'DESC']] }
+			)
+			if (!latest || typeof latest.version === 'undefined' || latest.version === null)
+				return common.DEFAULT_RESOURCE_VERSION
+			return Number(latest.version)
+		} catch (error) {
+			// On error, log and return def version as a safe default
+			console.error('Error in findLatestVersionOfResource:', error)
+			return common.DEFAULT_RESOURCE_VERSION
+		}
+	}
+}
+
+/**
+ * Fetch child and parent program records for a list of resources and map latest child versions
+ * to their parent resources.
+ *
+ * @function fetchChildPrograms
+ * @param {Object} resourceList - Object containing `result` which is an array of resources (each with `id` and `type`).
+ * @param {Array|string} [attributes] - Optional attributes/columns to pass to the DB query (forwarded to resourceQueries.findAll).
+ * @param {string} [listing] - Optional listing context (e.g. 'submitted_for_review') used to decide which child statuses to prefer.
+ * @returns {Promise<Object|Array>} Returns the modified `resourceList` (parents possibly swapped for latest child) or an empty array on error.
+ */
+async function fetchChildPrograms(resourceList, attributes, listing) {
+	try {
+		let parentChildMapping = {}
+		// collect program ids from the provided resourceList
+		const programIds = (resourceList?.result || [])
+			.filter((resource) => resource.type === common.RESOURCE_TYPE_PROGRAM)
+			.map((resource) => resource.id)
+
+		// if no program ids found, return the original resourceList
+		if (programIds.length === 0) return resourceList
+
+		// find all program records where either the id is in programIds or parent_id is in programIds
+		const chldPrograms = await resourceQueries.findAll(
+			{
+				parent_id: { [Op.in]: programIds },
+				type: common.RESOURCE_TYPE_PROGRAM,
+			},
+			[...attributes, 'parent_id', 'version']
+		)
+
+		// create a mapping of parent_id to its child programs (excluding default version)
+		parentChildMapping = chldPrograms.reduce((acc, program) => {
+			if (program.parent_id != null && program.version > common.DEFAULT_RESOURCE_VERSION) {
+				if (acc[program?.parent_id] && acc[program?.parent_id].length > 0) {
+					acc[program.parent_id].push(program)
+				} else {
+					acc[program.parent_id] = [program]
+				}
+			}
+			return acc
+		}, {})
+		resourceList.result = resourceList?.result.map((resource) => {
+			if (programIds.includes(resource.id)) {
+				if (!parentChildMapping?.[resource.id]) return resource
+				if (parentChildMapping?.[resource.id].length <= 0) return resource
+				const highestVersionObj = _.maxBy(parentChildMapping?.[resource.id], 'version') || {}
+				if (Object.keys(highestVersionObj).length > 0 && listing == 'submitted_for_review') {
+					if (!['PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'].includes(highestVersionObj.status)) {
+						return highestVersionObj
+					} else return resource
+				} else if (Object.keys(highestVersionObj).length > 0 && listing == 'up_for_review') {
+					if (
+						['INPROGRESS', 'NOT_STARTED', 'CHANGES_UPDATED', 'STARTED', 'SUBMITTED'].includes(
+							highestVersionObj.status
+						)
+					) {
+						return highestVersionObj
+					}
+					return resource
+				}
+			} else return resource
+		})
+
+		return resourceList
+	} catch (error) {
+		return resourceList
 	}
 }

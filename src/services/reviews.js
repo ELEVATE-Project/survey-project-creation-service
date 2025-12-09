@@ -20,6 +20,7 @@ const kafkaCommunication = require('@generics/kafka-communication')
 const consumptionRequests = require('@consumption/index')
 const rolloutService = require('@services/rollouts')
 const programResourceMappingQueries = require('@database/queries/programResourceMapping')
+const { blob } = require('stream/consumers')
 
 module.exports = class reviewsHelper {
 	/**
@@ -801,6 +802,20 @@ module.exports = class reviewsHelper {
 				await commentQueries.deleteMany({
 					resource_id: { [Op.in]: resourceIds },
 				})
+			}
+			const parentId = resourceData?.parentId || null
+			if (parentId && resourceData.type == common.RESOURCE_TYPE_PROGRAM) {
+				//update resource table
+				await resourceQueries.updateOne(
+					{
+						id: parentId,
+						organization_code: resourceData.organization_code,
+						tenant_code: resourceData.tenant_code,
+					},
+					{
+						blob_path: resourceData.blob_path,
+					}
+				)
 			}
 
 			return responses.successResponse({

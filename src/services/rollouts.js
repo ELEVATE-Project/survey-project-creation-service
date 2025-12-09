@@ -61,7 +61,7 @@ module.exports = class RolloutsHelper {
 
 			if (bodyData.start_date) rolloutData.start_date = bodyData.start_date
 			if (bodyData.end_date) rolloutData.end_date = bodyData.end_date
-			if (isSolutionType === true) rolloutData.parent_id = bodyData.parent_id
+			if (isSolutionType === true) rolloutData.parent_id = bodyData?.parent_id || 0
 
 			let rolloutCreate
 			try {
@@ -989,7 +989,7 @@ module.exports = class RolloutsHelper {
 	 * @param {String} templateId - template id
 	 * @returns {JSON} - details of Rollout
 	 */
-	static async publishCallback(rolloutId, publishedId = null, templateId = null, isProgramResource = false) {
+	static async publishCallback(rolloutId, publishedId = null, templateId = null) {
 		try {
 			let updateData = {
 				published_on: new Date(),

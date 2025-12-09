@@ -113,6 +113,15 @@ module.exports = (sequelize, DataTypes) => {
 				type: DataTypes.ARRAY(DataTypes.STRING),
 				defaultValue: [],
 			},
+			parent_id: {
+				allowNull: true,
+				type: DataTypes.INTEGER,
+			},
+			version: {
+				allowNull: false,
+				defaultValue: common.DEFAULT_RESOURCE_VERSION,
+				type: DataTypes.INTEGER,
+			},
 		},
 		{
 			modelName: 'Resource',
