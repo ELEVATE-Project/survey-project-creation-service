@@ -1518,7 +1518,7 @@ async function createProgramChild(parentId, programData, loggedInUserId) {
 			created_by: loggedInUserId,
 			organization_code,
 			tenant_code,
-			status: { [Op.notIn]: [common.PUBLISHED_STATUS] },
+			status: { [Op.notIn]: [common.RESOURCE_STATUS_PUBLISHED] },
 		})
 		if (!findExistingOpenChild?.id) {
 			const currentLatestVersion = await resourceService.findLatestVersionOfResource(
