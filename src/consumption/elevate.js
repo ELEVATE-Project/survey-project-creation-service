@@ -15,37 +15,22 @@ const resourceService = require('@services/resource')
 const rolloutService = require('@services/rollouts')
 const targetingHelpers = require('@helpers/targetingCriteria')
 const { Op } = require('sequelize')
-const requests = require('@generics/requests')
-const responseCode = require('@generics/http-status')
 const rolloutQueries = require('@database/queries/rollouts')
 const { ObjectId } = require('mongodb')
-const fs = require('fs')
-const axios = require('axios')
-const cheerio = require('cheerio')
-const path = require('path')
 const certificateBaseTemplateQueries = require('@database/queries/certificateBaseTemplate')
 const userRequests = require('@requests/user')
-const interfaceRequests = require('@requests/interface')
 let projectsMongoConnection = null
 let mongoConnection = null
 let scopeKeys = {}
-let socketInUse = false
 const resourceQueries = require('@database/queries/resources')
-
-// Define the mongoDb collection names used
-const COLLECTIONS_MAP = new Map(
-	Object.entries({
-		CATEGORIES: 'projectCategories',
-		TEMPLATES: 'projectTemplates',
-		TASKS: 'projectTemplateTasks',
-		PROGRAMS: 'programs',
-		SOLUTIONS: 'solutions',
-		CERTIFICATE_TEMPLATE: 'certificateTemplates',
-		CERTIFICATE_BASE_TEMPLATE: 'certificateBaseTemplates',
-		USER_EXTENSIONS: 'userExtensions',
-		ORGANIZATION_EXTENSION: 'organizationExtension',
-	})
-)
+const projectDTO = require('@consumption/dtos/elevate/project')
+const programDTO = require('@consumption/dtos/elevate/program')
+const solutionDTO = require('@consumption/dtos/elevate/solution')
+const targetingHelper = require('@consumption/helpers/elevate/targeting')
+const userMappingHelper = require('@consumption/helpers/elevate/userMapping')
+const certificateHelper = require('@consumption/helpers/elevate/certificate')
+const commonElevate = require('@consumption/constants/elevate/common')
+const COLLECTIONS_MAP = commonElevate.COLLECTIONS_MAP
 
 /**
  * To connect with the mongoDB with the given url
@@ -65,41 +50,142 @@ const connectMongo = async (url) => {
 }
 
 /**
- * Format Project Template
- * @name formatTemplate
+ * Publish the project template
+ * @name publishProjectTemplates
  * @param {Object} templateData - Project template data
- * @returns {Object} - Response contains formatted template
+ * @returns {Object} - Response of template creation
  */
-const formatTemplate = (templateData) => {
-	try {
-		let template = {
-			title: templateData.title,
-			tenantId: templateData.tenant_code,
-			orgId: templateData.organization_code,
-			description: templateData.objective || '',
-			keywords: utils.formatKeywords(templateData.keywords),
-			isDeleted: false,
-			createdBy: templateData.user_id,
-			updatedBy: templateData.user_id,
-			learningResources: utils.convertResources(templateData.learning_resources || []),
-			isReusable: true,
-			deleted: false,
-			status: common.PUBLISHED_STATUS,
-			externalId: utils.generateExternalId(templateData.title),
-			entityType: templateData?.entityType || '',
-			metaInformation: utils.formatProjectMetaInformation(templateData),
-			recommendedFor: [], //Initially empty
-			categories: [], //Initially empty
-			tasks: [], // Initially empty
-			taskSequence: [], // Initially empty
-			createdAt: new Date(),
-			updatedAt: new Date(),
+const publishProjectTemplates = function (templateData) {
+	return new Promise(async (resolve, reject) => {
+		const result = { success: false, templateId: null, error: null }
+		try {
+			// Validate required keys
+			const requiredKeys = commonElevate.REQUIRED_KEYS_FOR_PROJECT_PUBLISH
+			const hasAllRequiredKeys = requiredKeys.every((key) => key in templateData)
+
+			if (Object.keys(templateData).length <= 0 || !hasAllRequiredKeys) {
+				throw new Error('FAILED_TO_FETCH_PROJECT')
+			}
+
+			// fetch project details
+			let projectData = await projectService.details(
+				templateData.id,
+				templateData.organization_code,
+				templateData.tenant_code
+			)
+
+			if (
+				projectData.statusCode !== 200 ||
+				!projectData?.result ||
+				Object.keys(projectData.result).length === 0
+			) {
+				throw new Error('FAILED_TO_FETCH_PROJECT')
+			}
+
+			projectData = projectData.result
+
+			// Format the template using DTO
+			const formattedTemplate = projectDTO.formatProjectTemplateDTO({ ...projectData })
+			if (!formattedTemplate.success || !formattedTemplate?.data) {
+				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
+			}
+
+			let template = formattedTemplate.data
+
+			projectsMongoConnection = projectsMongoConnection
+				? projectsMongoConnection
+				: await connectMongo(projectsMongoDBUrl)
+
+			// Fetch Org Policies
+			const orgPolicies = await fetchOrgPolicies(
+				templateData.organization_code,
+				templateData.tenant_code,
+				projectsMongoConnection
+			)
+
+			// Set visibility based on org policies
+			template.visibility = common.ORG_POLICY_CURRENT
+			template.visibleToOrganizations = [templateData.organization_code]
+
+			// Override visibility if org policies are successfully fetched
+			if (orgPolicies.success) {
+				template.visibility = orgPolicies.policies.visibility
+				template.visibleToOrganizations = orgPolicies.policies.visibleToOrganizations
+			}
+
+			// Process Categories
+			if (projectData.categories?.length > 0) {
+				let categoriesResponse = await processCategories(
+					projectData.categories,
+					projectData.organization_code,
+					projectData.tenant_code
+				)
+				if (!categoriesResponse.success) {
+					throw new Error('FAILED_TO_FETCH_OR_CREATE_CATEGORIES')
+				}
+				template.categories = categoriesResponse.categories
+			}
+
+			//process recommededFor
+			if (projectData.recommended_for?.length > 0) {
+				let recommededForResponse = projectDTO.formatRecommendedRoles(projectData.recommended_for)
+				if (!recommededForResponse.success || !recommededForResponse?.data) {
+					throw new Error('FAILED_TO_FETCH_RECOMMENDED_FOR')
+				}
+				template.recommendedFor = recommededForResponse?.data
+			}
+
+			// Insert the template into the database
+			const templateCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
+			const result = await templateCollection.insertOne(template) // Validate the result of the template creation
+			if (!result || !result.insertedId) {
+				throw new Error('FAILED_TO_CREATE_TEMPLATE')
+			}
+
+			const templateId = result.insertedId
+
+			// Process and Create Tasks
+			const processedTasks = projectDTO.assignSequenceNumbers(projectData.tasks || [])
+			const taskCreationResponse = await createTasks(
+				processedTasks,
+				templateId,
+				template.externalId,
+				null,
+				projectData.organization_code,
+				projectData.tenant_code
+			)
+
+			// Validate the result of the task creation
+			if (!taskCreationResponse.success) {
+				throw new Error('FAILED_TO_CREATE_TASKS')
+			}
+
+			// Update Template with tasks and sequence
+			await templateCollection.updateOne(
+				{ _id: templateId },
+				{
+					$set: {
+						tasks: taskCreationResponse.taskIds,
+						taskSequence: taskCreationResponse.externalIds,
+					},
+				}
+			)
+
+			//update the published id in resource table
+			await resourceService.publishCallback(projectData.id, templateId.toString())
+
+			//return result
+			result.success = true
+			result.templateId = templateId
+			console.log('Template published successfully with ID:', templateId)
+			return resolve(result)
+		} catch (error) {
+			console.log('Error in publishProjectTemplates:', error.message)
+			if (mongoConnection) mongoConnection.disconnect()
+			result.error = error.message || error
+			return reject(error)
 		}
-		return { success: true, template }
-	} catch (error) {
-		console.error('Error in formatTemplate:', error.message)
-		return { success: false, error: error.message }
-	}
+	})
 }
 
 /**
@@ -110,21 +196,16 @@ const formatTemplate = (templateData) => {
  */
 async function processCategories(categories, orgCode, tenantCode) {
 	try {
+		// Format categories using DTO
+		const formattedCategoriesResponse = projectDTO.formatCategories(categories)
+		if (!formattedCategoriesResponse.success) {
+			throw new Error(formattedCategoriesResponse.error)
+		}
+
+		const formattedCategories = formattedCategoriesResponse.data
+
 		// Fetch a specific collection
 		const categoriesCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('CATEGORIES'))
-
-		// Format categories
-		const formattedCategories = categories.map((category) => {
-			if (!category.label || !category.value) {
-				throw new Error('EACH_CATEGORY_MUST_BE_LABEL_AND_VALUE')
-			}
-			return {
-				label: category.label,
-				value: category.value,
-				formattedName: utils.formatToTitleCase(category.value),
-				externalId: category.value.replace(/_/g, '').toLowerCase(),
-			}
-		})
 
 		// Fetch existing categories by externalId
 		let existingCategories = []
@@ -137,25 +218,10 @@ async function processCategories(categories, orgCode, tenantCode) {
 
 		const existingExternalIds = [...new Set(existingCategories.map((cat) => cat.externalId))]
 
-		// Filter out categories that already exist
-		const newCategories = formattedCategories
-			.filter((cat) => !existingExternalIds.includes(cat.externalId))
-			.map(({ formattedName, externalId, label }) => ({
-				createdBy: 'SYSTEM',
-				updatedBy: 'SYSTEM',
-				isDeleted: false,
-				isVisible: true,
-				status: 'active',
-				icon: '',
-				noOfProjects: 0,
-				name: formattedName,
-				externalId: externalId,
-				label: label,
-				tenantId: tenantCode,
-				orgId: orgCode,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-			}))
+		// Filter out categories that already exist and create MongoDB documents
+		const categoriesToInsert = formattedCategories.filter((cat) => !existingExternalIds.includes(cat.externalId))
+
+		const newCategories = projectDTO.createCategoryDocuments(categoriesToInsert, orgCode, tenantCode)
 
 		// Insert only new categories
 		if (newCategories.length > 0) {
@@ -197,48 +263,77 @@ async function processCategories(categories, orgCode, tenantCode) {
 }
 
 /**
- * Converts the recommended roles for projects based on the consumption service type.
- * @name convertRecommendedRolesForProjects
- * @param {Array} recommendedFor - An array of objects containing label and value for recommended roles.
- * @returns {Object} The result object containing success status and recommended roles.
+ * Process project as a task - validate, publish if needed, and get template details
+ * @name processProjectAsTask
+ * @param {Object} task - Task data
+ * @param {String} tenantCode - Tenant code
+ * @param {String} organizationCode - Organization code
+ * @returns {Object} - Response with projectTemplateDetails or error
  */
-async function convertRecommendedRolesForProjects(recommendedFor) {
+async function processProjectAsTask(task, tenantCode, organizationCode) {
 	try {
-		const recommendedRoles = recommendedFor?.length
-			? recommendedFor.filter((item) => item?.label).map((item) => item.label)
-			: []
+		const projectTemplatesCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
 
-		return { success: true, recommendedRoles }
+		// Validate project exists and is published
+		const validateProject = await resourceQueries.findOne(
+			{
+				id: task.project_id,
+				type: common.PROJECT,
+				status: common.RESOURCE_STATUS_PUBLISHED,
+				tenant_code: tenantCode,
+			},
+			[]
+		)
+
+		if (!validateProject?.id) {
+			throw new Error(`Project not found or not published for task project_id: ${task.project_id}`)
+		}
+
+		// If task project not published, publish it
+		if (!validateProject?.published_id) {
+			let publishedProject = await publishProjectTemplates({
+				id: task.project_id,
+				tenant_code: tenantCode,
+				organization_code: organizationCode,
+			})
+			if (!publishedProject.success || !publishedProject?.templateId) {
+				throw new Error(`Task Project template publish failed: ${validateProject.project_id}`)
+			}
+			validateProject.published_id = publishedProject.templateId
+		}
+
+		// Convert published_id to ObjectId
+		const publishedObjectId = new ObjectId(validateProject.published_id)
+
+		// Get projectTemplate details
+		let projectTemplates = await projectTemplatesCollection.findOne({
+			_id: publishedObjectId,
+			tenantId: tenantCode,
+		})
+
+		if (!projectTemplates) {
+			throw new Error(`Project template not found for published_id: ${validateProject.published_id}`)
+		}
+
+		// Return project template details and type
+		return {
+			success: true,
+			projectTemplateDetails: {
+				_id: projectTemplates._id,
+				type: projectTemplates.type ?? common.SOLUTIONS_TYPE.project,
+				entityType: projectTemplates.entityType,
+				isReusable: projectTemplates.isReusable,
+				externalId: projectTemplates.externalId,
+			},
+			type: projectTemplates.type ?? common.SOLUTIONS_TYPE.project,
+		}
 	} catch (error) {
-		return { success: false, error: `Failed to process recommeded for: ${error.message}` }
+		console.error('Error in processProjectAsTask:', error.message)
+		return {
+			success: false,
+			error: error.message,
+		}
 	}
-}
-
-/**
- * Assign sequence number for task
- * @name assignSequenceNumbers
- * @returns {Object} - Response contains task object
- */
-const assignSequenceNumbers = (tasks) => {
-	/* Temporory fix start, because elevate-project doent have the observation capability in tasks now */
-	// Filter out 'observation' type tasks
-	const filteredTasks = tasks.filter((task) => task.type !== common.OBSERVATION)
-	// Sort tasks based on their current sequence number (ascending order)
-	filteredTasks.sort((a, b) => a.sequence_no - b.sequence_no)
-	let sequenceCounter = 1
-	return filteredTasks.map((task) => {
-		task.sequence_no = sequenceCounter++ // Reassign sequence number
-		return task
-	})
-	/* Temporory fix end */
-
-	// let sequenceCounter = 1
-	// return tasks.map((task) => {
-	// 	if (!task.sequence_no) {
-	// 		task.sequence_no = sequenceCounter++
-	// 	}
-	// 	return task
-	// })
 }
 
 /**
@@ -258,26 +353,16 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 		const externalIds = []
 
 		for (const task of tasks) {
-			// Format the task data
-			let taskData = {
-				name: task.name,
-				description: task.name,
-				externalId: utils.generateExternalId(task.name),
-				type: task.type,
-				isDeleted: false,
-				isDeletable: !task.is_mandatory,
-				sequenceNumber: task.sequence_no,
-				projectTemplateId: templateId,
-				projectTemplateExternalId: templateExternalId,
-				hasSubTasks: task.children?.length > 0,
-				learningResources: utils.convertResources(task.learning_resources || []),
+			// Format the task data using DTO
+			let taskData = projectDTO.formatTaskDocument(
+				task,
+				templateId,
+				templateExternalId,
 				parentId,
-				deleted: false,
-				orgId: organizationCode,
-				tenantId: tenantCode,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-			}
+				organizationCode,
+				tenantCode
+			)
+
 			//if task type reflection add link and buttonLabel in task metaInformation
 			if (task.type === common.TASK_TYPE_REFLECTION) {
 				taskData.metaInformation = {
@@ -288,54 +373,14 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 
 			//if task type improvementProject add projectTemplateDetails
 			if (task.type === common.TASK_TYPE_PROJECT) {
-				const projectTemplatesCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
-				const validateProject = await resourceQueries.findOne(
-					{
-						id: task.project_id,
-						type: common.PROJECT,
-						status: common.RESOURCE_STATUS_PUBLISHED,
-						tenant_code: tenantCode,
-					},
-					[]
-				)
-				if (!validateProject?.id) {
-					throw new Error(`Project not found or not published for task project_id: ${task.project_id}`)
-				}
-				//if task project not published then will publish
-				if (!validateProject?.published_id) {
-					let publishedProject = await publishProjectTemplates({
-						id: task.project_id,
-						tenant_code: tenantCode,
-						organization_code: organizationCode,
-					})
-					if (!publishedProject.success || !publishedProject?.templateId) {
-						throw new Error(`Task Project template publish failed: ${validateProject.project_id}`)
-					}
-					validateProject.published_id = publishedProject.templateId
+				const projectResult = await processProjectAsTask(task, tenantCode, organizationCode)
+
+				if (!projectResult.success || !projectResult?.projectTemplateDetails) {
+					throw new Error(`Failed to process project as task: ${projectResult.error}`)
 				}
 
-				// Convert published_id to ObjectId
-				const publishedObjectId = new ObjectId(validateProject.published_id)
-
-				// get projectTemplate details
-				let projectTemplates = await projectTemplatesCollection.findOne({
-					_id: publishedObjectId,
-					tenantId: tenantCode,
-				})
-
-				if (!projectTemplates) {
-					throw new Error(`Project template not found for published_id: ${validateProject.published_id}`)
-				}
-
-				taskData.projectTemplateDetails = {
-					_id: projectTemplates._id,
-					type: projectTemplates.type ?? common.SOLUTIONS_TYPE.project,
-					entityType: projectTemplates.entityType,
-					isReusable: projectTemplates.isReusable,
-					externalId: projectTemplates.externalId,
-				}
-
-				taskData.type = projectTemplates.type ?? common.SOLUTIONS_TYPE.project
+				taskData.projectTemplateDetails = projectResult?.projectTemplateDetails
+				taskData.type = projectResult?.type
 			}
 
 			// Create the task
@@ -386,450 +431,6 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 		result.error = `Failed to create tasks: ${error.message}`
 		return result
 	}
-}
-
-/**
- * Fetch external entities from respective service
- * @name fetchExternalEntities
- * @param {Object} apiData - task data
- * @param {Array} dataToFetch - List of entities to fetch
- * @param {String} entityType - Type of the entity
- * @param {String} tenantCode - tenant code of the entities
- * @returns {Array} - Array of entity names
- */
-const fetchExternalEntities = async (apiData, dataToFetch = [], entityType, tenantCode) => {
-	let result = []
-	try {
-		if (apiData && Object.keys(apiData) && dataToFetch.length > 0) {
-			const hostEnvKey = apiData.service.replace(/-/g, '_').toUpperCase()
-			const host = process.env?.[`${hostEnvKey}_SERVICE_HOST`]
-			const serviceName = process.env?.[`${hostEnvKey}_SERVICE_NAME`]
-			const baseUrl = utils.buildUrl(host, serviceName)
-			const endPoint = utils.buildUrl(baseUrl, apiData.endPointService)
-			const bodyData = {
-				query: {
-					_id: {
-						$in: dataToFetch,
-					},
-					entityType: entityType,
-					tenantId: tenantCode,
-				},
-				projection: ['_id', 'metaInformation.name', 'entityType'],
-				mongoIdKeys: ['_id'],
-			}
-
-			const response = await requests.post(endPoint, bodyData, '', true, 'internal-access-token')
-			if (response.status == responseCode.ok) {
-				result = response?.result || []
-			}
-		}
-
-		return result
-	} catch (error) {
-		console.log(error)
-		return result
-	}
-}
-
-/**
- * Process targeting criteria
- * @name processTargetingCriteria
- * @param {Object} targetingData - Program template data
- * @returns {Object} - Response contains scope and metaInformation
- */
-const processTargetingCriteria = async (targetingData, organizationCode, tenantCode) => {
-	try {
-		let scope = {}
-		let keysToRemoveFromScope = []
-
-		// Configuration for mapping keys to data paths
-		const scopeKeyToDataPath = {
-			roles: 'professional_role',
-			sub_roles: 'professional_subroles',
-		}
-		targetingData = targetingData.map((criteria) => {
-			for (let criteriaKey of Object.keys(criteria)) {
-				let isKeyModified = false
-				// find data path if the key is modified
-				const dataPath = scopeKeyToDataPath?.[criteriaKey] || null
-				// if key is modified (i.e dataPath is not null ) and the scope is expecting multi select
-				if (dataPath && scopeKeys?.[dataPath]?.multi_select) {
-					// if key is modified and the actual data path has values
-					if (criteria?.[dataPath]?.length > 0 && criteria?.[criteriaKey]?.length > 0) {
-						criteria[dataPath] = [...criteria[dataPath], ...criteria[criteriaKey]]
-						isKeyModified = true
-						// if key is modified and the actual data path has no values or the key is not present in targeting
-					} else if (!criteria?.[dataPath] && criteria?.[criteriaKey].length > 0) {
-						criteria[dataPath] = [...criteria[criteriaKey]]
-						isKeyModified = true
-					}
-				} else if (dataPath && !scopeKeys?.[dataPath]?.multi_select) {
-					criteria[dataPath] = criteria[criteriaKey]
-					isKeyModified = true
-				}
-				if (dataPath && isKeyModified) keysToRemoveFromScope.push(criteriaKey)
-				if (
-					scopeKeys &&
-					!Object.keys(scopeKeys).includes(criteriaKey) &&
-					!keysToRemoveFromScope.includes(criteriaKey)
-				)
-					keysToRemoveFromScope.push(criteriaKey)
-			}
-			return criteria
-		})
-		// add organization into the scope by default
-		scope[`${common.SCOPE_ELEMENT_ORGANIZATIONS}`] = [organizationCode]
-		let mandatoryKeys = []
-		// iterate through the scope keys and create empty array for each key
-		// also track the mandatory keys
-		for (let scopeElement of Object.keys(scopeKeys)) {
-			scope[scopeElement] = []
-			if (scopeKeys[scopeElement]?.mandatory) {
-				mandatoryKeys.push(scopeElement)
-			}
-		}
-
-		let metaInformation = {}
-		const metaInformationKeys = [...new Set(process.env.PROGRAM_META_INFO_KEYS.split(',').map((key) => key))]
-
-		if (targetingData && Object.keys(targetingData).length > 0 && scope && Object.keys(scope).length > 0) {
-			// Iterate through each targeting criterion
-			for (let i = 0; i < targetingData.length; i++) {
-				const targeting = targetingData[i]
-				let skipTargeting = false // flag to skip further processing if 'ALL' is found
-				for (let eachTargeting of Object.keys(targeting)) {
-					const target = targeting?.[eachTargeting] || null
-					if (!Object.keys(scope).includes(eachTargeting)) scope[eachTargeting] = []
-					// check if the current scope already has 'ALL' keyword and set the flag
-					if (
-						scope[eachTargeting] == common.TARGETING_ALL ||
-						scope[eachTargeting].includes(common.TARGETING_ALL)
-					) {
-						skipTargeting = true
-					}
-					// if the particular targeting has 'ALL' keyword, ignore the processing
-					if (!skipTargeting) {
-						if (target && typeof target == common.STRING) {
-							// if the target is string , possibly we are expecting the _id of the entity.
-							// Hence push it directly making sure the value is unique
-							if (!scope[eachTargeting].includes(target)) {
-								if (scope[eachTargeting] == common.TARGETING_ALL) {
-									scope[eachTargeting] = [common.TARGETING_ALL] // if targeting is all , set the array as ["ALL"]
-								} else {
-									scope[eachTargeting].push(target)
-								}
-							}
-						} else if (target && Array.isArray(target) && target.length > 0) {
-							// if any of the element is ALL , record only ALL
-							if (target.includes(common.TARGETING_ALL)) {
-								scope[eachTargeting] = [common.TARGETING_ALL] // if targeting is all , set the array as ["ALL"]
-							} else {
-								// if the target is an array , iterate through each element
-								target.forEach((targetEntity) => {
-									// if the element inside array is string , possibly we are expecting the _id of the entity.
-									// Hence push it directly making sure the value is unique
-									if (typeof targetEntity == common.STRING)
-										if (!scope[eachTargeting].includes(targetEntity))
-											scope[eachTargeting].push(targetEntity)
-									if (typeof targetEntity == common.OBJECT) {
-										// if the element inside array is an object.
-										// check for _id or id within the object
-										const id = targetEntity?._id || targetEntity?.id || null
-										if (id && !scope[eachTargeting].includes(id)) scope[eachTargeting].push(id)
-									}
-								})
-							}
-						} else if (target && typeof target == common.OBJECT && Object.keys(target).length > 0) {
-							// if the target is an object.
-							// check for _id or id within the object.
-							const id = target?._id || target?.id || null
-							if (id && !scope[eachTargeting].includes(target)) scope[eachTargeting].push(id)
-						}
-					}
-				}
-			}
-
-			function createMetaInfo(targetingCriteria, metaInformationKeys, keyToDataPath) {
-				const metaInfo = {}
-				metaInformationKeys.forEach((key) => {
-					metaInfo[key] = new Set()
-				})
-
-				targetingCriteria.forEach((criteria) => {
-					metaInformationKeys.forEach((key) => {
-						const dataPath = keyToDataPath[key]
-						if (dataPath) {
-							const items = criteria[dataPath] || []
-							items.forEach((item) => {
-								if (item.name) {
-									metaInfo[key].add(item.name)
-								}
-							})
-						}
-					})
-				})
-
-				metaInformationKeys.forEach((key) => {
-					metaInfo[key] = Array.from(metaInfo[key])
-				})
-
-				return metaInfo
-			}
-
-			// Configuration for mapping keys to data paths
-			const keyToDataPath = {
-				state: 'state',
-				recommendedFor: 'roles',
-			}
-
-			metaInformation = createMetaInfo(targetingData, metaInformationKeys, keyToDataPath)
-		}
-		if (mandatoryKeys.length > 0) {
-			for (const key of mandatoryKeys) {
-				if (!scope[key] || scope[key].length == 0) {
-					scope[key] = [common.TARGETING_ALL]
-				}
-			}
-		}
-		if (scope) {
-			scope = Object.fromEntries(
-				Object.entries(scope).filter(([key, value]) =>
-					Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined
-				)
-			)
-		}
-		if (keysToRemoveFromScope.length > 0) {
-			for (const key of keysToRemoveFromScope) {
-				scope[key] && delete scope[key]
-			}
-		}
-		return { scope, metaInformation, success: true }
-	} catch (error) {
-		console.log('Error in creating targeting : ', error)
-		return {
-			success: false,
-			error,
-		}
-	}
-}
-
-/**
- * Format Program Template
- * @name formatProgramTemplate
- * @param {Object} programData - Program template data
- * @returns {Object} - Response contains formatted template
- */
-const formatProgramTemplate = async (programData) => {
-	try {
-		let programDocument = {}
-		if (programData?.targeting_criteria) {
-			const targeting = await processTargetingCriteria(
-				programData?.targeting_criteria,
-				programData.organization_code,
-				programData.tenant_code
-			)
-			if (!targeting?.success) {
-				return {
-					success: false,
-					error: targeting?.error,
-				}
-			}
-			programDocument.scope = targeting?.scope ? targeting?.scope : {}
-			programDocument.metaInformation = targeting?.metaInformation ? targeting?.metaInformation : {}
-		}
-		programDocument.updatedAt = new Date()
-		programDocument.endDate = new Date(programData?.end_date)
-		programDocument.startDate = new Date(programData?.start_date)
-		// if the program is already published , update _id from the published_id
-		if (programData?.published_id) {
-			programDocument._id = ObjectId(programData.published_id)
-		} else {
-			let language = programData?.language
-				? programData?.resource.flatMap((resource) => {
-						return resource.languages.map((language) => {
-							return language.label
-						})
-				  })
-				: []
-
-			language = [...new Set(language)]
-			let keywords = programData?.keywords
-				? programData?.keywords
-				: programData?.resource
-				? utils.formatKeywords(programData?.resource?.keywords)
-				: []
-			keywords = [...new Set(keywords)]
-
-			programDocument = {
-				...programDocument,
-				...{
-					resourceType: [common.ROLLOUT_TYPE_PROGRAM],
-					language,
-					keywords,
-					concepts: programData?.concepts ? programData?.concepts : [],
-					components: [],
-					isAPrivateProgram: false,
-					isDeleted: false,
-					requestForPIIConsent: programData?.requestForPIIConsent ? true : false,
-					rootOrganisations: [
-						programData?.rootOrganisations ? programData?.rootOrganisations : programData?.organization?.id,
-					],
-					createdFor: [programData?.createdFor ? programData?.createdFor : programData?.organization?.id],
-					deleted: false,
-					status: common.STATUS_ACTIVE.toLowerCase(),
-					owner: programData?.created_by,
-					createdBy: programData?.created_by,
-					updatedBy: programData?.created_by,
-					externalId: utils.generateExternalId(programData?.title),
-					name: programData?.title.trim(),
-					description: programData?.resource?.objective || '',
-					createdAt: new Date(),
-					scp_reference_id: programData.resource_id,
-					orgId: programData.organization_code,
-					tenantId: programData.tenant_code,
-				},
-			}
-		}
-		return { success: true, programDocument }
-	} catch (error) {
-		console.error('Error in formatTemplate:', error.message)
-		return { success: false, error: error.message }
-	}
-}
-/**
- * Publish the project template
- * @name publishProjectTemplates
- * @param {Object} templateData - Project template data
- * @returns {Object} - Response of template creation
- */
-const publishProjectTemplates = function (templateData) {
-	return new Promise(async (resolve, reject) => {
-		const result = { success: false, templateId: null, error: null }
-		try {
-			const requiredKeys = ['id', 'tenant_code', 'organization_code']
-
-			const hasAllRequiredKeys = requiredKeys.every((key) => key in templateData)
-
-			if (Object.keys(templateData).length <= 0 || !hasAllRequiredKeys) {
-				throw new Error('FAILED_TO_FETCH_PROJECT')
-			}
-
-			// fetch project details
-			let projectData = await projectService.details(
-				templateData.id,
-				templateData.organization_code,
-				templateData.tenant_code
-			)
-
-			projectData = projectData?.result || {}
-
-			if (Object.keys(projectData).length <= 0) {
-				throw new Error('FAILED_TO_FETCH_PROJECT')
-			}
-
-			// Format the template
-			let formattedTemplate = formatTemplate({ ...projectData })
-			if (!formattedTemplate.success || !formattedTemplate?.template) {
-				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
-			}
-
-			let template = formattedTemplate.template
-
-			projectsMongoConnection = projectsMongoConnection
-				? projectsMongoConnection
-				: await connectMongo(projectsMongoDBUrl)
-			// Fetch Org Policies
-			const orgPolicies = await fetchOrgPolicies(
-				templateData.organization_code,
-				templateData.tenant_code,
-				projectsMongoConnection
-			)
-
-			// Set visibility based on org policies
-			template.visibility = common.ORG_POLICY_CURRENT
-			template.visibleToOrganizations = [templateData.organization_code]
-
-			// Override visibility if org policies are successfully fetched
-			if (orgPolicies.success) {
-				template.visibility = orgPolicies.policies.visibility
-				template.visibleToOrganizations = orgPolicies.policies.visibleToOrganizations
-			}
-
-			// Process Categories
-			if (projectData.categories?.length > 0) {
-				let categoriesResponse = await processCategories(
-					projectData.categories,
-					projectData.organization_code,
-					projectData.tenant_code
-				)
-				if (!categoriesResponse.success) {
-					throw new Error('FAILED_TO_FETCH_OR_CREATE_CATEGORIES')
-				}
-				template.categories = categoriesResponse.categories
-			}
-
-			//process recommededFor
-			if (projectData.recommended_for?.length > 0) {
-				let recommededForResponse = await convertRecommendedRolesForProjects(projectData.recommended_for)
-				if (!recommededForResponse.success) {
-					throw new Error('FAILED_TO_FETCH_RECOMMENDED_FOR')
-				}
-				template.recommendedFor = recommededForResponse?.recommendedRoles
-			}
-
-			// Insert the template into the database
-			const templateCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
-			const result = await templateCollection.insertOne(template)
-
-			// Validate the result of the template creation
-			if (!result || !result.insertedId) {
-				throw new Error('FAILED_TO_CREATE_TEMPLATE')
-			}
-
-			const templateId = result.insertedId
-
-			// Process and Create Tasks
-			const processedTasks = assignSequenceNumbers(projectData.tasks || [])
-			const taskCreationResponse = await createTasks(
-				processedTasks,
-				templateId,
-				template.externalId,
-				null,
-				projectData.organization_code,
-				projectData.tenant_code
-			)
-
-			// Validate the result of the task creation
-			if (!taskCreationResponse.success) {
-				throw new Error('FAILED_TO_CREATE_TASKS')
-			}
-
-			// Update Template with tasks and sequence
-			await templateCollection.updateOne(
-				{ _id: templateId },
-				{
-					$set: {
-						tasks: taskCreationResponse.taskIds,
-						taskSequence: taskCreationResponse.externalIds,
-					},
-				}
-			)
-
-			//update the published id in resource table
-			await resourceService.publishCallback(projectData.id, templateId.toString())
-
-			//return result
-			result.success = true
-			result.templateId = templateId
-			console.log('Template published successfully with ID:', templateId)
-			return resolve(result)
-		} catch (error) {
-			console.log('Error in publishProjectTemplates:', error.message)
-			if (mongoConnection) mongoConnection.disconnect()
-			result.error = error.message || error
-			return reject(error)
-		}
-	})
 }
 
 /**
@@ -919,10 +520,11 @@ async function updateProgram(programId, updateTemplate) {
  * @return {Object} updateBody - resource update body
  */
 async function updateSolutionTemplate(resource) {
-	const targeting = await processTargetingCriteria(
+	const targeting = await targetingHelper.processTargetingCriteria(
 		resource?.targeting_criteria,
 		resource.organization_code,
-		resource.tenant_code
+		resource.tenant_code,
+		scopeKeys
 	)
 	if (!targeting?.success) {
 		return {
@@ -976,272 +578,6 @@ async function createProgram(programTemplate) {
 }
 
 /**
- *  Function to fetch data information from cloud using downloadable Url
- * @method
- * @name getBaseTemplate
- * @param {String} templateUrl - cloud path to download
- */
-async function getBaseTemplate(templateUrl) {
-	try {
-		// Mark socket as engaged
-		socketInUse = true
-		const response = await axios.get(templateUrl)
-		// Mark socket as free
-		socketInUse = false
-		if (response.status === 200) {
-			return {
-				success: true,
-				result: response.data,
-			}
-		} else {
-			throw new Error(`Unexpected response status: ${response.status}`)
-		}
-	} catch (error) {
-		// Mark socket as free
-		socketInUse = false
-		return Promise.reject(new Error(`Failed to fetch base template: ${error.message}`))
-	}
-}
-
-async function waitForSocketAvailability() {
-	return new Promise((resolve) => {
-		const checkInterval = setInterval(() => {
-			if (!socketInUse) {
-				clearInterval(checkInterval)
-				resolve()
-			}
-		}, 1000) // Check every second
-	})
-}
-/**
- *  download file from cloud and convert it into base64
- * @method
- * @name downloadAndConvertToBase64
- * @param {String} templateUrl - cloud path to download
- */
-async function downloadAndConvertToBase64(url) {
-	try {
-		// Wait if the socket is in use
-		if (socketInUse) {
-			console.log('Socket is in use. Waiting for 1 minute...')
-			await new Promise((resolve) => setTimeout(resolve, 60000)) // Wait for 1 minute
-		}
-
-		// Mark socket as in use
-		socketInUse = true
-
-		// Download the image file as a binary buffer
-		const response = await axios({
-			url,
-			method: 'GET',
-			responseType: 'arraybuffer', // Ensures we receive raw binary data
-			timeout: 120000,
-			headers: {
-				Connection: 'close', // Ensures the socket is closed after the request
-			},
-		})
-
-		// Convert the binary data to a Base64 string
-		const base64 = Buffer.from(response.data, 'binary').toString('base64')
-
-		// Create the Base64 Data URL
-		const base64DataUrl = `data:image/png;base64,${base64}`
-
-		// Mark socket as free
-		socketInUse = false
-
-		return base64DataUrl
-	} catch (error) {
-		console.error('Error downloading or converting file:', error.message)
-		// Mark socket as free
-		socketInUse = false
-		throw error
-	}
-}
-
-async function generatePresignedUrlInConsumption(url, body, headers) {
-	try {
-		const response = await axios.post(url, body, { headers, timeout: 6000 })
-		let result = { success: false }
-		if (response.status === 200) {
-			const files = response?.data?.result?.[common.CERTIFICATE]?.files
-
-			if (Array.isArray(files) && files.length > 0) {
-				result.file = files[0]?.payload?.sourcePath || null
-				result.url = files[0]?.url || null
-				result.success = true
-			} else {
-				console.error('Files array is missing or empty:', files)
-			}
-		} else {
-			console.error('Unexpected response status:', response.status)
-		}
-
-		return result
-	} catch (error) {
-		console.error('Error generating consumption presigned URL:', error.message)
-		throw error // Rethrow the error to be handled by the caller
-	}
-}
-
-async function uploadFile(dirPath, fileName, fileUploadUrl) {
-	try {
-		// Read the file data
-		const fileData = fs.readFileSync(path.join(dirPath, fileName))
-
-		const headers = {
-			'Content-Type': 'multipart/form-data',
-		}
-
-		// Perform the PUT request
-		const fileUploadToSignedUrl = await axios.put(fileUploadUrl, fileData, { headers })
-
-		// Check the response status
-		if (fileUploadToSignedUrl.status === 200) {
-			console.log('File uploaded successfully!')
-			console.log('Response status:', fileUploadToSignedUrl.status)
-		} else {
-			console.error('Unexpected response:', fileUploadToSignedUrl.status)
-		}
-	} catch (error) {
-		console.error('Error uploading file:', error.message)
-		if (error.response) {
-			console.error('Response status:', error.response.status)
-			console.error('Response data:', error.response.data)
-		}
-	}
-}
-/**
- * create svg template by editing base template.
- * @method
- * @name createSvg
- * @param {Object} certificateData - Certificate data for upload
- */
-
-async function createSvg(certificateData, loggedInUserId, userToken) {
-	return new Promise(async (resolve, reject) => {
-		try {
-			// fetch base template from cloud
-			let baseTemplate = await getBaseTemplate(certificateData?.base_template_url)
-			if (!baseTemplate.success) {
-				throw new Error('Base template download failed.')
-			}
-
-			// Load SVG template using Cheerio with XML mode
-			const $ = cheerio.load(baseTemplate.result, { xmlMode: true })
-
-			// set issuer name
-			const issuerNameTag = 'stateTitle'
-			const issuerNameElement = $(`#${issuerNameTag}`)
-			issuerNameElement.text(utils.escapeXml(certificateData.issuer))
-
-			// update signature
-			for (let index = 1; index <= certificateData.signature.no_of_signature; index++) {
-				const signatureNameTag = `signatureTitle${index}a`
-				const signatureDesignationTag = `signatureTitleDesignation${index}`
-				const signatureImgTag = `signatureImg${index}`
-				await waitForSocketAvailability() // check and wait for axios socket availability
-				const imageData = await downloadAndConvertToBase64(certificateData.signature[signatureImgTag])
-				const signatureNameElement = $(`#${signatureNameTag}`)
-				const signatureImgElement = $(`#${signatureImgTag}`)
-				signatureImgElement.attr('xlink:href', utils.escapeXml(imageData))
-				signatureNameElement.text(
-					`${utils.escapeXml(certificateData.signature[`signatureTitleName${index}`])} , ${utils.escapeXml(
-						certificateData.signature[signatureDesignationTag]
-					)}`
-				)
-			}
-
-			// update logos
-			for (let index = 1; index <= certificateData.logos.no_of_logos; index++) {
-				const logoTag = `stateLogo${index}`
-				await waitForSocketAvailability() // check and wait for axios socket availability
-				const imageData = await downloadAndConvertToBase64(certificateData.logos[logoTag])
-				const logoElement = $(`#${logoTag}`)
-				logoElement.attr('xlink:href', utils.escapeXml(imageData))
-			}
-
-			// updated svg
-			let updatedSvg = $.xml()
-
-			// replace quote escape charecters with "
-			updatedSvg = updatedSvg.replace(/&quot;/g, '"')
-
-			const uniqueId = utils.generateUniqueId() //generate a unique id for folder
-			let fileName = `${uniqueId}.svg` //create a unique file name
-			const mainPath = path.join(__dirname, `../temp/certificate/`) //temporary folder path for certificate template
-			let dirPath = path.join(mainPath, `${uniqueId}/`) //create a directory path
-			fs.mkdirSync(dirPath, { recursive: true }) //create directory
-			fs.writeFileSync(path.join(dirPath, fileName), updatedSvg, { encoding: 'utf8' }) //create file
-
-			// create a file upload payload
-			let payloadData = {
-				request: {
-					[common.CERTIFICATE]: {
-						files: [fileName],
-					},
-				},
-			}
-			// generate signed url
-			const headers = {
-				'X-auth-token': userToken.replace(/^bearer\s+/i, ''),
-			}
-			const getSignedUrl = await generatePresignedUrlInConsumption(
-				process.env.INTERFACE_SERVICE_HOST +
-					process.env.PROJECT_SERVICE_BASE_URL +
-					process.env.CONSUMPTION_SERVICE_PRESIGNED_URL,
-				payloadData,
-				headers
-			)
-			if (!getSignedUrl.success) {
-				throw new Error('FAILED_TO_GENERATE_SIGNED_URL')
-			}
-
-			const fileUploadUrl = getSignedUrl.url
-			let uploadedFilePath = getSignedUrl.file
-			await uploadFile(dirPath, fileName, fileUploadUrl)
-			// delete folder after upload
-			await deleteFolderRecursive(path.join(mainPath, uniqueId))
-
-			resolve({
-				message: 'Template edited successfully',
-				filePath: uploadedFilePath,
-			})
-		} catch (error) {
-			reject(error)
-		}
-	})
-}
-
-/**
- * function to recursively delete folder after upload
- * @method
- * @name deleteFolderRecursive
- * @param {String} folderPath - folder path to delete
- */
-async function deleteFolderRecursive(folderPath) {
-	// Check if the folder exists
-	if (fs.existsSync(folderPath)) {
-		// Get all files and subdirectories in the folder
-		fs.readdirSync(folderPath).forEach((file) => {
-			const currentPath = path.join(folderPath, file)
-
-			// If the item is a directory, recursively delete its contents
-			if (fs.lstatSync(currentPath).isDirectory()) {
-				deleteFolderRecursive(currentPath)
-			} else {
-				// Otherwise, delete the file
-				fs.unlinkSync(currentPath)
-			}
-		})
-		// Delete the empty folder
-		fs.rmdirSync(folderPath)
-		console.log(`Folder and its contents deleted: ${folderPath}`)
-	} else {
-		console.log('Folder does not exist:', folderPath)
-	}
-}
-/**
  * Check and Insert certificate base template
  * @method
  * @name checkCertificateBaseTemplate
@@ -1262,16 +598,19 @@ async function checkCertificateBaseTemplate(baseTemplateDetails, orgCode, tenant
 		const certificateFetched = await certificateBaseTemplateQueries.findOne({
 			code: baseTemplateDetails.code,
 		})
-		const certificateBaseTemplateDocument = {
-			code: certificateFetched.code,
-			name: certificateFetched.name,
-			url: certificateFetched.url,
-			tenantId: tenantCode,
-			orgId: orgCode,
-			createdAt: new Date(),
-			updatedAt: new Date(),
-			deleted: false,
+
+		// Format certificate base template document using DTO
+		const formattedBaseTemplate = solutionDTO.formatCertificateBaseTemplateDocument(
+			certificateFetched,
+			orgCode,
+			tenantCode
+		)
+
+		if (!formattedBaseTemplate.success || !formattedBaseTemplate?.data) {
+			throw new Error('FAILED_TO_FORMAT_CERTIFICATE_BASE_TEMPLATE')
 		}
+
+		const certificateBaseTemplateDocument = formattedBaseTemplate.data
 
 		const insertResult = await certificateBaseTemplateCollection.insertOne(certificateBaseTemplateDocument)
 		result._id = insertResult.insertedId
@@ -1297,22 +636,25 @@ async function insertCertificateTemplate(
 	orgCode,
 	tenantCode
 ) {
-	const svgTemplateCreation = await createSvg(certificateData, loggedInUserId, userToken)
+	const svgTemplateCreation = await certificateHelper.createSvg(certificateData, loggedInUserId, userToken)
 	const baseTemplate = await checkCertificateBaseTemplate(certificateData, orgCode, tenantCode)
-	const certificateDocument = {
-		status: common.STATUS_ACTIVE.toLowerCase(),
-		deleted: false,
+
+	// Format certificate document using DTO
+	const formattedCertificate = solutionDTO.formatCertificateDocument(
+		certificateData,
 		solutionId,
 		programId,
-		baseTemplateId: baseTemplate._id,
-		createdAt: new Date(),
-		updatedAt: new Date(),
-		templateUrl: svgTemplateCreation.filePath,
-		issuer: { name: certificateData.issuer },
-		criteria: certificateData.criteria,
-		tenantId: tenantCode,
-		orgId: orgCode,
+		baseTemplate,
+		svgTemplateCreation.filePath,
+		orgCode,
+		tenantCode
+	)
+
+	if (!formattedCertificate.success || !formattedCertificate?.data) {
+		throw new Error('FAILED_TO_FORMAT_CERTIFICATE_DOCUMENT')
 	}
+
+	const certificateDocument = formattedCertificate.data
 
 	// Insert the template into the database
 	const certificateTemplateCollection = projectsMongoConnection.collection(
@@ -1712,60 +1054,14 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 		// solution to rollout if map
 		let solutionRolloutMap = {}
 
-		const endDate = new Date(programDetails?.end_date)
-		const startDate = new Date(programDetails?.start_date)
 		resourceDetails.forEach((resource) => {
-			// create solutions template
-			const solutionTemplate = {
-				resourceType: [common.SOLUTIONS_RESOURCE_TYPE[resource.type]],
-				language: resource?.languages ? resource?.languages.map((language) => language.label) : [],
-				keywords: resource?.keywords ? utils.formatKeywords(resource?.keywords) : [],
-				concepts: resource?.concepts ? resource?.concepts : [],
-				themes: resource?.themes ? resource?.themes : [],
-				flattenedThemes: resource?.flattenedThemes ? resource?.flattenedThemes : [],
-				entities: resource?.entities ? resource?.entities : [],
-				registry: resource?.registry ? resource?.registry : [],
-				isRubricDriven: resource?.isRubricDriven ? true : false,
-				scp_reference_id: resource?.resource_id,
-				enableQuestionReadOut: resource?.enableQuestionReadOut ? true : false,
-				captureGpsLocationAtQuestionLevel: resource?.captureGpsLocationAtQuestionLevel ? true : false,
-				isAPrivateProgram: false,
-				allowMultipleAssessemts: resource?.allowMultipleAssessemts ? true : false,
-				isDeleted: false,
-				pageHeading: 'Domains',
-				minNoOfSubmissionsRequired: resource?.minNoOfSubmissionsRequired
-					? resource?.minNoOfSubmissionsRequired
-					: 1,
-				rootOrganisations: resource?.organization
-					? resource?.organization.map((organization) => organization.id)
-					: [],
-				createdFor: resource?.organization ? resource?.organization.map((organization) => organization.id) : [],
-				deleted: false,
-				name: resource?.title,
-				programExternalId: programDetails.externalId,
-				entityType: resource?.entityType ? resource?.entityType : null,
-				type: common.SOLUTIONS_TYPE[resource.type] ? common.SOLUTIONS_TYPE[resource.type] : null,
-				subType: common.SOLUTIONS_TYPE[resource.type] ? common.SOLUTIONS_TYPE[resource.type] : null,
-				isReusable: false,
-				externalId: utils.generateUniqueId(),
-				programId: programDetails._id,
-				programName: programDetails.name,
-				programDescription: programDetails.description,
-				description: resource?.description ? resource.description : programDetails.description,
-				status: common.STATUS_ACTIVE.toLowerCase(),
-				updatedAt: new Date(),
-				createdAt: new Date(),
-				scope: programDetails.scope,
-				projectTemplateId: resource._id,
-				updatedBy: programDetails.created_by,
-				author: programDetails.created_by,
-				endDate,
-				startDate,
-				creator: programDetails.created_by,
-				orgId: programDetails.orgId,
-				tenantId: programDetails.tenantId,
-				referenceFrom: programDetails.referenceFrom ? programDetails.referenceFrom : '',
+			// create solutions template using DTO
+			const formattedSolution = solutionDTO.formatSolutionTemplate(resource, programDetails)
+			if (!formattedSolution.success || !formattedSolution?.data) {
+				throw new Error(`Failed to format solution template: ${formattedSolution?.error || 'Unknown error'}`)
 			}
+
+			const solutionTemplate = formattedSolution.data
 
 			solutionRolloutMap[solutionTemplate.externalId] = resource.rolloutId
 
@@ -1908,51 +1204,6 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 	}
 }
 
-const orderSolutionsInProgram = (resourceWithInProgram) => {
-	let solutionOrderList = resourceWithInProgram.map((item) => {
-		let res = {
-			id: item.id,
-		}
-		if (item?.published_id) res._id = ObjectId(item.published_id)
-		if (item?.order) res.order = item.order
-		return res
-	})
-
-	const usedOrders = new Set()
-
-	// First, process items with explicit orders
-	for (let i = 0; i < resourceWithInProgram.length; i++) {
-		const item = resourceWithInProgram[i]
-		if (item.order != null) {
-			let ord = item.order
-			while (usedOrders.has(ord)) {
-				ord++
-			}
-			solutionOrderList[i].order = ord
-			usedOrders.add(ord)
-		}
-	}
-
-	// Then, process items without explicit orders (null or undefined)
-	for (let i = 0; i < resourceWithInProgram.length; i++) {
-		const item = resourceWithInProgram[i]
-		if (item.order == null) {
-			let ord = i + 1
-			while (usedOrders.has(ord)) {
-				ord++
-			}
-			solutionOrderList[i].order = ord
-			usedOrders.add(ord)
-		}
-	}
-
-	return solutionOrderList.reduce((acc, item) => {
-		acc[item.id] = { order: item.order }
-		if (item._id) acc[item.id]._id = item._id
-		return acc
-	}, {})
-}
-
 /**
  * Publish the Program
  * @name publishProjectTemplates
@@ -1982,14 +1233,14 @@ const publishProgram = function async(programData) {
 			const isProgramResource = rolloutDetails.resource_type === common.RESOURCE_TYPE_PROGRAM
 			const programResourceTableId = isProgramResource ? rolloutDetails.resource_id : null
 
-			// Format the program template
-			let formattedTemplate = await formatProgramTemplate(rolloutDetails)
+			// Format the program template using DTO
+			const formattedTemplate = await programDTO.formatProgramTemplateDTO(rolloutDetails, scopeKeys)
 
-			if (!formattedTemplate.success) {
+			if (!formattedTemplate.success || !formattedTemplate?.data) {
 				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
 			}
 
-			let template = formattedTemplate.programDocument
+			let template = formattedTemplate.data
 
 			let programResourceRolloutMap = {}
 			let programResourceIds = []
@@ -2054,7 +1305,7 @@ const publishProgram = function async(programData) {
 				throw new Error('NO_RESOURCE_ADDED')
 			}
 			let solutionIds = []
-			let solutionOrderMap = orderSolutionsInProgram(resourceWithInProgram)
+			let solutionOrderMap = programDTO.orderSolutionsInProgram(resourceWithInProgram)
 			let resourceToUpdate = []
 
 			for (const resource of resourceWithInProgram) {
@@ -2130,10 +1381,11 @@ const publishProgram = function async(programData) {
 							)
 						}
 
-						const targeting = await processTargetingCriteria(
+						const targeting = await targetingHelper.processTargetingCriteria(
 							fetchDetails?.result?.targeting_criteria,
 							fetchDetails?.result?.organization_code,
-							fetchDetails?.result?.tenant_code
+							fetchDetails?.result?.tenant_code,
+							scopeKeys
 						)
 						if (!targeting?.success) {
 							throw new Error(
@@ -2244,11 +1496,12 @@ const publishProgram = function async(programData) {
 			//create user and program mapping
 			const viewerIds = rolloutDetails.viewers.map((viewer) => viewer?.id || viewer)
 			if (programId && viewerIds.length > 0) {
-				let createMappingResponse = await createOrUpdateUserProgramMapping(
+				let createMappingResponse = await userMappingHelper.createOrUpdateUserProgramMapping(
 					viewerIds,
 					programId,
 					programData.organization_code,
 					programData.tenant_code,
+					projectsMongoConnection,
 					loggedInUserId
 				)
 				console.log('User Program Mapping Response : ', createMappingResponse)
@@ -2276,103 +1529,6 @@ const publishProgram = function async(programData) {
 			)
 
 			return resolve(result)
-		}
-	})
-}
-
-/**
- * Maps users to a program using interfaceRequests.
- * @param {Array} viewers - Array of user IDs.
- * @param {String|ObjectId} programId - Program ID.
- * @param {String} tenantCode - Tenant code.
- * @param {String} orgCode - Organization code.
- * @param {String|null} userId - User ID performing the mapping.
- * @returns {Promise<Boolean>}
- */
-async function createOrUpdateUserProgramMapping(viewers, programId, orgCode, tenantCode, userId = null) {
-	return new Promise(async (resolve, reject) => {
-		try {
-			const roles = (process.env.DEFAULT_PROGRAM_MANAGERS || '')
-				.split(',')
-				.map((role) => role.trim())
-				.filter(Boolean)
-			if (roles.length === 0) {
-				throw new Error('No roles defined in DEFAULT_PROGRAM_MANAGERS environment variable')
-			}
-
-			const userProgramCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('USER_EXTENSIONS'))
-			// Fetch all userExtensions for viewers
-			const userExtensions = await userProgramCollection.find({ userId: { $in: viewers } }).toArray()
-
-			// Find all userExtensions mapped to this program
-			const mappedUserExtensions = await userProgramCollection
-				.find({
-					'programRoleMapping.programId': programId,
-				})
-				.toArray()
-
-			// Users already mapped to this program
-			const alreadyMappedUserIds = mappedUserExtensions.map((userExt) => userExt.userId)
-
-			// Users in viewers but not mapped to program (need append)
-			const toAppend = viewers.filter((userId) => {
-				const ext = userExtensions.find((userExt) => userExt.userId === userId)
-				// If userExtension not present, need append
-				if (!ext) return true
-				// If userExtension present but programId not present, need append
-				const hasProgram = ext.programRoleMapping?.some((prm) => String(prm.programId) === String(programId))
-				return !hasProgram
-			})
-
-			// Users mapped to program but not in viewers (need remove)
-			// For each user mapped to the program but not present in viewers, prepare a remove operation
-			const toRemove = alreadyMappedUserIds.filter((userId) => !viewers.includes(userId))
-
-			// Prepare data for API call
-			const requestBody = []
-			// Only append if userExtension not present or programId not present in userExtension
-			programId = programId.toString()
-			if (toAppend.length > 0) {
-				for (const userId of toAppend) {
-					requestBody.push({
-						userId,
-						programId,
-						operation: common.OPERATION_APPEND,
-						roles: roles,
-					})
-				}
-			}
-
-			// Only remove if userExtension and programId present in userEx
-			// For each user mapped to the program but not present in viewers, prepare a remove operation
-			if (toRemove.length > 0) {
-				for (const userId of toRemove) {
-					requestBody.push({
-						userId,
-						programId,
-						operation: common.OPERATION_REMOVE,
-						roles: roles,
-					})
-				}
-			}
-
-			if (requestBody.length === 0) {
-				console.log('No user mapping changes required for program:', programId)
-				return resolve(true)
-			}
-			// Call the consumption service to update mappings
-			let userMappingResponse = await interfaceRequests.mapUserAndProgram(
-				requestBody,
-				orgCode,
-				tenantCode,
-				userId
-			)
-
-			console.log('Successfully updated user extensions for program:', programId)
-			return resolve(true)
-		} catch (error) {
-			console.error('Error in createOrUpdateUserProgramMapping:', error)
-			return reject(error)
 		}
 	})
 }
