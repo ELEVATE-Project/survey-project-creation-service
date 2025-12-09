@@ -306,7 +306,7 @@ class ProgramsHelper {
 						fetchResource.parent_id == null && fetchResource.version == common.DEFAULT_RESOURCE_VERSION
 							? fetchResource.id
 							: fetchResource.parent_id
-					const childProgram = await createProgramChild(parentId, fetchResource)
+					const childProgram = await createProgramChild(parentId, fetchResource, loggedInUserId)
 					if (childProgram.success) childProgramId = childProgram?.result?.id || null
 					else throw new Error(childProgram?.error || 'CHILD_PROGRAM_CREATION_FAILED')
 				}
@@ -1501,7 +1501,7 @@ module.exports = ProgramsHelper
  *   - user_id {string} Owner/creator id for the child
  * @returns {Promise<Object>} - Result object: { success: boolean, id: number|null, error?: any }
  */
-async function createProgramChild(parentId, programData) {
+async function createProgramChild(parentId, programData, loggedInUserId) {
 	let response = {
 		success: false,
 		result: {
@@ -1512,49 +1512,62 @@ async function createProgramChild(parentId, programData) {
 		programData.parent_id = parentId
 		const organization_code = programData.organization_code
 		const tenant_code = programData.tenant_code
-		const currentLatestVersion = await resourceService.findLatestVersionOfResource(
-			parentId,
+		// check if any open program child already exists for the user
+		const findExistingOpenChild = await resourceQueries.findOne({
+			parent_id: parentId,
+			created_by: loggedInUserId,
 			organization_code,
-			tenant_code
-		)
-		programData.version = currentLatestVersion + 1 // increment current latest version by 1
-
-		delete programData.id
-
-		const childProgram = await ProgramsHelper.create(
-			programData,
-			programData.user_id,
-			organization_code,
-			tenant_code
-		)
-
-		// Verify child program creation succeeded and has an id before creating mappings.
-		if (!childProgram || childProgram?.statusCode !== httpStatusCode.ok || !childProgram?.result?.id) {
-			throw new Error('PROGRAM_DUPLICATION_FAILED')
-		}
-
-		// Only now fetch and create mappings for resources to the newly created child program
-		const mappedResource = await programResourceMappingQueries.findAll({
-			program_id: parentId,
-			organization_code: programData.organization_code,
-			tenant_code: programData.tenant_code,
+			tenant_code,
+			status: { [Op.notIn]: [common.PUBLISHED_STATUS] },
 		})
+		if (!findExistingOpenChild?.id) {
+			const currentLatestVersion = await resourceService.findLatestVersionOfResource(
+				parentId,
+				organization_code,
+				tenant_code
+			)
+			programData.version = currentLatestVersion + 1 // increment current latest version by 1
 
-		const mappedResourceIds = mappedResource.map((resource) => resource.resource_id)
-		const mapResourcePromises = mappedResourceIds.map((resourceId) => {
-			return programResourceMappingQueries.create({
-				program_id: childProgram.result.id,
-				resource_id: resourceId,
+			delete programData.id
+
+			const childProgram = await ProgramsHelper.create(
+				programData,
+				programData.user_id,
+				organization_code,
+				tenant_code
+			)
+
+			// Verify child program creation succeeded and has an id before creating mappings.
+			if (!childProgram || childProgram?.statusCode !== httpStatusCode.ok || !childProgram?.result?.id) {
+				throw new Error('PROGRAM_DUPLICATION_FAILED')
+			}
+
+			// Only now fetch and create mappings for resources to the newly created child program
+			const mappedResource = await programResourceMappingQueries.findAll({
+				program_id: parentId,
 				organization_code: programData.organization_code,
 				tenant_code: programData.tenant_code,
-				created_by: programData.user_id,
-				updated_by: programData.user_id,
 			})
-		})
-		await Promise.all(mapResourcePromises)
 
-		response.success = true
-		response.result.id = childProgram.result.id
+			const mappedResourceIds = mappedResource.map((resource) => resource.resource_id)
+			const mapResourcePromises = mappedResourceIds.map((resourceId) => {
+				return programResourceMappingQueries.create({
+					program_id: childProgram.result.id,
+					resource_id: resourceId,
+					organization_code: programData.organization_code,
+					tenant_code: programData.tenant_code,
+					created_by: programData.user_id,
+					updated_by: programData.user_id,
+				})
+			})
+			await Promise.all(mapResourcePromises)
+
+			response.success = true
+			response.result.id = childProgram.result.id
+		} else {
+			response.success = true
+			response.result.id = findExistingOpenChild?.id
+		}
 	} catch (error) {
 		response.success = false
 		response.error = error
