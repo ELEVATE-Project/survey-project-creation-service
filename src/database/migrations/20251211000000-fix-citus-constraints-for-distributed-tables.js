@@ -41,6 +41,44 @@ module.exports = {
 		console.log('must include the partition column as the FIRST field.')
 		console.log('')
 
+		// Helper to find and remove FK constraints dynamically
+		const removeForeignKeyIfExists = async (tableName, columnName) => {
+			try {
+				const [results] = await queryInterface.sequelize.query(`
+                    SELECT DISTINCT
+                        tc.constraint_name
+                    FROM
+                        information_schema.table_constraints AS tc
+                        JOIN information_schema.key_column_usage AS kcu
+                        ON tc.constraint_name = kcu.constraint_name
+                        AND tc.table_schema = kcu.table_schema
+                    WHERE
+                        tc.constraint_type = 'FOREIGN KEY'
+                        AND tc.table_name = '${tableName}'
+                        AND kcu.column_name = '${columnName}';
+                `)
+
+				if (results && results.length > 0) {
+					for (const row of results) {
+						const constraintName = row.constraint_name
+						console.log(
+							`   Found FK constraint '${constraintName}' on ${tableName}.${columnName}. Removing...`
+						)
+						try {
+							await queryInterface.removeConstraint(tableName, constraintName)
+							console.log(`   ✓ Removed constraint '${constraintName}'`)
+						} catch (err) {
+							console.log(`   ⚠ Failed to remove constraint '${constraintName}': ${err.message}`)
+						}
+					}
+				} else {
+					console.log(`   Note: No FK constraint found on ${tableName}.${columnName}`)
+				}
+			} catch (error) {
+				console.log(`   ⚠ Error checking FKs for ${tableName}.${columnName}:`, error.message)
+			}
+		}
+
 		// 1. Fix certificate_base_templates (partition: tenant_code)
 		console.log('1. Fixing certificate_base_templates...')
 		try {
@@ -322,8 +360,7 @@ module.exports = {
 		console.log('9. Fixing reviews foreign key...')
 		try {
 			// Drop the existing foreign key with CASCADE on update
-			await queryInterface.removeConstraint('reviews', 'fk_reviews_resources')
-			console.log('   Removed old foreign key constraint')
+			await removeForeignKeyIfExists('reviews', 'resource_id')
 
 			// Re-add the foreign key with NO ACTION on update (CASCADE on delete is OK)
 			await queryInterface.addConstraint('reviews', {
@@ -346,8 +383,7 @@ module.exports = {
 		console.log('10. Fixing rollouts foreign key...')
 		try {
 			// Drop the existing foreign key with CASCADE on update
-			await queryInterface.removeConstraint('rollouts', 'fk_rollouts_resources')
-			console.log('   Removed old foreign key constraint')
+			await removeForeignKeyIfExists('rollouts', 'resource_id')
 
 			// Re-add the foreign key with NO ACTION on update
 			await queryInterface.addConstraint('rollouts', {
@@ -370,8 +406,7 @@ module.exports = {
 		console.log('11. Fixing comments foreign key...')
 		try {
 			// Drop the existing foreign key with CASCADE on update
-			await queryInterface.removeConstraint('comments', 'fk_comments_resources')
-			console.log('   Removed old foreign key constraint')
+			await removeForeignKeyIfExists('comments', 'resource_id')
 
 			// Re-add the foreign key with NO ACTION on update
 			await queryInterface.addConstraint('comments', {
@@ -388,6 +423,89 @@ module.exports = {
 			console.log('   ✓ comments foreign key fixed (onUpdate: NO ACTION)')
 		} catch (error) {
 			console.log('   ⚠ comments FK:', error.message)
+		}
+
+		// Fix program_resource_mapping table foreign keys (BOTH)
+		console.log('12. Fixing program_resource_mapping foreign keys...')
+		try {
+			// Explicitly try to remove the known long names from creation migration
+			const knownConstraints = [
+				'fk_program_resource_mapping_program_id_org_code_tenant_code',
+				'fk_program_resource_mapping_resource_id_org_code_tenant_code',
+				'fk_program_resource_mapping_program_id', // In case it was already renamed
+				'fk_program_resource_mapping_resource_id',
+			]
+
+			for (const constraint of knownConstraints) {
+				try {
+					await queryInterface.removeConstraint('program_resource_mapping', constraint)
+					console.log(`   ✓ Removed known constraint '${constraint}'`)
+				} catch (e) {
+					// Ignore
+				}
+			}
+
+			// Also use dynamic removal just in case
+			await removeForeignKeyIfExists('program_resource_mapping', 'resource_id')
+			await removeForeignKeyIfExists('program_resource_mapping', 'program_id')
+
+			// Re-add the foreign key for resource_id with NO ACTION
+			await queryInterface.addConstraint('program_resource_mapping', {
+				fields: ['resource_id', 'organization_code', 'tenant_code'],
+				type: 'foreign key',
+				name: 'fk_program_resource_mapping_resource_id',
+				references: {
+					table: 'resources',
+					fields: ['id', 'organization_code', 'tenant_code'],
+				},
+				onDelete: 'CASCADE',
+				onUpdate: 'NO ACTION', // Changed from CASCADE to NO ACTION
+			})
+
+			// Re-add the foreign key for program_id with NO ACTION
+			await queryInterface.addConstraint('program_resource_mapping', {
+				fields: ['program_id', 'organization_code', 'tenant_code'],
+				type: 'foreign key',
+				name: 'fk_program_resource_mapping_program_id',
+				references: {
+					table: 'resources',
+					fields: ['id', 'organization_code', 'tenant_code'],
+				},
+				onDelete: 'CASCADE',
+				onUpdate: 'NO ACTION', // Changed from CASCADE to NO ACTION
+			})
+			console.log('   ✓ program_resource_mapping foreign keys fixed (onUpdate: NO ACTION)')
+		} catch (error) {
+			console.log('   ⚠ program_resource_mapping FKs:', error.message)
+		}
+
+		// Fix resources table self-referencing foreign key (parent_id)
+		console.log('14. Fixing resources self-referencing foreign key (parent_id)...')
+		try {
+			// Drop the existing foreign key with CASCADE on update
+			await removeForeignKeyIfExists('resources', 'parent_id')
+
+			// Re-add the foreign key with NO ACTION on update
+			// Note: resources table might not have parent_id column in all environments, so we check first
+			const tableDesc = await queryInterface.describeTable('resources')
+			if (tableDesc.parent_id) {
+				await queryInterface.addConstraint('resources', {
+					fields: ['parent_id', 'organization_code', 'tenant_code'],
+					type: 'foreign key',
+					name: 'fk_resources_parent',
+					references: {
+						table: 'resources',
+						fields: ['id', 'organization_code', 'tenant_code'],
+					},
+					onDelete: 'CASCADE',
+					onUpdate: 'NO ACTION', // Changed from CASCADE to NO ACTION
+				})
+				console.log('   ✓ resources foreign key (parent_id) fixed (onUpdate: NO ACTION)')
+			} else {
+				console.log('   Note: parent_id column not found in resources table, skipping FK fix')
+			}
+		} catch (error) {
+			console.log('   ⚠ resources FK (parent_id):', error.message)
 		}
 
 		console.log('')
@@ -527,6 +645,66 @@ module.exports = {
 			console.log('✓ Reverted comments foreign key')
 		} catch (error) {
 			console.log('⚠ Error reverting comments FK:', error.message)
+		}
+
+		// Revert program_resource_mapping FK
+		try {
+			await queryInterface.removeConstraint('program_resource_mapping', 'fk_program_resource_mapping_resource_id')
+			await queryInterface.addConstraint('program_resource_mapping', {
+				fields: ['resource_id', 'organization_code', 'tenant_code'],
+				type: 'foreign key',
+				name: 'fk_program_resource_mapping_resource_id',
+				references: {
+					table: 'resources',
+					fields: ['id', 'organization_code', 'tenant_code'],
+				},
+				onDelete: 'CASCADE',
+				onUpdate: 'CASCADE', // Revert to CASCADE
+			})
+			console.log('✓ Reverted program_resource_mapping foreign key')
+		} catch (error) {
+			console.log('⚠ Error reverting program_resource_mapping FK:', error.message)
+		}
+
+		// Revert program_resource_mapping FK (program_id)
+		try {
+			await queryInterface.removeConstraint('program_resource_mapping', 'fk_program_resource_mapping_program_id')
+			await queryInterface.addConstraint('program_resource_mapping', {
+				fields: ['program_id', 'organization_code', 'tenant_code'],
+				type: 'foreign key',
+				name: 'fk_program_resource_mapping_program_id',
+				references: {
+					table: 'resources',
+					fields: ['id', 'organization_code', 'tenant_code'],
+				},
+				onDelete: 'CASCADE',
+				onUpdate: 'CASCADE', // Revert to CASCADE
+			})
+			console.log('✓ Reverted program_resource_mapping foreign key (program_id)')
+		} catch (error) {
+			console.log('⚠ Error reverting program_resource_mapping FK (program_id):', error.message)
+		}
+
+		// Revert resources FK (parent_id)
+		try {
+			const tableDesc = await queryInterface.describeTable('resources')
+			if (tableDesc.parent_id) {
+				await queryInterface.removeConstraint('resources', 'fk_resources_parent')
+				await queryInterface.addConstraint('resources', {
+					fields: ['parent_id', 'organization_code', 'tenant_code'],
+					type: 'foreign key',
+					name: 'fk_resources_parent',
+					references: {
+						table: 'resources',
+						fields: ['id', 'organization_code', 'tenant_code'],
+					},
+					onDelete: 'CASCADE',
+					onUpdate: 'CASCADE', // Revert to CASCADE
+				})
+				console.log('✓ Reverted resources foreign key (parent_id)')
+			}
+		} catch (error) {
+			console.log('⚠ Error reverting resources FK (parent_id):', error.message)
 		}
 
 		console.log('')

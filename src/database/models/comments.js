@@ -80,5 +80,16 @@ module.exports = (sequelize, DataTypes) => {
 		}
 	)
 
+	// Define associations
+	Comment.associate = (models) => {
+		Comment.belongsTo(models.Resource, {
+			foreignKey: 'resource_id',
+			targetKey: 'id',
+			as: 'resource',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+	}
+
 	return Comment
 }

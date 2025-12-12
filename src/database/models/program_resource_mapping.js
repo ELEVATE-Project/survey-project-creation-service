@@ -44,5 +44,23 @@ module.exports = (sequelize, DataTypes) => {
 		}
 	)
 
+	// Define associations
+	ProgramResourceMapping.associate = (models) => {
+		ProgramResourceMapping.belongsTo(models.Resource, {
+			foreignKey: 'resource_id',
+			targetKey: 'id',
+			as: 'resource',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+		ProgramResourceMapping.belongsTo(models.Resource, {
+			foreignKey: 'program_id',
+			targetKey: 'id',
+			as: 'program',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+	}
+
 	return ProgramResourceMapping
 }
