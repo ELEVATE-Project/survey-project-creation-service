@@ -38,4 +38,8 @@ module.exports = {
 	FETCH_TENANT_INTERNAL: process.env.FETCH_TENANT_INTERNAL
 		? process.env.FETCH_TENANT_INTERNAL
 		: 'v1/tenant/readInternal',
+	DB_FIND: process.env.DB_FIND_ENDPOINT ? process.env.DB_FIND_ENDPOINT : '/v1/admin/dbFind',
+	IMPORT_FROM_SOLUTION: process.env.IMPORT_FROM_SOLUTION_ENDPOINT
+		? process.env.IMPORT_FROM_SOLUTION_ENDPOINT
+		: '/v1/solutions/importFromSolution',
 }

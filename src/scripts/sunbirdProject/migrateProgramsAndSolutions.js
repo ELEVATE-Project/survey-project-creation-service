@@ -662,7 +662,8 @@ const dbName = mongoUrl.split('/').pop()
 					await rolloutService.publishCallback(
 						createSolutionRolloutResponse.result.id,
 						solutionTargetingMap[solutionData.published_id].solutionId,
-						solutionTargetingMap[solutionData.published_id].projectId
+						solutionTargetingMap[solutionData.published_id].projectId,
+						convertedProgramTemplate.tenant_code
 					)
 
 					csvRecords.push({
@@ -676,7 +677,12 @@ const dbName = mongoUrl.split('/').pop()
 				}
 
 				//update the program rollout status
-				await rolloutService.publishCallback(programRolloutId, programIdStr)
+				await rolloutService.publishCallback(
+					programRolloutId,
+					programIdStr,
+					null,
+					convertedProgramTemplate.tenant_code
+				)
 
 				csvRecords.push({
 					programId: programIdStr,

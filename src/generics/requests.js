@@ -60,7 +60,9 @@ var post = function (
 	body,
 	token = '',
 	internal_access_token = false,
-	internalAccessTokenKey = 'internal_access_token'
+	internalAccessTokenKey = 'internal_access_token',
+	admin_access_token = false,
+	adminAuthTokenKey = 'admin_auth_token'
 ) {
 	return new Promise((resolve, reject) => {
 		try {
@@ -73,6 +75,9 @@ var post = function (
 
 			if (token) {
 				headers[process.env.AUTH_TOKEN_HEADER_NAME] = token
+			}
+			if (admin_access_token) {
+				headers[adminAuthTokenKey] = process.env.ADMIN_ACCESS_TOKEN
 			}
 
 			const options = {

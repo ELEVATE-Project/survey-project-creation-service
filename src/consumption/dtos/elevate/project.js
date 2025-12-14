@@ -17,16 +17,13 @@ const consumptionCommon = require('@consumption/constants/elevate/common')
  * @name assignSequenceNumbers
  * @param {Array} tasks - Array of task objects
  * @returns {Array} - Array of tasks with assigned sequence numbers
- * @description Filters out 'observation' type tasks (temporary fix), sorts by existing sequence_no, and reassigns sequential numbers
+ * @description sorts by existing sequence_no, and reassigns sequential numbers
  */
 exports.assignSequenceNumbers = (tasks) => {
-	/* Temporary fix start, because elevate-project doesn't have the observation capability in tasks now */
-	// Filter out 'observation' type tasks
-	const filteredTasks = tasks.filter((task) => task.type !== common.OBSERVATION)
 	// Sort tasks based on their current sequence number (ascending order)
-	filteredTasks.sort((a, b) => a.sequence_no - b.sequence_no)
+	tasks.sort((a, b) => a.sequence_no - b.sequence_no)
 	let sequenceCounter = 1
-	return filteredTasks.map((task) => {
+	return tasks.map((task) => {
 		task.sequence_no = sequenceCounter++ // Reassign sequence number
 		return task
 	})
@@ -168,20 +165,17 @@ exports.formatProjectTemplateDTO = (templateData) => {
 			throw new Error('Invalid template data provided')
 		}
 
-		if (!templateData.title) {
-			throw new Error('Template title is required')
+		const requiredFields = {
+			title: 'Template title is required',
+			tenant_code: 'Tenant code is required',
+			organization_code: 'Organization code is required',
+			user_id: 'User ID is required',
 		}
 
-		if (!templateData.tenant_code) {
-			throw new Error('Tenant code is required')
-		}
-
-		if (!templateData.organization_code) {
-			throw new Error('Organization code is required')
-		}
-
-		if (!templateData.user_id) {
-			throw new Error('User ID is required')
+		for (const [field, errorMsg] of Object.entries(requiredFields)) {
+			if (!templateData[field]) {
+				throw new Error(errorMsg)
+			}
 		}
 
 		// Build the formatted template

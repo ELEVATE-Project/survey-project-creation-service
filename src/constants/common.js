@@ -281,4 +281,6 @@ module.exports = {
 	},
 	TASK_TYPE_PROJECT: 'improvement_projects',
 	PROJECT_ID: 'project_id',
+	EXTERNAL_ID: 'external_id',
+	SOLUTIONS: 'solutions',
 }

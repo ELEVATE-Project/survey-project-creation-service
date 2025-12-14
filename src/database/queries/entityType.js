@@ -87,7 +87,11 @@ module.exports = class UserEntityData {
 			}
 
 			const entities = await Entity.findAll({
-				where: { entity_type_id: entityType.id, status: common.STATUS_ACTIVE },
+				where: {
+					entity_type_id: entityType.id,
+					status: common.STATUS_ACTIVE,
+					tenant_code: filter.tenant_code, // Ensure tenant_code for Citus compatibility
+				},
 				raw: true,
 			})
 
@@ -132,14 +136,6 @@ module.exports = class UserEntityData {
 		}
 	}
 
-	static async findEntityTypeById(filter) {
-		try {
-			return await EntityType.findByPk(filter)
-		} catch (error) {
-			return error
-		}
-	}
-
 	static async findAllEntityTypesAndEntities(filter) {
 		try {
 			const entityTypes = await EntityType.findAll({
@@ -151,7 +147,11 @@ module.exports = class UserEntityData {
 
 			// Fetch all matching entities using the IDs
 			const entities = await Entity.findAll({
-				where: { entity_type_id: entityTypeIds, status: common.STATUS_ACTIVE },
+				where: {
+					entity_type_id: entityTypeIds,
+					status: common.STATUS_ACTIVE,
+					tenant_code: filter.tenant_code, // Ensure tenant_code for Citus compatibility
+				},
 				raw: true,
 				//attributes: { exclude: ['entity_type_id'] },
 			})

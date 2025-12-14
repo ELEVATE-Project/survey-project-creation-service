@@ -172,7 +172,13 @@ const publishProjectTemplates = function (templateData) {
 
 			// Process and Create Tasks
 			const processedTasks = projectDTO.assignSequenceNumbers(projectData.tasks || [])
-			const taskCreationResponse = await createTasks(processedTasks, templateId, template.externalId)
+			const taskCreationResponse = await createTasks(
+				processedTasks,
+				templateId,
+				template.externalId,
+				null,
+				templateData.userToken
+			)
 
 			// Validate the result of the task creation
 			if (!taskCreationResponse.success) {
@@ -191,7 +197,7 @@ const publishProjectTemplates = function (templateData) {
 			)
 
 			//update the published id in resource table
-			await resourceService.publishCallback(projectData.id, templateId.toString())
+			await resourceService.publishCallback(templateData.id, templateId.toString(), templateData.tenant_code)
 
 			//return result
 			result.success = true
@@ -306,7 +312,7 @@ async function processCategories(categories) {
  * @param {String} parentId - parentId
  * @returns {Object} - Response contains task data
  */
-async function createTasks(tasks, templateId, templateExternalId, parentId = null) {
+async function createTasks(tasks, templateId, templateExternalId, parentId = null, userToken) {
 	const result = { success: false, taskIds: [], externalIds: [], error: null }
 	try {
 		// ensure mongo connection (lazy init similar to elevate.js)
@@ -337,6 +343,20 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				updatedAt: new Date(),
 			}
 
+			if (task.type === common.OBSERVATION) {
+				const childObsSolution = await processChildObservationSolution(
+					task,
+					templateId,
+					templateExternalId,
+					userToken
+				)
+
+				if (!childObsSolution.success || !childObsSolution?.solutionDetails) {
+					throw new Error(`Failed to create child observation solution: ${childObsSolution.error}`)
+				}
+
+				taskData.solutionDetails = childObsSolution.solutionDetails
+			}
 			// Create the task
 			const taskCreationRes = await taskCollection.insertOne(taskData)
 			// Validate the insertion result
@@ -350,7 +370,13 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 
 			// Recursively handle child tasks
 			if (task.children?.length) {
-				const childTaskResult = await createTasks(task.children, templateId, templateExternalId, taskId)
+				const childTaskResult = await createTasks(
+					task.children,
+					templateId,
+					templateExternalId,
+					taskId,
+					userToken
+				)
 
 				// Validate the child task creation
 				if (!childTaskResult.success) {
@@ -377,6 +403,83 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 		console.error('Error in createTasks:', error.message)
 		result.error = `Failed to create tasks: ${error.message}`
 		return result
+	}
+}
+
+/**
+ * Create child observation solution from parent reusable observation
+ */
+async function processChildObservationSolution(task, templateId, templateExternalId, userToken) {
+	try {
+		const solutionCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
+
+		// Step 1: Fetch parent solution to get externalId and entityType
+		const parentSolution = await solutionCollection.findOne({
+			externalId: task.solution_details?.external_id,
+			isReusable: true,
+			type: common.OBSERVATION,
+		})
+
+		if (!parentSolution) {
+			throw new Error(`Parent solution not found for external_id: ${task.solution_details?.external_id}`)
+		}
+
+		// Step 2: Build request URL for consumption service
+		const queryParam = {
+			solutionId: parentSolution.externalId,
+			entityType: parentSolution.entityType,
+		}
+
+		const url = utils.buildUrl(process.env.INTERFACE_SERVICE_HOST, endpoints.IMPORT_FROM_SOLUTION, queryParam)
+
+		const timestamp = utils.epochTime()
+
+		// Step 3: Prepare payload for consumption service
+		const payload = {
+			programExternalId: templateExternalId,
+			externalId: parentSolution.externalId + '-' + timestamp,
+			name: parentSolution.name,
+			description: parentSolution.description || '',
+		}
+
+		// Step 4: Call consumption service to create child solution
+		const response = await requests.post(url, payload, userToken, true, common.INTERNAL_ACCESS_TOKEN)
+
+		if (!response.success || !response.data) {
+			throw new Error(`Error : ${response?.error || 'Child observation solution creation failed'}`)
+		}
+
+		const results = response.data?.result
+
+		if (!results) {
+			throw new Error(`Error: Consumption service did not return a result`)
+		}
+
+		// Step 5: Fetch created child solution from DB
+		const childSolution = await solutionCollection.findOne({
+			externalId: results.externalId,
+			isReusable: false,
+			type: common.OBSERVATION,
+		})
+
+		if (!childSolution) {
+			throw new Error(`Child solution not found for external_id: ${results.externalId}`)
+		}
+
+		// Step 6: Return formatted solution details
+		return {
+			success: true,
+			solutionDetails: {
+				_id: childSolution._id,
+				externalId: childSolution.externalId,
+				type: common.OBSERVATION,
+				name: childSolution.name,
+				entityType: childSolution.entityType,
+			},
+		}
+	} catch (error) {
+		console.error('Error in processChildObservationSolution:', error.message)
+		return { success: false, error: error.message }
 	}
 }
 
@@ -1587,7 +1690,7 @@ async function updateSolutionTemplate(resource) {
 }
 /**
  * Publish the Program
- * @name publishProjectTemplates
+ * @name publishProgram
  * @param {Object} programData - Program template data
  * @returns {Object} - Response of Program creation
  */
@@ -1719,6 +1822,7 @@ const publishProgram = function async(programData) {
 							publishedProject = await publishProjectTemplates({
 								id: fetchDetails?.result?.resource_id,
 								..._.omit(fetchDetails?.result, ['id']),
+								tenant_code: programData?.tenant_code,
 							})
 							projectCertificate =
 								fetchDetails?.result?.certificate &&
@@ -1837,13 +1941,18 @@ const publishProgram = function async(programData) {
 			}
 			if (isProgramResource && programResourceTableId) {
 				// update resource table with published Id
-				await resourceService.publishCallback(programResourceTableId, programId ? programId.toString() : null)
+				await resourceService.publishCallback(
+					programData.resource_id,
+					programId ? programId.toString() : null,
+					programData?.tenant_code
+				)
 			}
 			// update rollout table with published Id
 			await rolloutService.publishCallback(
 				programData.id,
 				programId ? programId.toString() : null,
 				null,
+				programData?.tenant_code,
 				isProgramResource
 			)
 			solutions.forEach(async (solution) => {
@@ -1852,16 +1961,20 @@ const publishProgram = function async(programData) {
 					await resourceService.publishCallback(
 						solution.scp_reference_id,
 						solution?._id ? solution?._id.toString() : null,
+						programData?.tenant_code,
 						solution?.link ? solution?.link : false
 					)
 				}
 				// update rollout table with published Id
-				await rolloutService.publishCallback(
-					solution.rolloutId,
-					solution?._id ? solution?._id.toString() : null,
-					solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
-					isProgramResource
-				)
+				if (solution.rolloutId) {
+					await rolloutService.publishCallback(
+						solution.rolloutId,
+						solution?._id ? solution?._id.toString() : null,
+						solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
+						programData?.tenant_code,
+						isProgramResource
+					)
+				}
 			})
 
 			// create user and program mapping
@@ -1894,6 +2007,7 @@ const publishProgram = function async(programData) {
 			await rolloutQueries.updateOne(
 				{
 					id: programData.id,
+					tenant_code: programData.tenant_code,
 				},
 				{
 					status: common.ROLLOUT_STATUS_FAILED,

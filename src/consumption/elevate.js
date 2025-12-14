@@ -29,7 +29,14 @@ const solutionDTO = require('@consumption/dtos/elevate/solution')
 const targetingHelper = require('@consumption/helpers/elevate/targeting')
 const userMappingHelper = require('@consumption/helpers/elevate/userMapping')
 const certificateHelper = require('@consumption/helpers/elevate/certificate')
-const { COLLECTIONS_MAP } = require('@consumption/constants/elevate/common')
+const commonElevate = require('@consumption/constants/elevate/common')
+const COLLECTIONS_MAP = commonElevate.COLLECTIONS_MAP
+let surveyMongoConnection = null
+const endpoints = require('@constants/endpoints')
+const consumptionConfig = require('@consumption/config')
+const requests = require('@generics/requests')
+let surveyConnection = null
+let projectsConnection = null
 
 /**
  * To connect with the mongoDB with the given url
@@ -48,6 +55,54 @@ const connectMongo = async (url) => {
 	}
 }
 
+// ✅ Add these helper functions
+const ensureProjectsConnection = async () => {
+	try {
+		// Check if connection exists and is still active
+		if (projectsConnection && (await projectsConnection.isConnected())) {
+			return projectsMongoConnection
+		}
+
+		// Connection is dead or doesn't exist, reconnect
+		console.log('🔄 Reconnecting to Projects MongoDB...')
+		projectsConnection = null
+		projectsMongoConnection = null
+
+		const mongoDBConn = new MongoDBConnection(projectsMongoDBUrl)
+		await mongoDBConn.connect()
+		projectsConnection = mongoDBConn
+		projectsMongoConnection = mongoDBConn.getDb()
+
+		return projectsMongoConnection
+	} catch (error) {
+		console.error('❌ Failed to ensure projects connection:', error.message)
+		throw error
+	}
+}
+
+const ensureSurveyConnection = async () => {
+	try {
+		// Check if connection exists and is still active
+		if (surveyConnection && (await surveyConnection.isConnected())) {
+			return surveyMongoConnection
+		}
+
+		// Connection is dead or doesn't exist, reconnect
+		console.log('🔄 Reconnecting to Survey MongoDB...')
+		surveyConnection = null
+		surveyMongoConnection = null
+
+		const mongoDBConn = new MongoDBConnection(surveyMongoDBUrl)
+		await mongoDBConn.connect()
+		surveyConnection = mongoDBConn
+		surveyMongoConnection = mongoDBConn.getDb()
+
+		return surveyMongoConnection
+	} catch (error) {
+		console.error('❌ Failed to ensure survey connection:', error.message)
+		throw error
+	}
+}
 /**
  * Publish the project template
  * @name publishProjectTemplates
@@ -58,8 +113,8 @@ const publishProjectTemplates = function (templateData) {
 	return new Promise(async (resolve, reject) => {
 		const result = { success: false, templateId: null, error: null }
 		try {
-			const requiredKeys = ['id', 'tenant_code', 'organization_code']
-
+			// Validate required keys
+			const requiredKeys = commonElevate.REQUIRED_KEYS_FOR_PROJECT_PUBLISH
 			const hasAllRequiredKeys = requiredKeys.every((key) => key in templateData)
 
 			if (Object.keys(templateData).length <= 0 || !hasAllRequiredKeys) {
@@ -73,11 +128,15 @@ const publishProjectTemplates = function (templateData) {
 				templateData.tenant_code
 			)
 
-			projectData = projectData?.result || {}
-
-			if (Object.keys(projectData).length <= 0) {
+			if (
+				projectData.statusCode !== 200 ||
+				!projectData?.result ||
+				Object.keys(projectData.result).length === 0
+			) {
 				throw new Error('FAILED_TO_FETCH_PROJECT')
 			}
+
+			projectData = projectData.result
 
 			// Format the template using DTO
 			const formattedTemplate = projectDTO.formatProjectTemplateDTO({ ...projectData })
@@ -87,9 +146,12 @@ const publishProjectTemplates = function (templateData) {
 
 			let template = formattedTemplate.data
 
-			projectsMongoConnection = projectsMongoConnection
-				? projectsMongoConnection
-				: await connectMongo(projectsMongoDBUrl)
+			projectsMongoConnection = await ensureProjectsConnection()
+			// projectsMongoConnection = projectsMongoConnection
+			// 	? projectsMongoConnection
+			// 	: await connectMongo(projectsMongoDBUrl)
+
+			surveyMongoConnection = await ensureSurveyConnection()
 
 			// Fetch Org Policies
 			const orgPolicies = await fetchOrgPolicies(
@@ -147,7 +209,8 @@ const publishProjectTemplates = function (templateData) {
 				template.externalId,
 				null,
 				projectData.organization_code,
-				projectData.tenant_code
+				projectData.tenant_code,
+				surveyMongoConnection
 			)
 
 			// Validate the result of the task creation
@@ -199,8 +262,10 @@ async function processCategories(categories, orgCode, tenantCode) {
 
 		const formattedCategories = formattedCategoriesResponse.data
 
+		const db = await ensureProjectsConnection()
+
 		// Fetch a specific collection
-		const categoriesCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('CATEGORIES'))
+		const categoriesCollection = db.collection(COLLECTIONS_MAP.get('CATEGORIES'))
 
 		// Fetch existing categories by externalId
 		let existingCategories = []
@@ -332,6 +397,204 @@ async function processProjectAsTask(task, tenantCode, organizationCode) {
 }
 
 /**
+ * Process observation as a task - validate parent solution and get details
+ * @name processObservationAsTask
+ * @param {Object} task - Task data
+ * @param {String} tenantCode - Tenant code
+ * @param {String} organizationCode - Organization code
+ * @returns {Object} - Response with solutionDetails or error
+ */
+async function processObservationAsTask(task, tenantCode, organizationCode, surveyMongoConnection) {
+	try {
+		// ✅ Use helper to ensure connection
+		const db = await ensureSurveyConnection()
+		const solutionCollection = db.collection(COLLECTIONS_MAP.get('SOLUTIONS'))
+
+		// Fetch parent reusable solution
+		const parentSolution = await solutionCollection.findOne({
+			externalId: task.solution_details?.external_id,
+			tenantId: tenantCode,
+			orgId: organizationCode,
+			isReusable: true,
+			type: common.OBSERVATION,
+		})
+
+		if (!parentSolution) {
+			throw new Error(`Parent solution not found for external_id: ${task.solution_details?.external_id}`)
+		}
+
+		// Return formatted solution details
+		return {
+			success: true,
+			result: {
+				solutionDetails: {
+					_id: parentSolution._id,
+					type: parentSolution.type ?? common.OBSERVATION,
+					entityType: parentSolution.entityType,
+					isReusable: parentSolution.isReusable,
+					externalId: parentSolution.externalId,
+					name: parentSolution.name,
+					minNoOfSubmissionsRequired: parentSolution.minNoOfSubmissionsRequired,
+				},
+				type: parentSolution.type ?? common.OBSERVATION,
+			},
+		}
+	} catch (error) {
+		console.error('Error in processObservationAsTask:', error.message)
+		return {
+			success: false,
+			error: error.message,
+		}
+	}
+}
+
+/**
+ * Create child observation solution from parent reusable observation
+ * @name processChildObservationSolution
+ * @param {Object} projectTask - Task object
+ * @param {Object} template - Parent project template data
+ * @param {Object} programData - Program details (tenant, org, userToken)
+ * @returns {Object} - Response with child solutionDetails or error
+ */
+async function processChildObservationSolution(projectTask, template, programData) {
+	try {
+		const consumptionServiceUrl = consumptionConfig.fetchConsumptionServiceUrls(common.OBSERVATION)
+		if (!consumptionServiceUrl) {
+			throw new Error(`Error : Failed to generate consumption service URL`)
+		}
+
+		// Step 1: Build request URL
+		const queryParam = {
+			solutionId: projectTask?.solutionDetails?.externalId,
+			entityType: projectTask?.solutionDetails?.entityType,
+		}
+
+		const url = utils.buildUrl(consumptionServiceUrl, endpoints.IMPORT_FROM_SOLUTION, queryParam)
+
+		const timestamp = utils.epochTime()
+
+		// Step 2: Prepare payload
+		const payload = {
+			programExternalId: template._id.toString(),
+			externalId: projectTask.solutionDetails.externalId + '-' + timestamp,
+			name: projectTask.solutionDetails.name ?? template.name,
+			description: projectTask.solutionDetails.description ?? template.description,
+			tenantData: {
+				tenantId: programData.tenant_code,
+				orgId: programData.organization_code,
+			},
+		}
+
+		// Step 3: Call consumption service
+		const response = await requests.post(
+			url,
+			payload,
+			programData.userToken,
+			true,
+			common.INTERNAL_ACCESS_TOKEN,
+			true,
+			process.env.ADMIN_TOKEN_HEADER_NAME
+		)
+
+		if (!response.success || !response.data) {
+			throw new Error(`Error : ${response?.error || 'Child observation solution creation failed'}`)
+		}
+
+		const results = response.data?.result
+
+		if (!results) {
+			throw new Error(`Error: Consumption service did not return a result`)
+		}
+
+		// Step 4: Fetch child solution created in DB
+		const solutionCollection = surveyMongoConnection.collection(COLLECTIONS_MAP.get('SOLUTIONS'))
+
+		const childSolution = await solutionCollection.findOne({
+			externalId: results.externalId,
+			tenantId: programData.tenant_code,
+			orgId: programData.organization_code,
+			isReusable: false,
+			type: common.OBSERVATION,
+		})
+
+		if (!childSolution) {
+			throw new Error(`Child solution not found for external_id: ${results.externalId}`)
+		}
+
+		// Step 5: Return formatted solution details
+		return {
+			success: true,
+			result: {
+				solutionDetails: {
+					_id: childSolution._id,
+					type: childSolution.type ?? common.OBSERVATION,
+					entityType: childSolution.entityType,
+					isReusable: childSolution.isReusable,
+					externalId: childSolution.externalId,
+					name: childSolution.name,
+					minNoOfSubmissionsRequired: childSolution.minNoOfSubmissionsRequired,
+				},
+				type: childSolution.type ?? common.OBSERVATION,
+			},
+		}
+	} catch (error) {
+		console.error('Error in processChildObservationSolution:', error.message)
+		return {
+			success: false,
+			error: error.message,
+		}
+	}
+}
+
+/**
+ * Update observation parent solution with project reference
+ * @name updateObservationReference
+ * @param {String} externalId - Solution external_id
+ * @param {String} tenantCode - Tenant code
+ * @param {String} organizationCode - Org code
+ * @param {String} templateId - Project template _id
+ * @param {String} taskId - Newly created task's _id
+ * @param {Boolean} isReusable - isReusable
+ * @returns {Object} - Status object
+ */
+async function updateObservationReference(externalId, tenantCode, organizationCode, templateId, taskId, isReusable) {
+	try {
+		const solutionCollection = surveyMongoConnection.collection(COLLECTIONS_MAP.get('SOLUTIONS'))
+
+		let updatePayload = {
+			referenceFrom: common.PROJECT,
+			project: {
+				_id: templateId,
+				taskId: taskId,
+			},
+		}
+
+		const updateRes = await solutionCollection.updateOne(
+			{
+				externalId,
+				tenantId: tenantCode,
+				orgId: organizationCode,
+				isReusable: isReusable,
+				type: common.OBSERVATION,
+			},
+			{ $set: updatePayload }
+		)
+
+		if (updateRes.matchedCount === 0) {
+			throw new Error(`Observation solution not found for external_id: ${externalId}`)
+		}
+
+		return { success: true }
+	} catch (error) {
+		console.error('Error in updateObservationReference:', error.message)
+		return {
+			success: false,
+			error: error.message,
+		}
+	}
+}
+
+/**
  * Create Task
  * @name createTasks
  * @param {Object} tasks - task data
@@ -340,7 +603,15 @@ async function processProjectAsTask(task, tenantCode, organizationCode) {
  * @param {String} parentId - parentId
  * @returns {Object} - Response contains task data
  */
-async function createTasks(tasks, templateId, templateExternalId, parentId = null, organizationCode, tenantCode) {
+async function createTasks(
+	tasks,
+	templateId,
+	templateExternalId,
+	parentId = null,
+	organizationCode,
+	tenantCode,
+	surveyMongoConnection
+) {
 	const result = { success: false, taskIds: [], externalIds: [], error: null }
 	try {
 		const taskCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TASKS'))
@@ -378,14 +649,40 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				taskData.type = projectResult?.type
 			}
 
+			//if taskType observation add solutionDetails
+			if (task.type === common.OBSERVATION) {
+				const ObservationRes = await processObservationAsTask(
+					task,
+					tenantCode,
+					organizationCode,
+					surveyMongoConnection
+				)
+				if (!ObservationRes.success || !ObservationRes.result?.solutionDetails) {
+					throw new Error(`Failed to process Observation as task: ${ObservationRes.error}`)
+				}
+				taskData.solutionDetails = ObservationRes.result.solutionDetails
+				taskData.type = ObservationRes.result.type
+			}
+
 			// Create the task
 			const taskCreationRes = await taskCollection.insertOne(taskData)
 			// Validate the insertion result
 			if (!taskCreationRes || !taskCreationRes.insertedId) {
 				throw new Error(`Failed to insert task: ${task.name}`)
 			}
-
+			// updateObservationReference
+			if (task.type === common.OBSERVATION) {
+				await updateObservationReference(
+					task.solution_details?.external_id,
+					tenantCode,
+					organizationCode,
+					templateId,
+					taskCreationRes.insertedId,
+					true //isReusable
+				)
+			}
 			const taskId = taskCreationRes.insertedId
+
 			taskIds.push(taskId)
 			externalIds.push(taskData.externalId)
 
@@ -425,6 +722,231 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 		console.error('Error in createTasks:', error.message)
 		result.error = `Failed to create tasks: ${error.message}`
 		return result
+	}
+}
+
+/**
+ * Fetch external entities from respective service
+ * @name fetchExternalEntities
+ * @param {Object} apiData - task data
+ * @param {Array} dataToFetch - List of entities to fetch
+ * @param {String} entityType - Type of the entity
+ * @param {String} tenantCode - tenant code of the entities
+ * @returns {Array} - Array of entity names
+ */
+const fetchExternalEntities = async (apiData, dataToFetch = [], entityType, tenantCode) => {
+	let result = []
+	try {
+		if (apiData && Object.keys(apiData) && dataToFetch.length > 0) {
+			const hostEnvKey = apiData.service.replace(/-/g, '_').toUpperCase()
+			const host = process.env?.[`${hostEnvKey}_SERVICE_HOST`]
+			const serviceName = process.env?.[`${hostEnvKey}_SERVICE_NAME`]
+			const baseUrl = utils.buildUrl(host, serviceName)
+			const endPoint = utils.buildUrl(baseUrl, apiData.endPointService)
+			const bodyData = {
+				query: {
+					_id: {
+						$in: dataToFetch,
+					},
+					entityType: entityType,
+					tenantId: tenantCode,
+				},
+				projection: ['_id', 'metaInformation.name', 'entityType'],
+				mongoIdKeys: ['_id'],
+			}
+
+			const response = await requests.post(endPoint, bodyData, '', true, 'internal-access-token')
+			if (response.status == responseCode.ok) {
+				result = response?.result || []
+			}
+		}
+
+		return result
+	} catch (error) {
+		console.log(error)
+		return result
+	}
+}
+
+/**
+ * Process targeting criteria
+ * @name processTargetingCriteria
+ * @param {Object} targetingData - Program template data
+ * @returns {Object} - Response contains scope and metaInformation
+ */
+const processTargetingCriteria = async (targetingData, organizationCode, tenantCode) => {
+	try {
+		let scope = {}
+		let keysToRemoveFromScope = []
+
+		// Configuration for mapping keys to data paths
+		const scopeKeyToDataPath = {
+			roles: 'professional_role',
+			sub_roles: 'professional_subroles',
+		}
+		targetingData = targetingData.map((criteria) => {
+			for (let criteriaKey of Object.keys(criteria)) {
+				let isKeyModified = false
+				// find data path if the key is modified
+				const dataPath = scopeKeyToDataPath?.[criteriaKey] || null
+				// if key is modified (i.e dataPath is not null ) and the scope is expecting multi select
+				if (dataPath && scopeKeys?.[dataPath]?.multi_select) {
+					// if key is modified and the actual data path has values
+					if (criteria?.[dataPath]?.length > 0 && criteria?.[criteriaKey]?.length > 0) {
+						criteria[dataPath] = [...criteria[dataPath], ...criteria[criteriaKey]]
+						isKeyModified = true
+						// if key is modified and the actual data path has no values or the key is not present in targeting
+					} else if (!criteria?.[dataPath] && criteria?.[criteriaKey].length > 0) {
+						criteria[dataPath] = [...criteria[criteriaKey]]
+						isKeyModified = true
+					}
+				} else if (dataPath && !scopeKeys?.[dataPath]?.multi_select) {
+					criteria[dataPath] = criteria[criteriaKey]
+					isKeyModified = true
+				}
+				if (dataPath && isKeyModified) keysToRemoveFromScope.push(criteriaKey)
+				if (
+					scopeKeys &&
+					!Object.keys(scopeKeys).includes(criteriaKey) &&
+					!keysToRemoveFromScope.includes(criteriaKey)
+				)
+					keysToRemoveFromScope.push(criteriaKey)
+			}
+			return criteria
+		})
+		// add organization into the scope by default
+		scope[`${common.SCOPE_ELEMENT_ORGANIZATIONS}`] = [organizationCode]
+		let mandatoryKeys = []
+		// iterate through the scope keys and create empty array for each key
+		// also track the mandatory keys
+		for (let scopeElement of Object.keys(scopeKeys)) {
+			scope[scopeElement] = []
+			if (scopeKeys[scopeElement]?.mandatory) {
+				mandatoryKeys.push(scopeElement)
+			}
+		}
+
+		let metaInformation = {}
+		const metaInformationKeys = [...new Set(process.env.PROGRAM_META_INFO_KEYS.split(',').map((key) => key))]
+
+		if (targetingData && Object.keys(targetingData).length > 0 && scope && Object.keys(scope).length > 0) {
+			// Iterate through each targeting criterion
+			for (let i = 0; i < targetingData.length; i++) {
+				const targeting = targetingData[i]
+				let skipTargeting = false // flag to skip further processing if 'ALL' is found
+				for (let eachTargeting of Object.keys(targeting)) {
+					const target = targeting?.[eachTargeting] || null
+					if (!Object.keys(scope).includes(eachTargeting)) scope[eachTargeting] = []
+					// check if the current scope already has 'ALL' keyword and set the flag
+					if (
+						scope[eachTargeting] == common.TARGETING_ALL ||
+						scope[eachTargeting].includes(common.TARGETING_ALL)
+					) {
+						skipTargeting = true
+					}
+					// if the particular targeting has 'ALL' keyword, ignore the processing
+					if (!skipTargeting) {
+						if (target && typeof target == common.STRING) {
+							// if the target is string , possibly we are expecting the _id of the entity.
+							// Hence push it directly making sure the value is unique
+							if (!scope[eachTargeting].includes(target)) {
+								if (scope[eachTargeting] == common.TARGETING_ALL) {
+									scope[eachTargeting] = [common.TARGETING_ALL] // if targeting is all , set the array as ["ALL"]
+								} else {
+									scope[eachTargeting].push(target)
+								}
+							}
+						} else if (target && Array.isArray(target) && target.length > 0) {
+							// if any of the element is ALL , record only ALL
+							if (target.includes(common.TARGETING_ALL)) {
+								scope[eachTargeting] = [common.TARGETING_ALL] // if targeting is all , set the array as ["ALL"]
+							} else {
+								// if the target is an array , iterate through each element
+								target.forEach((targetEntity) => {
+									// if the element inside array is string , possibly we are expecting the _id of the entity.
+									// Hence push it directly making sure the value is unique
+									if (typeof targetEntity == common.STRING)
+										if (!scope[eachTargeting].includes(targetEntity))
+											scope[eachTargeting].push(targetEntity)
+									if (typeof targetEntity == common.OBJECT) {
+										// if the element inside array is an object.
+										// check for _id or id within the object
+										const id = targetEntity?._id || targetEntity?.id || null
+										if (id && !scope[eachTargeting].includes(id)) scope[eachTargeting].push(id)
+									}
+								})
+							}
+						} else if (target && typeof target == common.OBJECT && Object.keys(target).length > 0) {
+							// if the target is an object.
+							// check for _id or id within the object.
+							const id = target?._id || target?.id || null
+							if (id && !scope[eachTargeting].includes(target)) scope[eachTargeting].push(id)
+						}
+					}
+				}
+			}
+
+			function createMetaInfo(targetingCriteria, metaInformationKeys, keyToDataPath) {
+				const metaInfo = {}
+				metaInformationKeys.forEach((key) => {
+					metaInfo[key] = new Set()
+				})
+
+				targetingCriteria.forEach((criteria) => {
+					metaInformationKeys.forEach((key) => {
+						const dataPath = keyToDataPath[key]
+						if (dataPath) {
+							const items = criteria[dataPath] || []
+							items.forEach((item) => {
+								if (item.name) {
+									metaInfo[key].add(item.name)
+								}
+							})
+						}
+					})
+				})
+
+				metaInformationKeys.forEach((key) => {
+					metaInfo[key] = Array.from(metaInfo[key])
+				})
+
+				return metaInfo
+			}
+
+			// Configuration for mapping keys to data paths
+			const keyToDataPath = {
+				state: 'state',
+				recommendedFor: 'roles',
+			}
+
+			metaInformation = createMetaInfo(targetingData, metaInformationKeys, keyToDataPath)
+		}
+		if (mandatoryKeys.length > 0) {
+			for (const key of mandatoryKeys) {
+				if (!scope[key] || scope[key].length == 0) {
+					scope[key] = [common.TARGETING_ALL]
+				}
+			}
+		}
+		if (scope) {
+			scope = Object.fromEntries(
+				Object.entries(scope).filter(([key, value]) =>
+					Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined
+				)
+			)
+		}
+		if (keysToRemoveFromScope.length > 0) {
+			for (const key of keysToRemoveFromScope) {
+				scope[key] && delete scope[key]
+			}
+		}
+		return { scope, metaInformation, success: true }
+	} catch (error) {
+		console.log('Error in creating targeting : ', error)
+		return {
+			success: false,
+			error,
+		}
 	}
 }
 
@@ -770,6 +1292,10 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 			let templateTaskIds = []
 			// array of created template tasks
 			let duplicateTasks = []
+			// Track observation tasks that need reference updates with their project template externalId
+			let observationTasksToUpdate = []
+			//Track projectTaskAfterInsert
+			let projectsTasksDetailsAfterInsert = []
 
 			//taskMap = {
 			// 	projectTaskId : duplicateProjectTaskId
@@ -927,6 +1453,21 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 							minNoOfSubmissionsRequired: duplicateResourceData?.minNoOfSubmissionsRequired,
 						}
 					}
+					//Create childSolution for observation as a task
+					if (projectTask.type === common.OBSERVATION) {
+						const childObs = await processChildObservationSolution(projectTask, template, programData)
+
+						if (!childObs.success) throw new Error(childObs.error)
+
+						projectTask.solutionDetails = childObs.result.solutionDetails
+						projectTask.type = childObs.result.type
+						// Store observation task for later reference update with project template external id
+						observationTasksToUpdate.push({
+							solutionExternalId: childObs.result.solutionDetails?.externalId,
+							projectTask: projectTask,
+							projectTemplateExternalId: projectTask.projectTemplateExternalId + externalId_suffixing,
+						})
+					}
 					// replace old task id by new task id in sequence
 					_.update(taskSeqMap, projectTask.projectTemplateExternalId + externalId_suffixing, (tasks) =>
 						tasks.map((task) => (task === oldTaskExtId ? projectTask.externalId : task))
@@ -943,7 +1484,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 
 				await projectsTaskCollection.insertMany(duplicateTasks)
 
-				const projectsTasksDetailsAfterInsert = await projectsTaskCollection
+				projectsTasksDetailsAfterInsert = await projectsTaskCollection
 					.find({
 						externalId: {
 							$in: duplicateTasks.map((tasks) => tasks.externalId),
@@ -1007,6 +1548,43 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 						},
 					})
 					.toArray()) || []
+			// Update observation references after project templates are inserted with their _id
+			if (observationTasksToUpdate.length > 0 && updatedProjectTemplates.length > 0) {
+				for (const obsTask of observationTasksToUpdate) {
+					// Find the corresponding project template for this observation task
+					const projectTemplate = updatedProjectTemplates.find(
+						(project) => project.externalId === obsTask.projectTemplateExternalId
+					)
+
+					if (!projectTemplate) {
+						console.warn(
+							`Warning: Project template not found for observation task with external id: ${obsTask.projectTemplateExternalId}`
+						)
+						continue
+					}
+
+					const insertedTask = projectsTasksDetailsAfterInsert.find(
+						(task) => task.externalId === obsTask.projectTask.externalId
+					)
+
+					if (insertedTask && obsTask.solutionExternalId) {
+						const updateResult = await updateObservationReference(
+							obsTask.solutionExternalId,
+							resourceDetails.tenant_code,
+							resourceDetails.organization_code,
+							projectTemplate._id, //  project template _id
+							insertedTask._id,
+							false //isReusable
+						)
+
+						if (!updateResult.success) {
+							console.warn(
+								`Warning: Failed to update observation reference for ${obsTask.solutionExternalId}`
+							)
+						}
+					}
+				}
+			}
 
 			// Add a new 'type', 'resource_id' , 'rolloutId' keys to each project
 			updatedProjectTemplates = updatedProjectTemplates.map((project) => ({
@@ -1253,6 +1831,7 @@ const publishProgram = function async(programData) {
 							[Op.in]: programResourceIds,
 						},
 						type: common.ROLLOUT_TYPE_SOLUTION,
+						tenant_code: programData.tenant_code,
 					},
 					['id', 'resource_id']
 				)
@@ -1270,9 +1849,16 @@ const publishProgram = function async(programData) {
 			let result = {}
 			let solutions = []
 			let programId = template?._id ? ObjectId(template?._id) : null
-			projectsMongoConnection = projectsMongoConnection
-				? projectsMongoConnection
-				: await connectMongo(projectsMongoDBUrl)
+			// projectsMongoConnection = projectsMongoConnection
+			// 	? projectsMongoConnection
+			// 	: await connectMongo(projectsMongoDBUrl)
+			// surveyMongoConnection = surveyMongoConnection ? surveyMongoConnection : await connectMongo(surveyMongoDBUrl)
+			projectsMongoConnection = await ensureProjectsConnection()
+			// projectsMongoConnection = projectsMongoConnection
+			// 	? projectsMongoConnection
+			// 	: await connectMongo(projectsMongoDBUrl)
+
+			surveyMongoConnection = await ensureSurveyConnection()
 
 			// if program is already created , update scope , start and end dates  else create a new program
 			if (programId) {
@@ -1452,13 +2038,18 @@ const publishProgram = function async(programData) {
 			}
 			if (isProgramResource && programResourceTableId) {
 				// update resource table with published Id
-				await resourceService.publishCallback(programResourceTableId, programId ? programId.toString() : null)
+				await resourceService.publishCallback(
+					programResourceTableId,
+					programId ? programId.toString() : null,
+					programData.tenant_code
+				)
 			}
 			// update rollout table with published Id
 			await rolloutService.publishCallback(
 				programData.id,
 				programId ? programId.toString() : null,
 				null,
+				programData.tenant_code,
 				isProgramResource
 			)
 			solutions.forEach(async (solution) => {
@@ -1467,16 +2058,20 @@ const publishProgram = function async(programData) {
 					await resourceService.publishCallback(
 						solution.scp_reference_id,
 						solution?._id ? solution?._id.toString() : null,
+						programData.tenant_code,
 						solution?.link ? solution?.link : false
 					)
 				}
 				// update rollout table with published Id
-				await rolloutService.publishCallback(
-					solution.rolloutId,
-					solution?._id ? solution?._id.toString() : null,
-					solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
-					isProgramResource
-				)
+				if (solution?.rolloutId) {
+					await rolloutService.publishCallback(
+						solution.rolloutId,
+						solution?._id ? solution?._id.toString() : null,
+						solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
+						programData.tenant_code,
+						isProgramResource
+					)
+				}
 			})
 
 			//create user and program mapping
@@ -1508,6 +2103,7 @@ const publishProgram = function async(programData) {
 			await rolloutQueries.updateOne(
 				{
 					id: programData.id,
+					tenant_code: programData.tenant_code,
 				},
 				{
 					status: common.ROLLOUT_STATUS_FAILED,

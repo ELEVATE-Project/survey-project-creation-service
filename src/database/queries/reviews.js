@@ -22,7 +22,7 @@ exports.distinctResources = async (filter, attributes) => {
 		const res = await Review.findAll({
 			where: filter,
 			attributes: [[fn('COUNT', fn('DISTINCT', col('status'))), 'distinctCount'], ...attributes],
-			group: ['resource_id'],
+			group: ['resource_id', 'tenant_code'], // Include tenant_code for Citus distributed table compatibility
 			raw: true,
 		})
 
