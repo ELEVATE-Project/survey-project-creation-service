@@ -65,7 +65,7 @@ exports.orderSolutionsInProgram = (resourceWithInProgram) => {
 }
 
 /**
- * Format Program Template DTO for Elevate consumption
+ * Format Program Template DTO for Sunbird consumption
  * @method
  * @name formatProgramTemplateDTO
  * @param {Object} programData - Program template data from resource
