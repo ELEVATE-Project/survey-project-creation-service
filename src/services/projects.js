@@ -18,6 +18,8 @@ const entityModelMappingQuery = require('@database/queries/entityModelMapping')
 const utils = require('@generics/utils')
 const resourceService = require('@services/resource')
 const reviewService = require('@services/reviews')
+const interfaceRequests = require('@requests/interface')
+
 module.exports = class ProjectsHelper {
 	/**
 	 *  project create
@@ -718,7 +720,8 @@ module.exports = class ProjectsHelper {
 									common.TASKS,
 									taskPath,
 									taskEntityTypesMapping,
-									validationErrors
+									validationErrors,
+									userDetails
 								)
 							})
 						)
@@ -737,7 +740,8 @@ module.exports = class ProjectsHelper {
 												common.SUB_TASK,
 												subTaskPath,
 												taskEntityTypesMapping,
-												validationErrors
+												validationErrors,
+												userDetails
 											)
 										})
 									)
@@ -927,7 +931,15 @@ module.exports = class ProjectsHelper {
 	 * @param {string} sourceType - Specifies the source of the input, which can be 'body', 'param', or 'query'.
 	 * @returns {JSON} - Response containing error details, if any.
 	 */
-	static async validateEntityData(entityData, entityType, model, sourceType, entityMapping, validationErrors = []) {
+	static async validateEntityData(
+		entityData,
+		entityType,
+		model,
+		sourceType,
+		entityMapping,
+		validationErrors = [],
+		userDetails
+	) {
 		try {
 			let fieldData = entityData[entityType.value]
 
@@ -959,8 +971,12 @@ module.exports = class ProjectsHelper {
 			if (requiredValidation) {
 				let required = utils.checkRequired(requiredValidation, fieldData)
 				// Add validation error when a required field is missing,
-				// except for tasks of type 'project', which are handled separately below.
-				if (!required && entityType.value != common.TASK_TYPE_PROJECT) {
+				// except for tasks of type 'project' and "observation", which are handled separately below.
+				if (
+					!required &&
+					entityType.value != common.TASK_TYPE_PROJECT &&
+					entityType.value != common.OBSERVATION
+				) {
 					validationErrors.push(
 						utils.errorObject(
 							model == common.PROJECT ? entityType.value : sourceType,
@@ -1115,6 +1131,24 @@ module.exports = class ProjectsHelper {
 				}
 			}
 
+			//check for observation as a task
+			if (
+				model == common.TASKS &&
+				entityType.value === common.OBSERVATION &&
+				entityData.type === common.OBSERVATION
+			) {
+				await this.validateObservationTask({
+					entityData,
+					entityType,
+					model,
+					sourceType,
+					entityMapping,
+					requiredValidation,
+					validationErrors,
+					userDetails,
+				})
+			}
+
 			if (regexValidation && fieldData) {
 				//validate learning resource validation
 				if (entityType.value === common.LEARNING_RESOURCE) {
@@ -1235,6 +1269,81 @@ module.exports = class ProjectsHelper {
 			}
 		} catch (error) {
 			return error
+		}
+	}
+
+	/**
+	 * Validates an Observation-type task.
+	 * @name validateObservationTask
+	 * @param {Object}  - Required parameters.
+	 * @param {Object} entityData - The incoming task object containing solution_details.
+	 * @param {Object} entityType - The metadata definition for the OBSERVATION entityType.
+	 * @param {String} model - The model name (e.g., "tasks").
+	 * @param {String} sourceType - Source path used for error mapping.
+	 * @param {Object} entityMapping - Master validation mapping for entities.
+	 * @param {Object} requiredValidation - Validation rule for required fields.
+	 * @param {Array}  validationErrors - Array to push validation errors into.
+	 * @param {Object} userDetails - Auth details for service-to-service API calls.
+	 *
+	 * @returns {Promise<void|Object>}
+	 */
+
+	static async validateObservationTask({
+		entityData,
+		entityType,
+		model,
+		sourceType,
+		entityMapping,
+		requiredValidation,
+		validationErrors,
+		userDetails,
+	}) {
+		let observationPath = sourceType == '' ? `${common.OBSERVATION}` : `${sourceType}.${common.OBSERVATION}`
+
+		// Extract externalId from solution_details
+		const externalId = entityData.solution_details?.external_id
+
+		// Validate required externalId
+		if (!externalId || externalId.trim() === '') {
+			validationErrors.push(
+				utils.errorObject(
+					observationPath,
+					common.EXTERNAL_ID,
+					requiredValidation.message || `Required ExternalId${model}`
+				)
+			)
+			return
+		}
+
+		// Check solution validations from Master Mapping
+		if (!entityMapping[common.OBSERVATION]?.validations) return
+		//if consumption service is self we dont need to make this api call
+		if (process.env.CONSUMPTION_SERVICE === common.SELF) return
+
+		// Fetch solution using the DBFIND
+		const response = await interfaceRequests.observationDbFind(externalId, userDetails.token)
+
+		if (!response.success) {
+			validationErrors.push(
+				utils.errorObject(
+					observationPath,
+					common.EXTERNAL_ID,
+					response.message || `Failed to verify observation solution`
+				)
+			)
+		}
+
+		const results = response.result
+
+		// Validate reusable solution exists
+		if (results.length === 0 || !results[0]._id) {
+			validationErrors.push(
+				utils.errorObject(
+					observationPath,
+					common.EXTERNAL_ID,
+					`Observation solution not found or not marked as reusable`
+				)
+			)
 		}
 	}
 

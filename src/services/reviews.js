@@ -761,6 +761,7 @@ module.exports = class reviewsHelper {
 							id: resourceData.id,
 							organization_code: resourceData.organization_code,
 							tenant_code: resourceData.tenant_code,
+							userToken: userToken,
 						}
 						await kafkaCommunication.pushResourceToKafka(payload, resourceData.type)
 					}

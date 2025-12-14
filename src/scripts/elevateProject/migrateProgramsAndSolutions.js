@@ -698,7 +698,8 @@ async function processProgram(
 				projectTemplate,
 				user_id,
 				organization_code,
-				tenant_code
+				tenant_code,
+				db
 			)
 			// Validate conversion success
 			if (!convertedTemplate.success) {
@@ -1175,9 +1176,10 @@ async function convertProgramTemplate(program, user_id, organization_code, tenan
  * @param {string|number} user_id - The ID of the user creating the converted template
  * @param {string|number} organization_code - The organization code associated with the template
  * @param {string|number} tenant_code - The tenant code for multi-tenancy support
+ * @param {Object} db - The database connection object
  * @returns {Object} Object containing success status, converted template, and task ID mapping
  */
-async function convertProjectTemplate(template, user_id, organization_code, tenant_code) {
+async function convertProjectTemplate(template, user_id, organization_code, tenant_code, db) {
 	try {
 		// Map to track original task IDs to new UUIDs for reference mapping
 		const taskIdMap = {}
@@ -1188,13 +1190,13 @@ async function convertProjectTemplate(template, user_id, organization_code, tena
 		 * @param {number} index - Index position for sequence numbering
 		 * @returns {Object} Converted task object with new structure
 		 */
-		const convertTask = (task, index) => {
+		const convertTask = async (task, index) => {
 			const newTaskId = uuidv4()
 			taskIdMap[task._id] = newTaskId
-			return {
+			let baseTask = {
 				id: newTaskId,
 				name: task.name,
-				type: task.type,
+				type: task.type === common.SOLUTIONS_TYPE.project ? common.TASK_TYPE_PROJECT : task.type,
 
 				// Set mandatory status - if task is deletable, it's not mandatory
 				is_mandatory: task.isDeletable ? false : true,
@@ -1213,8 +1215,36 @@ async function convertProjectTemplate(template, user_id, organization_code, tena
 				sequence_no: task.sequenceNumber ? Number(task.sequenceNumber) : index + 1,
 
 				// Recursively convert child tasks if they exist
-				children: task.children ? task.children.map(convertTask) : [],
+				children: task.children ? await Promise.all(task.children.map(convertTask)) : [],
 			}
+			// Add fields for task
+			if (task.type === common.OBSERVATION) {
+				baseTask.solution_details = {
+					name: task.solutionDetails?.name || null,
+					min_no_of_submissions_required: task.solutionDetails?.min_no_of_submissions_required || null,
+					type: task.solutionDetails?.type || common.OBSERVATION,
+					external_id: task.solutionDetails?.externalId || null,
+				}
+			} else if (task.type === common.SOLUTIONS_TYPE.project) {
+				const solutions = await db
+					.collection('solutions')
+					.findOne({ externalId: task.solutionDetails?.externalId })
+				let projectResp = await handleProjectTask(
+					task.projectTemplateDetails?._id,
+					solutions,
+					user_id,
+					organization_code,
+					tenant_code,
+					db
+				)
+				if (projectResp.success || projectResp.alreadyExists) {
+					baseTask.project_id = projectResp?.projectId
+				}
+			} else if (task.type === common.TASK_TYPE_REFLECTION) {
+				baseTask.link = task.metaInformation?.redirectLink
+			}
+
+			return baseTask
 		}
 
 		// Build the converted template object with standardized structure
@@ -1268,6 +1298,249 @@ async function convertProjectTemplate(template, user_id, organization_code, tena
 }
 
 /**
+ * @apiName handleProjectTask
+ * @apiDescription Handles the creation and publishing of a project resource from a project template.
+ * Includes certificate template processing if associated with the solution.
+ * @apiParam {String} projectTemplateId - The MongoDB ObjectId of the project template to process
+ * @apiParam {Object} solution - The solution document containing metadata
+ * @apiParam {String} userId - The MongoDB ObjectId of the user creating the project
+ * @apiParam {String} orgId - The organization ID (code or ObjectId)
+ * @apiParam {String} tenantId - The tenant ID (code or ObjectId)
+ * @apiParam {Object} db - MongoDB database connection object
+ * @apiParam {Object} [taskIdMap={}] - Mapping of original task IDs to converted task IDs for certificate criteria
+ * @apiSuccess {Object} Response object
+
+ */
+async function handleProjectTask(projectTemplateId, solution, userId, orgId, tenantId, db, taskIdMap = {}) {
+	try {
+		// STEP 1: CHECK IF PROJECT RESOURCE ALREADY EXISTS
+		const existing = await checkResourceExist(projectTemplateId, 'project', tenantId, orgId)
+
+		if (existing.success) {
+			return {
+				success: true,
+				projectId: existing.resourceId,
+				alreadyExists: true,
+			}
+		}
+
+		// STEP 2: FETCH PROJECT TEMPLATE
+		const projectTemplate = await db.collection('projectTemplates').findOne({
+			_id: ObjectId(projectTemplateId),
+		})
+
+		if (!projectTemplate) {
+			return {
+				success: false,
+				error: 'Project template not found',
+			}
+		}
+
+		// STEP 3: FETCH TEMPLATE TASKS
+		const templateTasks = await db
+			.collection('projectTemplateTasks')
+			.find({ _id: { $in: projectTemplate.tasks } })
+			.toArray()
+
+		if (!templateTasks.length) {
+			return {
+				success: false,
+				error: 'No tasks found for project template',
+			}
+		}
+
+		// Attach tasks for conversion
+		projectTemplate.taskDetails = templateTasks
+
+		// Remove children and load sub-tasks
+		let childIds = []
+		for (let task of templateTasks) {
+			if (task.children?.length) {
+				const childTasks = await db
+					.collection('projectTemplateTasks')
+					.find({ _id: { $in: task.children } })
+					.toArray()
+
+				task.children = childTasks
+				childIds.push(...childTasks.map((x) => x._id))
+			}
+		}
+
+		if (childIds.length > 0) {
+			projectTemplate.taskDetails = projectTemplate.taskDetails.filter(
+				(t) => !childIds.some((id) => id.equals(t._id))
+			)
+		}
+
+		// STEP 4: CONVERT TEMPLATE
+		let converted = await convertProjectTemplate(projectTemplate, userId, orgId, tenantId, db)
+
+		if (!converted.success) {
+			return {
+				success: false,
+				error: 'Failed to convert project template',
+			}
+		}
+
+		let templateData = converted.template
+		taskIdMap = converted.taskIdMap || taskIdMap
+
+		// STEP 5: HANDLE CERTIFICATE TEMPLATE (if associated)
+		if (solution?.certificateTemplateId) {
+			const certificateResult = await processCertificateTemplate(
+				solution,
+				projectTemplate,
+				db,
+				userId,
+				orgId,
+				tenantId,
+				taskIdMap
+			)
+
+			if (certificateResult.success && certificateResult.certificate) {
+				templateData.certificate = certificateResult.certificate
+			} else {
+				console.warn(
+					`Certificate processing warning for project ${projectTemplateId}:`,
+					certificateResult.error
+				)
+				// Continue processing even if certificate fails (non-blocking)
+			}
+		}
+
+		// Add meta (start/end date)
+		templateData.meta = {
+			start_date: solution?.startDate || null,
+			end_date: solution?.endDate || null,
+		}
+
+		// No targeting criteria
+		templateData.targeting_criteria = []
+
+		// STEP 6: CREATE PROJECT RESOURCE
+		let resourceCreate = await createProjectAndEntities(
+			templateData,
+			[], // no entities
+			[], // no new entities to create
+			{},
+			tenantId,
+			orgId
+		)
+
+		if (!resourceCreate.success) {
+			return {
+				success: false,
+				error: 'Failed to create project resource',
+			}
+		}
+
+		// STEP 7: UPDATE AND PUBLISH RESOURCE
+		let updatePayload = {
+			meta: templateData.meta,
+			is_reusable: false,
+			published_id: projectTemplate._id.toString(),
+			published_on: new Date(),
+			status: 'published',
+			stage: 'completion',
+		}
+
+		let publishRes = await updateResource(resourceCreate.projectId, updatePayload)
+
+		if (!publishRes.success) {
+			return {
+				success: false,
+				error: 'Failed to publish project resource',
+			}
+		}
+
+		// STEP 8: UPDATE SOLUTION WITH SCP ID
+		await db
+			.collection('solutions')
+			.updateOne({ _id: solution._id }, { $set: { scp_reference_id: resourceCreate.projectId } })
+
+		return {
+			success: true,
+			projectId: resourceCreate.projectId,
+			alreadyExists: false,
+		}
+	} catch (err) {
+		console.error('handleProjectTask() error:', err)
+		return { success: false, error: err.message }
+	}
+}
+
+/**
+ * @apiName processCertificateTemplate
+ * @apiGroup Certificate Management
+ * @apiDescription Processes and generates certificate criteria for a project if a certificate template is associated.
+ *
+ * @apiParam {Object} solution - The solution document
+ * @apiParam {String} [solution.certificateTemplateId] - Certificate template reference
+ * @apiParam {Object} projectTemplate - The project template document being processed
+ * @apiParam {Object} db - MongoDB database connection object
+ * @apiParam {String} userId - User ID creating the certificate
+ * @apiParam {String} orgId - Organization ID
+ * @apiParam {String} tenantId - Tenant ID
+ * @apiParam {Object} taskIdMap - Map of original task IDs to converted task IDs
+ *
+ * @apiSuccess {Object} SuccessResponse
+ */
+async function processCertificateTemplate(solution, projectTemplate, db, userId, orgId, tenantId, taskIdMap) {
+	try {
+		// Handle certificate template if associated
+		if (!solution?.certificateTemplateId) {
+			return { success: true, certificate: null }
+		}
+
+		// Fetch and process certificate template
+		let certificateRes = await handleCertificateTemplate(solution, projectTemplate, db, tenantId, orgId)
+
+		// Validate certificate processing
+		if (
+			!certificateRes ||
+			!certificateRes.success ||
+			!certificateRes?.scpCertificateBaseTemplate ||
+			!certificateRes?.certificateTemplate?.criteria ||
+			!certificateRes?.certificateBaseTemplate
+		) {
+			return {
+				success: false,
+				error: 'Invalid certificate template response',
+				certificate: null,
+			}
+		}
+
+		// Generate certificate criteria
+		let certificateCriteriaRes = await generateCertificateCriteria(
+			certificateRes.certificateTemplate,
+			certificateRes.certificateBaseTemplate,
+			certificateRes.scpCertificateBaseTemplate,
+			taskIdMap
+		)
+
+		if (!certificateCriteriaRes.success || !certificateCriteriaRes.certificate) {
+			return {
+				success: false,
+				error: 'Failed to generate certificate criteria',
+				certificate: null,
+			}
+		}
+
+		return {
+			success: true,
+			certificate: certificateCriteriaRes.certificate,
+		}
+	} catch (err) {
+		console.error('processCertificateTemplate() error:', err)
+		return {
+			success: false,
+			error: err.message,
+			certificate: null,
+		}
+	}
+}
+
+/*
  * Handles certificate template processing for project solutions
  * Creates or retrieves certificate base templates in the SCP system
  * @param {Object} solution - Solution object containing certificate template reference

@@ -1069,6 +1069,15 @@ function setPolicy(policy) {
 	return common.VALID_POLICIES[upper] ? upper : null
 }
 
+/**
+ * Get epoch time from current date.
+ * @function
+ * @name epochTime
+ * @returns {Number} Epoch time(milliseconds)
+ */
+
+const epochTime = () => Date.now()
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -1123,4 +1132,5 @@ module.exports = {
 	pathFinder,
 	isValidDate,
 	setPolicy,
+	epochTime,
 }

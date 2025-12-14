@@ -129,7 +129,13 @@ const publishProjectTemplates = function (templateData) {
 
 			// Process and Create Tasks
 			const processedTasks = assignSequenceNumbers(templateData.tasks || [])
-			const taskCreationResponse = await createTasks(processedTasks, templateId, template.externalId)
+			const taskCreationResponse = await createTasks(
+				processedTasks,
+				templateId,
+				template.externalId,
+				null,
+				templateData.userToken
+			)
 
 			// Validate the result of the task creation
 			if (!taskCreationResponse.success) {
@@ -295,7 +301,7 @@ async function processCategories(categories) {
  * @param {String} parentId - parentId
  * @returns {Object} - Response contains task data
  */
-async function createTasks(tasks, templateId, templateExternalId, parentId = null) {
+async function createTasks(tasks, templateId, templateExternalId, parentId = null, userToken) {
 	const result = { success: false, taskIds: [], externalIds: [], error: null }
 	try {
 		const taskCollection = mongoDb.collection(COLLECTIONS.TASKS)
@@ -322,6 +328,20 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 				updatedAt: new Date(),
 			}
 
+			if (task.type === common.OBSERVATION) {
+				const childObsSolution = await processChildObservationSolution(
+					task,
+					templateId,
+					templateExternalId,
+					userToken
+				)
+
+				if (!childObsSolution.success || !childObsSolution?.solutionDetails) {
+					throw new Error(`Failed to create child observation solution: ${childObsSolution.error}`)
+				}
+
+				taskData.solutionDetails = childObsSolution.solutionDetails
+			}
 			// Create the task
 			const taskCreationRes = await taskCollection.insertOne(taskData)
 			// Validate the insertion result
@@ -335,7 +355,13 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 
 			// Recursively handle child tasks
 			if (task.children?.length) {
-				const childTaskResult = await createTasks(task.children, templateId, templateExternalId, taskId)
+				const childTaskResult = await createTasks(
+					task.children,
+					templateId,
+					templateExternalId,
+					taskId,
+					userToken
+				)
 
 				// Validate the child task creation
 				if (!childTaskResult.success) {
@@ -362,6 +388,83 @@ async function createTasks(tasks, templateId, templateExternalId, parentId = nul
 		console.error('Error in createTasks:', error.message)
 		result.error = `Failed to create tasks: ${error.message}`
 		return result
+	}
+}
+
+/**
+ * Create child observation solution from parent reusable observation
+ */
+async function processChildObservationSolution(task, templateId, templateExternalId, userToken) {
+	try {
+		const solutionCollection = mongoDb.collection(COLLECTIONS.SOLUTIONS)
+
+		// Step 1: Fetch parent solution to get externalId and entityType
+		const parentSolution = await solutionCollection.findOne({
+			externalId: task.solution_details?.external_id,
+			isReusable: true,
+			type: common.OBSERVATION,
+		})
+
+		if (!parentSolution) {
+			throw new Error(`Parent solution not found for external_id: ${task.solution_details?.external_id}`)
+		}
+
+		// Step 2: Build request URL for consumption service
+		const queryParam = {
+			solutionId: parentSolution.externalId,
+			entityType: parentSolution.entityType,
+		}
+
+		const url = utils.buildUrl(process.env.INTERFACE_SERVICE_HOST, endpoints.IMPORT_FROM_SOLUTION, queryParam)
+
+		const timestamp = utils.epochTime()
+
+		// Step 3: Prepare payload for consumption service
+		const payload = {
+			programExternalId: templateExternalId,
+			externalId: parentSolution.externalId + '-' + timestamp,
+			name: parentSolution.name,
+			description: parentSolution.description || '',
+		}
+
+		// Step 4: Call consumption service to create child solution
+		const response = await requests.post(url, payload, userToken, true, common.INTERNAL_ACCESS_TOKEN)
+
+		if (!response.success || !response.data) {
+			throw new Error(`Error : ${response?.error || 'Child observation solution creation failed'}`)
+		}
+
+		const results = response.data?.result
+
+		if (!results) {
+			throw new Error(`Error: Consumption service did not return a result`)
+		}
+
+		// Step 5: Fetch created child solution from DB
+		const childSolution = await solutionCollection.findOne({
+			externalId: results.externalId,
+			isReusable: false,
+			type: common.OBSERVATION,
+		})
+
+		if (!childSolution) {
+			throw new Error(`Child solution not found for external_id: ${results.externalId}`)
+		}
+
+		// Step 6: Return formatted solution details
+		return {
+			success: true,
+			solutionDetails: {
+				_id: childSolution._id,
+				externalId: childSolution.externalId,
+				type: common.OBSERVATION,
+				name: childSolution.name,
+				entityType: childSolution.entityType,
+			},
+		}
+	} catch (error) {
+		console.error('Error in processChildObservationSolution:', error.message)
+		return { success: false, error: error.message }
 	}
 }
 
