@@ -36,6 +36,7 @@ module.exports = class RolloutsHelper {
 				id: bodyData.resource_id,
 				organization_code: org_code,
 				stage: common.RESOURCE_STAGE_COMPLETION,
+				tenant_code: tenant_code,
 			})
 
 			if (!resource?.id) {
@@ -1070,7 +1071,9 @@ module.exports = class RolloutsHelper {
 				for (const resource of deltaResources) {
 					const fetchResourceDetails = await resourceService.getDetails(
 						resource,
-						programData.organization_code
+						programData.organization_code,
+						tenant_code,
+						userToken
 					)
 					const rolloutDetails = _.omit(fetchResourceDetails?.result, [
 						'resource_id',
@@ -1268,6 +1271,7 @@ module.exports = class RolloutsHelper {
 				id: {
 					[Op.in]: resourceIds,
 				},
+				tenant_code: programData.tenant_code,
 			}
 			const updateResourceBody = {
 				status: common.RESOURCE_STATUS_PUBLISHED,
