@@ -1273,11 +1273,12 @@ module.exports = class resourceHelper {
 	 * @name publishCallback
 	 * @returns {JSON} - details of resource
 	 */
-	static async publishCallback(resourceId, publishedId, link = false) {
+	static async publishCallback(resourceId, publishedId, tenantCode, link = false) {
 		try {
 			let resource = await resourceQueries.updateOne(
 				{
 					id: resourceId,
+					tenant_code: tenantCode,
 					status: { [Op.notIn]: [common.RESOURCE_STATUS_DRAFT] },
 				},
 				{

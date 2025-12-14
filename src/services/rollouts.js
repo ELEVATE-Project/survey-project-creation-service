@@ -989,7 +989,13 @@ module.exports = class RolloutsHelper {
 	 * @param {String} templateId - template id
 	 * @returns {JSON} - details of Rollout
 	 */
-	static async publishCallback(rolloutId, publishedId = null, templateId = null, isProgramResource = false) {
+	static async publishCallback(
+		rolloutId,
+		publishedId = null,
+		templateId = null,
+		tenantCode,
+		isProgramResource = false
+	) {
 		try {
 			let updateData = {
 				published_on: new Date(),
@@ -1000,6 +1006,7 @@ module.exports = class RolloutsHelper {
 			let rollout = await rolloutQueries.updateOne(
 				{
 					id: rolloutId,
+					tenant_code: tenantCode,
 				},
 				updateData
 			)
