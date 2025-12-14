@@ -2231,13 +2231,15 @@ const publishProgram = function async(programData) {
 					)
 				}
 				// update rollout table with published Id
-				await rolloutService.publishCallback(
-					solution.rolloutId,
-					solution?._id ? solution?._id.toString() : null,
-					solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
-					programData.tenant_code,
-					isProgramResource
-				)
+				if (solution?.rolloutId) {
+					await rolloutService.publishCallback(
+						solution.rolloutId,
+						solution?._id ? solution?._id.toString() : null,
+						solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
+						programData.tenant_code,
+						isProgramResource
+					)
+				}
 			})
 
 			//create user and program mapping
