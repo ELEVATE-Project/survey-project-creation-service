@@ -154,7 +154,7 @@ const publishProjectTemplates = function (templateData) {
 			)
 
 			//update the published id in resource table
-			await resourceService.publishCallback(templateData.id, templateId.toString())
+			await resourceService.publishCallback(templateData.id, templateId.toString(), templateData.tenant_code)
 
 			//return result
 			result.success = true
@@ -1656,7 +1656,7 @@ async function updateSolutionTemplate(resource) {
 
 /**
  * Publish the Program
- * @name publishProjectTemplates
+ * @name publishProgram
  * @param {Object} programData - Program template data
  * @returns {Object} - Response of Program creation
  */
@@ -1690,6 +1690,7 @@ const publishProgram = function async(programData) {
 							resource_id: {
 								[Op.in]: programResourceIds,
 							},
+							tenant_code: programData?.tenant_code,
 						},
 						['id', 'resource_id']
 					)
@@ -1768,6 +1769,7 @@ const publishProgram = function async(programData) {
 							publishedProject = await publishProjectTemplates({
 								id: fetchDetails?.result?.resource_id,
 								..._.omit(fetchDetails?.result, ['id']),
+								tenant_code: programData?.tenant_code,
 							})
 							projectCertificate = fetchDetails?.result?.certificate
 						} else {
@@ -1874,13 +1876,18 @@ const publishProgram = function async(programData) {
 			}
 			if (isProgramResource) {
 				// update resource table with published Id
-				await resourceService.publishCallback(programData.resource_id, programId ? programId.toString() : null)
+				await resourceService.publishCallback(
+					programData.resource_id,
+					programId ? programId.toString() : null,
+					programData?.tenant_code
+				)
 			}
 			// update rollout table with published Id
 			await rolloutService.publishCallback(
 				programData.id,
 				programId ? programId.toString() : null,
 				null,
+				programData?.tenant_code,
 				isProgramResource
 			)
 			solutions.forEach(async (solution) => {
@@ -1889,16 +1896,20 @@ const publishProgram = function async(programData) {
 					await resourceService.publishCallback(
 						solution.scp_reference_id,
 						solution?._id ? solution?._id.toString() : null,
+						programData?.tenant_code,
 						solution?.link ? solution?.link : false
 					)
 				}
 				// update rollout table with published Id
-				await rolloutService.publishCallback(
-					solution.rolloutId,
-					solution?._id ? solution?._id.toString() : null,
-					solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
-					isProgramResource
-				)
+				if (solution.rolloutId) {
+					await rolloutService.publishCallback(
+						solution.rolloutId,
+						solution?._id ? solution?._id.toString() : null,
+						solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
+						programData?.tenant_code,
+						isProgramResource
+					)
+				}
 			})
 
 			//return result
@@ -1916,6 +1927,7 @@ const publishProgram = function async(programData) {
 			await rolloutQueries.updateOne(
 				{
 					id: programData.id,
+					tenant_code: programData.tenant_code,
 				},
 				{
 					status: common.ROLLOUT_STATUS_FAILED,

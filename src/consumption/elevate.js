@@ -726,6 +726,231 @@ async function createTasks(
 }
 
 /**
+ * Fetch external entities from respective service
+ * @name fetchExternalEntities
+ * @param {Object} apiData - task data
+ * @param {Array} dataToFetch - List of entities to fetch
+ * @param {String} entityType - Type of the entity
+ * @param {String} tenantCode - tenant code of the entities
+ * @returns {Array} - Array of entity names
+ */
+const fetchExternalEntities = async (apiData, dataToFetch = [], entityType, tenantCode) => {
+	let result = []
+	try {
+		if (apiData && Object.keys(apiData) && dataToFetch.length > 0) {
+			const hostEnvKey = apiData.service.replace(/-/g, '_').toUpperCase()
+			const host = process.env?.[`${hostEnvKey}_SERVICE_HOST`]
+			const serviceName = process.env?.[`${hostEnvKey}_SERVICE_NAME`]
+			const baseUrl = utils.buildUrl(host, serviceName)
+			const endPoint = utils.buildUrl(baseUrl, apiData.endPointService)
+			const bodyData = {
+				query: {
+					_id: {
+						$in: dataToFetch,
+					},
+					entityType: entityType,
+					tenantId: tenantCode,
+				},
+				projection: ['_id', 'metaInformation.name', 'entityType'],
+				mongoIdKeys: ['_id'],
+			}
+
+			const response = await requests.post(endPoint, bodyData, '', true, 'internal-access-token')
+			if (response.status == responseCode.ok) {
+				result = response?.result || []
+			}
+		}
+
+		return result
+	} catch (error) {
+		console.log(error)
+		return result
+	}
+}
+
+/**
+ * Process targeting criteria
+ * @name processTargetingCriteria
+ * @param {Object} targetingData - Program template data
+ * @returns {Object} - Response contains scope and metaInformation
+ */
+const processTargetingCriteria = async (targetingData, organizationCode, tenantCode) => {
+	try {
+		let scope = {}
+		let keysToRemoveFromScope = []
+
+		// Configuration for mapping keys to data paths
+		const scopeKeyToDataPath = {
+			roles: 'professional_role',
+			sub_roles: 'professional_subroles',
+		}
+		targetingData = targetingData.map((criteria) => {
+			for (let criteriaKey of Object.keys(criteria)) {
+				let isKeyModified = false
+				// find data path if the key is modified
+				const dataPath = scopeKeyToDataPath?.[criteriaKey] || null
+				// if key is modified (i.e dataPath is not null ) and the scope is expecting multi select
+				if (dataPath && scopeKeys?.[dataPath]?.multi_select) {
+					// if key is modified and the actual data path has values
+					if (criteria?.[dataPath]?.length > 0 && criteria?.[criteriaKey]?.length > 0) {
+						criteria[dataPath] = [...criteria[dataPath], ...criteria[criteriaKey]]
+						isKeyModified = true
+						// if key is modified and the actual data path has no values or the key is not present in targeting
+					} else if (!criteria?.[dataPath] && criteria?.[criteriaKey].length > 0) {
+						criteria[dataPath] = [...criteria[criteriaKey]]
+						isKeyModified = true
+					}
+				} else if (dataPath && !scopeKeys?.[dataPath]?.multi_select) {
+					criteria[dataPath] = criteria[criteriaKey]
+					isKeyModified = true
+				}
+				if (dataPath && isKeyModified) keysToRemoveFromScope.push(criteriaKey)
+				if (
+					scopeKeys &&
+					!Object.keys(scopeKeys).includes(criteriaKey) &&
+					!keysToRemoveFromScope.includes(criteriaKey)
+				)
+					keysToRemoveFromScope.push(criteriaKey)
+			}
+			return criteria
+		})
+		// add organization into the scope by default
+		scope[`${common.SCOPE_ELEMENT_ORGANIZATIONS}`] = [organizationCode]
+		let mandatoryKeys = []
+		// iterate through the scope keys and create empty array for each key
+		// also track the mandatory keys
+		for (let scopeElement of Object.keys(scopeKeys)) {
+			scope[scopeElement] = []
+			if (scopeKeys[scopeElement]?.mandatory) {
+				mandatoryKeys.push(scopeElement)
+			}
+		}
+
+		let metaInformation = {}
+		const metaInformationKeys = [...new Set(process.env.PROGRAM_META_INFO_KEYS.split(',').map((key) => key))]
+
+		if (targetingData && Object.keys(targetingData).length > 0 && scope && Object.keys(scope).length > 0) {
+			// Iterate through each targeting criterion
+			for (let i = 0; i < targetingData.length; i++) {
+				const targeting = targetingData[i]
+				let skipTargeting = false // flag to skip further processing if 'ALL' is found
+				for (let eachTargeting of Object.keys(targeting)) {
+					const target = targeting?.[eachTargeting] || null
+					if (!Object.keys(scope).includes(eachTargeting)) scope[eachTargeting] = []
+					// check if the current scope already has 'ALL' keyword and set the flag
+					if (
+						scope[eachTargeting] == common.TARGETING_ALL ||
+						scope[eachTargeting].includes(common.TARGETING_ALL)
+					) {
+						skipTargeting = true
+					}
+					// if the particular targeting has 'ALL' keyword, ignore the processing
+					if (!skipTargeting) {
+						if (target && typeof target == common.STRING) {
+							// if the target is string , possibly we are expecting the _id of the entity.
+							// Hence push it directly making sure the value is unique
+							if (!scope[eachTargeting].includes(target)) {
+								if (scope[eachTargeting] == common.TARGETING_ALL) {
+									scope[eachTargeting] = [common.TARGETING_ALL] // if targeting is all , set the array as ["ALL"]
+								} else {
+									scope[eachTargeting].push(target)
+								}
+							}
+						} else if (target && Array.isArray(target) && target.length > 0) {
+							// if any of the element is ALL , record only ALL
+							if (target.includes(common.TARGETING_ALL)) {
+								scope[eachTargeting] = [common.TARGETING_ALL] // if targeting is all , set the array as ["ALL"]
+							} else {
+								// if the target is an array , iterate through each element
+								target.forEach((targetEntity) => {
+									// if the element inside array is string , possibly we are expecting the _id of the entity.
+									// Hence push it directly making sure the value is unique
+									if (typeof targetEntity == common.STRING)
+										if (!scope[eachTargeting].includes(targetEntity))
+											scope[eachTargeting].push(targetEntity)
+									if (typeof targetEntity == common.OBJECT) {
+										// if the element inside array is an object.
+										// check for _id or id within the object
+										const id = targetEntity?._id || targetEntity?.id || null
+										if (id && !scope[eachTargeting].includes(id)) scope[eachTargeting].push(id)
+									}
+								})
+							}
+						} else if (target && typeof target == common.OBJECT && Object.keys(target).length > 0) {
+							// if the target is an object.
+							// check for _id or id within the object.
+							const id = target?._id || target?.id || null
+							if (id && !scope[eachTargeting].includes(target)) scope[eachTargeting].push(id)
+						}
+					}
+				}
+			}
+
+			function createMetaInfo(targetingCriteria, metaInformationKeys, keyToDataPath) {
+				const metaInfo = {}
+				metaInformationKeys.forEach((key) => {
+					metaInfo[key] = new Set()
+				})
+
+				targetingCriteria.forEach((criteria) => {
+					metaInformationKeys.forEach((key) => {
+						const dataPath = keyToDataPath[key]
+						if (dataPath) {
+							const items = criteria[dataPath] || []
+							items.forEach((item) => {
+								if (item.name) {
+									metaInfo[key].add(item.name)
+								}
+							})
+						}
+					})
+				})
+
+				metaInformationKeys.forEach((key) => {
+					metaInfo[key] = Array.from(metaInfo[key])
+				})
+
+				return metaInfo
+			}
+
+			// Configuration for mapping keys to data paths
+			const keyToDataPath = {
+				state: 'state',
+				recommendedFor: 'roles',
+			}
+
+			metaInformation = createMetaInfo(targetingData, metaInformationKeys, keyToDataPath)
+		}
+		if (mandatoryKeys.length > 0) {
+			for (const key of mandatoryKeys) {
+				if (!scope[key] || scope[key].length == 0) {
+					scope[key] = [common.TARGETING_ALL]
+				}
+			}
+		}
+		if (scope) {
+			scope = Object.fromEntries(
+				Object.entries(scope).filter(([key, value]) =>
+					Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined
+				)
+			)
+		}
+		if (keysToRemoveFromScope.length > 0) {
+			for (const key of keysToRemoveFromScope) {
+				scope[key] && delete scope[key]
+			}
+		}
+		return { scope, metaInformation, success: true }
+	} catch (error) {
+		console.log('Error in creating targeting : ', error)
+		return {
+			success: false,
+			error,
+		}
+	}
+}
+
+/**
  * Fetch Org Policy related keys
  * @name fetchOrgPolicies
  * @param {String} orgCode Organization Code
@@ -1606,6 +1831,7 @@ const publishProgram = function async(programData) {
 							[Op.in]: programResourceIds,
 						},
 						type: common.ROLLOUT_TYPE_SOLUTION,
+						tenant_code: programData.tenant_code,
 					},
 					['id', 'resource_id']
 				)
@@ -1812,13 +2038,18 @@ const publishProgram = function async(programData) {
 			}
 			if (isProgramResource && programResourceTableId) {
 				// update resource table with published Id
-				await resourceService.publishCallback(programResourceTableId, programId ? programId.toString() : null)
+				await resourceService.publishCallback(
+					programResourceTableId,
+					programId ? programId.toString() : null,
+					programData.tenant_code
+				)
 			}
 			// update rollout table with published Id
 			await rolloutService.publishCallback(
 				programData.id,
 				programId ? programId.toString() : null,
 				null,
+				programData.tenant_code,
 				isProgramResource
 			)
 			solutions.forEach(async (solution) => {
@@ -1827,16 +2058,20 @@ const publishProgram = function async(programData) {
 					await resourceService.publishCallback(
 						solution.scp_reference_id,
 						solution?._id ? solution?._id.toString() : null,
+						programData.tenant_code,
 						solution?.link ? solution?.link : false
 					)
 				}
 				// update rollout table with published Id
-				await rolloutService.publishCallback(
-					solution.rolloutId,
-					solution?._id ? solution?._id.toString() : null,
-					solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
-					isProgramResource
-				)
+				if (solution?.rolloutId) {
+					await rolloutService.publishCallback(
+						solution.rolloutId,
+						solution?._id ? solution?._id.toString() : null,
+						solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
+						programData.tenant_code,
+						isProgramResource
+					)
+				}
 			})
 
 			//create user and program mapping
@@ -1868,6 +2103,7 @@ const publishProgram = function async(programData) {
 			await rolloutQueries.updateOne(
 				{
 					id: programData.id,
+					tenant_code: programData.tenant_code,
 				},
 				{
 					status: common.ROLLOUT_STATUS_FAILED,

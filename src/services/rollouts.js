@@ -36,6 +36,7 @@ module.exports = class RolloutsHelper {
 				id: bodyData.resource_id,
 				organization_code: org_code,
 				stage: common.RESOURCE_STAGE_COMPLETION,
+				tenant_code: tenant_code,
 			})
 
 			if (!resource?.id) {
@@ -668,10 +669,11 @@ module.exports = class RolloutsHelper {
 	 * @returns {JSON} - rollout delete response.
 	 */
 
-	static async delete(rolloutId, loggedInUserId) {
+	static async delete(rolloutId, loggedInUserId, tenantCode) {
 		try {
 			let rollout = await rolloutQueries.findOne({
 				id: rolloutId,
+				tenant_code: tenantCode,
 				user_id: loggedInUserId,
 				status: common.ROLLOUT_STATUS_PENDING,
 			})
@@ -832,7 +834,7 @@ module.exports = class RolloutsHelper {
 					])
 					// update the start date and end date of program for single roll out
 					solutionRolloutId = rolloutDetailsResult.id
-					await rolloutQueries.updateOne({ id: solutionRolloutId }, solutionRollout)
+					await rolloutQueries.updateOne({ id: solutionRolloutId, tenant_code: tenant_code }, solutionRollout)
 				}
 			}
 
@@ -989,7 +991,13 @@ module.exports = class RolloutsHelper {
 	 * @param {String} templateId - template id
 	 * @returns {JSON} - details of Rollout
 	 */
-	static async publishCallback(rolloutId, publishedId = null, templateId = null, isProgramResource = false) {
+	static async publishCallback(
+		rolloutId,
+		publishedId = null,
+		templateId = null,
+		tenantCode,
+		isProgramResource = false
+	) {
 		try {
 			let updateData = {
 				published_on: new Date(),
@@ -1000,6 +1008,7 @@ module.exports = class RolloutsHelper {
 			let rollout = await rolloutQueries.updateOne(
 				{
 					id: rolloutId,
+					tenant_code: tenantCode,
 				},
 				updateData
 			)
@@ -1062,7 +1071,9 @@ module.exports = class RolloutsHelper {
 				for (const resource of deltaResources) {
 					const fetchResourceDetails = await resourceService.getDetails(
 						resource,
-						programData.organization_code
+						programData.organization_code,
+						tenant_code,
+						userToken
 					)
 					const rolloutDetails = _.omit(fetchResourceDetails?.result, [
 						'resource_id',
@@ -1260,6 +1271,7 @@ module.exports = class RolloutsHelper {
 				id: {
 					[Op.in]: resourceIds,
 				},
+				tenant_code: programData.tenant_code,
 			}
 			const updateResourceBody = {
 				status: common.RESOURCE_STATUS_PUBLISHED,
@@ -1309,6 +1321,7 @@ module.exports = class RolloutsHelper {
 					id: {
 						[Op.in]: solutionRolloutIds,
 					},
+					tenant_code: programData.tenant_code,
 				},
 				{
 					parent_id: createProgramRollout?.result?.id,

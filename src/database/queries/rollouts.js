@@ -20,12 +20,15 @@ exports.findOne = async (filter, options = {}, addResourceConstraints = false) =
 	try {
 		// Add resource_details to options.include if flag is true
 		if (addResourceConstraints) {
+			// Ensure tenant_code is included in the include where clause for Citus compatibility
+			const includeWhere = filter.tenant_code ? { tenant_code: filter.tenant_code } : {}
 			options.include = [
 				...(options.include || []),
 				{
 					model: Resource,
 					as: 'resource_details',
 					required: true,
+					where: includeWhere,
 				},
 			]
 		}

@@ -942,7 +942,11 @@ async function createProject(templateId, projectData, userId, orgId, tenantId) {
 			}
 		)
 
-		const updateProject = await resourceService.publishCallback(createProject.result.id, templateId.toString())
+		const updateProject = await resourceService.publishCallback(
+			createProject.result.id,
+			templateId.toString(),
+			tenantId
+		)
 		if (updateProject.statusCode != 202) {
 			throw new Error(`Failed to update project - status: ${updateProject.statusCode}`)
 		}

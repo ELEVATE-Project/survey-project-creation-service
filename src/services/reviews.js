@@ -142,7 +142,7 @@ module.exports = class reviewsHelper {
 
 			// Fetch the configuration settings for the organization based on the provided orgCode.
 			const orgConfig = await orgExtensionService.getConfig(orgCode, tenantCode)
-			const orgConfigList = orgConfig.result.resource.reduce((acc, item) => {
+			const orgConfigList = orgConfig?.result?.resource.reduce((acc, item) => {
 				acc[item.resource_type] = {
 					review_type: item.review_type,
 				}
@@ -791,6 +791,7 @@ module.exports = class reviewsHelper {
 			if (resourceData.type === common.RESOURCE_TYPE_PROGRAM) {
 				const associatedResources = await programResourceMappingQueries.findAll({
 					program_id: resourceId,
+					tenant_code: resourceData.tenant_code,
 				})
 
 				if (associatedResources.length) {
@@ -801,6 +802,7 @@ module.exports = class reviewsHelper {
 			if (resourceIds.length > 0) {
 				await commentQueries.deleteMany({
 					resource_id: { [Op.in]: resourceIds },
+					tenant_code: resourceData.tenant_code,
 				})
 			}
 
