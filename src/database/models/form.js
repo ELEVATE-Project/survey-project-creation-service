@@ -45,7 +45,7 @@ module.exports = (sequelize, DataTypes) => {
 				{
 					name: 'unique_type_sub_type_org_id_tenant_code',
 					unique: true,
-					fields: ['organization_code', 'tenant_code', 'type', 'sub_type'],
+					fields: ['tenant_code', 'organization_code', 'type', 'sub_type'],
 					where: { deleted_at: null },
 				},
 			],

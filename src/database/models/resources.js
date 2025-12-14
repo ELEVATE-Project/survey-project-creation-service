@@ -136,7 +136,7 @@ module.exports = (sequelize, DataTypes) => {
 			as: 'comments',
 			constraints: true,
 			onDelete: 'CASCADE',
-			onUpdate: 'CASCADE',
+			onUpdate: 'NO ACTION',
 		})
 		Resource.hasMany(models.Review, {
 			foreignKey: 'resource_id',
@@ -144,7 +144,7 @@ module.exports = (sequelize, DataTypes) => {
 			as: 'reviews',
 			constraints: true,
 			onDelete: 'CASCADE',
-			onUpdate: 'CASCADE',
+			onUpdate: 'NO ACTION',
 		})
 		Resource.hasMany(models.Rollout, {
 			foreignKey: 'resource_id',
@@ -152,7 +152,7 @@ module.exports = (sequelize, DataTypes) => {
 			as: 'rollouts',
 			constraints: true,
 			onDelete: 'CASCADE',
-			onUpdate: 'CASCADE',
+			onUpdate: 'NO ACTION',
 		})
 		Resource.hasMany(models.ProgramResourceMapping, {
 			foreignKey: 'resource_id',
@@ -160,7 +160,7 @@ module.exports = (sequelize, DataTypes) => {
 			as: 'ProgramResources',
 			constraints: true,
 			onDelete: 'CASCADE',
-			onUpdate: 'CASCADE',
+			onUpdate: 'NO ACTION',
 		})
 		Resource.hasMany(models.ProgramResourceMapping, {
 			foreignKey: 'program_id',
@@ -168,7 +168,7 @@ module.exports = (sequelize, DataTypes) => {
 			as: 'Program',
 			constraints: true,
 			onDelete: 'CASCADE',
-			onUpdate: 'CASCADE',
+			onUpdate: 'NO ACTION',
 		})
 	}
 

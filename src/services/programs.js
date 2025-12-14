@@ -1151,6 +1151,7 @@ module.exports = class ProgramsHelper {
 						[Op.in]: [programId, ...resourceIds],
 					},
 					status: common.COMMENT_STATUS_DRAFT,
+					tenant_code: programData.tenant_code,
 				},
 				{
 					status: common.COMMENT_STATUS_OPEN,
@@ -1204,7 +1205,10 @@ module.exports = class ProgramsHelper {
 				}
 			}
 
-			await resourceQueries.updateOne({ id: programData.id }, resourcesUpdate)
+			await resourceQueries.updateOne(
+				{ id: programData.id, tenant_code: programData.tenant_code },
+				resourcesUpdate
+			)
 			// add user action
 			eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
 				actionCode: common.USER_ACTIONS[programData.type].RESOURCE_SUBMITTED,
@@ -1312,7 +1316,11 @@ module.exports = class ProgramsHelper {
 
 			//update the program resource
 			await resourceQueries.updateOne(
-				{ id: programId, organization_code: programData.organization_code },
+				{
+					id: programId,
+					organization_code: programData.organization_code,
+					tenant_code: programData.tenant_code,
+				},
 				{
 					status: common.RESOURCE_STATUS_PUBLISHED,
 					stage: common.RESOURCE_STAGE_COMPLETION,

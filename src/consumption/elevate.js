@@ -816,7 +816,7 @@ const publishProjectTemplates = function (templateData) {
 			)
 
 			//update the published id in resource table
-			await resourceService.publishCallback(projectData.id, templateId.toString())
+			await resourceService.publishCallback(projectData.id, templateId.toString(), projectData.tenant_code)
 
 			//return result
 			result.success = true
@@ -2007,6 +2007,7 @@ const publishProgram = function async(programData) {
 							[Op.in]: programResourceIds,
 						},
 						type: common.ROLLOUT_TYPE_SOLUTION,
+						tenant_code: programData.tenant_code,
 					},
 					['id', 'resource_id']
 				)
@@ -2205,13 +2206,18 @@ const publishProgram = function async(programData) {
 			}
 			if (isProgramResource && programResourceTableId) {
 				// update resource table with published Id
-				await resourceService.publishCallback(programResourceTableId, programId ? programId.toString() : null)
+				await resourceService.publishCallback(
+					programResourceTableId,
+					programId ? programId.toString() : null,
+					programData.tenant_code
+				)
 			}
 			// update rollout table with published Id
 			await rolloutService.publishCallback(
 				programData.id,
 				programId ? programId.toString() : null,
 				null,
+				programData.tenant_code,
 				isProgramResource
 			)
 			solutions.forEach(async (solution) => {
@@ -2220,16 +2226,20 @@ const publishProgram = function async(programData) {
 					await resourceService.publishCallback(
 						solution.scp_reference_id,
 						solution?._id ? solution?._id.toString() : null,
+						programData.tenant_code,
 						solution?.link ? solution?.link : false
 					)
 				}
 				// update rollout table with published Id
-				await rolloutService.publishCallback(
-					solution.rolloutId,
-					solution?._id ? solution?._id.toString() : null,
-					solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
-					isProgramResource
-				)
+				if (solution?.rolloutId) {
+					await rolloutService.publishCallback(
+						solution.rolloutId,
+						solution?._id ? solution?._id.toString() : null,
+						solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
+						programData.tenant_code,
+						isProgramResource
+					)
+				}
 			})
 
 			//create user and program mapping
@@ -2260,6 +2270,7 @@ const publishProgram = function async(programData) {
 			await rolloutQueries.updateOne(
 				{
 					id: programData.id,
+					tenant_code: programData.tenant_code,
 				},
 				{
 					status: common.ROLLOUT_STATUS_FAILED,
