@@ -1587,6 +1587,7 @@ const publishProgram = function async(programData) {
 							resource_id: {
 								[Op.in]: programResourceIds,
 							},
+							tenant_code: programData?.tenant_code,
 						},
 						['id', 'resource_id']
 					)
