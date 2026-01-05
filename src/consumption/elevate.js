@@ -172,7 +172,12 @@ const publishProjectTemplates = function (templateData) {
 			)
 
 			//update the published id in resource table
-			await resourceService.publishCallback(projectData.id, templateId.toString())
+			await resourceService.publishCallback(
+				projectData.id,
+				templateId.toString(),
+				projectData.organization_code,
+				projectData.tenant_code
+			)
 
 			//return result
 			result.success = true
@@ -740,141 +745,6 @@ const formatProgramTemplate = async (programData) => {
 		console.error('Error in formatTemplate:', error.message)
 		return { success: false, error: error.message }
 	}
-}
-/**
- * Publish the project template
- * @name publishProjectTemplates
- * @param {Object} templateData - Project template data
- * @returns {Object} - Response of template creation
- */
-const publishProjectTemplates = function (templateData) {
-	return new Promise(async (resolve, reject) => {
-		const result = { success: false, templateId: null, error: null }
-		try {
-			const requiredKeys = ['id', 'tenant_code', 'organization_code']
-
-			const hasAllRequiredKeys = requiredKeys.every((key) => key in templateData)
-
-			if (Object.keys(templateData).length <= 0 || !hasAllRequiredKeys) {
-				throw new Error('FAILED_TO_FETCH_PROJECT')
-			}
-
-			// fetch project details
-			let projectData = await projectService.details(
-				templateData.id,
-				templateData.organization_code,
-				templateData.tenant_code
-			)
-
-			projectData = projectData?.result || {}
-
-			if (Object.keys(projectData).length <= 0) {
-				throw new Error('FAILED_TO_FETCH_PROJECT')
-			}
-
-			// Format the template
-			let formattedTemplate = formatTemplate({ ...projectData })
-			if (!formattedTemplate.success || !formattedTemplate?.template) {
-				throw new Error('FAILED_TO_FORMAT_TEMPLATE')
-			}
-
-			let template = formattedTemplate.template
-
-			projectsMongoConnection = projectsMongoConnection
-				? projectsMongoConnection
-				: await connectMongo(projectsMongoDBUrl)
-			// Fetch Org Policies
-			const orgPolicies = await fetchOrgPolicies(
-				templateData.organization_code,
-				templateData.tenant_code,
-				projectsMongoConnection
-			)
-
-			// Set visibility based on org policies
-			template.visibility = common.ORG_POLICY_CURRENT
-			template.visibleToOrganizations = [templateData.organization_code]
-
-			// Override visibility if org policies are successfully fetched
-			if (orgPolicies.success) {
-				template.visibility = orgPolicies.policies.visibility
-				template.visibleToOrganizations = orgPolicies.policies.visibleToOrganizations
-			}
-
-			// Process Categories
-			if (projectData.categories?.length > 0) {
-				let categoriesResponse = await processCategories(
-					projectData.categories,
-					projectData.organization_code,
-					projectData.tenant_code
-				)
-				if (!categoriesResponse.success) {
-					throw new Error('FAILED_TO_FETCH_OR_CREATE_CATEGORIES')
-				}
-				template.categories = categoriesResponse.categories
-			}
-
-			//process recommededFor
-			if (projectData.recommended_for?.length > 0) {
-				let recommededForResponse = await convertRecommendedRolesForProjects(projectData.recommended_for)
-				if (!recommededForResponse.success) {
-					throw new Error('FAILED_TO_FETCH_RECOMMENDED_FOR')
-				}
-				template.recommendedFor = recommededForResponse?.recommendedRoles
-			}
-
-			// Insert the template into the database
-			const templateCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
-			const result = await templateCollection.insertOne(template)
-
-			// Validate the result of the template creation
-			if (!result || !result.insertedId) {
-				throw new Error('FAILED_TO_CREATE_TEMPLATE')
-			}
-
-			const templateId = result.insertedId
-
-			// Process and Create Tasks
-			const processedTasks = assignSequenceNumbers(projectData.tasks || [])
-			const taskCreationResponse = await createTasks(
-				processedTasks,
-				templateId,
-				template.externalId,
-				null,
-				projectData.organization_code,
-				projectData.tenant_code
-			)
-
-			// Validate the result of the task creation
-			if (!taskCreationResponse.success) {
-				throw new Error('FAILED_TO_CREATE_TASKS')
-			}
-
-			// Update Template with tasks and sequence
-			await templateCollection.updateOne(
-				{ _id: templateId },
-				{
-					$set: {
-						tasks: taskCreationResponse.taskIds,
-						taskSequence: taskCreationResponse.externalIds,
-					},
-				}
-			)
-
-			//update the published id in resource table
-			await resourceService.publishCallback(projectData.id, templateId.toString(), projectData.tenant_code)
-
-			//return result
-			result.success = true
-			result.templateId = templateId
-			console.log('Template published successfully with ID:', templateId)
-			return resolve(result)
-		} catch (error) {
-			console.log('Error in publishProjectTemplates:', error.message)
-			if (mongoConnection) mongoConnection.disconnect()
-			result.error = error.message || error
-			return reject(error)
-		}
-	})
 }
 
 /**
