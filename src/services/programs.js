@@ -322,6 +322,8 @@ class ProgramsHelper {
 				'is_resuable',
 				'stage',
 				'status',
+				'version',
+				'parent_id',
 			])
 			if (childProgramId) {
 				bodyData.published_id = fetchResource.published_id
@@ -380,7 +382,7 @@ class ProgramsHelper {
 			)
 
 			// Update the program details
-			console.log(bodyData, 'bodyData**********')
+
 			const updateData = {
 				...bodyData,
 				updated_by: loggedInUserId,
