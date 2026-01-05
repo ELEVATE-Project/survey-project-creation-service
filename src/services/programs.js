@@ -380,6 +380,7 @@ class ProgramsHelper {
 			)
 
 			// Update the program details
+			console.log(bodyData, 'bodyData**********')
 			const updateData = {
 				...bodyData,
 				updated_by: loggedInUserId,
