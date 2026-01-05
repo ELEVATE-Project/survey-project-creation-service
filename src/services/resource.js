@@ -1951,13 +1951,19 @@ async function fetchChildPrograms(resourceList, attributes, listing) {
 			}
 			return acc
 		}, {})
+
+		console.log('Parent-Child Program Mapping**************:', parentChildMapping)
 		resourceList.result = resourceList?.result.map((resource) => {
 			if (programIds.includes(resource.id)) {
 				if (!parentChildMapping?.[resource.id]) return resource
 				if (parentChildMapping?.[resource.id].length <= 0) return resource
 				const highestVersionObj = _.maxBy(parentChildMapping?.[resource.id], 'version') || {}
+				console.log('Highest Version Object for Resource ID*******', resource.id, ':', highestVersionObj)
+
+				// Depending on the listing context, decide whether to return the child or parent resource
 				if (Object.keys(highestVersionObj).length > 0 && listing == 'submitted_for_review') {
-					if (!['PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED'].includes(highestVersionObj.status)) {
+					// if (!['PUBLISHED', 'REJECTED', 'REJECTED_AND_REPORTED']
+					if (!['REJECTED', 'REJECTED_AND_REPORTED'].includes(highestVersionObj.status)) {
 						return highestVersionObj
 					} else return resource
 				} else if (Object.keys(highestVersionObj).length > 0 && listing == 'up_for_review') {
