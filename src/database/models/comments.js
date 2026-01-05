@@ -10,16 +10,16 @@ module.exports = (sequelize, DataTypes) => {
 				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
-			resource_id: {
+			tenant_code: {
 				allowNull: false,
 				primaryKey: true,
+				type: DataTypes.STRING,
+			},
+			resource_id: {
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			organization_code: {
-				allowNull: false,
-				type: DataTypes.STRING,
-			},
-			tenant_code: {
 				allowNull: false,
 				type: DataTypes.STRING,
 			},
@@ -70,7 +70,7 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['id', 'resource_id', 'organization_code', 'tenant_code'],
+					fields: ['tenant_code', 'resource_id', 'id', 'organization_code'],
 					name: 'unique_comment_resource',
 					where: {
 						deleted_at: null,
@@ -79,6 +79,17 @@ module.exports = (sequelize, DataTypes) => {
 			],
 		}
 	)
+
+	// Define associations
+	Comment.associate = (models) => {
+		Comment.belongsTo(models.Resource, {
+			foreignKey: 'resource_id',
+			targetKey: 'id',
+			as: 'resource',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+	}
 
 	return Comment
 }

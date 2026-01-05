@@ -92,6 +92,7 @@ module.exports = class resourceHelper {
 			'meta',
 			'is_under_edit',
 			'published_id',
+			'tenant_code',
 		]
 		let resourceList = await resourceQueries.resourceList(filter, resourceAttributes, sort, page, limit, true)
 
@@ -163,7 +164,8 @@ module.exports = class resourceHelper {
 		const commentMapping = await this.fetchOpenComments(
 			response.result
 				.filter((resource) => resource.status === common.REVIEW_STATUS_REQUESTED_FOR_CHANGES)
-				.map((resource) => resource.id)
+				.map((resource) => resource.id),
+			tenant_code
 		)
 
 		let reviewerIds = []
@@ -299,6 +301,7 @@ module.exports = class resourceHelper {
 					'updated_at',
 					'stage',
 					'meta',
+					'tenant_code',
 				],
 				sort,
 				page,
@@ -416,11 +419,11 @@ module.exports = class resourceHelper {
 	 * @param {Array} resourceIds - List of resources
 	 * @returns {Object} - Object of resource ids which has comments and true value.
 	 */
-	static async fetchOpenComments(resourceIds) {
+	static async fetchOpenComments(resourceIds, tenant_code) {
 		let programResourceObj = {}
 		if (resourceIds.length > 0) {
 			// fetch all the resource ids from the list of programs
-			programResourceObj = await this.fetchProgramResources(resourceIds)
+			programResourceObj = await this.fetchProgramResources(resourceIds, tenant_code)
 			// append the list of resources with in program
 			if (programResourceObj.reourcesWithInProgram.length > 0)
 				resourceIds = [...new Set([...resourceIds, ...programResourceObj.reourcesWithInProgram])]
@@ -432,6 +435,7 @@ module.exports = class resourceHelper {
 					[Op.in]: resourceIds,
 				},
 				status: common.COMMENT_STATUS_OPEN,
+				tenant_code: tenant_code,
 			},
 			['resource_id', [fn('COUNT', col('id')), 'comment_count']],
 			{ group: ['resource_id'] }
@@ -466,7 +470,7 @@ module.exports = class resourceHelper {
 	 *  }
 	 */
 
-	static async fetchProgramResources(resourceIds) {
+	static async fetchProgramResources(resourceIds, tenant_code) {
 		{
 			// fetch all program details from the resource id list
 			const fetchProgramIds = await resourceQueries.findAll(
@@ -475,6 +479,7 @@ module.exports = class resourceHelper {
 						[Op.in]: resourceIds,
 					},
 					type: common.RESOURCE_TYPE_PROGRAM,
+					tenant_code: tenant_code,
 				},
 				['id']
 			)
@@ -490,6 +495,7 @@ module.exports = class resourceHelper {
 					program_id: {
 						[Op.in]: programIds,
 					},
+					tenant_code: tenant_code,
 				},
 				['program_id', 'resource_id']
 			)
@@ -635,7 +641,8 @@ module.exports = class resourceHelper {
 					// fetch all resource ids assigned to another reviewer or reviewing by another reviewer
 					resourceIdsToBeRemoved = await this.findResourcesPickedUpByAnotherReviewer(
 						user_id,
-						finalResourceIds
+						finalResourceIds,
+						tenant_code
 					)
 				}
 				// if the organization have any resource type in parallel review type
@@ -650,7 +657,11 @@ module.exports = class resourceHelper {
 					finalResourceIds = [...finalResourceIds, ...parallelResourcesIds]
 				}
 
-				const resourceReviewersDetails = await this.findResourceReviewersDetails(user_id, finalResourceIds)
+				const resourceReviewersDetails = await this.findResourceReviewersDetails(
+					user_id,
+					finalResourceIds,
+					tenant_code
+				)
 
 				// from the parallel and sequential open to all resources , remove which are directly assigned to other reviewers
 				finalResourceIds = _.difference(
@@ -666,7 +677,8 @@ module.exports = class resourceHelper {
 				// resources reviewer have approved , rejected or requested for change should be removed from main list
 				const resouecesCompletedMyReview = await this.getUserApprovedOrChangesRequestedResources(
 					user_id,
-					finalResourceIds
+					finalResourceIds,
+					tenant_code
 				)
 
 				resourceIdsToBeRemoved = [...resourceIdsToBeRemoved, ...resouecesCompletedMyReview]
@@ -726,6 +738,7 @@ module.exports = class resourceHelper {
 				'meta',
 				'published_id',
 				'published_on',
+				'tenant_code',
 			]
 			// fetches data from resource table with the passed filters
 			let response = await resourceQueries.resourceList(
@@ -1087,7 +1100,11 @@ module.exports = class resourceHelper {
 	 * @param {Array} openToAllResourcesMatchingMyLevel -  list of resources matching to reviewer's level.
 	 * @returns {Array} - Response contain array of resource ids to be removed from the main response
 	 */
-	static async findResourcesPickedUpByAnotherReviewer(loggedInUserId, openToAllResourcesMatchingMyLevel) {
+	static async findResourcesPickedUpByAnotherReviewer(
+		loggedInUserId,
+		openToAllResourcesMatchingMyLevel,
+		tenant_code
+	) {
 		// remove all the resouces in sequential review picked up by another reviewer
 		const reviewsFilter = {
 			resource_id: { [Op.in]: openToAllResourcesMatchingMyLevel },
@@ -1100,6 +1117,7 @@ module.exports = class resourceHelper {
 				],
 			},
 			reviewer_id: { [Op.notIn]: [loggedInUserId] },
+			tenant_code: tenant_code,
 		}
 		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
 		let resourceIdsToBeRemoved = []
@@ -1118,7 +1136,7 @@ module.exports = class resourceHelper {
 	 * @param {Array} finalResourceIds -  list of all resources fetched to list.
 	 * @returns {Array} - Response contain array of resource ids to be removed from the main response
 	 */
-	static async getUserApprovedOrChangesRequestedResources(loggedInUserId, finalResourceIds) {
+	static async getUserApprovedOrChangesRequestedResources(loggedInUserId, finalResourceIds, tenant_code) {
 		// remove all the resouces from list which reviewer approved and requested for changes
 		const reviewsFilter = {
 			resource_id: { [Op.in]: finalResourceIds },
@@ -1126,6 +1144,7 @@ module.exports = class resourceHelper {
 				[Op.in]: [common.REVIEW_STATUS_APPROVED, common.REVIEW_STATUS_REQUESTED_FOR_CHANGES],
 			},
 			reviewer_id: loggedInUserId,
+			tenant_code: tenant_code,
 		}
 		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id'])
 		let resourceIdsToBeRemoved = []
@@ -1143,13 +1162,14 @@ module.exports = class resourceHelper {
 	 * @param {Array} finalResourceIds -  list of all resources fetched to list.
 	 * @returns {Array} - Response contain array of resource ids to be removed from the main response
 	 */
-	static async findResourceReviewersDetails(loggedInUserId, finalResourceIds) {
+	static async findResourceReviewersDetails(loggedInUserId, finalResourceIds, tenant_code) {
 		// remove all the resouces in sequential review picked up by another reviewer
 		const reviewsFilter = {
 			resource_id: { [Op.in]: finalResourceIds },
 			status: {
 				[Op.in]: common.REVIEW_STATUS_UP_FOR_REVIEW,
 			},
+			tenant_code: tenant_code,
 		}
 		const reviewsResponse = await reviewsQueries.findAll(reviewsFilter, ['resource_id', 'status', 'reviewer_id'])
 		let resourcesAssignedToOtherUsers = []
@@ -1279,11 +1299,12 @@ module.exports = class resourceHelper {
 	 * @name publishCallback
 	 * @returns {JSON} - details of resource
 	 */
-	static async publishCallback(resourceId, publishedId, link = false, parentId = null, version = null) {
+	static async publishCallback(resourceId, publishedId, tenantCode, link = false, parentId = null, version = null) {
 		try {
 			const [count, updated] = await resourceQueries.updateOne(
 				{
 					id: resourceId,
+					tenant_code: tenantCode,
 					status: { [Op.notIn]: [common.RESOURCE_STATUS_DRAFT] },
 				},
 				{

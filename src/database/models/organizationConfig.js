@@ -43,7 +43,7 @@ module.exports = (sequelize, DataTypes) => {
 			indexes: [
 				{
 					unique: true,
-					fields: ['organization_code', 'tenant_code'],
+					fields: ['tenant_code', 'organization_code'],
 					name: 'unique_org_tenant_config',
 					where: {
 						deleted_at: null,
