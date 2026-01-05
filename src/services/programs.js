@@ -175,7 +175,9 @@ class ProgramsHelper {
 			}
 
 			// Create program and handle resource mapping
+			console.log('programData line no 178**************', programData.parent_id, programData.version)
 			let programCreate = await resourceQueries.create(programData)
+			console.log('programCreate line no after creation 180**************', programCreate)
 			const programId = programCreate?.id
 
 			// Handle resources if present in the request
