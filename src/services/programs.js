@@ -1517,6 +1517,7 @@ async function createProgramChild(parentId, programData, loggedInUserId) {
 		},
 	}
 	try {
+		console.log(parentId, 'parentId***********')
 		programData.parent_id = parentId
 		const organization_code = programData.organization_code
 		const tenant_code = programData.tenant_code
@@ -1528,12 +1529,14 @@ async function createProgramChild(parentId, programData, loggedInUserId) {
 			tenant_code,
 			// status: { [Op.notIn]: [common.RESOURCE_STATUS_PUBLISHED] },
 		})
+		console.log(findExistingOpenChild, 'findExistingOpenChild***********')
 		if (!findExistingOpenChild?.id) {
 			const currentLatestVersion = await resourceService.findLatestVersionOfResource(
 				parentId,
 				organization_code,
 				tenant_code
 			)
+			console.log(currentLatestVersion, 'currentLatestVersion***********')
 			programData.version = currentLatestVersion + 1 // increment current latest version by 1
 
 			delete programData.id
@@ -1545,10 +1548,14 @@ async function createProgramChild(parentId, programData, loggedInUserId) {
 				tenant_code
 			)
 
+			console.log(programData, 'programData***********')
+
 			// Verify child program creation succeeded and has an id before creating mappings.
 			if (!childProgram || childProgram?.statusCode !== httpStatusCode.ok || !childProgram?.result?.id) {
 				throw new Error('PROGRAM_DUPLICATION_FAILED')
 			}
+
+			console.log(childProgram, 'childProgram***********')
 
 			// Only now fetch and create mappings for resources to the newly created child program
 			const mappedResource = await programResourceMappingQueries.findAll({
