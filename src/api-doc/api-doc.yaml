@@ -23,6 +23,7 @@ info:
     - **`X-tenant-code`**: (Required for admin) System-wide tenant identifier; backend extracts from token for other role
     - **`X-organization-code`**: (Required for admin) Organization identifier; backend extracts from token for other role
     - **Note**: These headers are configurable based on system requirements
+    - **`accept-language`**: (Optional) Language preference for API responses. Supported values: `en` (English), `hi` (Hindi). Defaults to `en` if not provided.
 
     ## Role-Based Access
     - **admin**: Full system access including all tenants and organizations
