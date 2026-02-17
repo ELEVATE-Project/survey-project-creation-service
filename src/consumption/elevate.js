@@ -1955,7 +1955,7 @@ const orderSolutionsInProgram = (resourceWithInProgram) => {
 
 /**
  * Publish the Program
- * @name publishProjectTemplates
+ * @name publishProgram
  * @param {Object} programData - Program template data
  * @returns {Object} - Response of Program creation
  */
