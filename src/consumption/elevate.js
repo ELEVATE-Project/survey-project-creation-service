@@ -2234,8 +2234,6 @@ const publishProgram = function async(programData) {
 							)
 						}
 						solutionOrderMap[resource.id]._id = createSolutionsData.data[0]._id
-						if (!createSolutionsData.success)
-							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
 						solutions = [...solutions, ...createSolutionsData.data]
 					}
 				} else {
