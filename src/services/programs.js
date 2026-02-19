@@ -1589,16 +1589,25 @@ async function handleResources(
 					if (isReusable || isResuableFalseResourceCreate) {
 						// Create a duplicate of the reusable resource
 						const duplicatedResourceData = {
-							..._.omit(resourceDetails, ['created_at', 'updated_at', 'is_comments']),
+							..._.omit(resourceDetails, [
+								'created_at',
+								'updated_at',
+								'is_comments',
+								'source_resource_id',
+							]),
 							...resource,
 							...commonFields,
 							is_reusable: false,
-							source_resource_id: resourceDetails.id,
 							created_by: loggedInUserId,
 							status: common.RESOURCE_STATUS_PUBLISHED,
 							stage: common.RESOURCE_STAGE_COMPLETION,
 							published_id: null,
 							published_on: null,
+						}
+
+						if (isReusable) {
+							// mark the original reusable resource this copy came from
+							duplicatedResourceData.source_resource_id = resourceDetails.id
 						}
 						delete duplicatedResourceData.id // Remove the ID to create a new resource
 
