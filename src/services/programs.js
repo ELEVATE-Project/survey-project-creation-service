@@ -1610,6 +1610,9 @@ async function handleResources(
 						if (isReusable) {
 							// mark the original reusable resource this copy came from
 							duplicatedResourceData.source_resource_id = resourceDetails.id
+						} else {
+							// do not carry forward source linkage for non-reusable originals
+							delete duplicatedResourceData.source_resource_id
 						}
 						delete duplicatedResourceData.id // Remove the ID to create a new resource
 
