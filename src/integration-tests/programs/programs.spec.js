@@ -64,12 +64,20 @@ describe('Program APIs ', function () {
 		if (res?.body?.result?.data?.length > 0) {
 			let createProgram = await request.post('/scp/v1/programs/update').send(insertProgramData())
 			const programId = createProgram.body?.result?.id
+			const sourceResourceId = res.body.result.data[0]?.id
 			let addResourceRes = await request.post('/scp/v1/programs/addResources/' + programId).send({
-				resource_ids: [res.body.result.data[0]?.id],
+				resource_ids: [sourceResourceId],
 			})
 
 			expect(addResourceRes.statusCode).toBe(200)
 			expect(addResourceRes.body).toMatchSchema(schema.addOrRemoveResourceSchema)
+
+			const programDetails = await request.get('/scp/v1/programs/details/' + programId)
+			expect(programDetails.statusCode).toBe(200)
+			const copiedResource = programDetails.body?.result?.resources?.find(
+				(resource) => resource?.source_resource_id === sourceResourceId
+			)
+			expect(copiedResource).toBeTruthy()
 		}
 	})
 
