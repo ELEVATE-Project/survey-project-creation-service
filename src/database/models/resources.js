@@ -68,6 +68,9 @@ module.exports = (sequelize, DataTypes) => {
 			reference_id: {
 				type: DataTypes.INTEGER,
 			},
+			source_resource_id: {
+				type: DataTypes.INTEGER,
+			},
 			meta: {
 				allowNull: true,
 				type: DataTypes.JSONB,

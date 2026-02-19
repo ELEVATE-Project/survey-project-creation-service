@@ -1410,6 +1410,57 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 		// handling only project creation now. Make changes here for observation , survey etc...
 		if (projectTemplateIds.length > 0) {
 			const projectsCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
+			const parentTemplateCache = new Map()
+
+			const resolveParentTemplateId = async (sourceResourceId, organizationCode, tenantCode) => {
+				const cacheKey = `${tenantCode || ''}:${organizationCode || ''}:${sourceResourceId || ''}`
+				if (parentTemplateCache.has(cacheKey)) {
+					return parentTemplateCache.get(cacheKey)
+				}
+
+				let parentTemplateId = null
+				try {
+					if (!sourceResourceId || !organizationCode || !tenantCode) {
+						parentTemplateCache.set(cacheKey, null)
+						return null
+					}
+
+					const parentResource = await resourceQueries.findOne(
+						{
+							id: sourceResourceId,
+							organization_code: organizationCode,
+							tenant_code: tenantCode,
+						},
+						{ attributes: ['id', 'published_id'] }
+					)
+
+					const publishedTemplateId = parentResource?.published_id
+					if (publishedTemplateId && ObjectId.isValid(publishedTemplateId)) {
+						const publishedTemplateObjectId = ObjectId(publishedTemplateId)
+						const parentTemplate = await projectsCollection.findOne(
+							{ _id: publishedTemplateObjectId },
+							{ projection: { _id: 1 } }
+						)
+						if (parentTemplate?._id) {
+							parentTemplateId = publishedTemplateObjectId
+						}
+					}
+				} catch (error) {
+					console.log(
+						'Error while resolving parentTemplateId for project template duplication:',
+						error.message
+					)
+				}
+
+				parentTemplateCache.set(cacheKey, parentTemplateId)
+				return parentTemplateId
+			}
+
+			const resolvedParentTemplateId = await resolveParentTemplateId(
+				resourceDetails?.source_resource_id,
+				resourceDetails?.organization_code,
+				resourceDetails?.tenant_code
+			)
 			const projectTemplates = await projectsCollection
 				.find({
 					_id: {
@@ -1454,6 +1505,13 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					project.createdBy = programData.userId
 					project.updatedBy = programData.userId
 					;(project.isReusable = false), (project.scp_reference_id = resourceDetails.resource_id)
+					if (programId) {
+						project.programId = programId
+					}
+					project.programExternalId = template?.externalId || null
+					if (resolvedParentTemplateId) {
+						project.parentTemplateId = resolvedParentTemplateId
+					}
 					templateProjectsTaskMap[project.externalId] = project.tasks
 					templateProjectsIdMap[project.externalId] = {
 						resource_id: resourceDetails.resource_id,
@@ -1901,7 +1959,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 		result.data = createdSolutionsResponse
 		return result
 	} catch (error) {
-		console.log(error)
+		console.log(error, 'Error in creating solutions for resources')
 		result.success = false
 		result.error = error
 		return result
@@ -2166,6 +2224,15 @@ const publishProgram = function async(programData) {
 							programDetails,
 							userToken
 						)
+
+						if (!createSolutionsData.success || createSolutionsData?.data?.length <= 0) {
+							console.log('Error in creating Solutions for the project template')
+							throw new Error(
+								`Error in creating Solutions for the project template : ${
+									createSolutionsData?.error || 'Unknown Error'
+								}`
+							)
+						}
 						solutionOrderMap[resource.id]._id = createSolutionsData.data[0]._id
 						if (!createSolutionsData.success)
 							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
