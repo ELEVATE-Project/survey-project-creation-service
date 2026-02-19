@@ -1887,7 +1887,11 @@ async function createProgram(programId, programData, userId, orgId, tenantCode, 
 		}
 
 		//publish the program
-		const updateProgram = await resourceService.publishCallback(createProgramRes.result.id, programId.toString())
+		const updateProgram = await resourceService.publishCallback(
+			createProgramRes.result.id,
+			programId.toString(),
+			tenantCode
+		)
 		if (updateProgram.statusCode != 202) {
 			throw new Error('Failed to update program')
 		}

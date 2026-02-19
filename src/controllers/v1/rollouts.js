@@ -21,7 +21,11 @@ module.exports = class rollouts {
 			if (req.params.id) {
 				let rollout = {}
 				if (req.method === common.REQUEST_METHOD_DELETE) {
-					rollout = await rolloutService.delete(req.params.id, req.decodedToken.id)
+					rollout = await rolloutService.delete(
+						req.params.id,
+						req.decodedToken.id,
+						req.decodedToken.tenant_code
+					)
 				} else {
 					rollout = await rolloutService.update(
 						req.params.id,

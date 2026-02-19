@@ -62,15 +62,6 @@ module.exports = class UserEntityData {
 		}
 	}
 
-	static async findEntityTypeById(filter) {
-		try {
-			const entityData = await Entity.findByPk(filter)
-			return entityData
-		} catch (error) {
-			return error
-		}
-	}
-
 	static async getAllEntities(filters, attributes, page, limit, search) {
 		try {
 			return await Entity.findAndCountAll({

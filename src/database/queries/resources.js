@@ -41,6 +41,10 @@ exports.findOne = async (filter, options = {}) => {
 			if (options.commentsFilter && Object.keys(options.commentsFilter).length > 0)
 				include.where = options.commentsFilter
 
+			if (filter.tenant_code) {
+				include.where = { ...include.where, tenant_code: filter.tenant_code }
+			}
+
 			options.include = [include]
 			raw = false
 		}

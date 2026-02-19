@@ -23,6 +23,7 @@ info:
     - **`X-tenant-code`**: (Required for admin) System-wide tenant identifier; backend extracts from token for other role
     - **`X-organization-code`**: (Required for admin) Organization identifier; backend extracts from token for other role
     - **Note**: These headers are configurable based on system requirements
+    - **`accept-language`**: (Optional) Language preference for API responses. Supported values: `en` (English), `hi` (Hindi). Defaults to `en` if not provided.
 
     ## Role-Based Access
     - **admin**: Full system access including all tenants and organizations
@@ -12239,6 +12240,320 @@ paths:
                   responseCode:
                     type: string
                     example: 'CLIENT_ERROR'
+                  message:
+                    type: string
+                    example: 'Internal server error'
+
+  '/scp/v1/targeting/hierarchy/{stateId}':
+    get:
+      summary: Get Entity Type Hierarchy Based on State
+      tags:
+        - Targeting
+      description: |-
+        This API retrieves the hierarchical structure of entity types for a specific state. It returns the complete hierarchy path showing the organizational structure from state level down to the lowest entity type. This API is used in targeting interfaces and rollout management to help users understand the organizational hierarchy and select appropriate targeting criteria.
+
+        **Overview:**
+        - Retrieves entity type hierarchy starting from a specific state
+        - Returns child hierarchy path as an ordered array of entity types
+        - Includes state metadata (external ID, name, and other information)
+        - Scoped to authenticated user's tenant
+        - Used for building dynamic targeting forms and rollout wizards
+        - Helps users visualize organizational structure before creating rollouts
+
+        **Validations:**
+        - `stateId` is required (must be a valid entity external ID)
+        - Entity must exist and be of type 'state'
+        - Entity must belong to authenticated user's tenant
+        - User must have appropriate permissions to access entity data
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains user_id, organization_code, tenant_code, and token for service calls.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: path
+          name: stateId
+          description: 'External ID of the state entity to fetch hierarchy for (required). This is the externalId field of the state entity.'
+          required: true
+          schema:
+            type: string
+          example: '16'
+      responses:
+        '200':
+          description: 'Entity types fetched successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: 'Entity types fetched successfully'
+                  result:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        description: 'Database ID of the state entity'
+                      metaInformation:
+                        type: object
+                        description: 'Metadata about the state entity'
+                        properties:
+                          targetedEntityTypes:
+                            type: array
+                            description: 'Array of targeted entity types (if any)'
+                            items:
+                              type: string
+                          externalId:
+                            type: string
+                            description: 'External ID of the state'
+                          name:
+                            type: string
+                            description: 'Name of the state'
+                      childHierarchyPath:
+                        type: array
+                        description: 'Ordered array showing the complete entity type hierarchy from state to lowest level'
+                        items:
+                          type: string
+                      entityType:
+                        type: string
+                        description: 'Entity type (will always be "state" for this API)'
+              examples:
+                example1:
+                  value:
+                    responseCode: OK
+                    message: 'Entity types fetched successfully'
+                    result:
+                      _id: '6852c86c7248c20014b38a4d'
+                      metaInformation:
+                        targetedEntityTypes: []
+                        externalId: '16'
+                        name: 'Tripura'
+                      childHierarchyPath:
+                        - 'state'
+                        - 'district'
+                        - 'block'
+                        - 'cluster'
+                        - 'school'
+                      entityType: 'state'
+        '400':
+          description: 'Bad Request - State ID not provided or invalid'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  error:
+                    type: array
+                    items:
+                      type: object
+                  message:
+                    type: string
+                    example: 'Failed to fetch entity types'
+                  meta:
+                    type: object
+                    properties:
+                      correlation:
+                        type: string
+                        description: 'Unique correlation ID for tracking the request'
+              examples:
+                example1:
+                  value:
+                    responseCode: 'CLIENT_ERROR'
+                    error: []
+                    meta:
+                      correlation: '4c6bb5bb-b5bc-49b4-8dfd-948ad3c2a797'
+                    message: 'Failed to fetch entity types'
+        '500':
+          description: 'Internal Server Error - Failed to fetch hierarchy'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'SERVER_ERROR'
+                  message:
+                    type: string
+                    example: 'Internal server error'
+
+  '/scp/v1/targeting/subEntityList':
+    post:
+      summary: Fetch Sub Entities Based on Multiple Parent IDs
+      tags:
+        - Targeting
+      description: |-
+        This API retrieves a list of child entities based on multiple parent entity IDs and a specified sub-entity type. It enables bulk fetching of entities at a specific level in the hierarchy (e.g., all schools under multiple blocks, or all districts under multiple states). This API is used in targeting interfaces, rollout creation, and filtering workflows where users need to fetch related entities based on selected parent entities.
+
+        **Overview:**
+        - Fetches child entities for multiple parent entities in a single request
+        - Supports pagination for large result sets
+        - Filters by sub-entity type (e.g., 'school', 'district', 'block')
+        - Returns entity details including _id, name, and externalId
+        - Scoped to authenticated user's tenant (extracted from token)
+        - Used in cascading dropdowns and multi-select targeting interfaces
+
+        **Validations:**
+        - `subEntityType` query parameter is required (must be a valid entity type value)
+        - `parentEntities` in request body is required (array of parent entity external IDs)
+        - Pagination parameters (page, limit) are automatically handled from request
+        - All parent entities must exist and belong to authenticated user's tenant
+      parameters:
+        - name: X-auth-token
+          in: header
+          description: 'Authentication token from login API response. Token contains tenant_code which is used for scoping entities.'
+          required: true
+          schema:
+            type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        - in: query
+          name: subEntityType
+          description: 'Type of sub-entity to fetch (required, e.g., district, block, cluster, school)'
+          required: true
+          schema:
+            type: string
+          example: 'district'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parentEntities:
+                  oneOf:
+                    - type: array
+                      items:
+                        type: string
+                      description: 'Array of parent entity external IDs'
+                    - type: string
+                      description: 'Comma-separated string of parent entity external IDs'
+              required:
+                - parentEntities
+            examples:
+              example1:
+                summary: 'Array format - Multiple blocks'
+                value:
+                  parentEntities:
+                    - '1'
+                    - '2'
+                    - '3'
+      responses:
+        '200':
+          description: 'Entities fetched successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: OK
+                  message:
+                    type: string
+                    example: 'Entities fetched successfully'
+                  result:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        description: 'Array of sub-entity objects'
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              description: 'Entity database ID'
+                            name:
+                              type: string
+                              description: 'Entity name'
+                            externalId:
+                              type: string
+                              description: 'Entity external ID'
+                      count:
+                        type: integer
+                        description: 'Total count of matching sub-entities'
+                  meta:
+                    type: object
+                    properties:
+                      formsVersion:
+                        type: object
+                        description: 'Forms version information (typically empty object)'
+                      correlation:
+                        type: string
+                        description: 'Unique correlation ID for tracking the request'
+              examples:
+                example1:
+                  summary: 'Districts under a state'
+                  value:
+                    responseCode: OK
+                    message: 'Entities fetched successfully'
+                    result:
+                      data:
+                        - _id: '6852c8ae7248c20014b38a50'
+                          name: 'Dhalai'
+                          externalId: 'dhalai'
+                        - _id: '6852c8ae7248c20014b38a51'
+                          name: 'Gomati'
+                          externalId: 'gomati'
+                        - _id: '6852c8ae7248c20014b38a52'
+                          name: 'Khowai'
+                          externalId: 'khowai'
+                      count: 42
+                    meta:
+                      formsVersion: {}
+                      correlation: 'fbb8a594-7fec-45d3-a1f6-7fb1a8b3d8f6'
+        '400':
+          description: 'Bad Request - Required parameters missing or invalid'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'CLIENT_ERROR'
+                  error:
+                    type: array
+                    items:
+                      type: object
+                  message:
+                    type: string
+                    example: 'Failed to fetch sub entities'
+                  meta:
+                    type: object
+                    properties:
+                      correlation:
+                        type: string
+                        description: 'Unique correlation ID for tracking the request'
+              examples:
+                example1:
+                  summary: 'Missing or invalid parameters'
+                  value:
+                    responseCode: 'CLIENT_ERROR'
+                    error: []
+                    meta:
+                      correlation: '4c6bb5bb-b5bc-49b4-8dfd-948ad3c2a797'
+                    message: 'Failed to fetch sub entities'
+        '500':
+          description: 'Internal Server Error - Failed to fetch sub-entities'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseCode:
+                    type: string
+                    example: 'SERVER_ERROR'
                   message:
                     type: string
                     example: 'Internal server error'

@@ -57,6 +57,7 @@ module.exports = class ProgramsHelper {
 								'review_type',
 								'reference_id',
 								'published_id',
+								'source_resource_id',
 								'created_by',
 								'created_at',
 								'updated_at',
@@ -110,6 +111,7 @@ module.exports = class ProgramsHelper {
 						'review_type',
 						'reference_id',
 						'published_id',
+						'source_resource_id',
 						'created_by',
 						'created_at',
 						'updated_at',
@@ -1151,6 +1153,7 @@ module.exports = class ProgramsHelper {
 						[Op.in]: [programId, ...resourceIds],
 					},
 					status: common.COMMENT_STATUS_DRAFT,
+					tenant_code: programData.tenant_code,
 				},
 				{
 					status: common.COMMENT_STATUS_OPEN,
@@ -1204,7 +1207,10 @@ module.exports = class ProgramsHelper {
 				}
 			}
 
-			await resourceQueries.updateOne({ id: programData.id }, resourcesUpdate)
+			await resourceQueries.updateOne(
+				{ id: programData.id, tenant_code: programData.tenant_code },
+				resourcesUpdate
+			)
 			// add user action
 			eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
 				actionCode: common.USER_ACTIONS[programData.type].RESOURCE_SUBMITTED,
@@ -1312,7 +1318,11 @@ module.exports = class ProgramsHelper {
 
 			//update the program resource
 			await resourceQueries.updateOne(
-				{ id: programId, organization_code: programData.organization_code },
+				{
+					id: programId,
+					organization_code: programData.organization_code,
+					tenant_code: programData.tenant_code,
+				},
 				{
 					status: common.RESOURCE_STATUS_PUBLISHED,
 					stage: common.RESOURCE_STAGE_COMPLETION,
@@ -1581,7 +1591,12 @@ async function handleResources(
 					if (isReusable || isResuableFalseResourceCreate) {
 						// Create a duplicate of the reusable resource
 						const duplicatedResourceData = {
-							..._.omit(resourceDetails, ['created_at', 'updated_at', 'is_comments']),
+							..._.omit(resourceDetails, [
+								'created_at',
+								'updated_at',
+								'is_comments',
+								'source_resource_id',
+							]),
 							...resource,
 							...commonFields,
 							is_reusable: false,
@@ -1590,6 +1605,14 @@ async function handleResources(
 							stage: common.RESOURCE_STAGE_COMPLETION,
 							published_id: null,
 							published_on: null,
+						}
+
+						if (isReusable) {
+							// mark the original reusable resource this copy came from
+							duplicatedResourceData.source_resource_id = resourceDetails.id
+						} else {
+							// do not carry forward source linkage for non-reusable originals
+							delete duplicatedResourceData.source_resource_id
 						}
 						delete duplicatedResourceData.id // Remove the ID to create a new resource
 
@@ -1631,6 +1654,7 @@ async function handleResources(
 								'next_stage',
 								'review_type',
 								'reference_id',
+								'source_resource_id',
 								'published_id',
 								'submitted_on',
 								'published_on',
