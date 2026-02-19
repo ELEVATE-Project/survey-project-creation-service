@@ -1457,7 +1457,7 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					templateProjectsTaskMap[project.externalId] = project.tasks
 					templateProjectsIdMap[project.externalId] = {
 						resource_id: resourceDetails.resource_id,
-						rollout_id: resourceDetails.id,
+						rollout_id: resourceDetails.rollout_id || resourceDetails.id,
 					}
 					templateProjects.push(project)
 				})
@@ -2073,6 +2073,7 @@ const publishProgram = function async(programData) {
 					false,
 					true
 				)
+				const rolloutRecordId = fetchDetails?.result?.id
 
 				if (!fetchDetails?.result?.published_id) {
 					// publish a new template based on the type of the resource
@@ -2097,7 +2098,10 @@ const publishProgram = function async(programData) {
 									  Object.keys(fetchDetails?.result.resource_details?.certificate).length > 0
 									? fetchDetails?.result.resource_details?.certificate
 									: {}
-							fetchDetails.result = { ...fetchDetails.result, ...fetchDetails?.result.resource_details }
+							fetchDetails.result = {
+								...fetchDetails.result,
+								..._.omit(fetchDetails?.result.resource_details || {}, ['id']),
+							}
 						} else {
 							const fetchProjectDetails = await projectService.details(
 								resource.id,
@@ -2116,6 +2120,7 @@ const publishProgram = function async(programData) {
 							{
 								...fetchDetails?.result,
 								published_id: publishedProject?.templateId,
+								rollout_id: rolloutRecordId,
 							},
 							projectCertificate,
 							programData,
@@ -2220,7 +2225,7 @@ const publishProgram = function async(programData) {
 				programData.tenant_code,
 				isProgramResource
 			)
-			solutions.forEach(async (solution) => {
+			for (const solution of solutions) {
 				if (isProgramResource) {
 					// update resource table with published Id
 					await resourceService.publishCallback(
@@ -2240,7 +2245,7 @@ const publishProgram = function async(programData) {
 						isProgramResource
 					)
 				}
-			})
+			}
 
 			//create user and program mapping
 			const viewerIds = rolloutDetails.viewers.map((viewer) => viewer?.id || viewer)
