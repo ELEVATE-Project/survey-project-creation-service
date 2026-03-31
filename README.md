@@ -670,19 +670,41 @@ cp .env.sample .env
 
 ```bash
 npm run db:init
-npm run db:seed:all
 ```
 
 5. **Start Service**
 
 ```bash
-npm start
+npm run start
 ```
 
 6. **Verify Deployment**
 
 ```bash
 curl http://localhost:6001/scp/health
+```
+
+### Post-Install Script Order
+
+Run these after the service is up and the DB is migrated/seeded (from release guide):
+
+1. Add default entities (education sector):
+
+```bash
+node src/scripts/addDefaultEntitiesForEducationSector.js
+```
+
+2. Upload default certificate template:
+
+```bash
+node -r module-alias/register src/scripts/uploadCertificateBaseTemplate.js
+```
+
+3. Setup tenant/org defaults (run per tenant/org needing SCP data):
+
+```bash
+node src/scripts/setupTenant.js --tenant_code=<tenant> --organization_code=<org>
+# Example: node src/scripts/setupTenant.js --tenant_code=shikshalokam --organization_code=shikshalokam
 ```
 
 ---
