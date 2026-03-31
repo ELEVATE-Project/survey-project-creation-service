@@ -120,7 +120,7 @@ let environmentVariables = {
 	AUTH_METHOD: {
 		message: 'Required authentication method',
 		optional: true,
-		default: common.AUTH_METHOD.JWT_ONLY,
+		default: common.AUTH_METHOD.NATIVE,
 	},
 	REVIEW_REQUIRED: {
 		message: 'Required Review Required field',
