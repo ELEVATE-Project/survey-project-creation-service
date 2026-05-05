@@ -11,14 +11,6 @@ module.exports = class CommentData {
 		}
 	}
 
-	static async findById(id) {
-		try {
-			return await Comment.findByPk(id)
-		} catch (error) {
-			throw error
-		}
-	}
-
 	static async findAll(filter, attributes, options = {}) {
 		try {
 			const res = await Comment.findAll({

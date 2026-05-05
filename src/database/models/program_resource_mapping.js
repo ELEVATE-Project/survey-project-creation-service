@@ -8,10 +8,14 @@ module.exports = (sequelize, DataTypes) => {
 				primaryKey: true,
 				type: DataTypes.INTEGER,
 			},
+			tenant_code: {
+				allowNull: false,
+				primaryKey: true,
+				type: DataTypes.STRING,
+			},
 			program_id: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
-				primaryKey: true,
 			},
 			resource_id: {
 				allowNull: false,
@@ -21,17 +25,12 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 				type: DataTypes.STRING,
 			},
-			tenant_code: {
-				allowNull: false,
-				primaryKey: true,
-				type: DataTypes.STRING,
-			},
 		},
 		{
 			indexes: [
 				{
 					unique: true,
-					fields: ['program_id', 'resource_id', 'tenant_code'],
+					fields: ['tenant_code', 'program_id', 'resource_id'],
 					name: 'unique_program_resource_tenant',
 					where: {
 						deleted_at: null,
@@ -44,6 +43,24 @@ module.exports = (sequelize, DataTypes) => {
 			paranoid: true,
 		}
 	)
+
+	// Define associations
+	ProgramResourceMapping.associate = (models) => {
+		ProgramResourceMapping.belongsTo(models.Resource, {
+			foreignKey: 'resource_id',
+			targetKey: 'id',
+			as: 'resource',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+		ProgramResourceMapping.belongsTo(models.Resource, {
+			foreignKey: 'program_id',
+			targetKey: 'id',
+			as: 'program',
+			onUpdate: 'NO ACTION',
+			onDelete: 'CASCADE',
+		})
+	}
 
 	return ProgramResourceMapping
 }

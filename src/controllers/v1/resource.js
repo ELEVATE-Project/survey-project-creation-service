@@ -81,7 +81,11 @@ module.exports = class Resource {
 	 */
 	async publishCallback(req) {
 		try {
-			const resource = await resourceService.publishCallback(req.query.resource_id, req.query.published_id)
+			const resource = await resourceService.publishCallback(
+				req.query.resource_id,
+				req.query.published_id,
+				req.decodedToken.tenant_code
+			)
 			return resource
 		} catch (error) {
 			throw error

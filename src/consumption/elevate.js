@@ -816,7 +816,7 @@ const publishProjectTemplates = function (templateData) {
 			)
 
 			//update the published id in resource table
-			await resourceService.publishCallback(projectData.id, templateId.toString())
+			await resourceService.publishCallback(projectData.id, templateId.toString(), projectData.tenant_code)
 
 			//return result
 			result.success = true
@@ -1410,6 +1410,57 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 		// handling only project creation now. Make changes here for observation , survey etc...
 		if (projectTemplateIds.length > 0) {
 			const projectsCollection = projectsMongoConnection.collection(COLLECTIONS_MAP.get('TEMPLATES'))
+			const parentTemplateCache = new Map()
+
+			const resolveParentTemplateId = async (sourceResourceId, organizationCode, tenantCode) => {
+				const cacheKey = `${tenantCode || ''}:${organizationCode || ''}:${sourceResourceId || ''}`
+				if (parentTemplateCache.has(cacheKey)) {
+					return parentTemplateCache.get(cacheKey)
+				}
+
+				let parentTemplateId = null
+				try {
+					if (!sourceResourceId || !organizationCode || !tenantCode) {
+						parentTemplateCache.set(cacheKey, null)
+						return null
+					}
+
+					const parentResource = await resourceQueries.findOne(
+						{
+							id: sourceResourceId,
+							organization_code: organizationCode,
+							tenant_code: tenantCode,
+						},
+						{ attributes: ['id', 'published_id'] }
+					)
+
+					const publishedTemplateId = parentResource?.published_id
+					if (publishedTemplateId && ObjectId.isValid(publishedTemplateId)) {
+						const publishedTemplateObjectId = ObjectId(publishedTemplateId)
+						const parentTemplate = await projectsCollection.findOne(
+							{ _id: publishedTemplateObjectId },
+							{ projection: { _id: 1 } }
+						)
+						if (parentTemplate?._id) {
+							parentTemplateId = publishedTemplateObjectId
+						}
+					}
+				} catch (error) {
+					console.log(
+						'Error while resolving parentTemplateId for project template duplication:',
+						error.message
+					)
+				}
+
+				parentTemplateCache.set(cacheKey, parentTemplateId)
+				return parentTemplateId
+			}
+
+			const resolvedParentTemplateId = await resolveParentTemplateId(
+				resourceDetails?.source_resource_id,
+				resourceDetails?.organization_code,
+				resourceDetails?.tenant_code
+			)
 			const projectTemplates = await projectsCollection
 				.find({
 					_id: {
@@ -1454,10 +1505,17 @@ const duplicateResources = async (resourceDetails, resourceCertificate = {}, pro
 					project.createdBy = programData.userId
 					project.updatedBy = programData.userId
 					;(project.isReusable = false), (project.scp_reference_id = resourceDetails.resource_id)
+					if (programId) {
+						project.programId = programId
+					}
+					project.programExternalId = template?.externalId || null
+					if (resolvedParentTemplateId) {
+						project.parentTemplateId = resolvedParentTemplateId
+					}
 					templateProjectsTaskMap[project.externalId] = project.tasks
 					templateProjectsIdMap[project.externalId] = {
 						resource_id: resourceDetails.resource_id,
-						rollout_id: resourceDetails.id,
+						rollout_id: resourceDetails.rollout_id || resourceDetails.id,
 					}
 					templateProjects.push(project)
 				})
@@ -1901,7 +1959,7 @@ const createSolutions = async (resourceDetails, programDetails, userToken) => {
 		result.data = createdSolutionsResponse
 		return result
 	} catch (error) {
-		console.log(error)
+		console.log(error, 'Error in creating solutions for resources')
 		result.success = false
 		result.error = error
 		return result
@@ -1955,7 +2013,7 @@ const orderSolutionsInProgram = (resourceWithInProgram) => {
 
 /**
  * Publish the Program
- * @name publishProjectTemplates
+ * @name publishProgram
  * @param {Object} programData - Program template data
  * @returns {Object} - Response of Program creation
  */
@@ -2007,6 +2065,7 @@ const publishProgram = function async(programData) {
 							[Op.in]: programResourceIds,
 						},
 						type: common.ROLLOUT_TYPE_SOLUTION,
+						tenant_code: programData.tenant_code,
 					},
 					['id', 'resource_id']
 				)
@@ -2072,6 +2131,7 @@ const publishProgram = function async(programData) {
 					false,
 					true
 				)
+				const rolloutRecordId = fetchDetails?.result?.id
 
 				if (!fetchDetails?.result?.published_id) {
 					// publish a new template based on the type of the resource
@@ -2096,7 +2156,10 @@ const publishProgram = function async(programData) {
 									  Object.keys(fetchDetails?.result.resource_details?.certificate).length > 0
 									? fetchDetails?.result.resource_details?.certificate
 									: {}
-							fetchDetails.result = { ...fetchDetails.result, ...fetchDetails?.result.resource_details }
+							fetchDetails.result = {
+								...fetchDetails.result,
+								..._.omit(fetchDetails?.result.resource_details || {}, ['id']),
+							}
 						} else {
 							const fetchProjectDetails = await projectService.details(
 								resource.id,
@@ -2115,6 +2178,7 @@ const publishProgram = function async(programData) {
 							{
 								...fetchDetails?.result,
 								published_id: publishedProject?.templateId,
+								rollout_id: rolloutRecordId,
 							},
 							projectCertificate,
 							programData,
@@ -2160,9 +2224,16 @@ const publishProgram = function async(programData) {
 							programDetails,
 							userToken
 						)
+
+						if (!createSolutionsData.success || createSolutionsData?.data?.length <= 0) {
+							console.log('Error in creating Solutions for the project template')
+							throw new Error(
+								`Error in creating Solutions for the project template : ${
+									createSolutionsData?.error || 'Unknown Error'
+								}`
+							)
+						}
 						solutionOrderMap[resource.id]._id = createSolutionsData.data[0]._id
-						if (!createSolutionsData.success)
-							throw new Error(`Error : ${createSolutionsData?.error || 'Unknown Error'}`)
 						solutions = [...solutions, ...createSolutionsData.data]
 					}
 				} else {
@@ -2205,32 +2276,41 @@ const publishProgram = function async(programData) {
 			}
 			if (isProgramResource && programResourceTableId) {
 				// update resource table with published Id
-				await resourceService.publishCallback(programResourceTableId, programId ? programId.toString() : null)
+				await resourceService.publishCallback(
+					programResourceTableId,
+					programId ? programId.toString() : null,
+					programData.tenant_code
+				)
 			}
 			// update rollout table with published Id
 			await rolloutService.publishCallback(
 				programData.id,
 				programId ? programId.toString() : null,
 				null,
+				programData.tenant_code,
 				isProgramResource
 			)
-			solutions.forEach(async (solution) => {
+			for (const solution of solutions) {
 				if (isProgramResource) {
 					// update resource table with published Id
 					await resourceService.publishCallback(
 						solution.scp_reference_id,
 						solution?._id ? solution?._id.toString() : null,
+						programData.tenant_code,
 						solution?.link ? solution?.link : false
 					)
 				}
 				// update rollout table with published Id
-				await rolloutService.publishCallback(
-					solution.rolloutId,
-					solution?._id ? solution?._id.toString() : null,
-					solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
-					isProgramResource
-				)
-			})
+				if (solution?.rolloutId) {
+					await rolloutService.publishCallback(
+						solution.rolloutId,
+						solution?._id ? solution?._id.toString() : null,
+						solution?.projectTemplateId ? solution?.projectTemplateId.toString() : null,
+						programData.tenant_code,
+						isProgramResource
+					)
+				}
+			}
 
 			//create user and program mapping
 			const viewerIds = rolloutDetails.viewers.map((viewer) => viewer?.id || viewer)
@@ -2260,6 +2340,7 @@ const publishProgram = function async(programData) {
 			await rolloutQueries.updateOne(
 				{
 					id: programData.id,
+					tenant_code: programData.tenant_code,
 				},
 				{
 					status: common.ROLLOUT_STATUS_FAILED,

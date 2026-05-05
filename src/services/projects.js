@@ -784,6 +784,7 @@ module.exports = class ProjectsHelper {
 						organization_code: projectData.organization_code,
 						resource_id: projectData.id,
 						status: common.REVIEW_STATUS_REQUESTED_FOR_CHANGES,
+						tenant_code: projectData.tenant_code,
 					},
 					{
 						status: common.REVIEW_STATUS_CHANGES_UPDATED,
@@ -821,7 +822,10 @@ module.exports = class ProjectsHelper {
 				}
 			}
 
-			await resourceQueries.updateOne({ id: projectData.id }, resourcesUpdate)
+			await resourceQueries.updateOne(
+				{ id: projectData.id, tenant_code: projectData.tenant_code },
+				resourcesUpdate
+			)
 			// add user action
 			eventEmitter.emit(common.EVENT_ADD_USER_ACTION, {
 				actionCode: common.USER_ACTIONS[projectData.type].RESOURCE_SUBMITTED,
