@@ -74,8 +74,7 @@
       shell: rm -rf  {{ release_path }}
 
     - name: Run Migrations
-      command: "chdir={{current_path}}/src npm run db:init"
-      #command: "chdir={{current_path}}/src npx sequelize-cli db:migrate"
+      command: "chdir={{current_path}}/src npx sequelize-cli db:migrate"
     
     - name: Delete old pm2 process
       command: pm2 delete elevate-creation-portal-service
