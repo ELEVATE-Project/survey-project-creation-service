@@ -739,7 +739,7 @@ module.exports = class RolloutsHelper {
 			)
 
 			let solutionRolloutId
-			const rolloutDetailsResult = rolloutDetails?.result
+			let rolloutDetailsResult = rolloutDetails?.result
 
 			// check if rollout is present or not
 			if (rolloutDetails?.statusCode != httpStatusCode.ok) return rolloutDetails
@@ -754,7 +754,7 @@ module.exports = class RolloutsHelper {
 				})
 			}
 
-			if (!rolloutDetailsResult?.resource_details.id) {
+			if (!rolloutDetailsResult?.resource_details?.id) {
 				return responses.failureResponse({
 					statusCode: httpStatusCode.bad_request,
 					message: 'RESOURCE_NOT_FOUND',
@@ -797,7 +797,7 @@ module.exports = class RolloutsHelper {
 
 			// check if resource is present or not
 			if (resourceDetails?.statusCode != httpStatusCode.ok) return resourceDetails
-
+console.log(resourceDetailsResult.type."resourceDetailsResult type************************")
 			if (resourceDetailsResult.type != common.RESOURCE_TYPE_PROGRAM) {
 				let solutionRollout = await rolloutQueries.findOne({
 					resource_id: resourceDetailsResult?.id,
@@ -806,7 +806,7 @@ module.exports = class RolloutsHelper {
 					organization_code: org_code,
 					tenant_code: tenant_code,
 				})
-
+console.log(solutionRollout,"solutionRollout&*************************")
 				if (!solutionRollout?.id) {
 					let solutionRollout = _.omit(rolloutDetailsResult, ['id', 'blob_path', 'created_at', 'updated_at'])
 					solutionRollout.type = common.ROLLOUT_TYPE_SOLUTION
@@ -818,6 +818,7 @@ module.exports = class RolloutsHelper {
 						tenant_code,
 						true
 					)
+					console.log(resultCreateRollout,"resultCreateRollout************************************")
 					if (resultCreateRollout.statusCode !== httpStatusCode.ok) {
 						return responses.failureResponse({
 							statusCode: httpStatusCode[resultCreateRollout.statusCode],
@@ -843,8 +844,8 @@ module.exports = class RolloutsHelper {
 				status: common.ROLLOUT_STATUS_PROCESSING,
 			}
 
-			await rolloutQueries.updateOne({ id: rolloutId, tenant_code, organization_code: org_code }, updateBody)
-
+			let updateResult = await rolloutQueries.updateOne({ id: rolloutId, tenant_code, organization_code: org_code }, updateBody)
+console.log(updateResult,"updateResult rolloutQueries*********************************")
 			const rolloutKafkaPayload = {
 				id: rolloutDetails.result.id,
 				tenant_code,
@@ -866,6 +867,7 @@ module.exports = class RolloutsHelper {
 				result: {},
 			})
 		} catch (error) {
+			console.log(error,"error publish service************************"
 			return responses.failureResponse({
 				message: error.message || error,
 				statusCode: httpStatusCode.internal_server_error,
