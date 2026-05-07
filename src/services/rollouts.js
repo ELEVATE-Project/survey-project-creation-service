@@ -63,12 +63,12 @@ module.exports = class RolloutsHelper {
 			if (bodyData.start_date) rolloutData.start_date = bodyData.start_date
 			if (bodyData.end_date) rolloutData.end_date = bodyData.end_date
 			if (isSolutionType === true) rolloutData.parent_id = bodyData.parent_id
-
+console.log(rolloutData,"rolloutData before insert**************************************)
 			let rolloutCreate
 			try {
 				//create rollout
 				rolloutCreate = await rolloutQueries.create(rolloutData)
-
+console.log(rolloutCreate,"rolloutCreate*********************************************")
 				// upload to blob
 				const rolloutId = rolloutCreate.id
 
@@ -81,6 +81,7 @@ module.exports = class RolloutsHelper {
 					loggedInUserId,
 					bodyData
 				)
+				console.log(rolloutUploadStatus,"rolloutUploadStatus****************************")
 
 				if (
 					rolloutUploadStatus.result.status == httpStatusCode.ok ||
