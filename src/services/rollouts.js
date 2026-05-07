@@ -794,10 +794,10 @@ module.exports = class RolloutsHelper {
 
 			let resourceDetailsResult = resourceDetails?.result
 			resourceDetailsResult.resource_id = resourceDetailsResult?.id
-
+console.log(resourceDetailsResult,"resourceDetailsResult line no 797*********************")
 			// check if resource is present or not
 			if (resourceDetails?.statusCode != httpStatusCode.ok) return resourceDetails
-console.log(resourceDetailsResult.type."resourceDetailsResult type************************")
+console.log(resourceDetailsResult?.type,"resourceDetailsResult type************************")
 			if (resourceDetailsResult.type != common.RESOURCE_TYPE_PROGRAM) {
 				let solutionRollout = await rolloutQueries.findOne({
 					resource_id: resourceDetailsResult?.id,
