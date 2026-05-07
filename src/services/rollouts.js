@@ -867,7 +867,7 @@ console.log(updateResult,"updateResult rolloutQueries***************************
 				result: {},
 			})
 		} catch (error) {
-			console.log(error,"error publish service************************"
+			console.log(error,"error publish service************************")
 			return responses.failureResponse({
 				message: error.message || error,
 				statusCode: httpStatusCode.internal_server_error,
