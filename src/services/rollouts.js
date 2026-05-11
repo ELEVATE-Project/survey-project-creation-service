@@ -63,12 +63,12 @@ module.exports = class RolloutsHelper {
 			if (bodyData.start_date) rolloutData.start_date = bodyData.start_date
 			if (bodyData.end_date) rolloutData.end_date = bodyData.end_date
 			if (isSolutionType === true) rolloutData.parent_id = bodyData.parent_id
-console.log(rolloutData,"rolloutData before insert**************************************")
+
 			let rolloutCreate
 			try {
 				//create rollout
 				rolloutCreate = await rolloutQueries.create(rolloutData)
-console.log(rolloutCreate,"rolloutCreate*********************************************")
+
 				// upload to blob
 				const rolloutId = rolloutCreate.id
 
@@ -81,7 +81,6 @@ console.log(rolloutCreate,"rolloutCreate****************************************
 					loggedInUserId,
 					bodyData
 				)
-				console.log(rolloutUploadStatus,"rolloutUploadStatus****************************")
 
 				if (
 					rolloutUploadStatus.result.status == httpStatusCode.ok ||
@@ -795,10 +794,10 @@ console.log(rolloutCreate,"rolloutCreate****************************************
 
 			let resourceDetailsResult = resourceDetails?.result
 			resourceDetailsResult.resource_id = resourceDetailsResult?.id
-console.log(resourceDetailsResult,"resourceDetailsResult line no 797*********************")
+
 			// check if resource is present or not
 			if (resourceDetails?.statusCode != httpStatusCode.ok) return resourceDetails
-console.log(resourceDetailsResult?.type,"resourceDetailsResult type************************")
+
 			if (resourceDetailsResult.type != common.RESOURCE_TYPE_PROGRAM) {
 				let solutionRollout = await rolloutQueries.findOne({
 					resource_id: resourceDetailsResult?.id,
@@ -807,7 +806,7 @@ console.log(resourceDetailsResult?.type,"resourceDetailsResult type*************
 					organization_code: org_code,
 					tenant_code: tenant_code,
 				})
-console.log(solutionRollout,"solutionRollout&*************************")
+
 				if (!solutionRollout?.id) {
 					let solutionRollout = _.omit(rolloutDetailsResult, ['id', 'blob_path', 'created_at', 'updated_at'])
 					solutionRollout.type = common.ROLLOUT_TYPE_SOLUTION
@@ -819,7 +818,6 @@ console.log(solutionRollout,"solutionRollout&*************************")
 						tenant_code,
 						true
 					)
-					console.log(resultCreateRollout,"resultCreateRollout************************************")
 					if (resultCreateRollout.statusCode !== httpStatusCode.ok) {
 						return responses.failureResponse({
 							statusCode: httpStatusCode[resultCreateRollout.statusCode],
@@ -845,8 +843,11 @@ console.log(solutionRollout,"solutionRollout&*************************")
 				status: common.ROLLOUT_STATUS_PROCESSING,
 			}
 
-			let updateResult = await rolloutQueries.updateOne({ id: rolloutId, tenant_code, organization_code: org_code }, updateBody)
-console.log(updateResult,"updateResult rolloutQueries*********************************")
+			let updateResult = await rolloutQueries.updateOne(
+				{ id: rolloutId, tenant_code, organization_code: org_code },
+				updateBody
+			)
+
 			const rolloutKafkaPayload = {
 				id: rolloutDetails.result.id,
 				tenant_code,
@@ -868,7 +869,6 @@ console.log(updateResult,"updateResult rolloutQueries***************************
 				result: {},
 			})
 		} catch (error) {
-			console.log(error,"error publish service************************")
 			return responses.failureResponse({
 				message: error.message || error,
 				statusCode: httpStatusCode.internal_server_error,
