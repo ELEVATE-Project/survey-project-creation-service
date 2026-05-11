@@ -14,6 +14,7 @@ const endpoints = require('@constants/endpoints')
 const cloudStorage = process.env.CLOUD_STORAGE_PROVIDER
 const bucketName = process.env.CLOUD_STORAGE_BUCKETNAME
 const path = require('path')
+const cloudServices = require('@generics/cloud-services')
 
 module.exports = class FilesHelper {
 	/**
@@ -93,7 +94,8 @@ module.exports = class FilesHelper {
 			if (!Array.isArray(fileNames) || fileNames.length < 1) {
 				throw new Error('File names not given.')
 			}
-			let linkExpireTime = common.CLOUD_SERVICE_EXPIRY_TIME * common.LINK_EXPIRY_TIME
+
+			let expiryInSeconds = parseInt(common.CLOUD_SERVICE_LINK_EXPIRY_TIME) || 1200
 
 			const signedUrlsPromises = fileNames.map(async (fileName) => {
 				let file = folderPath && folderPath !== '' ? path.join(folderPath, fileName) : fileName
@@ -102,16 +104,12 @@ module.exports = class FilesHelper {
 					payload: { sourcePath: file },
 					cloudStorage: cloudStorage.toUpperCase(),
 				}
-				response.downloadableUrl = await cloudClient.getDownloadableUrl(
-					bucketName,
-					file,
-					linkExpireTime // Link ExpireIn
-				)
+				response.downloadableUrl = await this.getDownloadableUrl([file])
 				if (!serviceUpload) {
 					response.url = await cloudClient.getSignedUrl(
 						bucketName, // bucket name
 						file, // file path
-						linkExpireTime, // expire
+						expiryInSeconds, // expire
 						actionPermission // read/write
 					)
 				} else {
@@ -149,21 +147,42 @@ module.exports = class FilesHelper {
 	 */
 	static async getDownloadableUrl(payloadData) {
 		try {
-			let linkExpireTime = common.CLOUD_SERVICE_EXPIRY_TIME * common.LINK_EXPIRY_TIME
+			let expiryInSeconds = parseInt(common.CLOUD_SERVICE_LINK_EXPIRY_TIME) || 1200
 
 			if (Array.isArray(payloadData) && payloadData.length > 0) {
 				let result = []
 
-				await Promise.all(
-					payloadData.map(async (element) => {
-						let responseObj = {
-							cloudStorage: cloudStorage,
-						}
-						responseObj.filePath = element
-						responseObj.url = await cloudClient.getDownloadableUrl(bucketName, element, linkExpireTime)
-						result.push(responseObj)
-					})
-				)
+				if (process.env.CLOUD_STORAGE_BUCKET_TYPE != common.CLOUD_BUCKET_TYPE_PRIVATE) {
+					await Promise.all(
+						payloadData.map(async (element) => {
+							let responseObj = {
+								cloudStorage: cloudStorage,
+							}
+							responseObj.filePath = element
+							responseObj.url = await cloudClient.getDownloadableUrl(bucketName, element, expiryInSeconds)
+							result.push(responseObj)
+						})
+					)
+				} else {
+					await Promise.all(
+						payloadData.map(async (element) => {
+							let responseObj = {
+								cloudStorage: cloudStorage,
+							}
+							responseObj.filePath = element
+							responseObj.url =
+								(
+									await cloudServices.getSignedUrl(
+										bucketName,
+										element,
+										common.READ_ACCESS,
+										expiryInSeconds
+									)
+								)?.signedUrl || ''
+							result.push(responseObj)
+						})
+					)
+				}
 
 				return responses.successResponse({
 					message: 'DOWNLOAD_URL_GENERATED_SUCCESSFULLY',
@@ -191,26 +210,29 @@ module.exports = class FilesHelper {
 	static async fetchJsonFromCloud(filePath) {
 		try {
 			let result = {}
-			let downloadableUrl = await cloudClient.getDownloadableUrl(bucketName, filePath)
-			if (downloadableUrl) {
-				const data = await fetch(downloadableUrl).then((res) => res.json())
-				if (data && Object.keys(data).length > 0) {
-					result = data
-				}
-
-				return responses.successResponse({
-					message: 'JSON_FETCHED_SUCCESSFULLY',
-					statusCode: httpStatusCode.ok,
-					responseCode: 'OK',
-					result: result,
-				})
-			} else {
-				return responses.failureResponse({
-					message: 'FAILED_TO_DOWNLOAD_FILE',
+			let downloadableUrlResponse = await this.getDownloadableUrl([filePath])
+			if (
+				downloadableUrlResponse.statusCode !== httpStatusCode.ok ||
+				!downloadableUrlResponse?.result?.length === 0
+			) {
+				throw {
+					message: 'FAILED_TO_GENERATE_DOWNLOAD_URL',
 					statusCode: httpStatusCode.bad_request,
-					responseCode: 'CLIENT_ERROR',
-				})
+				}
 			}
+
+			const downloadableUrl = downloadableUrlResponse.result[0].url
+			const data = await fetch(downloadableUrl).then((res) => res.json())
+			if (data && Object.keys(data).length > 0) {
+				result = data
+			}
+
+			return responses.successResponse({
+				message: 'JSON_FETCHED_SUCCESSFULLY',
+				statusCode: httpStatusCode.ok,
+				responseCode: 'OK',
+				result: result,
+			})
 		} catch (error) {
 			return responses.failureResponse({
 				message: error.message || error,
