@@ -447,6 +447,15 @@ let environmentVariables = {
 			value: 'ON',
 		},
 	},
+	DOWNLOAD_URL_EXPIRATION_DURATION: {
+		message: 'Expiration duration for pre-signed URLs in seconds',
+		optional: true,
+		default: 1200,
+	},
+	CLOUD_STORAGE_BUCKET_TYPE: {
+		message: 'Require storage bucket type',
+		optional: false,
+	},
 }
 
 let success = true

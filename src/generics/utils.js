@@ -1069,6 +1069,20 @@ function setPolicy(policy) {
 	return common.VALID_POLICIES[upper] ? upper : null
 }
 
+function convertExpiryTimeToSeconds(expiryTime) {
+	expiryTime = String(expiryTime)
+	const match = expiryTime.match(/^(\d+)([m]?)$/)
+	if (match) {
+		const value = parseInt(match[1], 10) // Numeric value
+		const unit = match[2]
+		if (unit === 'm') {
+			return Math.floor(value / 60)
+		} else {
+			return value
+		}
+	}
+}
+
 module.exports = {
 	composeEmailBody,
 	internalSet,
@@ -1123,4 +1137,5 @@ module.exports = {
 	pathFinder,
 	isValidDate,
 	setPolicy,
+	convertExpiryTimeToSeconds,
 }
