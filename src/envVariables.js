@@ -120,7 +120,7 @@ let environmentVariables = {
 	AUTH_METHOD: {
 		message: 'Required authentication method',
 		optional: true,
-		default: common.AUTH_METHOD.JWT_ONLY,
+		default: common.AUTH_METHOD.NATIVE,
 	},
 	REVIEW_REQUIRED: {
 		message: 'Required Review Required field',
@@ -446,6 +446,15 @@ let environmentVariables = {
 			operator: 'EQUALS',
 			value: 'ON',
 		},
+	},
+	DOWNLOAD_URL_EXPIRATION_DURATION: {
+		message: 'Expiration duration for pre-signed URLs in seconds',
+		optional: true,
+		default: 1200,
+	},
+	CLOUD_STORAGE_BUCKET_TYPE: {
+		message: 'Require storage bucket type',
+		optional: false,
 	},
 }
 
