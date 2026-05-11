@@ -75,8 +75,7 @@ module.exports = {
 	SIGNATURE: 'signature',
 	LOGO: 'logo',
 	CERTIFICATE: 'certificate',
-	CLOUD_SERVICE_EXPIRY_TIME: 30,
-	LINK_EXPIRY_TIME: 60,
+	CLOUD_SERVICE_LINK_EXPIRY_TIME: process.env.DOWNLOAD_URL_EXPIRATION_DURATION || 1200,
 	CLOUD_SERVICE: ['azure', 'gcloud'],
 	STATUS_ACTIVE: 'ACTIVE',
 	CREATED_BY_SYSTEM: '0',
@@ -281,4 +280,5 @@ module.exports = {
 	},
 	TASK_TYPE_PROJECT: 'improvement_projects',
 	PROJECT_ID: 'project_id',
+	CLOUD_BUCKET_TYPE_PRIVATE: 'private',
 }

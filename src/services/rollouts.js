@@ -739,7 +739,7 @@ module.exports = class RolloutsHelper {
 			)
 
 			let solutionRolloutId
-			const rolloutDetailsResult = rolloutDetails?.result
+			let rolloutDetailsResult = rolloutDetails?.result
 
 			// check if rollout is present or not
 			if (rolloutDetails?.statusCode != httpStatusCode.ok) return rolloutDetails
@@ -754,7 +754,7 @@ module.exports = class RolloutsHelper {
 				})
 			}
 
-			if (!rolloutDetailsResult?.resource_details.id) {
+			if (!rolloutDetailsResult?.resource_details?.id) {
 				return responses.failureResponse({
 					statusCode: httpStatusCode.bad_request,
 					message: 'RESOURCE_NOT_FOUND',
@@ -843,7 +843,10 @@ module.exports = class RolloutsHelper {
 				status: common.ROLLOUT_STATUS_PROCESSING,
 			}
 
-			await rolloutQueries.updateOne({ id: rolloutId, tenant_code, organization_code: org_code }, updateBody)
+			let updateResult = await rolloutQueries.updateOne(
+				{ id: rolloutId, tenant_code, organization_code: org_code },
+				updateBody
+			)
 
 			const rolloutKafkaPayload = {
 				id: rolloutDetails.result.id,

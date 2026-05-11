@@ -184,5 +184,6 @@
 	"FAILED_TO_FETCH_ENTITIES": "Failed to fetch entities",
 	"ENTITIES_FETCHED_SUCCESSFULLY": "Entities fetched successfully",
 	"ORGANIZATION_NOT_FOUND_IN_TENANT": "Organization not found in tenant",
-	"TENANT_NOT_FOUND": "Tenant fetch failed"
+	"TENANT_NOT_FOUND": "Tenant fetch failed",
+	"FAILED_TO_GENERATE_DOWNLOAD_URL": "Failed to generate download url"
 }
