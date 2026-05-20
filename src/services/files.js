@@ -104,7 +104,14 @@ module.exports = class FilesHelper {
 					payload: { sourcePath: file },
 					cloudStorage: cloudStorage.toUpperCase(),
 				}
-				response.downloadableUrl = await this.getDownloadableUrl([file])
+
+				let downloadableUrlResponse = await this.getDownloadableUrl([file])
+				response.downloadableUrl =
+					downloadableUrlResponse?.statusCode === httpStatusCode.ok &&
+					downloadableUrlResponse?.result?.length > 0
+						? downloadableUrlResponse?.result[0]?.url || ''
+						: ''
+
 				if (!serviceUpload) {
 					response.url = await cloudClient.getSignedUrl(
 						bucketName, // bucket name
